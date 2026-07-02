@@ -1,11 +1,12 @@
-# BEB Raid
+# BEB Raid（ビーブレイド）
 
 **電車で削る、英語レイド学習。**
 
-BEB Raid は、通勤・通学中の短時間学習を主軸にした、英語学習向けの offline-first PWA です。
+BEB Raid（ビーブレイド）は、通勤・通学中の短時間学習を主軸にした、英語学習向けの offline-first PWA です。
 弱点駆動ドリル、語彙 SRS、シャドーイング、週次レイドバトルを組み合わせ、ひとりで続ける英語学習にゲーム的な進行感と社会性を足します。
 
 > Working title: **Beat English Boss Raid**  
+> Pronunciation: **ビーブレイド**  
 > Internal concept: **電車で削り、週でボスを倒し、昼で笑う**
 
 ## Concept
