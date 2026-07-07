@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## リポジトリの現状
 
 BEB Raid（ビーブレイド）— 通勤電車での短時間学習を主軸にした TOEIC 学習用 offline-first PWA。
-**M1 実装中**（`docs/08_M1タスク分解.md` の F1: T-01〜T-04 まで完了）。技術スタックは `docs/05_アーキテクチャ設計.md` のとおり（React + TypeScript + Vite、vite-plugin-pwa、Dexie.js、Zustand 程度の軽量状態管理、コンテンツ CLI は TypeScript/Node）。
+**進捗の正本は `docs/STATUS.md`**（現在地・契約状態・ブロッカーを常に最新に保つ。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新すること）。技術スタックは `docs/05_アーキテクチャ設計.md` のとおり（React + TypeScript + Vite、vite-plugin-pwa、Dexie.js、Zustand 程度の軽量状態管理、コンテンツ CLI は TypeScript/Node）。
 
 ### 構成とコマンド
 
@@ -30,6 +30,9 @@ npm workspaces の monorepo。ルートで実行する:
 | `docs/06_ロードマップ.md` | マイルストーン（M1〜M5）・見送り事項・着手前確認事項 |
 | `docs/07_ビジュアルデザイン.md` | デザインコンセプト・カラー・タイポグラフィ・画面別設計 |
 | `docs/08_M1タスク分解.md` | M1の実装タスク分解（ブロッカー・依存関係・完了ゲート）。01〜07が正本で本書は従属 |
+| `docs/09_開発体制.md` | 並行開発の契約（スキーマ・インターフェースの固定）・トラック分割・ブランチ運用。08に従属 |
+| `docs/STATUS.md` | **現在地（進捗正本）**。作業の着手・完了時に必ず更新する |
+| `docs/adr/` | ADR。01〜08に書かれていない技術判断はここに記録する（運用ルールは adr/README.md） |
 
 ## アーキテクチャの要点（設計判断の前提）
 
@@ -50,5 +53,7 @@ npm workspaces の monorepo。ルートで実行する:
 ## 開発の進め方
 
 - ロードマップは M1（電車ソロコアのMVP、GitHub Pages のみで完結）から順に進める。レイド・共有API（M3以降）を先行させない。`docs/06_ロードマップ.md` の「意図的に見送るもの」に載っている項目を勝手に実装しない。
-- 設計変更を伴う場合は該当する `docs/` のファイルを更新し、矛盾を作らない（00_README の冒頭にレビュー反映履歴を追記する慣行がある）。
+- 設計変更を伴う場合は該当する `docs/` のファイルを更新し、矛盾を作らない（00_README の冒頭にレビュー反映履歴を追記する慣行がある）。docs に書かれていない技術判断は `docs/adr/` に記録する。
+- 並行開発の分担・順序は `docs/09_開発体制.md` に従う。共有面（パックスキーマ・DBスキーマ・platform/エンジンのインターフェース）の変更は単独PRにする。
+- ブランチは `task/T-xx-説明` 形式で dev から切り、dev へ PR。main へはスライス・フェーズ境界でまとめて PR（レビュー必須）。
 - コミットメッセージは既存の慣行に従い `Doc:` などのプレフィックス付き日本語。
