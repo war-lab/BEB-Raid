@@ -13,3 +13,7 @@ packages/app/dev-dist/
 .DS_Store
 Thumbs.db
 *.log
+
+# Playwright MCP の作業ファイル
+.playwright-mcp/
+
