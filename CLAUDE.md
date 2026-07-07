@@ -5,7 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## リポジトリの現状
 
 BEB Raid（ビーブレイド）— 通勤電車での短時間学習を主軸にした TOEIC 学習用 offline-first PWA。
-**現在は設計フェーズであり、実装コードは存在しない。** ビルド・テスト・lint コマンドはまだない。実装着手時は `docs/05_アーキテクチャ設計.md` の技術スタック（React + TypeScript + Vite、vite-plugin-pwa、Dexie.js、Zustand 程度の軽量状態管理、コンテンツ CLI は TypeScript/Node）に従うこと。
+**M1 実装中**（`docs/08_M1タスク分解.md` の F1: T-01〜T-04 まで完了）。技術スタックは `docs/05_アーキテクチャ設計.md` のとおり（React + TypeScript + Vite、vite-plugin-pwa、Dexie.js、Zustand 程度の軽量状態管理、コンテンツ CLI は TypeScript/Node）。
+
+### 構成とコマンド
+
+npm workspaces の monorepo。ルートで実行する:
+
+- `npm run build` / `npm test` / `npm run lint` / `npm run format`（Prettier。`docs/` 等の Markdown は整形対象外）
+- `packages/app` — PWA本体（Vite + React）。`packages/cli` — コンテンツパイプラインCLI。`packages/shared-schema` — 問題パックスキーマ型の共有（app/cli 双方から import）
+- `packages/app/src/platform/` — 音声再生（AudioPlayer）・パックキャッシュ（PackCache）の抽象化レイヤ。**UI・エンジンから Audio / AudioContext / caches を直接呼ぶと ESLint エラーになる**（必ず platform のインターフェース経由で使う）
+- デザイントークンは `packages/app/src/styles/tokens.css`（07の3節が正本）。色は必ずトークン経由で参照する
 
 ## ドキュメント構成
 
