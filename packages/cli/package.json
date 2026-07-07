@@ -8,7 +8,8 @@
     "beb": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run"
   },
   "dependencies": {
     "@beb-raid/shared-schema": "*"
