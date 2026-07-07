@@ -14,6 +14,30 @@ export default tseslint.config(
     rules: reactHooks.configs.recommended.rules,
   },
   {
+    // 抽象化レイヤの強制（docs/05 7節・T-04）:
+    // UI・エンジンコードは音声再生とキャッシュを Web API 直接でなく
+    // src/platform のインターフェース経由で使う
+    files: ['packages/app/src/**/*.{ts,tsx}'],
+    ignores: ['packages/app/src/platform/**'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        { name: 'caches', message: 'PackCache（src/platform）経由で使うこと（T-04）' },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Audio']",
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04）',
+        },
+        {
+          selector: "NewExpression[callee.name='AudioContext']",
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04）',
+        },
+      ],
+    },
+  },
+  {
     // Node で実行するビルド補助スクリプト（.mjs）
     files: ['**/scripts/**/*.mjs'],
     languageOptions: {
