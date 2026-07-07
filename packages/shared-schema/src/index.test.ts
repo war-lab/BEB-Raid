@@ -10,10 +10,10 @@ describe('shared-schema 配線確認', () => {
     // license / origin を欠くとコンパイルエラーになること自体が確認事項
     const meta: PackMeta = {
       id: 'sample-pack',
-      schemaVersion: SCHEMA_VERSION,
       title: 'サンプル',
-      license: 'CC0-1.0',
+      license: 'internal-original',
       origin: 'llm-generated',
+      targetLevel: [300, 500],
     }
     expect(meta.license).toBeTruthy()
     expect(meta.origin).toBeTruthy()
