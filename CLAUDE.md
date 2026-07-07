@@ -14,6 +14,7 @@ npm workspaces の monorepo。ルートで実行する:
 - `npm run build` / `npm test` / `npm run lint` / `npm run format`（Prettier。`docs/` 等の Markdown は整形対象外）
 - `packages/app` — PWA本体（Vite + React）。`packages/cli` — コンテンツパイプラインCLI。`packages/shared-schema` — 問題パックスキーマ型の共有（app/cli 双方から import）
 - `packages/app/src/platform/` — 音声再生（AudioPlayer）・パックキャッシュ（PackCache）の抽象化レイヤ。**UI・エンジンから Audio / AudioContext / caches を直接呼ぶと ESLint エラーになる**（必ず platform のインターフェース経由で使う）
+- `packages/app/src/db/` — Dexie スキーマ（04の3節の全11ストア）。**attempts は追記のみ**（削除は Dexie フックで実行時にも遮断。サービス層にも削除APIを作らない）。`packages/app/src/services/` — 解答記録・セッション中断復帰・エクスポート/インポート。IndexedDB を使うテストは fake-indexeddb を import する
 - デザイントークンは `packages/app/src/styles/tokens.css`（07の3節が正本）。色は必ずトークン経由で参照する
 
 ## ドキュメント構成
