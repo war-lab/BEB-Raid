@@ -1,0 +1,31 @@
+{
+  "name": "beb-raid",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "BEB Raid — 通勤電車での短時間学習を主軸にした TOEIC 学習用 offline-first PWA",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @beb-raid/shared-schema && npm run build -w @beb-raid/cli && npm run build -w @beb-raid/app",
+    "test": "npm test --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.0",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.1",
+    "vitest": "^4.1.9"
+  }
+}

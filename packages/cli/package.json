@@ -1,0 +1,16 @@
+{
+  "name": "@beb-raid/cli",
+  "private": true,
+  "version": "0.1.0",
+  "description": "コンテンツパイプライン CLI（generate / review / tts / build）。コマンド実装は T-24 以降",
+  "type": "module",
+  "bin": {
+    "beb": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@beb-raid/shared-schema": "*"
+  }
+}

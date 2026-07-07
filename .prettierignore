@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dev-dist/
+package-lock.json
+
+# 設計ドキュメント（正本）と既存Markdownは整形対象にしない（差分ノイズ防止）
+*.md
+*.png
+*.woff2
+*.mp3
