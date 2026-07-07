@@ -1,0 +1,27 @@
+# CI: lint + build + test（GitHub Pages デプロイは T-33 で別ワークフローを追加する）
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 依存インストール
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: フォーマット検査
+        run: npm run format:check
+      - name: ビルド
+        run: npm run build
+      - name: テスト
+        run: npm test

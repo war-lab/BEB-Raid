@@ -1,0 +1,46 @@
+/* ベーススタイル（リセット＋地の設定。正本: docs/07 4〜5節） */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 数字ディスプレイ（ダメージ・HP・タイマー・スコア・ストリーク数） */
+.display-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 英文問題文（揺れる車内前提: 18px以上・行間1.65・最大幅34em） */
+.question-text {
+  font-size: var(--fs-question);
+  line-height: 1.65;
+  max-width: 34em;
+}
+
+/* 学習中の常時アニメーション禁止（07の9節）に加え、reduced-motion では全て止める */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

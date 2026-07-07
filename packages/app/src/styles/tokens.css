@@ -1,0 +1,97 @@
+/* デザイントークン（正本: docs/07 3〜5節）
+ * - コンポーネントは必ずトークン経由で色を参照する（テーマ切替は data-theme 属性）
+ * - 既定はダーク（J-8）。:root 直下にダーク値を置き、data-theme="light" で上書きする
+ */
+
+/* 数字ディスプレイ書体（07の4.1）: Chakra Petch Bold の数字＋記号サブセット */
+@font-face {
+  font-family: 'Chakra Petch Digits';
+  src: url('../assets/fonts/ChakraPetchBold-digits.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root,
+:root[data-theme='dark'] {
+  /* 3.1 グラウンド・インク */
+  --bg: #0e1220;
+  --surface: #181e31;
+  --surface-2: #222a44;
+  --line: #2c3552;
+  --ink: #eaedf6;
+  --ink-2: #a6aec6;
+  --ink-3: #6b7492;
+
+  /* 3.2 ブランド・モードアクセント */
+  --gold: #f5b83d;
+  --on-gold: #1a1405; /* 明るいアクセント上に白文字を置かない（07の3.2） */
+  --raid: #e8506b;
+  --listen: #4ec3e0;
+  --violet: #8b79e8;
+
+  /* 3.3 ステータス色（必ずアイコン/形と二重符号化で使う） */
+  --ok: #3dc97e;
+  --ng: #f0647a;
+  --warn: #f5b83d;
+
+  /* 3.4 チャート用カテゴリカルパレット（UIアクセントとは別トークン・検証済み値） */
+  --chart-gold: #b87f15;
+  --chart-teal: #2f97b4;
+  --chart-crimson: #e8506b;
+  --chart-violet: #8b79e8;
+
+  /* 3.5 ランク色 */
+  --rank-bronze: #b0805b;
+  --rank-silver: #aeb6c6;
+  --rank-gold: var(--gold);
+  --rank-platinum: #7fd6d0;
+  --rank-master: var(--violet);
+
+  /* 4節 タイポグラフィ */
+  --font-ui: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
+  --font-display: 'Chakra Petch Digits', var(--font-ui);
+  --fs-note: 12px;
+  --fs-sub: 14px;
+  --fs-ui: 16px;
+  --fs-question: 18px; /* 英文問題文。行間1.65・最大幅34em は利用側で指定 */
+  --fs-heading: 22px;
+  --fs-stat: 28px;
+  --fs-display: 40px;
+
+  /* 5節 レイアウト（8ptグリッド・角丸） */
+  --sp-half: 4px;
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --radius-pill: 999px;
+  --tap-min: 48px; /* タップ目標最小 */
+  --answer-height: 56px; /* 解答ボタン高さ */
+}
+
+:root[data-theme='light'] {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-2: #efede6;
+  --line: #ddd9ce;
+  --ink: #211e18;
+  --ink-2: #6d675c;
+  --ink-3: #9c958a;
+
+  --gold: #a66e00;
+  --on-gold: #ffffff; /* ライトの金は暗色なので白文字で AA を確保 */
+  --raid: #c42b4c;
+  --listen: #0083a6;
+  --violet: #6a55d8;
+
+  --ok: #1e8a54;
+  --ng: #c42b4c;
+  --warn: #a66e00;
+
+  --chart-gold: #a66e00;
+  --chart-teal: #0083a6;
+  --chart-crimson: #c42b4c;
+  --chart-violet: #6a55d8;
+}
