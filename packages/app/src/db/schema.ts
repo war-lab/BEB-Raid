@@ -62,6 +62,14 @@ export interface SrsCardRecord {
   dueAt: number
   /** 「もう一回」でリセットされた回数 */
   lapses: number
+  // --- 以下は T-09/T-11（F3）で追加した非インデックスフィールド。
+  //     既存レコードには存在しないため省略可とし、読み手は undefined を既定値として扱う
+  /** 新規として初めて復習された暦日（null/undefined=未出題の新規。新規上限20枚/日の集計に使う） */
+  introducedDate?: string | null
+  /** 卒業時刻（60日間隔を突破した時点。卒業カードは出題対象外だが定着の記録として残す） */
+  graduatedAt?: number | null
+  /** 発生元の問題ID（誤答由来のkey語彙カード。定着後の元問題再出題=03の3.2に使う） */
+  sourceQuestionId?: string | null
 }
 
 /** ratings: 現在レート（L/R/total の3行） */
@@ -69,6 +77,11 @@ export interface RatingRecord {
   section: RatingSection
   rating: number
   updatedAt: number
+  /**
+   * このセクションのレートを動かした解答数（最初の50問は K=32 とする判定に使う。03の5.4）。
+   * T-10（F3）で追加した非インデックスフィールド。省略時は 0 として扱う
+   */
+  answerCount?: number
 }
 
 /** ratingHistory: 日次スナップショット（伸びグラフの入力） */
@@ -79,12 +92,16 @@ export interface RatingHistoryRecord {
   rating: number
 }
 
-/** tagStats: タグ別の直近100問移動窓サマリ（attempts から再構築可能） */
+/**
+ * tagStats: タグ別の直近100問移動窓サマリ（attempts から再構築可能）。
+ * 当て勘誤答は重み 0.5 で集計するため（03の7.2）、値は小数を含む重み付き合計。
+ * 時間切れは「速度不足」の別カウントであり移動窓に含めない（T-12）
+ */
 export interface TagStatRecord {
   tag: string
-  /** 移動窓内の正答数（当て勘の重み減は T-12 の集計側で扱う） */
+  /** 移動窓内の重み付き正答数 */
   windowCorrect: number
-  /** 移動窓内の出題数（上限100） */
+  /** 移動窓内の重み付き出題数（対象解答は最大100件） */
   windowTotal: number
 }
 
