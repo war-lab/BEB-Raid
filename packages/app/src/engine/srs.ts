@@ -1,0 +1,162 @@
+// SRSエンジン（T-09。正本: docs/03 2節）。
+//
+// SM-2 簡略版。間隔テーブル 1→3→7→14→30→60日、自己評価3段階
+// （もう一回=リセット / OK=次段階 / 余裕=1段階スキップ）、60日突破で卒業。
+// 「純粋関数（applyGrade）＋DBアクセスの薄い層」の構成。
+//
+// 日付境界の扱い: dueAt は「復習した日のローカル0時 + 間隔日数」= 期限日の0時。
+// 23:59 に復習しても 00:01 に復習しても同じ「翌日」に期限が来る（暦日基準）。
+
+import type { BebRaidDatabase } from '../db/database'
+import type { SrsCardRecord, SrsRefType } from '../db/schema'
+import { localMidnightAfterDays, toDateString } from './date'
+import type { AddSrsCardInput, ReviewSrsCardResult, SrsGrade, SrsQueue } from './types'
+
+/** 間隔テーブル（日）。stage がこの配列のインデックス。末尾（60日）を突破すると卒業 */
+export const SRS_INTERVAL_DAYS = [1, 3, 7, 14, 30, 60] as const
+
+/** SRS運用パラメータ（03の2節「変更可」に対応） */
+export interface SrsOptions {
+  /** 1日の新規カード上限 */
+  newCardsPerDay: number
+  /**
+   * 復習滞留とみなす期限超過枚数（これ以上溜まった日は新規を自動停止）。
+   * 既定16 = クイックパックのSRS上限15枚（03の1.3）を超えて溢れる状態
+   */
+  newStopBacklog: number
+}
+
+export const DEFAULT_SRS_OPTIONS: SrsOptions = {
+  newCardsPerDay: 20,
+  newStopBacklog: 16,
+}
+
+/** SRSカードの主キー（`${refType}:${refId}` 合成キー） */
+export function srsCardId(refType: SrsRefType, refId: string): string {
+  return `${refType}:${refId}`
+}
+
+/**
+ * 自己評価をカードへ適用した結果を返す純粋関数。
+ * - 未導入カード（introducedDate なし）は仮想段階 -1 からの遷移:
+ *   OK→stage0（1日）/ 余裕→stage1（3日）。導入日を記録する
+ * - もう一回: stage0 へリセット（導入済みなら lapses+1）
+ * - 遷移先が間隔テーブルを超えたら卒業（graduatedAt を記録。dueAt は据え置き）
+ */
+export function applyGrade(
+  card: SrsCardRecord,
+  grade: SrsGrade,
+  now: number,
+): ReviewSrsCardResult {
+  const introduced = card.introducedDate ?? null
+  let nextStage: number
+  let lapses = card.lapses
+  if (grade === 'again') {
+    nextStage = 0
+    if (introduced !== null) lapses += 1
+  } else {
+    const current = introduced === null ? -1 : card.stage
+    nextStage = current + (grade === 'good' ? 1 : 2)
+  }
+
+  const graduated = nextStage >= SRS_INTERVAL_DAYS.length
+  const next: SrsCardRecord = {
+    ...card,
+    stage: graduated ? SRS_INTERVAL_DAYS.length - 1 : nextStage,
+    dueAt: graduated
+      ? card.dueAt
+      : localMidnightAfterDays(now, SRS_INTERVAL_DAYS[Math.max(nextStage, 0)] ?? 1),
+    lapses,
+    introducedDate: introduced ?? toDateString(now),
+    graduatedAt: graduated ? now : null,
+  }
+  return { card: next, graduated }
+}
+
+/**
+ * SRSカードを追加する。
+ * - 既存の未卒業カードがあれば何もしない（sourceQuestionId のみ補完）
+ * - 卒業済みカードに再追加が来た場合（=定着したはずの語で再誤答）は
+ *   新規カードとして学習し直す（stage0・未導入へリセット）
+ */
+export async function addSrsCard(
+  db: BebRaidDatabase,
+  input: AddSrsCardInput,
+): Promise<SrsCardRecord> {
+  const now = input.now ?? Date.now()
+  const id = srsCardId(input.refType, input.refId)
+  return db.transaction('rw', db.srsCards, async () => {
+    const existing = await db.srsCards.get(id)
+    if (existing && (existing.graduatedAt ?? null) === null) {
+      if ((existing.sourceQuestionId ?? null) === null && input.sourceQuestionId) {
+        const updated = { ...existing, sourceQuestionId: input.sourceQuestionId }
+        await db.srsCards.put(updated)
+        return updated
+      }
+      return existing
+    }
+    const card: SrsCardRecord = {
+      id,
+      refType: input.refType,
+      refId: input.refId,
+      stage: 0,
+      // 新規カードの dueAt は追加時刻（新規プールの並び順に使う。導入までは復習期限を持たない）
+      dueAt: now,
+      lapses: existing?.lapses ?? 0,
+      introducedDate: null,
+      graduatedAt: null,
+      sourceQuestionId: input.sourceQuestionId ?? existing?.sourceQuestionId ?? null,
+    }
+    await db.srsCards.put(card)
+    return card
+  })
+}
+
+/** カードに自己評価を反映して保存する */
+export async function reviewSrsCard(
+  db: BebRaidDatabase,
+  cardId: string,
+  grade: SrsGrade,
+  now: number = Date.now(),
+): Promise<ReviewSrsCardResult> {
+  return db.transaction('rw', db.srsCards, async () => {
+    const card = await db.srsCards.get(cardId)
+    if (!card) throw new Error(`SRSカードが存在しない: ${cardId}`)
+    if ((card.graduatedAt ?? null) !== null) {
+      throw new Error(`卒業済みカードは復習対象外: ${cardId}`)
+    }
+    const result = applyGrade(card, grade, now)
+    await db.srsCards.put(result.card)
+    return result
+  })
+}
+
+/**
+ * 出題対象のSRSキューを返す。
+ * - dueReviews: 導入済み・未卒業・期限到来（dueAt <= now）。dueAt 昇順
+ * - newCards: 未導入カードを追加順に、残り新規枠（上限 − 今日導入済み数）まで。
+ *   期限超過が newStopBacklog 以上溜まっている日は新規を自動停止（03の2節）
+ */
+export async function getSrsQueue(
+  db: BebRaidDatabase,
+  now: number = Date.now(),
+  options: SrsOptions = DEFAULT_SRS_OPTIONS,
+): Promise<SrsQueue> {
+  const all = await db.srsCards.toArray()
+  const active = all.filter((c) => (c.graduatedAt ?? null) === null)
+
+  const dueReviews = active
+    .filter((c) => (c.introducedDate ?? null) !== null && c.dueAt <= now)
+    .sort((a, b) => a.dueAt - b.dueAt)
+
+  const today = toDateString(now)
+  const introducedToday = active.filter((c) => c.introducedDate === today).length
+  const newStopped = dueReviews.length >= options.newStopBacklog
+  const allowance = newStopped ? 0 : Math.max(0, options.newCardsPerDay - introducedToday)
+  const newCards = active
+    .filter((c) => (c.introducedDate ?? null) === null)
+    .sort((a, b) => a.dueAt - b.dueAt)
+    .slice(0, allowance)
+
+  return { dueReviews, newCards, newStopped }
+}
