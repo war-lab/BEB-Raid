@@ -122,7 +122,7 @@ describe('generate vocab_card（T-26）', () => {
     expect(missing.code).toBe(1)
     expect(missing.errOutput).toContain('使い方')
 
-    const unsupported = await run(['generate', 'text_blank'])
+    const unsupported = await run(['generate', 'dictation'])
     expect(unsupported.code).toBe(1)
     expect(unsupported.errOutput).toContain('未対応のkind')
   })
@@ -177,6 +177,58 @@ describe('generate audio_qa（T-27）', () => {
     const draftPath = join(dir, 'part2-s.jsonl')
     const tsvPath = join(dir, 'review.tsv')
     await run(['generate', 'audio_qa', draftPath], {})
+    const { code } = await run(['review-export', draftPath, tsvPath])
+    expect(code).toBe(0)
+    const tsv = await readFile(tsvPath, 'utf-8')
+    expect(tsv.trim().split('\n')).toHaveLength(51) // ヘッダー + 50件
+  })
+})
+
+describe('generate text_blank（T-28）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-part5-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で50件のtext_blankドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'part5-s.jsonl')
+    const { code, output } = await run(['generate', 'text_blank', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('50件')
+
+    const drafts = parseJsonl<{
+      id: string
+      kind: string
+      preview: string
+      payload: {
+        format: string
+        question: string
+        answer: string
+        choices: { key: string; text: string }[]
+        keyVocab: { word: string; sense: string; freqRank: string }[]
+        tags: string[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(50)
+    expect(drafts.every((d) => d.kind === 'text_blank')).toBe(true)
+    expect(drafts.every((d) => d.payload.format === 'text_blank')).toBe(true)
+    expect(drafts.every((d) => d.payload.question.includes('___'))).toBe(true)
+    expect(drafts.every((d) => d.payload.choices.some((c) => c.key === d.payload.answer))).toBe(
+      true,
+    )
+    expect(drafts.every((d) => d.payload.keyVocab[0]?.freqRank === 'S')).toBe(true)
+    expect(new Set(drafts.map((d) => d.id)).size).toBe(50)
+  })
+
+  it('review-export にそのまま渡せる（T-30パイプラインとの接続）', async () => {
+    const draftPath = join(dir, 'part5-s.jsonl')
+    const tsvPath = join(dir, 'review.tsv')
+    await run(['generate', 'text_blank', draftPath], {})
     const { code } = await run(['review-export', draftPath, tsvPath])
     expect(code).toBe(0)
     const tsv = await readFile(tsvPath, 'utf-8')
