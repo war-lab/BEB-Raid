@@ -9,6 +9,7 @@ import { getDb } from './db/database'
 import { DEFAULT_INITIAL_RATING } from './engine/rating'
 import { createAudioPlayer } from './platform'
 import { InstallHint } from './pwa/InstallHint'
+import { DashboardScreen } from './screens/DashboardScreen'
 import { DrillScreen } from './screens/DrillScreen'
 import { ResultScreen } from './screens/ResultScreen'
 import { VocabScreen } from './screens/VocabScreen'
@@ -157,6 +158,7 @@ export function App() {
       <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={DUMMY_VOCAB_QUESTIONS} />
     )
   }
+  if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
 
   return (
     <ScreenLayout
@@ -179,6 +181,9 @@ export function App() {
             冒頭だけ再生モード（J-5）
           </label>
           <PrimaryButton onClick={() => navigate('vocab')}>語彙SRS開始（開発用）</PrimaryButton>
+          <PrimaryButton onClick={() => navigate('dashboard')}>
+            ダッシュボード表示（開発用）
+          </PrimaryButton>
         </>
       }
     >

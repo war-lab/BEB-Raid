@@ -294,6 +294,51 @@
   outline-offset: 2px;
 }
 
+/* --- チャート共通（08節: グリッド・軸は退行色、数表併設、タップで値表示） --- */
+.chart-empty {
+  padding: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.chart-line,
+.chart-bars,
+.chart-heatmap {
+  margin-bottom: var(--sp-2);
+}
+.chart-line svg,
+.chart-bars svg {
+  width: 100%;
+  height: auto;
+}
+.chart-heatmap svg {
+  max-width: 100%;
+  height: auto;
+}
+.chart-line__end-value {
+  font-size: var(--fs-sub);
+  font-weight: 700;
+}
+.chart-tooltip {
+  margin: var(--sp-half) 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+.chart-table {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-note);
+}
+.chart-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.chart-table th,
+.chart-table td {
+  padding: var(--sp-half);
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;

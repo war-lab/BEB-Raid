@@ -4,7 +4,7 @@
 
 ## 今どこにいるか（1行）
 
-**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15〜T-19 完了（S-A1・S-A2完了、T-18も完了）。次は S-A3（T-22: ダッシュボード）。** タスク進捗: 20 / 38 完了。
+**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15〜T-19・T-22 完了（S-A1・S-A2・S-A3完了）。次は S-A4（T-21→T-20→T-18は済）。** タスク進捗: 21 / 38 完了。
 
 ## フェーズ進捗
 
@@ -13,7 +13,7 @@
 | F1 プロジェクト基盤（T-01〜T-04） | ✅ 完了 | 2026-07-07 main マージ済み（PR #2） |
 | F2 データ層（T-05〜T-08） | ✅ 完了 | 2026-07-07 dev 上で完了。契約 C-1/C-2 確定 |
 | F3 学習エンジン（T-09〜T-14） | ✅ 完了 | 2026-07-10 dev 上で完了。契約 C-4 確定。実装は `packages/app/src/engine/` |
-| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15〜T-19 完了（S-A1・S-A2完了）。次はS-A3（T-22） |
+| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15〜T-19・T-22 完了（S-A1・S-A2・S-A3完了）。次はS-A4（T-21→T-20） |
 | F5 コンテンツパイプライン（T-24〜T-34) | 🔶 一部完了 | T-24 完了。T-25 以降は B-1/B-2 待ち。**M1 全体の律速** |
 | F6 統合・ドッグフード（T-35〜T-38） | ⬜ 未着手 | |
 
@@ -41,6 +41,7 @@
 | T-17 | Part2瞬発モード | ✅ 完了 | 2026-07-10 |
 | T-19 | S3 語彙SRS画面 | ✅ 完了 | 2026-07-10 |
 | T-18 | Part5ドリル | ✅ 完了 | 2026-07-10 |
+| T-22 | S6 ダッシュボード | ✅ 完了 | 2026-07-10 |
 
 ※ T-02 の iOS/Android 実機での standalone 表示・小サイズロゴ視認性、T-03 のライトテーマ実地検証は計画どおり後続（T-36 実機検証で確認）。未検証項目であることに注意。
 ※ T-15: `npm run dev` を起動し、実際のmp3（ffmpegで生成した1秒のトーン2本）を使い Playwright 経由の実 Chromium で unlock→play→部分再生（durationMs）→playSequence連結→replay→stop打ち切り、を一通り操作して確認済み（page error 0件）。iOS Safari実機での自動再生制限解除の確認は T-36 まで未検証。
@@ -48,6 +49,7 @@
 ※ T-17: `DrillScreen` に audio_qa 対応を追加（開始タップ=unlock兼用→play→15秒タイマー→自動タイムアウト誤答、もう一度再生=replay、セッション内連続正解ストリーク表示）。冒頭だけ再生モード（J-5）は `sessionStore.partialAudioMode` フラグで制御し、`PlayOptions.durationMs`（2500ms。docs未記載のチューニング値）付きで `play()` を呼ぶ。コンポーネントテスト6件追加（タイムアウト自動確定・タイマー中の即時解答・ストリーク増減・durationMs付きplay呼び出し等）。`vi.useFakeTimers({ toFake: ['setInterval','clearInterval'] })` で15秒タイマーのみ高速化し、fake-indexeddbのDexie操作は実タイマーのまま動かす手法を確立。ffmpegで生成したPart2ダミー音声2本を `public/packs/dev/audio/` にコミット（生成スクリプト `scripts/generate-dummy-audio.mjs`）。実装後 `npm run dev` を起動しPlaywright実Chromiumで通常モード（2問完走→リザルト）・冒頭再生モード（play呼び出し確認）を手動確認、page error 0件。
 ※ T-19: 新規 `VocabScreen`＋`SwipeCard`（Pointer Events。左右のみ判定、縦優勢は無視）を実装。復習モード（`getSrsQueue`のdueReviews+newCardsを結合。自己評価3段階→`reviewSrsCard`＋`recordAttempt`(mode='srs')＋`evaluateStreak`）と仕分けモード（vocabQuestionsのうちsrsCards未登録の語を候補にし、「知らない」で`addSrsCard`、「知ってる」はスキップのみ）の2フェーズ構成。`buildSrsQueue`という旧称がdocs/10にあるが実体は`engine/srs.ts`の`getSrsQueue`（実装済み関数名の食い違いを解消して実装）。自己評価→attemptsのisCorrect写像は「もう一回=false、OK/余裕=true」で実装（docs未記載の解釈）。フレーズ音声自動再生は`settings`ストアの`vocabAutoPlayPhrase`キーで永続化。コンポーネントテスト7件。実装後`npm run dev`を起動しPlaywright実Chromiumで実際のポインタドラッグ（mouse.down/move/up）による左右スワイプ＋ボタン仕分けの両方を手動確認、page error 0件。
 ※ T-18: `DrillScreen`はT-16の時点で既にformat非依存（text_blankは音声なし・タイマーなしの共通フローにそのまま乗る）だったため新規実装は不要。T-18固有の完了条件（文法タグが問題ごとに異なってもtagStatsへ正しく反映される）を明示的に検証するテストを1件追加して完了条件を機械的に満たした。
+※ T-22: `dataviz`スキルの手順に従い着手前に読み込み。新規 `components/charts/`（LineChart・WeakBars・Heatmap、素のSVG。ライブラリ不使用=3.5節）と `screens/DashboardScreen.tsx` を実装。伸びグラフは`ratingHistory`のsection='total'のみ（予測スコア帯・二軸はJ-1でM1対象外のため作らない）。学習ヒートマップの5段階配色は`color-mix(in srgb, var(--surface-2), var(--chart-gold) N%)`でトークンから機械的に補間（hex直書きなし）。3チャートとも数表ビュー（`<details>`）・タップで値表示のツールチップ・0/1件データでのフォールバック表示を実装。コンポーネントテスト8件。実装後`npm run dev`を起動しPlaywright実Chromiumでスクリーンショットを撮影し、レイアウト崩れ・ラベル衝突がないことを目視確認（dataviz手順7節）。テスト実行時、フルスイート実行時にのみ1回だけ`DashboardScreen.test.tsx`由来の`DatabaseClosedError`が非決定的に発生したが、再実行では再現せず環境要因（ワーカー起動の遅延等）と判断。継続的に再現する場合は要調査。
 
 ## 契約の状態（[09](09_開発体制.md) 2節）
 
@@ -86,11 +88,11 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 
 **残タスク（T-15〜T-23, T-25〜T-38）の実装は [10_F4-F6実装計画](10_F4-F6実装計画.md) のタスクシートに従う**（1タスク=1セッションの自走用作業指示。実装方式の事前決定は同書3節と ADR 0003）。
 
-1. **F4: 学習モードUI** — S-A1（T-15→T-16→T-17）・S-A2（T-19）・T-18 完了。次は S-A3（T-22: ダッシュボード）
+1. **F4: 学習モードUI** — S-A1（T-15→T-16→T-17）・S-A2（T-19）・T-18・S-A3（T-22）完了。次は S-A4（T-21: S1ホーム → T-20: P0診断）
 2. **F5 前半（並行可）** — T-30 → T-25 → T-26/27/28 のコマンド実装。生成実行と目視レビューは人間の稼働待ち（M1の律速）
 3. **B-2 の解消（TTS アカウント作成）** — 発起人の判断で後回し中。T-31 の実生成着手前までに実施（第一候補 Azure F0。手順は 10 の T-31 シート参照）
 
-### F4 への引き継ぎ（T-16/T-17/T-19 実装からの注意点）
+### F4 への引き継ぎ（T-16/T-17/T-19/T-22 実装からの注意点）
 
 - `SessionSnapshot` は T-16 で per-item mode 対応済み（`items: SessionItem[]`。`SessionItem = { questionId, mode, srsCardId?, reason? }`）。SRS復習の解答も **attempts に mode='srs' で記録される**（item.mode がそのまま attempt.mode になる）
 - 解答確定時の結線（`DrillScreen` に実装済み。T-18 も踏襲する）: `answerCurrentQuestion` → 誤答なら `processWrongAnswer` → `updateTagStatsForAnswer` → `applyRatingUpdate` → SRS由来item（`srsCardId`あり）なら `reviewSrsCard`（S2は客観正誤のみのUIのため、正解→good/誤答→again に固定。自己評価3段階の本来の入口はT-19のS3語彙カードUI）
@@ -100,6 +102,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 - レート未初期化セクション（'L'/'R' 未着手）の表示は `DEFAULT_INITIAL_RATING`（400）にフォールバックすること（`0` にすると「400→0」のような誤解を招く表示になる。T-16のPlaywright手動確認で発見・修正済み）
 - fake timers と fake-indexeddb（Dexie）を同一テストで併用する場合は `vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })` のように対象を絞ること（全種類フェイク化するとDexieの内部非同期処理がデッドロックする。T-17で確立した手法）
 - `VocabScreen`（T-19）は `SessionSnapshot`/`sessionStore` を使わず独立動作（DrillScreenの quickPack セッションフローとは無関係）。復習キューは `getSrsQueue().dueReviews + newCards` を結合したもの、仕分け候補は「`vocabQuestions` のうち `srsCards` に未登録の語」。T-21（ホーム）からVocabScreenへ遷移する導線・実パックの語彙カード読み込みはT-21/T-35側で配線する
+- `DashboardScreen`（T-22）も独立動作（`db` prop のみ、session/appStoreに依存しない）。`components/charts/`（LineChart・WeakBars・Heatmap）は素のSVGでライブラリ不使用（3.5節）。予測スコア帯・到達予測（J-1）はM1対象外のため伸びグラフは総合レートの折れ線のみ。S5（レイド画面。M3）の弱点マップ表示にも`WeakBars`を再利用できる想定
 
 ## 体制・環境メモ
 
