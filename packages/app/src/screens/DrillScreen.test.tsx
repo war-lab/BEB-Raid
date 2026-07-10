@@ -3,12 +3,18 @@
 // - 誤答で srsCards（問題＋key語彙）が追加され、tagStats・ratings が更新される
 // - SRS由来item（srsCardIdあり）の解答で reviewSrsCard が呼ばれる
 // - 中断復帰: answeredCount > 0 のスナップショットから再開すると続きの問題が表示される
+// T-17 完了条件のテスト（audio_qa。docs/10 T-17）:
+// - タイマー0で自動的にisTimeout記録＋正誤表示に遷移する
+// - 連続正解数がセッション内で増減する
+// - 冒頭再生モードでplayがdurationMs付きで呼ばれる
+// - 15秒タイマー中に解答すると残り時間に関係なく即確定する
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion, startSession, type SessionItem } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -23,6 +29,15 @@ function newDb(): BebRaidDatabase {
   return db
 }
 
+/** AudioPlayer のフェイク（テスト用に呼び出しを記録する） */
+class FakeAudioPlayer implements AudioPlayer {
+  unlock = vi.fn(async () => {})
+  play = vi.fn(async () => {})
+  playSequence = vi.fn(async () => {})
+  replay = vi.fn(async () => {})
+  stop = vi.fn(() => {})
+}
+
 beforeEach(() => {
   useAppStore.setState({ screen: 'home' })
   useSessionStore.getState().reset()
@@ -30,6 +45,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
+  vi.useRealTimers()
 })
 
 function part5Question(id: string, answer: string, word: string): Question {
@@ -80,7 +96,7 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
     await setupSession(db, items, QUESTIONS)
 
-    render(<DrillScreen db={db} />)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
 
     // q-1 の正解は A。B(誤答)を選ぶ
     await answerAndSettle('b', 1)
@@ -108,7 +124,7 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
     await setupSession(db, items, QUESTIONS)
 
-    render(<DrillScreen db={db} />)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     await answerAndSettle('a', 1) // q-1 の正解
 
     expect(screen.getByText('正解')).toBeTruthy()
@@ -120,7 +136,7 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
     await setupSession(db, items, QUESTIONS)
 
-    render(<DrillScreen db={db} />)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     await answerAndSettle('a', 1)
 
     expect(await db.attempts.count()).toBe(1)
@@ -134,7 +150,7 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
     await setupSession(db, items, QUESTIONS)
 
-    render(<DrillScreen db={db} />)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     await answerAndSettle('a', 1)
     fireEvent.click(screen.getByText('次へ'))
 
@@ -163,7 +179,7 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     const items: SessionItem[] = [{ questionId: 'q-1', mode: 'srs', srsCardId: 'question:q-1' }]
     await setupSession(db, items, [QUESTIONS[0]!])
 
-    render(<DrillScreen db={db} />)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     await answerAndSettle('a', 1) // 正解 → good
 
     const card = await db.srsCards.get('question:q-1')
@@ -179,8 +195,151 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     snapshot = await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
     useSessionStore.getState().begin(snapshot, QUESTIONS, { L: 400, R: 400 })
 
-    render(<DrillScreen db={db} />)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     // 2問目（q-2）から再開する
     expect(screen.getByText(/attend/)).toBeTruthy()
+  })
+})
+
+function audioQaQuestion(id: string, answer: string): Question {
+  return {
+    id,
+    part: 2,
+    format: 'audio_qa',
+    difficulty: 2,
+    tags: ['疑問詞聞き取り'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    audio: `/dev-audio/${id}.mp3`,
+    audioMeta: { accent: 'US', tts: false, voice: 'dev', durationMs: 3000 },
+    script: 'When did you submit the report? — I submitted it yesterday.',
+    choices: [
+      { key: 'A', text: 'Yesterday.' },
+      { key: 'B', text: 'In the meeting room.' },
+      { key: 'C', text: 'By email.' },
+    ],
+    answer,
+    explanation: '解説テキスト',
+    translation: '和訳テキスト',
+  }
+}
+
+describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
+  it('開始タップでunlock→playが呼ばれ、再生後に3択が解答可能になる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    // 再生前は選択肢が出ない
+    expect(screen.queryByText('Yesterday.')).toBeNull()
+
+    fireEvent.click(screen.getByText('タップして開始'))
+    expect(audioPlayer.unlock).toHaveBeenCalledTimes(1)
+
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, undefined)
+  })
+
+  it('冒頭再生モード（partialAudioMode）では play が durationMs 付きで呼ばれる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    const snapshot = await startSession(db, { items: [{ questionId: q.id, mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q], { L: 400, R: 400 }, { partialAudioMode: true })
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+    expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, { durationMs: 2500 })
+  })
+
+  it('もう一度再生ボタンで audioPlayer.replay が呼ばれる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('もう一度再生')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('もう一度再生'))
+    expect(audioPlayer.replay).toHaveBeenCalledTimes(1)
+  })
+
+  it('連続正解でストリークが増え、誤答でリセットされる', async () => {
+    const db = newDb()
+    const questions = [audioQaQuestion('p2-1', 'A'), audioQaQuestion('p2-2', 'A')]
+    await setupSession(
+      db,
+      questions.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      questions,
+    )
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    await answerAndSettle('Yesterday.', 1) // 正解
+    expect(screen.getByText('🔥1')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('次へ'))
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('In the meeting room.')).toBeTruthy())
+    await answerAndSettle('In the meeting room.', 2) // 誤答（正解はA）
+    expect(screen.queryByText('🔥1')).toBeNull() // ストリークがリセットされる
+  })
+
+  it('15秒タイマーが0になると自動的にisTimeout誤答として記録され、正誤表示に遷移する', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    // setInterval/clearInterval のみをフェイク化する（Dexie/fake-indexeddb が
+    // 内部で使う setTimeout・Promise はリアルタイムのまま動かし、デッドロックを避ける）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    // handlePlayStart 内の await audioPlayer.unlock()/play()（リアルタイムのマイクロタスク）を解決させる
+    await vi.waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+
+    await vi.advanceTimersByTimeAsync(15_000)
+    // finalizeAnswer の一連（DB書き込み含む）が完了するまで待つ（answerAndSettle と同じ理由）
+    await vi.waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+
+    expect(screen.getByText('不正解')).toBeTruthy()
+    expect(screen.getByText('時間切れ')).toBeTruthy()
+    const logs = await db.attempts.toArray()
+    expect(logs).toHaveLength(1)
+    expect(logs[0]!.isTimeout).toBe(true)
+    expect(logs[0]!.isCorrect).toBe(false)
+  })
+
+  it('15秒タイマー中に解答すると残り時間に関係なく即確定する', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await vi.waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+
+    await vi.advanceTimersByTimeAsync(3000) // タイマーはまだ残っている状態
+    fireEvent.click(screen.getByText('Yesterday.'))
+    // finalizeAnswer の一連（DB書き込み含む）が完了するまで待つ（answerAndSettle と同じ理由）
+    await vi.waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+
+    expect(await db.attempts.count()).toBe(1)
+    expect(screen.getByText('正解')).toBeTruthy()
+    const logs = await db.attempts.toArray()
+    expect(logs[0]!.isTimeout).toBe(false)
   })
 })

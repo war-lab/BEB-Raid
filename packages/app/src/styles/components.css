@@ -124,6 +124,51 @@
   color: var(--ink-2);
 }
 
+/* --- セッション内連続正解ストリーク（02の3.1: Part2瞬発の看板演出） --- */
+.session-streak {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-stat);
+  color: var(--gold);
+  animation: streak-pulse 200ms ease-out;
+}
+@keyframes streak-pulse {
+  from {
+    transform: scale(1.15);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* --- Part2瞬発の15秒解答タイマー（--listen アクセント） --- */
+.drill-timer {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-stat);
+  color: var(--listen);
+}
+
+/* --- 音声リプレイボタン（操作ゾーン内。07の6節） --- */
+.drill-replay {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-bottom: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.drill-replay:active {
+  background: var(--surface-2);
+}
+.drill-replay:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* --- 縦3分割レイアウト（100dvh・操作ゾーン約45%＋セーフエリア） --- */
 .screen-layout {
   display: grid;

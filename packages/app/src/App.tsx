@@ -1,11 +1,13 @@
 // ルーターレスの画面切替（docs/10 3.1節）。screen 状態（store/appStore.ts）で
 // 画面コンポーネントを切り替える。S1ホーム本実装はT-21のため、それまでは
 // 暫定のホーム代替画面（コンポーネント確認＋ダミーセッション開始）を置く。
+import { useState } from 'react'
 import { SCHEMA_VERSION, type Question } from '@beb-raid/shared-schema'
 import { PrimaryButton } from './components/PrimaryButton'
 import { ScreenLayout } from './components/ScreenLayout'
 import { getDb } from './db/database'
 import { DEFAULT_INITIAL_RATING } from './engine/rating'
+import { createAudioPlayer } from './platform'
 import { InstallHint } from './pwa/InstallHint'
 import { DrillScreen } from './screens/DrillScreen'
 import { ResultScreen } from './screens/ResultScreen'
@@ -58,32 +60,94 @@ const DUMMY_QUESTIONS: Question[] = [
   },
 ]
 
+/** Part2瞬発（audio_qa）用ダミー問題（T-17。音声は scripts/generate-dummy-audio.mjs で生成） */
+const DUMMY_PART2_QUESTIONS: Question[] = [
+  {
+    id: 'dev-p2-001',
+    part: 2,
+    format: 'audio_qa',
+    difficulty: 2,
+    tags: ['疑問詞聞き取り'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    audio: '/packs/dev/audio/p2-001.mp3',
+    audioMeta: { accent: 'US', tts: false, voice: 'dev-dummy', durationMs: 3000 },
+    script: 'When did you submit the report? — I submitted it yesterday.',
+    choices: [
+      { key: 'A', text: 'Yesterday.' },
+      { key: 'B', text: 'In the meeting room.' },
+      { key: 'C', text: 'By email.' },
+    ],
+    answer: 'A',
+    explanation: 'When（いつ）への応答なので時を表す Yesterday が正解。',
+    translation: '報告書はいつ提出しましたか？ — 昨日提出しました。',
+  },
+  {
+    id: 'dev-p2-002',
+    part: 2,
+    format: 'audio_qa',
+    difficulty: 2,
+    tags: ['疑問詞聞き取り'],
+    keyVocab: [{ word: 'attend', sense: '出席する', freqRank: 'A' }],
+    audio: '/packs/dev/audio/p2-002.mp3',
+    audioMeta: { accent: 'UK', tts: false, voice: 'dev-dummy', durationMs: 3000 },
+    script: 'Who will attend the meeting? — Ms. Tanaka will.',
+    choices: [
+      { key: 'A', text: 'At 3 PM.' },
+      { key: 'B', text: 'Ms. Tanaka will.' },
+      { key: 'C', text: 'In room 4.' },
+    ],
+    answer: 'B',
+    explanation: 'Who（誰）への応答なので人物名で答える B が正解。',
+    translation: '誰が会議に出席しますか？ — 田中さんです。',
+  },
+]
+
+const audioPlayer = createAudioPlayer()
+
 export function App() {
   const screen = useAppStore((s) => s.screen)
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
+  const [partialAudioMode, setPartialAudioMode] = useState(false)
 
-  async function handleStartDummySession() {
+  async function startDummySession(questions: Question[], usePartialAudio: boolean) {
     const db = getDb()
-    const items: SessionItem[] = DUMMY_QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const items: SessionItem[] = questions.map((q) => ({ questionId: q.id, mode: 'solo' }))
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
-    beginSession(snapshot, DUMMY_QUESTIONS, {
-      L: l?.rating ?? DEFAULT_INITIAL_RATING,
-      R: r?.rating ?? DEFAULT_INITIAL_RATING,
-    })
+    beginSession(
+      snapshot,
+      questions,
+      { L: l?.rating ?? DEFAULT_INITIAL_RATING, R: r?.rating ?? DEFAULT_INITIAL_RATING },
+      { partialAudioMode: usePartialAudio },
+    )
     navigate('drill')
   }
 
-  if (screen === 'drill') return <DrillScreen db={getDb()} />
+  if (screen === 'drill') return <DrillScreen db={getDb()} audioPlayer={audioPlayer} />
   if (screen === 'result') return <ResultScreen db={getDb()} />
 
   return (
     <ScreenLayout
       action={
-        <PrimaryButton onClick={() => void handleStartDummySession()}>
-          ダミーセッション開始（開発用）
-        </PrimaryButton>
+        <>
+          <PrimaryButton onClick={() => void startDummySession(DUMMY_QUESTIONS, false)}>
+            ダミーセッション開始（開発用）
+          </PrimaryButton>
+          <PrimaryButton
+            onClick={() => void startDummySession(DUMMY_PART2_QUESTIONS, partialAudioMode)}
+          >
+            Part2ダミーセッション開始（開発用）
+          </PrimaryButton>
+          <label>
+            <input
+              type="checkbox"
+              checked={partialAudioMode}
+              onChange={(e) => setPartialAudioMode(e.target.checked)}
+            />
+            冒頭だけ再生モード（J-5）
+          </label>
+        </>
       }
     >
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>BEB Raid</h1>
