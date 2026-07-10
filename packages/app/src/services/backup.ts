@@ -5,8 +5,8 @@
 //
 // インポートの方針:
 // - attempts 以外のストア: クリアしてから復元（バックアップの内容で置き換え）
-// - attempts: 追記マージのみ（削除禁止の不変条件。同一IDは主キーで冪等、
-//   バックアップに無い既存ログも残る=ログはいかなる経路でも失われない）
+// - attempts: 追記マージのみ（削除・更新禁止の不変条件。既存IDはスキップし
+//   バックアップに無い既存ログも残る=ログはいかなる経路でも失われず書き換わらない）
 
 import type { BebRaidDatabase } from '../db/database'
 import type {
@@ -119,8 +119,12 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
     for (const name of STORE_NAMES) {
       const rows = backup.stores[name]
       if (name === 'attempts') {
-        // 追記マージのみ（クリアは deleting フックでも遮断される）
-        await db.attempts.bulkPut(rows as AttemptRecord[])
+        // 追記マージのみ。既存IDは内容が異なっても上書きしない（改ざん・破損した
+        // バックアップで生ログが書き換わるのを防ぐ。削除・更新はフックでも遮断される）
+        const incoming = rows as AttemptRecord[]
+        const existing = await db.attempts.bulkGet(incoming.map((r) => r.id))
+        const fresh = incoming.filter((_, i) => existing[i] === undefined)
+        await db.attempts.bulkAdd(fresh)
       } else {
         await db.table(name).clear()
         await db.table(name).bulkPut(rows)

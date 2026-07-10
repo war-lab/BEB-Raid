@@ -59,6 +59,8 @@ export async function startSession(
  * attempts への追記とスナップショット更新は同一トランザクション
  * （中断がどのタイミングで起きても「解答済みなのに再出題」「未解答なのにスキップ」
  * のどちらも起きない）。
+ * トランザクション内で DB 上のスナップショットと照合し、引数が古い場合
+ * （二度押し・複数タブ・終了済みセッション）は拒否する（重複ログの恒久残存を防ぐ）。
  */
 export async function answerCurrentQuestion(
   db: BebRaidDatabase,
@@ -77,6 +79,16 @@ export async function answerCurrentQuestion(
     updatedAt: attempt.answeredAt,
   }
   await db.transaction('rw', db.attempts, db.settings, async () => {
+    const stored = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as
+      | SessionSnapshot
+      | undefined
+    if (
+      stored === undefined ||
+      stored.sessionId !== snapshot.sessionId ||
+      stored.answeredCount !== snapshot.answeredCount
+    ) {
+      throw new Error('スナップショットが古い（二重解答か、セッションは終了済み）')
+    }
     await db.attempts.add(attempt)
     await db.settings.put({ key: ACTIVE_SESSION_KEY, value: next })
   })

@@ -60,6 +60,30 @@ describe('セッションの開始と進行', () => {
     const db = newDb()
     await expect(startSession(db, { mode: 'solo', questionIds: [] })).rejects.toThrow()
   })
+
+  it('同じスナップショットでの二重解答は拒否され、重複ログが残らない', async () => {
+    const db = newDb()
+    const s = await startSession(db, { mode: 'solo', questionIds: QUESTIONS })
+    await answerCurrentQuestion(db, s, { isCorrect: true, responseMs: 3000 })
+    // 二度押し・複数タブを模擬: 進める前の古いスナップショットで再度解答
+    await expect(
+      answerCurrentQuestion(db, s, { isCorrect: true, responseMs: 3000 }),
+    ).rejects.toThrow(/古い/)
+    expect(await db.attempts.count()).toBe(1)
+  })
+
+  it('セッション終了後の stale スナップショットでの解答は拒否され、セッションが復活しない', async () => {
+    const db = newDb()
+    let s = await startSession(db, { mode: 'solo', questionIds: QUESTIONS })
+    s = await answerCurrentQuestion(db, s, { isCorrect: true, responseMs: 3000 })
+    await completeSession(db)
+
+    await expect(
+      answerCurrentQuestion(db, s, { isCorrect: true, responseMs: 3000 }),
+    ).rejects.toThrow(/古い/)
+    expect(await resumeSession(db)).toBeNull() // activeSession が復活していない
+    expect(await db.attempts.count()).toBe(1)
+  })
 })
 
 describe('中断復帰（02の2.1節: 電車を降りる瞬間に離脱しても何も失わない）', () => {

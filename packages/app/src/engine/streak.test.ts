@@ -111,6 +111,24 @@ describe('日付跨ぎ', () => {
   })
 })
 
+describe('時計の巻き戻し', () => {
+  it('過去日付での成立は無視され、日付が戻っても二重加算されない', async () => {
+    const db = newDb()
+    await studyOn(db, 2026, 7, 9)
+    await studyOn(db, 2026, 7, 10) // currentDays=2, lastActiveDate=7/10
+
+    // 時計が 7/9 に巻き戻った状態で5問解く → 保存されない
+    const rolledBack = await studyOn(db, 2026, 7, 9)
+    expect(rolledBack.currentDays).toBe(2)
+    expect(rolledBack.todayCompleted).toBe(false)
+    expect((await db.streak.get(STREAK_ID))?.lastActiveDate).toBe('2026-07-10')
+
+    // 日付が 7/10 に戻って再評価しても 7/10 が再加算されない
+    const restored = await evaluateStreak(db, noonOf(2026, 7, 10) + 1000)
+    expect(restored.currentDays).toBe(2)
+  })
+})
+
 describe('ストリーク保護（週1回の欠席免除）', () => {
   it('1日欠席しても保護で継続する（保護使用日=欠席日が記録される）', async () => {
     const db = newDb()

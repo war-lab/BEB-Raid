@@ -133,6 +133,24 @@ describe('エクスポート→全消去→インポートの往復', () => {
     expect(await target.attempts.get('a-local')).toBeDefined()
   })
 
+  it('attempts の既存IDは内容が異なるバックアップでも書き換わらない', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = JSON.parse(JSON.stringify(await exportAll(source))) as BackupFile
+
+    // 改ざん・破損を模擬: 既存ログ a-1 の正誤を反転させたバックアップ
+    const tampered = exported.stores.attempts.find((a) => a.id === 'a-1')
+    if (!tampered) throw new Error('テストデータ不整合')
+    tampered.isCorrect = false
+
+    const target = newDb()
+    await seedAllStores(target) // a-1（isCorrect: true）が既に存在する
+    await importAll(target, exported)
+
+    expect((await target.attempts.get('a-1'))?.isCorrect).toBe(true) // 上書きされない
+    expect(await target.attempts.count()).toBe(2)
+  })
+
   it('attempts 以外は置き換え復元（インポート前の残存データが混ざらない）', async () => {
     const source = newDb()
     await seedAllStores(source)

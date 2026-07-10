@@ -86,8 +86,15 @@ export async function evaluateStreak(
     } else {
       const gap = daysBetween(record.lastActiveDate, today)
       if (gap <= 0) {
-        // 時計の巻き戻し等。何もしない（lastActiveDate は最新のまま）
-        currentDays = record.currentDays
+        // 時計の巻き戻し等。put せず終了する（lastActiveDate を過去日付で
+        // 上書きすると、日付が戻った時に同じ日が二重加算されるため）
+        return {
+          currentDays: record.currentDays,
+          bestDays: record.bestDays,
+          todaySrsCount,
+          todayCompleted: false,
+          protectionUsed: false,
+        }
       } else if (gap === 1) {
         currentDays = record.currentDays + 1
       } else if (gap === 2) {

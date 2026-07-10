@@ -103,6 +103,14 @@ describe('attempts: 追記のみ', () => {
     await db.attempts.add(attempt)
     await expect(db.attempts.add({ ...attempt })).rejects.toThrow()
   })
+
+  it('update / put による既存ログの書き換えが実行時に遮断される', async () => {
+    const db = newDb()
+    await db.attempts.add(attempt)
+    await expect(db.attempts.update('a-0001', { isCorrect: false })).rejects.toThrow(/追記のみ/)
+    await expect(db.attempts.put({ ...attempt, isCorrect: false })).rejects.toThrow(/追記のみ/)
+    expect((await db.attempts.get('a-0001'))?.isCorrect).toBe(true)
+  })
 })
 
 describe('srsCards: CRUD', () => {

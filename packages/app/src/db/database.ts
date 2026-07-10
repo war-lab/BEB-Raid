@@ -56,9 +56,13 @@ export class BebRaidDatabase extends Dexie {
       settings: 'key',
     })
 
-    // attempts の削除禁止（追記のみ）。delete / clear を実行時に遮断する
+    // attempts の削除・更新禁止（追記のみ）。delete / clear / put / update を
+    // 実行時に遮断する（バックアップ復元は既存IDを除外した bulkAdd で追記する）
     this.attempts.hook('deleting', () => {
       throw new Error('attempts は追記のみ（全解答ログは分析の基盤なので消さない）')
+    })
+    this.attempts.hook('updating', () => {
+      throw new Error('attempts は追記のみ（既存の解答ログは書き換えない）')
     })
   }
 }
