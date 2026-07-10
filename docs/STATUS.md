@@ -56,6 +56,22 @@
 | B-2 | TTSの調達（Azure Speech の個人利用可否とコスト実測） | 🔶 未解決（T-31 とその下流が止まる。クリティカルパス上のため早期解消が必要） |
 | B-3 | リポジトリを public にできるかの最終確認 | ✅ 実質解消（リポジトリは現に public。「全世界公開に耐えるコンテンツのみ置く」原則は継続） |
 
+## レビューフォローアップ（2026-07-10 F2/F3 コードレビューの残項目）
+
+major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・attempts 更新遮断とインポート追記化・セッション二重解答防止）は修正済み。以下は将来対応が必要な残項目（対応期限=着手すべきタスク）:
+
+| 項目 | 内容 | 期限 |
+|------|------|------|
+| BYOKキーのエクスポート除外 | `backup.ts` の exportAll は settings 全件を書き出すため、BYOK実装後はAPIキーがバックアップJSONに平文で出る。エクスポート除外キーのリストを定義すること | **T-23（BYOK実装）着手前・必須** |
+| docs/04 3節への実装差分反映 | attempts.isGuess / srsCards の introducedDate・graduatedAt・sourceQuestionId / ratings.answerCount / settings.activeSession が docs 未記載 | docs 更新時 |
+| quickPackConfig の検証 | allocation 合計≒1 の検証がなく、不正な設定JSONでパックが黙って目減りする | T-16 前後 |
+| ストリーク途切れの表示 | 途切れ確定後も evaluateStreak が旧 currentDays を返す（遅延評価）。UI側で途切れ表示の扱いを決める | T-21（ホーム画面） |
+| tagStats の全件読み | 毎解答で attempts 全件を toArray() するため長期運用で遅延が単調増加。打ち切り読みへの変更余地 | 実測して問題が出たら |
+| rating K=32 の解釈記録 | 「最初の50問 K=32」をセクション別カウントで実装した解釈が docs/03 に未記載 | docs 更新時 |
+| backup の dbVersion 検査 | インポート時に dbVersion を見ず、新スキーマのバックアップで未知ストアが黙って落ちる | DB v2 導入時・必須 |
+| CLI の maskApiKey / stderr | 4文字以下のキーで全露出（実運用キー長では起きない）。エラー出力が stdout | T-26 以降 |
+| validate.ts の M2 format 検証 | audio_photo の image 必須・dictation の blanks 整合・levelBand の enum チェックが未実装 | M2 format 実装前 |
+
 ## 次にやること（優先順）
 
 1. **B-2 の解消（TTS 調達判断）** — Track C のクリティカルパス上。T-25 以降が止まっている
