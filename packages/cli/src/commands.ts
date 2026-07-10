@@ -1,14 +1,17 @@
 // コンテンツパイプラインのコマンド体系（T-24。正本: docs/04 5節）。
 //
-// パイプライン: generate（LLM生成）→ review-export/review-import（JSONL往復
-// レビュー=T-30・本実装済み）→ tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
+// パイプライン: freq-list（頻出度リスト=T-25・本実装済み）→ generate（LLM生成）→
+// review-export/review-import（JSONL往復レビュー=T-30・本実装済み）→
+// tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
 // generate/tts/build は雛形のまま。LLM/TTS 呼び出しの実装は T-26 以降。
 
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 
 import { SCHEMA_VERSION } from '@beb-raid/shared-schema'
 
 import { LLM_API_KEY_ENV, maskApiKey, requireApiKey, TTS_API_KEY_ENV } from './env.js'
+import { buildFreqList, validateFreqList } from './freqList.js'
 import {
   buildReviewTsv,
   parseJsonl,
@@ -16,6 +19,8 @@ import {
   toJsonl,
   type GeneratedItemDraft,
 } from './review.js'
+
+const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
 
 /** コマンド実行コンテキスト（テストから env / 出力を差し替えるための注入点） */
 export interface CommandContext {
@@ -41,6 +46,25 @@ export const commands: CliCommand[] = [
       const key = requireApiKey(LLM_API_KEY_ENV, ctx.env)
       ctx.out(`LLM APIキーを環境変数 ${LLM_API_KEY_ENV} から読み込み: ${maskApiKey(key)}`)
       ctx.out('generate は未実装です（T-26〜T-29 で実装予定）')
+      return 0
+    },
+  },
+  {
+    name: 'freq-list',
+    description: '自前頻出度リスト（Sランク200語）をcontent/freq-list.jsonへ出力（T-25）',
+    run: async (ctx) => {
+      const outputPath = ctx.args[0] ?? DEFAULT_FREQ_LIST_PATH
+      const list = buildFreqList(new Date().toISOString().slice(0, 10))
+      const problems = validateFreqList(list)
+      if (problems.length > 0) {
+        for (const p of problems) ctx.out(`エラー: ${p}`)
+        return 1
+      }
+      await mkdir(dirname(outputPath), { recursive: true })
+      await writeFile(outputPath, JSON.stringify(list, null, 2) + '\n', 'utf-8')
+      const sCount = list.words.filter((w) => w.freqRank === 'S').length
+      ctx.out(`Sランク${sCount}語を含む頻出度リストを ${outputPath} に書き出しました`)
+      ctx.out('rankSourceは全語llm（B-1未解決のため公開コーパスは未使用。精度は未検証）')
       return 0
     },
   },
