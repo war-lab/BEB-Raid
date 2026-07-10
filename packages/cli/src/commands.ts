@@ -1,22 +1,23 @@
 // コンテンツパイプラインのコマンド体系（T-24。正本: docs/04 5節）。
 //
 // パイプライン: freq-list（頻出度リスト=T-25・本実装済み）→
-// generate（コンテンツ生成。vocab_card=T-26実装済み。part2/part5はT-27/T-28予定）→
+// generate（コンテンツ生成。vocab_card=T-26・audio_qa=T-27 実装済み。text_blank=T-28予定）→
 // review-export/review-import（JSONL往復レビュー=T-30・本実装済み）→
 // tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
 //
 // 【設計判断】T-25以降、ユーザー指示によりランタイムでLLM APIを呼ぶ実装はしない方針に
-// 変更した（詳細はdocs/STATUS.mdのT-25/T-26行）。generateコマンドはAPIキーを要求しない
+// 変更した（詳細はdocs/STATUS.mdのT-25/T-26/T-27行）。generateコマンドはAPIキーを要求しない
 // （T-24時点の雛形はrequireApiKeyでゲートしていたが、この方針転換に伴い撤去した）。
 // ttsコマンドのみ実際の音声合成が必要なため引き続きAPIキーを要求する（T-31実装時）。
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
-import { SCHEMA_VERSION } from '@beb-raid/shared-schema'
+import { SCHEMA_VERSION, type Question } from '@beb-raid/shared-schema'
 
 import { maskApiKey, requireApiKey, TTS_API_KEY_ENV } from './env.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
+import { buildPart2Drafts, buildPart2Questions, validatePart2Questions } from './part2Question.js'
 import {
   buildReviewTsv,
   parseJsonl,
@@ -32,6 +33,29 @@ import {
 
 const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
 const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
+const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
+
+interface GenerateKindHandler {
+  buildQuestions: () => Question[]
+  buildDrafts: () => GeneratedItemDraft[]
+  validate: (questions: Question[]) => string[]
+  defaultPath: string
+}
+
+const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
+  vocab_card: {
+    buildQuestions: buildVocabCardQuestions,
+    buildDrafts: buildVocabCardDrafts,
+    validate: validateVocabCardQuestions,
+    defaultPath: DEFAULT_VOCAB_DRAFT_PATH,
+  },
+  audio_qa: {
+    buildQuestions: buildPart2Questions,
+    buildDrafts: buildPart2Drafts,
+    validate: validatePart2Questions,
+    defaultPath: DEFAULT_PART2_DRAFT_PATH,
+  },
+}
 
 /**
  * コマンド実行コンテキスト（テストから env / 出力を差し替えるための注入点）。
@@ -56,31 +80,32 @@ export interface CliCommand {
 export const commands: CliCommand[] = [
   {
     name: 'generate',
-    description: 'コンテンツ生成（vocab_card=T-26実装済み。part2/part5はT-27/T-28予定）',
+    description: 'コンテンツ生成（vocab_card=T-26、audio_qa=T-27 実装済み。text_blankはT-28予定）',
     run: async (ctx) => {
       const [kind, outputPath] = ctx.args
-      if (kind === 'vocab_card') {
-        const out = outputPath ?? DEFAULT_VOCAB_DRAFT_PATH
-        const problems = validateVocabCardQuestions(buildVocabCardQuestions())
-        if (problems.length > 0) {
-          for (const p of problems) ctx.errOut(`エラー: ${p}`)
-          return 1
+      const handler = kind ? GENERATE_KINDS[kind] : undefined
+      if (!handler) {
+        ctx.errOut(
+          `使い方: beb generate <${Object.keys(GENERATE_KINDS).join('|')}> <出力.jsonl>（省略時は既定パス）`,
+        )
+        if (kind !== undefined) {
+          ctx.errOut(`未対応のkind: ${kind}`)
         }
-        const drafts = buildVocabCardDrafts()
-        await mkdir(dirname(out), { recursive: true })
-        await writeFile(out, toJsonl(drafts), 'utf-8')
-        ctx.out(`vocab_card ${drafts.length}件のドラフトを ${out} に書き出しました`)
-        ctx.out('バリデーション（shared-schema validatePack）通過済み')
-        return 0
+        ctx.errOut('text_blank は T-28 で実装予定です')
+        return 1
       }
-      ctx.errOut(
-        `使い方: beb generate vocab_card <出力.jsonl>（既定: ${DEFAULT_VOCAB_DRAFT_PATH}）`,
-      )
-      if (kind !== undefined) {
-        ctx.errOut(`未対応のkind: ${kind}`)
+      const out = outputPath ?? handler.defaultPath
+      const problems = handler.validate(handler.buildQuestions())
+      if (problems.length > 0) {
+        for (const p of problems) ctx.errOut(`エラー: ${p}`)
+        return 1
       }
-      ctx.errOut('part2 / part5 は T-27 / T-28 で実装予定です')
-      return 1
+      const drafts = handler.buildDrafts()
+      await mkdir(dirname(out), { recursive: true })
+      await writeFile(out, toJsonl(drafts), 'utf-8')
+      ctx.out(`${kind} ${drafts.length}件のドラフトを ${out} に書き出しました`)
+      ctx.out('バリデーション（shared-schema validatePack）通過済み')
+      return 0
     },
   },
   {
