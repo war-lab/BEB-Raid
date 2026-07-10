@@ -1,9 +1,13 @@
 // ルーターレスの画面切替（docs/10 3.1節）。screen 状態（store/appStore.ts）で
 // 画面コンポーネントを切り替える。S1ホーム（T-21）で暫定の確認画面から差し替え済み。
+// 起動時、profile未作成（=P0診断未完了）なら診断画面から始める（T-20）。
+import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import { getDb } from './db/database'
 import { createAudioPlayer } from './platform'
+import { hasProfile } from './services/profile'
 import { DashboardScreen } from './screens/DashboardScreen'
+import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { ResultScreen } from './screens/ResultScreen'
@@ -131,7 +135,29 @@ const audioPlayer = createAudioPlayer()
 
 export function App() {
   const screen = useAppStore((s) => s.screen)
+  const navigate = useAppStore((s) => s.navigate)
+  // 起動時のprofile有無チェックが終わるまで描画をブロックする（HomeScreenが一瞬
+  // 見えてから診断へ切り替わるチラつきを防ぐ。IndexedDBの主キー1件読みのみのため
+  // 起動3秒要件には影響しない）
+  const [bootChecked, setBootChecked] = useState(false)
 
+  useEffect(() => {
+    let cancelled = false
+    void hasProfile(getDb()).then((exists) => {
+      if (cancelled) return
+      if (!exists) navigate('diagnostic')
+      setBootChecked(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [navigate])
+
+  if (!bootChecked) return null
+
+  if (screen === 'diagnostic') {
+    return <DiagnosticScreen db={getDb()} audioPlayer={audioPlayer} questionPool={QUESTION_POOL} />
+  }
   if (screen === 'drill') return <DrillScreen db={getDb()} audioPlayer={audioPlayer} />
   if (screen === 'result') return <ResultScreen db={getDb()} />
   if (screen === 'vocab') {
