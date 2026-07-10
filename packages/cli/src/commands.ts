@@ -1,16 +1,21 @@
 // コンテンツパイプラインのコマンド体系（T-24。正本: docs/04 5節）。
 //
-// パイプライン: freq-list（頻出度リスト=T-25・本実装済み）→ generate（LLM生成）→
+// パイプライン: freq-list（頻出度リスト=T-25・本実装済み）→
+// generate（コンテンツ生成。vocab_card=T-26実装済み。part2/part5はT-27/T-28予定）→
 // review-export/review-import（JSONL往復レビュー=T-30・本実装済み）→
 // tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
-// generate/tts/build は雛形のまま。LLM/TTS 呼び出しの実装は T-26 以降。
+//
+// 【設計判断】T-25以降、ユーザー指示によりランタイムでLLM APIを呼ぶ実装はしない方針に
+// 変更した（詳細はdocs/STATUS.mdのT-25/T-26行）。generateコマンドはAPIキーを要求しない
+// （T-24時点の雛形はrequireApiKeyでゲートしていたが、この方針転換に伴い撤去した）。
+// ttsコマンドのみ実際の音声合成が必要なため引き続きAPIキーを要求する（T-31実装時）。
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 import { SCHEMA_VERSION } from '@beb-raid/shared-schema'
 
-import { LLM_API_KEY_ENV, maskApiKey, requireApiKey, TTS_API_KEY_ENV } from './env.js'
+import { maskApiKey, requireApiKey, TTS_API_KEY_ENV } from './env.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
 import {
   buildReviewTsv,
@@ -19,15 +24,26 @@ import {
   toJsonl,
   type GeneratedItemDraft,
 } from './review.js'
+import {
+  buildVocabCardDrafts,
+  buildVocabCardQuestions,
+  validateVocabCardQuestions,
+} from './vocabCard.js'
 
 const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
+const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
 
-/** コマンド実行コンテキスト（テストから env / 出力を差し替えるための注入点） */
+/**
+ * コマンド実行コンテキスト（テストから env / 出力を差し替えるための注入点）。
+ * 正常系メッセージは out（stdout）、エラー・使用方法案内は errOut（stderr）に分離する
+ * （レビューフォローアップ3.8節。CIログでエラーだけを抽出できるようにするため）
+ */
 export interface CommandContext {
   /** コマンド名より後ろの引数 */
   args: string[]
   env: NodeJS.ProcessEnv
   out: (line: string) => void
+  errOut: (line: string) => void
 }
 
 export interface CliCommand {
@@ -40,13 +56,31 @@ export interface CliCommand {
 export const commands: CliCommand[] = [
   {
     name: 'generate',
-    description: '問題・語彙カードのLLM生成（実装は T-26〜T-29）',
+    description: 'コンテンツ生成（vocab_card=T-26実装済み。part2/part5はT-27/T-28予定）',
     run: async (ctx) => {
-      // 雛形段階でもキーの取得経路（環境変数のみ）は確定させておく
-      const key = requireApiKey(LLM_API_KEY_ENV, ctx.env)
-      ctx.out(`LLM APIキーを環境変数 ${LLM_API_KEY_ENV} から読み込み: ${maskApiKey(key)}`)
-      ctx.out('generate は未実装です（T-26〜T-29 で実装予定）')
-      return 0
+      const [kind, outputPath] = ctx.args
+      if (kind === 'vocab_card') {
+        const out = outputPath ?? DEFAULT_VOCAB_DRAFT_PATH
+        const problems = validateVocabCardQuestions(buildVocabCardQuestions())
+        if (problems.length > 0) {
+          for (const p of problems) ctx.errOut(`エラー: ${p}`)
+          return 1
+        }
+        const drafts = buildVocabCardDrafts()
+        await mkdir(dirname(out), { recursive: true })
+        await writeFile(out, toJsonl(drafts), 'utf-8')
+        ctx.out(`vocab_card ${drafts.length}件のドラフトを ${out} に書き出しました`)
+        ctx.out('バリデーション（shared-schema validatePack）通過済み')
+        return 0
+      }
+      ctx.errOut(
+        `使い方: beb generate vocab_card <出力.jsonl>（既定: ${DEFAULT_VOCAB_DRAFT_PATH}）`,
+      )
+      if (kind !== undefined) {
+        ctx.errOut(`未対応のkind: ${kind}`)
+      }
+      ctx.errOut('part2 / part5 は T-27 / T-28 で実装予定です')
+      return 1
     },
   },
   {
@@ -57,7 +91,7 @@ export const commands: CliCommand[] = [
       const list = buildFreqList(new Date().toISOString().slice(0, 10))
       const problems = validateFreqList(list)
       if (problems.length > 0) {
-        for (const p of problems) ctx.out(`エラー: ${p}`)
+        for (const p of problems) ctx.errOut(`エラー: ${p}`)
         return 1
       }
       await mkdir(dirname(outputPath), { recursive: true })
@@ -74,7 +108,7 @@ export const commands: CliCommand[] = [
     run: async (ctx) => {
       const [inputPath, outputPath] = ctx.args
       if (!inputPath || !outputPath) {
-        ctx.out('使い方: beb review-export <ドラフト.jsonl> <レビュー用.tsv>')
+        ctx.errOut('使い方: beb review-export <ドラフト.jsonl> <レビュー用.tsv>')
         return 1
       }
       const raw = await readFile(inputPath, 'utf-8')
@@ -90,7 +124,7 @@ export const commands: CliCommand[] = [
     run: async (ctx) => {
       const [draftPath, tsvPath, acceptedPath, rejectedPath] = ctx.args
       if (!draftPath || !tsvPath || !acceptedPath || !rejectedPath) {
-        ctx.out(
+        ctx.errOut(
           '使い方: beb review-import <元のドラフト.jsonl> <レビュー済み.tsv> <採用後.jsonl> <rejected.jsonl>',
         )
         return 1
@@ -147,7 +181,7 @@ export function usage(): string {
     'コマンド:',
     ...commands.map((c) => `  ${c.name.padEnd(15)} ${c.description}`),
     '',
-    `APIキーは環境変数（${LLM_API_KEY_ENV} / ${TTS_API_KEY_ENV}）でのみ渡す。`,
+    `APIキーが必要なのは tts のみ（環境変数 ${TTS_API_KEY_ENV}）。generate はLLM APIを呼ばない（T-25以降の方針変更）。`,
     'リポジトリ・設定ファイルにキーを置かないこと。',
   ]
   return lines.join('\n')
@@ -158,23 +192,28 @@ export async function runCli(
   argv: string[],
   env: NodeJS.ProcessEnv = process.env,
   out: (line: string) => void = console.log,
+  errOut: (line: string) => void = console.error,
 ): Promise<number> {
   const [name, ...rest] = argv
-  if (!name || name === '--help' || name === '-h' || name === 'help') {
+  if (name === '--help' || name === '-h' || name === 'help') {
     out(usage())
-    return name ? 0 : 1
+    return 0
+  }
+  if (!name) {
+    errOut(usage())
+    return 1
   }
   const command = findCommand(name)
   if (!command) {
-    out(`不明なコマンド: ${name}`)
-    out('')
-    out(usage())
+    errOut(`不明なコマンド: ${name}`)
+    errOut('')
+    errOut(usage())
     return 1
   }
   try {
-    return await command.run({ args: rest, env, out })
+    return await command.run({ args: rest, env, out, errOut })
   } catch (e) {
-    out(`エラー: ${e instanceof Error ? e.message : String(e)}`)
+    errOut(`エラー: ${e instanceof Error ? e.message : String(e)}`)
     return 1
   }
 }

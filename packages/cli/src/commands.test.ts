@@ -7,15 +7,21 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { commands, runCli } from './commands.js'
-import { LLM_API_KEY_ENV, maskApiKey, readApiKey, TTS_API_KEY_ENV } from './env.js'
+import { maskApiKey, readApiKey, TTS_API_KEY_ENV } from './env.js'
 import type { FreqList } from './freqList.js'
 import { parseJsonl, type GeneratedItemDraft } from './review.js'
 
-/** 出力を配列に集めて実行するヘルパ */
+/** 出力を配列に集めて実行するヘルパ。out(stdout)/errOut(stderr)を分離して返す */
 async function run(argv: string[], env: NodeJS.ProcessEnv = {}) {
   const lines: string[] = []
-  const code = await runCli(argv, env, (line) => lines.push(line))
-  return { code, output: lines.join('\n') }
+  const errLines: string[] = []
+  const code = await runCli(
+    argv,
+    env,
+    (line) => lines.push(line),
+    (line) => errLines.push(line),
+  )
+  return { code, output: lines.join('\n'), errOutput: errLines.join('\n') }
 }
 
 describe('コマンド体系（04の5節）', () => {
@@ -43,10 +49,11 @@ describe('コマンド体系（04の5節）', () => {
     expect(code).toBe(1)
   })
 
-  it('不明なコマンドは異常終了', async () => {
-    const { code, output } = await run(['deploy'])
+  it('不明なコマンドは異常終了し、案内はstderrに出る（stdoutは汚さない）', async () => {
+    const { code, output, errOutput } = await run(['deploy'])
     expect(code).toBe(1)
-    expect(output).toContain('不明なコマンド')
+    expect(errOutput).toContain('不明なコマンド')
+    expect(output).toBe('')
   })
 
   it('キー不要のコマンド雛形（build）が動く', async () => {
@@ -55,11 +62,69 @@ describe('コマンド体系（04の5節）', () => {
     expect(output).toContain('未実装')
   })
 
-  it('review-export / review-import は引数不足だと使い方を出して異常終了する', async () => {
-    expect((await run(['review-export'])).code).toBe(1)
+  it('review-export / review-import は引数不足だと使い方をstderrに出して異常終了する', async () => {
+    const missingExport = await run(['review-export'])
+    expect(missingExport.code).toBe(1)
+    expect(missingExport.errOutput).toContain('使い方')
+    expect(missingExport.output).toBe('')
+
     expect((await run(['review-export', 'a.jsonl'])).code).toBe(1)
     expect((await run(['review-import'])).code).toBe(1)
     expect((await run(['review-import', 'a.jsonl', 'b.tsv', 'c.jsonl'])).code).toBe(1)
+  })
+})
+
+describe('generate vocab_card（T-26）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で200件のvocab_cardドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'vocab-card-s.jsonl')
+    const { code, output } = await run(['generate', 'vocab_card', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('200件')
+
+    const drafts = parseJsonl<{
+      id: string
+      kind: string
+      preview: string
+      payload: { format: string; front: string; phrase: string; back: string }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(200)
+    expect(drafts.every((d) => d.kind === 'vocab_card')).toBe(true)
+    expect(drafts.every((d) => d.payload.format === 'vocab_card')).toBe(true)
+    expect(
+      drafts.every((d) => d.payload.phrase.toLowerCase().includes(d.payload.front.toLowerCase())),
+    ).toBe(true)
+    // review-export/review-import と同じドラフット形式（id/kind/preview/payload）であること
+    expect(new Set(drafts.map((d) => d.id)).size).toBe(200)
+  })
+
+  it('review-export にそのまま渡せる（T-30パイプラインとの接続）', async () => {
+    const draftPath = join(dir, 'vocab-card-s.jsonl')
+    const tsvPath = join(dir, 'review.tsv')
+    await run(['generate', 'vocab_card', draftPath], {})
+    const { code } = await run(['review-export', draftPath, tsvPath])
+    expect(code).toBe(0)
+    const tsv = await readFile(tsvPath, 'utf-8')
+    expect(tsv.trim().split('\n')).toHaveLength(201) // ヘッダー + 200件
+  })
+
+  it('kind未指定・未対応kindは使い方をstderrに出して異常終了する', async () => {
+    const missing = await run(['generate'])
+    expect(missing.code).toBe(1)
+    expect(missing.errOutput).toContain('使い方')
+
+    const unsupported = await run(['generate', 'part2'])
+    expect(unsupported.code).toBe(1)
+    expect(unsupported.errOutput).toContain('未対応のkind')
   })
 })
 
@@ -161,18 +226,11 @@ describe('review-export / review-import: 実ファイルでの往復（T-30）',
 })
 
 describe('APIキーの環境変数読み込み', () => {
-  it('generate: キー未設定なら環境変数名の案内付きで異常終了', async () => {
-    const { code, output } = await run(['generate'], {})
+  it('generate: APIキー不要（T-25以降の方針転換）。kind未指定はエラーで使い方をstderrに出す', async () => {
+    const { code, output, errOutput } = await run(['generate'], {})
     expect(code).toBe(1)
-    expect(output).toContain(LLM_API_KEY_ENV)
-  })
-
-  it('generate: 環境変数からキーが読まれ、値そのものは出力されない', async () => {
-    const secret = 'sk-test-abcdef1234567890'
-    const { code, output } = await run(['generate'], { [LLM_API_KEY_ENV]: secret })
-    expect(code).toBe(0)
-    expect(output).toContain(LLM_API_KEY_ENV)
-    expect(output).not.toContain(secret)
+    expect(errOutput).toContain('使い方')
+    expect(output).toBe('')
   })
 
   it('tts: キー未設定なら異常終了、設定済みなら動く', async () => {
@@ -189,5 +247,11 @@ describe('APIキーの環境変数読み込み', () => {
   it('maskApiKey はキー全体を含まない', () => {
     const secret = 'sk-test-abcdef1234567890'
     expect(maskApiKey(secret)).not.toContain(secret)
+  })
+
+  it('maskApiKey は4文字以下のキーでも全体を露出しない（3.8節フォローアップ）', () => {
+    expect(maskApiKey('abc')).not.toContain('abc')
+    expect(maskApiKey('abcd')).not.toContain('abcd')
+    expect(maskApiKey('a')).toBe('***（1文字）')
   })
 })

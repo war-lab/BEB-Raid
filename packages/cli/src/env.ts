@@ -31,7 +31,14 @@ export function requireApiKey(envName: string, env: NodeJS.ProcessEnv = process.
   return key
 }
 
-/** ログ表示用にキーを伏せる（先頭4文字のみ。キー全体は決して出力しない） */
+/**
+ * ログ表示用にキーを伏せる（先頭4文字のみ。キー全体は決して出力しない）。
+ * 4文字以下のキーは先頭4文字を出すとキー全体が露出してしまうため、
+ * 文字数のみを出す完全伏字にする（レビューフォローアップ3.8節）
+ */
 export function maskApiKey(key: string): string {
+  if (key.length <= 4) {
+    return `***（${key.length}文字）`
+  }
   return `${key.slice(0, 4)}…（${key.length}文字）`
 }

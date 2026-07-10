@@ -1,0 +1,87 @@
+// T-26 完了条件のテスト（純粋ロジック層）:
+// - 200語のvocab_card Questionが正しく組み立てられる
+// - バリデータ（shared-schema validatePack）を通過する
+// - phraseAudioが予約パスになっている（T-31で実音声に差し替える前提）
+import { describe, expect, it } from 'vitest'
+import {
+  buildVocabCardDrafts,
+  buildVocabCardQuestions,
+  reservedPhraseAudioPath,
+  validateVocabCardQuestions,
+  vocabCardQuestion,
+  VOCAB_CARDS_S,
+  VOCAB_CARD_LEVEL_BAND,
+} from './vocabCard.js'
+
+describe('VOCAB_CARDS_S（データ本体）', () => {
+  it('200語ある', () => {
+    expect(VOCAB_CARDS_S).toHaveLength(200)
+  })
+
+  it('freqList.tsのWORDS_Sと同じ200語（順序も一致）', async () => {
+    const { WORDS_S } = await import('./freqList.js')
+    expect(VOCAB_CARDS_S.map((v) => v.word)).toEqual(WORDS_S.map((w) => w.word))
+  })
+
+  it('全語にback（和訳）とphrase（用例文）があり、phraseは単語自体を含む', () => {
+    for (const entry of VOCAB_CARDS_S) {
+      expect(entry.back.trim()).not.toBe('')
+      expect(entry.phrase.trim()).not.toBe('')
+      expect(entry.phrase.toLowerCase()).toContain(entry.word.toLowerCase())
+    }
+  })
+
+  it('単語が重複しない', () => {
+    const words = VOCAB_CARDS_S.map((v) => v.word.toLowerCase())
+    expect(new Set(words).size).toBe(words.length)
+  })
+})
+
+describe('vocabCardQuestion', () => {
+  it('vocab_card形式のQuestionを組み立てる（phraseAudioは予約パス）', () => {
+    const question = vocabCardQuestion({
+      word: 'submit',
+      back: '提出する',
+      phrase: 'Please submit the report.',
+    })
+    expect(question.part).toBe(0)
+    expect(question.format).toBe('vocab_card')
+    expect(question.front).toBe('submit')
+    expect(question.back).toBe('提出する')
+    expect(question.freqRank).toBe('S')
+    expect(question.levelBand).toBe(VOCAB_CARD_LEVEL_BAND)
+    expect(question.phraseAudio).toBe(reservedPhraseAudioPath('submit'))
+  })
+})
+
+describe('buildVocabCardQuestions / validateVocabCardQuestions', () => {
+  it('200件のQuestionを組み立て、バリデータを通過する', () => {
+    const questions = buildVocabCardQuestions()
+    expect(questions).toHaveLength(200)
+    expect(validateVocabCardQuestions(questions)).toEqual([])
+  })
+
+  it('IDが全て一意', () => {
+    const ids = buildVocabCardQuestions().map((q) => q.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('freqRankやlevelBandが不正だとバリデータが検出する', () => {
+    const questions = buildVocabCardQuestions()
+    const tampered = [...questions.slice(1), { ...questions[0]!, levelBand: undefined as never }]
+    const problems = validateVocabCardQuestions(tampered)
+    expect(problems.length).toBeGreaterThan(0)
+  })
+})
+
+describe('buildVocabCardDrafts', () => {
+  it('T-30のGeneratedItemDraft形式（id/kind/preview/payload）で200件出力する', () => {
+    const drafts = buildVocabCardDrafts()
+    expect(drafts).toHaveLength(200)
+    for (const d of drafts) {
+      expect(d.kind).toBe('vocab_card')
+      expect(d.preview.length).toBeGreaterThan(0)
+      expect((d.payload as { format: string }).format).toBe('vocab_card')
+    }
+  })
+})
