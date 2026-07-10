@@ -48,13 +48,18 @@ afterEach(async () => {
   vi.useRealTimers()
 })
 
-function part5Question(id: string, answer: string, word: string): Question {
+function part5Question(
+  id: string,
+  answer: string,
+  word: string,
+  tags: string[] = ['品詞'],
+): Question {
   return {
     id,
     part: 5,
     format: 'text_blank',
     difficulty: 2,
-    tags: ['品詞'],
+    tags,
     keyVocab: [{ word, sense: `${word} の意味`, freqRank: 'S' }],
     question: `Please ___ (${word}) the report.`,
     choices: [
@@ -198,6 +203,33 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     // 2問目（q-2）から再開する
     expect(screen.getByText(/attend/)).toBeTruthy()
+  })
+})
+
+describe('DrillScreen: Part5ドリル（text_blank。T-18）', () => {
+  it('文法タグ（品詞・動詞の形）が問題ごとに異なっていても、それぞれ tagStats に反映される', async () => {
+    const db = newDb()
+    const questions = [
+      part5Question('p5-1', 'A', 'submit', ['品詞']),
+      part5Question('p5-2', 'B', 'attend', ['動詞の形']),
+    ]
+    const items: SessionItem[] = questions.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, questions)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    await answerAndSettle('a', 1) // p5-1 正解
+    fireEvent.click(screen.getByText('次へ'))
+    await answerAndSettle('b', 2) // p5-2 正解
+
+    const posStat = await db.tagStats.get('品詞')
+    const verbFormStat = await db.tagStats.get('動詞の形')
+    expect(posStat?.windowTotal).toBeGreaterThan(0)
+    expect(verbFormStat?.windowTotal).toBeGreaterThan(0)
+
+    // 応答時間（タイマーなし＝音声なしのため即座に記録される）が記録されている
+    const logs = await db.attempts.toArray()
+    expect(logs.every((a) => typeof a.responseMs === 'number')).toBe(true)
+    expect(logs.every((a) => a.isTimeout === false)).toBe(true) // Part5はタイマーなし
   })
 })
 

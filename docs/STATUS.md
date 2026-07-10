@@ -4,7 +4,7 @@
 
 ## 今どこにいるか（1行）
 
-**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15〜T-17・T-19 完了（S-A1・S-A2完了）。次は S-A3（T-22: ダッシュボード）。T-18（Part5）はいつでも着手可。** タスク進捗: 19 / 38 完了。
+**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15〜T-19 完了（S-A1・S-A2完了、T-18も完了）。次は S-A3（T-22: ダッシュボード）。** タスク進捗: 20 / 38 完了。
 
 ## フェーズ進捗
 
@@ -13,7 +13,7 @@
 | F1 プロジェクト基盤（T-01〜T-04） | ✅ 完了 | 2026-07-07 main マージ済み（PR #2） |
 | F2 データ層（T-05〜T-08） | ✅ 完了 | 2026-07-07 dev 上で完了。契約 C-1/C-2 確定 |
 | F3 学習エンジン（T-09〜T-14） | ✅ 完了 | 2026-07-10 dev 上で完了。契約 C-4 確定。実装は `packages/app/src/engine/` |
-| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15〜T-17・T-19 完了（S-A1・S-A2完了）。次はS-A3（T-22）。T-18はいつでも可 |
+| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15〜T-19 完了（S-A1・S-A2完了）。次はS-A3（T-22） |
 | F5 コンテンツパイプライン（T-24〜T-34) | 🔶 一部完了 | T-24 完了。T-25 以降は B-1/B-2 待ち。**M1 全体の律速** |
 | F6 統合・ドッグフード（T-35〜T-38） | ⬜ 未着手 | |
 
@@ -40,12 +40,14 @@
 | T-16 | S2 ドリル実行画面（共通） | ✅ 完了 | 2026-07-10 |
 | T-17 | Part2瞬発モード | ✅ 完了 | 2026-07-10 |
 | T-19 | S3 語彙SRS画面 | ✅ 完了 | 2026-07-10 |
+| T-18 | Part5ドリル | ✅ 完了 | 2026-07-10 |
 
 ※ T-02 の iOS/Android 実機での standalone 表示・小サイズロゴ視認性、T-03 のライトテーマ実地検証は計画どおり後続（T-36 実機検証で確認）。未検証項目であることに注意。
 ※ T-15: `npm run dev` を起動し、実際のmp3（ffmpegで生成した1秒のトーン2本）を使い Playwright 経由の実 Chromium で unlock→play→部分再生（durationMs）→playSequence連結→replay→stop打ち切り、を一通り操作して確認済み（page error 0件）。iOS Safari実機での自動再生制限解除の確認は T-36 まで未検証。
 ※ T-16: `zustand` 導入（`store/appStore.ts` 画面遷移・`store/sessionStore.ts` セッション進行キャッシュ）。`services/session.ts` を per-item mode 対応（`SessionSnapshot.items: SessionItem[]`。旧形式スナップショットは破棄）に拡張。`DrillScreen`/`ResultScreen`/`ExplanationCard` を新規実装し、コンポーネントテスト14件で出題→解答→誤答時のsrsCards/tagStats/ratings更新→SRS由来itemのreviewSrsCard呼出→次問→リザルト→ホーム復帰を検証。`quickPackConfig` の allocation合計検証（レビューフォローアップ）も実装。実装後 `npm run dev` を起動し Playwright 経由の実Chromiumでドリル→リザルト→ホームの一連を手動確認し、レート未初期化セクションの表示が `0` になる表示バグ（`DEFAULT_INITIAL_RATING` 不使用）を発見・修正した。audio_qa（Part2）固有のタイマー・音声再生対応は T-17 に委譲。
 ※ T-17: `DrillScreen` に audio_qa 対応を追加（開始タップ=unlock兼用→play→15秒タイマー→自動タイムアウト誤答、もう一度再生=replay、セッション内連続正解ストリーク表示）。冒頭だけ再生モード（J-5）は `sessionStore.partialAudioMode` フラグで制御し、`PlayOptions.durationMs`（2500ms。docs未記載のチューニング値）付きで `play()` を呼ぶ。コンポーネントテスト6件追加（タイムアウト自動確定・タイマー中の即時解答・ストリーク増減・durationMs付きplay呼び出し等）。`vi.useFakeTimers({ toFake: ['setInterval','clearInterval'] })` で15秒タイマーのみ高速化し、fake-indexeddbのDexie操作は実タイマーのまま動かす手法を確立。ffmpegで生成したPart2ダミー音声2本を `public/packs/dev/audio/` にコミット（生成スクリプト `scripts/generate-dummy-audio.mjs`）。実装後 `npm run dev` を起動しPlaywright実Chromiumで通常モード（2問完走→リザルト）・冒頭再生モード（play呼び出し確認）を手動確認、page error 0件。
 ※ T-19: 新規 `VocabScreen`＋`SwipeCard`（Pointer Events。左右のみ判定、縦優勢は無視）を実装。復習モード（`getSrsQueue`のdueReviews+newCardsを結合。自己評価3段階→`reviewSrsCard`＋`recordAttempt`(mode='srs')＋`evaluateStreak`）と仕分けモード（vocabQuestionsのうちsrsCards未登録の語を候補にし、「知らない」で`addSrsCard`、「知ってる」はスキップのみ）の2フェーズ構成。`buildSrsQueue`という旧称がdocs/10にあるが実体は`engine/srs.ts`の`getSrsQueue`（実装済み関数名の食い違いを解消して実装）。自己評価→attemptsのisCorrect写像は「もう一回=false、OK/余裕=true」で実装（docs未記載の解釈）。フレーズ音声自動再生は`settings`ストアの`vocabAutoPlayPhrase`キーで永続化。コンポーネントテスト7件。実装後`npm run dev`を起動しPlaywright実Chromiumで実際のポインタドラッグ（mouse.down/move/up）による左右スワイプ＋ボタン仕分けの両方を手動確認、page error 0件。
+※ T-18: `DrillScreen`はT-16の時点で既にformat非依存（text_blankは音声なし・タイマーなしの共通フローにそのまま乗る）だったため新規実装は不要。T-18固有の完了条件（文法タグが問題ごとに異なってもtagStatsへ正しく反映される）を明示的に検証するテストを1件追加して完了条件を機械的に満たした。
 
 ## 契約の状態（[09](09_開発体制.md) 2節）
 
@@ -84,7 +86,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 
 **残タスク（T-15〜T-23, T-25〜T-38）の実装は [10_F4-F6実装計画](10_F4-F6実装計画.md) のタスクシートに従う**（1タスク=1セッションの自走用作業指示。実装方式の事前決定は同書3節と ADR 0003）。
 
-1. **F4: 学習モードUI** — S-A1（T-15→T-16→T-17）・S-A2（T-19）完了。次は S-A3（T-22: ダッシュボード）。T-18（Part5ドリル）はいつでも可（依存はT-13・T-16のみ）
+1. **F4: 学習モードUI** — S-A1（T-15→T-16→T-17）・S-A2（T-19）・T-18 完了。次は S-A3（T-22: ダッシュボード）
 2. **F5 前半（並行可）** — T-30 → T-25 → T-26/27/28 のコマンド実装。生成実行と目視レビューは人間の稼働待ち（M1の律速）
 3. **B-2 の解消（TTS アカウント作成）** — 発起人の判断で後回し中。T-31 の実生成着手前までに実施（第一候補 Azure F0。手順は 10 の T-31 シート参照）
 
