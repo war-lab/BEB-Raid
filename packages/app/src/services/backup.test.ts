@@ -1,0 +1,206 @@
+// T-08 完了条件: エクスポート→DB全消去→インポートで attempts・srsCards・
+// ratings ほか全ストアが復元される往復テスト
+import 'fake-indexeddb/auto'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { BebRaidDatabase } from '../db/database'
+import { PROFILE_ID, STREAK_ID } from '../db/schema'
+import { exportAll, importAll, validateBackup, type BackupFile } from './backup'
+
+let seq = 0
+const dbs: BebRaidDatabase[] = []
+
+function newDb(): BebRaidDatabase {
+  const db = new BebRaidDatabase(`backup-test-${++seq}`)
+  dbs.push(db)
+  return db
+}
+
+afterEach(async () => {
+  await Promise.all(dbs.splice(0).map((db) => db.delete()))
+})
+
+/** 全11ストアにテストデータを投入する */
+async function seedAllStores(db: BebRaidDatabase): Promise<void> {
+  await db.profile.put({
+    id: PROFILE_ID,
+    displayName: 'テスト',
+    initialToeic: 550,
+    createdAt: 1000,
+    deviceToken: 'token-1',
+  })
+  await db.attempts.bulkAdd([
+    {
+      id: 'a-1',
+      questionId: 'q-1',
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 3000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: 1000,
+    },
+    {
+      id: 'a-2',
+      questionId: 'q-2',
+      mode: 'srs',
+      isCorrect: false,
+      responseMs: 1500,
+      isTimeout: false,
+      isGuess: true,
+      answeredAt: 2000,
+    },
+  ])
+  await db.srsCards.put({
+    id: 'vocab:submit',
+    refType: 'vocab',
+    refId: 'submit',
+    stage: 1,
+    dueAt: 5000,
+    lapses: 0,
+  })
+  await db.ratings.put({ section: 'L', rating: 420, updatedAt: 1000 })
+  await db.ratingHistory.put({ date: '2026-07-07', section: 'L', rating: 420 })
+  await db.tagStats.put({ tag: '疑問詞聞き取り', windowCorrect: 6, windowTotal: 10 })
+  await db.phase.put({ season: 'P1', criteriaJson: '{}', achievedAt: null })
+  await db.streak.put({
+    id: STREAK_ID,
+    currentDays: 3,
+    bestDays: 7,
+    lastActiveDate: '2026-07-07',
+    protectionUsedAt: null,
+  })
+  await db.badges.put({ badgeId: 'first-session', earnedAt: 1000 })
+  await db.pendingSync.add({
+    kind: 'raidDamage',
+    payloadJson: '{"attemptId":"a-1"}',
+    createdAt: 1000,
+  })
+  await db.settings.put({ key: 'noEarphoneMode', value: true })
+}
+
+describe('エクスポート→全消去→インポートの往復', () => {
+  it('全ストアが復元される', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+
+    // JSONファイル経由を模擬（stringify → parse で往復できることも確認）
+    const exported = JSON.parse(JSON.stringify(await exportAll(source))) as BackupFile
+
+    // 「DB全消去」= 空の新規DBへの復元と等価（実運用では機種変・iOS退避後の端末）
+    const restored = newDb()
+    await importAll(restored, exported)
+
+    for (const table of source.tables) {
+      const before = await table.toArray()
+      const after = await restored.table(table.name).toArray()
+      expect(after, `ストア ${table.name} が復元されていない`).toEqual(before)
+    }
+  })
+
+  it('インポートは冪等（2回実行しても同じ状態）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const restored = newDb()
+    await importAll(restored, exported)
+    await importAll(restored, exported)
+    expect(await restored.attempts.count()).toBe(2)
+    expect(await restored.settings.count()).toBe(1)
+  })
+
+  it('attempts はマージ追記で、バックアップに無い既存ログも消えない', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const target = newDb()
+    // バックアップに含まれない解答ログが先に存在する
+    await target.attempts.add({
+      id: 'a-local',
+      questionId: 'q-9',
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 2500,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: 9000,
+    })
+    await importAll(target, exported)
+
+    expect(await target.attempts.count()).toBe(3) // a-1, a-2, a-local
+    expect(await target.attempts.get('a-local')).toBeDefined()
+  })
+
+  it('attempts の既存IDは内容が異なるバックアップでも書き換わらない', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = JSON.parse(JSON.stringify(await exportAll(source))) as BackupFile
+
+    // 改ざん・破損を模擬: 既存ログ a-1 の正誤を反転させたバックアップ
+    const tampered = exported.stores.attempts.find((a) => a.id === 'a-1')
+    if (!tampered) throw new Error('テストデータ不整合')
+    tampered.isCorrect = false
+
+    const target = newDb()
+    await seedAllStores(target) // a-1（isCorrect: true）が既に存在する
+    await importAll(target, exported)
+
+    expect((await target.attempts.get('a-1'))?.isCorrect).toBe(true) // 上書きされない
+    expect(await target.attempts.count()).toBe(2)
+  })
+
+  it('attempts 以外は置き換え復元（インポート前の残存データが混ざらない）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const target = newDb()
+    await target.settings.put({ key: '不要な設定', value: 1 })
+    await target.srsCards.put({
+      id: 'vocab:old',
+      refType: 'vocab',
+      refId: 'old',
+      stage: 5,
+      dueAt: 1,
+      lapses: 9,
+    })
+    await importAll(target, exported)
+
+    expect(await target.settings.get('不要な設定')).toBeUndefined()
+    expect(await target.srsCards.get('vocab:old')).toBeUndefined()
+    expect(await target.srsCards.get('vocab:submit')).toBeDefined()
+  })
+})
+
+describe('validateBackup / importAll: 不正データの拒否', () => {
+  it('オブジェクトでない入力を拒否する', async () => {
+    expect(validateBackup('x')).not.toHaveLength(0)
+    await expect(importAll(newDb(), 'x')).rejects.toThrow(/不正/)
+  })
+
+  it('formatVersion 不一致を拒否する', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = (await exportAll(source)) as unknown as Record<string, unknown>
+    exported.formatVersion = 99
+    await expect(importAll(newDb(), exported)).rejects.toThrow(/formatVersion/)
+  })
+
+  it('ストア欠落を全件列挙で拒否し、DBに手を付けない', async () => {
+    const broken = {
+      formatVersion: 1,
+      dbVersion: 1,
+      exportedAt: 0,
+      stores: { profile: [], attempts: [] }, // 残り9ストアが欠落
+    }
+    const problems = validateBackup(broken)
+    expect(problems).toHaveLength(9)
+
+    const target = newDb()
+    await target.settings.put({ key: 'keep', value: 1 })
+    await expect(importAll(target, broken)).rejects.toThrow()
+    expect(await target.settings.get('keep')).toBeDefined()
+  })
+})
