@@ -1,0 +1,202 @@
+// T-19 完了条件のテスト:
+// - スワイプとボタンの両方で仕分けでき、「知らない」だけがsrsCardsに入る
+// - 復習3段階評価でstageが遷移しattemptsにmode='srsが記録される
+// - 自動再生トグルOFFでplayが呼ばれない
+// - SRS5問完了時にevaluateStreakが呼ばれストリーク成立が返る
+import 'fake-indexeddb/auto'
+import type { Question } from '@beb-raid/shared-schema'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { BebRaidDatabase } from '../db/database'
+import { evaluateStreak } from '../engine/streak'
+import type { AudioPlayer } from '../platform'
+import { useAppStore } from '../store/appStore'
+import { VocabScreen } from './VocabScreen'
+
+let seq = 0
+const dbs: BebRaidDatabase[] = []
+
+function newDb(): BebRaidDatabase {
+  const db = new BebRaidDatabase(`vocab-screen-test-${++seq}`)
+  dbs.push(db)
+  return db
+}
+
+class FakeAudioPlayer implements AudioPlayer {
+  unlock = vi.fn(async () => {})
+  play = vi.fn(async () => {})
+  playSequence = vi.fn(async () => {})
+  replay = vi.fn(async () => {})
+  stop = vi.fn(() => {})
+}
+
+beforeEach(() => {
+  useAppStore.setState({ screen: 'vocab' })
+})
+
+afterEach(async () => {
+  await Promise.all(dbs.splice(0).map((db) => db.delete()))
+})
+
+function vocabQuestion(word: string, freqRank: 'S' | 'A' | 'B' | 'C' = 'S'): Question {
+  return {
+    id: `vocab-${word}`,
+    part: 0,
+    format: 'vocab_card',
+    difficulty: 1,
+    tags: [],
+    keyVocab: [],
+    front: word,
+    phrase: `I will ${word} it.`,
+    phraseAudio: `/dev-audio/${word}.mp3`,
+    back: `${word} の意味`,
+    freqRank,
+    levelBand: 600,
+  }
+}
+
+async function seedDueCard(db: BebRaidDatabase, word: string, now = Date.now()) {
+  await db.srsCards.put({
+    id: `vocab:${word}`,
+    refType: 'vocab',
+    refId: word,
+    stage: 2,
+    dueAt: now - 1000,
+    lapses: 0,
+    introducedDate: '2026-07-01',
+    graduatedAt: null,
+    sourceQuestionId: null,
+  })
+}
+
+describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け）', () => {
+  it('スワイプ「知らない」で srsCards に追加され、「知ってる」（ボタン）では追加されない', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('beta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    const { container } = render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
+    )
+
+    await waitFor(() => expect(screen.getByText('I will alpha it.')).toBeTruthy())
+    const card = container.querySelector('.swipe-card')!
+    fireEvent.pointerDown(card, { clientX: 200, clientY: 100 })
+    fireEvent.pointerMove(card, { clientX: 80, clientY: 105 }) // dx=-120 → 左スワイプ
+    fireEvent.pointerUp(card, { clientX: 80, clientY: 105 })
+
+    await waitFor(async () => expect(await db.srsCards.get('vocab:alpha')).toBeDefined())
+
+    // 2件目（beta）は「知ってる」ボタンで仕分ける
+    await waitFor(() => expect(screen.getByText('I will beta it.')).toBeTruthy())
+    fireEvent.click(screen.getByText('知ってる'))
+
+    await waitFor(() => expect(screen.getByText('語彙SRSが終了しました')).toBeTruthy())
+    expect(await db.srsCards.get('vocab:beta')).toBeUndefined()
+  })
+
+  it('「知らない」ボタンでも同様に srsCards に追加される', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('gamma')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('知らない')).toBeTruthy())
+    fireEvent.click(screen.getByText('知らない'))
+
+    await waitFor(async () => expect(await db.srsCards.get('vocab:gamma')).toBeDefined())
+  })
+})
+
+describe('VocabScreen: 復習モード（自己評価3段階）', () => {
+  it('OK評価でstageが進み、attemptsにmode=srsで記録される', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'delta')
+    const questions = [vocabQuestion('delta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('I will delta it.')).toBeTruthy())
+    fireEvent.click(screen.getByText('タップで意味を見る'))
+    await waitFor(() => expect(screen.getByText('delta の意味')).toBeTruthy())
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const card = await db.srsCards.get('vocab:delta')
+    expect(card?.stage).toBe(3) // stage2→OK(+1)=3
+
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.mode).toBe('srs')
+    expect(attempt.questionId).toBe('vocab-delta')
+    expect(attempt.isCorrect).toBe(true)
+  })
+
+  it('「もう一回」評価は不正解相当として記録される', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'epsilon')
+    const questions = [vocabQuestion('epsilon')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('I will epsilon it.')).toBeTruthy())
+    fireEvent.click(screen.getByText('タップで意味を見る'))
+    fireEvent.click(screen.getByText('もう一回'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(false)
+    const card = await db.srsCards.get('vocab:epsilon')
+    expect(card?.stage).toBe(0) // もう一回はstage0へリセット
+  })
+})
+
+describe('VocabScreen: フレーズ音声自動再生トグル', () => {
+  it('トグルOFF（既定）では play が呼ばれない', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'zeta')
+    const questions = [vocabQuestion('zeta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('I will zeta it.')).toBeTruthy())
+
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+    expect(audioPlayer.unlock).not.toHaveBeenCalled()
+  })
+
+  it('トグルON（settings永続化）では play が phraseAudio 付きで呼ばれる', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'vocabAutoPlayPhrase', value: true })
+    await seedDueCard(db, 'eta')
+    const questions = [vocabQuestion('eta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/eta.mp3'))
+  })
+})
+
+describe('VocabScreen: ストリーク成立（02の7節）', () => {
+  it('SRS5問完了時に evaluateStreak がストリーク成立を返す', async () => {
+    const db = newDb()
+    const words = ['w1', 'w2', 'w3', 'w4', 'w5']
+    for (const w of words) await seedDueCard(db, w)
+    const questions = words.map((w) => vocabQuestion(w))
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    for (let i = 0; i < words.length; i++) {
+      await waitFor(() => expect(screen.getByText(`復習 ${i + 1}/${words.length}`)).toBeTruthy())
+      fireEvent.click(screen.getByText('タップで意味を見る'))
+      fireEvent.click(screen.getByText('OK'))
+      await waitFor(async () => expect(await db.attempts.count()).toBe(i + 1))
+    }
+
+    const status = await evaluateStreak(db)
+    expect(status.todayCompleted).toBe(true)
+    expect(status.currentDays).toBeGreaterThanOrEqual(1)
+  })
+})

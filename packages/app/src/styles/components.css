@@ -219,6 +219,81 @@
   }
 }
 
+/* --- スワイプカード（語彙SRS。07の6節） --- */
+.swipe-card {
+  position: relative;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  touch-action: pan-y; /* 横方向のスワイプ操作を優先し、縦スクロールは通す */
+  user-select: none;
+}
+.swipe-card__icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fs-stat);
+  font-weight: 700;
+}
+.swipe-card__icon--right {
+  right: var(--sp-2);
+  color: var(--ok);
+}
+.swipe-card__icon--left {
+  left: var(--sp-2);
+  color: var(--ng);
+}
+
+/* --- 語彙カード本体（07 7節S3: フレーズ英大・和小＋頻出度ランクチップ） --- */
+.vocab-card {
+  text-align: center;
+}
+.vocab-card__rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--sp-1);
+  margin-bottom: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+}
+.vocab-card__phrase {
+  font-size: var(--fs-heading);
+  line-height: 1.5;
+}
+.vocab-card__back {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+}
+
+/* --- SRS自己評価3段階ボタン（もう一回/OK/余裕） --- */
+.vocab-grade-button {
+  display: block;
+  width: 100%;
+  min-height: var(--answer-height);
+  margin-bottom: var(--sp-1);
+  padding: 0 var(--sp-2);
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.vocab-grade-button:active {
+  background: var(--surface-2);
+}
+.vocab-grade-button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;

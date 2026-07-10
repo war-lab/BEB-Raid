@@ -11,6 +11,7 @@ import { createAudioPlayer } from './platform'
 import { InstallHint } from './pwa/InstallHint'
 import { DrillScreen } from './screens/DrillScreen'
 import { ResultScreen } from './screens/ResultScreen'
+import { VocabScreen } from './screens/VocabScreen'
 import { startSession, type SessionItem } from './services/session'
 import { useAppStore } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
@@ -102,6 +103,31 @@ const DUMMY_PART2_QUESTIONS: Question[] = [
   },
 ]
 
+/**
+ * 語彙SRS（T-19）用ダミー語彙カード。phraseAudio はPart2用に生成済みの
+ * placeholder音声を仮に共用する（本番コンテンツはT-26/T-31で差し替え）
+ */
+const DUMMY_VOCAB_QUESTIONS: Question[] = [
+  ['submit', '提出する', 'S'],
+  ['attend', '出席する', 'A'],
+  ['negotiate', '交渉する', 'S'],
+  ['reimburse', '払い戻す', 'B'],
+  ['postpone', '延期する', 'A'],
+].map(([word, back, freqRank]) => ({
+  id: `dev-vocab-${word}`,
+  part: 0,
+  format: 'vocab_card',
+  difficulty: 1,
+  tags: [],
+  keyVocab: [],
+  front: word,
+  phrase: `Please ${word} it as soon as possible.`,
+  phraseAudio: '/packs/dev/audio/p2-001.mp3',
+  back,
+  freqRank: freqRank as Question['freqRank'],
+  levelBand: 730,
+}))
+
 const audioPlayer = createAudioPlayer()
 
 export function App() {
@@ -126,6 +152,11 @@ export function App() {
 
   if (screen === 'drill') return <DrillScreen db={getDb()} audioPlayer={audioPlayer} />
   if (screen === 'result') return <ResultScreen db={getDb()} />
+  if (screen === 'vocab') {
+    return (
+      <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={DUMMY_VOCAB_QUESTIONS} />
+    )
+  }
 
   return (
     <ScreenLayout
@@ -147,6 +178,7 @@ export function App() {
             />
             冒頭だけ再生モード（J-5）
           </label>
+          <PrimaryButton onClick={() => navigate('vocab')}>語彙SRS開始（開発用）</PrimaryButton>
         </>
       }
     >
