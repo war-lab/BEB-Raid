@@ -183,7 +183,12 @@ describe('getSrsQueue: 期限抽出と新規制御', () => {
     }
     for (let i = 0; i < 5; i++) {
       await db.srsCards.put(
-        card({ id: `vocab:done-${i}`, refId: `done-${i}`, introducedDate: '2026-07-09', dueAt: at(2026, 7, 10) }),
+        card({
+          id: `vocab:done-${i}`,
+          refId: `done-${i}`,
+          introducedDate: '2026-07-09',
+          dueAt: at(2026, 7, 10),
+        }),
       )
     }
     const queue = await getSrsQueue(db, now)

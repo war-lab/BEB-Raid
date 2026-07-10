@@ -91,7 +91,9 @@ export async function evaluateStreak(
       } else if (gap === 1) {
         currentDays = record.currentDays + 1
       } else if (gap === 2) {
-        const missedDate = toDateString(localMidnightAfterDays(parseDateString(record.lastActiveDate), 1))
+        const missedDate = toDateString(
+          localMidnightAfterDays(parseDateString(record.lastActiveDate), 1),
+        )
         if (protectionAvailable(record, missedDate)) {
           // 欠席1日を保護で免除（欠席日は学習日として数えない。継続だけ守る）
           currentDays = record.currentDays + 1

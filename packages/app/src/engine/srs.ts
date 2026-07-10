@@ -43,11 +43,7 @@ export function srsCardId(refType: SrsRefType, refId: string): string {
  * - もう一回: stage0 へリセット（導入済みなら lapses+1）
  * - 遷移先が間隔テーブルを超えたら卒業（graduatedAt を記録。dueAt は据え置き）
  */
-export function applyGrade(
-  card: SrsCardRecord,
-  grade: SrsGrade,
-  now: number,
-): ReviewSrsCardResult {
+export function applyGrade(card: SrsCardRecord, grade: SrsGrade, now: number): ReviewSrsCardResult {
   const introduced = card.introducedDate ?? null
   let nextStage: number
   let lapses = card.lapses

@@ -72,8 +72,7 @@ export async function recomputeTagStats(
   lookup: QuestionLookup,
   tags?: readonly string[],
 ): Promise<TagStatRecord[]> {
-  const targetTags =
-    tags ?? Array.from(new Set(Array.from(lookup.values()).flatMap((q) => q.tags)))
+  const targetTags = tags ?? Array.from(new Set(Array.from(lookup.values()).flatMap((q) => q.tags)))
   const attempts = await db.attempts.toArray()
   const records = targetTags.map((tag) => ({ tag, ...computeTagWindow(attempts, tag, lookup) }))
   await db.tagStats.bulkPut(records)

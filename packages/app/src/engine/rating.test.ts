@@ -65,7 +65,7 @@ describe('sectionForPart', () => {
   })
 })
 
-describe('applyRatingUpdate: R\' = R + K(result − p)', () => {
+describe("applyRatingUpdate: R' = R + K(result − p)", () => {
   it('最初の50問は K=32、以降は K=16', async () => {
     const db = newDb()
     await initializeRatings(db, { listening: 400, reading: 400, now: 1000 })
@@ -122,7 +122,13 @@ describe('applyRatingUpdate: R\' = R + K(result − p)', () => {
   it('L/R は独立に更新され、総合は常に平均', async () => {
     const db = newDb()
     await initializeRatings(db, { listening: 400, reading: 500, now: 1000 })
-    await applyRatingUpdate(db, { part: 2, difficulty: 3, isCorrect: true, mode: 'solo', now: 2000 })
+    await applyRatingUpdate(db, {
+      part: 2,
+      difficulty: 3,
+      isCorrect: true,
+      mode: 'solo',
+      now: 2000,
+    })
 
     const listening = (await db.ratings.get('L'))!.rating
     const reading = (await db.ratings.get('R'))!.rating
@@ -154,20 +160,36 @@ describe('ratingHistory: 日次スナップショット（03の5.5、J-1）', ()
     const day2 = new Date(2026, 6, 10, 8, 0).getTime()
 
     await initializeRatings(db, { listening: 400, reading: 400, now: day1 })
-    await applyRatingUpdate(db, { part: 2, difficulty: 3, isCorrect: true, mode: 'solo', now: day1evening })
+    await applyRatingUpdate(db, {
+      part: 2,
+      difficulty: 3,
+      isCorrect: true,
+      mode: 'solo',
+      now: day1evening,
+    })
     expect(await db.ratingHistory.where('date').equals('2026-07-09').count()).toBe(3) // L/R/total
 
     const snapshotL = await db.ratingHistory.get(['2026-07-09', 'L'])
     expect(snapshotL?.rating).toBe((await db.ratings.get('L'))?.rating)
 
-    await applyRatingUpdate(db, { part: 5, difficulty: 2, isCorrect: false, mode: 'solo', now: day2 })
+    await applyRatingUpdate(db, {
+      part: 5,
+      difficulty: 2,
+      isCorrect: false,
+      mode: 'solo',
+      now: day2,
+    })
     expect(await db.ratingHistory.where('date').equals('2026-07-10').count()).toBe(3)
     expect(await db.ratingHistory.count()).toBe(6)
   })
 
   it('snapshotRatings 単体でも upsert できる（セッション終了時などの明示呼び出し用）', async () => {
     const db = newDb()
-    await initializeRatings(db, { listening: 420, reading: 480, now: new Date(2026, 6, 9).getTime() })
+    await initializeRatings(db, {
+      listening: 420,
+      reading: 480,
+      now: new Date(2026, 6, 9).getTime(),
+    })
     await snapshotRatings(db, new Date(2026, 6, 10).getTime())
     expect((await db.ratingHistory.get(['2026-07-10', 'total']))?.rating).toBe(450)
   })

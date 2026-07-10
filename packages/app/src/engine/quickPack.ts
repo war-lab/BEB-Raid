@@ -17,12 +17,7 @@ import { getActiveReviewWords, similarOrFallback } from './keyVocab'
 import rawConfig from './quickPackConfig.json'
 import { getSrsQueue } from './srs'
 import { getWeakTags } from './tagStats'
-import type {
-  QuickPack,
-  QuickPackItem,
-  QuickPackReason,
-  QuickPackRequest,
-} from './types'
+import type { QuickPack, QuickPackItem, QuickPackReason, QuickPackRequest } from './types'
 
 /** ドリルの配分カテゴリ（J-2 の固定配分の単位） */
 export type DrillCategory = 'vocab' | 'part2' | 'part5'
@@ -71,12 +66,15 @@ export function computeAllocationCounts(
 ): Record<DrillCategory, number> {
   const categories = Object.keys(allocation) as DrillCategory[]
   const exact = categories.map((c) => ({ category: c, exact: slots * allocation[c] }))
-  const counts = Object.fromEntries(
-    exact.map((e) => [e.category, Math.floor(e.exact)]),
-  ) as Record<DrillCategory, number>
+  const counts = Object.fromEntries(exact.map((e) => [e.category, Math.floor(e.exact)])) as Record<
+    DrillCategory,
+    number
+  >
   let rest = slots - categories.reduce((sum, c) => sum + counts[c], 0)
   // 端数の大きい順（同値は allocation の記載順）に1ずつ配る
-  const byFraction = [...exact].sort((a, b) => b.exact - Math.floor(b.exact) - (a.exact - Math.floor(a.exact)))
+  const byFraction = [...exact].sort(
+    (a, b) => b.exact - Math.floor(b.exact) - (a.exact - Math.floor(a.exact)),
+  )
   for (const e of byFraction) {
     if (rest <= 0) break
     counts[e.category] += 1

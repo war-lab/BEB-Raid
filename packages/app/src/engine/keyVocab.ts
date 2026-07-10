@@ -56,11 +56,11 @@ export async function processWrongAnswer(
  * 復習対象のkey単語（SRS進行中=未卒業の語彙カードの単語一覧）。
  * クイックパック生成が「同key単語を持つ類題の出題重みUP」の判定に使う
  */
-export async function getActiveReviewWords(db: BebRaidDatabase): Promise<Map<string, SrsCardRecord>> {
+export async function getActiveReviewWords(
+  db: BebRaidDatabase,
+): Promise<Map<string, SrsCardRecord>> {
   const cards = await db.srsCards.where('refType').equals('vocab').toArray()
-  return new Map(
-    cards.filter((c) => (c.graduatedAt ?? null) === null).map((c) => [c.refId, c]),
-  )
+  return new Map(cards.filter((c) => (c.graduatedAt ?? null) === null).map((c) => [c.refId, c]))
 }
 
 /**

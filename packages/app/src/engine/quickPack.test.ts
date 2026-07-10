@@ -104,7 +104,12 @@ describe('generateQuickPack: 時間帯別の構成（02の2.1）', () => {
     for (let i = 0; i < 12; i++) {
       await addSrsCard(db, { refType: 'vocab', refId: `new-${i}`, now: YESTERDAY + i })
     }
-    const pack = await generateQuickPack(db, { duration: 3, questions: bigPool(), now: NOW, rng: firstPick })
+    const pack = await generateQuickPack(db, {
+      duration: 3,
+      questions: bigPool(),
+      now: NOW,
+      rng: firstPick,
+    })
 
     expect(pack.items).toHaveLength(10) // totalItems(3分)=10
     expect(pack.items.slice(0, 3).every((i) => i.reason.type === 'srsDue')).toBe(true)
@@ -116,8 +121,18 @@ describe('generateQuickPack: 時間帯別の構成（02の2.1）', () => {
     const db = newDb()
     await seedDueCards(db, 2)
     const pool = bigPool()
-    const pack7 = await generateQuickPack(db, { duration: 7, questions: pool, now: NOW, rng: firstPick })
-    const pack15 = await generateQuickPack(db, { duration: 15, questions: pool, now: NOW, rng: firstPick })
+    const pack7 = await generateQuickPack(db, {
+      duration: 7,
+      questions: pool,
+      now: NOW,
+      rng: firstPick,
+    })
+    const pack15 = await generateQuickPack(db, {
+      duration: 15,
+      questions: pool,
+      now: NOW,
+      rng: firstPick,
+    })
 
     expect(pack7.items).toHaveLength(20)
     expect(pack7.items.filter((i) => i.kind === 'drill')).toHaveLength(18)
@@ -134,7 +149,12 @@ describe('generateQuickPack: 時間帯別の構成（02の2.1）', () => {
     const db = newDb()
     await seedDueCards(db, 16)
     await addSrsCard(db, { refType: 'vocab', refId: 'fresh', now: NOW - 1000 })
-    const pack = await generateQuickPack(db, { duration: 7, questions: bigPool(), now: NOW, rng: firstPick })
+    const pack = await generateQuickPack(db, {
+      duration: 7,
+      questions: bigPool(),
+      now: NOW,
+      rng: firstPick,
+    })
 
     const srsDue = pack.items.filter((i) => i.reason.type === 'srsDue')
     expect(srsDue).toHaveLength(QUICK_PACK_CONFIG.srsCapPerPack) // 15
@@ -165,10 +185,19 @@ describe('T-11 との通し: 誤答→key語彙SRS→類題の優先出題', () 
     expect(src?.reason.type).not.toBe('keyVocabReview')
 
     // 次回パック: 類題がドリルとして出題され、出題理由が付く
-    const pack = await generateQuickPack(db, { duration: 15, questions: pool, now: NOW, rng: firstPick })
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions: pool,
+      now: NOW,
+      rng: firstPick,
+    })
     const simItem = pack.items.find((i) => i.questionId === 'q-sim')
     expect(simItem?.kind).toBe('drill')
-    expect(simItem?.reason).toEqual({ type: 'keyVocabReview', word: 'submit', isSameQuestion: false })
+    expect(simItem?.reason).toEqual({
+      type: 'keyVocabReview',
+      word: 'submit',
+      isSameQuestion: false,
+    })
   })
 
   it('類題在庫ゼロの場合のみ同一問題（発生元）がフォールバックとして候補になる', async () => {
@@ -211,7 +240,12 @@ describe('T-12 との接続: 弱点タグの重み付け', () => {
     expect(weak?.weight).toBe(QUICK_PACK_CONFIG.priorityWeight)
     expect(weak?.reason).toEqual({ type: 'weakTag', tag: '品詞' })
 
-    const pack = await generateQuickPack(db, { duration: 7, questions: pool, now: NOW, rng: firstPick })
+    const pack = await generateQuickPack(db, {
+      duration: 7,
+      questions: pool,
+      now: NOW,
+      rng: firstPick,
+    })
     expect(pack.items.some((i) => i.reason.type === 'weakTag')).toBe(true)
   })
 })
@@ -230,7 +264,12 @@ describe('出題候補に無い問題SRSカードの扱い', () => {
       graduatedAt: null,
       sourceQuestionId: null,
     })
-    const pack = await generateQuickPack(db, { duration: 3, questions: bigPool(), now: NOW, rng: firstPick })
+    const pack = await generateQuickPack(db, {
+      duration: 3,
+      questions: bigPool(),
+      now: NOW,
+      rng: firstPick,
+    })
     expect(pack.items.filter((i) => i.kind === 'srsQuestion')).toHaveLength(0)
     expect(pack.srsOverflow).toBe(0)
     expect(await db.srsCards.get('question:not-cached')).toBeDefined()

@@ -100,8 +100,10 @@ export async function applyRatingUpdate(
     await db.ratings.put({ section, rating: after, updatedAt: now, answerCount: answerCount + 1 })
 
     // 総合 = L/R の平均（未初期化側はフォールバック初期値で平均する）
-    const listening = section === 'L' ? after : ((await db.ratings.get('L'))?.rating ?? DEFAULT_INITIAL_RATING)
-    const reading = section === 'R' ? after : ((await db.ratings.get('R'))?.rating ?? DEFAULT_INITIAL_RATING)
+    const listening =
+      section === 'L' ? after : ((await db.ratings.get('L'))?.rating ?? DEFAULT_INITIAL_RATING)
+    const reading =
+      section === 'R' ? after : ((await db.ratings.get('R'))?.rating ?? DEFAULT_INITIAL_RATING)
     await db.ratings.put({ section: 'total', rating: (listening + reading) / 2, updatedAt: now })
 
     await snapshotRatings(db, now)
@@ -114,7 +116,10 @@ export async function applyRatingUpdate(
  * 現在レートを当日の日次スナップショットとして upsert する（03の5.5、J-1）。
  * 同日内の更新は上書きされ、「その日の最終値」が残る
  */
-export async function snapshotRatings(db: BebRaidDatabase, now: number = Date.now()): Promise<void> {
+export async function snapshotRatings(
+  db: BebRaidDatabase,
+  now: number = Date.now(),
+): Promise<void> {
   const date = toDateString(now)
   const sections: RatingSection[] = ['L', 'R', 'total']
   for (const section of sections) {
