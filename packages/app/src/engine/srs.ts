@@ -112,7 +112,11 @@ export async function addSrsCard(
   })
 }
 
-/** カードに自己評価を反映して保存する */
+/**
+ * カードに自己評価を反映して保存する。
+ * key語彙カードが卒業した場合、発生元の問題を問題SRSカードとして再投入する
+ * （03の3.2「定着後、元問題タイプを再出題して定着確認」= T-11）
+ */
 export async function reviewSrsCard(
   db: BebRaidDatabase,
   cardId: string,
@@ -127,6 +131,11 @@ export async function reviewSrsCard(
     }
     const result = applyGrade(card, grade, now)
     await db.srsCards.put(result.card)
+
+    const sourceQuestionId = result.card.sourceQuestionId ?? null
+    if (result.graduated && result.card.refType === 'vocab' && sourceQuestionId !== null) {
+      await addSrsCard(db, { refType: 'question', refId: sourceQuestionId, now })
+    }
     return result
   })
 }
