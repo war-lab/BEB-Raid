@@ -5,21 +5,37 @@
 //
 // スナップショットの置き場所は settings ストア（キーバリュー）の1エントリ。
 // docs/04 3節のストア表に専用ストアを増やさないための判断（T-07 コミット参照）。
+//
+// T-16（docs/10 3.3節）: per-item mode 対応。SessionSnapshot.questionIds を
+// items: SessionItem[] に置き換え、SRS由来・ドリル由来が混在するクイックパックを
+// そのまま1セッションとして進行できるようにする。SessionSnapshot は進行中セッションの
+// 一時データでマイグレーション不要（形式が変わったら旧スナップショットは破棄する）。
 
 import type { BebRaidDatabase } from '../db/database'
 import type { AttemptMode } from '../db/schema'
+import type { QuickPackReason } from '../engine/types'
 import { buildAttempt, type RecordAttemptInput } from './attempts'
 
 /** settings ストア内のスナップショットのキー */
 export const ACTIVE_SESSION_KEY = 'activeSession'
 
+/** セッション内の1出題（QuickPackItem から質問実体のあるものを写像。3.3節） */
+export interface SessionItem {
+  questionId: string
+  /** attempts 記録時の mode（SRS復習='srs'、ドリル='solo'） */
+  mode: AttemptMode
+  /** SRS由来 item のみ。解答時に reviewSrsCard を呼ぶ判定に使う */
+  srsCardId?: string
+  /** 出題理由（ステータス帯のラベル表示用） */
+  reason?: QuickPackReason
+}
+
 /** 進行中セッションのスナップショット（1問解答するたびに更新される） */
 export interface SessionSnapshot {
   sessionId: string
-  mode: AttemptMode
-  /** 出題順の問題ID一覧（セッション開始時に確定） */
-  questionIds: string[]
-  /** 解答済み問題数 = 次に出題する questionIds のインデックス */
+  /** 出題順の item 一覧（セッション開始時に確定） */
+  items: SessionItem[]
+  /** 解答済み問題数 = 次に出題する items のインデックス */
   answeredCount: number
   /** 解答済み分の attempt ID（リザルト画面の集計入力） */
   attemptIds: string[]
@@ -27,24 +43,47 @@ export interface SessionSnapshot {
   updatedAt: number
 }
 
-/** 次に出題する問題ID。全問解答済みなら null */
-export function currentQuestionId(snapshot: SessionSnapshot): string | null {
-  return snapshot.questionIds[snapshot.answeredCount] ?? null
+/** 次に出題する item。全問解答済みなら null */
+export function currentItem(snapshot: SessionSnapshot): SessionItem | null {
+  return snapshot.items[snapshot.answeredCount] ?? null
+}
+
+/**
+ * 保存値が現行形式の SessionSnapshot かを判定する（3.3節: 旧形式は破棄）。
+ * items 配列の有無で新旧を区別する（旧形式は questionIds を持ち items を持たない）
+ */
+function isValidSnapshot(value: unknown): value is SessionSnapshot {
+  if (typeof value !== 'object' || value === null) return false
+  const v = value as Record<string, unknown>
+  return (
+    typeof v.sessionId === 'string' &&
+    Array.isArray(v.items) &&
+    v.items.every(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as SessionItem).questionId === 'string' &&
+        typeof (item as SessionItem).mode === 'string',
+    ) &&
+    typeof v.answeredCount === 'number' &&
+    Array.isArray(v.attemptIds) &&
+    typeof v.startedAt === 'number' &&
+    typeof v.updatedAt === 'number'
+  )
 }
 
 /** セッションを開始し、スナップショットを保存して返す（既存の進行中セッションは上書き） */
 export async function startSession(
   db: BebRaidDatabase,
-  input: { mode: AttemptMode; questionIds: string[]; startedAt?: number },
+  input: { items: SessionItem[]; startedAt?: number },
 ): Promise<SessionSnapshot> {
-  if (input.questionIds.length === 0) {
+  if (input.items.length === 0) {
     throw new Error('問題が0件のセッションは開始できない')
   }
   const now = input.startedAt ?? Date.now()
   const snapshot: SessionSnapshot = {
     sessionId: crypto.randomUUID(),
-    mode: input.mode,
-    questionIds: input.questionIds,
+    items: input.items,
     answeredCount: 0,
     attemptIds: [],
     startedAt: now,
@@ -67,11 +106,11 @@ export async function answerCurrentQuestion(
   snapshot: SessionSnapshot,
   input: Omit<RecordAttemptInput, 'questionId' | 'mode'>,
 ): Promise<SessionSnapshot> {
-  const questionId = currentQuestionId(snapshot)
-  if (questionId === null) {
+  const item = currentItem(snapshot)
+  if (item === null) {
     throw new Error('全問解答済みのセッションには解答できない')
   }
-  const attempt = buildAttempt({ ...input, questionId, mode: snapshot.mode })
+  const attempt = buildAttempt({ ...input, questionId: item.questionId, mode: item.mode })
   const next: SessionSnapshot = {
     ...snapshot,
     answeredCount: snapshot.answeredCount + 1,
@@ -79,9 +118,7 @@ export async function answerCurrentQuestion(
     updatedAt: attempt.answeredAt,
   }
   await db.transaction('rw', db.attempts, db.settings, async () => {
-    const stored = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as
-      | SessionSnapshot
-      | undefined
+    const stored = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as SessionSnapshot | undefined
     if (
       stored === undefined ||
       stored.sessionId !== snapshot.sessionId ||
@@ -95,10 +132,11 @@ export async function answerCurrentQuestion(
   return next
 }
 
-/** 進行中セッションを復元する。無ければ null（=新規セッションを開始する） */
+/** 進行中セッションを復元する。無い/旧形式なら null（=新規セッションを開始する。3.3節） */
 export async function resumeSession(db: BebRaidDatabase): Promise<SessionSnapshot | null> {
   const record = await db.settings.get(ACTIVE_SESSION_KEY)
-  return record ? (record.value as SessionSnapshot) : null
+  if (!record) return null
+  return isValidSnapshot(record.value) ? record.value : null
 }
 
 /** セッションを終了し、スナップショットを破棄する（解答ログは attempts に残る） */

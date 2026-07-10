@@ -14,7 +14,9 @@ import {
   computeAllocationCounts,
   generateQuickPack,
   QUICK_PACK_CONFIG,
+  validateQuickPackConfig,
   weightedSample,
+  type QuickPackConfig,
 } from './quickPack'
 import { addSrsCard } from './srs'
 import { recomputeTagStats } from './tagStats'
@@ -273,5 +275,27 @@ describe('出題候補に無い問題SRSカードの扱い', () => {
     expect(pack.items.filter((i) => i.kind === 'srsQuestion')).toHaveLength(0)
     expect(pack.srsOverflow).toBe(0)
     expect(await db.srsCards.get('question:not-cached')).toBeDefined()
+  })
+})
+
+describe('validateQuickPackConfig（レビューフォローアップ3.8節: allocation合計の検証）', () => {
+  it('同梱の quickPackConfig.json は検証を通る', () => {
+    expect(() => validateQuickPackConfig(QUICK_PACK_CONFIG)).not.toThrow()
+  })
+
+  it('allocation の合計が1から大きくずれる設定は拒否される', () => {
+    const broken: QuickPackConfig = {
+      ...QUICK_PACK_CONFIG,
+      allocation: { vocab: 0.5, part2: 0.2, part5: 0.2 }, // 合計0.9（不正）
+    }
+    expect(() => validateQuickPackConfig(broken)).toThrow(/allocation/)
+  })
+
+  it('1±0.01 の範囲内なら許容される', () => {
+    const ok: QuickPackConfig = {
+      ...QUICK_PACK_CONFIG,
+      allocation: { vocab: 0.5, part2: 0.25, part5: 0.255 }, // 合計1.005
+    }
+    expect(() => validateQuickPackConfig(ok)).not.toThrow()
   })
 })

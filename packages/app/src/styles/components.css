@@ -117,6 +117,13 @@
   color: var(--ink-2);
 }
 
+/* --- 出題理由ラベル（03の3.2「なぜこの問題が出たか」を明示） --- */
+.drill-reason {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
 /* --- 縦3分割レイアウト（100dvh・操作ゾーン約45%＋セーフエリア） --- */
 .screen-layout {
   display: grid;
@@ -136,6 +143,35 @@
   min-height: 45dvh; /* 操作ゾーンは画面下 約45%（親指リーチ内） */
   padding: var(--sp-2);
   padding-bottom: calc(var(--sp-2) + env(safe-area-inset-bottom));
+}
+
+/* --- 解説カード: 正誤確定後に操作ゾーンからせり上がる（07 7節S2） --- */
+.explanation-card {
+  margin-top: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  animation: explanation-slide-up 200ms ease-out;
+}
+.explanation-card__verdict {
+  margin: 0 0 var(--sp-1);
+  font-weight: 700;
+}
+.explanation-card__body,
+.explanation-card__translation {
+  margin: 0 0 var(--sp-1);
+  color: var(--ink-2);
+}
+@keyframes explanation-slide-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* --- ユーティリティ --- */

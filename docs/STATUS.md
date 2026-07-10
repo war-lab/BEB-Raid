@@ -4,7 +4,7 @@
 
 ## 今どこにいるか（1行）
 
-**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15（音声再生基盤）実装完了、次は T-16（S2ドリル画面）。** タスク進捗: 16 / 38 完了。
+**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15・T-16 完了、次は T-17（Part2瞬発モード）。** タスク進捗: 17 / 38 完了。
 
 ## フェーズ進捗
 
@@ -13,7 +13,7 @@
 | F1 プロジェクト基盤（T-01〜T-04） | ✅ 完了 | 2026-07-07 main マージ済み（PR #2） |
 | F2 データ層（T-05〜T-08） | ✅ 完了 | 2026-07-07 dev 上で完了。契約 C-1/C-2 確定 |
 | F3 学習エンジン（T-09〜T-14） | ✅ 完了 | 2026-07-10 dev 上で完了。契約 C-4 確定。実装は `packages/app/src/engine/` |
-| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15 完了。Track A（縦切りスライス S-A1）続きは T-16 |
+| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15・T-16 完了。Track A（縦切りスライス S-A1）続きは T-17 |
 | F5 コンテンツパイプライン（T-24〜T-34) | 🔶 一部完了 | T-24 完了。T-25 以降は B-1/B-2 待ち。**M1 全体の律速** |
 | F6 統合・ドッグフード（T-35〜T-38） | ⬜ 未着手 | |
 
@@ -37,9 +37,11 @@
 | T-14 | ストリーク | ✅ 完了 | 2026-07-10 |
 | T-24 | コンテンツパイプラインCLI基盤 | ✅ 完了 | 2026-07-07 |
 | T-15 | 音声再生基盤 | ✅ 完了（PC Chrome確認済み。iOS実機は未検証） | 2026-07-10 |
+| T-16 | S2 ドリル実行画面（共通） | ✅ 完了 | 2026-07-10 |
 
 ※ T-02 の iOS/Android 実機での standalone 表示・小サイズロゴ視認性、T-03 のライトテーマ実地検証は計画どおり後続（T-36 実機検証で確認）。未検証項目であることに注意。
 ※ T-15: `npm run dev` を起動し、実際のmp3（ffmpegで生成した1秒のトーン2本）を使い Playwright 経由の実 Chromium で unlock→play→部分再生（durationMs）→playSequence連結→replay→stop打ち切り、を一通り操作して確認済み（page error 0件）。iOS Safari実機での自動再生制限解除の確認は T-36 まで未検証。
+※ T-16: `zustand` 導入（`store/appStore.ts` 画面遷移・`store/sessionStore.ts` セッション進行キャッシュ）。`services/session.ts` を per-item mode 対応（`SessionSnapshot.items: SessionItem[]`。旧形式スナップショットは破棄）に拡張。`DrillScreen`/`ResultScreen`/`ExplanationCard` を新規実装し、コンポーネントテスト14件で出題→解答→誤答時のsrsCards/tagStats/ratings更新→SRS由来itemのreviewSrsCard呼出→次問→リザルト→ホーム復帰を検証。`quickPackConfig` の allocation合計検証（レビューフォローアップ）も実装。実装後 `npm run dev` を起動し Playwright 経由の実Chromiumでドリル→リザルト→ホームの一連を手動確認し、レート未初期化セクションの表示が `0` になる表示バグ（`DEFAULT_INITIAL_RATING` 不使用）を発見・修正した。audio_qa（Part2）固有のタイマー・音声再生対応は T-17 に委譲。
 
 ## 契約の状態（[09](09_開発体制.md) 2節）
 
@@ -66,7 +68,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 |------|------|------|
 | BYOKキーのエクスポート除外 | `backup.ts` の exportAll は settings 全件を書き出すため、BYOK実装後はAPIキーがバックアップJSONに平文で出る。エクスポート除外キーのリストを定義すること | **T-23（BYOK実装）着手前・必須** |
 | docs/04 3節への実装差分反映 | attempts.isGuess / srsCards の introducedDate・graduatedAt・sourceQuestionId / ratings.answerCount / settings.activeSession が docs 未記載 | docs 更新時 |
-| quickPackConfig の検証 | allocation 合計≒1 の検証がなく、不正な設定JSONでパックが黙って目減りする | T-16 前後 |
+| quickPackConfig の検証 | allocation 合計≒1 の検証がなく、不正な設定JSONでパックが黙って目減りする | ✅ T-16 で解消（`validateQuickPackConfig`） |
 | ストリーク途切れの表示 | 途切れ確定後も evaluateStreak が旧 currentDays を返す（遅延評価）。UI側で途切れ表示の扱いを決める | T-21（ホーム画面） |
 | tagStats の全件読み | 毎解答で attempts 全件を toArray() するため長期運用で遅延が単調増加。打ち切り読みへの変更余地 | 実測して問題が出たら |
 | rating K=32 の解釈記録 | 「最初の50問 K=32」をセクション別カウントで実装した解釈が docs/03 に未記載 | docs 更新時 |
@@ -78,16 +80,17 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 
 **残タスク（T-15〜T-23, T-25〜T-38）の実装は [10_F4-F6実装計画](10_F4-F6実装計画.md) のタスクシートに従う**（1タスク=1セッションの自走用作業指示。実装方式の事前決定は同書3節と ADR 0003）。
 
-1. **F4: 学習モードUI** — S-A1 縦切りスライスの続き（T-16 → T-17）。T-15（音声再生基盤）は完了済み。エンジンは C-4 の型（`engine/types.ts`）経由で利用する
+1. **F4: 学習モードUI** — S-A1 縦切りスライスの続き（T-17: Part2瞬発モード）。T-15・T-16 は完了済み。エンジンは C-4 の型（`engine/types.ts`）経由で利用する
 2. **F5 前半（並行可）** — T-30 → T-25 → T-26/27/28 のコマンド実装。生成実行と目視レビューは人間の稼働待ち（M1の律速）
 3. **B-2 の解消（TTS アカウント作成）** — 発起人の判断で後回し中。T-31 の実生成着手前までに実施（第一候補 Azure F0。手順は 10 の T-31 シート参照）
 
-### F4 への引き継ぎ（F3 実装からの注意点）
+### F4 への引き継ぎ（T-16 実装からの注意点）
 
-- SRS復習の解答も **attempts に mode='srs' で記録すること**（ストリーク集計・レート除外・タグ統計除外の全てがこの mode を見る）。`QuickPackItem.mode` が記録時の mode を指示する
-- クイックパックは SRS（mode='srs'）とドリル（mode='solo'）が混在するため、`SessionSnapshot`（settings の activeSession）は mode を単一で持つ現構造のままでは不足。T-16 実装時に per-item mode へ拡張するか、`recordAttempt` を項目ごとに直接呼ぶ
-- タグ統計の更新（`updateTagStatsForAnswer`）・誤答処理（`processWrongAnswer`）・レート更新（`applyRatingUpdate`）は解答確定時に UI 側から呼ぶ（エンジンは自動フックしない）
-- 語彙SRSカードに対応する vocab_card 問題が無い場合 `QuickPackItem.questionId` は null（カードの refId=単語 のみで表示する）
+- `SessionSnapshot` は T-16 で per-item mode 対応済み（`items: SessionItem[]`。`SessionItem = { questionId, mode, srsCardId?, reason? }`）。SRS復習の解答も **attempts に mode='srs' で記録される**（item.mode がそのまま attempt.mode になる）
+- 解答確定時の結線（`DrillScreen` に実装済み。T-17/18 も踏襲する）: `answerCurrentQuestion` → 誤答なら `processWrongAnswer` → `updateTagStatsForAnswer` → `applyRatingUpdate` → SRS由来item（`srsCardId`あり）なら `reviewSrsCard`（S2は客観正誤のみのUIのため、正解→good/誤答→again に固定。自己評価3段階の本来の入口はT-19のS3語彙カードUI）
+- `DrillScreen` は T-16 時点で text_blank 等の音声なし共通フローのみ実装。audio_qa（Part2）のタイマー・unlock/playSequence対応は T-17 が `DrillScreen` に追加する（または `Part2Drill.tsx` に分離）
+- 語彙SRSカードに対応する vocab_card 問題が無い場合 `QuickPackItem.questionId` は null（カードの refId=単語 のみで表示する）。`kind: 'srsVocab'` は S2ドリルでなくS3語彙カードUI（T-19）で扱う対象（DrillScreenは非対応）
+- レート未初期化セクション（'L'/'R' 未着手）の表示は `DEFAULT_INITIAL_RATING`（400）にフォールバックすること（`0` にすると「400→0」のような誤解を招く表示になる。T-16のPlaywright手動確認で発見・修正済み）
 
 ## 体制・環境メモ
 
@@ -95,3 +98,4 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 - collaborator: war-lab（owner）, ShimadaTk（write）。もう1名（iCloud メールの方）は GitHub ユーザー名待ちで未招待
 - main ブランチ保護: PR 必須・Approve 1件必須（admin はバイパス可の設定）
 - 技術判断はコミットメッセージに記録する慣行（ADR ファイルは必要時のみ作成）
+- **運用変更（2026-07-10〜）**: T-15 以降、dev 上のタスクは task/ブランチ＋PRを都度作らず、dev へ直接コミットして自走で進める（発起人の指示）。完了条件の検証（build/test/lint＋必要に応じ実ブラウザでの手動確認）は従来どおり各タスクごとに実施する。main への反映は引き続きフェーズ境界でのPRとする

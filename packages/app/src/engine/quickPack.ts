@@ -38,7 +38,22 @@ export interface QuickPackConfig {
   priorityWeight: number
 }
 
+/**
+ * quickPackConfig.json の整合性検証（レビューフォローアップ 3.8節）。
+ * allocation の合計が 1±0.01 からずれると、不正な設定でパックが黙って
+ * 目減りする（配分の穴が埋まらない）ため、読み込み時に即座に検出する。
+ */
+export function validateQuickPackConfig(config: QuickPackConfig): void {
+  const sum = Object.values(config.allocation).reduce((acc, v) => acc + v, 0)
+  if (Math.abs(sum - 1) > 0.01) {
+    throw new Error(
+      `quickPackConfig の allocation 合計が不正（1±0.01 から外れている。実際: ${sum}）`,
+    )
+  }
+}
+
 export const QUICK_PACK_CONFIG: QuickPackConfig = rawConfig
+validateQuickPackConfig(QUICK_PACK_CONFIG)
 
 /** ドリル候補1件（重みと出題理由付き）。テストから重み付けを直接検証できるよう公開する */
 export interface DrillCandidate {
