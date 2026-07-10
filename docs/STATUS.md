@@ -4,7 +4,7 @@
 
 ## 今どこにいるか（1行）
 
-**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15〜T-22 完了（S-A1〜S-A4完了）。次は T-23（S9設定）でF4完了。** タスク進捗: 23 / 38 完了。
+**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。F4（学習モードUI T-15〜T-23）完了。次はF5（コンテンツパイプライン）。** タスク進捗: 24 / 38 完了。
 
 ## フェーズ進捗
 
@@ -13,7 +13,7 @@
 | F1 プロジェクト基盤（T-01〜T-04） | ✅ 完了 | 2026-07-07 main マージ済み（PR #2） |
 | F2 データ層（T-05〜T-08） | ✅ 完了 | 2026-07-07 dev 上で完了。契約 C-1/C-2 確定 |
 | F3 学習エンジン（T-09〜T-14） | ✅ 完了 | 2026-07-10 dev 上で完了。契約 C-4 確定。実装は `packages/app/src/engine/` |
-| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15〜T-22 完了。残りT-23（設定）のみ |
+| F4 学習モードUI（T-15〜T-23） | ✅ 完了 | 2026-07-10 dev 上で完了 |
 | F5 コンテンツパイプライン（T-24〜T-34) | 🔶 一部完了 | T-24 完了。T-25 以降は B-1/B-2 待ち。**M1 全体の律速** |
 | F6 統合・ドッグフード（T-35〜T-38） | ⬜ 未着手 | |
 
@@ -44,6 +44,7 @@
 | T-22 | S6 ダッシュボード | ✅ 完了 | 2026-07-10 |
 | T-21 | S1 ホーム画面 | ✅ 完了 | 2026-07-10 |
 | T-20 | P0診断（初回チュートリアル） | ✅ 完了 | 2026-07-10 |
+| T-23 | S9 設定画面 | ✅ 完了（キャッシュ使用量の実測値はT-35後に要再確認） | 2026-07-10 |
 
 ※ T-02 の iOS/Android 実機での standalone 表示・小サイズロゴ視認性、T-03 のライトテーマ実地検証は計画どおり後続（T-36 実機検証で確認）。未検証項目であることに注意。
 ※ T-15: `npm run dev` を起動し、実際のmp3（ffmpegで生成した1秒のトーン2本）を使い Playwright 経由の実 Chromium で unlock→play→部分再生（durationMs）→playSequence連結→replay→stop打ち切り、を一通り操作して確認済み（page error 0件）。iOS Safari実機での自動再生制限解除の確認は T-36 まで未検証。
@@ -54,6 +55,7 @@
 ※ T-22: `dataviz`スキルの手順に従い着手前に読み込み。新規 `components/charts/`（LineChart・WeakBars・Heatmap、素のSVG。ライブラリ不使用=3.5節）と `screens/DashboardScreen.tsx` を実装。伸びグラフは`ratingHistory`のsection='total'のみ（予測スコア帯・二軸はJ-1でM1対象外のため作らない）。学習ヒートマップの5段階配色は`color-mix(in srgb, var(--surface-2), var(--chart-gold) N%)`でトークンから機械的に補間（hex直書きなし）。3チャートとも数表ビュー（`<details>`）・タップで値表示のツールチップ・0/1件データでのフォールバック表示を実装。コンポーネントテスト8件。実装後`npm run dev`を起動しPlaywright実Chromiumでスクリーンショットを撮影し、レイアウト崩れ・ラベル衝突がないことを目視確認（dataviz手順7節）。テスト実行時、フルスイート実行時にのみ1回だけ`DashboardScreen.test.tsx`由来の`DatabaseClosedError`が非決定的に発生したが、再実行では再現せず環境要因（ワーカー起動の遅延等）と判断。継続的に再現する場合は要調査。
 ※ T-21: 新規`screens/HomeScreen.tsx`（ストリーク＋SRS期限バッジ・「今日のクエスト」+3/7/15分チップ→`generateQuickPack`→セッション開始・下方グリッド）で暫定プレースホルダーを置き換え、`App.tsx`を配線し直した。**着手中に見つかった実装ギャップ**: 「今日のクエスト」quickPackは`kind:'srsVocab'`（語彙カード）と`kind:'srsQuestion'|'drill'`が混在しうるが、`DrillScreen`（T-16〜18）はaudio_qa/text_blankしか扱えず語彙カードは`VocabScreen`（T-19）専用の別フローだった。docs/10 3.4節が「出題理由に応じてUIが変わる」ことを既に想定していたため、`DrillScreen`に`question.format==='vocab_card'`の第三分岐を追加（既存のaudio_qa/text_blank分岐と同じパターン）し、VocabScreenと同じ自己評価3段階フロー（結果確認のポーズなしで即次へ進む）を統合。`answerCurrentQuestion`はitem.questionId/modeにのみ依存するため無改修で流用でき、`processWrongAnswer`のみvocab_card時はスキップするガードを追加。テスト3件追加（vocab単独・もう一回のgrade検証・vocab+ドリル混在セッションの完走）。`docs/10`更新は未実施（次回のdocsまとめ更新時に反映）。「設定」グリッドボタンはT-23未実装のためホームへフォールバックする（クラッシュはしない）。冒頭再生モード（partialAudioMode）のUIトグルはHomeScreenから外した（T-17のApp.tsx暫定トグルを削除。設定画面かPart2起動画面での再配置はT-23以降で検討）。実装後`npm run dev`を起動しPlaywright実Chromiumで、Part2単独モード完走→リザルト→ホーム復帰、「今日のクエスト」1タップ起動（語彙カードが実際に混在した1問目を確認）、語彙SRS/ダッシュボードへのグリッド導線、を手動確認。page error 0件。
 ※ T-20: 新規`engine/diagnostic.ts`（`selectNextQuestion`=写像距離最小の未出題問題選択、`updateDiagnosticRating`=K=32固定の更新、`initialRatingFromToeic`、`sectionForTurn`=L/R交互）・`services/profile.ts`（`createProfile`/`hasProfile`。profileレコードの有無が初回起動判定そのもの）・新規`screens/DiagnosticScreen.tsx`を実装。診断は`SessionSnapshot`（事前確定itemリスト）を使わない独立フローとした（毎問の出題がその場のレートに依存するアダプティブ方式のため、固定itemリストの後付けでは表現できない）。診断中は`recordAttempt`（mode='solo'）のみ呼び、tagStats・SRS・processWrongAnswer 等の副作用は起こさない（レート決定に専念する独立フロー、という設計判断）。レートは30問完了までコンポーネント内state（L/R別）だけで追跡し、`db.ratings`への書き込みは最後の`initializeRatings`呼び出し1回のみ（診断途中の中断時に不完全なレートが永続化されるのを避ける設計。中断復帰は非対応=診断は1セッションで完結する前提。docs未記載の設計判断）。`App.tsx`に起動時ゲートを追加（`hasProfile`確認が終わるまで`null`を返し描画をブロック。IndexedDBの主キー1件読みのみのため起動3秒要件に影響しない）。**M1ダミーコンテンツの制約**: 実際の`QUESTION_POOL`はL(Part2)/R(Part5)とも2問ずつしかなく、30問中は大半が同じ2問の使い回しになる（`selectNextQuestion`は出題済みが尽きたら出題済みへのフォールバックを許容する設計にして対応。実パック=T-25以降は十分な量で解消見込み）。テスト: engine層9件（選題・K=32更新・難易度追従・L/R配分）、profileサービス3件、DiagnosticScreen 2件（自己申告あり/なしの30問E2E。fake-indexeddbの実書き込みを伴うためテストタイムアウトを20000msに延長）、App.tsx 2件（未診断→診断画面／診断済み→ホーム画面）。実装後`npm run dev`を起動しPlaywright実Chromiumで、新規プロファイルでの診断開始→30問完走（音声ゲート含む）→完了画面（予測スコア帯を出さないこと=J-1を確認）→ホーム遷移→リロードしても診断が再度出ないこと、を手動確認。page error 0件。
+※ T-23: 新規`screens/SettingsScreen.tsx`（表示名・イヤホンなしモード・テーマ切替・文字サイズ3段階・キャッシュ使用量表示/削除・エクスポート/インポート）を実装。BYOK APIキー欄は実装指示どおり置かない（docs/07表のS9説明には載っているが、T-23シート自体がM2送りと明記しているため従った。範囲の食い違いとして記録）。**設計判断**: `PackCache`は`audioPlayer`と同じ注入パターンに揃え、`App.tsx`がモジュールスコープで`createPackCache()`を1回生成して`packCache` propで渡す形にした（画面内で`createPackCache()`を直接呼ぶと、jsdomに`caches`APIが無いためテストが本物のCache Storageに依存してしまう。フェイク注入で解決）。イヤホンなしモード（`generateQuickPack`の後段フィルタ＋再充填。新規`engine/noEarphoneFilter.ts`）は**SRS由来item（`srsQuestion`/`srsVocab`）を対象外**にした（復習は「そのカードを復習した」という同一性が本質のため、別問題への差し替えは復習記録の意味を壊すという設計判断。docs未記載）。対象は`kind:'drill'`のリスニング問題のみで、代替のリーディング問題が尽きた場合はitemを削って詰める（M1ダミーコンテンツの在庫制約）。テーマ切替は「OS追従」を含む3値（`system`/`dark`/`light`）を`settings`ストアに永続化し、実際に適用する`Theme`型（`dark`/`light`）へは`resolveTheme`で解決（`window.matchMedia`使用）。文字サイズは`--fs-question`のみを`data-font-size`属性で上書きする新規`fontSize.ts`（`theme.ts`と対の設計）。`services/backup.ts`の`importAll`に`backup.dbVersion > db.verno`の拒否チェックを追加（レビューフォローアップ3.8節）。テスト: `noEarphoneFilter`3件、`fontSize`3件、`SettingsScreen`7件（表示名・イヤホンなしモード・テーマ・文字サイズの永続化、キャッシュ使用量表示/削除、エクスポート→インポート往復、dbVersion拒否）、`backup.ts`のdbVersion拒否1件追加、`HomeScreen`にイヤホンなしモード時のクイックパック検証1件追加。実装後`npm run dev`を起動しPlaywright実Chromiumで、診断完走→ホーム→設定画面遷移→表示名編集・イヤホンなしモードON・テーマ切替（ライト/ダーク）・文字サイズ変更・キャッシュ削除（confirmダイアログ経由）・エクスポート（実ファイルダウンロード）→インポート（復元成功メッセージ）→リロード後も設定・ホームが保持される、を一通り手動確認。page error 0件。**🟡 未検証**: キャッシュ使用量の実測表示はT-35（実パック配信・キャッシュ統合）でパックが実際にキャッシュされるようになってから再確認が必要（現状は0件表示が正しいことしか確認できていない）。
 
 ## 契約の状態（[09](09_開発体制.md) 2節）
 
@@ -92,11 +94,11 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 
 **残タスク（T-15〜T-23, T-25〜T-38）の実装は [10_F4-F6実装計画](10_F4-F6実装計画.md) のタスクシートに従う**（1タスク=1セッションの自走用作業指示。実装方式の事前決定は同書3節と ADR 0003）。
 
-1. **F4: 学習モードUI** — S-A1〜S-A4・T-20（P0診断）完了。残りは T-23（S9設定）のみでF4完了
+1. **F4: 学習モードUI** — ✅ 完了（T-15〜T-23全タスク）。次はF5（コンテンツパイプライン）に進むか、F6（統合・ドッグフード）の一部を先行するかを判断する
 2. **F5 前半（並行可）** — T-30 → T-25 → T-26/27/28 のコマンド実装。生成実行と目視レビューは人間の稼働待ち（M1の律速）
 3. **B-2 の解消（TTS アカウント作成）** — 発起人の判断で後回し中。T-31 の実生成着手前までに実施（第一候補 Azure F0。手順は 10 の T-31 シート参照）
 
-### F4 への引き継ぎ（T-16/T-17/T-19/T-20/T-21/T-22 実装からの注意点）
+### F4 への引き継ぎ（T-16/T-17/T-19/T-20/T-21/T-22/T-23 実装からの注意点）
 
 - `SessionSnapshot` は T-16 で per-item mode 対応済み（`items: SessionItem[]`。`SessionItem = { questionId, mode, srsCardId?, reason? }`）。SRS復習の解答も **attempts に mode='srs' で記録される**（item.mode がそのまま attempt.mode になる）
 - 解答確定時の結線（`DrillScreen` に実装済み。T-18 も踏襲する）: `answerCurrentQuestion` → 誤答なら `processWrongAnswer` → `updateTagStatsForAnswer` → `applyRatingUpdate` → SRS由来item（`srsCardId`あり）なら `reviewSrsCard`（S2は客観正誤のみのUIのため、正解→good/誤答→again に固定。自己評価3段階の本来の入口はT-19のS3語彙カードUI）
@@ -107,8 +109,11 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 - fake timers と fake-indexeddb（Dexie）を同一テストで併用する場合は `vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })` のように対象を絞ること（全種類フェイク化するとDexieの内部非同期処理がデッドロックする。T-17で確立した手法）
 - `VocabScreen`（T-19）は `SessionSnapshot`/`sessionStore` を使わず独立動作（DrillScreenの quickPack セッションフローとは無関係）。復習キューは `getSrsQueue().dueReviews + newCards` を結合したもの、仕分け候補は「`vocabQuestions` のうち `srsCards` に未登録の語」。T-21（ホーム）からVocabScreenへ遷移する導線・実パックの語彙カード読み込みはT-21/T-35側で配線する
 - `DashboardScreen`（T-22）も独立動作（`db` prop のみ、session/appStoreに依存しない）。`components/charts/`（LineChart・WeakBars・Heatmap）は素のSVGでライブラリ不使用（3.5節）。予測スコア帯・到達予測（J-1）はM1対象外のため伸びグラフは総合レートの折れ線のみ。S5（レイド画面。M3）の弱点マップ表示にも`WeakBars`を再利用できる想定
-- `HomeScreen`（T-21）の「設定」グリッドボタンは`navigate('settings')`を呼ぶが、T-23が未実装のため`App.tsx`のスクリーン分岐に該当がなくホームへフォールバックする（クラッシュはしないが機能もしない。T-23実装時に解消）
-- 冒頭再生モード（`sessionStore.partialAudioMode`）を手動で切り替えるUIトグルは無い（T-17時点のApp.tsx暫定トグルはHomeScreen差し替え時に削除した）。エンジン・DrillScreen側の機能自体は動作確認済みのため、UI導線をT-23（設定）かPart2起動画面のどちらに置くかは後続タスクで判断する
+- `HomeScreen`（T-21）の「設定」グリッドボタンは`navigate('settings')`を呼び、T-23実装により`SettingsScreen`へ実際に遷移するようになった
+- 冒頭再生モード（`sessionStore.partialAudioMode`）を手動で切り替えるUIトグルは**T-23でも未実装のまま**（T-17時点のApp.tsx暫定トグルはHomeScreen差し替え時に削除済み。エンジン・DrillScreen側の機能自体は動作確認済み）。UI導線をどこに置くかは未決定（後続タスク・要判断）
+- イヤホンなしモード（T-23。`engine/noEarphoneFilter.ts`）はSRS由来item（`srsQuestion`/`srsVocab`）を対象外にし、`kind:'drill'`のリスニング問題のみリーディング系に差し替える。`PackCache`は`audioPlayer`と同じ注入パターン（`App.tsx`がモジュールスコープで`createPackCache()`を生成し`SettingsScreen`にpropで渡す。画面内で直接`createPackCache()`を呼ぶとjsdomに`caches`APIが無くテストが壊れるため）
+- テーマ・文字サイズの実際の適用は`theme.ts`/`fontSize.ts`（`data-theme`/`data-font-size`属性＋CSS変数）。`settings`ストアに保存されるのは「OS追従」を含む3値の設定値（`themePreference`）で、実際に適用される`Theme`型（`dark`/`light`）への解決は`SettingsScreen`内の`resolveTheme`が担う
+- `services/backup.ts`の`importAll`は`backup.dbVersion > db.verno`のバックアップを拒否する（3.8節）。バリデーション順序は「構造検証(`validateBackup`)→dbVersion検査→実際の復元」
 - docs/10のT-19シート（3.4節）は元々「kind別にUIが変わる」ことを想定していたが、実装当初は`VocabScreen`単体だった。T-21で`DrillScreen`にvocab_card分岐を統合したため、docs/10本文への実装差分の反映はまだ未実施（次回のdocsまとめ更新時に反映する）
 - `App.tsx`は起動時に`services/profile.ts`の`hasProfile`でprofile有無を確認し、無ければ`navigate('diagnostic')`する（`useState`の`bootChecked`が確定するまで`null`を返し描画をブロック）。T-23（設定）で表示名等を編集可能にする場合、profileレコード自体は削除させない設計にすること（削除すると次回起動時に診断が再度走る）
 - P0診断（T-20）は`SessionSnapshot`を使わない独立フロー（アダプティブ選題のため事前確定itemリストと相性が悪い）。`recordAttempt`（mode='solo'）のみ呼び、tagStats・SRS・レート永続化は診断中は一切起こさない。`db.ratings`への書き込みは30問完了時の`initializeRatings`呼び出し1回のみで、診断を中断した場合の再開は非対応（次回起動時は最初からやり直しになる。docs未記載の設計判断）

@@ -114,6 +114,15 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
   }
   const backup = data as BackupFile
 
+  // バックアップが現在のDBより新しいスキーマで書き出されている場合は復元を拒否する
+  // （レビューフォローアップ3.8節。未対応フィールドを持つ新形式データで復元すると
+  // 古いアプリ側のロジックが想定外のレコード形状を読むことになるため）
+  if (backup.dbVersion > db.verno) {
+    throw new Error(
+      `バックアップの dbVersion(${backup.dbVersion}) が現在のDB(${db.verno})より新しい。アプリを更新してから復元してください。`,
+    )
+  }
+
   const tables = STORE_NAMES.map((name) => db.table(name))
   await db.transaction('rw', tables, async () => {
     for (const name of STORE_NAMES) {

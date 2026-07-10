@@ -6,12 +6,14 @@ import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { daysBetween, toDateString } from '../engine/date'
+import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { generateQuickPack } from '../engine/quickPack'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import type { QuickPackDuration, QuickPackItem } from '../engine/types'
 import { startSession, type SessionItem } from '../services/session'
+import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -80,7 +82,12 @@ export function HomeScreen({ db, questionPool }: Props) {
 
   async function handleStartQuest() {
     const pack = await generateQuickPack(db, { duration, questions: questionPool })
-    const items = toSessionItems(pack.items)
+    const noEarphoneSetting = await db.settings.get(NO_EARPHONE_MODE_KEY)
+    const filteredPack =
+      noEarphoneSetting?.value === true
+        ? applyNoEarphoneFilter(pack, new Map(questionPool.map((q) => [q.id, q])))
+        : pack
+    const items = toSessionItems(filteredPack.items)
     await startSessionAndNavigate(items)
   }
 

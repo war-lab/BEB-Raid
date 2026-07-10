@@ -3,6 +3,8 @@
 // - SRS期限数・ストリークが実データ（fake-indexeddb）で表示される
 // - gap≥2 で「途切れ」表示になる
 // - 期限0・ストリーク0の初期状態でも破綻しない表示
+// T-23 完了条件のテスト:
+// - イヤホンなしONでクイックパックにリスニング問題が含まれない
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -10,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { toDateString } from '../engine/date'
+import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { HomeScreen } from './HomeScreen'
@@ -238,5 +241,24 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
     fireEvent.click(screen.getByText('ダッシュボード'))
     expect(useAppStore.getState().screen).toBe('dashboard')
+  })
+})
+
+describe('HomeScreen: イヤホンなしモード（T-23）', () => {
+  it('ONの場合、今日のクエストにリスニング問題(audio_qa)が含まれない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+
+    const snapshot = useSessionStore.getState().snapshot!
+    const questions = useSessionStore.getState().questions
+    const hasListening = snapshot.items.some(
+      (item) => questions.get(item.questionId)?.format === 'audio_qa',
+    )
+    expect(hasListening).toBe(false)
   })
 })

@@ -203,4 +203,29 @@ describe('validateBackup / importAll: 不正データの拒否', () => {
     await expect(importAll(target, broken)).rejects.toThrow()
     expect(await target.settings.get('keep')).toBeDefined()
   })
+
+  it('dbVersionが現在のDBより新しいバックアップを拒否し、DBに手を付けない（3.8節）', async () => {
+    const target = newDb()
+    await target.settings.put({ key: 'keep', value: 1 })
+    const tooNew = {
+      formatVersion: 1,
+      dbVersion: target.verno + 1,
+      exportedAt: 0,
+      stores: {
+        profile: [],
+        attempts: [],
+        srsCards: [],
+        ratings: [],
+        ratingHistory: [],
+        tagStats: [],
+        phase: [],
+        streak: [],
+        badges: [],
+        pendingSync: [],
+        settings: [],
+      },
+    }
+    await expect(importAll(target, tooNew)).rejects.toThrow(/dbVersion/)
+    expect(await target.settings.get('keep')).toBeDefined()
+  })
 })

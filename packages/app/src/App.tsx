@@ -4,13 +4,14 @@
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import { getDb } from './db/database'
-import { createAudioPlayer } from './platform'
+import { createAudioPlayer, createPackCache } from './platform'
 import { hasProfile } from './services/profile'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { ResultScreen } from './screens/ResultScreen'
+import { SettingsScreen } from './screens/SettingsScreen'
 import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore } from './store/appStore'
 
@@ -132,6 +133,7 @@ const QUESTION_POOL: Question[] = [
 ]
 
 const audioPlayer = createAudioPlayer()
+const packCache = createPackCache()
 
 export function App() {
   const screen = useAppStore((s) => s.screen)
@@ -166,7 +168,8 @@ export function App() {
     )
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
+  if (screen === 'settings') return <SettingsScreen db={getDb()} packCache={packCache} />
 
-  // 'home' に加え、未実装の画面（'settings' 等。T-23）もホームへフォールバックする
+  // 'home' に加え、未実装の画面もホームへフォールバックする
   return <HomeScreen db={getDb()} questionPool={QUESTION_POOL} />
 }
