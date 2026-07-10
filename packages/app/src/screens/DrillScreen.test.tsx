@@ -375,3 +375,119 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     expect(logs[0]!.isTimeout).toBe(false)
   })
 })
+
+function vocabCardQuestion(word: string): Question {
+  return {
+    id: `vocab-${word}`,
+    part: 0,
+    format: 'vocab_card',
+    difficulty: 1,
+    tags: [],
+    keyVocab: [],
+    front: word,
+    phrase: `Please ${word} it.`,
+    back: `${word} の意味`,
+    freqRank: 'S',
+    levelBand: 730,
+  }
+}
+
+describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=srsVocabが含まれる場合）', () => {
+  it('タップで意味を見る→自己評価で、正誤確認のポーズなしに即座に次へ進む', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(screen.getByText('Please submit it.')).toBeTruthy()
+    expect(screen.queryByText('submit の意味')).toBeNull() // 裏返す前は意味が見えない
+
+    fireEvent.click(screen.getByText('タップで意味を見る'))
+    expect(screen.getByText('submit の意味')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('OK'))
+    // 「正解」表示や「次へ」ボタンを経由せず、1件しかないので即リザルトへ遷移する
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    expect(screen.queryByText('正解')).toBeNull()
+
+    const card = await db.srsCards.get('vocab:submit')
+    expect(card?.stage).toBe(1) // good: stage0→1
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.mode).toBe('srs')
+    expect(attempt.isCorrect).toBe(true)
+  })
+
+  it('「もう一回」はgradeがそのまま渡り、attemptsに不正解として記録される', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:attend',
+      refType: 'vocab',
+      refId: 'attend',
+      stage: 2,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('attend')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:attend' }]
+    await setupSession(db, items, [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('タップで意味を見る'))
+    fireEvent.click(screen.getByText('もう一回'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const card = await db.srsCards.get('vocab:attend')
+    expect(card?.stage).toBe(0) // もう一回はstage0へリセット
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(false)
+  })
+
+  it('vocab_cardとドリル問題が混在するセッションを最後まで進行できる', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:negotiate',
+      refType: 'vocab',
+      refId: 'negotiate',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const vocabQ = vocabCardQuestion('negotiate')
+    const drillQ = part5Question('p5-mix', 'A', 'submit')
+    const items: SessionItem[] = [
+      { questionId: vocabQ.id, mode: 'srs', srsCardId: 'vocab:negotiate' },
+      { questionId: drillQ.id, mode: 'solo' },
+    ]
+    await setupSession(db, items, [vocabQ, drillQ])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('タップで意味を見る'))
+    fireEvent.click(screen.getByText('OK'))
+
+    // ドリル問題（p5-mix）に進む
+    await waitFor(() => expect(screen.getByText(/submit/)).toBeTruthy())
+    await answerAndSettle('a', 2)
+    fireEvent.click(screen.getByText('次へ'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    expect(await db.attempts.count()).toBe(2)
+  })
+})

@@ -1,6 +1,9 @@
 // S2 ドリル実行画面（共通。docs/07 7節S2・02の2.2・03の3.2・02の3.1・03の8節L2）。
 // text_blank 等の共通フロー（音声なし）に加え、audio_qa（Part2瞬発。T-17）の
 // 開始タップ（unlock兼用）→音声再生→3択表示→15秒タイマー のフローを持つ。
+// vocab_card（T-21。クイックパックにkind:'srsVocab'が混在する場合の受け皿）は
+// VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
+// 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
 import { useEffect, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import { processWrongAnswer } from '../engine/keyVocab'
@@ -8,7 +11,7 @@ import { formatQuickPackReason } from '../engine/reason'
 import { applyRatingUpdate } from '../engine/rating'
 import { reviewSrsCard } from '../engine/srs'
 import { updateTagStatsForAnswer } from '../engine/tagStats'
-import type { QuestionLookup } from '../engine/types'
+import type { QuestionLookup, SrsGrade } from '../engine/types'
 import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion } from '../services/session'
 import { useAppStore } from '../store/appStore'
@@ -62,10 +65,13 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   const [remainingSec, setRemainingSec] = useState<number | null>(null)
   // セッション内の連続正解数（02の3.1: 中毒性を作る看板モード）
   const [streak, setStreak] = useState(0)
+  // vocab_card 専用: カードが裏返って意味が見えているか
+  const [flipped, setFlipped] = useState(false)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
   const needsAudioGate = question?.format === 'audio_qa'
+  const isVocabCard = question?.format === 'vocab_card'
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
   // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）
   const isCountingDown = needsAudioGate && playState === 'played' && !result
@@ -154,7 +160,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     await audioPlayer.replay()
   }
 
-  function handleNext() {
+  function advanceToNext() {
     if (displayIndex + 1 >= total) {
       navigate('result')
       return
@@ -164,7 +170,45 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     setResult(null)
     setPlayState('idle')
     setRemainingSec(null)
+    setFlipped(false)
     setStartedAt(now())
+  }
+
+  function handleNext() {
+    advanceToNext()
+  }
+
+  /**
+   * vocab_card の自己評価3段階（VocabScreenと同じ挙動）。
+   * 正誤確認のポーズを挟まず、評価と同時に即座に次のカードへ進む
+   */
+  async function handleVocabGrade(grade: SrsGrade) {
+    if (!question || !item) return
+    const isCorrect = grade !== 'again'
+    const responseMs = now() - startedAt
+
+    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
+      isCorrect,
+      responseMs,
+      isTimeout: false,
+    })
+    const lookup: QuestionLookup = questions
+    await updateTagStatsForAnswer(db, question.id, lookup) // vocab_cardはtags=[]のため実質no-op
+    const ratingUpdate = await applyRatingUpdate(db, {
+      part: question.part, // part=0のためapplyRatingUpdate内部でno-op
+      difficulty: question.difficulty,
+      isCorrect,
+      mode: item.mode,
+    })
+    if (item.srsCardId) {
+      await reviewSrsCard(db, item.srsCardId, grade)
+    }
+    recordAnswer(nextSnapshot, {
+      questionId: question.id,
+      isCorrect,
+      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+    })
+    advanceToNext()
   }
 
   const choicesInteractive = !needsAudioGate || playState === 'played'
@@ -187,7 +231,35 @@ export function DrillScreen({ db, audioPlayer }: Props) {
       }
       action={
         <>
-          {needsAudioGate && playState !== 'played' && (
+          {isVocabCard && !flipped && (
+            <PrimaryButton onClick={() => setFlipped(true)}>タップで意味を見る</PrimaryButton>
+          )}
+          {isVocabCard && flipped && (
+            <>
+              <button
+                type="button"
+                className="vocab-grade-button"
+                onClick={() => void handleVocabGrade('again')}
+              >
+                もう一回
+              </button>
+              <button
+                type="button"
+                className="vocab-grade-button"
+                onClick={() => void handleVocabGrade('good')}
+              >
+                OK
+              </button>
+              <button
+                type="button"
+                className="vocab-grade-button"
+                onClick={() => void handleVocabGrade('easy')}
+              >
+                余裕
+              </button>
+            </>
+          )}
+          {!isVocabCard && needsAudioGate && playState !== 'played' && (
             <PrimaryButton
               onClick={() => void handlePlayStart()}
               disabled={playState === 'playing'}
@@ -195,12 +267,13 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               {playState === 'playing' ? '再生中…' : 'タップして開始'}
             </PrimaryButton>
           )}
-          {needsAudioGate && playState === 'played' && !result && (
+          {!isVocabCard && needsAudioGate && playState === 'played' && !result && (
             <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
               もう一度再生
             </button>
           )}
-          {choicesInteractive &&
+          {!isVocabCard &&
+            choicesInteractive &&
             (question.choices ?? []).map((choice) => {
               let state: ChoiceState = 'idle'
               if (result) {
@@ -220,7 +293,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
                 </ChoiceButton>
               )
             })}
-          {result && (
+          {!isVocabCard && result && (
             <>
               {result.isTimeout && <p>時間切れ</p>}
               <ExplanationCard question={question} isCorrect={result.isCorrect} />
@@ -230,7 +303,13 @@ export function DrillScreen({ db, audioPlayer }: Props) {
         </>
       }
     >
-      {question.format === 'audio_qa' ? (
+      {isVocabCard ? (
+        <div className="vocab-card">
+          {question.freqRank && <span className="vocab-card__rank">{question.freqRank}</span>}
+          <p className="vocab-card__phrase">{question.phrase ?? question.front}</p>
+          {flipped && <p className="vocab-card__back">{question.back ?? ''}</p>}
+        </div>
+      ) : question.format === 'audio_qa' ? (
         <p className="question-text">
           {result
             ? (question.script ?? '')

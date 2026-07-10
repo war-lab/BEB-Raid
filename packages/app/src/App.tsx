@@ -1,29 +1,20 @@
 // ルーターレスの画面切替（docs/10 3.1節）。screen 状態（store/appStore.ts）で
-// 画面コンポーネントを切り替える。S1ホーム本実装はT-21のため、それまでは
-// 暫定のホーム代替画面（コンポーネント確認＋ダミーセッション開始）を置く。
-import { useState } from 'react'
-import { SCHEMA_VERSION, type Question } from '@beb-raid/shared-schema'
-import { PrimaryButton } from './components/PrimaryButton'
-import { ScreenLayout } from './components/ScreenLayout'
+// 画面コンポーネントを切り替える。S1ホーム（T-21）で暫定の確認画面から差し替え済み。
+import type { Question } from '@beb-raid/shared-schema'
 import { getDb } from './db/database'
-import { DEFAULT_INITIAL_RATING } from './engine/rating'
 import { createAudioPlayer } from './platform'
-import { InstallHint } from './pwa/InstallHint'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DrillScreen } from './screens/DrillScreen'
+import { HomeScreen } from './screens/HomeScreen'
 import { ResultScreen } from './screens/ResultScreen'
 import { VocabScreen } from './screens/VocabScreen'
-import { startSession, type SessionItem } from './services/session'
 import { useAppStore } from './store/appStore'
-import { useSessionStore } from './store/sessionStore'
-import { getTheme, setTheme } from './theme'
 
 /**
- * 開発用ダミーコンテンツ（docs/10 3.7節）。実パック読み込みはT-35、
- * ホーム画面の本実装はT-21。それまでの「今日のクエスト」代替として、
- * このダミー問題だけでドリル→リザルトの一連を手動確認できるようにする。
+ * 開発用ダミーコンテンツ（docs/10 3.7節）。実パック読み込みはT-35で差し替える。
+ * ホーム画面の「今日のクエスト」quickPack生成・各モード単独起動の両方に使う出題プール
  */
-const DUMMY_QUESTIONS: Question[] = [
+const DUMMY_PART5_QUESTIONS: Question[] = [
   {
     id: 'dev-p5-001',
     part: 5,
@@ -129,27 +120,17 @@ const DUMMY_VOCAB_QUESTIONS: Question[] = [
   levelBand: 730,
 }))
 
+/** ホーム画面の「今日のクエスト」quickPack生成用（全形式を混ぜたプール） */
+const QUESTION_POOL: Question[] = [
+  ...DUMMY_PART5_QUESTIONS,
+  ...DUMMY_PART2_QUESTIONS,
+  ...DUMMY_VOCAB_QUESTIONS,
+]
+
 const audioPlayer = createAudioPlayer()
 
 export function App() {
   const screen = useAppStore((s) => s.screen)
-  const navigate = useAppStore((s) => s.navigate)
-  const beginSession = useSessionStore((s) => s.begin)
-  const [partialAudioMode, setPartialAudioMode] = useState(false)
-
-  async function startDummySession(questions: Question[], usePartialAudio: boolean) {
-    const db = getDb()
-    const items: SessionItem[] = questions.map((q) => ({ questionId: q.id, mode: 'solo' }))
-    const snapshot = await startSession(db, { items })
-    const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
-    beginSession(
-      snapshot,
-      questions,
-      { L: l?.rating ?? DEFAULT_INITIAL_RATING, R: r?.rating ?? DEFAULT_INITIAL_RATING },
-      { partialAudioMode: usePartialAudio },
-    )
-    navigate('drill')
-  }
 
   if (screen === 'drill') return <DrillScreen db={getDb()} audioPlayer={audioPlayer} />
   if (screen === 'result') return <ResultScreen db={getDb()} />
@@ -160,41 +141,6 @@ export function App() {
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
 
-  return (
-    <ScreenLayout
-      action={
-        <>
-          <PrimaryButton onClick={() => void startDummySession(DUMMY_QUESTIONS, false)}>
-            ダミーセッション開始（開発用）
-          </PrimaryButton>
-          <PrimaryButton
-            onClick={() => void startDummySession(DUMMY_PART2_QUESTIONS, partialAudioMode)}
-          >
-            Part2ダミーセッション開始（開発用）
-          </PrimaryButton>
-          <label>
-            <input
-              type="checkbox"
-              checked={partialAudioMode}
-              onChange={(e) => setPartialAudioMode(e.target.checked)}
-            />
-            冒頭だけ再生モード（J-5）
-          </label>
-          <PrimaryButton onClick={() => navigate('vocab')}>語彙SRS開始（開発用）</PrimaryButton>
-          <PrimaryButton onClick={() => navigate('dashboard')}>
-            ダッシュボード表示（開発用）
-          </PrimaryButton>
-        </>
-      }
-    >
-      <h1 style={{ fontSize: 'var(--fs-heading)' }}>BEB Raid</h1>
-      <p className="question-text">
-        開発基盤の確認画面（実画面は F4 で実装）。パックスキーマ v{SCHEMA_VERSION}
-      </p>
-      <button type="button" onClick={() => setTheme(getTheme() === 'dark' ? 'light' : 'dark')}>
-        テーマ切替（確認用）
-      </button>
-      <InstallHint />
-    </ScreenLayout>
-  )
+  // 'home' に加え、未実装の画面（'settings' 等。T-23）もホームへフォールバックする
+  return <HomeScreen db={getDb()} questionPool={QUESTION_POOL} />
 }

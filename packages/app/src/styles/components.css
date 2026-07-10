@@ -339,6 +339,55 @@
   color: var(--ink-2);
 }
 
+/* --- S1ホーム: SRS期限バッジ・時間チップ・モード導線グリッド --- */
+.home-due-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--sp-1);
+  padding: 2px var(--sp-1);
+  border-radius: var(--radius-pill);
+  background: var(--warn);
+  color: var(--on-gold);
+  font-size: var(--fs-note);
+  font-weight: 700;
+}
+.home-duration-chips {
+  display: flex;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+}
+.home-chip {
+  flex: 1;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sub);
+  cursor: pointer;
+}
+.home-chip.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+}
+.home-grid button {
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-sub);
+  cursor: pointer;
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;

@@ -4,7 +4,7 @@
 
 ## 今どこにいるか（1行）
 
-**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15〜T-19・T-22 完了（S-A1・S-A2・S-A3完了）。次は S-A4（T-21→T-20→T-18は済）。** タスク進捗: 21 / 38 完了。
+**M1 実装中 — F3（学習エンジン T-09〜T-14）完了。T-15〜T-19・T-22・T-21 完了（S-A1・S-A2・S-A3完了、S-A4はT-21まで完了）。次は T-20（P0診断）。** タスク進捗: 22 / 38 完了。
 
 ## フェーズ進捗
 
@@ -13,7 +13,7 @@
 | F1 プロジェクト基盤（T-01〜T-04） | ✅ 完了 | 2026-07-07 main マージ済み（PR #2） |
 | F2 データ層（T-05〜T-08） | ✅ 完了 | 2026-07-07 dev 上で完了。契約 C-1/C-2 確定 |
 | F3 学習エンジン（T-09〜T-14） | ✅ 完了 | 2026-07-10 dev 上で完了。契約 C-4 確定。実装は `packages/app/src/engine/` |
-| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15〜T-19・T-22 完了（S-A1・S-A2・S-A3完了）。次はS-A4（T-21→T-20） |
+| F4 学習モードUI（T-15〜T-23） | 🔶 一部完了 | T-15〜T-19・T-21・T-22 完了。次はT-20（P0診断）→T-23（設定） |
 | F5 コンテンツパイプライン（T-24〜T-34) | 🔶 一部完了 | T-24 完了。T-25 以降は B-1/B-2 待ち。**M1 全体の律速** |
 | F6 統合・ドッグフード（T-35〜T-38） | ⬜ 未着手 | |
 
@@ -42,6 +42,7 @@
 | T-19 | S3 語彙SRS画面 | ✅ 完了 | 2026-07-10 |
 | T-18 | Part5ドリル | ✅ 完了 | 2026-07-10 |
 | T-22 | S6 ダッシュボード | ✅ 完了 | 2026-07-10 |
+| T-21 | S1 ホーム画面 | ✅ 完了 | 2026-07-10 |
 
 ※ T-02 の iOS/Android 実機での standalone 表示・小サイズロゴ視認性、T-03 のライトテーマ実地検証は計画どおり後続（T-36 実機検証で確認）。未検証項目であることに注意。
 ※ T-15: `npm run dev` を起動し、実際のmp3（ffmpegで生成した1秒のトーン2本）を使い Playwright 経由の実 Chromium で unlock→play→部分再生（durationMs）→playSequence連結→replay→stop打ち切り、を一通り操作して確認済み（page error 0件）。iOS Safari実機での自動再生制限解除の確認は T-36 まで未検証。
@@ -50,6 +51,7 @@
 ※ T-19: 新規 `VocabScreen`＋`SwipeCard`（Pointer Events。左右のみ判定、縦優勢は無視）を実装。復習モード（`getSrsQueue`のdueReviews+newCardsを結合。自己評価3段階→`reviewSrsCard`＋`recordAttempt`(mode='srs')＋`evaluateStreak`）と仕分けモード（vocabQuestionsのうちsrsCards未登録の語を候補にし、「知らない」で`addSrsCard`、「知ってる」はスキップのみ）の2フェーズ構成。`buildSrsQueue`という旧称がdocs/10にあるが実体は`engine/srs.ts`の`getSrsQueue`（実装済み関数名の食い違いを解消して実装）。自己評価→attemptsのisCorrect写像は「もう一回=false、OK/余裕=true」で実装（docs未記載の解釈）。フレーズ音声自動再生は`settings`ストアの`vocabAutoPlayPhrase`キーで永続化。コンポーネントテスト7件。実装後`npm run dev`を起動しPlaywright実Chromiumで実際のポインタドラッグ（mouse.down/move/up）による左右スワイプ＋ボタン仕分けの両方を手動確認、page error 0件。
 ※ T-18: `DrillScreen`はT-16の時点で既にformat非依存（text_blankは音声なし・タイマーなしの共通フローにそのまま乗る）だったため新規実装は不要。T-18固有の完了条件（文法タグが問題ごとに異なってもtagStatsへ正しく反映される）を明示的に検証するテストを1件追加して完了条件を機械的に満たした。
 ※ T-22: `dataviz`スキルの手順に従い着手前に読み込み。新規 `components/charts/`（LineChart・WeakBars・Heatmap、素のSVG。ライブラリ不使用=3.5節）と `screens/DashboardScreen.tsx` を実装。伸びグラフは`ratingHistory`のsection='total'のみ（予測スコア帯・二軸はJ-1でM1対象外のため作らない）。学習ヒートマップの5段階配色は`color-mix(in srgb, var(--surface-2), var(--chart-gold) N%)`でトークンから機械的に補間（hex直書きなし）。3チャートとも数表ビュー（`<details>`）・タップで値表示のツールチップ・0/1件データでのフォールバック表示を実装。コンポーネントテスト8件。実装後`npm run dev`を起動しPlaywright実Chromiumでスクリーンショットを撮影し、レイアウト崩れ・ラベル衝突がないことを目視確認（dataviz手順7節）。テスト実行時、フルスイート実行時にのみ1回だけ`DashboardScreen.test.tsx`由来の`DatabaseClosedError`が非決定的に発生したが、再実行では再現せず環境要因（ワーカー起動の遅延等）と判断。継続的に再現する場合は要調査。
+※ T-21: 新規`screens/HomeScreen.tsx`（ストリーク＋SRS期限バッジ・「今日のクエスト」+3/7/15分チップ→`generateQuickPack`→セッション開始・下方グリッド）で暫定プレースホルダーを置き換え、`App.tsx`を配線し直した。**着手中に見つかった実装ギャップ**: 「今日のクエスト」quickPackは`kind:'srsVocab'`（語彙カード）と`kind:'srsQuestion'|'drill'`が混在しうるが、`DrillScreen`（T-16〜18）はaudio_qa/text_blankしか扱えず語彙カードは`VocabScreen`（T-19）専用の別フローだった。docs/10 3.4節が「出題理由に応じてUIが変わる」ことを既に想定していたため、`DrillScreen`に`question.format==='vocab_card'`の第三分岐を追加（既存のaudio_qa/text_blank分岐と同じパターン）し、VocabScreenと同じ自己評価3段階フロー（結果確認のポーズなしで即次へ進む）を統合。`answerCurrentQuestion`はitem.questionId/modeにのみ依存するため無改修で流用でき、`processWrongAnswer`のみvocab_card時はスキップするガードを追加。テスト3件追加（vocab単独・もう一回のgrade検証・vocab+ドリル混在セッションの完走）。`docs/10`更新は未実施（次回のdocsまとめ更新時に反映）。「設定」グリッドボタンはT-23未実装のためホームへフォールバックする（クラッシュはしない）。冒頭再生モード（partialAudioMode）のUIトグルはHomeScreenから外した（T-17のApp.tsx暫定トグルを削除。設定画面かPart2起動画面での再配置はT-23以降で検討）。実装後`npm run dev`を起動しPlaywright実Chromiumで、Part2単独モード完走→リザルト→ホーム復帰、「今日のクエスト」1タップ起動（語彙カードが実際に混在した1問目を確認）、語彙SRS/ダッシュボードへのグリッド導線、を手動確認。page error 0件。
 
 ## 契約の状態（[09](09_開発体制.md) 2節）
 
@@ -88,21 +90,24 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 
 **残タスク（T-15〜T-23, T-25〜T-38）の実装は [10_F4-F6実装計画](10_F4-F6実装計画.md) のタスクシートに従う**（1タスク=1セッションの自走用作業指示。実装方式の事前決定は同書3節と ADR 0003）。
 
-1. **F4: 学習モードUI** — S-A1（T-15→T-16→T-17）・S-A2（T-19）・T-18・S-A3（T-22）完了。次は S-A4（T-21: S1ホーム → T-20: P0診断）
+1. **F4: 学習モードUI** — S-A1〜S-A3・T-21（S1ホーム）完了。次は T-20（P0診断）→ T-23（S9設定）
 2. **F5 前半（並行可）** — T-30 → T-25 → T-26/27/28 のコマンド実装。生成実行と目視レビューは人間の稼働待ち（M1の律速）
 3. **B-2 の解消（TTS アカウント作成）** — 発起人の判断で後回し中。T-31 の実生成着手前までに実施（第一候補 Azure F0。手順は 10 の T-31 シート参照）
 
-### F4 への引き継ぎ（T-16/T-17/T-19/T-22 実装からの注意点）
+### F4 への引き継ぎ（T-16/T-17/T-19/T-21/T-22 実装からの注意点）
 
 - `SessionSnapshot` は T-16 で per-item mode 対応済み（`items: SessionItem[]`。`SessionItem = { questionId, mode, srsCardId?, reason? }`）。SRS復習の解答も **attempts に mode='srs' で記録される**（item.mode がそのまま attempt.mode になる）
 - 解答確定時の結線（`DrillScreen` に実装済み。T-18 も踏襲する）: `answerCurrentQuestion` → 誤答なら `processWrongAnswer` → `updateTagStatsForAnswer` → `applyRatingUpdate` → SRS由来item（`srsCardId`あり）なら `reviewSrsCard`（S2は客観正誤のみのUIのため、正解→good/誤答→again に固定。自己評価3段階の本来の入口はT-19のS3語彙カードUI）
 - `DrillScreen` は text_blank（音声なし）と audio_qa（Part2。unlock→play→15秒タイマー→タイムアウト自動誤答、ストリーク表示、`sessionStore.partialAudioMode`による冒頭再生）の両方に対応済み。T-18（Part5=text_blank）は既存フローに乗るだけで固有ロジック追加不要の見込み
 - audio_qa は `DrillScreen` の `audioPlayer: AudioPlayer` prop 経由で再生する（`App.tsx` がモジュールスコープで `createAudioPlayer()` を1回だけ生成して渡す。テストでは `AudioPlayer` を実装したフェイクを注入する）
-- 語彙SRSカードに対応する vocab_card 問題が無い場合 `QuickPackItem.questionId` は null（カードの refId=単語 のみで表示する）。`kind: 'srsVocab'` は S2ドリルでなくS3語彙カードUI（`VocabScreen`。T-19実装済み）で扱う対象（DrillScreenは非対応）
+- 語彙SRSカードに対応する vocab_card 問題が無い場合 `QuickPackItem.questionId` は null（カードの refId=単語 のみで表示する）。`kind: 'srsVocab'` は **T-21でDrillScreenにも対応済み**（`question.format==='vocab_card'`分岐。audio_qa/text_blankと同じ第三分岐パターンで、VocabScreenと同じ自己評価3段階フローを結果ポーズなしで実行する）。独立画面としてのS3体験（スワイプ仕分け含む）は引き続きVocabScreen（T-19）が担う
 - レート未初期化セクション（'L'/'R' 未着手）の表示は `DEFAULT_INITIAL_RATING`（400）にフォールバックすること（`0` にすると「400→0」のような誤解を招く表示になる。T-16のPlaywright手動確認で発見・修正済み）
 - fake timers と fake-indexeddb（Dexie）を同一テストで併用する場合は `vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })` のように対象を絞ること（全種類フェイク化するとDexieの内部非同期処理がデッドロックする。T-17で確立した手法）
 - `VocabScreen`（T-19）は `SessionSnapshot`/`sessionStore` を使わず独立動作（DrillScreenの quickPack セッションフローとは無関係）。復習キューは `getSrsQueue().dueReviews + newCards` を結合したもの、仕分け候補は「`vocabQuestions` のうち `srsCards` に未登録の語」。T-21（ホーム）からVocabScreenへ遷移する導線・実パックの語彙カード読み込みはT-21/T-35側で配線する
 - `DashboardScreen`（T-22）も独立動作（`db` prop のみ、session/appStoreに依存しない）。`components/charts/`（LineChart・WeakBars・Heatmap）は素のSVGでライブラリ不使用（3.5節）。予測スコア帯・到達予測（J-1）はM1対象外のため伸びグラフは総合レートの折れ線のみ。S5（レイド画面。M3）の弱点マップ表示にも`WeakBars`を再利用できる想定
+- `HomeScreen`（T-21）の「設定」グリッドボタンは`navigate('settings')`を呼ぶが、T-23が未実装のため`App.tsx`のスクリーン分岐に該当がなくホームへフォールバックする（クラッシュはしないが機能もしない。T-23実装時に解消）
+- 冒頭再生モード（`sessionStore.partialAudioMode`）を手動で切り替えるUIトグルは無い（T-17時点のApp.tsx暫定トグルはHomeScreen差し替え時に削除した）。エンジン・DrillScreen側の機能自体は動作確認済みのため、UI導線をT-23（設定）かPart2起動画面のどちらに置くかは後続タスクで判断する
+- docs/10のT-19シート（3.4節）は元々「kind別にUIが変わる」ことを想定していたが、実装当初は`VocabScreen`単体だった。T-21で`DrillScreen`にvocab_card分岐を統合したため、docs/10本文への実装差分の反映はまだ未実施（次回のdocsまとめ更新時に反映する）
 
 ## 体制・環境メモ
 
