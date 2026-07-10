@@ -1,12 +1,21 @@
 // コンテンツパイプラインのコマンド体系（T-24。正本: docs/04 5節）。
 //
 // パイプライン: generate（LLM生成）→ review-export/review-import（JSONL往復
-// レビュー=T-30）→ tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
-// 本ファイルは各コマンドの雛形まで。LLM/TTS 呼び出しの実装は T-26 以降。
+// レビュー=T-30・本実装済み）→ tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
+// generate/tts/build は雛形のまま。LLM/TTS 呼び出しの実装は T-26 以降。
+
+import { readFile, writeFile } from 'node:fs/promises'
 
 import { SCHEMA_VERSION } from '@beb-raid/shared-schema'
 
 import { LLM_API_KEY_ENV, maskApiKey, requireApiKey, TTS_API_KEY_ENV } from './env.js'
+import {
+  buildReviewTsv,
+  parseJsonl,
+  parseReviewTsv,
+  toJsonl,
+  type GeneratedItemDraft,
+} from './review.js'
 
 /** コマンド実行コンテキスト（テストから env / 出力を差し替えるための注入点） */
 export interface CommandContext {
@@ -37,17 +46,44 @@ export const commands: CliCommand[] = [
   },
   {
     name: 'review-export',
-    description: '生成結果をレビュー用JSONLに書き出し（実装は T-30）',
+    description: '生成結果（ドラフトJSONL）をレビュー用TSVに書き出し（T-30）',
     run: async (ctx) => {
-      ctx.out('review-export は未実装です（T-30 で実装予定）')
+      const [inputPath, outputPath] = ctx.args
+      if (!inputPath || !outputPath) {
+        ctx.out('使い方: beb review-export <ドラフト.jsonl> <レビュー用.tsv>')
+        return 1
+      }
+      const raw = await readFile(inputPath, 'utf-8')
+      const drafts = parseJsonl<GeneratedItemDraft>(raw)
+      await writeFile(outputPath, buildReviewTsv(drafts), 'utf-8')
+      ctx.out(`${drafts.length}件を ${outputPath} に書き出しました`)
       return 0
     },
   },
   {
     name: 'review-import',
-    description: 'レビュー済みJSONL（採用/修正/破棄）の取込（実装は T-30）',
+    description: 'レビュー済みTSV（採用/修正/破棄）の取込（T-30）',
     run: async (ctx) => {
-      ctx.out('review-import は未実装です（T-30 で実装予定）')
+      const [draftPath, tsvPath, acceptedPath, rejectedPath] = ctx.args
+      if (!draftPath || !tsvPath || !acceptedPath || !rejectedPath) {
+        ctx.out(
+          '使い方: beb review-import <元のドラフト.jsonl> <レビュー済み.tsv> <採用後.jsonl> <rejected.jsonl>',
+        )
+        return 1
+      }
+      const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
+      const draftsById = new Map(drafts.map((d) => [d.id, d]))
+      const tsv = await readFile(tsvPath, 'utf-8')
+      const { accepted, rejected, skipped } = parseReviewTsv(tsv, draftsById)
+
+      await writeFile(acceptedPath, toJsonl(accepted), 'utf-8')
+      await writeFile(rejectedPath, toJsonl(rejected), 'utf-8')
+
+      ctx.out(`採用・修正 ${accepted.length}件 → ${acceptedPath}`)
+      ctx.out(`破棄 ${rejected.length}件 → ${rejectedPath}`)
+      if (skipped > 0) {
+        ctx.out(`レビュー未完了（status未記入等） ${skipped}件はスキップ（次回に持ち越し）`)
+      }
       return 0
     },
   },
