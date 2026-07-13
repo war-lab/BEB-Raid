@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import { getDb } from './db/database'
 import { createAudioPlayer, createPackCache } from './platform'
+import { syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
@@ -16,7 +17,8 @@ import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore } from './store/appStore'
 
 /**
- * 開発用ダミーコンテンツ（docs/10 3.7節）。実パック読み込みはT-35で差し替える。
+ * 開発用ダミーコンテンツ（docs/10 3.7節）。実パックへの差し替え・このダミーの削除はT-37。
+ * T-35では実パックの配信・キャッシュ統合（syncPacks）のみ実装し、出題プールの切替はまだ行わない。
  * ホーム画面の「今日のクエスト」quickPack生成・各モード単独起動の両方に使う出題プール
  */
 
@@ -162,6 +164,12 @@ export function App() {
       cancelled = true
     }
   }, [navigate])
+
+  // 起動時のパック配信・キャッシュ同期（T-35）。bootChecked（診断遷移判定）とは
+  // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）
+  useEffect(() => {
+    void syncPacks({ db: getDb(), packCache })
+  }, [])
 
   if (!bootChecked) return null
 
