@@ -4,7 +4,7 @@
 // vocab_card（T-21。クイックパックにkind:'srsVocab'が混在する場合の受け皿）は
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import { processWrongAnswer } from '../engine/keyVocab'
 import { formatQuickPackReason } from '../engine/reason'
@@ -12,6 +12,7 @@ import { applyRatingUpdate } from '../engine/rating'
 import { reviewSrsCard } from '../engine/srs'
 import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { QuestionLookup, SrsGrade } from '../engine/types'
+import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion } from '../services/session'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
@@ -70,8 +71,8 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   const [remainingSec, setRemainingSec] = useState<number | null>(null)
   // セッション内の連続正解数（02の3.1: 中毒性を作る看板モード）
   const [streak, setStreak] = useState(0)
-  // vocab_card 専用: カードが裏返って意味が見えているか
-  const [flipped, setFlipped] = useState(false)
+  // vocab_card 専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す。VocabScreenと同じ設計）
+  const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
   // vocab_card 専用: フレーズ音声自動再生の可否（イヤホンなしモードならOFF。VocabScreenと同じ規約）。
   // settingsLoadedがtrueになるまでは自動再生エフェクトを走らせない（非同期読み込み完了前の
   // 初期値falseで誤って再生してしまうレースを防ぐ）
@@ -94,6 +95,14 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   const question = item ? questions.get(item.questionId) : undefined
   const needsAudioGate = question?.format === 'audio_qa'
   const isVocabCard = question?.format === 'vocab_card'
+
+  // 4択はカードが変わるたびに1回だけ組み立てる（VocabScreenと同じ設計。questionsは
+  // セッション対象に限らずロード済み全パックを持つため、十分な数のダミー候補が引ける）
+  const quizChoices = useMemo(
+    () => (isVocabCard && question ? buildVocabQuizChoices(question, [...questions.values()]) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- questionsはセッション開始時に固定される想定
+    [isVocabCard, question?.id],
+  )
 
   // vocab_card: フレーズ音声を自動再生する（カードが変わるたびに1回。金フレ型体験=02の4節の
   // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）
@@ -200,7 +209,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     setResult(null)
     setPlayState('idle')
     setRemainingSec(null)
-    setFlipped(false)
+    setSelectedChoiceKey(null)
     setStartedAt(now())
   }
 
@@ -208,13 +217,19 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     advanceToNext()
   }
 
+  function handleSelectVocabChoice(key: string) {
+    if (selectedChoiceKey !== null) return
+    setSelectedChoiceKey(key)
+  }
+
   /**
    * vocab_card の自己評価3段階（VocabScreenと同じ挙動）。
-   * 正誤確認のポーズを挟まず、評価と同時に即座に次のカードへ進む
+   * 正誤確認のポーズを挟まず、評価と同時に即座に次のカードへ進む。
+   * isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更。VocabScreen参照）
    */
   async function handleVocabGrade(grade: SrsGrade) {
     if (!question || !item) return
-    const isCorrect = grade !== 'again'
+    const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
     const responseMs = now() - startedAt
 
     const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
@@ -261,17 +276,32 @@ export function DrillScreen({ db, audioPlayer }: Props) {
       }
       action={
         <>
-          {isVocabCard && !flipped && (
-            <>
-              <PrimaryButton onClick={() => setFlipped(true)}>タップで意味を見る</PrimaryButton>
-              {question.phraseAudio && (
-                <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
-                  もう一度再生
-                </button>
-              )}
-            </>
+          {isVocabCard &&
+            quizChoices.map((choice) => {
+              let state: ChoiceState = 'idle'
+              if (selectedChoiceKey !== null) {
+                if (choice.isCorrect) state = 'correct'
+                else if (choice.key === selectedChoiceKey) state = 'wrong'
+                else state = 'dimmed'
+              }
+              return (
+                <ChoiceButton
+                  key={choice.key}
+                  marker={choice.key}
+                  state={state}
+                  disabled={selectedChoiceKey !== null}
+                  onClick={() => handleSelectVocabChoice(choice.key)}
+                >
+                  {choice.text}
+                </ChoiceButton>
+              )
+            })}
+          {isVocabCard && selectedChoiceKey === null && question.phraseAudio && (
+            <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
+              もう一度再生
+            </button>
           )}
-          {isVocabCard && flipped && (
+          {isVocabCard && selectedChoiceKey !== null && (
             <>
               <button
                 type="button"
@@ -353,7 +383,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               word={question.front ?? ''}
             />
           </p>
-          {flipped && <p className="vocab-card__back">{question.back ?? ''}</p>}
+          <p className="vocab-card__prompt">この単語の意味は？</p>
         </div>
       ) : question.format === 'audio_qa' ? (
         <p className="question-text">

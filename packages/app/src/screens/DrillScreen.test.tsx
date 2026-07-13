@@ -403,7 +403,7 @@ function vocabCardQuestion(word: string, phraseAudio?: string): Question {
 }
 
 describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=srsVocabが含まれる場合）', () => {
-  it('タップで意味を見る→自己評価で、正誤確認のポーズなしに即座に次へ進む', async () => {
+  it('4択で正解を選び自己評価で、正誤確認のポーズなしに即座に次へ進む', async () => {
     const db = newDb()
     await db.srsCards.put({
       id: 'vocab:submit',
@@ -422,10 +422,9 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
-    expect(screen.queryByText('submit の意味')).toBeNull() // 裏返す前は意味が見えない
+    expect(screen.getByText('この単語の意味は？')).toBeTruthy()
 
-    fireEvent.click(screen.getByText('タップで意味を見る'))
-    expect(screen.getByText('submit の意味')).toBeTruthy()
+    fireEvent.click(screen.getByText('submit の意味'))
 
     fireEvent.click(screen.getByText('OK'))
     // 「正解」表示や「次へ」ボタンを経由せず、1件しかないので即リザルトへ遷移する
@@ -487,7 +486,7 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(audioPlayer.play).not.toHaveBeenCalled()
   })
 
-  it('「もう一回」はgradeがそのまま渡り、attemptsに不正解として記録される', async () => {
+  it('4択で不正解を選ぶとattemptsにisCorrect=falseで記録される（グレードは自己申告のまま独立）', async () => {
     const db = newDb()
     await db.srsCards.put({
       id: 'vocab:attend',
@@ -501,11 +500,13 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
       sourceQuestionId: null,
     })
     const q = vocabCardQuestion('attend')
+    // decoyを混ぜて不正解の選択肢を用意する
+    const decoy = vocabCardQuestion('decoy')
     const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:attend' }]
-    await setupSession(db, items, [q])
+    await setupSession(db, items, [q, decoy])
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
-    fireEvent.click(screen.getByText('タップで意味を見る'))
+    fireEvent.click(screen.getByText('decoy の意味')) // わざと不正解を選ぶ
     fireEvent.click(screen.getByText('もう一回'))
 
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
@@ -537,7 +538,7 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     await setupSession(db, items, [vocabQ, drillQ])
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
-    fireEvent.click(screen.getByText('タップで意味を見る'))
+    fireEvent.click(screen.getByText('negotiate の意味'))
     fireEvent.click(screen.getByText('OK'))
 
     // ドリル問題（p5-mix）に進む

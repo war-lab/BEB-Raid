@@ -1,17 +1,26 @@
 // S3 語彙SRS画面（T-19。docs/02 4節・07 6節/7節S3・04 2節・03 2節）。
-// 復習モード（期限到来＋新規導入。自己評価3段階）と仕分けモード（新規語彙の
+// 復習モード（4択リコールテスト→自己評価3段階）と仕分けモード（新規語彙の
 // スワイプ仕分け）の2フェーズ。1カード1操作（07 7節）。
-import { useEffect, useState } from 'react'
+//
+// 【設計変更・docs未記載（ユーザー指摘 2026-07-13）】復習モードは元々「タップで意味を見る→
+// 自己申告（もう一回/OK/余裕）」のみで、客観的な正誤判定が無かった（本人の申告任せで
+// 「本当に問題になっているか」という指摘）。加えて、フレーズだけ渡されても何を問われて
+// いるのか（英文和訳なのか単語の意味なのか）が不明瞭という指摘もあった。これを受け、
+// 意味を見る前に4択（engine/vocabQuiz.ts）を挟み、「この単語の意味は？」という明示的な
+// 問いと客観的な正誤判定を追加した。自己評価3段階（間隔調整用）はその後に残す
+import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
 import { evaluateStreak } from '../engine/streak'
 import { addSrsCard, getSrsQueue, reviewSrsCard, srsCardId } from '../engine/srs'
 import type { SrsGrade } from '../engine/types'
+import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -53,7 +62,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [autoPlay, setAutoPlay] = useState(true)
   const [reviewIndex, setReviewIndex] = useState(0)
   const [triageIndex, setTriageIndex] = useState(0)
-  const [flipped, setFlipped] = useState(false)
+  // 復習モード専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す）
+  const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
   const [startedAt, setStartedAt] = useState(() => now())
 
   // 初回ロード: 復習キュー（期限到来＋新規導入。4節）と仕分け候補（未SRS化の語彙）を用意する
@@ -85,6 +95,14 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const reviewQuestion = reviewCard ? vocabQuestionFor(reviewCard.refId, vocabQuestions) : undefined
   const triageQuestion = triageQueue?.[triageIndex]
 
+  // 4択はカードが変わるたびに1回だけ組み立てる（依存はreviewQuestion.idのみにし、
+  // 選択後の再レンダリングで選択肢が入れ替わらないようにする）
+  const quizChoices = useMemo(
+    () => (reviewQuestion ? buildVocabQuizChoices(reviewQuestion, vocabQuestions) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- vocabQuestionsは起動時に固定される想定
+    [reviewQuestion?.id],
+  )
+
   // フレーズ音声自動再生（イヤホンなしモードでなければ、カード表示のたびに1回再生）
   useEffect(() => {
     if (!autoPlay) return
@@ -100,24 +118,27 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
 
   if (reviewQueue === null || triageQueue === null) return null
 
-  function handleFlip() {
-    setFlipped(true)
+  function handleSelectChoice(key: string) {
+    if (selectedChoiceKey !== null) return
+    setSelectedChoiceKey(key)
   }
 
   async function handleGrade(grade: SrsGrade) {
     if (!reviewCard) return
     const responseMs = now() - startedAt
+    // isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更）。
+    // gradeは引き続きSRSの間隔調整（もう一回/OK/余裕）専用
+    const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
     await reviewSrsCard(db, reviewCard.id, grade)
-    // 自己評価に客観正誤は無いが、ログ上は「もう一回」のみ不正解相当として記録する
     await recordAttempt(db, {
       questionId: attemptQuestionId(reviewCard.refId, reviewQuestion),
       mode: 'srs',
-      isCorrect: grade !== 'again',
+      isCorrect,
       responseMs,
     })
     await evaluateStreak(db)
     setReviewIndex((i) => i + 1)
-    setFlipped(false)
+    setSelectedChoiceKey(null)
     setStartedAt(now())
   }
 
@@ -134,7 +155,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   if (reviewIndex < reviewQueue.length && reviewCard) {
     const front = reviewQuestion?.front ?? reviewCard.refId
     const phrase = reviewQuestion?.phrase ?? front
-    const back = reviewQuestion?.back ?? ''
+    const answered = selectedChoiceKey !== null
 
     return (
       <ScreenLayout
@@ -144,40 +165,57 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
           </p>
         }
         action={
-          flipped ? (
-            <>
-              <button
-                type="button"
-                className="vocab-grade-button"
-                onClick={() => void handleGrade('again')}
-              >
-                もう一回
+          <>
+            {quizChoices.map((choice) => {
+              let state: ChoiceState = 'idle'
+              if (answered) {
+                if (choice.isCorrect) state = 'correct'
+                else if (choice.key === selectedChoiceKey) state = 'wrong'
+                else state = 'dimmed'
+              }
+              return (
+                <ChoiceButton
+                  key={choice.key}
+                  marker={choice.key}
+                  state={state}
+                  disabled={answered}
+                  onClick={() => handleSelectChoice(choice.key)}
+                >
+                  {choice.text}
+                </ChoiceButton>
+              )
+            })}
+            {!answered && reviewQuestion?.phraseAudio && (
+              <button type="button" className="drill-replay" onClick={handleReplay}>
+                もう一度再生
               </button>
-              <button
-                type="button"
-                className="vocab-grade-button"
-                onClick={() => void handleGrade('good')}
-              >
-                OK
-              </button>
-              <button
-                type="button"
-                className="vocab-grade-button"
-                onClick={() => void handleGrade('easy')}
-              >
-                余裕
-              </button>
-            </>
-          ) : (
-            <>
-              <PrimaryButton onClick={handleFlip}>タップで意味を見る</PrimaryButton>
-              {reviewQuestion?.phraseAudio && (
-                <button type="button" className="drill-replay" onClick={handleReplay}>
-                  もう一度再生
+            )}
+            {answered && (
+              <>
+                <button
+                  type="button"
+                  className="vocab-grade-button"
+                  onClick={() => void handleGrade('again')}
+                >
+                  もう一回
                 </button>
-              )}
-            </>
-          )
+                <button
+                  type="button"
+                  className="vocab-grade-button"
+                  onClick={() => void handleGrade('good')}
+                >
+                  OK
+                </button>
+                <button
+                  type="button"
+                  className="vocab-grade-button"
+                  onClick={() => void handleGrade('easy')}
+                >
+                  余裕
+                </button>
+              </>
+            )}
+          </>
         }
       >
         <div className="vocab-card">
@@ -189,7 +227,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
           <p className="vocab-card__phrase">
             <HighlightedPhrase phrase={phrase} word={front} />
           </p>
-          {flipped && <p className="vocab-card__back">{back}</p>}
+          <p className="vocab-card__prompt">この単語の意味は？</p>
         </div>
       </ScreenLayout>
     )
