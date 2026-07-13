@@ -192,7 +192,12 @@ export const WORDS_S: FreqListWordEntry[] = [
   { word: 'property', freqRank: 'S', rankSource: 'llm', rationale: '不動産・物件' },
   { word: 'premises', freqRank: 'S', rankSource: 'llm', rationale: '敷地・構内' },
   { word: 'mortgage', freqRank: 'S', rankSource: 'llm', rationale: '住宅ローン' },
-  { word: 'estate', freqRank: 'S', rankSource: 'llm', rationale: '不動産・資産' },
+  {
+    word: 'estate',
+    freqRank: 'S',
+    rankSource: 'llm',
+    rationale: '財産・地所。real estate（不動産）の形で頻出',
+  },
   { word: 'occupant', freqRank: 'S', rankSource: 'llm', rationale: '入居者・居住者' },
   { word: 'utility', freqRank: 'S', rankSource: 'llm', rationale: '公共料金・設備' },
   { word: 'cuisine', freqRank: 'S', rankSource: 'llm', rationale: '料理・食文化' },

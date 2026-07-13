@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedAt": "2026-07-10",
+    "generatedAt": "2026-07-13",
     "method": "llm-only",
     "corpusSource": null,
     "corpusLicense": null,
@@ -954,7 +954,7 @@
       "word": "estate",
       "freqRank": "S",
       "rankSource": "llm",
-      "rationale": "不動産・資産"
+      "rationale": "財産・地所。real estate（不動産）の形で頻出"
     },
     {
       "word": "occupant",

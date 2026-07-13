@@ -104,7 +104,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'supply',
-    back: '供給する',
+    back: '供給（する）・備品',
     phrase: 'The factory can supply spare parts on short notice.',
   },
   { word: 'equipment', back: '機材', phrase: 'All safety equipment must be inspected before use.' },
@@ -126,7 +126,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   {
     word: 'maintenance',
     back: '保守',
-    phrase: 'The elevator will be closed for maintenance this weekend.',
+    phrase: 'The elevator will be out of service for maintenance this weekend.',
   },
   {
     word: 'facility',
@@ -184,7 +184,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   { word: 'audit', back: '監査', phrase: 'The company will undergo an audit next month.' },
   {
     word: 'reimbursement',
-    back: '払い戻し',
+    back: '（立替経費の）払い戻し',
     phrase: 'You can request reimbursement for approved travel expenses.',
   },
   {
@@ -214,8 +214,8 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'deposit',
-    back: '預ける',
-    phrase: 'You must deposit ten percent of the total price in advance.',
+    back: '預け入れる・預金する',
+    phrase: 'You can deposit checks at any branch of the bank.',
   },
   {
     word: 'withdrawal',
@@ -256,7 +256,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   {
     word: 'lease',
     back: '賃貸借契約',
-    phrase: 'The office signed a five-year lease for the new building.',
+    phrase: 'The company signed a five-year lease for the new building.',
   },
   { word: 'tenant', back: '賃借人', phrase: 'The tenant reported a leak in the ceiling.' },
   { word: 'landlord', back: '大家', phrase: 'The landlord agreed to repaint the office walls.' },
@@ -329,16 +329,16 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
     phrase: 'The company held a small party to celebrate her retirement.',
   },
   { word: 'vacation', back: '休暇', phrase: 'I am taking a two-week vacation in August.' },
-  { word: 'leave', back: '休業', phrase: 'She is currently on maternity leave.' },
+  { word: 'leave', back: '休暇（産休・病休など）', phrase: 'She is currently on maternity leave.' },
   { word: 'training', back: '研修', phrase: 'New hires must complete two weeks of training.' },
   {
     word: 'orientation',
-    back: '新人研修',
+    back: '入社時オリエンテーション',
     phrase: 'All new employees attend orientation on their first day.',
   },
   {
     word: 'performance',
-    back: '業績',
+    back: '業績・成績',
     phrase: 'Her performance review is scheduled for next week.',
   },
   {
@@ -356,7 +356,11 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
     back: '顧客',
     phrase: 'The customer requested a refund for the damaged item.',
   },
-  { word: 'client', back: '取引先', phrase: 'We scheduled a call with the client for Thursday.' },
+  {
+    word: 'client',
+    back: '顧客・依頼人',
+    phrase: 'We scheduled a call with the client for Thursday.',
+  },
   { word: 'market', back: '市場', phrase: 'The company plans to expand into the Asian market.' },
   {
     word: 'campaign',
@@ -370,7 +374,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'endorsement',
-    back: '推奨',
+    back: '（有名人の）宣伝起用・推薦',
     phrase: 'The athlete signed an endorsement deal with the brand.',
   },
   { word: 'brand', back: 'ブランド', phrase: 'The company is known for its strong brand image.' },
@@ -379,7 +383,11 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
     back: '製品',
     phrase: 'The new product will be available in stores next week.',
   },
-  { word: 'launch', back: '発売', phrase: 'The company will launch its new app in the spring.' },
+  {
+    word: 'launch',
+    back: '発売（する）・開始',
+    phrase: 'The company will launch its new app in the spring.',
+  },
   { word: 'sample', back: '見本', phrase: 'We sent a free sample to interested customers.' },
   {
     word: 'feedback',
@@ -409,13 +417,13 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   { word: 'merchandise', back: '商品', phrase: 'The store received new merchandise this morning.' },
   {
     word: 'purchase',
-    back: '購入',
+    back: '購入（する）',
     phrase: 'Customers can purchase the item online or in stores.',
   },
   { word: 'order', back: '注文', phrase: 'Please confirm your order before it ships.' },
   {
     word: 'shipment',
-    back: '発送',
+    back: '発送・積み荷',
     phrase: 'The shipment is expected to arrive within five business days.',
   },
   {
@@ -455,7 +463,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'transport',
-    back: '輸送',
+    back: '輸送（する）',
     phrase: 'The goods are transported by truck to the warehouse.',
   },
   { word: 'courier', back: '配達員', phrase: 'A courier delivered the documents this afternoon.' },
@@ -479,7 +487,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
     back: '予約',
     phrase: 'I would like to make a reservation for two people.',
   },
-  { word: 'boarding', back: '搭乗', phrase: 'Boarding for flight 205 will begin in ten minutes.' },
+  { word: 'boarding', back: '搭乗', phrase: 'Boarding for Flight 205 will begin in ten minutes.' },
   { word: 'departure', back: '出発', phrase: 'The departure time was changed due to bad weather.' },
   { word: 'arrival', back: '到着', phrase: 'Please notify the front desk of your arrival time.' },
   {
@@ -487,7 +495,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
     back: '手荷物',
     phrase: 'Passengers may check one piece of luggage for free.',
   },
-  { word: 'terminal', back: 'ターミナル', phrase: 'The shuttle bus stops at terminal two.' },
+  { word: 'terminal', back: 'ターミナル', phrase: 'The shuttle bus stops at Terminal 2.' },
   {
     word: 'accommodation',
     back: '宿泊施設',
@@ -500,7 +508,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'venue',
-    back: '開催地',
+    back: '会場・開催場所',
     phrase: 'The venue for the event was changed at the last minute.',
   },
   {
@@ -516,7 +524,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'voucher',
-    back: 'クーポン券',
+    back: '引換券・利用券',
     phrase: 'Customers received a voucher for a free upgrade.',
   },
   {
@@ -583,7 +591,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   {
     word: 'malfunction',
     back: '故障',
-    phrase: 'The printer suffered a malfunction during the busy period.',
+    phrase: 'The photocopier had a malfunction during the morning rush.',
   },
   { word: 'technician', back: '技術者', phrase: 'A technician was sent to repair the copier.' },
   {
@@ -600,8 +608,8 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'estate',
-    back: '不動産',
-    phrase: 'The estate agent showed us three properties yesterday.',
+    back: '財産・地所（real estateで不動産）',
+    phrase: 'The real estate agency listed several new properties this week.',
   },
   {
     word: 'occupant',
@@ -623,7 +631,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   {
     word: 'entertain',
     back: '接待する',
-    phrase: 'The sales team took the clients out to entertain them.',
+    phrase: 'The sales team entertained the clients at a local restaurant.',
   },
   {
     word: 'refreshment',
@@ -634,7 +642,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   {
     word: 'approve',
     back: '承認する',
-    phrase: 'The manager needs to approve the request before it proceeds.',
+    phrase: 'The manager needs to approve the request before it can be processed.',
   },
   {
     word: 'authorize',
@@ -674,7 +682,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   {
     word: 'prioritize',
     back: '優先する',
-    phrase: 'We need to prioritize the most urgent orders first.',
+    phrase: 'We need to prioritize the most urgent orders.',
   },
   {
     word: 'finalize',
@@ -725,7 +733,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
     back: '利害関係者',
     phrase: 'All stakeholders were invited to the planning meeting.',
   },
-  { word: 'projection', back: '予測', phrase: 'Sales projections for next year look optimistic.' },
+  { word: 'projection', back: '予測', phrase: 'Sales projections for next year look promising.' },
   { word: 'target', back: '目標', phrase: 'The sales team exceeded its target for the quarter.' },
   {
     word: 'strategy',
