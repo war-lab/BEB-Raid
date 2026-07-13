@@ -19,6 +19,14 @@ import { useAppStore } from './store/appStore'
  * 開発用ダミーコンテンツ（docs/10 3.7節）。実パック読み込みはT-35で差し替える。
  * ホーム画面の「今日のクエスト」quickPack生成・各モード単独起動の両方に使う出題プール
  */
+
+/**
+ * ダミー音声のfetch元パス。先頭を絶対パス（'/packs/...'）で固定すると、
+ * GitHub Pagesのproject page配信（サブパス '/BEB-Raid/'）で404になる
+ * （WebAudioPlayerはfetch(src)をそのまま呼ぶためVite base設定の影響を受けない）。
+ * import.meta.env.BASE_URL（Viteのbase設定と連動、末尾'/'込み）を使って解決する
+ */
+const DUMMY_AUDIO_BASE = import.meta.env.BASE_URL
 const DUMMY_PART5_QUESTIONS: Question[] = [
   {
     id: 'dev-p5-001',
@@ -67,7 +75,7 @@ const DUMMY_PART2_QUESTIONS: Question[] = [
     difficulty: 2,
     tags: ['疑問詞聞き取り'],
     keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
-    audio: '/packs/dev/audio/p2-001.mp3',
+    audio: `${DUMMY_AUDIO_BASE}packs/dev/audio/p2-001.mp3`,
     audioMeta: { accent: 'US', tts: false, voice: 'dev-dummy', durationMs: 3000 },
     script: 'When did you submit the report? — I submitted it yesterday.',
     choices: [
@@ -86,7 +94,7 @@ const DUMMY_PART2_QUESTIONS: Question[] = [
     difficulty: 2,
     tags: ['疑問詞聞き取り'],
     keyVocab: [{ word: 'attend', sense: '出席する', freqRank: 'A' }],
-    audio: '/packs/dev/audio/p2-002.mp3',
+    audio: `${DUMMY_AUDIO_BASE}packs/dev/audio/p2-002.mp3`,
     audioMeta: { accent: 'UK', tts: false, voice: 'dev-dummy', durationMs: 3000 },
     script: 'Who will attend the meeting? — Ms. Tanaka will.',
     choices: [
@@ -119,7 +127,7 @@ const DUMMY_VOCAB_QUESTIONS: Question[] = [
   keyVocab: [],
   front: word,
   phrase: `Please ${word} it as soon as possible.`,
-  phraseAudio: '/packs/dev/audio/p2-001.mp3',
+  phraseAudio: `${DUMMY_AUDIO_BASE}packs/dev/audio/p2-001.mp3`,
   back,
   freqRank: freqRank as Question['freqRank'],
   levelBand: 730,
