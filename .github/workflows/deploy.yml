@@ -1,0 +1,60 @@
+# GitHub Pages デプロイ（T-33。正本: docs/05_アーキテクチャ設計.md 1節・6節、docs/10 T-33行）
+#
+# main への push で、appビルド＋content/（パックJSON・音声mp3・manifest.json）を
+# 1つの成果物にまとめて GitHub Pages に配信する。LLM/TTSキーはこのワークフローでは
+# 一切使わない（generate/ttsコマンドはビルド時のCLI作業であり、Pagesデプロイ自体には
+# APIキーが不要。将来キーを使う工程を足す場合も Actions Secrets のみを参照し、
+# ワークフローファイルにキーを直書きしないこと）。
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時デプロイの競合を避ける（前回のデプロイ中に新しいpushが来たら前回を打ち切って最新を優先）
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 依存インストール
+        run: npm ci
+      - name: ビルド（shared-schema→cli→app。Pagesサブパス向けにbaseを切り替え）
+        run: npm run build
+        env:
+          GITHUB_PAGES: 'true'
+      - name: 配信物を1ディレクトリにまとめる（appビルド＋パック＋音声＋manifest）
+        run: |
+          set -eu
+          mkdir -p _site
+          cp -r packages/app/dist/. _site/
+          cp -r content/packs _site/packs
+          cp content/manifest.json _site/manifest.json
+          cp -r content/audio _site/audio
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
