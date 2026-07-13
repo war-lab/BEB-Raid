@@ -169,6 +169,32 @@
   outline-offset: 2px;
 }
 
+/* --- 副次アクション（PrimaryButtonと並ぶテキスト寄りのボタン。P0診断のスキップ等） --- */
+.secondary-action {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-top: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.secondary-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.secondary-action:active:not(:disabled) {
+  background: var(--surface-2);
+}
+.secondary-action:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* --- 縦3分割レイアウト（100dvh・操作ゾーン約45%＋セーフエリア） --- */
 .screen-layout {
   display: grid;

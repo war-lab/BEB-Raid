@@ -157,3 +157,48 @@ describe('DiagnosticScreen: 自己申告あり', () => {
     expect(profile?.initialToeic).toBe(650)
   }, 20000)
 })
+
+describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機能追加）', () => {
+  it('自己申告スコア未入力ではスキップボタンが出ない', () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    expect(screen.queryByText('自己申告スコアで診断をスキップ')).toBeNull()
+  })
+
+  it('表示名未入力の間はスキップボタンが無効', () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
+    const skipButton = screen.getByText('自己申告スコアで診断をスキップ') as HTMLButtonElement
+    expect(skipButton.disabled).toBe(true)
+  })
+
+  it('自己申告スコアでスキップすると30問答えずにR=TOEIC×1000/990でratings/profileが確定する', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(screen.getByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
+    fireEvent.click(screen.getByText('自己申告スコアで診断をスキップ'))
+
+    await screen.findByText('診断完了')
+    expect(await db.attempts.count()).toBe(0)
+
+    const expectedRating = (650 * 1000) / 990
+    const l = await db.ratings.get('L')
+    const r = await db.ratings.get('R')
+    expect(l?.rating).toBeCloseTo(expectedRating)
+    expect(r?.rating).toBeCloseTo(expectedRating)
+
+    const profile = await db.profile.get(PROFILE_ID)
+    expect(profile?.initialToeic).toBe(650)
+
+    fireEvent.click(screen.getByText('ホームへ'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+})
