@@ -14,13 +14,18 @@ import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { QuestionLookup, SrsGrade } from '../engine/types'
 import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion } from '../services/session'
+import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { ExplanationCard } from '../components/ExplanationCard'
+import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
+
+/** 頻出度ランクの説明（bare文字だけでは何のSかわからないため） */
+const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→Sの順に上がる）'
 
 interface Props {
   db: BebRaidDatabase
@@ -67,11 +72,36 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   const [streak, setStreak] = useState(0)
   // vocab_card 専用: カードが裏返って意味が見えているか
   const [flipped, setFlipped] = useState(false)
+  // vocab_card 専用: フレーズ音声自動再生の可否（イヤホンなしモードならOFF。VocabScreenと同じ規約）。
+  // settingsLoadedがtrueになるまでは自動再生エフェクトを走らせない（非同期読み込み完了前の
+  // 初期値falseで誤って再生してしまうレースを防ぐ）
+  const [noEarphoneMode, setNoEarphoneMode] = useState(false)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void db.settings.get(NO_EARPHONE_MODE_KEY).then((setting) => {
+      if (cancelled) return
+      setNoEarphoneMode(setting?.value === true)
+      setSettingsLoaded(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [db])
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
   const needsAudioGate = question?.format === 'audio_qa'
   const isVocabCard = question?.format === 'vocab_card'
+
+  // vocab_card: フレーズ音声を自動再生する（カードが変わるたびに1回。金フレ型体験=02の4節の
+  // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）
+  useEffect(() => {
+    if (!settingsLoaded || !isVocabCard || noEarphoneMode || !question?.phraseAudio) return
+    void audioPlayer.unlock().then(() => audioPlayer.play(question.phraseAudio!))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
   // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）
   const isCountingDown = needsAudioGate && playState === 'played' && !result
@@ -232,7 +262,14 @@ export function DrillScreen({ db, audioPlayer }: Props) {
       action={
         <>
           {isVocabCard && !flipped && (
-            <PrimaryButton onClick={() => setFlipped(true)}>タップで意味を見る</PrimaryButton>
+            <>
+              <PrimaryButton onClick={() => setFlipped(true)}>タップで意味を見る</PrimaryButton>
+              {question.phraseAudio && (
+                <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
+                  もう一度再生
+                </button>
+              )}
+            </>
           )}
           {isVocabCard && flipped && (
             <>
@@ -305,8 +342,17 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     >
       {isVocabCard ? (
         <div className="vocab-card">
-          {question.freqRank && <span className="vocab-card__rank">{question.freqRank}</span>}
-          <p className="vocab-card__phrase">{question.phrase ?? question.front}</p>
+          {question.freqRank && (
+            <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
+              {question.freqRank}
+            </span>
+          )}
+          <p className="vocab-card__phrase">
+            <HighlightedPhrase
+              phrase={question.phrase ?? question.front ?? ''}
+              word={question.front ?? ''}
+            />
+          </p>
           {flipped && <p className="vocab-card__back">{question.back ?? ''}</p>}
         </div>
       ) : question.format === 'audio_qa' ? (

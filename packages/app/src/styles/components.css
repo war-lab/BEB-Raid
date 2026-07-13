@@ -292,6 +292,10 @@
   font-size: var(--fs-heading);
   line-height: 1.5;
 }
+/* フレーズ中の暗記対象語（HighlightedPhrase）。フレーズと単語のつながりを視覚的に示す */
+.vocab-card__target {
+  color: var(--gold);
+}
 .vocab-card__back {
   margin-top: var(--sp-2);
   font-size: var(--fs-sub);

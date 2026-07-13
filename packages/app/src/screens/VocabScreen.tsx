@@ -10,7 +10,9 @@ import { addSrsCard, getSrsQueue, reviewSrsCard, srsCardId } from '../engine/srs
 import type { SrsGrade } from '../engine/types'
 import type { AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
+import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SwipeCard } from '../components/SwipeCard'
@@ -22,8 +24,8 @@ interface Props {
   vocabQuestions: Question[]
 }
 
-/** フレーズ音声自動再生トグルの設定キー（settings ストアに永続化） */
-export const VOCAB_AUTO_PLAY_KEY = 'vocabAutoPlayPhrase'
+/** 頻出度ランクの説明（bare文字だけでは何のSかわからないため。S3画面表示用） */
+const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→Sの順に上がる）'
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 function now(): number {
@@ -44,7 +46,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
 
   const [reviewQueue, setReviewQueue] = useState<SrsCardRecord[] | null>(null)
   const [triageQueue, setTriageQueue] = useState<Question[] | null>(null)
-  const [autoPlay, setAutoPlay] = useState(false)
+  // フレーズ音声の自動再生可否。イヤホンなしモード時のみ止める（それ以外は既定でON。
+  // 以前は専用トグル(vocabAutoPlayPhrase)を設定していたがSettingsScreenに導線が
+  // 一度も無く常にOFF固定＝聞き流し周回が機能していなかったため、既存のイヤホンなし
+  // モード設定に統合した）
+  const [autoPlay, setAutoPlay] = useState(true)
   const [reviewIndex, setReviewIndex] = useState(0)
   const [triageIndex, setTriageIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -61,11 +67,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         (q) =>
           q.format === 'vocab_card' && q.front && !existingIds.has(srsCardId('vocab', q.front)),
       )
-      const setting = await db.settings.get(VOCAB_AUTO_PLAY_KEY)
+      const noEarphoneSetting = await db.settings.get(NO_EARPHONE_MODE_KEY)
       if (!cancelled) {
         setReviewQueue(reviewCards)
         setTriageQueue(candidates)
-        setAutoPlay((setting?.value as boolean | undefined) ?? false)
+        setAutoPlay(noEarphoneSetting?.value !== true)
       }
     }
     void load()
@@ -79,7 +85,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const reviewQuestion = reviewCard ? vocabQuestionFor(reviewCard.refId, vocabQuestions) : undefined
   const triageQuestion = triageQueue?.[triageIndex]
 
-  // フレーズ音声自動再生（設定ON時、カード表示のたびに1回再生）
+  // フレーズ音声自動再生（イヤホンなしモードでなければ、カード表示のたびに1回再生）
   useEffect(() => {
     if (!autoPlay) return
     const phraseAudio = reviewQuestion?.phraseAudio ?? triageQuestion?.phraseAudio
@@ -87,6 +93,10 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     void audioPlayer.unlock().then(() => audioPlayer.play(phraseAudio))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, reviewQuestion?.phraseAudio, triageQuestion?.phraseAudio])
+
+  function handleReplay() {
+    void audioPlayer.replay()
+  }
 
   if (reviewQueue === null || triageQueue === null) return null
 
@@ -159,15 +169,26 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
               </button>
             </>
           ) : (
-            <PrimaryButton onClick={handleFlip}>タップで意味を見る</PrimaryButton>
+            <>
+              <PrimaryButton onClick={handleFlip}>タップで意味を見る</PrimaryButton>
+              {reviewQuestion?.phraseAudio && (
+                <button type="button" className="drill-replay" onClick={handleReplay}>
+                  もう一度再生
+                </button>
+              )}
+            </>
           )
         }
       >
         <div className="vocab-card">
           {reviewQuestion?.freqRank && (
-            <span className="vocab-card__rank">{reviewQuestion.freqRank}</span>
+            <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
+              {reviewQuestion.freqRank}
+            </span>
           )}
-          <p className="vocab-card__phrase">{phrase}</p>
+          <p className="vocab-card__phrase">
+            <HighlightedPhrase phrase={phrase} word={front} />
+          </p>
           {flipped && <p className="vocab-card__back">{back}</p>}
         </div>
       </ScreenLayout>
@@ -200,9 +221,16 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         <SwipeCard onSwipeRight={handleKnown} onSwipeLeft={() => void handleUnknown()}>
           <div className="vocab-card">
             {triageQuestion.freqRank && (
-              <span className="vocab-card__rank">{triageQuestion.freqRank}</span>
+              <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
+                {triageQuestion.freqRank}
+              </span>
             )}
-            <p className="vocab-card__phrase">{triageQuestion.phrase ?? triageQuestion.front}</p>
+            <p className="vocab-card__phrase">
+              <HighlightedPhrase
+                phrase={triageQuestion.phrase ?? triageQuestion.front ?? ''}
+                word={triageQuestion.front ?? ''}
+              />
+            </p>
           </div>
         </SwipeCard>
       </ScreenLayout>
