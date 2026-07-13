@@ -1,7 +1,7 @@
 // T-24 完了条件: 各コマンドの雛形が動き、APIキーが環境変数から読まれる
 // T-25 完了条件: freq-list コマンドが動き、S200語がランク根拠付きで出力される
 // T-30 完了条件: review-export/review-import の実ファイル往復（ダミーデータ）
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -54,12 +54,6 @@ describe('コマンド体系（04の5節）', () => {
     expect(code).toBe(1)
     expect(errOutput).toContain('不明なコマンド')
     expect(output).toBe('')
-  })
-
-  it('キー不要のコマンド雛形（build）が動く', async () => {
-    const { code, output } = await run(['build'])
-    expect(code).toBe(0)
-    expect(output).toContain('未実装')
   })
 
   it('review-export / review-import は引数不足だと使い方をstderrに出して異常終了する', async () => {
@@ -417,5 +411,158 @@ describe('APIキーの環境変数読み込み（generate/ttsともに不要。B
     expect(maskApiKey('abc')).not.toContain('abc')
     expect(maskApiKey('abcd')).not.toContain('abcd')
     expect(maskApiKey('a')).toBe('***（1文字）')
+  })
+})
+
+describe('build（T-32）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-build-'))
+    await mkdir(join(dir, 'drafts'), { recursive: true })
+    await mkdir(join(dir, 'audio/vocab'), { recursive: true })
+    await mkdir(join(dir, 'audio/part2'), { recursive: true })
+    await writeFile(join(dir, 'audio/vocab/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part2/submit.mp3'), 'dummy')
+
+    const vocabDraft: GeneratedItemDraft = {
+      id: 'vocab-submit',
+      kind: 'vocab_card',
+      preview: 'submit',
+      payload: {
+        id: 'vocab-submit',
+        part: 0,
+        format: 'vocab_card',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        front: 'submit',
+        phrase: 'Please submit the report.',
+        phraseAudio: 'audio/vocab/submit.mp3',
+        back: '提出する',
+        freqRank: 'S',
+        levelBand: 600,
+      },
+    }
+    const part2Draft: GeneratedItemDraft = {
+      id: 'part2-submit',
+      kind: 'audio_qa',
+      preview: 'submit',
+      payload: {
+        id: 'part2-submit',
+        part: 2,
+        format: 'audio_qa',
+        difficulty: 2,
+        tags: ['疑問詞聞き取り'],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/part2/submit.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 3000 },
+        script: 'When should I submit it? — By Friday.',
+        choices: [
+          { key: 'A', text: 'By Friday.' },
+          { key: 'B', text: 'Yes, I did.' },
+        ],
+        answer: 'A',
+        explanation: '',
+        translation: '',
+      },
+    }
+    const part5Draft: GeneratedItemDraft = {
+      id: 'part5-submit',
+      kind: 'text_blank',
+      preview: 'submit',
+      payload: {
+        id: 'part5-submit',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 2,
+        tags: ['品詞'],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        question: 'Please ___ the report.',
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submission' },
+        ],
+        answer: 'A',
+        explanation: '',
+        translation: '',
+      },
+    }
+    const similarDraft: GeneratedItemDraft = {
+      id: 'similar-submit-1',
+      kind: 'text_blank',
+      preview: 'submit',
+      payload: {
+        id: 'similar-submit-1',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 2,
+        tags: ['語彙選択'],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        question: 'Please ___ your application by Friday.',
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'reject' },
+        ],
+        answer: 'A',
+        explanation: '',
+        translation: '',
+      },
+    }
+
+    await writeFile(
+      join(dir, 'drafts/vocab-card-s.jsonl'),
+      JSON.stringify(vocabDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(join(dir, 'drafts/part2-s.jsonl'), JSON.stringify(part2Draft) + '\n', 'utf-8')
+    await writeFile(join(dir, 'drafts/part5-s.jsonl'), JSON.stringify(part5Draft) + '\n', 'utf-8')
+    await writeFile(
+      join(dir, 'drafts/key-vocab-similar-s.jsonl'),
+      JSON.stringify(similarDraft) + '\n',
+      'utf-8',
+    )
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('4パック分のドラフトから packs/*.json と manifest.json を生成する', async () => {
+    const { code, output } = await run(['build', dir])
+    expect(code).toBe(0)
+    expect(output).toContain('4パック')
+
+    const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
+      packs: { id: string; hash: string; sizeBytes: number }[]
+    }
+    expect(manifest.packs).toHaveLength(4)
+    expect(manifest.packs.map((p) => p.id)).toEqual([
+      'pack-vocab-s-001',
+      'pack-p2-s-001',
+      'pack-p5-s-001',
+      'pack-p5-similar-s-001',
+    ])
+    for (const entry of manifest.packs) {
+      expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)
+      expect(entry.sizeBytes).toBeGreaterThan(0)
+    }
+
+    const vocabPack = JSON.parse(
+      await readFile(join(dir, 'packs/pack-vocab-s-001.json'), 'utf-8'),
+    ) as { pack: { license: string }; questions: unknown[] }
+    expect(vocabPack.pack.license).toBe('internal-original')
+    expect(vocabPack.questions).toHaveLength(1)
+  })
+
+  it('参照する音声ファイルが実在しないとビルド失敗し、manifest.jsonを書き出さない（部分取込なし）', async () => {
+    await rm(join(dir, 'audio/part2/submit.mp3'))
+
+    const { code, errOutput } = await run(['build', dir])
+    expect(code).toBe(1)
+    expect(errOutput).toContain('音声ファイルが存在しない')
+    expect(errOutput).toContain('ビルド失敗')
+
+    await expect(readFile(join(dir, 'manifest.json'), 'utf-8')).rejects.toThrow()
   })
 })

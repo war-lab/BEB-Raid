@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "packs": [
+    {
+      "id": "pack-vocab-s-001",
+      "title": "語彙カード Sランク200語",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 75898,
+      "hash": "995a59de74b0e40b"
+    },
+    {
+      "id": "pack-p2-s-001",
+      "title": "Part2瞬発 Sランク50問",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 64710,
+      "hash": "aff68a30ab841e35"
+    },
+    {
+      "id": "pack-p5-s-001",
+      "title": "Part5文法 Sランク50問",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 52696,
+      "hash": "3ece8f3e7808a4c7"
+    },
+    {
+      "id": "pack-p5-similar-s-001",
+      "title": "Part5 key単語類題57問",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 59604,
+      "hash": "6ad1cb493da20bc1"
+    }
+  ]
+}

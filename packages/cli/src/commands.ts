@@ -4,7 +4,7 @@
 // generate（コンテンツ生成。vocab_card=T-26・audio_qa=T-27・text_blank=T-28・
 // key_vocab_similar=T-29 実装済み）→
 // review-export/review-import（JSONL往復レビュー=T-30・本実装済み）→
-// tts（音声生成=T-31・Piperで本実装済み）→ build（バリデーション＋manifest=T-32）。
+// tts（音声生成=T-31・Piperで本実装済み）→ build（バリデーション＋manifest=T-32・本実装済み）。
 //
 // 【設計判断】T-25以降、ユーザー指示によりランタイムでLLM APIを呼ぶ実装はしない方針に
 // 変更した（詳細はdocs/STATUS.mdのT-25〜T-31行）。generateコマンドはAPIキーを要求しない
@@ -12,10 +12,17 @@
 // ttsコマンドも同様にAPIキー不要（採用したPiperはローカルTTSでAPIキー自体が存在しない）。
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 
 import { SCHEMA_VERSION, type Question } from '@beb-raid/shared-schema'
 
+import {
+  buildAllPacks,
+  buildManifest,
+  PACK_DEFINITIONS,
+  scanAudioFiles,
+  type PackSource,
+} from './build.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
 import {
   buildKeyVocabSimilarDrafts,
@@ -225,12 +232,52 @@ export const commands: CliCommand[] = [
   },
   {
     name: 'build',
-    description: 'パック一括バリデーション＋manifest.json 生成（実装は T-32）',
+    description: 'パック一括バリデーション＋manifest.json 生成（T-32）',
     run: async (ctx) => {
-      ctx.out(
-        `スキーマ検証は shared-schema の validatePack（schemaVersion ${SCHEMA_VERSION}）を使用`,
+      const contentRoot = ctx.args[0] ?? 'content'
+      const audioFiles = await scanAudioFiles(contentRoot)
+
+      const sources: PackSource[] = []
+      for (const def of PACK_DEFINITIONS) {
+        const draftPath = join(contentRoot, def.draftPath)
+        const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
+        sources.push({
+          id: def.id,
+          title: def.title,
+          license: def.license,
+          origin: def.origin,
+          targetLevel: def.targetLevel,
+          questions: drafts.map((d) => d.payload as Question),
+        })
+      }
+
+      const { built, errors } = buildAllPacks(sources, audioFiles)
+      if (errors.length > 0) {
+        for (const e of errors) ctx.errOut(`エラー: ${e}`)
+        ctx.errOut(
+          `ビルド失敗: ${errors.length}件のエラー（部分取込はしない。何も書き出していない）`,
+        )
+        return 1
+      }
+
+      const packsDir = join(contentRoot, 'packs')
+      await mkdir(packsDir, { recursive: true })
+      for (const { pack } of built) {
+        await writeFile(
+          join(packsDir, `${pack.pack.id}.json`),
+          JSON.stringify(pack, null, 2) + '\n',
+          'utf-8',
+        )
+      }
+      const manifest = buildManifest(built)
+      await writeFile(
+        join(contentRoot, 'manifest.json'),
+        JSON.stringify(manifest, null, 2) + '\n',
+        'utf-8',
       )
-      ctx.out('build は未実装です（T-32 で実装予定）')
+
+      ctx.out(`${built.length}パックをビルドし ${packsDir} に書き出しました`)
+      ctx.out(`manifest.json（schemaVersion ${SCHEMA_VERSION}）を ${contentRoot} に書き出しました`)
       return 0
     },
   },
