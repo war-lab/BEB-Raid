@@ -23,6 +23,7 @@ import {
   type Question,
   type QuestionPack,
 } from '@beb-raid/shared-schema'
+import type { CorrectionsFile } from './calibrate.js'
 
 /**
  * ビルド対象パックの定義（実データはドラフトJSONLから読み込む。commands.ts から参照）。
@@ -88,6 +89,34 @@ export interface BuiltPack {
   pack: QuestionPack
   /** manifest.json 用のコンテンツハッシュ（sizeBytes抜きの内容から算出） */
   hash: string
+}
+
+/**
+ * T-34（実測補正）の補正値ファイルをパック素材に適用する。純粋関数（入力を書き換えず新規配列を返す）。
+ * - questionDifficulty: 問題ID一致でdifficultyを上書き
+ * - wordFreqRank: keyVocabの各wordが一致すればfreqRankを上書き。vocab_card自体のfront/freqRankも対象
+ * corrections が無ければ sources をそのまま返す（T-32単体では従来どおり無補正で動く）
+ */
+export function applyCorrections(
+  sources: readonly PackSource[],
+  corrections: CorrectionsFile | null,
+): PackSource[] {
+  if (!corrections) return sources.slice()
+  return sources.map((source) => ({
+    ...source,
+    questions: source.questions.map((q) => {
+      const difficulty = corrections.questionDifficulty[q.id] ?? q.difficulty
+      const keyVocab = q.keyVocab.map((kv) => {
+        const corrected = corrections.wordFreqRank[kv.word]
+        return corrected ? { ...kv, freqRank: corrected } : kv
+      })
+      const freqRank =
+        q.format === 'vocab_card' && q.front
+          ? (corrections.wordFreqRank[q.front] ?? q.freqRank)
+          : q.freqRank
+      return { ...q, difficulty, keyVocab, freqRank }
+    }),
+  }))
 }
 
 /** 1パック分の検証・組み立て。エラーがあれば built=null で全エラーを返す */
