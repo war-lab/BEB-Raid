@@ -17,3 +17,7 @@ Thumbs.db
 # Playwright MCP の作業ファイル
 .playwright-mcp/
 
+# 市販教材（TOEIC公式問題集等）の音声・素材。著作権上リポジトリに含めない（01のR-1）
+/toeic_test_1_album_1/
+/all_toeic_official_lr_11_test_1_album_1/
+
