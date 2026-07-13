@@ -236,6 +236,61 @@ describe('generate text_blank（T-28）', () => {
   })
 })
 
+describe('generate key_vocab_similar（T-29）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-similar-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で57件（19語×3問）のドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'key-vocab-similar-s.jsonl')
+    const { code, output } = await run(['generate', 'key_vocab_similar', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('57件')
+
+    const drafts = parseJsonl<{
+      id: string
+      kind: string
+      preview: string
+      payload: {
+        format: string
+        question: string
+        answer: string
+        choices: { key: string; text: string }[]
+        keyVocab: { word: string; sense: string; freqRank: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(57)
+    expect(drafts.every((d) => d.kind === 'text_blank')).toBe(true)
+    expect(drafts.every((d) => d.payload.format === 'text_blank')).toBe(true)
+    expect(drafts.every((d) => d.payload.keyVocab[0]?.freqRank === 'S')).toBe(true)
+    expect(new Set(drafts.map((d) => d.id)).size).toBe(57)
+    // 対象語が19語×3問であること
+    const wordCounts = new Map<string, number>()
+    for (const d of drafts) {
+      const word = d.payload.keyVocab[0]!.word
+      wordCounts.set(word, (wordCounts.get(word) ?? 0) + 1)
+    }
+    expect(wordCounts.size).toBe(19)
+    expect([...wordCounts.values()].every((n) => n === 3)).toBe(true)
+  })
+
+  it('review-export にそのまま渡せる（T-30パイプラインとの接続）', async () => {
+    const draftPath = join(dir, 'key-vocab-similar-s.jsonl')
+    const tsvPath = join(dir, 'review.tsv')
+    await run(['generate', 'key_vocab_similar', draftPath], {})
+    const { code } = await run(['review-export', draftPath, tsvPath])
+    expect(code).toBe(0)
+    const tsv = await readFile(tsvPath, 'utf-8')
+    expect(tsv.trim().split('\n')).toHaveLength(58) // ヘッダー + 57件
+  })
+})
+
 describe('freq-list（T-25）', () => {
   let dir: string
 

@@ -1,12 +1,13 @@
 // コンテンツパイプラインのコマンド体系（T-24。正本: docs/04 5節）。
 //
 // パイプライン: freq-list（頻出度リスト=T-25・本実装済み）→
-// generate（コンテンツ生成。vocab_card=T-26・audio_qa=T-27・text_blank=T-28 実装済み）→
+// generate（コンテンツ生成。vocab_card=T-26・audio_qa=T-27・text_blank=T-28・
+// key_vocab_similar=T-29 実装済み）→
 // review-export/review-import（JSONL往復レビュー=T-30・本実装済み）→
 // tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
 //
 // 【設計判断】T-25以降、ユーザー指示によりランタイムでLLM APIを呼ぶ実装はしない方針に
-// 変更した（詳細はdocs/STATUS.mdのT-25〜T-28行）。generateコマンドはAPIキーを要求しない
+// 変更した（詳細はdocs/STATUS.mdのT-25〜T-29行）。generateコマンドはAPIキーを要求しない
 // （T-24時点の雛形はrequireApiKeyでゲートしていたが、この方針転換に伴い撤去した）。
 // ttsコマンドのみ実際の音声合成が必要なため引き続きAPIキーを要求する（T-31実装時）。
 
@@ -17,6 +18,13 @@ import { SCHEMA_VERSION, type Question } from '@beb-raid/shared-schema'
 
 import { maskApiKey, requireApiKey, TTS_API_KEY_ENV } from './env.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
+import {
+  buildKeyVocabSimilarDrafts,
+  buildKeyVocabSimilarQuestions,
+  KEY_VOCAB_SIMILAR_ENTRIES,
+  validateKeyVocabSimilarQuestions,
+  validateTargetWordCoverage,
+} from './keyVocabSimilar.js'
 import { buildPart2Drafts, buildPart2Questions, validatePart2Questions } from './part2Question.js'
 import { buildPart5Drafts, buildPart5Questions, validatePart5Questions } from './part5Question.js'
 import {
@@ -36,6 +44,7 @@ const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
 const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
+const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -63,6 +72,15 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validatePart5Questions,
     defaultPath: DEFAULT_PART5_DRAFT_PATH,
   },
+  key_vocab_similar: {
+    buildQuestions: buildKeyVocabSimilarQuestions,
+    buildDrafts: buildKeyVocabSimilarDrafts,
+    validate: (questions) => [
+      ...validateKeyVocabSimilarQuestions(questions),
+      ...validateTargetWordCoverage(KEY_VOCAB_SIMILAR_ENTRIES),
+    ],
+    defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH,
+  },
 }
 
 /**
@@ -88,7 +106,8 @@ export interface CliCommand {
 export const commands: CliCommand[] = [
   {
     name: 'generate',
-    description: 'コンテンツ生成（vocab_card=T-26、audio_qa=T-27、text_blank=T-28 実装済み）',
+    description:
+      'コンテンツ生成（vocab_card=T-26、audio_qa=T-27、text_blank=T-28、key_vocab_similar=T-29 実装済み）',
     run: async (ctx) => {
       const [kind, outputPath] = ctx.args
       const handler = kind ? GENERATE_KINDS[kind] : undefined
