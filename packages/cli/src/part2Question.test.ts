@@ -73,12 +73,12 @@ describe('part2Question', () => {
     expect(question.audioMeta?.tts).toBe(true)
   })
 
-  it('accentがUS/UK/AUをローテーションする（04の5節。加はM1で使わない）', () => {
+  it('accentが米/英2値をローテーションする（T-31でPiperにen_AUが無いと判明し縮退。生成段階の暫定値で、実合成時にttsBatch.tsが実際のaccentへ上書きする）', () => {
     const entry = PART2_ENTRIES_S[0]!
     expect(part2Question(entry, 0).audioMeta?.accent).toBe('US')
     expect(part2Question(entry, 1).audioMeta?.accent).toBe('UK')
-    expect(part2Question(entry, 2).audioMeta?.accent).toBe('AU')
-    expect(part2Question(entry, 3).audioMeta?.accent).toBe('US')
+    expect(part2Question(entry, 2).audioMeta?.accent).toBe('US')
+    expect(part2Question(entry, 3).audioMeta?.accent).toBe('UK')
   })
 
   it('存在しないkeyVocabWordはエラーになる（Sランク200語との整合を強制）', () => {

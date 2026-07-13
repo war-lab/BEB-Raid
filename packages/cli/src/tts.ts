@@ -74,8 +74,20 @@ export interface SynthesizeResult {
   durationMs: number
 }
 
+export interface SynthesizeDialogueInput {
+  /** 設問部分（primary話者で読む） */
+  questionText: string
+  /** 応答部分（secondary話者で読む） */
+  answerText: string
+  accent: SupportedAccent
+  /** 出力先mp3パス */
+  outputPath: string
+}
+
 export interface TtsProvider {
   synthesize(input: SynthesizeInput): Promise<SynthesizeResult>
+  /** Part2用: 設問と応答を別話者で読み上げ、1本のmp3に連結する（実装指示2） */
+  synthesizeDialogue(input: SynthesizeDialogueInput): Promise<SynthesizeResult>
 }
 
 /** 外部プロセス実行の抽象（テストではモックに差し替える。標準出力を返す） */
@@ -142,12 +154,35 @@ export class PiperTtsProvider implements TtsProvider {
     this.run = options.runProcess ?? runProcess
   }
 
-  async synthesize(input: SynthesizeInput): Promise<SynthesizeResult> {
-    const voice = voiceFor(input.accent, input.role)
+  /** テキスト1件をpiperでWAVに変換する（内部ヘルパ。synthesize/synthesizeDialogue共用） */
+  private async synthesizeToWav(
+    text: string,
+    accent: SupportedAccent,
+    role: SpeakerRole,
+    wavPath: string,
+  ): Promise<VoiceSpec> {
+    const voice = voiceFor(accent, role)
     const modelPath = `${this.voicesDir}/${voice.modelFile}`
-    const tmpWavPath = `${input.outputPath}.tmp.wav`
+    await this.run(this.piperBin, ['-m', modelPath, '-f', wavPath], { input: text })
+    return voice
+  }
 
-    await this.run(this.piperBin, ['-m', modelPath, '-f', tmpWavPath], { input: input.text })
+  private async probeDurationMs(path: string): Promise<number> {
+    const { stdout } = await this.run(this.ffprobeBin, [
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'default=noprint_wrappers=1:nokey=1',
+      path,
+    ])
+    return Math.round(Number.parseFloat(stdout.trim()) * 1000)
+  }
+
+  async synthesize(input: SynthesizeInput): Promise<SynthesizeResult> {
+    const tmpWavPath = `${input.outputPath}.tmp.wav`
+    const voice = await this.synthesizeToWav(input.text, input.accent, input.role, tmpWavPath)
     await this.run(this.ffmpegBin, [
       '-y',
       '-i',
@@ -158,18 +193,50 @@ export class PiperTtsProvider implements TtsProvider {
       '80k',
       input.outputPath,
     ])
-    const { stdout } = await this.run(this.ffprobeBin, [
-      '-v',
-      'error',
-      '-show_entries',
-      'format=duration',
-      '-of',
-      'default=noprint_wrappers=1:nokey=1',
-      input.outputPath,
-    ])
-    const durationMs = Math.round(Number.parseFloat(stdout.trim()) * 1000)
+    const durationMs = await this.probeDurationMs(input.outputPath)
     await rm(tmpWavPath, { force: true })
 
     return { voice: voice.voiceName, durationMs }
+  }
+
+  async synthesizeDialogue(input: SynthesizeDialogueInput): Promise<SynthesizeResult> {
+    const tmpQuestionWav = `${input.outputPath}.q.tmp.wav`
+    const tmpAnswerWav = `${input.outputPath}.a.tmp.wav`
+
+    const questionVoice = await this.synthesizeToWav(
+      input.questionText,
+      input.accent,
+      'primary',
+      tmpQuestionWav,
+    )
+    const answerVoice = await this.synthesizeToWav(
+      input.answerText,
+      input.accent,
+      'secondary',
+      tmpAnswerWav,
+    )
+
+    // 2本のWAVを1本のmp3に連結する（ffmpeg concatフィルタ。中間mp3を作らず直接連結）
+    await this.run(this.ffmpegBin, [
+      '-y',
+      '-i',
+      tmpQuestionWav,
+      '-i',
+      tmpAnswerWav,
+      '-filter_complex',
+      '[0:0][1:0]concat=n=2:v=0:a=1[out]',
+      '-map',
+      '[out]',
+      '-ac',
+      '1',
+      '-b:a',
+      '80k',
+      input.outputPath,
+    ])
+    const durationMs = await this.probeDurationMs(input.outputPath)
+    await rm(tmpQuestionWav, { force: true })
+    await rm(tmpAnswerWav, { force: true })
+
+    return { voice: `${questionVoice.voiceName}+${answerVoice.voiceName}`, durationMs }
   }
 }

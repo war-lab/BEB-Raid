@@ -129,3 +129,57 @@ describe('PiperTtsProvider（モックプロセスでの生成フロー）', () 
     expect(inputs).toEqual(['Hello world'])
   })
 })
+
+describe('PiperTtsProvider.synthesizeDialogue（Part2: 設問と応答で別話者）', () => {
+  function fakeRunProcess(): { run: ProcessRunner; calls: { command: string; args: string[] }[] } {
+    const calls: { command: string; args: string[] }[] = []
+    const run: ProcessRunner = vi.fn(async (command, args) => {
+      calls.push({ command, args })
+      if (command === 'ffprobe') return { stdout: '3.579' }
+      return { stdout: '' }
+    })
+    return { run, calls }
+  }
+
+  it('piper(質問)→piper(応答)→ffmpeg(連結)→ffprobeの順で呼ぶ', async () => {
+    const { run, calls } = fakeRunProcess()
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+
+    const result = await provider.synthesizeDialogue({
+      questionText: 'When should I submit the report?',
+      answerText: 'By Friday.',
+      accent: 'US',
+      outputPath: '/out/part2-submit.mp3',
+    })
+
+    expect(calls.map((c) => c.command)).toEqual(['piper', 'piper', 'ffmpeg', 'ffprobe'])
+    // 設問はprimary、応答はsecondaryの声で読む
+    expect(calls[0]?.args).toContain('/voices/en_US-lessac-medium.onnx')
+    expect(calls[1]?.args).toContain('/voices/en_US-ryan-medium.onnx')
+    // ffmpegはconcatフィルタで2本のWAVを1本にする
+    expect(calls[2]?.args).toContain('[0:0][1:0]concat=n=2:v=0:a=1[out]')
+    expect(result.voice).toBe('piper:en_US-lessac-medium+piper:en_US-ryan-medium')
+    expect(result.durationMs).toBe(3579)
+  })
+
+  it('設問と応答をそれぞれの話者のstdinに渡す', async () => {
+    const inputsByVoice: Record<string, string | undefined> = {}
+    const run: ProcessRunner = vi.fn(async (command, args, options) => {
+      if (command === 'piper') {
+        const modelArg = args[args.indexOf('-m') + 1]
+        inputsByVoice[modelArg!] = options?.input
+      }
+      if (command === 'ffprobe') return { stdout: '1.0' }
+      return { stdout: '' }
+    })
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+    await provider.synthesizeDialogue({
+      questionText: 'Who will attend?',
+      answerText: 'Ms. Tanaka will.',
+      accent: 'UK',
+      outputPath: '/out/x.mp3',
+    })
+    expect(inputsByVoice['/voices/en_GB-jenny_dioco-medium.onnx']).toBe('Who will attend?')
+    expect(inputsByVoice['/voices/en_GB-alan-medium.onnx']).toBe('Ms. Tanaka will.')
+  })
+})

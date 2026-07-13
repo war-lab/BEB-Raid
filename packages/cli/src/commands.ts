@@ -4,19 +4,18 @@
 // generate（コンテンツ生成。vocab_card=T-26・audio_qa=T-27・text_blank=T-28・
 // key_vocab_similar=T-29 実装済み）→
 // review-export/review-import（JSONL往復レビュー=T-30・本実装済み）→
-// tts（音声生成=T-31）→ build（バリデーション＋manifest=T-32）。
+// tts（音声生成=T-31・Piperで本実装済み）→ build（バリデーション＋manifest=T-32）。
 //
 // 【設計判断】T-25以降、ユーザー指示によりランタイムでLLM APIを呼ぶ実装はしない方針に
-// 変更した（詳細はdocs/STATUS.mdのT-25〜T-29行）。generateコマンドはAPIキーを要求しない
+// 変更した（詳細はdocs/STATUS.mdのT-25〜T-31行）。generateコマンドはAPIキーを要求しない
 // （T-24時点の雛形はrequireApiKeyでゲートしていたが、この方針転換に伴い撤去した）。
-// ttsコマンドのみ実際の音声合成が必要なため引き続きAPIキーを要求する（T-31実装時）。
+// ttsコマンドも同様にAPIキー不要（採用したPiperはローカルTTSでAPIキー自体が存在しない）。
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 import { SCHEMA_VERSION, type Question } from '@beb-raid/shared-schema'
 
-import { maskApiKey, requireApiKey, TTS_API_KEY_ENV } from './env.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
 import {
   buildKeyVocabSimilarDrafts,
@@ -34,6 +33,8 @@ import {
   toJsonl,
   type GeneratedItemDraft,
 } from './review.js'
+import { PiperTtsProvider } from './tts.js'
+import { synthesizeDraftsAudio } from './ttsBatch.js'
 import {
   buildVocabCardDrafts,
   buildVocabCardQuestions,
@@ -198,11 +199,27 @@ export const commands: CliCommand[] = [
   },
   {
     name: 'tts',
-    description: 'TTS音声生成・audioMeta 記録（実装は T-31。調達は B-2 確定待ち）',
+    description: 'Piperで音声合成しaudioMetaを実測値に更新（vocab_card/audio_qaのみ対象。T-31）',
     run: async (ctx) => {
-      const key = requireApiKey(TTS_API_KEY_ENV, ctx.env)
-      ctx.out(`TTS APIキーを環境変数 ${TTS_API_KEY_ENV} から読み込み: ${maskApiKey(key)}`)
-      ctx.out('tts は未実装です（T-31 で実装予定）')
+      const [draftPath, audioRoot, outputDraftPath] = ctx.args
+      if (!draftPath || !audioRoot || !outputDraftPath) {
+        ctx.errOut('使い方: beb tts <ドラフト.jsonl> <音声出力ルート> <更新後ドラフト.jsonl>')
+        return 1
+      }
+      const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
+      const provider = new PiperTtsProvider()
+      const { updatedDrafts, synthesized, skipped } = await synthesizeDraftsAudio(
+        drafts,
+        provider,
+        audioRoot,
+      )
+      await mkdir(dirname(outputDraftPath), { recursive: true })
+      await writeFile(outputDraftPath, toJsonl(updatedDrafts), 'utf-8')
+      ctx.out(`${synthesized}件の音声を生成（出力先: ${audioRoot}）`)
+      if (skipped > 0) {
+        ctx.out(`${skipped}件は音声不要のformat（text_blank等）のためスキップ`)
+      }
+      ctx.out(`更新後ドラフトを ${outputDraftPath} に書き出しました`)
       return 0
     },
   },
@@ -232,8 +249,8 @@ export function usage(): string {
     'コマンド:',
     ...commands.map((c) => `  ${c.name.padEnd(15)} ${c.description}`),
     '',
-    `APIキーが必要なのは tts のみ（環境変数 ${TTS_API_KEY_ENV}）。generate はLLM APIを呼ばない（T-25以降の方針変更）。`,
-    'リポジトリ・設定ファイルにキーを置かないこと。',
+    'APIキーは不要（generate/ttsともにローカル実行。T-25以降の方針変更でLLM APIを、B-2解消でTTSもPiper採用によりクラウドAPIを、それぞれ呼ばない）。',
+    'ttsコマンドの実行にはpiper/ffmpeg/ffprobeが別途ローカルにインストールされている必要がある。',
   ]
   return lines.join('\n')
 }

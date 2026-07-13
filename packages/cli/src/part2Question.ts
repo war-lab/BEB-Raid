@@ -6,6 +6,10 @@
 // から選び、「単語帳で覚える→問題で使う」循環（03の3.2節の設計意図）を成立させている
 // （freqRankは'S'固定で、実際にvocabCardsSに存在する語であることを機械検証する）。
 // audio/audioMetaはT-31（TTS）で実音声に差し替えるまでの予約値（voice='pending-tts'）。
+// 【2026-07-13追記】T-31でPiper（採用したTTSプロバイダ）にen_AUボイスが無いことが判明し、
+// 実際の音声合成は米/英2アクセントのみに縮退した（tts.tsのSUPPORTED_ACCENTS）。以下の
+// ACCENT_ROTATIONは生成段階の暫定値であり、実合成時（ttsBatch.ts）に実際のaccentで
+// 上書きされるため、'AU'が含まれていても実害はない（ただし紛らわしいため2値に揃えた）。
 
 import {
   SCHEMA_VERSION,
@@ -19,8 +23,11 @@ import type { GeneratedItemDraft } from './review.js'
 
 export { PART2_ENTRIES_S }
 
-/** 話者アクセントのローテーション（04の5節: 米/英/豪の3アクセント。加はM1で使わない） */
-const ACCENT_ROTATION: readonly AudioAccent[] = ['US', 'UK', 'AU']
+/**
+ * 話者アクセントのローテーション（生成段階の暫定値。実合成時にttsBatch.tsが実際のaccentで
+ * 上書きする）。Piperの対応状況（tts.tsのSUPPORTED_ACCENTS）に合わせ米/英の2値。
+ */
+const ACCENT_ROTATION: readonly AudioAccent[] = ['US', 'UK']
 
 /** 音声の予約パス規約（T-31で実ファイルに差し替える） */
 export function reservedAudioPath(word: string): string {

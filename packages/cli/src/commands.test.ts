@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { commands, runCli } from './commands.js'
-import { maskApiKey, readApiKey, TTS_API_KEY_ENV } from './env.js'
+import { maskApiKey, readApiKey } from './env.js'
 import type { FreqList } from './freqList.js'
 import { parseJsonl, type GeneratedItemDraft } from './review.js'
 
@@ -388,7 +388,7 @@ describe('review-export / review-import: 実ファイルでの往復（T-30）',
   })
 })
 
-describe('APIキーの環境変数読み込み', () => {
+describe('APIキーの環境変数読み込み（generate/ttsともに不要。B-2解消でPiper採用のため）', () => {
   it('generate: APIキー不要（T-25以降の方針転換）。kind未指定はエラーで使い方をstderrに出す', async () => {
     const { code, output, errOutput } = await run(['generate'], {})
     expect(code).toBe(1)
@@ -396,9 +396,10 @@ describe('APIキーの環境変数読み込み', () => {
     expect(output).toBe('')
   })
 
-  it('tts: キー未設定なら異常終了、設定済みなら動く', async () => {
-    expect((await run(['tts'], {})).code).toBe(1)
-    expect((await run(['tts'], { [TTS_API_KEY_ENV]: 'tts-key-123456' })).code).toBe(0)
+  it('tts: APIキー不要。引数不足は使い方をstderrに出して異常終了する', async () => {
+    const { code, errOutput } = await run(['tts'], {})
+    expect(code).toBe(1)
+    expect(errOutput).toContain('使い方')
   })
 
   it('readApiKey は空文字列を未設定扱いにする', () => {
