@@ -296,7 +296,8 @@
 .vocab-card__target {
   color: var(--gold);
 }
-.vocab-card__back {
+/* 「この単語の意味は？」等、何を問われているかを明示するプロンプト（ユーザー指摘対応） */
+.vocab-card__prompt {
   margin-top: var(--sp-2);
   font-size: var(--fs-sub);
   color: var(--ink-2);

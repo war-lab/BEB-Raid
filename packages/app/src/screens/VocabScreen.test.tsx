@@ -118,17 +118,18 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
   })
 })
 
-describe('VocabScreen: 復習モード（自己評価3段階）', () => {
-  it('OK評価でstageが進み、attemptsにmode=srsで記録される', async () => {
+describe('VocabScreen: 復習モード（4択リコールテスト→自己評価3段階）', () => {
+  it('正解を選びOK評価でstageが進み、attemptsにmode=srs・isCorrect=trueで記録される', async () => {
     const db = newDb()
     await seedDueCard(db, 'delta')
-    const questions = [vocabQuestion('delta')]
+    // decoyを混ぜて4択にダミーが混ざるようにする（distractor供給元）
+    const questions = [vocabQuestion('delta'), vocabQuestion('decoy')]
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
     await waitFor(() => expect(screen.getByText(phraseMatcher('I will delta it.'))).toBeTruthy())
-    fireEvent.click(screen.getByText('タップで意味を見る'))
-    await waitFor(() => expect(screen.getByText('delta の意味')).toBeTruthy())
+    expect(screen.getByText('この単語の意味は？')).toBeTruthy()
+    fireEvent.click(screen.getByText('delta の意味'))
     fireEvent.click(screen.getByText('OK'))
 
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
@@ -141,22 +142,39 @@ describe('VocabScreen: 復習モード（自己評価3段階）', () => {
     expect(attempt.isCorrect).toBe(true)
   })
 
-  it('「もう一回」評価は不正解相当として記録される', async () => {
+  it('不正解を選ぶとattemptsにisCorrect=falseで記録される（グレードは自己申告のまま独立）', async () => {
     const db = newDb()
     await seedDueCard(db, 'epsilon')
-    const questions = [vocabQuestion('epsilon')]
+    const questions = [vocabQuestion('epsilon'), vocabQuestion('decoy')]
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
     await waitFor(() => expect(screen.getByText(phraseMatcher('I will epsilon it.'))).toBeTruthy())
-    fireEvent.click(screen.getByText('タップで意味を見る'))
+    fireEvent.click(screen.getByText('decoy の意味')) // わざと不正解を選ぶ
     fireEvent.click(screen.getByText('もう一回'))
 
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
     const card = await db.srsCards.get('vocab:epsilon')
-    expect(card?.stage).toBe(0) // もう一回はstage0へリセット
+    expect(card?.stage).toBe(0) // もう一回はstage0へリセット（グレードによる間隔調整は従来どおり）
+  })
+
+  it('選択済みの4択は再クリックしても選択が変わらない（disabled）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'theta')
+    const questions = [vocabQuestion('theta'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will theta it.'))).toBeTruthy())
+    fireEvent.click(screen.getByText('theta の意味'))
+    fireEvent.click(screen.getByText('decoy の意味')) // 選択済みなので無視されるはず
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(true) // 最初の正解選択のまま
   })
 })
 
@@ -199,7 +217,7 @@ describe('VocabScreen: ストリーク成立（02の7節）', () => {
 
     for (let i = 0; i < words.length; i++) {
       await waitFor(() => expect(screen.getByText(`復習 ${i + 1}/${words.length}`)).toBeTruthy())
-      fireEvent.click(screen.getByText('タップで意味を見る'))
+      fireEvent.click(screen.getByText(`${words[i]} の意味`))
       fireEvent.click(screen.getByText('OK'))
       await waitFor(async () => expect(await db.attempts.count()).toBe(i + 1))
     }
