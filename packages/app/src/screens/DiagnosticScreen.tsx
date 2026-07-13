@@ -73,18 +73,53 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     setStep('quiz')
   }
 
+  /**
+   * 自己申告スコアがあれば30問診断をスキップする（ユーザー指示による設計変更。
+   * docs/03 5.1節の「事前値として混ぜる」に加え、スキップ導線を追加した）。
+   * `R = TOEIC×1000/990` をそのままL/R初期レートとして確定させる
+   */
+  async function handleSkip() {
+    const trimmed = displayName.trim()
+    if (trimmed === '') return
+    const toeic = toeicInput.trim() === '' ? null : Number(toeicInput)
+    if (toeic === null) return
+    const rating = initialRatingFromToeic(toeic, DEFAULT_INITIAL_RATING)
+    await initializeRatings(db, { listening: rating, reading: rating })
+    await createProfile(db, { displayName: trimmed, initialToeic: toeic })
+    setResultL(rating)
+    setResultR(rating)
+    setStep('complete')
+  }
+
   if (step === 'intro') {
     const toeicValid = toeicInput.trim() === '' || !Number.isNaN(Number(toeicInput))
+    const canSkip = toeicInput.trim() !== '' && toeicValid && displayName.trim() !== ''
     return (
       <ScreenLayout
         action={
-          <PrimaryButton onClick={handleStart} disabled={displayName.trim() === '' || !toeicValid}>
-            診断を始める
-          </PrimaryButton>
+          <>
+            <PrimaryButton
+              onClick={handleStart}
+              disabled={displayName.trim() === '' || !toeicValid}
+            >
+              診断を始める
+            </PrimaryButton>
+            {toeicInput.trim() !== '' && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => void handleSkip()}
+                disabled={!canSkip}
+              >
+                自己申告スコアで診断をスキップ
+              </button>
+            )}
+          </>
         }
       >
         <h1 style={{ fontSize: 'var(--fs-heading)' }}>ようこそ</h1>
         <p>30問（リスニング15問・リーディング15問）に答えると、あなたの今のレートを推定します。</p>
+        <p>自己申告TOEICスコアを入力すると、診断をスキップしてすぐ始めることもできます。</p>
         <label>
           表示名
           <input
