@@ -1,17 +1,24 @@
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 // vitest の test 設定を型付きで書くため vitest/config を使う（vite の defineConfig と互換）
 import { defineConfig } from 'vitest/config'
+import { contentAssetsPlugin } from './vitePlugins/contentAssets'
 
 // GitHub Pagesはプロジェクトページ（https://war-lab.github.io/BEB-Raid/）のためサブパス配信になる。
 // ローカル開発（npm run dev）やCIのテスト実行では base='/' のままにし、
 // Pagesデプロイビルドのときだけ環境変数GITHUB_PAGESでサブパスに切り替える（T-33）。
 const base = process.env.GITHUB_PAGES === 'true' ? '/BEB-Raid/' : '/'
 
+// リポジトリルートのcontent/（T-32/T-33のビルド成果物）。vite.config.tsの位置基準で
+// 解決するため、npm run buildの実行時cwdに依存しない
+const contentRoot = fileURLToPath(new URL('../../content', import.meta.url))
+
 export default defineConfig({
   base,
   plugins: [
     react(),
+    contentAssetsPlugin(contentRoot),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],

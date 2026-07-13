@@ -1,10 +1,13 @@
 # GitHub Pages デプロイ（T-33。正本: docs/05_アーキテクチャ設計.md 1節・6節、docs/10 T-33行）
 #
 # main への push で、appビルド＋content/（パックJSON・音声mp3・manifest.json）を
-# 1つの成果物にまとめて GitHub Pages に配信する。LLM/TTSキーはこのワークフローでは
-# 一切使わない（generate/ttsコマンドはビルド時のCLI作業であり、Pagesデプロイ自体には
-# APIキーが不要。将来キーを使う工程を足す場合も Actions Secrets のみを参照し、
-# ワークフローファイルにキーを直書きしないこと）。
+# GitHub Pages に配信する。content/の合流（packs/audio/manifest.jsonをdistへコピー）は
+# packages/app/scripts/copy-content.mjs が npm run build の一部として行う（T-37でローカル
+# 開発でも同じ内容を見られるようにした際、合流ロジックの二重管理を避けるためこちらに
+# 一本化した。以前あったこのワークフロー内のshell cp手順は撤去済み）。
+# LLM/TTSキーはこのワークフローでは一切使わない（generate/ttsコマンドはビルド時のCLI
+# 作業であり、Pagesデプロイ自体にはAPIキーが不要。将来キーを使う工程を足す場合も
+# Actions Secrets のみを参照し、ワークフローファイルにキーを直書きしないこと）。
 name: Deploy to GitHub Pages
 
 on:
@@ -33,26 +36,13 @@ jobs:
           cache: npm
       - name: 依存インストール
         run: npm ci
-      - name: ビルド（shared-schema→cli→app。Pagesサブパス向けにbaseを切り替え）
+      - name: ビルド（shared-schema→cli→app。content/の合流はcontentAssetsPluginが行う）
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
-      - name: 配信物を1ディレクトリにまとめる（appビルド＋パック＋音声＋manifest）
-        run: |
-          set -eu
-          mkdir -p _site
-          cp -r packages/app/dist/. _site/
-          # dist（public/packs/dev の開発用ダミーパックを含む）に既に packs/ が存在するため、
-          # `cp -r content/packs _site/packs` だと _site/packs/packs/ にネストしてしまう。
-          # 末尾に /. を付けて中身をマージコピーする
-          mkdir -p _site/packs
-          cp -r content/packs/. _site/packs/
-          cp content/manifest.json _site/manifest.json
-          mkdir -p _site/audio
-          cp -r content/audio/. _site/audio/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: packages/app/dist
 
   deploy:
     needs: build
