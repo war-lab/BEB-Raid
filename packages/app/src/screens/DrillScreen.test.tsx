@@ -16,9 +16,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion, startSession, type SessionItem } from '../services/session'
+import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { DrillScreen } from './DrillScreen'
+
+/** HighlightedPhraseで単語部分が別要素に分かれるため、フレーズ全文はp要素のtextContentで照合する */
+function phraseMatcher(phrase: string) {
+  return (_content: string, element: Element | null) =>
+    element?.tagName === 'P' &&
+    element.classList.contains('vocab-card__phrase') &&
+    element.textContent === phrase
+}
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -376,7 +385,7 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
   })
 })
 
-function vocabCardQuestion(word: string): Question {
+function vocabCardQuestion(word: string, phraseAudio?: string): Question {
   return {
     id: `vocab-${word}`,
     part: 0,
@@ -386,6 +395,7 @@ function vocabCardQuestion(word: string): Question {
     keyVocab: [],
     front: word,
     phrase: `Please ${word} it.`,
+    phraseAudio,
     back: `${word} の意味`,
     freqRank: 'S',
     levelBand: 730,
@@ -411,7 +421,7 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     await setupSession(db, items, [q])
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
-    expect(screen.getByText('Please submit it.')).toBeTruthy()
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
     expect(screen.queryByText('submit の意味')).toBeNull() // 裏返す前は意味が見えない
 
     fireEvent.click(screen.getByText('タップで意味を見る'))
@@ -427,6 +437,54 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.mode).toBe('srs')
     expect(attempt.isCorrect).toBe(true)
+  })
+
+  it('phraseAudioがあれば既定でフレーズ音声が自動再生される（金フレ型体験。以前DrillScreenだけ欠けていた挙動）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit', '/dev-audio/submit.mp3')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/submit.mp3'))
+  })
+
+  it('イヤホンなしモードがONならフレーズ音声は自動再生されない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit', '/dev-audio/submit.mp3')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    await waitFor(() => expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy())
+
+    expect(audioPlayer.play).not.toHaveBeenCalled()
   })
 
   it('「もう一回」はgradeがそのまま渡り、attemptsに不正解として記録される', async () => {

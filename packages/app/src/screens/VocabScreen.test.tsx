@@ -1,7 +1,7 @@
 // T-19 完了条件のテスト:
 // - スワイプとボタンの両方で仕分けでき、「知らない」だけがsrsCardsに入る
 // - 復習3段階評価でstageが遷移しattemptsにmode='srsが記録される
-// - 自動再生トグルOFFでplayが呼ばれない
+// - フレーズ音声は既定で自動再生され、イヤホンなしモードならplayが呼ばれない
 // - SRS5問完了時にevaluateStreakが呼ばれストリーク成立が返る
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
@@ -11,8 +11,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { evaluateStreak } from '../engine/streak'
 import type { AudioPlayer } from '../platform'
+import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { VocabScreen } from './VocabScreen'
+
+/** HighlightedPhraseで単語部分が別要素に分かれるため、フレーズ全文はp要素のtextContentで照合する */
+function phraseMatcher(phrase: string) {
+  return (_content: string, element: Element | null) =>
+    element?.tagName === 'P' &&
+    element.classList.contains('vocab-card__phrase') &&
+    element.textContent === phrase
+}
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -80,7 +89,7 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
       <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
     )
 
-    await waitFor(() => expect(screen.getByText('I will alpha it.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will alpha it.'))).toBeTruthy())
     const card = container.querySelector('.swipe-card')!
     fireEvent.pointerDown(card, { clientX: 200, clientY: 100 })
     fireEvent.pointerMove(card, { clientX: 80, clientY: 105 }) // dx=-120 → 左スワイプ
@@ -89,7 +98,7 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
     await waitFor(async () => expect(await db.srsCards.get('vocab:alpha')).toBeDefined())
 
     // 2件目（beta）は「知ってる」ボタンで仕分ける
-    await waitFor(() => expect(screen.getByText('I will beta it.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will beta it.'))).toBeTruthy())
     fireEvent.click(screen.getByText('知ってる'))
 
     await waitFor(() => expect(screen.getByText('語彙SRSが終了しました')).toBeTruthy())
@@ -117,7 +126,7 @@ describe('VocabScreen: 復習モード（自己評価3段階）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
-    await waitFor(() => expect(screen.getByText('I will delta it.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will delta it.'))).toBeTruthy())
     fireEvent.click(screen.getByText('タップで意味を見る'))
     await waitFor(() => expect(screen.getByText('delta の意味')).toBeTruthy())
     fireEvent.click(screen.getByText('OK'))
@@ -139,7 +148,7 @@ describe('VocabScreen: 復習モード（自己評価3段階）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
-    await waitFor(() => expect(screen.getByText('I will epsilon it.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will epsilon it.'))).toBeTruthy())
     fireEvent.click(screen.getByText('タップで意味を見る'))
     fireEvent.click(screen.getByText('もう一回'))
 
@@ -151,23 +160,9 @@ describe('VocabScreen: 復習モード（自己評価3段階）', () => {
   })
 })
 
-describe('VocabScreen: フレーズ音声自動再生トグル', () => {
-  it('トグルOFF（既定）では play が呼ばれない', async () => {
+describe('VocabScreen: フレーズ音声自動再生（既定ON。イヤホンなしモードでのみ止める）', () => {
+  it('既定（イヤホンなしモード未設定）では自動再生される', async () => {
     const db = newDb()
-    await seedDueCard(db, 'zeta')
-    const questions = [vocabQuestion('zeta')]
-    const audioPlayer = new FakeAudioPlayer()
-
-    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
-    await waitFor(() => expect(screen.getByText('I will zeta it.')).toBeTruthy())
-
-    expect(audioPlayer.play).not.toHaveBeenCalled()
-    expect(audioPlayer.unlock).not.toHaveBeenCalled()
-  })
-
-  it('トグルON（settings永続化）では play が phraseAudio 付きで呼ばれる', async () => {
-    const db = newDb()
-    await db.settings.put({ key: 'vocabAutoPlayPhrase', value: true })
     await seedDueCard(db, 'eta')
     const questions = [vocabQuestion('eta')]
     const audioPlayer = new FakeAudioPlayer()
@@ -175,6 +170,20 @@ describe('VocabScreen: フレーズ音声自動再生トグル', () => {
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
 
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/eta.mp3'))
+  })
+
+  it('イヤホンなしモードがONなら play は呼ばれない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
+    await seedDueCard(db, 'zeta')
+    const questions = [vocabQuestion('zeta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will zeta it.'))).toBeTruthy())
+
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+    expect(audioPlayer.unlock).not.toHaveBeenCalled()
   })
 })
 
