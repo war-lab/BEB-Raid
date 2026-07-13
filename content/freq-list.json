@@ -1,0 +1,1212 @@
+{
+  "meta": {
+    "generatedAt": "2026-07-13",
+    "method": "llm-only",
+    "corpusSource": null,
+    "corpusLicense": null,
+    "disclaimer": "精度は未検証。実測補正（T-34）で継続修正する前提。",
+    "note": "B-1（素材出所）未解決のため、公開コーパスとの合成を行わずLLM推定のみで暫定構築した（08の2節「LLM生成全振りで進行可」の規定に従った）。corpusSource/corpusLicenseはnull。将来コーパスを追加する場合はrankSourceを更新すること。"
+  },
+  "words": [
+    {
+      "word": "meeting",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "会議そのもの。Part3/4の定番場面"
+    },
+    {
+      "word": "agenda",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "会議の議題・進行表"
+    },
+    {
+      "word": "minutes",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "議事録。会議後に共有される定番文書"
+    },
+    {
+      "word": "memo",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "社内連絡用の短い伝達文書"
+    },
+    {
+      "word": "correspondence",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "文書でのやり取り全般"
+    },
+    {
+      "word": "respond",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "依頼やメールへの返答"
+    },
+    {
+      "word": "reschedule",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "予定変更。TOEIC頻出の「予定変更のお知らせ」展開"
+    },
+    {
+      "word": "postpone",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "延期する。予定変更の定番語"
+    },
+    {
+      "word": "confirm",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "予約・出欠・内容の確認"
+    },
+    {
+      "word": "notify",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "通知する。通知メールの定番動詞"
+    },
+    {
+      "word": "inform",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "知らせる。通知系の同義語"
+    },
+    {
+      "word": "request",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "依頼・要請"
+    },
+    {
+      "word": "inquiry",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "問い合わせ"
+    },
+    {
+      "word": "deadline",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "締切"
+    },
+    {
+      "word": "attend",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "出席する"
+    },
+    {
+      "word": "participate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "参加する"
+    },
+    {
+      "word": "presentation",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "プレゼンテーション・発表"
+    },
+    {
+      "word": "attachment",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "添付ファイル"
+    },
+    {
+      "word": "draft",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "下書き・草案"
+    },
+    {
+      "word": "correspond",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "連絡を取り合う"
+    },
+    {
+      "word": "office",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "オフィス・事務所"
+    },
+    {
+      "word": "supply",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "備品・供給"
+    },
+    {
+      "word": "equipment",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "機材・設備"
+    },
+    {
+      "word": "stationery",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "文房具"
+    },
+    {
+      "word": "photocopier",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "コピー機。Part1の定番描写対象"
+    },
+    {
+      "word": "printer",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "プリンター"
+    },
+    {
+      "word": "maintenance",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "保守・メンテナンス"
+    },
+    {
+      "word": "facility",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "施設"
+    },
+    {
+      "word": "renovation",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "改装・改修"
+    },
+    {
+      "word": "inventory",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "在庫"
+    },
+    {
+      "word": "procurement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "調達"
+    },
+    {
+      "word": "vendor",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "業者・納入業者"
+    },
+    {
+      "word": "supplier",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "仕入れ先"
+    },
+    {
+      "word": "warehouse",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "倉庫"
+    },
+    {
+      "word": "storage",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "保管・収納スペース"
+    },
+    {
+      "word": "invoice",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "請求書"
+    },
+    {
+      "word": "receipt",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "領収書"
+    },
+    {
+      "word": "payment",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "支払い"
+    },
+    {
+      "word": "budget",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "予算"
+    },
+    {
+      "word": "expense",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "経費"
+    },
+    {
+      "word": "revenue",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "収益"
+    },
+    {
+      "word": "profit",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "利益"
+    },
+    {
+      "word": "account",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "口座・勘定"
+    },
+    {
+      "word": "accountant",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "会計士"
+    },
+    {
+      "word": "audit",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "監査"
+    },
+    {
+      "word": "reimbursement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "払い戻し"
+    },
+    {
+      "word": "expenditure",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "支出"
+    },
+    {
+      "word": "fiscal",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "会計年度に関する"
+    },
+    {
+      "word": "quarter",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "四半期"
+    },
+    {
+      "word": "statement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "明細書"
+    },
+    {
+      "word": "balance",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "残高"
+    },
+    {
+      "word": "deposit",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "預金する・預ける"
+    },
+    {
+      "word": "withdrawal",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "引き出し"
+    },
+    {
+      "word": "transaction",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "取引"
+    },
+    {
+      "word": "discount",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "割引"
+    },
+    {
+      "word": "contract",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "契約書"
+    },
+    {
+      "word": "agreement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "合意・契約"
+    },
+    {
+      "word": "clause",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "契約条項"
+    },
+    {
+      "word": "negotiate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "交渉する"
+    },
+    {
+      "word": "terms",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "契約条件"
+    },
+    {
+      "word": "condition",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "条件"
+    },
+    {
+      "word": "breach",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "契約違反"
+    },
+    {
+      "word": "renewal",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "更新"
+    },
+    {
+      "word": "terminate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "終了させる・解約する"
+    },
+    {
+      "word": "lease",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "賃貸借契約"
+    },
+    {
+      "word": "tenant",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "賃借人"
+    },
+    {
+      "word": "landlord",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "賃貸人・大家"
+    },
+    {
+      "word": "liability",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "賠償責任"
+    },
+    {
+      "word": "compliance",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "法令遵守"
+    },
+    {
+      "word": "clarify",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "明確にする。条項確認の場面で頻出"
+    },
+    {
+      "word": "recruit",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "採用する"
+    },
+    {
+      "word": "applicant",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "応募者"
+    },
+    {
+      "word": "candidate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "候補者"
+    },
+    {
+      "word": "resume",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "履歴書"
+    },
+    {
+      "word": "interview",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "面接"
+    },
+    {
+      "word": "hire",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "雇う"
+    },
+    {
+      "word": "employee",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "従業員"
+    },
+    {
+      "word": "employer",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "雇用主"
+    },
+    {
+      "word": "promotion",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "昇進"
+    },
+    {
+      "word": "salary",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "給与"
+    },
+    {
+      "word": "wage",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "賃金"
+    },
+    {
+      "word": "benefits",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "福利厚生"
+    },
+    {
+      "word": "retirement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "退職"
+    },
+    {
+      "word": "vacation",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "休暇"
+    },
+    {
+      "word": "leave",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "休暇・休業"
+    },
+    {
+      "word": "training",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "研修"
+    },
+    {
+      "word": "orientation",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "新人研修"
+    },
+    {
+      "word": "performance",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "業績・成果"
+    },
+    {
+      "word": "evaluation",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "評価"
+    },
+    {
+      "word": "supervisor",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "上司・監督者"
+    },
+    {
+      "word": "customer",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "顧客"
+    },
+    {
+      "word": "client",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "取引先・依頼人"
+    },
+    {
+      "word": "market",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "市場"
+    },
+    {
+      "word": "campaign",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "販促キャンペーン"
+    },
+    {
+      "word": "advertisement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "広告"
+    },
+    {
+      "word": "endorsement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "推奨・宣伝への起用"
+    },
+    {
+      "word": "brand",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "ブランド"
+    },
+    {
+      "word": "product",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "製品"
+    },
+    {
+      "word": "launch",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "発売・開始"
+    },
+    {
+      "word": "sample",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "見本・サンプル"
+    },
+    {
+      "word": "feedback",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "フィードバック"
+    },
+    {
+      "word": "survey",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "アンケート調査"
+    },
+    {
+      "word": "competitor",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "競合他社"
+    },
+    {
+      "word": "retail",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "小売"
+    },
+    {
+      "word": "wholesale",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "卸売"
+    },
+    {
+      "word": "merchandise",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "商品"
+    },
+    {
+      "word": "purchase",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "購入"
+    },
+    {
+      "word": "order",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "注文"
+    },
+    {
+      "word": "shipment",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "出荷・発送"
+    },
+    {
+      "word": "distributor",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "販売代理店"
+    },
+    {
+      "word": "factory",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "工場"
+    },
+    {
+      "word": "manufacture",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "製造する"
+    },
+    {
+      "word": "assembly",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "組み立て"
+    },
+    {
+      "word": "quality",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "品質"
+    },
+    {
+      "word": "defect",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "欠陥"
+    },
+    {
+      "word": "inspection",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "検査"
+    },
+    {
+      "word": "delivery",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "配達"
+    },
+    {
+      "word": "freight",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "貨物"
+    },
+    {
+      "word": "logistics",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "物流"
+    },
+    {
+      "word": "packaging",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "梱包"
+    },
+    {
+      "word": "transport",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "輸送"
+    },
+    {
+      "word": "courier",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "配達員・宅配業者"
+    },
+    {
+      "word": "carrier",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "運送業者"
+    },
+    {
+      "word": "dispatch",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "発送する"
+    },
+    {
+      "word": "itinerary",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "旅程表"
+    },
+    {
+      "word": "reservation",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "予約"
+    },
+    {
+      "word": "boarding",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "搭乗"
+    },
+    {
+      "word": "departure",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "出発"
+    },
+    {
+      "word": "arrival",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "到着"
+    },
+    {
+      "word": "luggage",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "手荷物"
+    },
+    {
+      "word": "terminal",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "空港・駅のターミナル"
+    },
+    {
+      "word": "accommodation",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "宿泊施設"
+    },
+    {
+      "word": "conference",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "会議・カンファレンス"
+    },
+    {
+      "word": "venue",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "開催場所"
+    },
+    {
+      "word": "banquet",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "宴会"
+    },
+    {
+      "word": "reception",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "受付・歓迎会"
+    },
+    {
+      "word": "complimentary",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "無料の・サービスの"
+    },
+    {
+      "word": "voucher",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "割引券・クーポン"
+    },
+    {
+      "word": "refund",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "返金"
+    },
+    {
+      "word": "itemize",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "項目ごとに明細化する"
+    },
+    {
+      "word": "fare",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "運賃"
+    },
+    {
+      "word": "software",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "ソフトウェア"
+    },
+    {
+      "word": "hardware",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "ハードウェア"
+    },
+    {
+      "word": "database",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "データベース"
+    },
+    {
+      "word": "network",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "ネットワーク"
+    },
+    {
+      "word": "install",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "導入する・設置する"
+    },
+    {
+      "word": "upgrade",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "アップグレードする"
+    },
+    {
+      "word": "password",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "パスワード"
+    },
+    {
+      "word": "download",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "ダウンロードする"
+    },
+    {
+      "word": "upload",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "アップロードする"
+    },
+    {
+      "word": "server",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "サーバー"
+    },
+    {
+      "word": "malfunction",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "故障・不具合"
+    },
+    {
+      "word": "technician",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "技術者"
+    },
+    {
+      "word": "troubleshoot",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "不具合を解決する"
+    },
+    {
+      "word": "property",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "不動産・物件"
+    },
+    {
+      "word": "premises",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "敷地・構内"
+    },
+    {
+      "word": "mortgage",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "住宅ローン"
+    },
+    {
+      "word": "estate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "財産・地所。real estate（不動産）の形で頻出"
+    },
+    {
+      "word": "occupant",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "入居者・居住者"
+    },
+    {
+      "word": "utility",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "公共料金・設備"
+    },
+    {
+      "word": "cuisine",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "料理・食文化"
+    },
+    {
+      "word": "menu",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "メニュー"
+    },
+    {
+      "word": "catering",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "仕出し・ケータリング"
+    },
+    {
+      "word": "entertain",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "接待する"
+    },
+    {
+      "word": "refreshment",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "軽食・飲み物"
+    },
+    {
+      "word": "submit",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "提出する"
+    },
+    {
+      "word": "approve",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "承認する"
+    },
+    {
+      "word": "authorize",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "権限を与える・承認する"
+    },
+    {
+      "word": "implement",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "実施する"
+    },
+    {
+      "word": "allocate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "割り当てる"
+    },
+    {
+      "word": "coordinate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "調整する"
+    },
+    {
+      "word": "supervise",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "監督する"
+    },
+    {
+      "word": "oversee",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "統括する"
+    },
+    {
+      "word": "delegate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "委任する"
+    },
+    {
+      "word": "prioritize",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "優先順位をつける"
+    },
+    {
+      "word": "finalize",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "最終決定する"
+    },
+    {
+      "word": "proceed",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "進める・続行する"
+    },
+    {
+      "word": "endorse",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "承認する・支持する"
+    },
+    {
+      "word": "facilitate",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "促進する・円滑にする"
+    },
+    {
+      "word": "comply",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "従う・遵守する"
+    },
+    {
+      "word": "outsource",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "外部委託する"
+    },
+    {
+      "word": "subsidiary",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "子会社"
+    },
+    {
+      "word": "headquarters",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "本社"
+    },
+    {
+      "word": "branch",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "支店"
+    },
+    {
+      "word": "merger",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "合併"
+    },
+    {
+      "word": "acquisition",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "買収"
+    },
+    {
+      "word": "shareholder",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "株主"
+    },
+    {
+      "word": "stakeholder",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "利害関係者"
+    },
+    {
+      "word": "projection",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "予測・見込み"
+    },
+    {
+      "word": "target",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "目標"
+    },
+    {
+      "word": "strategy",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "戦略"
+    },
+    {
+      "word": "proposal",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "提案書"
+    },
+    {
+      "word": "extension",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "延長"
+    },
+    {
+      "word": "warranty",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "保証"
+    },
+    {
+      "word": "manual",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "マニュアル・手引き"
+    },
+    {
+      "word": "brochure",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "パンフレット"
+    },
+    {
+      "word": "newsletter",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "社内報・会報"
+    },
+    {
+      "word": "subscription",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "購読"
+    },
+    {
+      "word": "registration",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "登録"
+    },
+    {
+      "word": "certification",
+      "freqRank": "S",
+      "rankSource": "llm",
+      "rationale": "認定・資格"
+    }
+  ]
+}

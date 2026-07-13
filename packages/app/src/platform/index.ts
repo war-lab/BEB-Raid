@@ -16,7 +16,7 @@ export type { Notifier, ScheduledNotification } from './notifications/Notifier'
 
 /** 音声再生の実装を返す（現状は Web 実装のみ） */
 export function createAudioPlayer(): AudioPlayer {
-  return new WebAudioPlayer()
+  return new WebAudioPlayer(createPackCache())
 }
 
 /** パックキャッシュの実装を返す（現状は Cache Storage 直叩きの Web 実装のみ） */

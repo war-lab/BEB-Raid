@@ -11,3 +11,7 @@ package-lock.json
 *.png
 *.woff2
 *.mp3
+
+# コンテンツパイプライン（CLI）の生成物。手で編集する正本ではないため整形対象外
+# （T-32でJSON.stringifyそのままの出力とPrettierの配列整形が食い違うため除外）
+content/

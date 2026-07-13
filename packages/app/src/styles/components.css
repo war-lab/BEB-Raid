@@ -117,6 +117,58 @@
   color: var(--ink-2);
 }
 
+/* --- 出題理由ラベル（03の3.2「なぜこの問題が出たか」を明示） --- */
+.drill-reason {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
+/* --- セッション内連続正解ストリーク（02の3.1: Part2瞬発の看板演出） --- */
+.session-streak {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-stat);
+  color: var(--gold);
+  animation: streak-pulse 200ms ease-out;
+}
+@keyframes streak-pulse {
+  from {
+    transform: scale(1.15);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* --- Part2瞬発の15秒解答タイマー（--listen アクセント） --- */
+.drill-timer {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-stat);
+  color: var(--listen);
+}
+
+/* --- 音声リプレイボタン（操作ゾーン内。07の6節） --- */
+.drill-replay {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-bottom: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.drill-replay:active {
+  background: var(--surface-2);
+}
+.drill-replay:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* --- 縦3分割レイアウト（100dvh・操作ゾーン約45%＋セーフエリア） --- */
 .screen-layout {
   display: grid;
@@ -136,6 +188,204 @@
   min-height: 45dvh; /* 操作ゾーンは画面下 約45%（親指リーチ内） */
   padding: var(--sp-2);
   padding-bottom: calc(var(--sp-2) + env(safe-area-inset-bottom));
+}
+
+/* --- 解説カード: 正誤確定後に操作ゾーンからせり上がる（07 7節S2） --- */
+.explanation-card {
+  margin-top: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  animation: explanation-slide-up 200ms ease-out;
+}
+.explanation-card__verdict {
+  margin: 0 0 var(--sp-1);
+  font-weight: 700;
+}
+.explanation-card__body,
+.explanation-card__translation {
+  margin: 0 0 var(--sp-1);
+  color: var(--ink-2);
+}
+@keyframes explanation-slide-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* --- スワイプカード（語彙SRS。07の6節） --- */
+.swipe-card {
+  position: relative;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  touch-action: pan-y; /* 横方向のスワイプ操作を優先し、縦スクロールは通す */
+  user-select: none;
+}
+.swipe-card__icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fs-stat);
+  font-weight: 700;
+}
+.swipe-card__icon--right {
+  right: var(--sp-2);
+  color: var(--ok);
+}
+.swipe-card__icon--left {
+  left: var(--sp-2);
+  color: var(--ng);
+}
+
+/* --- 語彙カード本体（07 7節S3: フレーズ英大・和小＋頻出度ランクチップ） --- */
+.vocab-card {
+  text-align: center;
+}
+.vocab-card__rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--sp-1);
+  margin-bottom: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+}
+.vocab-card__phrase {
+  font-size: var(--fs-heading);
+  line-height: 1.5;
+}
+.vocab-card__back {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+}
+
+/* --- SRS自己評価3段階ボタン（もう一回/OK/余裕） --- */
+.vocab-grade-button {
+  display: block;
+  width: 100%;
+  min-height: var(--answer-height);
+  margin-bottom: var(--sp-1);
+  padding: 0 var(--sp-2);
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.vocab-grade-button:active {
+  background: var(--surface-2);
+}
+.vocab-grade-button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* --- チャート共通（08節: グリッド・軸は退行色、数表併設、タップで値表示） --- */
+.chart-empty {
+  padding: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.chart-line,
+.chart-bars,
+.chart-heatmap {
+  margin-bottom: var(--sp-2);
+}
+.chart-line svg,
+.chart-bars svg {
+  width: 100%;
+  height: auto;
+}
+.chart-heatmap svg {
+  max-width: 100%;
+  height: auto;
+}
+.chart-line__end-value {
+  font-size: var(--fs-sub);
+  font-weight: 700;
+}
+.chart-tooltip {
+  margin: var(--sp-half) 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+.chart-table {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-note);
+}
+.chart-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.chart-table th,
+.chart-table td {
+  padding: var(--sp-half);
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+/* --- S1ホーム: SRS期限バッジ・時間チップ・モード導線グリッド --- */
+.home-due-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--sp-1);
+  padding: 2px var(--sp-1);
+  border-radius: var(--radius-pill);
+  background: var(--warn);
+  color: var(--on-gold);
+  font-size: var(--fs-note);
+  font-weight: 700;
+}
+.home-duration-chips {
+  display: flex;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+}
+.home-chip {
+  flex: 1;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sub);
+  cursor: pointer;
+}
+.home-chip.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+}
+.home-grid button {
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-sub);
+  cursor: pointer;
 }
 
 /* --- ユーティリティ --- */

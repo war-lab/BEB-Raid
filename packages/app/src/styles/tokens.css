@@ -95,3 +95,11 @@
   --chart-crimson: #c42b4c;
   --chart-violet: #6a55d8;
 }
+
+/* 文字サイズ3段階（設定画面T-23。英文問題文=--fs-questionのみに適用） */
+:root[data-font-size='S'] {
+  --fs-question: 16px;
+}
+:root[data-font-size='L'] {
+  --fs-question: 22px;
+}

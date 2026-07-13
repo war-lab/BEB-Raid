@@ -3,7 +3,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 // vitest の test 設定を型付きで書くため vitest/config を使う（vite の defineConfig と互換）
 import { defineConfig } from 'vitest/config'
 
+// GitHub Pagesはプロジェクトページ（https://war-lab.github.io/BEB-Raid/）のためサブパス配信になる。
+// ローカル開発（npm run dev）やCIのテスト実行では base='/' のままにし、
+// Pagesデプロイビルドのときだけ環境変数GITHUB_PAGESでサブパスに切り替える（T-33）。
+const base = process.env.GITHUB_PAGES === 'true' ? '/BEB-Raid/' : '/'
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
