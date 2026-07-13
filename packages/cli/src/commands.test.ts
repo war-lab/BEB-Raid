@@ -25,13 +25,14 @@ async function run(argv: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('コマンド体系（04の5節）', () => {
-  it('generate / freq-list / review-export / review-import / tts / build の6コマンドがある', () => {
+  it('generate / freq-list / review-export / review-import / tts / calibrate / build の7コマンドがある', () => {
     expect(commands.map((c) => c.name)).toEqual([
       'generate',
       'freq-list',
       'review-export',
       'review-import',
       'tts',
+      'calibrate',
       'build',
     ])
   })
@@ -564,5 +565,59 @@ describe('build（T-32）', () => {
     expect(errOutput).toContain('ビルド失敗')
 
     await expect(readFile(join(dir, 'manifest.json'), 'utf-8')).rejects.toThrow()
+  })
+
+  it('calibrate: エクスポートJSON→補正値ファイル→build で difficulty に反映される一連（T-34完了条件）', async () => {
+    // part2-submit は元々 difficulty:2（帯 0.65-0.85）。10件中3件正解＝正答率0.3で難化対象
+    const exportPath = join(dir, 'export.json')
+    const exportData = {
+      formatVersion: 1,
+      dbVersion: 1,
+      exportedAt: 0,
+      stores: {
+        attempts: [
+          ...Array.from({ length: 3 }, (_, i) => ({
+            id: `a-${i}`,
+            questionId: 'part2-submit',
+            mode: 'solo',
+            isCorrect: true,
+            responseMs: 1000,
+            isTimeout: false,
+            isGuess: false,
+            answeredAt: 0,
+          })),
+          ...Array.from({ length: 7 }, (_, i) => ({
+            id: `b-${i}`,
+            questionId: 'part2-submit',
+            mode: 'solo',
+            isCorrect: false,
+            responseMs: 1000,
+            isTimeout: false,
+            isGuess: false,
+            answeredAt: 0,
+          })),
+        ],
+      },
+    }
+    await writeFile(exportPath, JSON.stringify(exportData), 'utf-8')
+
+    const correctionsPath = join(dir, 'corrections.json')
+    const calibrated = await run(['calibrate', exportPath, dir, correctionsPath])
+    expect(calibrated.code).toBe(0)
+    expect(calibrated.output).toContain('difficulty 1件')
+
+    const corrections = JSON.parse(await readFile(correctionsPath, 'utf-8')) as {
+      questionDifficulty: Record<string, number>
+    }
+    expect(corrections.questionDifficulty).toEqual({ 'part2-submit': 3 })
+
+    const built = await run(['build', dir, correctionsPath])
+    expect(built.code).toBe(0)
+    expect(built.output).toContain('実測補正')
+
+    const part2Pack = JSON.parse(
+      await readFile(join(dir, 'packs/pack-p2-s-001.json'), 'utf-8'),
+    ) as { questions: { id: string; difficulty: number }[] }
+    expect(part2Pack.questions[0]?.difficulty).toBe(3)
   })
 })

@@ -17,12 +17,14 @@ import { dirname, join } from 'node:path'
 import { SCHEMA_VERSION, type Question } from '@beb-raid/shared-schema'
 
 import {
+  applyCorrections,
   buildAllPacks,
   buildManifest,
   PACK_DEFINITIONS,
   scanAudioFiles,
   type PackSource,
 } from './build.js'
+import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
 import {
   buildKeyVocabSimilarDrafts,
@@ -89,6 +91,24 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     ],
     defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH,
   },
+}
+
+/** M1配布4パック分のドラフトを読み込みPackSource[]を組み立てる（build/calibrate共用。T-32/T-34） */
+async function loadPackSources(contentRoot: string): Promise<PackSource[]> {
+  const sources: PackSource[] = []
+  for (const def of PACK_DEFINITIONS) {
+    const draftPath = join(contentRoot, def.draftPath)
+    const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
+    sources.push({
+      id: def.id,
+      title: def.title,
+      license: def.license,
+      origin: def.origin,
+      targetLevel: def.targetLevel,
+      questions: drafts.map((d) => d.payload as Question),
+    })
+  }
+  return sources
 }
 
 /**
@@ -231,24 +251,46 @@ export const commands: CliCommand[] = [
     },
   },
   {
+    name: 'calibrate',
+    description:
+      '端末エクスポートJSONから難易度D・頻出度ランクの補正値ファイルを算出（T-34。共有API導入=M3前の暫定運用）',
+    run: async (ctx) => {
+      const [exportPath, contentRoot, outputPath] = ctx.args
+      if (!exportPath || !contentRoot || !outputPath) {
+        ctx.errOut('使い方: beb calibrate <エクスポート.json> <content-root> <補正値.json>')
+        return 1
+      }
+      const exported = JSON.parse(await readFile(exportPath, 'utf-8')) as unknown
+      const attempts = parseExportedAttempts(exported)
+      const sources = await loadPackSources(contentRoot)
+      const questions = sources.flatMap((s) => s.questions)
+
+      const corrections = buildCorrections(questions, attempts, Date.now())
+      await mkdir(dirname(outputPath), { recursive: true })
+      await writeFile(outputPath, JSON.stringify(corrections, null, 2) + '\n', 'utf-8')
+
+      const difficultyCount = Object.keys(corrections.questionDifficulty).length
+      const freqRankCount = Object.keys(corrections.wordFreqRank).length
+      ctx.out(
+        `補正値: difficulty ${difficultyCount}件・freqRank ${freqRankCount}件を ${outputPath} に書き出しました`,
+      )
+      return 0
+    },
+  },
+  {
     name: 'build',
-    description: 'パック一括バリデーション＋manifest.json 生成（T-32）',
+    description:
+      'パック一括バリデーション＋manifest.json 生成（T-32。第2引数で実測補正=T-34を適用可）',
     run: async (ctx) => {
       const contentRoot = ctx.args[0] ?? 'content'
+      const correctionsPath = ctx.args[1]
       const audioFiles = await scanAudioFiles(contentRoot)
 
-      const sources: PackSource[] = []
-      for (const def of PACK_DEFINITIONS) {
-        const draftPath = join(contentRoot, def.draftPath)
-        const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
-        sources.push({
-          id: def.id,
-          title: def.title,
-          license: def.license,
-          origin: def.origin,
-          targetLevel: def.targetLevel,
-          questions: drafts.map((d) => d.payload as Question),
-        })
+      let sources = await loadPackSources(contentRoot)
+      if (correctionsPath) {
+        const corrections = JSON.parse(await readFile(correctionsPath, 'utf-8')) as CorrectionsFile
+        sources = applyCorrections(sources, corrections)
+        ctx.out(`実測補正（${correctionsPath}）を適用しました`)
       }
 
       const { built, errors } = buildAllPacks(sources, audioFiles)

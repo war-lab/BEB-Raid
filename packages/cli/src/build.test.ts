@@ -2,12 +2,15 @@
 // - ダミー4種相当のパック（語彙/Part2/Part5系）のビルド→manifest生成
 // - license欠落パック混入でビルド（buildAllPacks）が失敗し、部分取込しない
 // - ハッシュがコンテンツ変更で変わり、無変更で安定している
+// T-34 完了条件: applyCorrectionsで実測補正値がdifficulty/freqRankに反映される
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Question } from '@beb-raid/shared-schema'
+import type { CorrectionsFile } from './calibrate.js'
 import {
+  applyCorrections,
   buildAllPacks,
   buildManifest,
   buildPack,
@@ -173,5 +176,83 @@ describe('scanAudioFiles', () => {
   it('audioディレクトリが無ければ空集合を返す（text_blankのみのパック等）', async () => {
     const files = await scanAudioFiles(dir)
     expect(files.size).toBe(0)
+  })
+})
+
+describe('applyCorrections（T-34）', () => {
+  function part2Question(overrides: Partial<Question> = {}): Question {
+    return {
+      id: 'part2-submit',
+      part: 2,
+      format: 'audio_qa',
+      difficulty: 3,
+      tags: ['疑問詞聞き取り'],
+      keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'B' }],
+      audio: 'audio/part2/submit.mp3',
+      audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 3000 },
+      script: 'When should I submit it? — By Friday.',
+      choices: [
+        { key: 'A', text: 'By Friday.' },
+        { key: 'B', text: 'Yes, I did.' },
+      ],
+      answer: 'A',
+      explanation: '',
+      translation: '',
+      ...overrides,
+    }
+  }
+
+  it('correctionsが無ければsourcesをそのまま返す', () => {
+    const sources: PackSource[] = [source({ questions: [part2Question()] })]
+    const result = applyCorrections(sources, null)
+    expect(result).toEqual(sources)
+  })
+
+  it('questionIdが一致する問題のdifficultyを上書きする', () => {
+    const sources: PackSource[] = [source({ questions: [part2Question({ difficulty: 3 })] })]
+    const corrections: CorrectionsFile = {
+      schemaVersion: 1,
+      generatedAt: 0,
+      questionDifficulty: { 'part2-submit': 4 },
+      wordFreqRank: {},
+    }
+    const result = applyCorrections(sources, corrections)
+    expect(result[0]?.questions[0]?.difficulty).toBe(4)
+  })
+
+  it('keyVocabのwordが一致すればfreqRankを上書きする', () => {
+    const sources: PackSource[] = [source({ questions: [part2Question()] })]
+    const corrections: CorrectionsFile = {
+      schemaVersion: 1,
+      generatedAt: 0,
+      questionDifficulty: {},
+      wordFreqRank: { submit: 'S' },
+    }
+    const result = applyCorrections(sources, corrections)
+    expect(result[0]?.questions[0]?.keyVocab[0]?.freqRank).toBe('S')
+  })
+
+  it('vocab_card自体のfreqRankもfrontの一致で上書きする', () => {
+    const sources: PackSource[] = [source({ questions: [vocabQuestion({ freqRank: 'B' })] })]
+    const corrections: CorrectionsFile = {
+      schemaVersion: 1,
+      generatedAt: 0,
+      questionDifficulty: {},
+      wordFreqRank: { submit: 'S' },
+    }
+    const result = applyCorrections(sources, corrections)
+    expect(result[0]?.questions[0]?.freqRank).toBe('S')
+  })
+
+  it('元のsources配列・オブジェクトを書き換えない（純粋関数）', () => {
+    const original = part2Question({ difficulty: 3 })
+    const sources: PackSource[] = [source({ questions: [original] })]
+    applyCorrections(sources, {
+      schemaVersion: 1,
+      generatedAt: 0,
+      questionDifficulty: { 'part2-submit': 5 },
+      wordFreqRank: {},
+    })
+    expect(original.difficulty).toBe(3)
   })
 })
