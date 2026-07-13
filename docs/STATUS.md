@@ -4,7 +4,7 @@
 
 ## 今どこにいるか（1行）
 
-**M1 実装中 — F3・F4 完了。F5前半（T-24〜T-30のうちT-29除く）完了。B-2解消（TTSはPiper採用に決定）。次はT-31（TtsProvider実装。実生成着手前にB-2解消は満たしたが、T-26〜T-29の人間レビューは未完了のまま）。** タスク進捗: 29 / 38 完了。
+**M1 実装中 — F3・F4 完了。F5前半（T-24〜T-30のうちT-29除く）完了。T-31（TtsProvider・Piper実装）完了条件(a)まで完了（実環境でのサンプル音声生成も確認済み）。全量音声生成はT-26〜T-28の人間レビュー待ちで保留。** タスク進捗: 30 / 38 完了。
 
 ## フェーズ進捗
 
@@ -14,7 +14,7 @@
 | F2 データ層（T-05〜T-08） | ✅ 完了 | 2026-07-07 dev 上で完了。契約 C-1/C-2 確定 |
 | F3 学習エンジン（T-09〜T-14） | ✅ 完了 | 2026-07-10 dev 上で完了。契約 C-4 確定。実装は `packages/app/src/engine/` |
 | F4 学習モードUI（T-15〜T-23） | ✅ 完了 | 2026-07-10 dev 上で完了 |
-| F5 コンテンツパイプライン（T-24〜T-34) | 🔶 一部完了 | T-24・T-25・T-26・T-27・T-28・T-30 完了。T-29は依存（レビュー済みkeyVocab）待ちで実質保留。**B-2解消（Piper採用）によりT-31（TtsProvider実装）に着手可**。**M1 全体の律速** |
+| F5 コンテンツパイプライン（T-24〜T-34) | 🔶 一部完了 | T-24・T-25・T-26・T-27・T-28・T-30・T-31（完了条件(a)まで）完了。T-29・全量音声生成は人間レビュー待ちで保留。**M1 全体の律速** |
 | F6 統合・ドッグフード（T-35〜T-38） | ⬜ 未着手 | |
 
 ## タスク別状態（完了・進行中のみ記載。全タスク定義は [08](08_M1タスク分解.md)）
@@ -50,6 +50,7 @@
 | T-26 | 語彙カード生成（Sランク200語） | ✅ 完了（APIコストなし。🟡 200語分の人間目視レビューは未実施） | 2026-07-10 |
 | T-27 | Part2問題生成（50問） | ✅ 完了（APIコストなし。🟡 50問分の人間目視レビューは未実施） | 2026-07-10 |
 | T-28 | Part5問題生成（50問） | ✅ 完了（APIコストなし。🟡 50問分の人間目視レビューは未実施） | 2026-07-10 |
+| T-31 | TTS生成 | ✅ 完了条件(a)まで完了（TtsProvider・Piper実装、実サンプル音声生成確認済み。🟡 全量生成・聴感確認は人間レビュー待ちで保留） | 2026-07-13 |
 
 ※ T-02 の iOS/Android 実機での standalone 表示・小サイズロゴ視認性、T-03 のライトテーマ実地検証は計画どおり後続（T-36 実機検証で確認）。未検証項目であることに注意。
 ※ T-15: `npm run dev` を起動し、実際のmp3（ffmpegで生成した1秒のトーン2本）を使い Playwright 経由の実 Chromium で unlock→play→部分再生（durationMs）→playSequence連結→replay→stop打ち切り、を一通り操作して確認済み（page error 0件）。iOS Safari実機での自動再生制限解除の確認は T-36 まで未検証。
@@ -66,6 +67,7 @@
 ※ T-26: T-25と同方針（ユーザーが「T-27/T-28含め全部同方針で書く」ことを明示的に選択）で、フレーズ・和訳の作成をエージェントが直接`packages/cli/src/data/vocabCardsS.ts`（200語×`back`＋`phrase`）に記述した。既存教材（金のフレーズ等）は一切参照せず、TOEICのビジネスシーン（会議・経理・人事・物流・IT等）で自然に使われる用例文として新規に書き下ろした（実装指示2の「既存教材のフレーズを再現しない」制約への対応）。新規`vocabCard.ts`が`vocabCardQuestion`（語彙エントリ→`Question`変換。`phraseAudio`は`audio/vocab/<word>.mp3`という予約パスで、T-31実装時に実音声へ差し替える）・`buildVocabCardDrafts`（T-30のGeneratedItemDraft形式）・`validateVocabCardQuestions`（shared-schemaの`validatePack`を検証専用の仮パック外枠で呼び出す。実配布パックのpackメタデータ組み立てはT-32の責務）を提供。`levelBand`はM1の対象帯（03の4節「P1ユーザーはSランク×600帯から」）に合わせ全語600固定。`commands.ts`の`generate`コマンドを`generate vocab_card <出力先>`として本実装し、`review-export`にそのまま渡せることを実際のCLIバイナリで確認。**CLIフォローアップ（実装指示4・3.8節。今回のタスクで合わせて実施）**: `maskApiKey`が4文字以下のキーで全体を露出するバグを修正（`***（N文字）`の完全伏字に変更）、エラー・使用方法メッセージをstdout(`out`)からstderr(`errOut`)に分離（`CommandContext`に`errOut`を追加、`runCli`のシグネチャ変更）。**重大な設計変更（ユーザー指示）**: `generate`コマンドは当初`requireApiKey(LLM_API_KEY_ENV)`でAPIキーをゲートする雛形だったが、この方針転換に伴い撤去した。既存のT-24時点の「generate: APIキー読み込み」テスト2件は、この変更後の挙動（APIキー不要・kind未指定はエラー）に合わせて書き換えた。テスト: `vocabCard.ts`単体9件（Question組み立て・バリデーション通過・重複/欠落検出・freqList.tsとの200語一致確認）、`commands.ts`に`generate vocab_card`の実ファイルテスト3件＋`maskApiKey`短キーテスト1件＋stderr分離の検証を既存テストに追加。`npm run build`後、コンパイル済みCLIで実際に`content/drafts/vocab-card-s.jsonl`（200件）を生成し、`review-export`でTSV化（201行=ヘッダー+200件）できることを実行確認（コミット対象の成果物として`content/drafts/vocab-card-s.jsonl`も追加）。**🟡 未完了の人間チェックポイント**: タスクシートが要求する語彙カード200枚の目視レビューは未実施。
 ※ T-27: T-25/T-26と同方針で、Part2（audio_qa）50問をエージェントが`packages/cli/src/data/part2QuestionsS.ts`に直接記述した。**各問のkeyVocabは既存のSランク200語（T-26の`vocabCardsS.ts`）から選び**、「単語帳で覚える→問題で使う→間違えたら戻ってくる」循環（03の3.2節の設計意図）が実データ上も成立するようにした（`part2Question.ts`の`senseForWord`が`vocabCardsS.ts`に実在する語であることを実行時に強制し、テストでも全50問がSランク200語に含まれることを検証）。問題形式は既存ダミーコンテンツ（`dev-p2-001`等）の慣行を踏襲し、`script`＝「設問？ — 正答の完全文。」、`choices`＝3択の短い応答テキスト（実装指示2の`script`＝設問＋正答応答、を含む形式）。タグは全問`tags[0]`が音声知覚系（疑問詞聞き取り／弱形・連結／数字・時刻。03の7.1節）。`audio`/`audioMeta`はT-31（TTS）まで未生成のため予約値（`audio: 'audio/part2/<word>.mp3'`、`audioMeta.voice: 'pending-tts'`、`accent`はUS/UK/AUを問題順にローテーション=04の5節。`durationMs`は語数からの概算見積り`estimateDurationMs`で、実測値への差し替えはT-31）。`commands.ts`の`generate`コマンドをkindディスパッチ方式（`GENERATE_KINDS`マップ）にリファクタリングし、`vocab_card`と`audio_qa`の両方をこの1コマンドで扱えるようにした（text_blankはT-28で同マップに追加予定）。テスト: `part2Question.ts`単体13件（Sランク200語との突合・音声知覚タグ検証・answer整合・accentローテーション・存在しないkeyVocabWordでのエラー化）、`commands.ts`に`generate audio_qa`の実ファイルテスト2件。`npm run build`後、コンパイル済みCLIで実際に`content/drafts/part2-s.jsonl`（50件）を生成し、`review-export`でTSV化（51行=ヘッダー+50件）できることを実行確認（コミット対象の成果物として`content/drafts/part2-s.jsonl`も追加）。**🟡 未完了の人間チェックポイント**: タスクシートが要求するPart2 50問の目視レビュー（正答の妥当性・ひっかけの質・不自然な英文の有無）は未実施。
 ※ T-28: T-27と同方針で、Part5（text_blank）50問をエージェントが`packages/cli/src/data/part5QuestionsS.ts`に直接記述した。keyVocabの扱いはT-27と同じくSランク200語から選定。実装指示3の「品詞・動詞の形中心」を主軸に、タグは`品詞`/`動詞の形`が大半（各語の派生形—例: submit/submission/submitted/submitting—から文法的に正しい1つを選ばせる形式）だが、文法タグの網羅性（03の7.1節の初期セット5分類）を確認するため一部`代名詞・関係詞`（関係代名詞who/whom/whose/which）・`接続詞vs前置詞`（because/because of等）・`比較`の問題も含めた。**設計判断（docs未記載）**: keyVocabの実在照合（バリデータの部分文字列一致）を確実に満たすため、各問でSランク単語自体（またはその一部を含む選択肢）が`question`または`choices`に必ず literal に出現するよう設計した（例: keyVocabWord='renewal'の問題では、選択肢の1つに厳密に"renewal"を含める）。空所記法は実装指示3どおり`___`に統一。`commands.ts`の`GENERATE_KINDS`マップに`text_blank`を追加し、`generate`コマンドがvocab_card/audio_qa/text_blankの3kind対応になった（当初の説明文にあった「text_blankはT-28予定」の記述も更新）。テスト: `part5Question.ts`単体11件（Sランク200語との突合・文法タグ検証・空所記法・answer整合・部分文字列一致の検証）、`commands.ts`に`generate text_blank`の実ファイルテスト2件。既存の「未対応kind」テストは`text_blank`が実装済みになったため対象を`dictation`に差し替えた。`npm run build`後、コンパイル済みCLIで実際に`content/drafts/part5-s.jsonl`（50件）を生成し、`review-export`でTSV化（51行=ヘッダー+50件）できることを実行確認（コミット対象の成果物として`content/drafts/part5-s.jsonl`も追加）。**🟡 未完了の人間チェックポイント**: タスクシートが要求するPart5 50問の目視レビューは未実施。T-27/T-28の完了により、T-29（key単語類題生成）は依存関係上着手可能だが、「レビュー済みPart2/Part5のkeyVocab」が入力という前提（依存欄に明記）に対し、今回生成した200問（T-26)+100問（T-27/T-28）はいずれも未レビューのドラフトのため、T-29に進む前に一度この一連のコンテンツをレビューする区切りを置くのが安全という判断で、次のタスクとしては一旦停止し人間の確認を仰ぐ。
+※ T-31: B-2解消（Piper採用）を受けて`packages/cli/src/tts.ts`に`TtsProvider`インターフェースと`PiperTtsProvider`実装を追加。**設計判断（docs未記載）**: Piperの公式ボイスカタログ（huggingface.co/rhasspy/piper-voices）を実際に確認したところ`en_AU`（豪アクセント）が存在しない（`en_GB`/`en_US`のみ）ため、話者ローテーションを米/英の2アクセントに縮退した（`SUPPORTED_ACCENTS = ['US','UK']`。04の5節で加=CAを実際には使わない前例と同じ扱いで、スキーマの`AudioAccent`は`'AU'/'CA'`を有効値のまま残す）。各アクセントに男女1ボイスずつ選定（US: en_US-lessac-medium/en_US-ryan-medium、UK: en_GB-jenny_dioco-medium/en_GB-alan-medium。全て`medium`品質ティアが存在することをhuggingface API で確認済み）し、Part2の「設問と応答で別話者」（実装指示2）を`role: 'primary'|'secondary'`で表現。**Piperバイナリ・ボイスモデル（.onnx、1ファイル60MB超）はリポジトリにコミットしない**（ffmpegと同様、開発者ローカルに別途インストールする外部ツール扱い。パスは環境変数`PIPER_BIN`/`PIPER_VOICES_DIR`またはコンストラクタ引数で指定）。生成フローは `piper`（テキスト→WAV、標準入力でテキストを渡す）→`ffmpeg`（WAV→モノラルmp3 80kbps）→`ffprobe`（実測durationMs取得）→一時WAV削除、の順。プロセス実行は`ProcessRunner`型で抽象化し、テストではモック注入（実バイナリ不要）。テスト: `tts.ts`単体8件（アクセントローテーション・ボイス選択・モックプロセスでの生成フロー・環境変数解決・stdin入力）。**実環境での動作確認**: Piper Windows版バイナリ（v2023.11.14-2、公式GitHubリリース）とen_US-lessac-mediumボイスを実際にダウンロードし、コンパイル済み`tts.js`から実際に`synthesize()`を呼び出して実行 — `piper`→`ffmpeg`→`ffprobe`の全工程が動作し、実際に再生可能なmp3（3.4秒、34KB、80kbps）が生成されることを確認（T-31完了条件(a)の「Piperが実際にこの環境にインストール・実行可能であることの確認」を満たす）。**未実施**: 200語彙カード＋Part2/Part5各50問、計350件分の全量音声生成と聴感確認（🟡人間チェックポイント。T-26〜T-28の内容レビュー未完了のため、レビュー後に回すのが安全という前回までの判断を維持）。
 
 ## 契約の状態（[09](09_開発体制.md) 2節）
 
@@ -106,7 +108,8 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 
 1. **F4: 学習モードUI** — ✅ 完了（T-15〜T-23全タスク）
 2. **F5 前半** — T-30・T-25・T-26・T-27・T-28 ✅完了（いずれもユーザー指示によりAPI呼び出しなしでエージェントが直接コンテンツを構築）。🟡S200語（T-25）・語彙カード200枚（T-26）・Part2 50問（T-27）・Part5 50問（T-28）の人間目視確認はいずれも未実施のまま残っている。**推奨: 次に進む前に、この一連の生成コンテンツ（`content/freq-list.json`・`content/drafts/*.jsonl`）を一度レビューする区切りを置く**。T-29（key単語類題生成）はレビュー済みkeyVocabが前提のタスクのため、レビュー無しで進めると手戻りのリスクがある
-3. **B-2 解消（2026-07-13）** — ✅ **TTSはPiper（ローカルTTS）採用に決定**。発起人の優先事項「無料の徹底（利用規模10人前後）」を踏まえ、クラウド課金アカウント登録が一切不要なPiperを選定（Azure F0/Google TTSは無料枠内でもアカウント・カード登録が必要なため見送り）。**次は T-31**: `TtsProvider`インターフェースをPiper実装で先行実装（完了条件(a)はモック/ローカル生成テストで満たせる）。ただし実際の全量音声生成はT-26〜T-29の人間レビュー未完了のため、レビュー後に回すのが安全
+3. **B-2 解消（2026-07-13）** — ✅ **TTSはPiper（ローカルTTS）採用に決定**。発起人の優先事項「無料の徹底（利用規模10人前後）」を踏まえ、クラウド課金アカウント登録が一切不要なPiperを選定（Azure F0/Google TTSは無料枠内でもアカウント・カード登録が必要なため見送り）
+4. **T-31 完了条件(a)まで完了** — `TtsProvider`/`PiperTtsProvider`実装済み、実環境でのサンプル音声生成も確認済み。**推奨: 次に進む前に、T-26〜T-28の生成コンテンツ（`content/freq-list.json`・`content/drafts/*.jsonl`）を一度レビューする**。レビュー後にT-29（key単語類題生成）→全量TTS生成→T-32（パックビルド）の順に進めるのが安全
 
 ### F4 への引き継ぎ（T-16/T-17/T-19/T-20/T-21/T-22/T-23 実装からの注意点）
 
