@@ -21,3 +21,7 @@ Thumbs.db
 /toeic_test_1_album_1/
 /all_toeic_official_lr_11_test_1_album_1/
 
+# Piperボイスモデル（TTS生成のローカル依存。数十MB/ファイルのためリポジトリに含めない。
+# 導入: pip install piper-tts && python -m piper.download_voices <voice> --download-dir .piper-voices）
+/.piper-voices/
+
