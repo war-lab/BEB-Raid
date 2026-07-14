@@ -205,6 +205,9 @@ export function HomeScreen({ db, questionPool }: Props) {
             <button type="button" onClick={() => navigate('vocab')}>
               語彙SRS
             </button>
+            <button type="button" onClick={() => navigate('shadowing')}>
+              シャドーイング{phase && ` L${phase.listeningStage}`}
+            </button>
             <button type="button" onClick={() => navigate('dashboard')}>
               ダッシュボード
             </button>

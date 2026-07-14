@@ -13,6 +13,7 @@ import { DrillScreen } from './screens/DrillScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
+import { ShadowingScreen } from './screens/ShadowingScreen'
 import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore } from './store/appStore'
 
@@ -73,6 +74,7 @@ export function App() {
   if (!bootChecked) return null
 
   const vocabQuestions = questionPool.filter((q) => q.format === 'vocab_card')
+  const shadowingQuestions = questionPool.filter((q) => q.format === 'shadowing')
 
   if (screen === 'diagnostic') {
     return <DiagnosticScreen db={getDb()} audioPlayer={audioPlayer} questionPool={questionPool} />
@@ -81,6 +83,15 @@ export function App() {
   if (screen === 'result') return <ResultScreen db={getDb()} />
   if (screen === 'vocab') {
     return <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={vocabQuestions} />
+  }
+  if (screen === 'shadowing') {
+    return (
+      <ShadowingScreen
+        db={getDb()}
+        audioPlayer={audioPlayer}
+        shadowingQuestions={shadowingQuestions}
+      />
+    )
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
   if (screen === 'settings') return <SettingsScreen db={getDb()} packCache={packCache} />

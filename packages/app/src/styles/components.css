@@ -510,6 +510,83 @@
   cursor: pointer;
 }
 
+/* --- S4シャドーイング（M2・T-48。--listenアクセント=07 6節/7節S4） --- */
+.shadowing-accent-line {
+  height: 3px;
+  margin: 0 0 var(--sp-2);
+  background: var(--listen);
+  border-radius: var(--radius-pill);
+}
+.shadowing-status {
+  color: var(--listen);
+}
+.shadowing-speed-chips {
+  display: flex;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+}
+.shadowing-speed-chips button {
+  flex: 1;
+  min-height: var(--tap-min);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.shadowing-speed-chips button.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.shadowing-script-toggle {
+  display: flex;
+  gap: var(--sp-1);
+}
+.shadowing-script-toggle button {
+  flex: 1;
+  min-height: var(--tap-min);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+.shadowing-script-toggle button.is-selected {
+  border-color: var(--listen);
+  color: var(--ink);
+}
+.shadowing-translation {
+  margin-top: var(--sp-1);
+  color: var(--ink-2);
+}
+
+/* --- カラオケハイライト（07 6節131行: 発話中=--gold下線+明るい文字、読了=--ink、未読=--ink-2。背景塗り無し） --- */
+.karaoke-script {
+  font-size: var(--fs-ui);
+  line-height: 1.8;
+}
+.karaoke-sentence {
+  cursor: pointer;
+}
+.karaoke-read {
+  color: var(--ink);
+}
+.karaoke-current {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+}
+.karaoke-unread {
+  color: var(--ink-2);
+}
+.karaoke-note {
+  margin-top: var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-note);
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;

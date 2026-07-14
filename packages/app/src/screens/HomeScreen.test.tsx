@@ -242,6 +242,16 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     fireEvent.click(screen.getByText('ダッシュボード'))
     expect(useAppStore.getState().screen).toBe('dashboard')
   })
+
+  it('下方グリッドからシャドーイングへ直接遷移でき、listeningStageが併記される（T-48）', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    expect(screen.getByText(/シャドーイング L1/)).toBeTruthy()
+    fireEvent.click(screen.getByText(/シャドーイング/))
+    expect(useAppStore.getState().screen).toBe('shadowing')
+  })
 })
 
 describe('HomeScreen: Part2単独モードの再生バリエーション選択（T-39）', () => {
