@@ -26,6 +26,7 @@ import {
 } from './build.js'
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
+import { aggregateWeeklyKpi, parseKpiExport, renderWeeklyKpiTable } from './kpi.js'
 import {
   buildKeyVocabSimilarDrafts,
   buildKeyVocabSimilarQuestions,
@@ -274,6 +275,27 @@ export const commands: CliCommand[] = [
       ctx.out(
         `補正値: difficulty ${difficultyCount}件・freqRank ${freqRankCount}件を ${outputPath} に書き出しました`,
       )
+      return 0
+    },
+  },
+  {
+    name: 'kpi',
+    description:
+      '端末エクスポートJSONから週あたり学習日数・セッション数(近似)・SRS消化率を集計（T-40。ドッグフード計測支援）',
+    run: async (ctx) => {
+      const [exportPath] = ctx.args
+      if (!exportPath) {
+        ctx.errOut('使い方: beb kpi <エクスポート.json>')
+        return 1
+      }
+      const exported = JSON.parse(await readFile(exportPath, 'utf-8')) as unknown
+      const { attempts, srsCards } = parseKpiExport(exported)
+      const rows = aggregateWeeklyKpi(attempts, srsCards)
+      if (rows.length === 0) {
+        ctx.out('attempts が0件のため集計対象がありません')
+        return 0
+      }
+      ctx.out(renderWeeklyKpiTable(rows))
       return 0
     },
   },

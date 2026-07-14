@@ -25,7 +25,7 @@ async function run(argv: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('コマンド体系（04の5節）', () => {
-  it('generate / freq-list / review-export / review-import / tts / calibrate / build の7コマンドがある', () => {
+  it('generate / freq-list / review-export / review-import / tts / calibrate / kpi / build の8コマンドがある', () => {
     expect(commands.map((c) => c.name)).toEqual([
       'generate',
       'freq-list',
@@ -33,6 +33,7 @@ describe('コマンド体系（04の5節）', () => {
       'review-import',
       'tts',
       'calibrate',
+      'kpi',
       'build',
     ])
   })
@@ -619,5 +620,42 @@ describe('build（T-32）', () => {
       await readFile(join(dir, 'packs/pack-p2-s-001.json'), 'utf-8'),
     ) as { questions: { id: string; difficulty: number }[] }
     expect(part2Pack.questions[0]?.difficulty).toBe(3)
+  })
+
+  it('kpi: エクスポートJSONから週次集計を出力する（T-40完了条件）', async () => {
+    const exportPath = join(dir, 'export-kpi.json')
+    const day1 = Date.UTC(2026, 6, 13, 8, 0)
+    const exportData = {
+      formatVersion: 1,
+      dbVersion: 1,
+      exportedAt: 0,
+      stores: {
+        attempts: [
+          {
+            id: 'a-1',
+            questionId: 'q-1',
+            mode: 'solo',
+            isCorrect: true,
+            responseMs: 1000,
+            isTimeout: false,
+            isGuess: false,
+            answeredAt: day1,
+          },
+        ],
+        srsCards: [],
+      },
+    }
+    await writeFile(exportPath, JSON.stringify(exportData), 'utf-8')
+
+    const { code, output } = await run(['kpi', exportPath])
+    expect(code).toBe(0)
+    expect(output).toContain('学習日数')
+    expect(output).toContain('N/A')
+  })
+
+  it('kpi: 引数不足だと使い方をstderrに出して異常終了する', async () => {
+    const { code, errOutput } = await run(['kpi'])
+    expect(code).toBe(1)
+    expect(errOutput).toContain('使い方')
   })
 })
