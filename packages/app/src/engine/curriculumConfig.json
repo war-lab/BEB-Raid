@@ -1,0 +1,35 @@
+{
+  "$comment": "M2フェーズ配分の暫定テンプレ（13の3.2節。quickPackConfig.jsonと対）。03の1.2節の理想配分（P2のPart7シングル15%等）はコンテンツ在庫制約のため語彙・part5へ振替済み（J-9）。listeningBreakdownはリスニング枠の内訳をL段階が決める（03の8節）。数値は全て暫定でドッグフード実測により調整する",
+  "templates": [
+    {
+      "season": "P1",
+      "allocation": { "vocab": 0.5, "listening": 0.25, "part5": 0.25 },
+      "listeningBreakdown": {
+        "1": { "dictation": 0.4, "shadowing": 0.3, "part2": 0.3 },
+        "2": { "part2": 1 },
+        "3": { "audioSet": 0.7, "part2": 0.3 },
+        "4": { "audioSet": 0.7, "part2": 0.3 }
+      }
+    },
+    {
+      "season": "P2",
+      "allocation": { "vocab": 0.25, "listening": 0.4, "part5": 0.35 },
+      "listeningBreakdown": {
+        "1": { "dictation": 0.4, "shadowing": 0.3, "part2": 0.3 },
+        "2": { "part2": 1 },
+        "3": { "audioSet": 0.7, "part2": 0.3 },
+        "4": { "audioSet": 0.7, "part2": 0.3 }
+      }
+    },
+    {
+      "season": "P3",
+      "allocation": { "weakness": 0.5, "listening": 0.3, "part5": 0.2 },
+      "listeningBreakdown": {
+        "1": { "dictation": 0.4, "shadowing": 0.3, "part2": 0.3 },
+        "2": { "part2": 1 },
+        "3": { "audioSet": 0.7, "part2": 0.3 },
+        "4": { "audioSet": 0.7, "part2": 0.3 }
+      }
+    }
+  ]
+}
