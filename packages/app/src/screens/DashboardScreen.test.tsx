@@ -4,7 +4,7 @@
 // - データ0件・1件でも壊れない
 // - 数表ビューが3チャート全てにある
 import 'fake-indexeddb/auto'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
@@ -138,6 +138,51 @@ describe('DashboardScreen: 実データからの描画', () => {
 
     const summaries = await screen.findAllByText('数表で見る')
     expect(summaries.length).toBe(3)
+  })
+})
+
+describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () => {
+  it('ratings不在でもヒーロー数値と「計測中」表示が壊れず出る', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+    expect(screen.getByTestId('forecast-message').textContent).toContain('計測中')
+  })
+
+  it('14日以上の履歴があると断定しない到達予測が表示される（onTrack）', async () => {
+    const db = newDb()
+    // 回帰窓（直近28日）に収まるよう、実行時刻基準で過去19日分を仕込む
+    const base = Date.now() - 19 * 86_400_000
+    await db.ratingHistory.bulkPut(
+      Array.from({ length: 20 }, (_, i) => ({
+        date: toDateString(base + i * 86_400_000),
+        section: 'total' as const,
+        rating: 400 + i * 4,
+      })),
+    )
+    await db.ratings.put({ section: 'total', rating: 476, updatedAt: Date.now() })
+    render(<DashboardScreen db={db} />)
+
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+    const message = screen.getByTestId('forecast-message').textContent!
+    expect(message).toContain('参考値')
+    expect(message).not.toMatch(/します|なります|保証/) // 断定表現を含まない
+  })
+
+  it('実試験スコアを登録すると一覧に表示され、予測帯との差が併記される', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '400' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '410' } })
+    fireEvent.click(screen.getByText('登録'))
+
+    const list = await screen.findByTestId('exam-score-list')
+    expect(list.textContent).toContain('2026-07-14')
+    expect(list.textContent).toContain('合計810')
+    expect(await db.examScores.count()).toBe(1)
   })
 })
 

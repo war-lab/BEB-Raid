@@ -169,6 +169,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 | T-51 | フェーズエンジン | ✅ 完了（engine/curriculum.ts=criteriaJson4条件タイプの評価器・P1-P3/L1-L4移行判定・curriculumConfig.json暫定テンプレ。services/phase.ts=phaseストア読み書き・初期割当・永続化。テスト34件） | 2026-07-14 |
 | T-52 | クイックパックのフェーズ配分 | ✅ 完了（QuickPackRequestにphase/listeningStage追加=既存フィールド無変更の後方互換オプション。P1/P2/P3で配分・L段階でリスニング内訳が変わることを確認。phase未指定時はM1挙動に完全フォールバック=既存18テスト無修正で通過。noEarphoneFilterにdictation/shadowingを追加） | 2026-07-14 |
 | T-54 | ホームのカリキュラム駆動化 | ✅ 完了（HomeScreenにシーズン表示＋達成条件進捗バー追加、今日のクエストにphase/listeningStageを結線。ResultScreenでセッション完了時にevaluateAndPersistPhaseTransitionを呼び、移行/シーズンクリア/L段階進行の演出を表示。フェーズ評価失敗時は演出を出さない安全側フォールバック。**S-B1（M2完了条件の核）完了**） | 2026-07-14 |
+| T-53 | 予測スコア・到達予測 | ✅ 完了（engine/forecast.ts=予測TOEIC±50帯・28日回帰による到達予測=measuring/onTrack/behindの判別union、不足量は「学習日あたり平均上昇」から週の増加日数へ換算。DashboardScreenにヒーロー数値・到達予測文言（断定表現なし・参考値注記）・実試験スコア登録フォーム/一覧（予測帯との差を併記）を追加。LineChartに予測帯（violet低透明度+破線）のオプション描画を追加=既存後方互換） | 2026-07-14 |
 
 **運用特例（本ラン限り。発起人承認済み）**: F7契約改訂（T-41〜T-44）は単独PRを作らずdevへ直接コミットする（1人開発のため09の単独PR規定を免除）。各タスクは独立コミットとし、コミットメッセージに契約ID（C-1等）を明記する。
 
