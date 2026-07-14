@@ -55,6 +55,8 @@ export function HomeScreen({ db, questionPool }: Props) {
   const [duration, setDuration] = useState<QuickPackDuration>(DEFAULT_DURATION)
   // データ読み込み完了の合図（テストが「初期値のまま描画された」誤検知をしないための目印）
   const [loaded, setLoaded] = useState(false)
+  // T-39: Part2単独モード起動時の再生バリエーション選択（永続化しない。セッション単位の選択=13の3.11節）
+  const [showPart2Options, setShowPart2Options] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -91,20 +93,31 @@ export function HomeScreen({ db, questionPool }: Props) {
     await startSessionAndNavigate(items)
   }
 
-  async function startSingleMode(format: 'audio_qa' | 'text_blank') {
+  async function startSingleMode(
+    format: 'audio_qa' | 'text_blank',
+    options?: { partialAudioMode?: boolean },
+  ) {
     const filtered = questionPool.filter((q) => q.format === format)
     const items: SessionItem[] = filtered.map((q) => ({ questionId: q.id, mode: 'solo' }))
-    await startSessionAndNavigate(items)
+    await startSessionAndNavigate(items, options)
   }
 
-  async function startSessionAndNavigate(items: SessionItem[]) {
+  async function startSessionAndNavigate(
+    items: SessionItem[],
+    options?: { partialAudioMode?: boolean },
+  ) {
     if (items.length === 0) return
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
-    beginSession(snapshot, questionPool, {
-      L: l?.rating ?? DEFAULT_INITIAL_RATING,
-      R: r?.rating ?? DEFAULT_INITIAL_RATING,
-    })
+    beginSession(
+      snapshot,
+      questionPool,
+      {
+        L: l?.rating ?? DEFAULT_INITIAL_RATING,
+        R: r?.rating ?? DEFAULT_INITIAL_RATING,
+      },
+      options,
+    )
     navigate('drill')
   }
 
@@ -135,8 +148,35 @@ export function HomeScreen({ db, questionPool }: Props) {
               </button>
             ))}
           </div>
+          {showPart2Options && (
+            <div className="home-part2-options">
+              <p>音声の再生方法を選んでください</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPart2Options(false)
+                  void startSingleMode('audio_qa')
+                }}
+              >
+                通常
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPart2Options(false)
+                  void startSingleMode('audio_qa', { partialAudioMode: true })
+                }}
+              >
+                冒頭だけ再生（特訓）
+              </button>
+              <p className="home-part2-options-hint">音声の冒頭だけで答える特訓モードです</p>
+              <button type="button" onClick={() => setShowPart2Options(false)}>
+                キャンセル
+              </button>
+            </div>
+          )}
           <div className="home-grid">
-            <button type="button" onClick={() => void startSingleMode('audio_qa')}>
+            <button type="button" onClick={() => setShowPart2Options(true)}>
               Part2瞬発
             </button>
             <button type="button" onClick={() => void startSingleMode('text_blank')}>

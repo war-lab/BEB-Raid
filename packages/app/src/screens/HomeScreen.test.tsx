@@ -244,6 +244,44 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
   })
 })
 
+describe('HomeScreen: Part2単独モードの再生バリエーション選択（T-39）', () => {
+  it('Part2瞬発タップで選択肢が出て、「通常」選択では partialAudioMode が false のまま開始する', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part2瞬発'))
+    expect(screen.getByText('通常')).toBeTruthy()
+    expect(screen.getByText('冒頭だけ再生（特訓）')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('通常'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().partialAudioMode).toBe(false)
+  })
+
+  it('「冒頭だけ再生（特訓）」選択では partialAudioMode が true でセッションが始まる', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part2瞬発'))
+    fireEvent.click(screen.getByText('冒頭だけ再生（特訓）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().partialAudioMode).toBe(true)
+  })
+
+  it('今日のクエスト開始では partialAudioMode が false のまま（回帰確認）', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().partialAudioMode).toBe(false)
+  })
+})
+
 describe('HomeScreen: イヤホンなしモード（T-23）', () => {
   it('ONの場合、今日のクエストにリスニング問題(audio_qa)が含まれない', async () => {
     const db = newDb()

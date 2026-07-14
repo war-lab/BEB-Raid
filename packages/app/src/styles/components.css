@@ -402,6 +402,29 @@
   border-color: var(--gold);
   color: var(--ink);
 }
+.home-part2-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+  padding: var(--sp-1);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+}
+.home-part2-options button {
+  min-height: var(--tap-min);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-sub);
+  cursor: pointer;
+}
+.home-part2-options-hint {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
 .home-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
