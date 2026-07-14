@@ -114,15 +114,15 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 
 | 項目 | 内容 | 期限 |
 |------|------|------|
-| BYOKキーのエクスポート除外 | `backup.ts` の exportAll は settings 全件を書き出すため、BYOK実装後はAPIキーがバックアップJSONに平文で出る。エクスポート除外キーのリストを定義すること | **T-42（C-2改訂）で実施。T-55（BYOK実装）前に必須**（13の3.8節） |
-| docs/04 3節への実装差分反映 | attempts.isGuess / srsCards の introducedDate・graduatedAt・sourceQuestionId / ratings.answerCount / settings.activeSession が docs 未記載 | T-42（C-2改訂）のPRで反映（13のシートに明記済み） |
+| BYOKキーのエクスポート除外 | `backup.ts` の exportAll は settings 全件を書き出すため、BYOK実装後はAPIキーがバックアップJSONに平文で出る。エクスポート除外キーのリストを定義すること | ✅ T-42 で解消（`EXPORT_EXCLUDED_KEYS`。多層防御でimportAll側も除外） |
+| docs/04 3節への実装差分反映 | attempts.isGuess / srsCards の introducedDate・graduatedAt・sourceQuestionId / ratings.answerCount / settings.activeSession が docs 未記載 | ✅ T-42 で解消 |
 | quickPackConfig の検証 | allocation 合計≒1 の検証がなく、不正な設定JSONでパックが黙って目減りする | ✅ T-16 で解消（`validateQuickPackConfig`） |
 | ストリーク途切れの表示 | 途切れ確定後も evaluateStreak が旧 currentDays を返す（遅延評価）。UI側で途切れ表示の扱いを決める | ✅ T-21 で解消済み（`HomeScreen.tsx` の BROKEN_GAP_DAYS=gap≥2 判定＋「途切れ（前回N日）」表示。本表の記載が古かったことを 2026-07-14 にコード確認のうえ修正） |
 | tagStats の全件読み | 毎解答で attempts 全件を toArray() するため長期運用で遅延が単調増加。打ち切り読みへの変更余地 | 実測して問題が出たら |
 | rating K=32 の解釈記録 | 「最初の50問 K=32」をセクション別カウントで実装した解釈が docs/03 に未記載 | T-44（C-4改訂）のPRで反映（13のシートに明記済み） |
 | backup の dbVersion 検査 | インポート時に dbVersion を見ず、新スキーマのバックアップで未知ストアが黙って落ちる | ✅ T-23 で解消（`importAll`が`backup.dbVersion > db.verno`を拒否） |
 | CLI の maskApiKey / stderr | 4文字以下のキーで全露出（実運用キー長では起きない）。エラー出力が stdout | ✅ T-26 で解消（`***（N文字）`の完全伏字＋`errOut`でのstderr分離） |
-| validate.ts の M2 format 検証 | audio_photo の image 必須・dictation の blanks 整合・levelBand の enum チェックが未実装 | T-41（C-1改訂）で実施（13の6節シート） |
+| validate.ts の M2 format 検証 | audio_photo の image 必須・dictation の blanks 整合・levelBand の enum チェックが未実装 | ✅ T-41 で解消 |
 
 ## 次にやること（優先順）
 
@@ -161,6 +161,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 | T-39 | 冒頭再生モードUIトグル | ✅ 完了 | 2026-07-14 |
 | T-40 | ドッグフード計測・検証支援 | ✅ 完了 | 2026-07-14 |
 | T-41 | C-1改訂: スキーマ検証強化 | ✅ 完了（audio_photo image必須・dictation blanks/script整合・levelBand enum・shadowing timing単調増加/語数一致・audio_set subQuestions 1-5件+id一意性。既存4パックの後方互換確認済み） | 2026-07-14 |
+| T-42 | C-2改訂: DBスキーマv2 | ✅ 完了（examScoresストア新設・phase.listeningStage追加・BYOKキー定義・EXPORT_EXCLUDED_KEYSによるエクスポート除外・version(1)→(2)マイグレーション確認・docs/04 3節更新） | 2026-07-14 |
 
 **運用特例（本ラン限り。発起人承認済み）**: F7契約改訂（T-41〜T-44）は単独PRを作らずdevへ直接コミットする（1人開発のため09の単独PR規定を免除）。各タスクは独立コミットとし、コミットメッセージに契約ID（C-1等）を明記する。
 

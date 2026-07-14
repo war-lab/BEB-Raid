@@ -181,6 +181,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
         badges: [],
         pendingSync: [],
         settings: [],
+        examScores: [],
       },
     }
 

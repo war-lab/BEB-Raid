@@ -5,7 +5,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, STREAK_ID } from '../db/schema'
-import { exportAll, importAll, validateBackup, type BackupFile } from './backup'
+import {
+  exportAll,
+  EXPORT_EXCLUDED_KEYS,
+  importAll,
+  validateBackup,
+  type BackupFile,
+} from './backup'
+import { BYOK_API_KEY_KEY } from './settingsKeys'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -77,6 +84,14 @@ async function seedAllStores(db: BebRaidDatabase): Promise<void> {
     createdAt: 1000,
   })
   await db.settings.put({ key: 'noEarphoneMode', value: true })
+  await db.examScores.put({
+    id: 'exam-1',
+    date: '2026-07-14',
+    listening: 380,
+    reading: 400,
+    total: 780,
+    source: 'IP',
+  })
 }
 
 describe('エクスポート→全消去→インポートの往復', () => {
@@ -223,9 +238,107 @@ describe('validateBackup / importAll: 不正データの拒否', () => {
         badges: [],
         pendingSync: [],
         settings: [],
+        examScores: [],
       },
     }
     await expect(importAll(target, tooNew)).rejects.toThrow(/dbVersion/)
     expect(await target.settings.get('keep')).toBeDefined()
+  })
+})
+
+describe('BYOKキーのエクスポート除外（T-42=C-2改訂。レビューフォローアップ必須項目）', () => {
+  it('exportAll の出力に byokApiKey が含まれない', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    await source.settings.put({ key: BYOK_API_KEY_KEY, value: 'sk-ant-secret' })
+
+    const exported = await exportAll(source)
+    const keys = exported.stores.settings.map((s) => s.key)
+    expect(keys).not.toContain(BYOK_API_KEY_KEY)
+    expect(keys).toContain('noEarphoneMode') // 他のsettingsは除外されない
+  })
+
+  it('importAll は外部編集でbyokApiKeyが混入したバックアップでも復元しない（多層防御）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+    // 外部でJSONを手編集してbyokApiKeyを混入させた状況を模擬
+    exported.stores.settings.push({ key: BYOK_API_KEY_KEY, value: 'sk-ant-injected' })
+
+    const target = newDb()
+    await importAll(target, exported)
+    expect(await target.settings.get(BYOK_API_KEY_KEY)).toBeUndefined()
+  })
+
+  it('EXPORT_EXCLUDED_KEYS は byokApiKey を含む', () => {
+    expect(EXPORT_EXCLUDED_KEYS).toContain(BYOK_API_KEY_KEY)
+  })
+})
+
+describe('examScores ストア（T-42=C-2改訂。M2新設）', () => {
+  it('examScores もエクスポート/インポートの往復対象になる', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const restored = newDb()
+    await importAll(restored, exported)
+    expect(await restored.examScores.toArray()).toEqual(await source.examScores.toArray())
+  })
+
+  it('旧バージョン（dbVersion:1）のバックアップにexamScoresが無くても妥当と判定する', () => {
+    const legacyBackup = {
+      formatVersion: 1,
+      dbVersion: 1,
+      exportedAt: 0,
+      stores: {
+        profile: [],
+        attempts: [],
+        srsCards: [],
+        ratings: [],
+        ratingHistory: [],
+        tagStats: [],
+        phase: [],
+        streak: [],
+        badges: [],
+        pendingSync: [],
+        settings: [],
+        // examScores は無い（T-42以前のバックアップを模擬）
+      },
+    }
+    expect(validateBackup(legacyBackup)).toEqual([])
+  })
+
+  it('旧バージョンのバックアップをインポートしてもexamScoresは空のまま', async () => {
+    const legacyBackup = {
+      formatVersion: 1,
+      dbVersion: 1,
+      exportedAt: 0,
+      stores: {
+        profile: [],
+        attempts: [],
+        srsCards: [],
+        ratings: [],
+        ratingHistory: [],
+        tagStats: [],
+        phase: [],
+        streak: [],
+        badges: [],
+        pendingSync: [],
+        settings: [],
+      },
+    }
+    const target = newDb()
+    await target.examScores.put({
+      id: 'existing',
+      date: '2026-07-01',
+      listening: 300,
+      reading: 300,
+      total: 600,
+      source: 'その他',
+    })
+    await importAll(target, legacyBackup)
+    // examScoresストア自体は「置き換え復元」の対象（attempts以外の規約どおり）
+    expect(await target.examScores.toArray()).toEqual([])
   })
 })
