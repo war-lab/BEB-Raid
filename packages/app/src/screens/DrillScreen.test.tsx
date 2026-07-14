@@ -704,6 +704,14 @@ function audioSetQuestion(id: string, subCount = 3): Question {
 }
 
 describe('DrillScreen: audio_set（M2・T-49）', () => {
+  /** タップして開始→先読みフェーズ→「もう再生する」で早期に再生フェーズへ進める共通操作 */
+  async function startAndSkipPreReading() {
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
+    fireEvent.click(screen.getByText('もう再生する'))
+    await waitFor(() => expect(screen.queryByText('もう再生する')).toBeNull())
+  }
+
   it('1セット3問の順次解答がattemptsにサブ設問IDで3件記録される', async () => {
     const db = newDb()
     const q = audioSetQuestion('set-1')
@@ -711,7 +719,7 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    await startAndSkipPreReading()
     await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
 
     for (let i = 0; i < 3; i++) {
@@ -737,7 +745,7 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    await startAndSkipPreReading()
     await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
 
     // 設問0: 誤答(b) → 設問1: 正解(a) → 設問2: 正解(a)
@@ -768,7 +776,7 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    await startAndSkipPreReading()
     await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
     fireEvent.click(screen.getByText('b')) // 誤答
 
@@ -785,7 +793,7 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    await startAndSkipPreReading()
     await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
     fireEvent.click(screen.getByText('a')) // 正解
 
@@ -796,5 +804,77 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     })
     const rating = await db.ratings.get('L') // part3はLセクション
     expect(rating).toBeDefined()
+  })
+})
+
+describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
+  it('タップして開始後は先読みフェーズになり、選択肢は選べない', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-5', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
+    expect(screen.getByText('もう再生する')).toBeTruthy()
+    // 先読み中は音声再生されない（choicesが無効化されている）
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+    expect(screen.getByText('a').closest('button')).toHaveProperty('disabled', true)
+  })
+
+  it('「もう再生する」タップで早期に再生フェーズへ進める', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-6', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('もう再生する'))
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith(q.audio))
+    await waitFor(() =>
+      expect(screen.getByText('a').closest('button')).toHaveProperty('disabled', false),
+    )
+  })
+
+  it('先読みタイマーが0になると自動的に再生フェーズへ進む', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-7', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await vi.waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
+
+    await vi.advanceTimersByTimeAsync(15_000)
+    // 最後のtickでのplay呼び出し（非同期チェーン）が確定するまでもう一段flushする
+    await vi.advanceTimersByTimeAsync(0)
+
+    await vi.waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith(q.audio))
+  })
+
+  it('再生フェーズ中は一時停止・巻き戻しの操作UIが出ない', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-8', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    // playが解決しないPromiseを返すフェイクにして「再生中」状態を観測する
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play = vi.fn(() => new Promise(() => {}))
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
+    fireEvent.click(screen.getByText('もう再生する'))
+
+    await waitFor(() => expect(screen.getAllByText('再生中…').length).toBeGreaterThan(0))
+    expect(screen.queryByText('もう一度再生')).toBeNull()
+    expect(screen.queryByText('もう再生する')).toBeNull()
   })
 })

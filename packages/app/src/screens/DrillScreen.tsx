@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
+import type { PhaseSeason } from '../db/schema'
 import { computeSetResult } from '../engine/audioSet'
 import { buildWordBank, judgeDictation } from '../engine/dictation'
 import { processWrongAnswer } from '../engine/keyVocab'
@@ -18,6 +19,7 @@ import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
+import { getOrInitPhaseState } from '../services/phase'
 import { advanceSession, answerCurrentQuestion } from '../services/session'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
@@ -50,6 +52,12 @@ const ANSWER_TIMER_SECONDS = 15
  * （docsに明記なし。ドッグフード実測で調整する前提のチューニング値）
  */
 const PARTIAL_AUDIO_DURATION_MS = 2500
+
+/**
+ * 先読みトレーナー（M2・T-50。正本: docs/13 3.6節 J-24）の先読み秒数。
+ * P2=15秒/P3=10秒。P1はL3未解禁のため通常出現しないが、単独起動時のフォールバックとして15秒
+ */
+const PRE_READING_SECONDS: Record<PhaseSeason, number> = { P1: 15, P2: 15, P3: 10 }
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 // （イベントハンドラ内の呼び出しも静的解析では判別されない）、別関数越しに呼ぶ
@@ -97,9 +105,14 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   const [displayIndex, setDisplayIndex] = useState(() => snapshot?.answeredCount ?? 0)
   const [result, setResult] = useState<AnswerResult | null>(null)
   const [startedAt, setStartedAt] = useState(() => now())
-  // audio_qa 専用: 'idle'=開始タップ待ち / 'playing'=再生中 / 'played'=再生済み(解答受付可)
-  const [playState, setPlayState] = useState<'idle' | 'playing' | 'played'>('idle')
+  // 'idle'=開始タップ待ち / 'prereading'=先読み中(audio_set専用。M2・T-50) /
+  // 'playing'=再生中 / 'played'=再生済み(解答受付可)
+  const [playState, setPlayState] = useState<'idle' | 'prereading' | 'playing' | 'played'>('idle')
   const [remainingSec, setRemainingSec] = useState<number | null>(null)
+  // audio_set 専用（M2・T-50）: 先読みフェーズの残り秒数
+  const [preReadingSecondsLeft, setPreReadingSecondsLeft] = useState<number | null>(null)
+  // 先読み秒数の決定に使う現フェーズ（省略時=取得前はP2扱いの15秒でフォールバック）
+  const [season, setSeason] = useState<PhaseSeason | null>(null)
   // セッション内の連続正解数（02の3.1: 中毒性を作る看板モード）
   const [streak, setStreak] = useState(0)
   // vocab_card 専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す。VocabScreenと同じ設計）
@@ -123,6 +136,20 @@ export function DrillScreen({ db, audioPlayer }: Props) {
       setNoEarphoneMode(setting?.value === true)
       setSettingsLoaded(true)
     })
+    return () => {
+      cancelled = true
+    }
+  }, [db])
+
+  // 先読み秒数の決定に使うフェーズを1回だけ取得する（M2・T-50）。
+  // 失敗しても（DB切断等）先読み秒数が既定値にフォールバックするだけで画面は壊れない
+  useEffect(() => {
+    let cancelled = false
+    void getOrInitPhaseState(db)
+      .then((state) => {
+        if (!cancelled) setSeason(state.season)
+      })
+      .catch(() => {})
     return () => {
       cancelled = true
     }
@@ -190,6 +217,25 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     }, 1000)
     return () => clearInterval(interval)
   }, [isCountingDown])
+
+  // audio_set: 先読みフェーズの秒針を進める（M2・T-50）
+  useEffect(() => {
+    if (playState !== 'prereading') return
+    const interval = setInterval(() => {
+      setPreReadingSecondsLeft((s) => (s === null ? null : Math.max(s - 1, 0)))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [playState])
+
+  // 先読みが0になったら自動的に再生フェーズへ移る（早期開始タップでも同じ関数を呼ぶ）
+  useEffect(() => {
+    if (playState === 'prereading' && preReadingSecondsLeft === 0) {
+      // startAudioSetPlayback は関数宣言（hoisted）のため、この時点で呼び出して問題ない
+      // eslint-disable-next-line react-hooks/immutability
+      void startAudioSetPlayback()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preReadingSecondsLeft])
 
   // タイマーが0に達したら自動的にタイムアウト（誤答）として確定する
   useEffect(() => {
@@ -315,7 +361,32 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     advanceToNext()
   }
 
+  /**
+   * audio_set: 先読みフェーズを開始する（M2・T-50。「型の強制」=02の3.5）。
+   * unlockはここで済ませ、実際の再生は先読み満了 or 早期開始タップで startAudioSetPlayback が行う
+   */
+  async function handleStartAudioSet() {
+    await audioPlayer.unlock()
+    const seconds = PRE_READING_SECONDS[season ?? 'P2']
+    setPlayState('prereading')
+    setPreReadingSecondsLeft(seconds)
+  }
+
+  /** audio_set: 先読み満了 or 早期開始タップ→実際の再生フェーズ（一時停止・巻き戻し不可） */
+  async function startAudioSetPlayback() {
+    setPlayState('playing')
+    setPreReadingSecondsLeft(null)
+    if (question!.audio) {
+      await audioPlayer.play(question!.audio)
+    }
+    setPlayState('played')
+  }
+
   async function handlePlayStart() {
+    if (isAudioSet) {
+      await handleStartAudioSet()
+      return
+    }
     setPlayState('playing')
     await audioPlayer.unlock()
     const options: { durationMs?: number; rate?: number } = {}
@@ -392,6 +463,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     setSelectedChoiceKey(null)
     setSubQuestionIndex(0)
     setSubQuestionResults([])
+    setPreReadingSecondsLeft(null)
     setStartedAt(now())
   }
 
@@ -526,7 +598,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               </button>
             </div>
           )}
-          {!isVocabCard && needsAudioGate && playState !== 'played' && (
+          {!isVocabCard && !isAudioSet && needsAudioGate && playState !== 'played' && (
             <PrimaryButton
               onClick={() => void handlePlayStart()}
               disabled={playState === 'playing'}
@@ -534,6 +606,22 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               {playState === 'playing' ? '再生中…' : 'タップして開始'}
             </PrimaryButton>
           )}
+          {isAudioSet && playState === 'idle' && (
+            <PrimaryButton onClick={() => void handlePlayStart()}>タップして開始</PrimaryButton>
+          )}
+          {isAudioSet && playState === 'prereading' && (
+            <>
+              <p className="drill-timer display-num">{preReadingSecondsLeft}</p>
+              <button
+                type="button"
+                className="drill-replay"
+                onClick={() => void startAudioSetPlayback()}
+              >
+                もう再生する
+              </button>
+            </>
+          )}
+          {isAudioSet && playState === 'playing' && <p>再生中…</p>}
           {!isVocabCard && needsAudioGate && playState === 'played' && !result && (
             <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
               もう一度再生
@@ -585,7 +673,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               )
             })}
           {isAudioSet &&
-            playState === 'played' &&
+            (playState === 'prereading' || playState === 'played') &&
             currentSubQuestion &&
             (currentSubQuestion.choices ?? []).map((choice) => {
               let state: ChoiceState = 'idle'
@@ -599,7 +687,8 @@ export function DrillScreen({ db, audioPlayer }: Props) {
                   key={choice.key}
                   marker={choice.key}
                   state={state}
-                  disabled={result !== null}
+                  // 先読み中（音声再生前）は「型の強制」のため選択不可（読むだけ。02の3.5）
+                  disabled={result !== null || playState === 'prereading'}
                   onClick={() => handleSelectSubQuestion(choice.key)}
                 >
                   {choice.text}
@@ -665,7 +754,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
         </p>
       ) : isAudioSet ? (
         <p className="question-text">
-          {playState === 'played'
+          {playState === 'played' || playState === 'prereading'
             ? (currentSubQuestion?.question ?? '')
             : playState === 'playing'
               ? '再生中…'
