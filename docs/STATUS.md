@@ -162,6 +162,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 | T-40 | ドッグフード計測・検証支援 | ✅ 完了 | 2026-07-14 |
 | T-41 | C-1改訂: スキーマ検証強化 | ✅ 完了（audio_photo image必須・dictation blanks/script整合・levelBand enum・shadowing timing単調増加/語数一致・audio_set subQuestions 1-5件+id一意性。既存4パックの後方互換確認済み） | 2026-07-14 |
 | T-42 | C-2改訂: DBスキーマv2 | ✅ 完了（examScoresストア新設・phase.listeningStage追加・BYOKキー定義・EXPORT_EXCLUDED_KEYSによるエクスポート除外・version(1)→(2)マイグレーション確認・docs/04 3節更新） | 2026-07-14 |
+| T-43 | C-3改訂: platform拡張 | ✅ 完了（PlayOptions.onPosition追加・rateを予約から本実装対象へ昇格の宣言・新規platform/ai/AiClient＋AnthropicAiClient骨格＝isConfiguredのみ実装・askはT-56まで未実装エラー・createAiClient factory配線。既存テスト無修正で通過=後方互換確認済み。docs/05 5節・7節更新） | 2026-07-14 |
 
 **運用特例（本ラン限り。発起人承認済み）**: F7契約改訂（T-41〜T-44）は単独PRを作らずdevへ直接コミットする（1人開発のため09の単独PR規定を免除）。各タスクは独立コミットとし、コミットメッセージに契約ID（C-1等）を明記する。
 

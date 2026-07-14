@@ -10,11 +10,18 @@ export interface PlayOptions {
   /** 再生継続時間（ミリ秒）。指定時はこの長さで停止する */
   durationMs?: number
   /**
-   * 再生速度（0.7〜1.3想定）。
-   * 【予約のみ】M1では未実装（J-6: Part2は等倍が正。主用途のディクテーション/
-   * シャドーイングは M2）。M1実装が値を受け取っても無視してよい。
+   * 再生速度（0.7〜1.3想定）。M2で本実装（T-45。13の3.7節）。
+   * rate!==1.0 のときのみ HTMLAudioElement 経路（playbackRate + preservesPitch）を使う
+   * （AudioBufferSourceNode.playbackRate はピッチが変わるため使わない=J-27）。
+   * preservesPitch 未対応環境ではピッチが変化しうる（UIに注記を出す）
    */
   rate?: number
+  /**
+   * 再生中の現在位置（ミリ秒）を通知するコールバック（M2・T-43で追加。
+   * シャドーイングのカラオケハイライト用=13の3.7節・3.5節）。実装は100ms間隔程度で
+   * 十分（requestAnimationFrame等でも可）。未指定時は呼ばれない（既存呼び出し元は無改修）
+   */
+  onPosition?: (positionMs: number) => void
 }
 
 export interface AudioPlayer {
