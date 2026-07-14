@@ -6,7 +6,7 @@
 // factory の返す実装を差し替えるだけで済む構造を維持する。
 
 import type { AiClient } from './ai/AiClient'
-import { AnthropicAiClient, type ApiKeyProvider } from './ai/AnthropicAiClient'
+import { AiClientError, AnthropicAiClient, type ApiKeyProvider } from './ai/AnthropicAiClient'
 import type { AudioPlayer } from './audio/AudioPlayer'
 import { WebAudioPlayer } from './audio/WebAudioPlayer'
 import type { PackCache } from './cache/PackCache'
@@ -16,7 +16,8 @@ export type { AudioPlayer, PlayOptions } from './audio/AudioPlayer'
 export type { PackCache, CacheUsage } from './cache/PackCache'
 export type { Notifier, ScheduledNotification } from './notifications/Notifier'
 export type { AiAskContext, AiChatTurn, AiClient } from './ai/AiClient'
-export type { ApiKeyProvider } from './ai/AnthropicAiClient'
+export type { AiErrorKind, ApiKeyProvider } from './ai/AnthropicAiClient'
+export { AiClientError }
 
 /** 音声再生の実装を返す（現状は Web 実装のみ） */
 export function createAudioPlayer(): AudioPlayer {
@@ -29,7 +30,7 @@ export function createPackCache(): PackCache {
 }
 
 /**
- * BYOK AI解説クライアントの実装を返す（M2・T-43。ask() の本実装はT-56）。
+ * BYOK AI解説クライアントの実装を返す（M2・T-43/T-56）。
  * getApiKey は呼び出し元（App.tsx）が settings ストアから読み出す関数を渡す
  * （PackCache 等と同じ疎結合パターン。db に直接依存しない）
  */

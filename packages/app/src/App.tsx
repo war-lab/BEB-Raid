@@ -4,9 +4,10 @@
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import { getDb } from './db/database'
-import { createAudioPlayer, createPackCache, type PackCache } from './platform'
+import { createAiClient, createAudioPlayer, createPackCache, type PackCache } from './platform'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
+import { BYOK_API_KEY_KEY } from './services/settingsKeys'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
@@ -42,6 +43,10 @@ export async function loadQuestionPool(
 
 const audioPlayer = createAudioPlayer()
 const packCache = createPackCache()
+/** BYOK AIクライアント（M2・T-56）。APIキーはsettingsストアから都度読み出す（db直依存を避ける疎結合） */
+const aiClient = createAiClient(
+  async () => ((await getDb().settings.get(BYOK_API_KEY_KEY))?.value as string | undefined) ?? null,
+)
 
 export function App() {
   const screen = useAppStore((s) => s.screen)
@@ -79,7 +84,9 @@ export function App() {
   if (screen === 'diagnostic') {
     return <DiagnosticScreen db={getDb()} audioPlayer={audioPlayer} questionPool={questionPool} />
   }
-  if (screen === 'drill') return <DrillScreen db={getDb()} audioPlayer={audioPlayer} />
+  if (screen === 'drill') {
+    return <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} />
+  }
   if (screen === 'result') return <ResultScreen db={getDb()} />
   if (screen === 'vocab') {
     return <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={vocabQuestions} />

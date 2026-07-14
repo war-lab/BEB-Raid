@@ -17,7 +17,7 @@ import { reviewSrsCard } from '../engine/srs'
 import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
-import type { AudioPlayer } from '../platform'
+import type { AiClient, AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
 import { getOrInitPhaseState } from '../services/phase'
 import { advanceSession, answerCurrentQuestion } from '../services/session'
@@ -37,6 +37,8 @@ const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→S�
 interface Props {
   db: BebRaidDatabase
   audioPlayer: AudioPlayer
+  /** BYOK AIクライアント（M2・T-56。未注入ならExplanationCardの「AIに聞く」は出ない） */
+  aiClient?: AiClient
 }
 
 interface AnswerResult {
@@ -92,7 +94,7 @@ function renderBlankedScript(
   return tokens.join(' ')
 }
 
-export function DrillScreen({ db, audioPlayer }: Props) {
+export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   const snapshot = useSessionStore((s) => s.snapshot)
   const questions = useSessionStore((s) => s.questions)
   const recordAnswer = useSessionStore((s) => s.recordAnswer)
@@ -700,10 +702,14 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               <ExplanationCard
                 question={{
                   ...question,
+                  question: currentSubQuestion.question,
+                  choices: currentSubQuestion.choices,
+                  answer: currentSubQuestion.answer,
                   explanation: currentSubQuestion.explanation,
                   translation: currentSubQuestion.translation,
                 }}
                 isCorrect={result.isCorrect}
+                aiClient={aiClient}
               />
               <PrimaryButton onClick={() => void advanceSubQuestion()}>
                 {subQuestionIndex + 1 < (question.subQuestions ?? []).length
@@ -715,7 +721,11 @@ export function DrillScreen({ db, audioPlayer }: Props) {
           {!isVocabCard && !isAudioSet && result && (
             <>
               {result.isTimeout && <p>時間切れ</p>}
-              <ExplanationCard question={question} isCorrect={result.isCorrect} />
+              <ExplanationCard
+                question={question}
+                isCorrect={result.isCorrect}
+                aiClient={aiClient}
+              />
               <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
             </>
           )}

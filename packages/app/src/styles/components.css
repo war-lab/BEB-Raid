@@ -252,6 +252,29 @@
     opacity: 1;
   }
 }
+/* --- AIに聞く（M2・T-56。05の5節: 未レビュー注記必須） --- */
+.explanation-card__ai {
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.explanation-card__ai-question {
+  margin: 0 0 var(--sp-half);
+  font-weight: 700;
+}
+.explanation-card__ai-answer {
+  margin: 0 0 var(--sp-1);
+  color: var(--ink-2);
+}
+.explanation-card__ai-note {
+  margin: 0 0 var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-note);
+}
+.explanation-card__ai-error {
+  margin: 0 0 var(--sp-1);
+  color: var(--ng);
+}
 
 /* --- スワイプカード（語彙SRS。07の6節） --- */
 .swipe-card {
