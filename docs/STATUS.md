@@ -163,6 +163,9 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 | T-41 | C-1改訂: スキーマ検証強化 | ✅ 完了（audio_photo image必須・dictation blanks/script整合・levelBand enum・shadowing timing単調増加/語数一致・audio_set subQuestions 1-5件+id一意性。既存4パックの後方互換確認済み） | 2026-07-14 |
 | T-42 | C-2改訂: DBスキーマv2 | ✅ 完了（examScoresストア新設・phase.listeningStage追加・BYOKキー定義・EXPORT_EXCLUDED_KEYSによるエクスポート除外・version(1)→(2)マイグレーション確認・docs/04 3節更新） | 2026-07-14 |
 | T-43 | C-3改訂: platform拡張 | ✅ 完了（PlayOptions.onPosition追加・rateを予約から本実装対象へ昇格の宣言・新規platform/ai/AiClient＋AnthropicAiClient骨格＝isConfiguredのみ実装・askはT-56まで未実装エラー・createAiClient factory配線。既存テスト無修正で通過=後方互換確認済み。docs/05 5節・7節更新） | 2026-07-14 |
+| T-44 | C-4改訂: エンジンIF拡張＋設計反映 | ✅ 完了（engine/types.tsにPhaseCriteria/PhaseState/CurriculumTemplate/ForecastResult/DictationJudgement/SetResult等を追加=型定義のみ。既存エンジンテスト82件が無修正で通過。03へP2→P3条件・定着定義・初期割当・到達予測式・L段階条件・ディクテーション採点・シャドーイング記録規約・K=32のセクション別解釈を反映、02へタイピング見送り・区間リピート文単位・先読み秒数を反映） | 2026-07-14 |
+
+**F7契約改訂（T-41〜T-44）完了。以降はM1同様「契約は確定済み・変更は停止条件」に戻る。**
 
 **運用特例（本ラン限り。発起人承認済み）**: F7契約改訂（T-41〜T-44）は単独PRを作らずdevへ直接コミットする（1人開発のため09の単独PR規定を免除）。各タスクは独立コミットとし、コミットメッセージに契約ID（C-1等）を明記する。
 
