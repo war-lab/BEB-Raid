@@ -15,13 +15,17 @@ import {
   SCHEMA_VERSION,
   validatePack,
   type AudioAccent,
+  type FreqRank,
   type Question,
 } from '@beb-raid/shared-schema'
 import { PART2_ENTRIES_S, type Part2Entry } from './data/part2QuestionsS.js'
+import { PART2_ENTRIES_S2_RAW, type Part2RawEntry } from './data/part2QuestionsS2.js'
+import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
+import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
 import type { GeneratedItemDraft } from './review.js'
 
-export { PART2_ENTRIES_S }
+export { PART2_ENTRIES_S, PART2_ENTRIES_S2_RAW }
 
 /**
  * 話者アクセントのローテーション（生成段階の暫定値。実合成時にttsBatch.tsが実際のaccentで
@@ -40,26 +44,30 @@ export function estimateDurationMs(script: string): number {
   return Math.max(1500, Math.round(wordCount * 350))
 }
 
-/** keyVocabWordの和訳（sense）をvocabCardsS.tsから引く（Sランク200語であることの実データ照合） */
-function senseForWord(word: string): string {
-  const entry = VOCAB_CARDS_S.find((v) => v.word === word)
-  if (!entry) {
-    throw new Error(`keyVocabWord "${word}" が vocabCardsS.ts（Sランク200語）に見つからない`)
-  }
-  return entry.back
+/**
+ * keyVocabWordの和訳（sense）とfreqRankをS/A/B語彙カード（600語）から引く
+ * （M2・T-60でA/B語彙も対象に拡大。存在しなければエラーで実データとの整合を強制）
+ */
+function vocabEntryForWord(word: string): { sense: string; freqRank: FreqRank } {
+  const s = VOCAB_CARDS_S.find((v) => v.word === word)
+  if (s) return { sense: s.back, freqRank: 'S' }
+  const a = VOCAB_CARDS_A.find((v) => v.word === word)
+  if (a) return { sense: a.back, freqRank: 'A' }
+  const b = VOCAB_CARDS_B.find((v) => v.word === word)
+  if (b) return { sense: b.back, freqRank: 'B' }
+  throw new Error(`keyVocabWord "${word}" がS/A/B語彙カード（600語）に見つからない`)
 }
 
 /** エントリ→Question（audio_qa）への変換 */
 export function part2Question(entry: Part2Entry, index: number): Question {
+  const { sense, freqRank } = vocabEntryForWord(entry.keyVocabWord)
   return {
     id: `part2-${entry.keyVocabWord}`,
     part: 2,
     format: 'audio_qa',
     difficulty: entry.difficulty,
     tags: entry.tags,
-    keyVocab: [
-      { word: entry.keyVocabWord, sense: senseForWord(entry.keyVocabWord), freqRank: 'S' },
-    ],
+    keyVocab: [{ word: entry.keyVocabWord, sense, freqRank }],
     audio: reservedAudioPath(entry.keyVocabWord),
     audioMeta: {
       accent: ACCENT_ROTATION[index % ACCENT_ROTATION.length]!,
@@ -93,6 +101,47 @@ export function buildPart2Drafts(
       payload: question,
     }
   })
+}
+
+/**
+ * 正答キーの決定的ローテーション分散（M1レビュー⑦の方式。M2・T-60）。
+ * rawエントリは常に correctText を「正解」・distractors を「誤答2件」として書き、
+ * index%3の回転で選択肢の並び順・正答キーを機械的に決める（著者が手作業で
+ * A/B/Cの出現頻度を気にする必要をなくし、常に同じ記号が正答になる構造欠陥を防ぐ）
+ */
+export function rotatePart2Choices(
+  raw: Part2RawEntry,
+  index: number,
+): Pick<Part2Entry, 'choices' | 'answer'> {
+  const texts = [raw.correctText, raw.distractors[0], raw.distractors[1]]
+  const rotation = index % 3
+  const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
+  const keys = ['A', 'B', 'C']
+  const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
+  const answer = keys[rotatedTexts.indexOf(raw.correctText)]!
+  return { choices, answer }
+}
+
+/** rawエントリ（correctText/distractors形式）→Part2Entry（choices/answer確定済み）への変換 */
+export function part2EntryFromRaw(raw: Part2RawEntry, index: number): Part2Entry {
+  const { choices, answer } = rotatePart2Choices(raw, index)
+  return {
+    keyVocabWord: raw.keyVocabWord,
+    tags: raw.tags,
+    script: raw.script,
+    choices,
+    answer,
+    explanation: raw.explanation,
+    translation: raw.translation,
+    difficulty: raw.difficulty,
+  }
+}
+
+/** Part2追加分（M2・T-60・S2）100問をPart2Entry形式に組み立てる */
+export function buildPart2EntriesS2(
+  raw: readonly Part2RawEntry[] = PART2_ENTRIES_S2_RAW,
+): Part2Entry[] {
+  return raw.map((r, i) => part2EntryFromRaw(r, i))
 }
 
 /**

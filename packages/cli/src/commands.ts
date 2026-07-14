@@ -36,7 +36,12 @@ import {
   validateKeyVocabSimilarQuestions,
   validateTargetWordCoverage,
 } from './keyVocabSimilar.js'
-import { buildPart2Drafts, buildPart2Questions, validatePart2Questions } from './part2Question.js'
+import {
+  buildPart2Drafts,
+  buildPart2EntriesS2,
+  buildPart2Questions,
+  validatePart2Questions,
+} from './part2Question.js'
 import { buildPart5Drafts, buildPart5Questions, validatePart5Questions } from './part5Question.js'
 import {
   buildReviewTsv,
@@ -58,6 +63,7 @@ const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
 const DEFAULT_VOCAB_A_DRAFT_PATH = 'content/drafts/vocab-card-a.jsonl'
 const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
+const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
 
@@ -92,6 +98,12 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: buildPart2Drafts,
     validate: validatePart2Questions,
     defaultPath: DEFAULT_PART2_DRAFT_PATH,
+  },
+  audio_qa_s2: {
+    buildQuestions: () => buildPart2Questions(buildPart2EntriesS2()),
+    buildDrafts: () => buildPart2Drafts(buildPart2EntriesS2()),
+    validate: validatePart2Questions,
+    defaultPath: DEFAULT_PART2_S2_DRAFT_PATH,
   },
   text_blank: {
     buildQuestions: buildPart5Questions,

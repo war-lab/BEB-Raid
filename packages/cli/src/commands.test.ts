@@ -210,6 +210,39 @@ describe('generate audio_qa（T-27）', () => {
   })
 })
 
+describe('generate audio_qa_s2（M2・T-60）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-part2-s2-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で100件のaudio_qaドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'part2-s2.jsonl')
+    const { code, output } = await run(['generate', 'audio_qa_s2', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('100件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        difficulty: number
+        keyVocab: { freqRank: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(100)
+    expect(drafts.every((d) => d.kind === 'audio_qa')).toBe(true)
+    expect(drafts.every((d) => [2, 3, 4].includes(d.payload.difficulty))).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'A')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'B')).toBe(true)
+  })
+})
+
 describe('generate text_blank（T-28）', () => {
   let dir: string
 
