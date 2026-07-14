@@ -25,6 +25,8 @@ import {
   type PackSource,
 } from './build.js'
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
+import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
+import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
 import { aggregateWeeklyKpi, parseKpiExport, renderWeeklyKpiTable } from './kpi.js'
 import {
@@ -53,6 +55,8 @@ import {
 
 const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
 const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
+const DEFAULT_VOCAB_A_DRAFT_PATH = 'content/drafts/vocab-card-a.jsonl'
+const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
@@ -70,6 +74,18 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: buildVocabCardDrafts,
     validate: validateVocabCardQuestions,
     defaultPath: DEFAULT_VOCAB_DRAFT_PATH,
+  },
+  vocab_card_a: {
+    buildQuestions: () => buildVocabCardQuestions(VOCAB_CARDS_A, 'A'),
+    buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_A, 'A'),
+    validate: (questions) => validateVocabCardQuestions(questions, 730),
+    defaultPath: DEFAULT_VOCAB_A_DRAFT_PATH,
+  },
+  vocab_card_b: {
+    buildQuestions: () => buildVocabCardQuestions(VOCAB_CARDS_B, 'B'),
+    buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_B, 'B'),
+    validate: (questions) => validateVocabCardQuestions(questions, 860),
+    defaultPath: DEFAULT_VOCAB_B_DRAFT_PATH,
   },
   audio_qa: {
     buildQuestions: buildPart2Questions,

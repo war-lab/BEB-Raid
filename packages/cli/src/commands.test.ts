@@ -124,6 +124,36 @@ describe('generate vocab_card（T-26）', () => {
   })
 })
 
+describe('generate vocab_card_a / vocab_card_b（M2・T-59）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-ab-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it.each([
+    ['vocab_card_a', 730],
+    ['vocab_card_b', 860],
+  ])('%sは200件・levelBand=%iのドラフトを出力する', async (kind, levelBand) => {
+    const outputPath = join(dir, `${kind}.jsonl`)
+    const { code, output } = await run(['generate', kind, outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('200件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: { format: string; front: string; phrase: string; levelBand: number }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(200)
+    expect(drafts.every((d) => d.kind === 'vocab_card')).toBe(true)
+    expect(drafts.every((d) => d.payload.levelBand === levelBand)).toBe(true)
+  })
+})
+
 describe('generate audio_qa（T-27）', () => {
   let dir: string
 
