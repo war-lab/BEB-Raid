@@ -6,12 +6,13 @@
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
 import { useEffect, useMemo, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
+import { buildWordBank, judgeDictation } from '../engine/dictation'
 import { processWrongAnswer } from '../engine/keyVocab'
 import { formatQuickPackReason } from '../engine/reason'
 import { applyRatingUpdate } from '../engine/rating'
 import { reviewSrsCard } from '../engine/srs'
 import { updateTagStatsForAnswer } from '../engine/tagStats'
-import type { QuestionLookup, SrsGrade } from '../engine/types'
+import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion } from '../services/session'
@@ -53,6 +54,21 @@ function now(): number {
   return Date.now()
 }
 
+/** dictation: script を空白区切りでトークン化し、穴の位置を埋めた語 or `___` に差し替えて表示する */
+function renderBlankedScript(
+  script: string,
+  blanks: readonly { index: number }[],
+  blankFillsByIndex: ReadonlyMap<number, number>,
+  bankWords: readonly string[],
+): string {
+  const tokens = script.split(/\s+/)
+  for (const b of blanks) {
+    const bankIdx = blankFillsByIndex.get(b.index)
+    tokens[b.index] = bankIdx !== undefined ? bankWords[bankIdx]! : '___'
+  }
+  return tokens.join(' ')
+}
+
 export function DrillScreen({ db, audioPlayer }: Props) {
   const snapshot = useSessionStore((s) => s.snapshot)
   const questions = useSessionStore((s) => s.questions)
@@ -78,6 +94,9 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   // 初期値falseで誤って再生してしまうレースを防ぐ）
   const [noEarphoneMode, setNoEarphoneMode] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
+  // dictation 専用（M2・T-47）: blank.index → ワードバンクの語インデックス
+  const [blankFillsByIndex, setBlankFillsByIndex] = useState<Map<number, number>>(new Map())
+  const [dictationRate, setDictationRate] = useState<0.85 | 1>(1)
 
   useEffect(() => {
     let cancelled = false
@@ -93,7 +112,11 @@ export function DrillScreen({ db, audioPlayer }: Props) {
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
-  const needsAudioGate = question?.format === 'audio_qa'
+  const isAudioQa = question?.format === 'audio_qa'
+  const isDictation = question?.format === 'dictation'
+  // dictation も audio_qa と同じ「タップして開始」ゲートを使う（音声前提のformat）。
+  // 15秒タイマー（isCountingDown）はaudio_qa固有のため対象外
+  const needsAudioGate = isAudioQa || isDictation
   const isVocabCard = question?.format === 'vocab_card'
 
   // 4択はカードが変わるたびに1回だけ組み立てる（VocabScreenと同じ設計。questionsは
@@ -104,6 +127,21 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     [isVocabCard, question?.id],
   )
 
+  // dictation: ワードバンク（3.4節の6語構成）はカードが変わるたびに1回だけ組み立てる
+  const dictationBank = useMemo(
+    () =>
+      isDictation && question ? buildWordBank(question, [...questions.values()]) : { words: [] },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isDictation, question?.id],
+  )
+  const sortedBlanks = useMemo(
+    () => [...(question?.blanks ?? [])].sort((a, b) => a.index - b.index),
+    [question?.blanks],
+  )
+  const usedBankIndices = new Set(blankFillsByIndex.values())
+  const allBlanksFilled =
+    sortedBlanks.length > 0 && sortedBlanks.every((b) => blankFillsByIndex.has(b.index))
+
   // vocab_card: フレーズ音声を自動再生する（カードが変わるたびに1回。金フレ型体験=02の4節の
   // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）
   useEffect(() => {
@@ -112,8 +150,9 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
-  // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）
-  const isCountingDown = needsAudioGate && playState === 'played' && !result
+  // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）。
+  // 15秒タイマーは audio_qa 固有（dictation は未タイマー=03の8節）
+  const isCountingDown = isAudioQa && playState === 'played' && !result
 
   // audio_qa: 15秒タイマーの秒針を進める（開始のsetStateはイベントハンドラ側=handlePlayStartで行う）
   useEffect(() => {
@@ -187,16 +226,63 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   async function handlePlayStart() {
     setPlayState('playing')
     await audioPlayer.unlock()
-    const options = partialAudioMode ? { durationMs: PARTIAL_AUDIO_DURATION_MS } : undefined
+    const options: { durationMs?: number; rate?: number } = {}
+    if (partialAudioMode) options.durationMs = PARTIAL_AUDIO_DURATION_MS
+    if (isDictation && dictationRate !== 1) options.rate = dictationRate
     if (question!.audio) {
-      await audioPlayer.play(question!.audio, options)
+      await audioPlayer.play(question!.audio, Object.keys(options).length > 0 ? options : undefined)
     }
     setPlayState('played')
-    setRemainingSec(ANSWER_TIMER_SECONDS)
+    if (isAudioQa) setRemainingSec(ANSWER_TIMER_SECONDS)
   }
 
   async function handleReplay() {
     await audioPlayer.replay()
+  }
+
+  /** dictation: ワードバンクの語を次の未回答の穴に順にタップで埋める（3.4節） */
+  function handleBankWordTap(bankIndex: number) {
+    if (usedBankIndices.has(bankIndex)) return
+    const nextBlank = sortedBlanks.find((b) => !blankFillsByIndex.has(b.index))
+    if (!nextBlank) return
+    setBlankFillsByIndex((prev) => new Map(prev).set(nextBlank.index, bankIndex))
+  }
+
+  /** dictation: 全穴の記入をやり直す（取り消し可=3.4節） */
+  function handleDictationReset() {
+    setBlankFillsByIndex(new Map())
+  }
+
+  /** dictation: 確定→採点（全穴一致で正解・部分点なし=3.4節）。レート更新は対象外（J-29） */
+  async function finalizeDictationAnswer() {
+    if (result || !question || !item) return
+    const answers: DictationAnswer[] = [...blankFillsByIndex.entries()].map(
+      ([blankIndex, bankIdx]) => ({ blankIndex, word: dictationBank.words[bankIdx]! }),
+    )
+    const judgement = judgeDictation(question.blanks ?? [], answers)
+    const responseMs = now() - startedAt
+    setResult({ selectedKey: null, isCorrect: judgement.isCorrect, isTimeout: false })
+    setStreak((s) => (judgement.isCorrect ? s + 1 : 0))
+
+    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
+      isCorrect: judgement.isCorrect,
+      responseMs,
+      isTimeout: false,
+    })
+    if (!judgement.isCorrect) {
+      await processWrongAnswer(db, question)
+    }
+    const lookup: QuestionLookup = questions
+    await updateTagStatsForAnswer(db, question.id, lookup)
+    // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
+    if (item.srsCardId) {
+      await reviewSrsCard(db, item.srsCardId, judgement.isCorrect ? 'good' : 'again')
+    }
+    recordAnswer(nextSnapshot, {
+      questionId: question.id,
+      isCorrect: judgement.isCorrect,
+      basePoints: 0,
+    })
   }
 
   function advanceToNext() {
@@ -209,6 +295,8 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     setResult(null)
     setPlayState('idle')
     setRemainingSec(null)
+    setBlankFillsByIndex(new Map())
+    setDictationRate(1)
     setSelectedChoiceKey(null)
     setStartedAt(now())
   }
@@ -326,6 +414,24 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               </button>
             </>
           )}
+          {isDictation && playState !== 'played' && (
+            <div className="dictation-rate-chips">
+              <button
+                type="button"
+                className={dictationRate === 0.85 ? 'is-selected' : ''}
+                onClick={() => setDictationRate(0.85)}
+              >
+                0.85x
+              </button>
+              <button
+                type="button"
+                className={dictationRate === 1 ? 'is-selected' : ''}
+                onClick={() => setDictationRate(1)}
+              >
+                等倍
+              </button>
+            </div>
+          )}
           {!isVocabCard && needsAudioGate && playState !== 'played' && (
             <PrimaryButton
               onClick={() => void handlePlayStart()}
@@ -339,7 +445,30 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               もう一度再生
             </button>
           )}
+          {isDictation && playState === 'played' && !result && (
+            <>
+              <div className="dictation-word-bank">
+                {dictationBank.words.map((word, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={usedBankIndices.has(i)}
+                    onClick={() => handleBankWordTap(i)}
+                  >
+                    {word}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={handleDictationReset}>
+                やり直す
+              </button>
+              {allBlanksFilled && (
+                <PrimaryButton onClick={() => void finalizeDictationAnswer()}>確定</PrimaryButton>
+              )}
+            </>
+          )}
           {!isVocabCard &&
+            !isDictation &&
             choicesInteractive &&
             (question.choices ?? []).map((choice) => {
               let state: ChoiceState = 'idle'
@@ -385,6 +514,21 @@ export function DrillScreen({ db, audioPlayer }: Props) {
           </p>
           <p className="vocab-card__prompt">この単語の意味は？</p>
         </div>
+      ) : isDictation ? (
+        <p className="question-text dictation-script">
+          {result
+            ? (question.script ?? '')
+            : playState === 'played'
+              ? renderBlankedScript(
+                  question.script ?? '',
+                  sortedBlanks,
+                  blankFillsByIndex,
+                  dictationBank.words,
+                )
+              : playState === 'playing'
+                ? '再生中…'
+                : '音声を聞いて空欄を埋めてください'}
+        </p>
       ) : question.format === 'audio_qa' ? (
         <p className="question-text">
           {result

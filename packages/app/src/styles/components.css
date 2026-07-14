@@ -332,6 +332,43 @@
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+.dictation-rate-chips {
+  display: flex;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+.dictation-rate-chips button {
+  flex: 1;
+  min-height: var(--tap-min);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.dictation-rate-chips button.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.dictation-word-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+.dictation-word-bank button {
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+.dictation-word-bank button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* --- チャート共通（08節: グリッド・軸は退行色、数表併設、タップで値表示） --- */
 .chart-empty {

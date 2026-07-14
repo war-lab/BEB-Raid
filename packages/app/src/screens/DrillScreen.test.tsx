@@ -550,3 +550,130 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(await db.attempts.count()).toBe(2)
   })
 })
+
+function dictationQuestion(
+  id: string,
+  script: string,
+  blanks: { index: number; answer: string }[],
+): Question {
+  return {
+    id,
+    part: 2,
+    format: 'dictation',
+    difficulty: 2,
+    tags: ['弱形・連結'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    audio: `/audio/${id}.mp3`,
+    audioMeta: { accent: 'US', tts: false, voice: 'dev', durationMs: 3000 },
+    script,
+    blanks,
+    explanation: 'ディクテーション解説',
+    translation: '和訳テキスト',
+  }
+}
+
+describe('DrillScreen: dictation（M2・T-47）', () => {
+  it('タップして開始→再生→ワードバンクで穴埋め→確定→正誤・解説表示の一連が通る', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-1', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    fireEvent.click(screen.getByText('タップして開始'))
+    expect(audioPlayer.unlock).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('submit'))
+    fireEvent.click(screen.getByText('確定'))
+
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    expect(screen.getByText('正解')).toBeTruthy()
+    expect(screen.getByText('ディクテーション解説')).toBeTruthy()
+    expect((await db.attempts.toArray())[0]?.isCorrect).toBe(true)
+  })
+
+  it('不正解の語を選んで確定すると不正解表示になり、keyVocabがSRSに追加される', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-2', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('やり直す')).toBeTruthy())
+
+    // ワードバンクの中から不正解の語（submit以外）をタップする
+    const bankButtons = screen
+      .getAllByRole('button')
+      .filter((b) => b.parentElement?.className === 'dictation-word-bank')
+    fireEvent.click(bankButtons.find((b) => b.textContent !== 'submit')!)
+    fireEvent.click(screen.getByText('確定'))
+
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    expect(screen.getByText('不正解')).toBeTruthy()
+    expect(await db.srsCards.get('vocab:submit')).toBeDefined()
+  })
+
+  it('レート更新の対象外（ratings.answerCountが増えない=J-29）で、tagStatsは更新される', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-3', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+    fireEvent.click(screen.getByText('submit'))
+    fireEvent.click(screen.getByText('確定'))
+
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    expect(screen.getByText('正解')).toBeTruthy()
+    expect(await db.ratings.get('L')).toBeUndefined()
+    expect(await db.ratings.get('R')).toBeUndefined()
+    const tagStat = await db.tagStats.get('弱形・連結')
+    expect(tagStat?.windowTotal).toBe(1)
+  })
+
+  it('「やり直す」で穴の記入をリセットできる', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-4', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('submit'))
+    expect(screen.queryByText('確定')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('やり直す'))
+    expect(screen.queryByText('確定')).toBeNull()
+  })
+
+  it('0.85x/等倍の速度チップを選んでから開始できる（再生自体はT-45まで等倍のまま=予約のみ）', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-5', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('0.85x'))
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+    expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, { rate: 0.85 })
+  })
+})
