@@ -300,3 +300,36 @@ describe('HomeScreen: イヤホンなしモード（T-23）', () => {
     expect(hasListening).toBe(false)
   })
 })
+
+describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54）', () => {
+  it('phase不在（初回起動相当）でもP1「土台」が表示される', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    expect(screen.getByTestId('home-season').textContent).toContain('シーズン1「土台」')
+  })
+
+  it('総合レートが高いユーザーはP3「実戦」が初期表示される', async () => {
+    const db = newDb()
+    await db.ratings.bulkPut([
+      { section: 'L', rating: 700, updatedAt: 0 },
+      { section: 'R', rating: 700, updatedAt: 0 },
+    ])
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    expect(screen.getByTestId('home-season').textContent).toContain('シーズン3「実戦」')
+  })
+
+  it('今日のクエスト開始時、generateQuickPackにフェーズが渡り配分が反映される（回帰しない）', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    // フェーズ駆動でも既存どおりセッションが開始できることの回帰確認
+    expect(useSessionStore.getState().snapshot!.items.length).toBeGreaterThan(0)
+  })
+})

@@ -139,6 +139,14 @@
     transform: scale(1);
   }
 }
+.result-phase-transition {
+  padding: var(--sp-1);
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  color: var(--gold);
+  font-weight: 700;
+  text-align: center;
+}
 
 /* --- Part2瞬発の15秒解答タイマー（--listen アクセント） --- */
 .drill-timer {
@@ -381,6 +389,29 @@
   color: var(--on-gold);
   font-size: var(--fs-note);
   font-weight: 700;
+}
+.home-season {
+  margin: var(--sp-1) 0;
+}
+.home-season p {
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.home-season-progress {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.home-season-progress-bar {
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-season-progress-bar {
+    transition: none;
+  }
 }
 .home-duration-chips {
   display: flex;

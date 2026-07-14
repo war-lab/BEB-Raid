@@ -168,6 +168,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 **F7契約改訂（T-41〜T-44）完了。以降はM1同様「契約は確定済み・変更は停止条件」に戻る。**
 | T-51 | フェーズエンジン | ✅ 完了（engine/curriculum.ts=criteriaJson4条件タイプの評価器・P1-P3/L1-L4移行判定・curriculumConfig.json暫定テンプレ。services/phase.ts=phaseストア読み書き・初期割当・永続化。テスト34件） | 2026-07-14 |
 | T-52 | クイックパックのフェーズ配分 | ✅ 完了（QuickPackRequestにphase/listeningStage追加=既存フィールド無変更の後方互換オプション。P1/P2/P3で配分・L段階でリスニング内訳が変わることを確認。phase未指定時はM1挙動に完全フォールバック=既存18テスト無修正で通過。noEarphoneFilterにdictation/shadowingを追加） | 2026-07-14 |
+| T-54 | ホームのカリキュラム駆動化 | ✅ 完了（HomeScreenにシーズン表示＋達成条件進捗バー追加、今日のクエストにphase/listeningStageを結線。ResultScreenでセッション完了時にevaluateAndPersistPhaseTransitionを呼び、移行/シーズンクリア/L段階進行の演出を表示。フェーズ評価失敗時は演出を出さない安全側フォールバック。**S-B1（M2完了条件の核）完了**） | 2026-07-14 |
 
 **運用特例（本ラン限り。発起人承認済み）**: F7契約改訂（T-41〜T-44）は単独PRを作らずdevへ直接コミットする（1人開発のため09の単独PR規定を免除）。各タスクは独立コミットとし、コミットメッセージに契約ID（C-1等）を明記する。
 

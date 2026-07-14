@@ -5,13 +5,15 @@
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
+import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
 import { daysBetween, toDateString } from '../engine/date'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { generateQuickPack } from '../engine/quickPack'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
-import type { QuickPackDuration, QuickPackItem } from '../engine/types'
+import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
+import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
 import { startSession, type SessionItem } from '../services/session'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
@@ -57,14 +59,19 @@ export function HomeScreen({ db, questionPool }: Props) {
   const [loaded, setLoaded] = useState(false)
   // T-39: Part2単独モード起動時の再生バリエーション選択（永続化しない。セッション単位の選択=13の3.11節）
   const [showPart2Options, setShowPart2Options] = useState(false)
+  // T-54: 現フェーズ（シーズン表示・クイックパックのフェーズ駆動化に使う）
+  const [phase, setPhase] = useState<PhaseState | null>(null)
+  // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
+  const [phaseProgress, setPhaseProgress] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const [status, record, queue] = await Promise.all([
+      const [status, record, queue, phaseState] = await Promise.all([
         evaluateStreak(db),
         getStreak(db),
         getSrsQueue(db),
+        getOrInitPhaseState(db),
       ])
       if (cancelled) return
       const today = toDateString(Date.now())
@@ -74,16 +81,29 @@ export function HomeScreen({ db, questionPool }: Props) {
       setStreakDays(status.currentDays)
       setBrokenSinceDays(isBroken ? status.currentDays : null)
       setDueCount(queue.dueReviews.length)
+      setPhase(phaseState)
+
+      const questionLookup = new Map(questionPool.map((q) => [q.id, q]))
+      const ctx = await buildCriterionContext(db, questionLookup)
+      if (cancelled) return
+      const result = evaluatePhaseCriteria(phaseState.criteria, ctx)
+      const metCount = result.evaluations.filter((e) => e.met && !e.insufficientData).length
+      setPhaseProgress(result.evaluations.length > 0 ? metCount / result.evaluations.length : null)
       setLoaded(true)
     }
     void load()
     return () => {
       cancelled = true
     }
-  }, [db])
+  }, [db, questionPool])
 
   async function handleStartQuest() {
-    const pack = await generateQuickPack(db, { duration, questions: questionPool })
+    const pack = await generateQuickPack(db, {
+      duration,
+      questions: questionPool,
+      phase: phase?.season,
+      listeningStage: phase?.listeningStage,
+    })
     const noEarphoneSetting = await db.settings.get(NO_EARPHONE_MODE_KEY)
     const filteredPack =
       noEarphoneSetting?.value === true
@@ -196,6 +216,25 @@ export function HomeScreen({ db, questionPool }: Props) {
       }
     >
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>BEB Raid</h1>
+      {phase && (
+        <div className="home-season" data-testid="home-season">
+          <p>{SEASON_LABELS[phase.season]}</p>
+          {phaseProgress !== null && (
+            <div
+              className="home-season-progress"
+              role="progressbar"
+              aria-valuenow={Math.round(phaseProgress * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="home-season-progress-bar"
+                style={{ width: `${Math.round(phaseProgress * 100)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
       <InstallHint />
       {loaded && <span data-testid="home-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>

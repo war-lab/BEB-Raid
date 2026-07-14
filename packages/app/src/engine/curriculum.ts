@@ -239,6 +239,13 @@ export const LISTENING_TRANSITION_CRITERIA: Record<1 | 2 | 3, PhaseCriteria> = {
   3: { all: [{ type: 'setAccuracy', min: 0.6, windowSets: 20 }] },
 }
 
+/** シーズンの表示名（03の1.2節。ホーム画面のシーズン表示に使う=T-54） */
+export const SEASON_LABELS: Record<PhaseSeason, string> = {
+  P1: 'シーズン1「土台」',
+  P2: 'シーズン2「型」',
+  P3: 'シーズン3「実戦」',
+}
+
 /** 現フェーズの「次へ進むための条件」を返す（表示・進捗バー用。P3はシーズンクリア条件） */
 export function criteriaForSeason(season: PhaseSeason): PhaseCriteria {
   if (season === 'P1') return PHASE_TRANSITION_CRITERIA.P1
