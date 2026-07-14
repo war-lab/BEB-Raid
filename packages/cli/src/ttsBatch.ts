@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path'
 import type { Question } from '@beb-raid/shared-schema'
 import type { GeneratedItemDraft } from './review.js'
 import { rotateAccent, type TtsProvider } from './tts.js'
+import { estimateWordTimings } from './timing.js'
 
 /** Part2のscript（"設問？ — 応答。"形式）を設問部分と応答部分に分割する */
 export function splitDialogueScript(script: string): [string, string] {
@@ -37,6 +38,9 @@ export interface TtsBatchResult {
  *   更新対象フィールドも無い）
  * - audio_qa: scriptを設問/応答に分割し、2話者（primary/secondary）で合成して1本のmp3に
  *   連結する。payload.audioMetaのvoice/durationMsを実測値に更新する
+ * - shadowing: scriptを1話者（primary）で合成する。payload.audioMetaを実測値に更新し、
+ *   さらにpayload.timing（単語開始ms配列）をT-46のestimateWordTimingsで実測durationMsから
+ *   算出して書き戻す（カラオケハイライト用。13の3.5節）
  * - それ以外（text_blank等）: 音声を持たないためスキップ（そのまま通す）
  *
  * アクセントは配列index（=元のドラフト内での出現順）でローテーションする
@@ -92,6 +96,33 @@ export async function synthesizeDraftsAudio(
             voice: result.voice,
             durationMs: result.durationMs,
           },
+        },
+      })
+      continue
+    }
+
+    if (payload.format === 'shadowing' && payload.audio && payload.script) {
+      const outputPath = join(audioRoot, payload.audio)
+      await mkdir(dirname(outputPath), { recursive: true })
+      const result = await provider.synthesize({
+        text: payload.script,
+        accent,
+        role: 'primary',
+        outputPath,
+      })
+      synthesized++
+      updatedDrafts.push({
+        ...draft,
+        payload: {
+          ...payload,
+          audioMeta: {
+            ...payload.audioMeta,
+            accent,
+            voice: result.voice,
+            durationMs: result.durationMs,
+          },
+          // timing（単語開始ms配列）はT-46の推定方式。実測durationMsから按分する
+          timing: estimateWordTimings(payload.script, result.durationMs),
         },
       })
       continue

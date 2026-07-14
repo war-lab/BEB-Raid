@@ -94,6 +94,26 @@ describe('synthesizeDraftsAudio', () => {
     }
   }
 
+  function shadowingDraft(id: string): GeneratedItemDraft {
+    return {
+      id,
+      kind: 'shadowing',
+      preview: '',
+      payload: {
+        id,
+        part: 3,
+        format: 'shadowing',
+        difficulty: 2,
+        tags: [],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/shadow/submit.mp3',
+        audioMeta: { accent: 'AU', tts: true, voice: 'pending-tts', durationMs: 0 },
+        script: 'Please submit the report by Friday.',
+        timing: null,
+      },
+    }
+  }
+
   function part5Draft(id: string): GeneratedItemDraft {
     return {
       id,
@@ -145,6 +165,32 @@ describe('synthesizeDraftsAudio', () => {
     // 生成時のプレースホルダaccent('AU')は実合成に使ったaccentで上書きされる
     expect(updated.audioMeta.accent).not.toBe('AU')
     expect(['US', 'UK']).toContain(updated.audioMeta.accent)
+  })
+
+  it('shadowingはscriptをprimaryで合成し、audioMetaとtiming（単語開始ms配列）を実測値から更新する', async () => {
+    const drafts = [shadowingDraft('shadow-submit')]
+    const result = await synthesizeDraftsAudio(drafts, fakeProvider, dir)
+
+    expect(result.synthesized).toBe(1)
+    expect(synthesizeCalls).toHaveLength(1)
+    expect(synthesizeCalls[0]?.text).toBe('Please submit the report by Friday.')
+    expect(synthesizeCalls[0]?.role).toBe('primary')
+    expect(synthesizeCalls[0]?.outputPath).toBe(join(dir, 'audio/shadow/submit.mp3'))
+
+    const updated = result.updatedDrafts[0]!.payload as {
+      audioMeta: { accent: string; voice: string; durationMs: number }
+      timing: number[]
+      script: string
+    }
+    expect(updated.audioMeta.voice).toBe('fake-voice')
+    expect(updated.audioMeta.durationMs).toBe(1234)
+    expect(['US', 'UK']).toContain(updated.audioMeta.accent)
+    expect(updated.timing).toHaveLength(updated.script.split(/\s+/).length)
+    expect(updated.timing[0]).toBe(0)
+    for (let i = 1; i < updated.timing.length; i++) {
+      expect(updated.timing[i]).toBeGreaterThanOrEqual(updated.timing[i - 1]!)
+    }
+    expect(updated.timing.at(-1)!).toBeLessThanOrEqual(1234)
   })
 
   it('text_blankは音声不要のためスキップする', async () => {
