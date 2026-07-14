@@ -54,6 +54,37 @@ class FakeAudioContext {
   }
 }
 
+/** HTMLAudioElement の最小フェイク（T-45: rate経路。jsdomのAudio再生は未実装のため差し替える） */
+class FakeAudioElement {
+  src = ''
+  playbackRate = 1
+  preservesPitch = false
+  currentTime = 0
+  /** HAVE_ENOUGH_DATA 相当。テストでは即座に再生開始できる状態を既定にする */
+  readyState = 4
+  onended: (() => void) | null = null
+  ontimeupdate: (() => void) | null = null
+  onloadedmetadata: (() => void) | null = null
+  playCalls = 0
+  pauseCalls = 0
+
+  async play(): Promise<void> {
+    this.playCalls += 1
+  }
+  pause(): void {
+    this.pauseCalls += 1
+  }
+  /** テストから再生完了を模擬する */
+  end(): void {
+    this.onended?.()
+  }
+  /** テストから timeupdate を模擬する（currentTime を進めてイベント発火） */
+  tick(currentTime: number): void {
+    this.currentTime = currentTime
+    this.ontimeupdate?.()
+  }
+}
+
 /** PackCache の最小フェイク */
 class FakePackCache implements PackCache {
   private readonly blobs = new Map<string, Blob>()
@@ -90,8 +121,19 @@ function createPlayer(durations: Record<string, number> = {}, { seedCache = true
     if (seedCache) packCache.setBlob(src, src)
   }
   const fetchAudio = vi.fn(async (src: string) => new Blob([src]))
-  const player = new WebAudioPlayer(packCache, () => ctx as unknown as AudioContext, fetchAudio)
-  return { player, ctx, packCache, fetchAudio }
+  const audioElements: FakeAudioElement[] = []
+  const createAudioElement = () => {
+    const el = new FakeAudioElement()
+    audioElements.push(el)
+    return el as unknown as HTMLAudioElement
+  }
+  const player = new WebAudioPlayer(
+    packCache,
+    () => ctx as unknown as AudioContext,
+    fetchAudio,
+    createAudioElement,
+  )
+  return { player, ctx, packCache, fetchAudio, audioElements }
 }
 
 describe('WebAudioPlayer', () => {
@@ -205,5 +247,148 @@ describe('WebAudioPlayer', () => {
 
     ctx.createdSources[0]!.end()
     await done
+  })
+})
+
+describe('WebAudioPlayer: onPosition（T-45・3.7節）', () => {
+  it('AudioBuffer経路で単調増加の再生位置を通知する', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const { player, ctx } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+    const onPosition = vi.fn()
+
+    const done = player.play('a.mp3', { onPosition })
+    await tick()
+
+    ctx.currentTime = 0.1
+    await vi.advanceTimersByTimeAsync(100)
+    ctx.currentTime = 0.2
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(onPosition.mock.calls.map((c) => c[0])).toEqual([100, 200])
+
+    ctx.createdSources[0]!.end()
+    await done
+    vi.useRealTimers()
+  })
+
+  it('停止すると位置通知タイマーも止まる', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const { player, ctx } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+    const onPosition = vi.fn()
+
+    const done = player.play('a.mp3', { onPosition })
+    await tick()
+    player.stop()
+    await done
+
+    onPosition.mockClear()
+    await vi.advanceTimersByTimeAsync(500)
+    expect(onPosition).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+})
+
+describe('WebAudioPlayer: rate（T-45・J-27・3.7節）', () => {
+  it('rate指定時は HTMLAudioElement 経路が選ばれ、playbackRate/preservesPitch が設定される', async () => {
+    const { player, ctx, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3', { rate: 0.85 })
+    await tick()
+
+    expect(ctx.createdSources.length).toBe(0) // AudioBufferSourceNode経路は使われない
+    expect(audioElements.length).toBe(1)
+    expect(audioElements[0]!.playbackRate).toBe(0.85)
+    expect(audioElements[0]!.preservesPitch).toBe(true)
+    expect(audioElements[0]!.playCalls).toBe(1)
+
+    audioElements[0]!.end()
+    await done
+  })
+
+  it('rateが1のときはAudioBufferSourceNode経路のまま（HTMLAudioElementは使わない）', async () => {
+    const { player, ctx, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3', { rate: 1 })
+    await tick()
+    expect(ctx.createdSources.length).toBe(1)
+    expect(audioElements.length).toBe(0)
+
+    ctx.createdSources[0]!.end()
+    await done
+  })
+
+  it('rate経路でも startMs（再生開始位置）と durationMs（部分再生の長さ）が機能する', async () => {
+    const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+
+    const done = player.play('a.mp3', { rate: 1.3, startMs: 1000, durationMs: 500 })
+    await tick()
+
+    const audio = audioElements[0]!
+    expect(audio.currentTime).toBeCloseTo(1)
+
+    audio.tick(1.5) // startSec(1) + durationSec(0.5) に到達
+    await done
+    expect(audio.pauseCalls).toBe(1)
+  })
+
+  it('stop で rate経路の再生を打ち切り、play の Promise は解決する', async () => {
+    const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+
+    const done = player.play('a.mp3', { rate: 0.85 })
+    await tick()
+
+    player.stop()
+    await expect(done).resolves.toBeUndefined()
+    expect(audioElements[0]!.pauseCalls).toBeGreaterThanOrEqual(1)
+  })
+
+  it('replay は rate経路でも直前の再生をもう一度行う', async () => {
+    const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+
+    const first = player.play('a.mp3', { rate: 0.85 })
+    await tick()
+    audioElements[0]!.end()
+    await first
+
+    const second = player.replay()
+    await tick()
+    expect(audioElements.length).toBe(2)
+    expect(audioElements[1]!.playbackRate).toBe(0.85)
+
+    audioElements[1]!.end()
+    await second
+  })
+
+  it('rate経路でも onPosition が通知される（シャドーイングのカラオケハイライト用途）', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    const onPosition = vi.fn()
+
+    const done = player.play('a.mp3', { rate: 1.15, onPosition })
+    await tick()
+    const audio = audioElements[0]!
+
+    audio.currentTime = 0.1
+    await vi.advanceTimersByTimeAsync(100)
+    audio.currentTime = 0.2
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(onPosition.mock.calls.map((c) => c[0])).toEqual([100, 200])
+
+    audio.end()
+    await done
+    vi.useRealTimers()
   })
 })

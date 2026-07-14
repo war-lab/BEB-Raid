@@ -10,7 +10,7 @@ export interface PlayOptions {
   /** 再生継続時間（ミリ秒）。指定時はこの長さで停止する */
   durationMs?: number
   /**
-   * 再生速度（0.7〜1.3想定）。M2で本実装（T-45。13の3.7節）。
+   * 再生速度（0.7〜1.3想定）。T-45でWebAudioPlayerに本実装済み（13の3.7節）。
    * rate!==1.0 のときのみ HTMLAudioElement 経路（playbackRate + preservesPitch）を使う
    * （AudioBufferSourceNode.playbackRate はピッチが変わるため使わない=J-27）。
    * preservesPitch 未対応環境ではピッチが変化しうる（UIに注記を出す）
