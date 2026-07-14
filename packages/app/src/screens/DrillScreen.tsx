@@ -5,7 +5,9 @@
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
 import { useEffect, useMemo, useState } from 'react'
+import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
+import { computeSetResult } from '../engine/audioSet'
 import { buildWordBank, judgeDictation } from '../engine/dictation'
 import { processWrongAnswer } from '../engine/keyVocab'
 import { formatQuickPackReason } from '../engine/reason'
@@ -15,7 +17,8 @@ import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
-import { answerCurrentQuestion } from '../services/session'
+import { recordAttempt } from '../services/attempts'
+import { advanceSession, answerCurrentQuestion } from '../services/session'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -52,6 +55,18 @@ const PARTIAL_AUDIO_DURATION_MS = 2500
 // （イベントハンドラ内の呼び出しも静的解析では判別されない）、別関数越しに呼ぶ
 function now(): number {
   return Date.now()
+}
+
+/**
+ * audio_set: サブ設問のtagStats集計用に、subQuestion.id→（親のtags等を持つ疑似Question）を
+ * 補った解決表を作る（SubQuestion型はtags/keyVocabを持たないため。3.6節）
+ */
+function withSubQuestionLookup(parent: Question, base: QuestionLookup): QuestionLookup {
+  const map = new Map(base)
+  for (const sq of parent.subQuestions ?? []) {
+    map.set(sq.id, { ...parent, id: sq.id })
+  }
+  return map
 }
 
 /** dictation: script を空白区切りでトークン化し、穴の位置を埋めた語 or `___` に差し替えて表示する */
@@ -97,6 +112,9 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   // dictation 専用（M2・T-47）: blank.index → ワードバンクの語インデックス
   const [blankFillsByIndex, setBlankFillsByIndex] = useState<Map<number, number>>(new Map())
   const [dictationRate, setDictationRate] = useState<0.85 | 1>(1)
+  // audio_set 専用（M2・T-49）: セット内で今どの設問か・各設問の正誤（セット正解判定に使う）
+  const [subQuestionIndex, setSubQuestionIndex] = useState(0)
+  const [subQuestionResults, setSubQuestionResults] = useState<boolean[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -114,10 +132,19 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   const question = item ? questions.get(item.questionId) : undefined
   const isAudioQa = question?.format === 'audio_qa'
   const isDictation = question?.format === 'dictation'
-  // dictation も audio_qa と同じ「タップして開始」ゲートを使う（音声前提のformat）。
+  const isAudioSet = question?.format === 'audio_set'
+  // dictation・audio_set も audio_qa と同じ「タップして開始」ゲートを使う（音声前提のformat）。
   // 15秒タイマー（isCountingDown）はaudio_qa固有のため対象外
-  const needsAudioGate = isAudioQa || isDictation
+  const needsAudioGate = isAudioQa || isDictation || isAudioSet
   const isVocabCard = question?.format === 'vocab_card'
+  const currentSubQuestion = isAudioSet
+    ? (question?.subQuestions ?? [])[subQuestionIndex]
+    : undefined
+  const subQuestionLookup = useMemo(
+    () => (isAudioSet && question ? withSubQuestionLookup(question, questions) : questions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isAudioSet, question?.id],
+  )
 
   // 4択はカードが変わるたびに1回だけ組み立てる（VocabScreenと同じ設計。questionsは
   // セッション対象に限らずロード済み全パックを持つため、十分な数のダミー候補が引ける）
@@ -136,7 +163,8 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   )
   const sortedBlanks = useMemo(
     () => [...(question?.blanks ?? [])].sort((a, b) => a.index - b.index),
-    [question?.blanks],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isDictation, question?.id],
   )
   const usedBankIndices = new Set(blankFillsByIndex.values())
   const allBlanksFilled =
@@ -166,6 +194,8 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   // タイマーが0に達したら自動的にタイムアウト（誤答）として確定する
   useEffect(() => {
     if (remainingSec === 0 && !result) {
+      // finalizeAnswer は関数宣言（hoisted）のため、この時点で呼び出して問題ない
+      // eslint-disable-next-line react-hooks/immutability
       void finalizeAnswer(null, false, true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,6 +251,68 @@ export function DrillScreen({ db, audioPlayer }: Props) {
   function handleSelect(choiceKey: string) {
     if (needsAudioGate && playState !== 'played') return
     void finalizeAnswer(choiceKey, choiceKey === question!.answer, false)
+  }
+
+  /**
+   * audio_set: サブ設問1問の解答を確定する（3.6節）。attemptsは
+   * subQuestion.id単位で記録し、tagStats・レート更新は通常どおり（選択式）。
+   * SRSレビューはセット完了時に1回だけ行う（finalizeSetCompletion）
+   */
+  async function finalizeSubQuestionAnswer(choiceKey: string) {
+    if (result || !question || !item || !currentSubQuestion) return
+    const isCorrect = choiceKey === currentSubQuestion.answer
+    const responseMs = now() - startedAt
+    setResult({ selectedKey: choiceKey, isCorrect, isTimeout: false })
+    setStreak((s) => (isCorrect ? s + 1 : 0))
+
+    await recordAttempt(db, {
+      questionId: currentSubQuestion.id,
+      mode: item.mode,
+      isCorrect,
+      responseMs,
+    })
+    if (!isCorrect) {
+      await processWrongAnswer(db, question)
+    }
+    await updateTagStatsForAnswer(db, currentSubQuestion.id, subQuestionLookup)
+    const ratingUpdate = await applyRatingUpdate(db, {
+      part: question.part,
+      difficulty: question.difficulty,
+      isCorrect,
+      mode: item.mode,
+    })
+    setSubQuestionResults((prev) => [...prev, isCorrect])
+    recordAnswer(snapshot, {
+      questionId: currentSubQuestion.id,
+      isCorrect,
+      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+    })
+  }
+
+  function handleSelectSubQuestion(choiceKey: string) {
+    if (playState !== 'played') return
+    void finalizeSubQuestionAnswer(choiceKey)
+  }
+
+  /** audio_set: 次の設問へ、または（最終設問なら）セット完了→次のitemへ進める */
+  async function advanceSubQuestion() {
+    const subQuestions = question?.subQuestions ?? []
+    if (subQuestionIndex + 1 < subQuestions.length) {
+      setSubQuestionIndex((i) => i + 1)
+      setResult(null)
+      setStartedAt(now())
+      return
+    }
+    // セット完了: セット正解判定→SRSレビュー（該当すれば1回のみ）→次itemへ
+    if (item?.srsCardId) {
+      const setResult = computeSetResult(question!.id, subQuestionResults)
+      await reviewSrsCard(db, item.srsCardId, setResult.isSetCorrect ? 'good' : 'again')
+    }
+    const nextSnapshot = await advanceSession(db, snapshot!)
+    // 各サブ設問は既に個別にrecordAnswer済みのため、ここではresultsを追加せず
+    // snapshot参照だけを進める（recordAnswerを使うとresultsへ重複エントリが増える）
+    useSessionStore.setState({ snapshot: nextSnapshot })
+    advanceToNext()
   }
 
   async function handlePlayStart() {
@@ -298,6 +390,8 @@ export function DrillScreen({ db, audioPlayer }: Props) {
     setBlankFillsByIndex(new Map())
     setDictationRate(1)
     setSelectedChoiceKey(null)
+    setSubQuestionIndex(0)
+    setSubQuestionResults([])
     setStartedAt(now())
   }
 
@@ -469,6 +563,7 @@ export function DrillScreen({ db, audioPlayer }: Props) {
           )}
           {!isVocabCard &&
             !isDictation &&
+            !isAudioSet &&
             choicesInteractive &&
             (question.choices ?? []).map((choice) => {
               let state: ChoiceState = 'idle'
@@ -489,7 +584,46 @@ export function DrillScreen({ db, audioPlayer }: Props) {
                 </ChoiceButton>
               )
             })}
-          {!isVocabCard && result && (
+          {isAudioSet &&
+            playState === 'played' &&
+            currentSubQuestion &&
+            (currentSubQuestion.choices ?? []).map((choice) => {
+              let state: ChoiceState = 'idle'
+              if (result) {
+                if (choice.key === currentSubQuestion.answer) state = 'correct'
+                else if (choice.key === result.selectedKey) state = 'wrong'
+                else state = 'dimmed'
+              }
+              return (
+                <ChoiceButton
+                  key={choice.key}
+                  marker={choice.key}
+                  state={state}
+                  disabled={result !== null}
+                  onClick={() => handleSelectSubQuestion(choice.key)}
+                >
+                  {choice.text}
+                </ChoiceButton>
+              )
+            })}
+          {isAudioSet && result && currentSubQuestion && (
+            <>
+              <ExplanationCard
+                question={{
+                  ...question,
+                  explanation: currentSubQuestion.explanation,
+                  translation: currentSubQuestion.translation,
+                }}
+                isCorrect={result.isCorrect}
+              />
+              <PrimaryButton onClick={() => void advanceSubQuestion()}>
+                {subQuestionIndex + 1 < (question.subQuestions ?? []).length
+                  ? '次の設問へ'
+                  : '次へ'}
+              </PrimaryButton>
+            </>
+          )}
+          {!isVocabCard && !isAudioSet && result && (
             <>
               {result.isTimeout && <p>時間切れ</p>}
               <ExplanationCard question={question} isCorrect={result.isCorrect} />
@@ -528,6 +662,14 @@ export function DrillScreen({ db, audioPlayer }: Props) {
               : playState === 'playing'
                 ? '再生中…'
                 : '音声を聞いて空欄を埋めてください'}
+        </p>
+      ) : isAudioSet ? (
+        <p className="question-text">
+          {playState === 'played'
+            ? (currentSubQuestion?.question ?? '')
+            : playState === 'playing'
+              ? '再生中…'
+              : '音声を聞いて解答してください'}
         </p>
       ) : question.format === 'audio_qa' ? (
         <p className="question-text">

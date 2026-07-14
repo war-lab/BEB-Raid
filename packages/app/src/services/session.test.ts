@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import {
+  advanceSession,
   answerCurrentQuestion,
   completeSession,
   currentItem,
@@ -172,5 +173,30 @@ describe('中断復帰（02の2.1節: 電車を降りる瞬間に離脱しても
       },
     })
     expect(await resumeSession(db)).toBeNull()
+  })
+})
+
+describe('advanceSession（M2・T-49: audio_setのセット完了後にattempts無しで進める）', () => {
+  it('attemptsを書かずにanswered Countだけ進む', async () => {
+    const db = newDb()
+    let s = await startSession(db, { items: items() })
+    s = await advanceSession(db, s)
+    expect(s.answeredCount).toBe(1)
+    expect(currentItem(s)?.questionId).toBe('q-2')
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('全問解答済みのセッションを進めようとするとエラー', async () => {
+    const db = newDb()
+    let s = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    s = await advanceSession(db, s)
+    await expect(advanceSession(db, s)).rejects.toThrow()
+  })
+
+  it('古いスナップショットからの呼び出しは拒否される（二重進行防止）', async () => {
+    const db = newDb()
+    const s = await startSession(db, { items: items() })
+    await advanceSession(db, s)
+    await expect(advanceSession(db, s)).rejects.toThrow()
   })
 })

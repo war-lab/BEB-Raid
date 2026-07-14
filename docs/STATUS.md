@@ -171,6 +171,7 @@ major 指摘のうち3件（ストリーク時計巻き戻しの二重加算・a
 | T-54 | ホームのカリキュラム駆動化 | ✅ 完了（HomeScreenにシーズン表示＋達成条件進捗バー追加、今日のクエストにphase/listeningStageを結線。ResultScreenでセッション完了時にevaluateAndPersistPhaseTransitionを呼び、移行/シーズンクリア/L段階進行の演出を表示。フェーズ評価失敗時は演出を出さない安全側フォールバック。**S-B1（M2完了条件の核）完了**） | 2026-07-14 |
 | T-53 | 予測スコア・到達予測 | ✅ 完了（engine/forecast.ts=予測TOEIC±50帯・28日回帰による到達予測=measuring/onTrack/behindの判別union、不足量は「学習日あたり平均上昇」から週の増加日数へ換算。DashboardScreenにヒーロー数値・到達予測文言（断定表現なし・参考値注記）・実試験スコア登録フォーム/一覧（予測帯との差を併記）を追加。LineChartに予測帯（violet低透明度+破線）のオプション描画を追加=既存後方互換） | 2026-07-14 |
 | T-47 | ディクテーション | ✅ 完了（engine/dictation.ts=ワードバンク生成(正解語+ダミー計6語)・全穴一致判定(部分点なし)。engine/dictationDistractors.ts=弱形混同語の静的フォールバックプール。DrillScreenにdictation分岐追加（タップ開始→0.85x/等倍チップ→再生→穴埋め→確定→正誤・解説）。レート更新は対象外(J-29)・tagStatsは更新。既存18テスト無修正で通過、新規テスト13件追加） | 2026-07-14 |
+| T-49 | Part3/4セット出題 | ✅ 完了（DrillScreenにaudio_set分岐追加=タップ開始→設問1問ずつ解答→次の設問へ/次へ。attemptsはsubQuestion.id単位で記録=recordAttempt直接呼出。tagStats/レート更新は通常どおり（親のtags/part/difficultyを使う疑似lookup=withSubQuestionLookup）。SRSレビューはセット完了時に1回のみ（engine/audioSet.ts=computeSetResultで2/3以上正解判定）。services/session.tsにadvanceSession追加=attempts無しでスナップショットだけ進める新規関数（既存answerCurrentQuestion等は無改修）。全体テスト317件合格） | 2026-07-14 |
 
 **運用特例（本ラン限り。発起人承認済み）**: F7契約改訂（T-41〜T-44）は単独PRを作らずdevへ直接コミットする（1人開発のため09の単独PR規定を免除）。各タスクは独立コミットとし、コミットメッセージに契約ID（C-1等）を明記する。
 
