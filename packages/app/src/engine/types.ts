@@ -134,6 +134,14 @@ export interface QuickPackRequest {
   now?: number
   /** 重み付き抽選の乱数源（テストでは固定シード関数を注入する）。省略時は Math.random */
   rng?: () => number
+  /**
+   * M2（T-52）: 現フェーズ。省略時はM1挙動（quickPackConfig.jsonの固定配分）に
+   * フォールバックする後方互換オプション（13の3.2節）。T-44でPhaseCriteria等を追加した
+   * C-4改訂に続く、T-52での軽微な追記（既存フィールドの変更なし・完全にオプショナル）
+   */
+  phase?: PhaseSeason
+  /** M2（T-52）: 現リスニング段階。phase指定時のみ使う。省略時は1（L1） */
+  listeningStage?: ListeningStage
 }
 
 /** 生成されたクイックパック */

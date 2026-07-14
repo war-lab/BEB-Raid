@@ -10,7 +10,14 @@
 import type { Question } from '@beb-raid/shared-schema'
 import type { QuickPack, QuickPackItem } from './types'
 
-const LISTENING_FORMATS = new Set(['audio_qa', 'audio_photo', 'audio_set'])
+// M2・T-52で dictation/shadowing を追加（音声前提のformatはすべてリスニング扱い）
+const LISTENING_FORMATS = new Set([
+  'audio_qa',
+  'audio_photo',
+  'audio_set',
+  'dictation',
+  'shadowing',
+])
 
 function isListening(question: Question | undefined): boolean {
   return question !== undefined && LISTENING_FORMATS.has(question.format)

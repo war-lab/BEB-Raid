@@ -108,3 +108,32 @@ describe('applyNoEarphoneFilter', () => {
     expect(questions.get(filtered.items[0]!.questionId!)!.format).toBe('text_blank')
   })
 })
+
+describe('applyNoEarphoneFilter: M2新規リスニングformat（T-52）', () => {
+  function dictationQuestion(id: string): Question {
+    return { id, part: 2, format: 'dictation', difficulty: 2, tags: [], keyVocab: [] }
+  }
+  function shadowingQuestion(id: string): Question {
+    return { id, part: 3, format: 'shadowing', difficulty: 2, tags: [], keyVocab: [] }
+  }
+
+  it('dictation問題も差し替え対象になる', () => {
+    const pack: QuickPack = { duration: 7, items: [drillItem('dict-1')], srsOverflow: 0 }
+    const questions = new Map<string, Question>([
+      ['dict-1', dictationQuestion('dict-1')],
+      ['p5-1', textQuestion('p5-1')],
+    ])
+    const filtered = applyNoEarphoneFilter(pack, questions)
+    expect(questions.get(filtered.items[0]!.questionId!)!.format).toBe('text_blank')
+  })
+
+  it('shadowing問題も差し替え対象になる', () => {
+    const pack: QuickPack = { duration: 7, items: [drillItem('shadow-1')], srsOverflow: 0 }
+    const questions = new Map<string, Question>([
+      ['shadow-1', shadowingQuestion('shadow-1')],
+      ['p5-1', textQuestion('p5-1')],
+    ])
+    const filtered = applyNoEarphoneFilter(pack, questions)
+    expect(questions.get(filtered.items[0]!.questionId!)!.format).toBe('text_blank')
+  })
+})
