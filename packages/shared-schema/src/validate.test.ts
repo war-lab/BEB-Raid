@@ -318,3 +318,210 @@ describe('validatePack: 構造エラー', () => {
     )
   })
 })
+
+describe('validatePack: M2 format検証強化（T-41=C-1改訂）', () => {
+  it('audio_photo で image 欠落を拒否する', () => {
+    const pack = docsSamplePack()
+    pack.questions = [{ ...firstQuestion(pack), format: 'audio_photo', part: 1, image: null }]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].image', code: 'missing_field' }),
+    )
+  })
+
+  it('audio_photo で image ありなら通る', () => {
+    const pack = docsSamplePack()
+    pack.questions = [
+      { ...firstQuestion(pack), format: 'audio_photo', part: 1, image: 'images/q-0001.jpg' },
+    ]
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('vocab_card の levelBand が enum 外なら拒否する', () => {
+    const pack = docsSamplePack()
+    pack.questions.push({ ...vocabCard(), levelBand: 700 })
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[1].levelBand', code: 'invalid_value' }),
+    )
+  })
+
+  it('vocab_card の levelBand が600/730/860/990のいずれかなら通る', () => {
+    const pack = docsSamplePack()
+    pack.questions.push({ ...vocabCard(), levelBand: 730 })
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('dictation の blanks.index が script の語数以上なら拒否する', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'dictation',
+        script: 'Please submit the report today', // 5語
+        blanks: [{ index: 10, answer: 'submit' }],
+        choices: null,
+        answer: null,
+      },
+    ]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].blanks[0].index', code: 'invalid_value' }),
+    )
+  })
+
+  it('dictation の blanks.answer が script の該当語と一致しなければ拒否する', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'dictation',
+        script: 'Please submit the report today',
+        blanks: [{ index: 1, answer: 'send' }], // 該当語は submit
+        choices: null,
+        answer: null,
+      },
+    ]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].blanks[0].answer', code: 'invalid_value' }),
+    )
+  })
+
+  it('dictation の blanks.answer が大文字小文字・句読点違いでも一致すれば通る', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'dictation',
+        script: 'Please submit the report, today.',
+        blanks: [{ index: 4, answer: 'Today' }], // 該当語は today.（句読点付き）
+        choices: null,
+        answer: null,
+      },
+    ]
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('shadowing の timing が単調増加でなければ拒否する', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'shadowing',
+        script: 'Please submit the report',
+        timing: [0, 500, 300, 900],
+        choices: null,
+        answer: null,
+      },
+    ]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].timing', code: 'invalid_value' }),
+    )
+  })
+
+  it('shadowing の timing 要素数が script の語数と一致しなければ拒否する', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'shadowing',
+        script: 'Please submit the report',
+        timing: [0, 500, 900], // 3個だが語数は4
+        choices: null,
+        answer: null,
+      },
+    ]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].timing', code: 'invalid_value' }),
+    )
+  })
+
+  it('shadowing の timing が単調増加かつ語数一致なら通る', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'shadowing',
+        script: 'Please submit the report',
+        timing: [0, 300, 700, 1100],
+        choices: null,
+        answer: null,
+      },
+    ]
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('audio_set の subQuestions が5件を超えたら拒否する', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'audio_set',
+        part: 3,
+        choices: null,
+        answer: null,
+        subQuestions: Array.from({ length: 6 }, (_, i) => ({
+          id: `q-0001-${i}`,
+          question: `設問${i}`,
+          choices: [
+            { key: 'A', text: 'a' },
+            { key: 'B', text: 'b' },
+          ],
+          answer: 'A',
+        })),
+      },
+    ]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].subQuestions', code: 'invalid_value' }),
+    )
+  })
+
+  it('audio_set の subQuestions.id がパック内で重複したら拒否する', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'audio_set',
+        part: 3,
+        choices: null,
+        answer: null,
+        subQuestions: [
+          {
+            id: 'dup-id',
+            question: '設問1',
+            choices: [
+              { key: 'A', text: 'a' },
+              { key: 'B', text: 'b' },
+            ],
+            answer: 'A',
+          },
+          {
+            id: 'dup-id',
+            question: '設問2',
+            choices: [
+              { key: 'A', text: 'a' },
+              { key: 'B', text: 'b' },
+            ],
+            answer: 'A',
+          },
+        ],
+      },
+    ]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].subQuestions[1].id', code: 'invalid_value' }),
+    )
+  })
+})
