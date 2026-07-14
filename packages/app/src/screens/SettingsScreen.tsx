@@ -1,20 +1,32 @@
 // S9 設定画面（T-23。正本: docs/10 T-23行、docs/02 2.2節、docs/04 6節、docs/07 7節S9）。
 // 表示名・イヤホンなしモード・テーマ切替・文字サイズ・キャッシュ使用量・
 // エクスポート/インポートの「標準的なリスト」画面（07: デザイン投資は最小でよい）。
-// BYOKのAPIキー欄はM2のため置かない（実装指示5。docs/07表のS9説明とは範囲が異なる）。
+// BYOKのAPIキー欄・モデル欄はM2・T-55で追加（05の5節: 平文端末内保存・支出上限推奨の注記必須）。
 import { useEffect, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import type { FontSizeScale } from '../fontSize'
 import { getFontSizeScale, setFontSizeScale } from '../fontSize'
+import { DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
 import type { CacheUsage, PackCache } from '../platform'
 import { exportAll, importAll } from '../services/backup'
-import { FONT_SIZE_KEY, NO_EARPHONE_MODE_KEY, THEME_PREFERENCE_KEY } from '../services/settingsKeys'
+import {
+  BYOK_API_KEY_KEY,
+  BYOK_MODEL_KEY,
+  FONT_SIZE_KEY,
+  NO_EARPHONE_MODE_KEY,
+  THEME_PREFERENCE_KEY,
+} from '../services/settingsKeys'
 import type { Theme } from '../theme'
 import { setTheme } from '../theme'
 import { useAppStore } from '../store/appStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+
+/** 保存済みキーのマスク表示（末尾4桁のみ見せる。05の5節） */
+function maskApiKey(key: string): string {
+  return `sk-***...${key.slice(-4)}`
+}
 
 interface Props {
   db: BebRaidDatabase
@@ -47,16 +59,31 @@ export function SettingsScreen({ db, packCache }: Props) {
   const [cacheUsage, setCacheUsage] = useState<CacheUsage | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
+  // BYOK APIキー（T-55）: 保存済みキーの実値（マスク表示の元。画面外へは出さない）
+  const [apiKey, setApiKey] = useState<string | null>(null)
+  const [editingApiKey, setEditingApiKey] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [byokModel, setByokModel] = useState('')
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const [profile, earphoneSetting, themeSetting, fontSetting, usage] = await Promise.all([
+      const [
+        profile,
+        earphoneSetting,
+        themeSetting,
+        fontSetting,
+        usage,
+        apiKeySetting,
+        modelSetting,
+      ] = await Promise.all([
         db.profile.get(PROFILE_ID),
         db.settings.get(NO_EARPHONE_MODE_KEY),
         db.settings.get(THEME_PREFERENCE_KEY),
         db.settings.get(FONT_SIZE_KEY),
         packCache.usage(),
+        db.settings.get(BYOK_API_KEY_KEY),
+        db.settings.get(BYOK_MODEL_KEY),
       ])
       if (cancelled) return
       if (profile) setDisplayName(profile.displayName)
@@ -68,6 +95,8 @@ export function SettingsScreen({ db, packCache }: Props) {
       setFontSizeState(font)
       setFontSizeScale(font)
       setCacheUsage(usage)
+      setApiKey((apiKeySetting?.value as string | undefined) ?? null)
+      setByokModel((modelSetting?.value as string | undefined) ?? DEFAULT_BYOK_MODEL)
       setLoaded(true)
     }
     void load()
@@ -121,6 +150,26 @@ export function SettingsScreen({ db, packCache }: Props) {
     anchor.download = `beb-raid-backup-${date}.json`
     anchor.click()
     URL.revokeObjectURL(url)
+  }
+
+  async function handleSaveApiKey() {
+    const trimmed = apiKeyInput.trim()
+    if (trimmed === '') return
+    await db.settings.put({ key: BYOK_API_KEY_KEY, value: trimmed })
+    setApiKey(trimmed)
+    setApiKeyInput('')
+    setEditingApiKey(false)
+  }
+
+  async function handleDeleteApiKey() {
+    await db.settings.delete(BYOK_API_KEY_KEY)
+    setApiKey(null)
+    setEditingApiKey(false)
+  }
+
+  async function handleByokModelChange(value: string) {
+    setByokModel(value)
+    await db.settings.put({ key: BYOK_MODEL_KEY, value })
   }
 
   async function handleImportFile(file: File) {
@@ -201,6 +250,51 @@ export function SettingsScreen({ db, packCache }: Props) {
         <button type="button" onClick={() => void handleClearCache()}>
           キャッシュを削除
         </button>
+      </section>
+
+      <section>
+        <p>AIに聞く（BYOK）</p>
+        <p className="settings-byok-note">キーは端末内に平文保存され、端末外には送信されません。</p>
+        <p className="settings-byok-note">支出上限を設定したAPIキーの利用を推奨します。</p>
+        {apiKey !== null && !editingApiKey ? (
+          <>
+            <p>{maskApiKey(apiKey)}</p>
+            <button type="button" onClick={() => setEditingApiKey(true)}>
+              変更
+            </button>
+            <button type="button" onClick={() => void handleDeleteApiKey()}>
+              削除
+            </button>
+          </>
+        ) : (
+          <>
+            <label>
+              APIキー
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="sk-..."
+              />
+            </label>
+            <button type="button" onClick={() => void handleSaveApiKey()}>
+              保存
+            </button>
+            {apiKey !== null && (
+              <button type="button" onClick={() => setEditingApiKey(false)}>
+                キャンセル
+              </button>
+            )}
+          </>
+        )}
+        <label>
+          モデル
+          <input
+            value={byokModel}
+            onChange={(e) => void handleByokModelChange(e.target.value)}
+            placeholder={DEFAULT_BYOK_MODEL}
+          />
+        </label>
       </section>
 
       <section>

@@ -510,6 +510,12 @@
   cursor: pointer;
 }
 
+/* --- S9 BYOK設定の注記（M2・T-55。05の5節: 平文保存・支出上限推奨） --- */
+.settings-byok-note {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+
 /* --- S4シャドーイング（M2・T-48。--listenアクセント=07 6節/7節S4） --- */
 .shadowing-accent-line {
   height: 3px;
