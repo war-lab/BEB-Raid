@@ -13,6 +13,8 @@
 // 追加する場合は該当語の rankSource を 'mixed' に更新し、meta.corpus に出典・
 // ライセンスを記録する想定。
 
+import { WORDS_A } from './data/freqListWordsA.js'
+import { WORDS_B } from './data/freqListWordsB.js'
 import { WORDS_S, type FreqListWordEntry } from './data/freqListWordsS.js'
 
 /** 'corpus'=公開コーパスのみ、'llm'=LLM推定のみ、'mixed'=両者を合成 */
@@ -38,9 +40,9 @@ const NOTE =
   '（08の2節「LLM生成全振りで進行可」の規定に従った）。corpusSource/corpusLicenseはnull。' +
   '将来コーパスを追加する場合はrankSourceを更新すること。'
 
-export { WORDS_S }
+export { WORDS_A, WORDS_B, WORDS_S }
 
-/** 頻出度リストを組み立てる（メタデータ＋単語一覧） */
+/** 頻出度リストを組み立てる（メタデータ＋単語一覧。M2・T-58でA/B各200語を追加=600語） */
 export function buildFreqList(generatedAt: string): FreqList {
   return {
     meta: {
@@ -51,16 +53,18 @@ export function buildFreqList(generatedAt: string): FreqList {
       disclaimer: DISCLAIMER,
       note: NOTE,
     },
-    words: WORDS_S,
+    words: [...WORDS_S, ...WORDS_A, ...WORDS_B],
   }
 }
 
-/** 完了条件の機械検証: Sランク200語・重複なし・根拠が空でないこと */
+/** 完了条件の機械検証: S/A/B各200語（計600語）・重複なし・根拠が空でないこと（M2・T-58） */
 export function validateFreqList(list: FreqList): string[] {
   const problems: string[] = []
-  const sWords = list.words.filter((w) => w.freqRank === 'S')
-  if (sWords.length !== 200) {
-    problems.push(`Sランクは200語である必要がある（実際: ${sWords.length}）`)
+  for (const rank of ['S', 'A', 'B'] as const) {
+    const count = list.words.filter((w) => w.freqRank === rank).length
+    if (count !== 200) {
+      problems.push(`${rank}ランクは200語である必要がある（実際: ${count}）`)
+    }
   }
   const seen = new Set<string>()
   for (const w of list.words) {

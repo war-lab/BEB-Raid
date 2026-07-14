@@ -2,14 +2,25 @@
 // - S200語がランク根拠付きで組み立てられる
 // - 出典コーパス不使用（corpusSource/corpusLicense=null）の免責事項がmetaに記録される
 // - 重複語・根拠欠落を検出できる
+// M2・T-58 完了条件のテスト（A/B各200語拡充）:
+// - S/A/B計600語が組み立てられ、重複なし・全語根拠付きであること
 import { describe, expect, it } from 'vitest'
-import { buildFreqList, validateFreqList, WORDS_S, type FreqList } from './freqList.js'
+import {
+  buildFreqList,
+  validateFreqList,
+  WORDS_A,
+  WORDS_B,
+  WORDS_S,
+  type FreqList,
+} from './freqList.js'
 
 describe('buildFreqList', () => {
-  it('S200語とmeta（免責事項・コーパス不使用の記録）を組み立てる', () => {
+  it('S/A/B計600語とmeta（免責事項・コーパス不使用の記録）を組み立てる', () => {
     const list = buildFreqList('2026-07-10')
-    expect(list.words).toHaveLength(200)
-    expect(list.words.every((w) => w.freqRank === 'S')).toBe(true)
+    expect(list.words).toHaveLength(600)
+    expect(list.words.filter((w) => w.freqRank === 'S')).toHaveLength(200)
+    expect(list.words.filter((w) => w.freqRank === 'A')).toHaveLength(200)
+    expect(list.words.filter((w) => w.freqRank === 'B')).toHaveLength(200)
     expect(list.words.every((w) => w.rankSource === 'llm')).toBe(true)
     expect(list.meta.corpusSource).toBeNull()
     expect(list.meta.corpusLicense).toBeNull()
@@ -18,15 +29,26 @@ describe('buildFreqList', () => {
   })
 })
 
-describe('WORDS_S（データ本体）', () => {
+describe.each([
+  ['WORDS_S', WORDS_S],
+  ['WORDS_A', WORDS_A],
+  ['WORDS_B', WORDS_B],
+])('%s（データ本体）', (_name, words) => {
   it('200語すべてに空でない根拠(rationale)がある', () => {
-    expect(WORDS_S).toHaveLength(200)
-    expect(WORDS_S.every((w) => w.rationale.trim() !== '')).toBe(true)
+    expect(words).toHaveLength(200)
+    expect(words.every((w) => w.rationale.trim() !== '')).toBe(true)
   })
 
   it('単語が重複しない', () => {
-    const words = WORDS_S.map((w) => w.word.toLowerCase())
-    expect(new Set(words).size).toBe(words.length)
+    const lower = words.map((w) => w.word.toLowerCase())
+    expect(new Set(lower).size).toBe(lower.length)
+  })
+})
+
+describe('WORDS_S/A/B間で単語が重複しない（M2・T-58）', () => {
+  it('S・A・B・全体を通して重複語が無い', () => {
+    const all = [...WORDS_S, ...WORDS_A, ...WORDS_B].map((w) => w.word.toLowerCase())
+    expect(new Set(all).size).toBe(all.length)
   })
 })
 
@@ -35,11 +57,11 @@ describe('validateFreqList', () => {
     expect(validateFreqList(buildFreqList('2026-07-10'))).toEqual([])
   })
 
-  it('S以外を混ぜてSランクが200語未満になると検出する', () => {
+  it('いずれかのランクが200語未満になると検出する', () => {
     const list = buildFreqList('2026-07-10')
     const tampered: FreqList = {
       ...list,
-      words: [...list.words.slice(0, -1), { ...list.words[0]!, freqRank: 'A' }],
+      words: [...list.words.slice(0, -1), { ...list.words[0]!, freqRank: 'C' }],
     }
     const problems = validateFreqList(tampered)
     expect(problems.some((p) => p.includes('200語'))).toBe(true)
