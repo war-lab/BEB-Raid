@@ -3,6 +3,8 @@
 // - license欠落パック混入でビルド（buildAllPacks）が失敗し、部分取込しない
 // - ハッシュがコンテンツ変更で変わり、無変更で安定している
 // T-34 完了条件: applyCorrectionsで実測補正値がdifficulty/freqRankに反映される
+// M2・T-63 完了条件: explanation品質の機械検証（存在・最低文字数・実テキスト引用）が
+// buildPackに組み込まれている
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -15,6 +17,7 @@ import {
   buildManifest,
   buildPack,
   scanAudioFiles,
+  validateExplanationQuality,
   type PackSource,
 } from './build.js'
 
@@ -52,7 +55,7 @@ function part2Question(overrides: Partial<Question> = {}): Question {
       { key: 'B', text: 'Yes, I did.' },
     ],
     answer: 'A',
-    explanation: '',
+    explanation: '"By Friday."が正解。締め切りを尋ねる疑問文への具体的な回答になっている。',
     translation: '',
     ...overrides,
   }
@@ -107,6 +110,69 @@ describe('buildPack', () => {
       AUDIO_FILES,
     ).built!
     expect(c.hash).not.toBe(a.hash)
+  })
+
+  it('explanationが空・短すぎる・選択肢記号のみだとbuilt=nullでエラーになる（M2・T-63）', () => {
+    const missing = buildPack(
+      source({ questions: [part2Question({ explanation: '' })] }),
+      AUDIO_FILES,
+    )
+    expect(missing.built).toBeNull()
+    expect(missing.errors.some((e) => e.includes('explanationが空'))).toBe(true)
+
+    const tooShort = buildPack(
+      source({ questions: [part2Question({ explanation: '短い' })] }),
+      AUDIO_FILES,
+    )
+    expect(tooShort.built).toBeNull()
+    expect(tooShort.errors.some((e) => e.includes('短すぎる'))).toBe(true)
+
+    const bareLetter = buildPack(
+      source({ questions: [part2Question({ explanation: 'Aが正解' })] }),
+      AUDIO_FILES,
+    )
+    expect(bareLetter.built).toBeNull()
+    expect(bareLetter.errors.some((e) => e.includes('実テキストの引用がない'))).toBe(true)
+  })
+
+  it('vocab_card/shadowingはexplanationが無くても検証対象外', () => {
+    const { built, errors } = buildPack(source({ questions: [vocabQuestion()] }), AUDIO_FILES)
+    expect(errors).toEqual([])
+    expect(built).not.toBeNull()
+  })
+})
+
+describe('validateExplanationQuality（M2・T-63）', () => {
+  it('audio_setはsubQuestion単位で検証する', () => {
+    const question: Question = {
+      id: 'p34-test',
+      part: 3,
+      format: 'audio_set',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+      audio: 'audio/part34/test.mp3',
+      audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 3000 },
+      script: 'A: Please submit the report. B: Sure, I will.',
+      subQuestions: [
+        {
+          id: 'p34-test-q1',
+          question: 'What does A ask B to do?',
+          choices: [
+            { key: 'A', text: 'Submit the report' },
+            { key: 'B', text: 'Cancel the meeting' },
+          ],
+          answer: 'A',
+          explanation: '',
+        },
+      ],
+    }
+    const problems = validateExplanationQuality([question])
+    expect(problems.some((p) => p.includes('p34-test-q1'))).toBe(true)
+  })
+
+  it('妥当なexplanationは問題なしと判定する', () => {
+    expect(validateExplanationQuality([part2Question()])).toEqual([])
   })
 })
 

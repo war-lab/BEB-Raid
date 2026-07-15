@@ -38,6 +38,7 @@ import {
   buildKeyVocabSimilarDrafts,
   buildKeyVocabSimilarQuestions,
   KEY_VOCAB_SIMILAR_ENTRIES,
+  KEY_VOCAB_SIMILAR_ENTRIES_S2,
   validateKeyVocabSimilarQuestions,
   validateTargetWordCoverage,
 } from './keyVocabSimilar.js'
@@ -90,6 +91,7 @@ const DEFAULT_PART34_DRAFT_PATH = 'content/drafts/part34-s.jsonl'
 const DEFAULT_DICTATION_DRAFT_PATH = 'content/drafts/dictation-s.jsonl'
 const DEFAULT_SHADOWING_DRAFT_PATH = 'content/drafts/shadowing-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
+const DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH = 'content/drafts/key-vocab-similar-s2.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -149,6 +151,15 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
       ...validateTargetWordCoverage(KEY_VOCAB_SIMILAR_ENTRIES),
     ],
     defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH,
+  },
+  key_vocab_similar_s2: {
+    buildQuestions: () => buildKeyVocabSimilarQuestions(KEY_VOCAB_SIMILAR_ENTRIES_S2),
+    buildDrafts: () => buildKeyVocabSimilarDrafts(KEY_VOCAB_SIMILAR_ENTRIES_S2),
+    validate: (questions) => [
+      ...validateKeyVocabSimilarQuestions(questions),
+      ...validateTargetWordCoverage(KEY_VOCAB_SIMILAR_ENTRIES_S2),
+    ],
+    defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH,
   },
   audio_set: {
     buildQuestions: buildPart34Questions,

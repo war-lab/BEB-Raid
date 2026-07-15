@@ -481,6 +481,44 @@ describe('generate key_vocab_similar（T-29）', () => {
   })
 })
 
+describe('generate key_vocab_similar_s2（M2・T-63）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-similar-s2-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で60件（20語×3問）のドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'key-vocab-similar-s2.jsonl')
+    const { code, output } = await run(['generate', 'key_vocab_similar_s2', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('60件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        keyVocab: { word: string; freqRank: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(60)
+    expect(drafts.every((d) => d.kind === 'text_blank')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'A')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'B')).toBe(true)
+    const wordCounts = new Map<string, number>()
+    for (const d of drafts) {
+      const word = d.payload.keyVocab[0]!.word
+      wordCounts.set(word, (wordCounts.get(word) ?? 0) + 1)
+    }
+    expect(wordCounts.size).toBe(20)
+    expect([...wordCounts.values()].every((n) => n === 3)).toBe(true)
+  })
+})
+
 describe('freq-list（T-25）', () => {
   let dir: string
 
@@ -659,7 +697,7 @@ describe('build（T-32）', () => {
           { key: 'B', text: 'Yes, I did.' },
         ],
         answer: 'A',
-        explanation: '',
+        explanation: '"By Friday."が正解。締め切りを尋ねる疑問文への具体的な回答になっている。',
         translation: '',
       },
     }
@@ -680,7 +718,8 @@ describe('build（T-32）', () => {
           { key: 'B', text: 'submission' },
         ],
         answer: 'A',
-        explanation: '',
+        explanation:
+          '命令文のため動詞の原形submitが正しい。submissionは名詞で命令文の主動詞にはならない。',
         translation: '',
       },
     }
@@ -701,7 +740,7 @@ describe('build（T-32）', () => {
           { key: 'B', text: 'reject' },
         ],
         answer: 'A',
-        explanation: '',
+        explanation: '応募書類を「提出する」のはsubmit。rejectは「却下する」で文脈に合わない。',
         translation: '',
       },
     }

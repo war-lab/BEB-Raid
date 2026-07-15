@@ -119,6 +119,51 @@ export function applyCorrections(
   }))
 }
 
+/**
+ * explanation品質の機械検証（M2・T-63。正本: docs/13 T-63行）。
+ * vocab_card/shadowingは「正解/不正解」の概念がなくexplanationを持たないため対象外。
+ * audio_setはsubQuestion単位のexplanationを検証する。
+ */
+const MIN_EXPLANATION_LENGTH = 15
+/** 「Aが正解」のように選択肢記号のみを参照し実テキストの引用が無い形式的な解説を検出する */
+const BARE_LETTER_EXPLANATION_RE = /^[A-D][\s.、。）)]*が?\s*(正解|正しい|correct)[\s.。]*$/i
+
+function checkExplanationText(id: string, explanation: string | null | undefined): string[] {
+  const problems: string[] = []
+  const trimmed = (explanation ?? '').trim()
+  if (trimmed === '') {
+    problems.push(`${id}: explanationが空または欠落している`)
+    return problems
+  }
+  if (trimmed.length < MIN_EXPLANATION_LENGTH) {
+    problems.push(
+      `${id}: explanationが短すぎる（${trimmed.length}文字。最低${MIN_EXPLANATION_LENGTH}文字必要）`,
+    )
+  }
+  if (BARE_LETTER_EXPLANATION_RE.test(trimmed)) {
+    problems.push(
+      `${id}: explanationが選択肢記号のみを参照しており実テキストの引用がない: "${trimmed}"`,
+    )
+  }
+  return problems
+}
+
+/** パック内の全問（audio_setはsubQuestions含む）のexplanation品質を検証する */
+export function validateExplanationQuality(questions: readonly Question[]): string[] {
+  const problems: string[] = []
+  for (const q of questions) {
+    if (q.format === 'vocab_card' || q.format === 'shadowing') continue
+    if (q.format === 'audio_set') {
+      for (const sq of q.subQuestions ?? []) {
+        problems.push(...checkExplanationText(`${q.id}/${sq.id}`, sq.explanation))
+      }
+    } else {
+      problems.push(...checkExplanationText(q.id, q.explanation))
+    }
+  }
+  return problems
+}
+
 /** 1パック分の検証・組み立て。エラーがあれば built=null で全エラーを返す */
 export function buildPack(
   source: PackSource,
@@ -137,10 +182,14 @@ export function buildPack(
   }
 
   const result = validatePack(draftPack, { audioFiles })
-  if (!result.ok) {
+  const explanationProblems = validateExplanationQuality(source.questions)
+  if (!result.ok || explanationProblems.length > 0) {
     return {
       built: null,
-      errors: result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
+      errors: [
+        ...result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
+        ...explanationProblems.map((p) => `${source.id} ${p}`),
+      ],
     }
   }
 
