@@ -40,6 +40,86 @@
       ],
       "sizeBytes": 59604,
       "hash": "6ad1cb493da20bc1"
+    },
+    {
+      "id": "pack-vocab-a-001",
+      "title": "語彙カード Aランク200語（730帯）",
+      "targetLevel": [
+        600,
+        730
+      ],
+      "sizeBytes": 77472,
+      "hash": "668a3ca4f006f901"
+    },
+    {
+      "id": "pack-vocab-b-001",
+      "title": "語彙カード Bランク200語（860帯）",
+      "targetLevel": [
+        730,
+        860
+      ],
+      "sizeBytes": 79038,
+      "hash": "32beaca3758746ba"
+    },
+    {
+      "id": "pack-p2-s-002",
+      "title": "Part2瞬発 追加100問",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 128361,
+      "hash": "a663b8527222acd0"
+    },
+    {
+      "id": "pack-p5-s-002",
+      "title": "Part5文法 追加100問",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 104007,
+      "hash": "383cc1fecf751498"
+    },
+    {
+      "id": "pack-p34-s-001",
+      "title": "Part3/4セット（会話10・トーク10）",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 67078,
+      "hash": "a4d44e453d36c631"
+    },
+    {
+      "id": "pack-dict-s-001",
+      "title": "ディクテーション短文40本",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 36972,
+      "hash": "2cd0ebc9309a337d"
+    },
+    {
+      "id": "pack-shadow-s-001",
+      "title": "シャドーイング素材30本",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 37792,
+      "hash": "ed08876b929cf6c8"
+    },
+    {
+      "id": "pack-p5-similar-s-002",
+      "title": "Part5 key単語類題 追加60問",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 64331,
+      "hash": "13b17d495f5a02a0"
     }
   ]
 }

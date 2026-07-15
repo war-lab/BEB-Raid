@@ -60,9 +60,22 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     }
   }
 
-  /** 4パック全てにcacheヒットするfetchImpl（実fetchへのフォールバックを起こさせないため） */
+  /** 12パック全てにcacheヒットするfetchImpl（実fetchへのフォールバックを起こさせないため） */
   function allPacksCached(overrides: Record<string, () => Promise<Blob | null>> = {}) {
-    const ids = ['pack-vocab-s-001', 'pack-p2-s-001', 'pack-p5-s-001', 'pack-p5-similar-s-001']
+    const ids = [
+      'pack-vocab-s-001',
+      'pack-p2-s-001',
+      'pack-p5-s-001',
+      'pack-p5-similar-s-001',
+      'pack-vocab-a-001',
+      'pack-vocab-b-001',
+      'pack-p2-s-002',
+      'pack-p5-s-002',
+      'pack-p34-s-001',
+      'pack-dict-s-001',
+      'pack-shadow-s-001',
+      'pack-p5-similar-s-002',
+    ]
     return fakePackCache(async (url) => {
       const id = ids.find((i) => url === `/packs/${i}.json`)
       if (!id) throw new Error(`unexpected url: ${url}`)
@@ -71,7 +84,7 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     })
   }
 
-  it('4パック分の問題を1つのプールにまとめる（cache-first）', async () => {
+  it('12パック分の問題を1つのプールにまとめる（cache-first）', async () => {
     const packCache = allPacksCached({
       'pack-vocab-s-001': async () =>
         new Blob([JSON.stringify(pack('pack-vocab-s-001', [{ id: 'v-1' } as never]))]),

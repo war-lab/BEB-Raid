@@ -656,8 +656,17 @@ describe('build（T-32）', () => {
     await mkdir(join(dir, 'drafts'), { recursive: true })
     await mkdir(join(dir, 'audio/vocab'), { recursive: true })
     await mkdir(join(dir, 'audio/part2'), { recursive: true })
+    await mkdir(join(dir, 'audio/part34'), { recursive: true })
+    await mkdir(join(dir, 'audio/dictation'), { recursive: true })
+    await mkdir(join(dir, 'audio/shadow'), { recursive: true })
     await writeFile(join(dir, 'audio/vocab/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/vocab/revise.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/vocab/streamline.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part2/revise.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part34/p3-01.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/dictation/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/shadow/submit.mp3'), 'dummy')
 
     const vocabDraft: GeneratedItemDraft = {
       id: 'vocab-submit',
@@ -744,6 +753,175 @@ describe('build（T-32）', () => {
         translation: '',
       },
     }
+    const vocabADraft: GeneratedItemDraft = {
+      id: 'vocab-revise',
+      kind: 'vocab_card',
+      preview: 'revise',
+      payload: {
+        id: 'vocab-revise',
+        part: 0,
+        format: 'vocab_card',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        front: 'revise',
+        phrase: 'Please revise the report.',
+        phraseAudio: 'audio/vocab/revise.mp3',
+        back: '修正する',
+        freqRank: 'A',
+        levelBand: 730,
+      },
+    }
+    const vocabBDraft: GeneratedItemDraft = {
+      id: 'vocab-streamline',
+      kind: 'vocab_card',
+      preview: 'streamline',
+      payload: {
+        id: 'vocab-streamline',
+        part: 0,
+        format: 'vocab_card',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        front: 'streamline',
+        phrase: 'We need to streamline this process.',
+        phraseAudio: 'audio/vocab/streamline.mp3',
+        back: '合理化する',
+        freqRank: 'B',
+        levelBand: 860,
+      },
+    }
+    const part2S2Draft: GeneratedItemDraft = {
+      id: 'part2-revise',
+      kind: 'audio_qa',
+      preview: 'revise',
+      payload: {
+        id: 'part2-revise',
+        part: 2,
+        format: 'audio_qa',
+        difficulty: 2,
+        tags: ['疑問詞聞き取り'],
+        keyVocab: [{ word: 'revise', sense: '修正する', freqRank: 'A' }],
+        audio: 'audio/part2/revise.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 3000 },
+        script: 'When should I revise it? — By Friday.',
+        choices: [
+          { key: 'A', text: 'By Friday.' },
+          { key: 'B', text: 'Yes, I did.' },
+        ],
+        answer: 'A',
+        explanation: '"By Friday."が正解。締め切りを尋ねる疑問文への具体的な回答になっている。',
+        translation: '',
+      },
+    }
+    const part5S2Draft: GeneratedItemDraft = {
+      id: 'part5-revise',
+      kind: 'text_blank',
+      preview: 'revise',
+      payload: {
+        id: 'part5-revise',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 2,
+        tags: ['品詞'],
+        keyVocab: [{ word: 'revise', sense: '修正する', freqRank: 'A' }],
+        question: 'The client requested a full ___ of the contract.',
+        choices: [
+          { key: 'A', text: 'revision' },
+          { key: 'B', text: 'revise' },
+        ],
+        answer: 'A',
+        explanation: '空所は名詞。revisionが正しい。reviseは動詞原形で名詞の位置には合わない。',
+        translation: '',
+      },
+    }
+    const part34Draft: GeneratedItemDraft = {
+      id: 'p34-p3-01',
+      kind: 'audio_set',
+      preview: 'p3-01',
+      payload: {
+        id: 'p34-p3-01',
+        part: 3,
+        format: 'audio_set',
+        difficulty: 2,
+        tags: ['先読み'],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/part34/p3-01.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 5000 },
+        script: 'A: Please submit it today. B: Sure, I will submit it now.',
+        subQuestions: [
+          {
+            id: 'p34-p3-01-q1',
+            question: 'What does A ask B to do?',
+            choices: [
+              { key: 'A', text: 'Submit it today' },
+              { key: 'B', text: 'Cancel the meeting' },
+            ],
+            answer: 'A',
+            explanation: 'Aは"Please submit it today"と述べている。',
+            translation: 'Aは何をするようBに求めていますか。',
+          },
+        ],
+      },
+    }
+    const dictationDraft: GeneratedItemDraft = {
+      id: 'dictation-submit',
+      kind: 'dictation',
+      preview: 'submit',
+      payload: {
+        id: 'dictation-submit',
+        part: 2,
+        format: 'dictation',
+        difficulty: 2,
+        tags: ['弱形・連結'],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/dictation/submit.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 2500 },
+        script: 'Please submit the report by Friday.',
+        blanks: [{ index: 1, answer: 'submit' }],
+        explanation: '弱形になりやすいsubmitを穴にしている。',
+        translation: '金曜日までに報告書を提出してください。',
+      },
+    }
+    const shadowingDraft: GeneratedItemDraft = {
+      id: 'shadow-submit',
+      kind: 'shadowing',
+      preview: 'submit',
+      payload: {
+        id: 'shadow-submit',
+        part: 3,
+        format: 'shadowing',
+        difficulty: 2,
+        tags: [],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/shadow/submit.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 2500 },
+        script: 'Please submit the report by Friday.',
+        translation: '金曜日までに報告書を提出してください。',
+        timing: [0, 400, 900, 1400, 1900, 2400],
+      },
+    }
+    const similarS2Draft: GeneratedItemDraft = {
+      id: 'similar-revise-1',
+      kind: 'text_blank',
+      preview: 'revise',
+      payload: {
+        id: 'similar-revise-1',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 2,
+        tags: ['言い換え語彙'],
+        keyVocab: [{ word: 'revise', sense: '修正する', freqRank: 'A' }],
+        question: 'The committee decided to ___ the proposal.',
+        choices: [
+          { key: 'A', text: 'revise' },
+          { key: 'B', text: 'annotate' },
+        ],
+        answer: 'A',
+        explanation: '提案書を修正するのはrevise。annotateは注釈を付けるで文脈に合わない。',
+        translation: '',
+      },
+    }
 
     await writeFile(
       join(dir, 'drafts/vocab-card-s.jsonl'),
@@ -752,6 +930,42 @@ describe('build（T-32）', () => {
     )
     await writeFile(join(dir, 'drafts/part2-s.jsonl'), JSON.stringify(part2Draft) + '\n', 'utf-8')
     await writeFile(join(dir, 'drafts/part5-s.jsonl'), JSON.stringify(part5Draft) + '\n', 'utf-8')
+    await writeFile(
+      join(dir, 'drafts/vocab-card-a.jsonl'),
+      JSON.stringify(vocabADraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/vocab-card-b.jsonl'),
+      JSON.stringify(vocabBDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/part2-s2.jsonl'),
+      JSON.stringify(part2S2Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/part5-s2.jsonl'),
+      JSON.stringify(part5S2Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(join(dir, 'drafts/part34-s.jsonl'), JSON.stringify(part34Draft) + '\n', 'utf-8')
+    await writeFile(
+      join(dir, 'drafts/dictation-s.jsonl'),
+      JSON.stringify(dictationDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/shadowing-s.jsonl'),
+      JSON.stringify(shadowingDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/key-vocab-similar-s2.jsonl'),
+      JSON.stringify(similarS2Draft) + '\n',
+      'utf-8',
+    )
     await writeFile(
       join(dir, 'drafts/key-vocab-similar-s.jsonl'),
       JSON.stringify(similarDraft) + '\n',
@@ -763,20 +977,28 @@ describe('build（T-32）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('4パック分のドラフトから packs/*.json と manifest.json を生成する', async () => {
+  it('12パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8。T-64）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('4パック')
+    expect(output).toContain('12パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(4)
+    expect(manifest.packs).toHaveLength(12)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
       'pack-p5-s-001',
       'pack-p5-similar-s-001',
+      'pack-vocab-a-001',
+      'pack-vocab-b-001',
+      'pack-p2-s-002',
+      'pack-p5-s-002',
+      'pack-p34-s-001',
+      'pack-dict-s-001',
+      'pack-shadow-s-001',
+      'pack-p5-similar-s-002',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)

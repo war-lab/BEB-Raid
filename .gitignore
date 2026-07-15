@@ -20,6 +20,9 @@ Thumbs.db
 # 市販教材（TOEIC公式問題集等）の音声・素材。著作権上リポジトリに含めない（01のR-1）
 /toeic_test_1_album_1/
 /all_toeic_official_lr_11_test_1_album_1/
+# 公式TOEIC問題集からの参考問題データ（コンテンツ作成時の形式・難易度の参考用。
+# 実問題文・選択肢を含むため丸ごとコピー厳禁＝著作権上リポジトリに含めない）
+/toeic*_test*_*.json
 
 # Piperボイスモデル（TTS生成のローカル依存。数十MB/ファイルのためリポジトリに含めない。
 # 導入: pip install piper-tts && python -m piper.download_voices <voice> --download-dir .piper-voices）

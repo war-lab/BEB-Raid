@@ -19,10 +19,24 @@ import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore } from './store/appStore'
 
 /**
- * M1配布4パック（T-32のPACK_DEFINITIONSと対応。cli側の定義をappから直接importはしない
- * ——cliはビルド時ツールでappの実行時依存にしない構成のため、idはここに複製する）
+ * 配布パック全12件（M1の4＋M2の8。T-32/T-64のPACK_DEFINITIONSと対応。cli側の定義を
+ * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
+ * idはここに複製する）
  */
-const PACK_IDS = ['pack-vocab-s-001', 'pack-p2-s-001', 'pack-p5-s-001', 'pack-p5-similar-s-001']
+const PACK_IDS = [
+  'pack-vocab-s-001',
+  'pack-p2-s-001',
+  'pack-p5-s-001',
+  'pack-p5-similar-s-001',
+  'pack-vocab-a-001',
+  'pack-vocab-b-001',
+  'pack-p2-s-002',
+  'pack-p5-s-002',
+  'pack-p34-s-001',
+  'pack-dict-s-001',
+  'pack-shadow-s-001',
+  'pack-p5-similar-s-002',
+]
 
 /**
  * 全パックの問題を読み込み1つのプールにまとめる（T-37: ダミーパック削除・実パック配線）。

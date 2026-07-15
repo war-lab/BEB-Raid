@@ -1,0 +1,2296 @@
+{
+  "schemaVersion": 2,
+  "pack": {
+    "id": "pack-p5-similar-s-002",
+    "title": "Part5 key単語類題 追加60問",
+    "license": "internal-original",
+    "origin": "エージェント直接執筆 2026-07（key単語システムの循環問題。AIクロスレビュー対象外）",
+    "targetLevel": [
+      600,
+      600
+    ],
+    "sizeBytes": 64331
+  },
+  "questions": [
+    {
+      "id": "similar-contractor-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "contractor",
+          "sense": "請負業者",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The company hired an outside ___ to renovate the office.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "contractor"
+        },
+        {
+          "key": "B",
+          "text": "shareholder"
+        },
+        {
+          "key": "C",
+          "text": "applicant"
+        },
+        {
+          "key": "D",
+          "text": "tenant"
+        }
+      ],
+      "answer": "A",
+      "explanation": "改装工事を請け負う外部の業者はcontractor。shareholder（株主）・applicant（応募者）・tenant（借家人）はいずれも工事を請け負う立場ではない。",
+      "translation": "その会社はオフィスの改装のために外部の請負業者を雇った。"
+    },
+    {
+      "id": "similar-contractor-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "contractor",
+          "sense": "請負業者",
+          "freqRank": "A"
+        }
+      ],
+      "question": "We signed an agreement with an independent ___ for the project.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "sponsor"
+        },
+        {
+          "key": "B",
+          "text": "exhibitor"
+        },
+        {
+          "key": "C",
+          "text": "invitee"
+        },
+        {
+          "key": "D",
+          "text": "contractor"
+        }
+      ],
+      "answer": "D",
+      "explanation": "\"an independent contractor\"（独立請負業者）は定番の言い方。sponsor（協賛者）・exhibitor（出展者）・invitee（招待客）は契約して業務を請け負う立場を表さない。",
+      "translation": "私たちはそのプロジェクトのために独立請負業者と契約を結んだ。"
+    },
+    {
+      "id": "similar-contractor-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "contractor",
+          "sense": "請負業者",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The ___ submitted a bid that was lower than expected.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "defendant"
+        },
+        {
+          "key": "B",
+          "text": "wholesaler"
+        },
+        {
+          "key": "C",
+          "text": "contractor"
+        },
+        {
+          "key": "D",
+          "text": "plaintiff"
+        }
+      ],
+      "answer": "C",
+      "explanation": "入札（bid）を提出するのは工事等を請け負う業者=contractor。plaintiff（原告）・defendant（被告）・wholesaler（卸売業者）は入札の主体として自然ではない。",
+      "translation": "その請負業者は予想より低い入札額を提出した。"
+    },
+    {
+      "id": "similar-franchise-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "franchise",
+          "sense": "フランチャイズ",
+          "freqRank": "A"
+        }
+      ],
+      "question": "She decided to open a ___ of the popular coffee chain.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "headquarters"
+        },
+        {
+          "key": "B",
+          "text": "franchise"
+        },
+        {
+          "key": "C",
+          "text": "subsidiary"
+        },
+        {
+          "key": "D",
+          "text": "consignment"
+        }
+      ],
+      "answer": "B",
+      "explanation": "本部のブランド名を使って個人が出店する形態はfranchise（フランチャイズ店）。subsidiary（子会社）・consignment（委託荷物）・headquarters（本社）は個人が開業する店舗形態を表さない。",
+      "translation": "彼女はその人気コーヒーチェーンのフランチャイズ店を開くことにした。"
+    },
+    {
+      "id": "similar-franchise-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "franchise",
+          "sense": "フランチャイズ",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The company plans to expand its ___ into overseas markets.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "franchise"
+        },
+        {
+          "key": "B",
+          "text": "litigation"
+        },
+        {
+          "key": "C",
+          "text": "backlog"
+        },
+        {
+          "key": "D",
+          "text": "workforce"
+        }
+      ],
+      "answer": "A",
+      "explanation": "\"expand its franchise\"（フランチャイズ展開を拡大する）は定番の言い方。litigation（訴訟）・backlog（滞積）・workforce（労働力）は海外展開の対象として意味が通らない。",
+      "translation": "その会社はフランチャイズ展開を海外市場に拡大する計画だ。"
+    },
+    {
+      "id": "similar-franchise-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "franchise",
+          "sense": "フランチャイズ",
+          "freqRank": "A"
+        }
+      ],
+      "question": "Owning a ___ means following the parent company's operating rules.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "consignment"
+        },
+        {
+          "key": "B",
+          "text": "shipment"
+        },
+        {
+          "key": "C",
+          "text": "subsidy"
+        },
+        {
+          "key": "D",
+          "text": "franchise"
+        }
+      ],
+      "answer": "D",
+      "explanation": "本部の運営ルールに従う経営形態はfranchise。consignment（委託荷物）・shipment（出荷）・subsidy（補助金）はいずれも「経営形態」を表さない。",
+      "translation": "フランチャイズ店を所有するということは、本部の運営ルールに従うことを意味する。"
+    },
+    {
+      "id": "similar-consignment-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "consignment",
+          "sense": "委託貨物",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The store sells used furniture on ___ from local sellers.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "clearance"
+        },
+        {
+          "key": "B",
+          "text": "warranty"
+        },
+        {
+          "key": "C",
+          "text": "consignment"
+        },
+        {
+          "key": "D",
+          "text": "compliance"
+        }
+      ],
+      "answer": "C",
+      "explanation": "\"sell on consignment\"（委託販売する）は定番の言い方。compliance（法令遵守）・clearance（在庫一掃）・warranty（保証）は販売方式を表さない。",
+      "translation": "その店は地元の売り手からの委託品として中古家具を販売している。"
+    },
+    {
+      "id": "similar-consignment-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "consignment",
+          "sense": "委託貨物",
+          "freqRank": "A"
+        }
+      ],
+      "question": "A large ___ of goods was held up at the border.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "levy"
+        },
+        {
+          "key": "B",
+          "text": "consignment"
+        },
+        {
+          "key": "C",
+          "text": "headcount"
+        },
+        {
+          "key": "D",
+          "text": "workforce"
+        }
+      ],
+      "answer": "B",
+      "explanation": "\"a consignment of goods\"（委託貨物の一群）は定番の言い方。headcount（人員数）・workforce（労働力）・levy（課税）は貨物を数える単位にならない。",
+      "translation": "大量の委託貨物が国境で止められた。"
+    },
+    {
+      "id": "similar-consignment-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "consignment",
+          "sense": "委託貨物",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The ___ included both fragile and non-fragile items.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "consignment"
+        },
+        {
+          "key": "B",
+          "text": "subsidiary"
+        },
+        {
+          "key": "C",
+          "text": "litigation"
+        },
+        {
+          "key": "D",
+          "text": "sustainability"
+        }
+      ],
+      "answer": "A",
+      "explanation": "壊れやすい品・壊れにくい品を含む「荷物一式」はconsignment。subsidiary（子会社）・litigation（訴訟）・sustainability（持続可能性）は荷物を指さない。",
+      "translation": "その委託荷物には壊れやすい品と壊れにくい品の両方が含まれていた。"
+    },
+    {
+      "id": "similar-streamline-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "streamline",
+          "sense": "合理化する",
+          "freqRank": "B"
+        }
+      ],
+      "question": "The new software will help ___ the approval process.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "deprecate"
+        },
+        {
+          "key": "B",
+          "text": "diversify"
+        },
+        {
+          "key": "C",
+          "text": "mitigate"
+        },
+        {
+          "key": "D",
+          "text": "streamline"
+        }
+      ],
+      "answer": "D",
+      "explanation": "承認プロセスを効率化・簡素化するのはstreamline。deprecate（非推奨にする）・diversify（多角化する）・mitigate（軽減する）は文脈に合わない。",
+      "translation": "その新しいソフトウェアは承認プロセスの合理化に役立つだろう。"
+    },
+    {
+      "id": "similar-streamline-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "streamline",
+          "sense": "合理化する",
+          "freqRank": "B"
+        }
+      ],
+      "question": "Management wants to ___ operations to cut unnecessary costs.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "appease"
+        },
+        {
+          "key": "B",
+          "text": "rectify"
+        },
+        {
+          "key": "C",
+          "text": "streamline"
+        },
+        {
+          "key": "D",
+          "text": "incentivize"
+        }
+      ],
+      "answer": "C",
+      "explanation": "無駄なコストを削るために業務を効率化するのはstreamline。incentivize（動機づける）・appease（なだめる）・rectify（是正する）は文脈に合わない。",
+      "translation": "経営陣は不要なコストを削減するため業務を合理化したいと考えている。"
+    },
+    {
+      "id": "similar-streamline-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "streamline",
+          "sense": "合理化する",
+          "freqRank": "B"
+        }
+      ],
+      "question": "The merger allowed both firms to ___ their supply chains.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "adjudicate"
+        },
+        {
+          "key": "B",
+          "text": "streamline"
+        },
+        {
+          "key": "C",
+          "text": "subsidize"
+        },
+        {
+          "key": "D",
+          "text": "condemn"
+        }
+      ],
+      "answer": "B",
+      "explanation": "サプライチェーンを効率化するのはstreamline。subsidize（補助金を出す）・condemn（非難する/使用禁止にする）・adjudicate（裁定する）は文脈に合わない。",
+      "translation": "その合併により両社はサプライチェーンを合理化できた。"
+    },
+    {
+      "id": "similar-commute-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "commute",
+          "sense": "通勤する",
+          "freqRank": "B"
+        }
+      ],
+      "question": "Her daily ___ takes almost two hours each way.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "commute"
+        },
+        {
+          "key": "B",
+          "text": "itinerary"
+        },
+        {
+          "key": "C",
+          "text": "layover"
+        },
+        {
+          "key": "D",
+          "text": "stopover"
+        }
+      ],
+      "answer": "A",
+      "explanation": "自宅と職場の往復移動はcommute。itinerary（旅程）・layover/stopover（乗り継ぎ）は通勤を表さない。",
+      "translation": "彼女の毎日の通勤は片道ほぼ2時間かかる。"
+    },
+    {
+      "id": "similar-commute-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "commute",
+          "sense": "通勤する",
+          "freqRank": "B"
+        }
+      ],
+      "question": "Many employees ___ from the suburbs into the city every day.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "embark"
+        },
+        {
+          "key": "B",
+          "text": "disembark"
+        },
+        {
+          "key": "C",
+          "text": "repatriate"
+        },
+        {
+          "key": "D",
+          "text": "commute"
+        }
+      ],
+      "answer": "D",
+      "explanation": "郊外から都心へ毎日通うのはcommute（動詞）。embark（乗船する）・disembark（下船する）・repatriate（本国へ送還する）は通勤の意味を持たない。",
+      "translation": "多くの従業員が毎日郊外から都心へ通勤している。"
+    },
+    {
+      "id": "similar-commute-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "commute",
+          "sense": "通勤する",
+          "freqRank": "B"
+        }
+      ],
+      "question": "A shorter ___ was one of the main reasons she changed jobs.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "probation"
+        },
+        {
+          "key": "B",
+          "text": "severance"
+        },
+        {
+          "key": "C",
+          "text": "commute"
+        },
+        {
+          "key": "D",
+          "text": "tenure"
+        }
+      ],
+      "answer": "C",
+      "explanation": "通勤時間が短くなることが転職理由になるのは自然。tenure（在職期間）・probation（試用期間）・severance（退職金）は「通勤」の意味を持たない。",
+      "translation": "通勤時間が短くなることは、彼女が転職した主な理由の一つだった。"
+    },
+    {
+      "id": "similar-orientation-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "orientation",
+          "sense": "入社時オリエンテーション",
+          "freqRank": "S"
+        }
+      ],
+      "question": "All new hires must attend a one-day ___ session.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "inauguration"
+        },
+        {
+          "key": "B",
+          "text": "orientation"
+        },
+        {
+          "key": "C",
+          "text": "arbitration"
+        },
+        {
+          "key": "D",
+          "text": "liquidation"
+        }
+      ],
+      "answer": "B",
+      "explanation": "新入社員向けの導入研修はorientation。arbitration（仲裁）・liquidation（清算）・inauguration（就任式）は新人研修を表さない。",
+      "translation": "新入社員は全員、1日間のオリエンテーションに出席しなければならない。"
+    },
+    {
+      "id": "similar-orientation-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "orientation",
+          "sense": "入社時オリエンテーション",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The ___ program covers company policies and basic safety rules.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "orientation"
+        },
+        {
+          "key": "B",
+          "text": "consensus"
+        },
+        {
+          "key": "C",
+          "text": "symposium"
+        },
+        {
+          "key": "D",
+          "text": "plenary"
+        }
+      ],
+      "answer": "A",
+      "explanation": "会社の規定と安全ルールを扱う導入プログラムはorientation program。consensus（合意）・symposium（シンポジウム）・plenary（全体会議）は新人研修を表さない。",
+      "translation": "そのオリエンテーションプログラムは会社の規定と基本的な安全ルールを扱う。"
+    },
+    {
+      "id": "similar-orientation-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "orientation",
+          "sense": "入社時オリエンテーション",
+          "freqRank": "S"
+        }
+      ],
+      "question": "During ___, employees are introduced to their team and mentor.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "commencement"
+        },
+        {
+          "key": "B",
+          "text": "convocation"
+        },
+        {
+          "key": "C",
+          "text": "jubilee"
+        },
+        {
+          "key": "D",
+          "text": "orientation"
+        }
+      ],
+      "answer": "D",
+      "explanation": "新人がチームやメンターに紹介されるのはorientationの期間。commencement（開始式/卒業式）・convocation（式典）・jubilee（記念祭）は新人研修を表さない。",
+      "translation": "オリエンテーションの期間中、従業員はチームやメンターに紹介される。"
+    },
+    {
+      "id": "similar-revise-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "revise",
+          "sense": "修正する",
+          "freqRank": "A"
+        }
+      ],
+      "question": "Please ___ the report to include the latest sales figures.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "codify"
+        },
+        {
+          "key": "B",
+          "text": "substantiate"
+        },
+        {
+          "key": "C",
+          "text": "revise"
+        },
+        {
+          "key": "D",
+          "text": "proliferate"
+        }
+      ],
+      "answer": "C",
+      "explanation": "報告書に最新の数値を反映させて修正するのはrevise。proliferate（急増する）・codify（成文化する）・substantiate（立証する）は文脈に合わない。",
+      "translation": "最新の売上数値を反映させるよう、報告書を修正してください。"
+    },
+    {
+      "id": "similar-revise-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "revise",
+          "sense": "修正する",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The committee decided to ___ the proposal after receiving feedback.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "corroborate"
+        },
+        {
+          "key": "B",
+          "text": "revise"
+        },
+        {
+          "key": "C",
+          "text": "disseminate"
+        },
+        {
+          "key": "D",
+          "text": "annotate"
+        }
+      ],
+      "answer": "B",
+      "explanation": "フィードバックを受けて提案書を修正するのはrevise。disseminate（周知する）・annotate（注釈を付ける）・corroborate（裏付ける）は文脈に合わない。",
+      "translation": "委員会はフィードバックを受け取った後、提案書を修正することに決めた。"
+    },
+    {
+      "id": "similar-revise-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "revise",
+          "sense": "修正する",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The schedule was ___ after several clients requested a later start time.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "revised"
+        },
+        {
+          "key": "B",
+          "text": "ratified"
+        },
+        {
+          "key": "C",
+          "text": "promulgated"
+        },
+        {
+          "key": "D",
+          "text": "stipulated"
+        }
+      ],
+      "answer": "A",
+      "explanation": "顧客の要望で開始時刻を修正するのはrevise。ratify（批准する）・promulgate（公布する）・stipulate（規定する）は「予定を変更する」の意味を持たない。",
+      "translation": "複数の顧客が開始時刻を遅らせるよう求めたため、予定は修正された。"
+    },
+    {
+      "id": "similar-workforce-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "workforce",
+          "sense": "労働力",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The factory plans to expand its ___ by twenty percent next year.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "portfolio"
+        },
+        {
+          "key": "B",
+          "text": "clientele"
+        },
+        {
+          "key": "C",
+          "text": "assortment"
+        },
+        {
+          "key": "D",
+          "text": "workforce"
+        }
+      ],
+      "answer": "D",
+      "explanation": "従業員数全体を指すのはworkforce。portfolio（資産構成）・clientele（顧客層）・assortment（品揃え）は従業員数を表さない。",
+      "translation": "その工場は来年、労働力を20%増やす計画だ。"
+    },
+    {
+      "id": "similar-workforce-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "workforce",
+          "sense": "労働力",
+          "freqRank": "A"
+        }
+      ],
+      "question": "Nearly half of the company's ___ works remotely at least twice a week.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "subsidiary"
+        },
+        {
+          "key": "B",
+          "text": "franchise"
+        },
+        {
+          "key": "C",
+          "text": "workforce"
+        },
+        {
+          "key": "D",
+          "text": "headquarters"
+        }
+      ],
+      "answer": "C",
+      "explanation": "在宅勤務をする「従業員全体」はworkforce。headquarters（本社）・subsidiary（子会社）・franchise（フランチャイズ店）は従業員の集合を表さない。",
+      "translation": "その会社の従業員のほぼ半数が週に最低2回は在宅勤務をしている。"
+    },
+    {
+      "id": "similar-workforce-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "workforce",
+          "sense": "労働力",
+          "freqRank": "A"
+        }
+      ],
+      "question": "Automation has changed the skills required of the modern ___.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "stakeholder"
+        },
+        {
+          "key": "B",
+          "text": "workforce"
+        },
+        {
+          "key": "C",
+          "text": "ombudsman"
+        },
+        {
+          "key": "D",
+          "text": "liaison"
+        }
+      ],
+      "answer": "B",
+      "explanation": "自動化によりスキル要件が変わる対象は「労働力全体」workforce。ombudsman（オンブズマン）・liaison（連絡担当者）・stakeholder（利害関係者）は文脈に合わない。",
+      "translation": "自動化は現代の労働力に求められるスキルを変えてきた。"
+    },
+    {
+      "id": "similar-compensate-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "compensate",
+          "sense": "補償する",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The airline agreed to ___ passengers for the canceled flight.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "compensate"
+        },
+        {
+          "key": "B",
+          "text": "appease"
+        },
+        {
+          "key": "C",
+          "text": "indemnify"
+        },
+        {
+          "key": "D",
+          "text": "placate"
+        }
+      ],
+      "answer": "A",
+      "explanation": "欠航の乗客に金銭等で埋め合わせるのはcompensate。appease/placate（なだめる）は感情的な鎮静を表し金銭補償に限らない。indemnify（契約上の損害補償）はより法的・限定的な文脈で使う。",
+      "translation": "その航空会社は欠航便の乗客に補償することに同意した。"
+    },
+    {
+      "id": "similar-compensate-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "compensate",
+          "sense": "補償する",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The company offered to ___ employees for the unpaid overtime.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "incentivize"
+        },
+        {
+          "key": "B",
+          "text": "retain"
+        },
+        {
+          "key": "C",
+          "text": "delegate"
+        },
+        {
+          "key": "D",
+          "text": "compensate"
+        }
+      ],
+      "answer": "D",
+      "explanation": "未払いの残業代を支払う（埋め合わせる）のはcompensate。incentivize（動機づける）・retain（つなぎ止める）・delegate（委任する）は文脈に合わない。",
+      "translation": "その会社は未払いの残業代について従業員に補償を申し出た。"
+    },
+    {
+      "id": "similar-compensate-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "compensate",
+          "sense": "補償する",
+          "freqRank": "A"
+        }
+      ],
+      "question": "Extra staff were hired to ___ for the loss of two managers.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "arbitrate"
+        },
+        {
+          "key": "B",
+          "text": "liaise"
+        },
+        {
+          "key": "C",
+          "text": "compensate"
+        },
+        {
+          "key": "D",
+          "text": "mediate"
+        }
+      ],
+      "answer": "C",
+      "explanation": "\"compensate for the loss of...\"（〜の不足を埋め合わせる）は定番の言い方。mediate（調停する）・arbitrate（仲裁する）・liaise（連絡を取る）は文脈に合わない。",
+      "translation": "2人のマネージャーが抜けた穴を埋めるため、追加の人員が雇われた。"
+    },
+    {
+      "id": "similar-headcount-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "headcount",
+          "sense": "人員数",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The department froze its ___ due to budget cuts.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "liquidity"
+        },
+        {
+          "key": "B",
+          "text": "headcount"
+        },
+        {
+          "key": "C",
+          "text": "turnover"
+        },
+        {
+          "key": "D",
+          "text": "overhead"
+        }
+      ],
+      "answer": "B",
+      "explanation": "予算削減で凍結する「従業員数」はheadcount。turnover（離職率/売上高）・overhead（諸経費）・liquidity（流動性）は従業員数を表さない。",
+      "translation": "その部署は予算削減のため人員数を凍結した。"
+    },
+    {
+      "id": "similar-headcount-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "headcount",
+          "sense": "人員数",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The new office was designed to support a ___ of five hundred.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "headcount"
+        },
+        {
+          "key": "B",
+          "text": "portfolio"
+        },
+        {
+          "key": "C",
+          "text": "assortment"
+        },
+        {
+          "key": "D",
+          "text": "clientele"
+        }
+      ],
+      "answer": "A",
+      "explanation": "「500人分の人員数」を収容するように設計されたという文脈にはheadcountが合う。portfolio（資産構成）・assortment（品揃え）・clientele（顧客層）は人数を表さない。",
+      "translation": "その新しいオフィスは500人の人員数を収容できるよう設計された。"
+    },
+    {
+      "id": "similar-headcount-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "headcount",
+          "sense": "人員数",
+          "freqRank": "A"
+        }
+      ],
+      "question": "HR reviews the ___ report every quarter to plan hiring.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "valuation"
+        },
+        {
+          "key": "B",
+          "text": "amortization"
+        },
+        {
+          "key": "C",
+          "text": "depreciation"
+        },
+        {
+          "key": "D",
+          "text": "headcount"
+        }
+      ],
+      "answer": "D",
+      "explanation": "採用計画のために四半期ごとに確認するのは人員数=headcount report。valuation（評価額）・amortization（償却）・depreciation（減価償却）は人員数と無関係。",
+      "translation": "人事部は採用計画のため、四半期ごとに人員数レポートを確認する。"
+    },
+    {
+      "id": "similar-subsidiary-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "subsidiary",
+          "sense": "子会社",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The parent company sold one of its overseas ___ last year.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "shareholder"
+        },
+        {
+          "key": "B",
+          "text": "liaison"
+        },
+        {
+          "key": "C",
+          "text": "subsidiary"
+        },
+        {
+          "key": "D",
+          "text": "stakeholder"
+        }
+      ],
+      "answer": "C",
+      "explanation": "親会社が売却する海外の子会社はsubsidiary。stakeholder（利害関係者）・shareholder（株主）・liaison（連絡担当者）は「会社」を指さない。",
+      "translation": "親会社は昨年、海外子会社の一つを売却した。"
+    },
+    {
+      "id": "similar-subsidiary-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "subsidiary",
+          "sense": "子会社",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The bank operates as a wholly owned ___ of a larger financial group.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "consignment"
+        },
+        {
+          "key": "B",
+          "text": "subsidiary"
+        },
+        {
+          "key": "C",
+          "text": "franchise"
+        },
+        {
+          "key": "D",
+          "text": "outlet"
+        }
+      ],
+      "answer": "B",
+      "explanation": "\"a wholly owned subsidiary of...\"（〜の完全子会社）は定番の言い方。franchise（フランチャイズ店）・outlet（店舗）・consignment（委託荷物）は「子会社」を表さない。",
+      "translation": "その銀行はより大きな金融グループの完全子会社として運営されている。"
+    },
+    {
+      "id": "similar-subsidiary-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "subsidiary",
+          "sense": "子会社",
+          "freqRank": "S"
+        }
+      ],
+      "question": "Each regional ___ reports its earnings to the head office quarterly.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "subsidiary"
+        },
+        {
+          "key": "B",
+          "text": "plaintiff"
+        },
+        {
+          "key": "C",
+          "text": "defendant"
+        },
+        {
+          "key": "D",
+          "text": "tribunal"
+        }
+      ],
+      "answer": "A",
+      "explanation": "本社に四半期ごとの収益を報告する「地域子会社」はsubsidiary。plaintiff/defendant（原告/被告）・tribunal（審判所）は法廷関連語で文脈に合わない。",
+      "translation": "各地域の子会社は四半期ごとに収益を本社へ報告する。"
+    },
+    {
+      "id": "similar-litigation-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "litigation",
+          "sense": "訴訟手続き",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The two companies settled their dispute before it went to ___.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "consolidation"
+        },
+        {
+          "key": "B",
+          "text": "proliferation"
+        },
+        {
+          "key": "C",
+          "text": "saturation"
+        },
+        {
+          "key": "D",
+          "text": "litigation"
+        }
+      ],
+      "answer": "D",
+      "explanation": "訴訟手続きに至る前に和解したという文脈にはlitigationが合う。consolidation（統合）・proliferation（急増）・saturation（飽和）は法的手続きを表さない。",
+      "translation": "両社は訴訟手続きに入る前に紛争を和解で解決した。"
+    },
+    {
+      "id": "similar-litigation-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "litigation",
+          "sense": "訴訟手続き",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The merger was delayed due to ongoing ___ between the two firms.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "consolidation"
+        },
+        {
+          "key": "B",
+          "text": "diversification"
+        },
+        {
+          "key": "C",
+          "text": "litigation"
+        },
+        {
+          "key": "D",
+          "text": "negotiation"
+        }
+      ],
+      "answer": "C",
+      "explanation": "\"ongoing litigation\"（進行中の訴訟）は定番の言い方。negotiation（交渉）・consolidation（統合）・diversification（多角化）は「訴訟」を表さない。",
+      "translation": "両社間で進行中の訴訟のため、合併は延期された。"
+    },
+    {
+      "id": "similar-litigation-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "litigation",
+          "sense": "訴訟手続き",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The company set aside funds to cover the cost of the ___.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "endowment"
+        },
+        {
+          "key": "B",
+          "text": "litigation"
+        },
+        {
+          "key": "C",
+          "text": "subsidy"
+        },
+        {
+          "key": "D",
+          "text": "levy"
+        }
+      ],
+      "answer": "B",
+      "explanation": "訴訟費用に充てる資金という文脈にはlitigationが合う。subsidy（補助金）・levy（課税）・endowment（寄付基金）は訴訟費用を表さない。",
+      "translation": "その会社は訴訟費用を賄うための資金を確保した。"
+    },
+    {
+      "id": "similar-sustainability-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "sustainability",
+          "sense": "持続可能性",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The company published its annual ___ report last month.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "sustainability"
+        },
+        {
+          "key": "B",
+          "text": "insolvency"
+        },
+        {
+          "key": "C",
+          "text": "foreclosure"
+        },
+        {
+          "key": "D",
+          "text": "bankruptcy"
+        }
+      ],
+      "answer": "A",
+      "explanation": "企業が毎年発行する環境・持続可能性の報告書はsustainability report。insolvency（支払不能）・foreclosure（差し押さえ）・bankruptcy（破産）は文脈に合わない。",
+      "translation": "その会社は先月、年次サステナビリティ報告書を発表した。"
+    },
+    {
+      "id": "similar-sustainability-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "sustainability",
+          "sense": "持続可能性",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The firm's commitment to ___ includes reducing plastic packaging.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "liquidity"
+        },
+        {
+          "key": "B",
+          "text": "compliance"
+        },
+        {
+          "key": "C",
+          "text": "solvency"
+        },
+        {
+          "key": "D",
+          "text": "sustainability"
+        }
+      ],
+      "answer": "D",
+      "explanation": "\"commitment to sustainability\"（持続可能性への取り組み）は定番の言い方。liquidity（流動性）・compliance（法令遵守）・solvency（支払能力）は環境配慮を表さない。",
+      "translation": "その会社の持続可能性への取り組みには、プラスチック包装の削減が含まれる。"
+    },
+    {
+      "id": "similar-sustainability-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "sustainability",
+          "sense": "持続可能性",
+          "freqRank": "A"
+        }
+      ],
+      "question": "Investors are increasingly focused on the ___ of the business model.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "amortization"
+        },
+        {
+          "key": "B",
+          "text": "valuation"
+        },
+        {
+          "key": "C",
+          "text": "sustainability"
+        },
+        {
+          "key": "D",
+          "text": "depreciation"
+        }
+      ],
+      "answer": "C",
+      "explanation": "投資家が注目する「事業モデルの持続可能性」はsustainability。depreciation/amortization（減価償却）・valuation（評価額）は文脈に合わない。",
+      "translation": "投資家はビジネスモデルの持続可能性にますます注目している。"
+    },
+    {
+      "id": "similar-feedback-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "feedback",
+          "sense": "フィードバック",
+          "freqRank": "S"
+        }
+      ],
+      "question": "We would appreciate your ___ on the new product design.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "indictment"
+        },
+        {
+          "key": "B",
+          "text": "feedback"
+        },
+        {
+          "key": "C",
+          "text": "testimony"
+        },
+        {
+          "key": "D",
+          "text": "affidavit"
+        }
+      ],
+      "answer": "B",
+      "explanation": "製品デザインへの意見・感想を求める文脈にはfeedbackが合う。testimony（証言）・affidavit（宣誓供述書）・indictment（起訴）は法廷用語で文脈に合わない。",
+      "translation": "新しい製品デザインについて、ご意見をいただければ幸いです。"
+    },
+    {
+      "id": "similar-feedback-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "feedback",
+          "sense": "フィードバック",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The survey collects ___ from customers after every purchase.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "feedback"
+        },
+        {
+          "key": "B",
+          "text": "testimony"
+        },
+        {
+          "key": "C",
+          "text": "affidavit"
+        },
+        {
+          "key": "D",
+          "text": "subpoena"
+        }
+      ],
+      "answer": "A",
+      "explanation": "購入後に顧客から集める「意見・感想」はfeedback。testimony（証言）・affidavit（宣誓供述書）・subpoena（召喚状）は文脈に合わない。",
+      "translation": "そのアンケートは購入のたびに顧客からフィードバックを集める。"
+    },
+    {
+      "id": "similar-feedback-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "feedback",
+          "sense": "フィードバック",
+          "freqRank": "S"
+        }
+      ],
+      "question": "Based on client ___, we redesigned the onboarding process.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "stipulation"
+        },
+        {
+          "key": "B",
+          "text": "preamble"
+        },
+        {
+          "key": "C",
+          "text": "annex"
+        },
+        {
+          "key": "D",
+          "text": "feedback"
+        }
+      ],
+      "answer": "D",
+      "explanation": "顧客の意見を基に導入プロセスを再設計したという文脈にはfeedbackが合う。stipulation（規定条項）・preamble（前文）・annex（付属文書）は文脈に合わない。",
+      "translation": "顧客からのフィードバックを基に、私たちは導入プロセスを再設計した。"
+    },
+    {
+      "id": "similar-technician-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "technician",
+          "sense": "技術者",
+          "freqRank": "S"
+        }
+      ],
+      "question": "A ___ will come to repair the printer this afternoon.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "stakeholder"
+        },
+        {
+          "key": "B",
+          "text": "liaison"
+        },
+        {
+          "key": "C",
+          "text": "technician"
+        },
+        {
+          "key": "D",
+          "text": "supervisor"
+        }
+      ],
+      "answer": "C",
+      "explanation": "プリンターを修理しに来るのはtechnician。supervisor（上司）・stakeholder（利害関係者）・liaison（連絡担当者）は修理を行う専門職ではない。",
+      "translation": "今日の午後、技術者がプリンターを修理しに来る。"
+    },
+    {
+      "id": "similar-technician-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "technician",
+          "sense": "技術者",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The lab hired an experienced ___ to maintain its equipment.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "liaison"
+        },
+        {
+          "key": "B",
+          "text": "technician"
+        },
+        {
+          "key": "C",
+          "text": "mentor"
+        },
+        {
+          "key": "D",
+          "text": "proofreader"
+        }
+      ],
+      "answer": "B",
+      "explanation": "設備を保守するために雇う経験豊富な専門職はtechnician。mentor（指導者）・proofreader（校正者）・liaison（連絡担当者）は設備保守の専門職ではない。",
+      "translation": "その研究室は設備を保守するために経験豊富な技術者を雇った。"
+    },
+    {
+      "id": "similar-technician-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "technician",
+          "sense": "技術者",
+          "freqRank": "S"
+        }
+      ],
+      "question": "Only a certified ___ is allowed to operate this machine.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "technician"
+        },
+        {
+          "key": "B",
+          "text": "occupant"
+        },
+        {
+          "key": "C",
+          "text": "tenant"
+        },
+        {
+          "key": "D",
+          "text": "applicant"
+        }
+      ],
+      "answer": "A",
+      "explanation": "機械を操作できる有資格の専門職はcertified technician。occupant（居住者）・tenant（借家人）・applicant（応募者）は機械操作の資格者を表さない。",
+      "translation": "この機械を操作できるのは、資格を持つ技術者のみです。"
+    },
+    {
+      "id": "similar-malfunction-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "頻出動詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "malfunction",
+          "sense": "故障",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The elevator began to ___ shortly after the power outage.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "proliferate"
+        },
+        {
+          "key": "B",
+          "text": "diversify"
+        },
+        {
+          "key": "C",
+          "text": "consolidate"
+        },
+        {
+          "key": "D",
+          "text": "malfunction"
+        }
+      ],
+      "answer": "D",
+      "explanation": "停電の後にエレベーターが不調になるのはmalfunction。proliferate（急増する）・diversify（多角化する）・consolidate（統合する）は「故障する」の意味を持たない。",
+      "translation": "停電の直後、エレベーターが不調になり始めた。"
+    },
+    {
+      "id": "similar-malfunction-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "malfunction",
+          "sense": "故障",
+          "freqRank": "S"
+        }
+      ],
+      "question": "A software ___ caused the system to shut down unexpectedly.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "proliferation"
+        },
+        {
+          "key": "B",
+          "text": "escalation"
+        },
+        {
+          "key": "C",
+          "text": "malfunction"
+        },
+        {
+          "key": "D",
+          "text": "saturation"
+        }
+      ],
+      "answer": "C",
+      "explanation": "システムが予期せず停止した原因はsoftware malfunction（ソフトウェアの不具合）。saturation（飽和）・proliferation（急増）・escalation（激化）は「不具合」を表さない。",
+      "translation": "ソフトウェアの不具合により、システムが予期せず停止した。"
+    },
+    {
+      "id": "similar-malfunction-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "malfunction",
+          "sense": "故障",
+          "freqRank": "S"
+        }
+      ],
+      "question": "Engineers are investigating why the sensor continues to ___.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "mitigate"
+        },
+        {
+          "key": "B",
+          "text": "malfunction"
+        },
+        {
+          "key": "C",
+          "text": "appease"
+        },
+        {
+          "key": "D",
+          "text": "rectify"
+        }
+      ],
+      "answer": "B",
+      "explanation": "センサーが正常に動作しない状態が続くのはmalfunction。appease（なだめる）・rectify（是正する）・mitigate（軽減する）は「不具合が続く」ことを表さない。",
+      "translation": "エンジニアたちはそのセンサーが不調を続ける理由を調査している。"
+    },
+    {
+      "id": "similar-applicant-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "applicant",
+          "sense": "応募者",
+          "freqRank": "S"
+        }
+      ],
+      "question": "Only three ___ met all the requirements for the position.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "applicant"
+        },
+        {
+          "key": "B",
+          "text": "occupant"
+        },
+        {
+          "key": "C",
+          "text": "plaintiff"
+        },
+        {
+          "key": "D",
+          "text": "exhibitor"
+        }
+      ],
+      "answer": "A",
+      "explanation": "職種の条件を満たした「応募者」はapplicant。occupant（居住者）・plaintiff（原告）・exhibitor（出展者）は求人応募者を表さない。",
+      "translation": "その職種の全ての条件を満たした応募者は3名だけだった。"
+    },
+    {
+      "id": "similar-applicant-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "applicant",
+          "sense": "応募者",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The HR team is reviewing resumes from every ___.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "invitee"
+        },
+        {
+          "key": "B",
+          "text": "dignitary"
+        },
+        {
+          "key": "C",
+          "text": "attendee"
+        },
+        {
+          "key": "D",
+          "text": "applicant"
+        }
+      ],
+      "answer": "D",
+      "explanation": "履歴書を提出した「応募者全員」はapplicant。invitee（招待客）・dignitary（要人）・attendee（参加者）は求人応募者を表さない。",
+      "translation": "人事チームは全ての応募者の履歴書を確認している。"
+    },
+    {
+      "id": "similar-applicant-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "applicant",
+          "sense": "応募者",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The strongest ___ will be invited for a second interview.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "shareholder"
+        },
+        {
+          "key": "B",
+          "text": "sponsor"
+        },
+        {
+          "key": "C",
+          "text": "applicant"
+        },
+        {
+          "key": "D",
+          "text": "contractor"
+        }
+      ],
+      "answer": "C",
+      "explanation": "2回目の面接に招待される「最も有力な応募者」はapplicant。contractor（請負業者）・shareholder（株主）・sponsor（協賛者）は求人応募者を表さない。",
+      "translation": "最も有力な応募者は2回目の面接に招かれる。"
+    },
+    {
+      "id": "similar-shipment-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "shipment",
+          "sense": "発送・積み荷",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The ___ was delayed due to a problem at customs.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "reservation"
+        },
+        {
+          "key": "B",
+          "text": "shipment"
+        },
+        {
+          "key": "C",
+          "text": "consignment"
+        },
+        {
+          "key": "D",
+          "text": "subscription"
+        }
+      ],
+      "answer": "B",
+      "explanation": "税関の問題で遅れた「出荷物」はshipment。consignment（委託荷物。文脈的にやや近いがここでは自社発送を指すためshipmentがより自然）・subscription（定期購読）・reservation（予約）は文脈に合わない。",
+      "translation": "その出荷は税関での問題により遅延した。"
+    },
+    {
+      "id": "similar-shipment-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "shipment",
+          "sense": "発送・積み荷",
+          "freqRank": "S"
+        }
+      ],
+      "question": "We are still waiting for the ___ of replacement parts.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "shipment"
+        },
+        {
+          "key": "B",
+          "text": "itinerary"
+        },
+        {
+          "key": "C",
+          "text": "appraisal"
+        },
+        {
+          "key": "D",
+          "text": "endorsement"
+        }
+      ],
+      "answer": "A",
+      "explanation": "\"shipment of replacement parts\"（交換部品の出荷）は定番の言い方。itinerary（旅程）・appraisal（査定）・endorsement（推薦/裏書）は文脈に合わない。",
+      "translation": "私たちはまだ交換部品の出荷を待っている。"
+    },
+    {
+      "id": "similar-shipment-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "shipment",
+          "sense": "発送・積み荷",
+          "freqRank": "S"
+        }
+      ],
+      "question": "Each ___ is inspected before it leaves the warehouse.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "headcount"
+        },
+        {
+          "key": "B",
+          "text": "overhead"
+        },
+        {
+          "key": "C",
+          "text": "levy"
+        },
+        {
+          "key": "D",
+          "text": "shipment"
+        }
+      ],
+      "answer": "D",
+      "explanation": "倉庫を出る前に検査される「出荷物」はshipment。headcount（人員数）・overhead（諸経費）・levy（課税）は文脈に合わない。",
+      "translation": "各出荷物は倉庫を出る前に検査される。"
+    },
+    {
+      "id": "similar-tenant-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "tenant",
+          "sense": "賃借人",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The building has more than fifty ___ across ten floors.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "landlord"
+        },
+        {
+          "key": "B",
+          "text": "contractor"
+        },
+        {
+          "key": "C",
+          "text": "tenant"
+        },
+        {
+          "key": "D",
+          "text": "occupant"
+        }
+      ],
+      "answer": "C",
+      "explanation": "このビルの10階建てに入る「賃借人」を数える文脈にはtenantが合う（occupantは単に「居住・使用している人」の意味でtenantより広い）。landlord（大家）・contractor（請負業者）は文脈に合わない。",
+      "translation": "このビルには10フロアにわたって50以上の借家人がいる。"
+    },
+    {
+      "id": "similar-tenant-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "tenant",
+          "sense": "賃借人",
+          "freqRank": "S"
+        }
+      ],
+      "question": "The landlord raised the rent for all ___ in the building.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "invitees"
+        },
+        {
+          "key": "B",
+          "text": "tenants"
+        },
+        {
+          "key": "C",
+          "text": "exhibitors"
+        },
+        {
+          "key": "D",
+          "text": "attendees"
+        }
+      ],
+      "answer": "B",
+      "explanation": "家賃を値上げされる対象はtenants（借家人）。exhibitors（出展者）・attendees（参加者）・invitees（招待客）は賃貸物件の入居者を表さない。",
+      "translation": "大家はそのビルの全借家人の家賃を値上げした。"
+    },
+    {
+      "id": "similar-tenant-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "tenant",
+          "sense": "賃借人",
+          "freqRank": "S"
+        }
+      ],
+      "question": "A new ___ signed a two-year lease for the ground-floor space.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "tenant"
+        },
+        {
+          "key": "B",
+          "text": "sponsor"
+        },
+        {
+          "key": "C",
+          "text": "plaintiff"
+        },
+        {
+          "key": "D",
+          "text": "defendant"
+        }
+      ],
+      "answer": "A",
+      "explanation": "1階の物件で2年間の賃貸契約に署名したのはtenant（借家人）。sponsor（協賛者）・plaintiff/defendant（原告/被告）は賃貸契約の当事者を表さない。",
+      "translation": "新しい借家人が1階のスペースについて2年間の賃貸契約に署名した。"
+    },
+    {
+      "id": "similar-backlog-1",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "ビジネス名詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "backlog",
+          "sense": "未処理の受注",
+          "freqRank": "A"
+        }
+      ],
+      "question": "The support team is working through a large ___ of tickets.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "portfolio"
+        },
+        {
+          "key": "B",
+          "text": "clientele"
+        },
+        {
+          "key": "C",
+          "text": "assortment"
+        },
+        {
+          "key": "D",
+          "text": "backlog"
+        }
+      ],
+      "answer": "D",
+      "explanation": "未処理のチケットが溜まった状態はbacklog。portfolio（資産構成）・clientele（顧客層）・assortment（品揃え）は「未処理の滞積」を表さない。",
+      "translation": "サポートチームは大量の未処理チケットの滞積に対応している。"
+    },
+    {
+      "id": "similar-backlog-2",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 2,
+      "tags": [
+        "前置詞コロケーション"
+      ],
+      "keyVocab": [
+        {
+          "word": "backlog",
+          "sense": "未処理の受注",
+          "freqRank": "A"
+        }
+      ],
+      "question": "A ___ of orders built up during the holiday rush.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "overhead"
+        },
+        {
+          "key": "B",
+          "text": "turnover"
+        },
+        {
+          "key": "C",
+          "text": "backlog"
+        },
+        {
+          "key": "D",
+          "text": "headcount"
+        }
+      ],
+      "answer": "C",
+      "explanation": "\"a backlog of orders\"（注文の滞積）は定番の言い方。headcount（人員数）・overhead（諸経費）・turnover（離職率/売上高）は文脈に合わない。",
+      "translation": "ホリデーシーズンの繁忙期に注文の滞積が積み上がった。"
+    },
+    {
+      "id": "similar-backlog-3",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "言い換え語彙"
+      ],
+      "keyVocab": [
+        {
+          "word": "backlog",
+          "sense": "未処理の受注",
+          "freqRank": "A"
+        }
+      ],
+      "question": "Hiring more staff finally cleared the maintenance ___.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "endowment"
+        },
+        {
+          "key": "B",
+          "text": "backlog"
+        },
+        {
+          "key": "C",
+          "text": "subsidy"
+        },
+        {
+          "key": "D",
+          "text": "levy"
+        }
+      ],
+      "answer": "B",
+      "explanation": "追加スタッフの採用で解消された「保守作業の滞積」はbacklog。subsidy（補助金）・levy（課税）・endowment（寄付基金）は文脈に合わない。",
+      "translation": "スタッフを追加採用したことで、ついに保守作業の滞積が解消された。"
+    }
+  ]
+}
