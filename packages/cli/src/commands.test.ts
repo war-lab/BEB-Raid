@@ -295,6 +295,44 @@ describe('generate text_blank（T-28）', () => {
   })
 })
 
+describe('generate text_blank_s2（M2・T-61）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-part5-s2-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で100件のtext_blankドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'part5-s2.jsonl')
+    const { code, output } = await run(['generate', 'text_blank_s2', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('100件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        question: string
+        choices: { key: string; text: string }[]
+        answer: string
+        keyVocab: { freqRank: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(100)
+    expect(drafts.every((d) => d.kind === 'text_blank')).toBe(true)
+    expect(drafts.every((d) => d.payload.question.includes('___'))).toBe(true)
+    expect(drafts.every((d) => d.payload.choices.some((c) => c.key === d.payload.answer))).toBe(
+      true,
+    )
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'A')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'B')).toBe(true)
+  })
+})
+
 describe('generate key_vocab_similar（T-29）', () => {
   let dir: string
 

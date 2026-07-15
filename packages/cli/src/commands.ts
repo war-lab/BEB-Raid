@@ -42,7 +42,12 @@ import {
   buildPart2Questions,
   validatePart2Questions,
 } from './part2Question.js'
-import { buildPart5Drafts, buildPart5Questions, validatePart5Questions } from './part5Question.js'
+import {
+  buildPart5Drafts,
+  buildPart5EntriesS2,
+  buildPart5Questions,
+  validatePart5Questions,
+} from './part5Question.js'
 import {
   buildReviewTsv,
   parseJsonl,
@@ -65,6 +70,7 @@ const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
+const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
 
 interface GenerateKindHandler {
@@ -110,6 +116,12 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: buildPart5Drafts,
     validate: validatePart5Questions,
     defaultPath: DEFAULT_PART5_DRAFT_PATH,
+  },
+  text_blank_s2: {
+    buildQuestions: () => buildPart5Questions(buildPart5EntriesS2()),
+    buildDrafts: () => buildPart5Drafts(buildPart5EntriesS2()),
+    validate: validatePart5Questions,
+    defaultPath: DEFAULT_PART5_S2_DRAFT_PATH,
   },
   key_vocab_similar: {
     buildQuestions: buildKeyVocabSimilarQuestions,
