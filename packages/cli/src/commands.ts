@@ -27,6 +27,11 @@ import {
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
+import {
+  buildDictationDrafts,
+  buildDictationQuestions,
+  validateDictationQuestions,
+} from './dictationQuestion.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
 import { aggregateWeeklyKpi, parseKpiExport, renderWeeklyKpiTable } from './kpi.js'
 import {
@@ -43,6 +48,11 @@ import {
   validatePart2Questions,
 } from './part2Question.js'
 import {
+  buildPart34Drafts,
+  buildPart34Questions,
+  validatePart34Questions,
+} from './part34Question.js'
+import {
   buildPart5Drafts,
   buildPart5EntriesS2,
   buildPart5Questions,
@@ -55,6 +65,11 @@ import {
   toJsonl,
   type GeneratedItemDraft,
 } from './review.js'
+import {
+  buildShadowingDrafts,
+  buildShadowingQuestions,
+  validateShadowingQuestions,
+} from './shadowingQuestion.js'
 import { PiperTtsProvider } from './tts.js'
 import { synthesizeDraftsAudio } from './ttsBatch.js'
 import {
@@ -71,6 +86,9 @@ const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
+const DEFAULT_PART34_DRAFT_PATH = 'content/drafts/part34-s.jsonl'
+const DEFAULT_DICTATION_DRAFT_PATH = 'content/drafts/dictation-s.jsonl'
+const DEFAULT_SHADOWING_DRAFT_PATH = 'content/drafts/shadowing-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
 
 interface GenerateKindHandler {
@@ -131,6 +149,24 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
       ...validateTargetWordCoverage(KEY_VOCAB_SIMILAR_ENTRIES),
     ],
     defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH,
+  },
+  audio_set: {
+    buildQuestions: buildPart34Questions,
+    buildDrafts: buildPart34Drafts,
+    validate: validatePart34Questions,
+    defaultPath: DEFAULT_PART34_DRAFT_PATH,
+  },
+  dictation: {
+    buildQuestions: buildDictationQuestions,
+    buildDrafts: buildDictationDrafts,
+    validate: validateDictationQuestions,
+    defaultPath: DEFAULT_DICTATION_DRAFT_PATH,
+  },
+  shadowing: {
+    buildQuestions: buildShadowingQuestions,
+    buildDrafts: buildShadowingDrafts,
+    validate: validateShadowingQuestions,
+    defaultPath: DEFAULT_SHADOWING_DRAFT_PATH,
   },
 }
 

@@ -118,7 +118,7 @@ describe('generate vocab_card（T-26）', () => {
     expect(missing.code).toBe(1)
     expect(missing.errOutput).toContain('使い方')
 
-    const unsupported = await run(['generate', 'dictation'])
+    const unsupported = await run(['generate', 'not-a-real-kind'])
     expect(unsupported.code).toBe(1)
     expect(unsupported.errOutput).toContain('未対応のkind')
   })
@@ -330,6 +330,99 @@ describe('generate text_blank_s2（M2・T-61）', () => {
     )
     expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'A')).toBe(true)
     expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'B')).toBe(true)
+  })
+})
+
+describe('generate audio_set（M2・T-62）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-part34-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で20件のaudio_setドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'part34-s.jsonl')
+    const { code, output } = await run(['generate', 'audio_set', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('20件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        subQuestions: { id: string; choices: { key: string; text: string }[]; answer: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(20)
+    expect(drafts.every((d) => d.kind === 'audio_set')).toBe(true)
+    expect(drafts.every((d) => d.payload.subQuestions.length === 3)).toBe(true)
+    expect(
+      drafts.every((d) =>
+        d.payload.subQuestions.every((sq) => sq.choices.some((c) => c.key === sq.answer)),
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('generate dictation（M2・T-62）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-dictation-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で40件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'dictation-s.jsonl')
+    const { code, output } = await run(['generate', 'dictation', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('40件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: { format: string; blanks: { index: number; answer: string }[] }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(40)
+    expect(drafts.every((d) => d.kind === 'dictation')).toBe(true)
+    expect(drafts.every((d) => d.payload.blanks.length >= 1 && d.payload.blanks.length <= 3)).toBe(
+      true,
+    )
+  })
+})
+
+describe('generate shadowing（M2・T-62）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-shadowing-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で30件のshadowingドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'shadowing-s.jsonl')
+    const { code, output } = await run(['generate', 'shadowing', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('30件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: { format: string; timing: number[] }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(30)
+    expect(drafts.every((d) => d.kind === 'shadowing')).toBe(true)
+    expect(
+      drafts.every((d) => Array.isArray(d.payload.timing) && d.payload.timing.length > 0),
+    ).toBe(true)
   })
 })
 
