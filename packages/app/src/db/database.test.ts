@@ -4,6 +4,7 @@
 // jsdom は IndexedDB を実装しないため fake-indexeddb を使う
 // （純JS実装・Dexie公式ドキュメントでもテスト用として案内されている）。
 import 'fake-indexeddb/auto'
+import Dexie from 'dexie'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from './database'
@@ -24,7 +25,7 @@ afterEach(async () => {
 })
 
 describe('BebRaidDatabase: ストア定義', () => {
-  it('04の3節の全11ストアが定義されている（J-7）', () => {
+  it('04の3節の全11ストア＋examScores（T-42=C-2改訂）が定義されている（J-7）', () => {
     const db = newDb()
     const names = db.tables.map((t) => t.name).sort()
     expect(names).toEqual(
@@ -40,6 +41,7 @@ describe('BebRaidDatabase: ストア定義', () => {
         'badges',
         'pendingSync',
         'settings',
+        'examScores',
       ].sort(),
     )
   })
@@ -225,5 +227,57 @@ describe('settings: CRUD', () => {
 
     await db.settings.delete('noEarphoneMode')
     expect(await db.settings.get('noEarphoneMode')).toBeUndefined()
+  })
+})
+
+describe('マイグレーション: version(1)→version(2)（T-42=C-2改訂）', () => {
+  it('version(1)スキーマで作成済みのデータがversion(2)でも読める', async () => {
+    const name = `beb-raid-migration-test-${++seq}`
+
+    // 旧アプリ相当: version(1)のみを宣言した素のDexieインスタンスでデータを作る
+    const legacy = new Dexie(name)
+    legacy.version(1).stores({
+      profile: 'id',
+      attempts: 'id, questionId, mode, answeredAt',
+      srsCards: 'id, refType, refId, dueAt',
+      ratings: 'section',
+      ratingHistory: '[date+section], date, section',
+      tagStats: 'tag',
+      phase: 'season',
+      streak: 'id',
+      badges: 'badgeId',
+      pendingSync: '++id, createdAt',
+      settings: 'key',
+    })
+    await legacy.open()
+    await legacy.table('profile').put({
+      id: PROFILE_ID,
+      displayName: '旧データ',
+      initialToeic: null,
+      createdAt: 1000,
+      deviceToken: 'legacy-token',
+    })
+    legacy.close()
+
+    // 新アプリ相当: version(1)+version(2)を宣言するBebRaidDatabaseで同名DBを開く
+    const upgraded = new BebRaidDatabase(name)
+    dbs.push(upgraded)
+    await upgraded.open()
+
+    // 既存データ（version(1)時代に書いたもの）が消えずに読める
+    const profile = await upgraded.profile.get(PROFILE_ID)
+    expect(profile?.displayName).toBe('旧データ')
+
+    // 新設ストア（examScores）が読み書きできる
+    expect(await upgraded.examScores.toArray()).toEqual([])
+    await upgraded.examScores.put({
+      id: 'e-1',
+      date: '2026-07-14',
+      listening: 400,
+      reading: 400,
+      total: 800,
+      source: 'IP',
+    })
+    expect(await upgraded.examScores.count()).toBe(1)
   })
 })

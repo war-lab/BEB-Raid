@@ -4,7 +4,9 @@
 // 表示後（ホームへ復帰時）に completeSession でスナップショットを破棄する。
 import { useEffect, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
+import { SEASON_LABELS, type PhaseTransitionOutcome } from '../engine/curriculum'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
+import { evaluateAndPersistPhaseTransition } from '../services/phase'
 import { completeSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -23,23 +25,32 @@ export function ResultScreen({ db }: Props) {
   const navigate = useAppStore((s) => s.navigate)
 
   const [ratingAfter, setRatingAfter] = useState<{ L: number; R: number } | null>(null)
+  // T-54: セッション完了時のフェーズ移行判定（成立時のみ演出を表示）
+  const [phaseOutcome, setPhaseOutcome] = useState<PhaseTransitionOutcome | null>(null)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
+      const [l, r, outcome] = await Promise.all([
+        db.ratings.get('L'),
+        db.ratings.get('R'),
+        // フェーズ評価が失敗しても（DB切断等）リザルト表示自体は壊さない。
+        // 演出を出さないだけの安全側フォールバックにする
+        evaluateAndPersistPhaseTransition(db, questions).catch(() => null),
+      ])
       if (!cancelled) {
         setRatingAfter({
           L: l?.rating ?? DEFAULT_INITIAL_RATING,
           R: r?.rating ?? DEFAULT_INITIAL_RATING,
         })
+        setPhaseOutcome(outcome)
       }
     }
     void load()
     return () => {
       cancelled = true
     }
-  }, [db])
+  }, [db, questions])
 
   const correctCount = results.filter((r) => r.isCorrect).length
   const wrongCount = results.length - correctCount
@@ -57,6 +68,21 @@ export function ResultScreen({ db }: Props) {
       status={<p>リザルト</p>}
       action={<PrimaryButton onClick={handleHome}>ホームへ</PrimaryButton>}
     >
+      {phaseOutcome?.seasonTransitioned && (
+        <p className="result-phase-transition" data-testid="phase-transition">
+          {SEASON_LABELS[phaseOutcome.season]}に突入しました
+        </p>
+      )}
+      {phaseOutcome?.seasonCleared && (
+        <p className="result-phase-transition" data-testid="season-cleared">
+          シーズンクリア！
+        </p>
+      )}
+      {phaseOutcome?.listeningTransitioned && (
+        <p className="result-phase-transition" data-testid="listening-transition">
+          リスニング段階L{phaseOutcome.listeningStage}に進みました
+        </p>
+      )}
       <p>
         <span className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
           +{totalPoints}

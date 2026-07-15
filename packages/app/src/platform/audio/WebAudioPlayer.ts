@@ -11,19 +11,32 @@ export type AudioContextFactory = () => AudioContext
 /** キャッシュmiss時のフォールバック取得（テスト用に差し替え可能） */
 export type AudioFetch = (src: string) => Promise<Blob>
 
+/** テスト用に HTMLAudioElement の生成を差し替え可能にする（T-45: rate経路） */
+export type AudioElementFactory = () => HTMLAudioElement
+
 const defaultFetch: AudioFetch = async (src) => {
   const res = await fetch(src)
   if (!res.ok) throw new Error(`音声の取得に失敗: ${src}`)
   return res.blob()
 }
 
+const defaultCreateAudioElement: AudioElementFactory = () => new Audio()
+
 /** デコード済み AudioBuffer のメモリキャッシュ上限（1セッションの出題数を上回る概算値） */
 const BUFFER_CACHE_LIMIT = 50
+
+/** onPosition 通知の間隔（ms。3.7節: 100ms程度で十分） */
+const POSITION_NOTIFY_INTERVAL_MS = 100
 
 export class WebAudioPlayer implements AudioPlayer {
   private ctx: AudioContext | null = null
   private readonly bufferCache = new Map<string, AudioBuffer>()
   private currentSources: AudioBufferSourceNode[] = []
+  /** rate経路（HTMLAudioElement）で現在再生中の要素（同時に1つ。stop()での一括処理用） */
+  private currentAudioElements: HTMLAudioElement[] = []
+  /** rate経路で現在再生中の要素に紐づく ObjectURL（stop()時のrevoke漏れ防止） */
+  private currentObjectUrls: string[] = []
+  private positionTimer: ReturnType<typeof setInterval> | null = null
   private lastSrcs: string[] = []
   private lastOptions: PlayOptions | undefined
   private stopped = false
@@ -34,6 +47,7 @@ export class WebAudioPlayer implements AudioPlayer {
     private readonly packCache: PackCache,
     private readonly createContext: AudioContextFactory = () => new AudioContext(),
     private readonly fetchAudio: AudioFetch = defaultFetch,
+    private readonly createAudioElement: AudioElementFactory = defaultCreateAudioElement,
   ) {}
 
   async unlock(): Promise<void> {
@@ -75,11 +89,38 @@ export class WebAudioPlayer implements AudioPlayer {
       }
     }
     this.currentSources = []
+    for (const audio of this.currentAudioElements) {
+      audio.onended = null
+      audio.ontimeupdate = null
+      audio.onloadedmetadata = null
+      try {
+        audio.pause()
+      } catch {
+        // 未ロード状態での pause() 例外は無視する
+      }
+    }
+    this.currentAudioElements = []
+    this.revokeObjectUrls()
+    this.clearPositionTimer()
     if (this.pendingResolve) {
       const resolve = this.pendingResolve
       this.pendingResolve = null
       resolve()
     }
+  }
+
+  private clearPositionTimer(): void {
+    if (this.positionTimer !== null) {
+      clearInterval(this.positionTimer)
+      this.positionTimer = null
+    }
+  }
+
+  private revokeObjectUrls(): void {
+    for (const url of this.currentObjectUrls) {
+      URL.revokeObjectURL(url)
+    }
+    this.currentObjectUrls = []
   }
 
   private async startSequence(
@@ -98,6 +139,11 @@ export class WebAudioPlayer implements AudioPlayer {
     }
     this.stopped = false
 
+    // rate!==1.0 指定時のみ HTMLAudioElement 経路（J-27: playbackRate + preservesPitch）
+    if (options?.rate !== undefined && options.rate !== 1) {
+      return this.startRateSequence(srcs, options)
+    }
+
     const buffers = await Promise.all(srcs.map((src) => this.loadBuffer(src)))
     // 読み込み待ちの間に stop() された場合、残りは再生しない
     if (this.stopped) return
@@ -106,10 +152,19 @@ export class WebAudioPlayer implements AudioPlayer {
       this.pendingResolve = resolve
       const sources: AudioBufferSourceNode[] = []
       let remaining = buffers.length
-      let startTime = ctx.currentTime
+      const sequenceStartTime = ctx.currentTime
+      let startTime = sequenceStartTime
+      if (options?.onPosition) {
+        const onPosition = options.onPosition
+        const baseMs = options.startMs ?? 0
+        this.positionTimer = setInterval(() => {
+          onPosition(baseMs + Math.max(0, (ctx.currentTime - sequenceStartTime) * 1000))
+        }, POSITION_NOTIFY_INTERVAL_MS)
+      }
       const finishOne = () => {
         remaining -= 1
         if (remaining <= 0) {
+          this.clearPositionTimer()
           this.pendingResolve = null
           resolve()
         }
@@ -119,7 +174,6 @@ export class WebAudioPlayer implements AudioPlayer {
         source.buffer = buffer
         source.connect(ctx.destination)
         source.onended = finishOne
-        // options.rate は予約のみ（J-6）。M1では適用しない
         const offsetSec = Math.min((options?.startMs ?? 0) / 1000, buffer.duration)
         if (options?.durationMs !== undefined) {
           const durationSec = options.durationMs / 1000
@@ -134,6 +188,93 @@ export class WebAudioPlayer implements AudioPlayer {
       }
       this.currentSources = sources
     })
+  }
+
+  /**
+   * rate経路（HTMLAudioElement）での連結再生。AudioBufferSourceNode.playbackRate は
+   * ピッチが変わるため使わず（J-27）、PackCache の Blob を ObjectURL 化して再生する。
+   * 複数srcは前の要素の再生完了（onended）を待って順に再生する。
+   */
+  private async startRateSequence(srcs: string[], options: PlayOptions): Promise<void> {
+    const rate = options.rate!
+    const blobs = await Promise.all(srcs.map((src) => this.loadBlob(src)))
+    // 読み込み待ちの間に stop() された場合、残りは再生しない
+    if (this.stopped) return
+
+    return new Promise((resolve) => {
+      this.pendingResolve = resolve
+      let remaining = blobs.length
+      let index = 0
+
+      const playNext = (): void => {
+        if (this.stopped || index >= blobs.length) return
+        const blob = blobs[index]!
+        index += 1
+        const url = URL.createObjectURL(blob)
+        const audio = this.createAudioElement()
+        this.currentAudioElements = [audio]
+        this.currentObjectUrls = [url]
+        audio.src = url
+        audio.playbackRate = rate
+        audio.preservesPitch = true
+        // Safari向け（標準APIに未追加のためunknown経由でアクセス）
+        ;(audio as unknown as { webkitPreservesPitch?: boolean }).webkitPreservesPitch = true
+
+        const startSec = (options.startMs ?? 0) / 1000
+
+        const cleanupAndAdvance = () => {
+          audio.onended = null
+          audio.ontimeupdate = null
+          URL.revokeObjectURL(url)
+          this.clearPositionTimer()
+          remaining -= 1
+          if (remaining <= 0 || this.stopped) {
+            this.pendingResolve = null
+            resolve()
+          } else {
+            playNext()
+          }
+        }
+
+        if (options.onPosition) {
+          const onPosition = options.onPosition
+          this.positionTimer = setInterval(() => {
+            onPosition(Math.max(0, (audio.currentTime - startSec) * 1000))
+          }, POSITION_NOTIFY_INTERVAL_MS)
+        }
+        if (options.durationMs !== undefined) {
+          const endSec = startSec + options.durationMs / 1000
+          audio.ontimeupdate = () => {
+            if (audio.currentTime >= endSec) {
+              audio.pause()
+              cleanupAndAdvance()
+            }
+          }
+        }
+        audio.onended = cleanupAndAdvance
+
+        const start = () => {
+          audio.currentTime = startSec
+          void audio.play()
+        }
+        if (audio.readyState >= 1) {
+          start()
+        } else {
+          audio.onloadedmetadata = () => {
+            audio.onloadedmetadata = null
+            start()
+          }
+        }
+      }
+
+      playNext()
+    })
+  }
+
+  /** キャッシュ→フォールバックfetchで Blob を取得する（rate経路。デコード不要） */
+  private async loadBlob(src: string): Promise<Blob> {
+    const cachedBlob = await this.packCache.get(src)
+    return cachedBlob ?? (await this.fetchAudio(src))
   }
 
   /** キャッシュファースト（メモリ→PackCache→fetch）で AudioBuffer を取得する */

@@ -12,6 +12,7 @@ import type { BebRaidDatabase } from '../db/database'
 import type {
   AttemptRecord,
   BadgeRecord,
+  ExamScoreRecord,
   PendingSyncRecord,
   PhaseRecord,
   ProfileRecord,
@@ -22,6 +23,7 @@ import type {
   StreakRecord,
   TagStatRecord,
 } from '../db/schema'
+import { BYOK_API_KEY_KEY } from './settingsKeys'
 
 /** バックアップファイル自体のフォーマット世代（DBスキーマ変更時に上げる） */
 export const BACKUP_FORMAT_VERSION = 1
@@ -38,6 +40,35 @@ export interface BackupStores {
   badges: BadgeRecord[]
   pendingSync: PendingSyncRecord[]
   settings: SettingRecord[]
+  /** T-42（C-2改訂）で追加。旧バージョンのバックアップには存在しない（インポート側は空扱いで許容） */
+  examScores: ExamScoreRecord[]
+}
+
+/**
+ * settings のうちエクスポートJSONに含めないキー（T-42=C-2改訂。レビューフォローアップ必須項目）。
+ * BYOK APIキーは端末外に出さない不変条件（05の5節）のため、エクスポート・インポートの
+ * 両方でこのキーを除外する
+ */
+export const EXPORT_EXCLUDED_KEYS: readonly string[] = [BYOK_API_KEY_KEY]
+
+/**
+ * 各ストアが導入されたDexieスキーマバージョン（database.ts の version() と対応）。
+ * バックアップの dbVersion がこの値未満なら、そのストアが欠落していても
+ * 「まだ存在しなかった」として許容する（T-42=C-2改訂で追加した examScores 用）
+ */
+const STORE_INTRODUCED_AT: Record<keyof BackupStores, number> = {
+  profile: 1,
+  attempts: 1,
+  srsCards: 1,
+  ratings: 1,
+  ratingHistory: 1,
+  tagStats: 1,
+  phase: 1,
+  streak: 1,
+  badges: 1,
+  pendingSync: 1,
+  settings: 1,
+  examScores: 2,
 }
 
 export interface BackupFile {
@@ -60,15 +91,23 @@ const STORE_NAMES = [
   'badges',
   'pendingSync',
   'settings',
+  'examScores',
 ] as const satisfies readonly (keyof BackupStores)[]
 
-/** 全ストアを1つのバックアップオブジェクトに書き出す（JSON.stringify 可能な形） */
+/**
+ * 全ストアを1つのバックアップオブジェクトに書き出す（JSON.stringify 可能な形）。
+ * settings は EXPORT_EXCLUDED_KEYS（BYOK APIキー等）を除外する
+ */
 export async function exportAll(db: BebRaidDatabase): Promise<BackupFile> {
   const tables = STORE_NAMES.map((name) => db.table(name))
   return db.transaction('r', tables, async () => {
     const stores = {} as Record<keyof BackupStores, unknown[]>
     for (const name of STORE_NAMES) {
-      stores[name] = await db.table(name).toArray()
+      const rows = await db.table(name).toArray()
+      stores[name] =
+        name === 'settings'
+          ? (rows as SettingRecord[]).filter((r) => !EXPORT_EXCLUDED_KEYS.includes(r.key))
+          : rows
     }
     return {
       formatVersion: BACKUP_FORMAT_VERSION,
@@ -79,7 +118,12 @@ export async function exportAll(db: BebRaidDatabase): Promise<BackupFile> {
   })
 }
 
-/** バックアップの構造検証。不正なら理由の配列を返す（空なら妥当） */
+/**
+ * バックアップの構造検証。不正なら理由の配列を返す（空なら妥当）。
+ * ストアが未定義の場合、バックアップの dbVersion がそのストアの導入バージョン未満なら
+ * 「まだ存在しなかった」として許容する（STORE_INTRODUCED_AT）。それ以外（本来存在すべき
+ * ストアの欠落・値が配列でない）はエラーとする
+ */
 export function validateBackup(data: unknown): string[] {
   const problems: string[] = []
   if (typeof data !== 'object' || data === null) {
@@ -94,8 +138,13 @@ export function validateBackup(data: unknown): string[] {
     return problems
   }
   const stores = d.stores as Record<string, unknown>
+  const backupDbVersion = typeof d.dbVersion === 'number' ? d.dbVersion : 0
   for (const name of STORE_NAMES) {
-    if (!Array.isArray(stores[name])) {
+    const value = stores[name]
+    if (value === undefined) {
+      if (backupDbVersion < STORE_INTRODUCED_AT[name]) continue
+      problems.push(`stores.${name} が配列ではない`)
+    } else if (!Array.isArray(value)) {
       problems.push(`stores.${name} が配列ではない`)
     }
   }
@@ -126,7 +175,8 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
   const tables = STORE_NAMES.map((name) => db.table(name))
   await db.transaction('rw', tables, async () => {
     for (const name of STORE_NAMES) {
-      const rows = backup.stores[name]
+      // 旧バージョンのバックアップに存在しない新規ストア（例: examScores）は空扱いにする
+      const rows = backup.stores[name] ?? []
       if (name === 'attempts') {
         // 追記マージのみ。既存IDは内容が異なっても上書きしない（改ざん・破損した
         // バックアップで生ログが書き換わるのを防ぐ。削除・更新はフックでも遮断される）
@@ -134,6 +184,14 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
         const existing = await db.attempts.bulkGet(incoming.map((r) => r.id))
         const fresh = incoming.filter((_, i) => existing[i] === undefined)
         await db.attempts.bulkAdd(fresh)
+      } else if (name === 'settings') {
+        // BYOK APIキー等はエクスポート時に既に除外されているが、外部編集された
+        // バックアップファイルに万一含まれていても復元しない（多層防御）
+        const incoming = (rows as SettingRecord[]).filter(
+          (r) => !EXPORT_EXCLUDED_KEYS.includes(r.key),
+        )
+        await db.table(name).clear()
+        await db.table(name).bulkPut(incoming)
       } else {
         await db.table(name).clear()
         await db.table(name).bulkPut(rows)

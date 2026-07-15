@@ -40,7 +40,7 @@ export interface PackDefinition {
 }
 
 /** M1で配布する4パック（04の2節の例に倣ったid命名。docs/10完了条件の「ダミー4種パック」に対応する実データ版） */
-export const PACK_DEFINITIONS: readonly PackDefinition[] = [
+const M1_PACK_DEFINITIONS: readonly PackDefinition[] = [
   {
     id: 'pack-vocab-s-001',
     title: '語彙カード Sランク200語',
@@ -73,6 +73,85 @@ export const PACK_DEFINITIONS: readonly PackDefinition[] = [
     targetLevel: [600, 600],
     draftPath: 'drafts/key-vocab-similar-s.jsonl',
   },
+]
+
+/**
+ * M2で追加する8パック（docs/13 3.10節のJ-22。同節は7パックを列挙しているが、
+ * T-63のkey単語類題追加分（key-vocab-similar-s2）は3.10節の計画時点では想定されて
+ * おらず、既存のpack-p5-similar-s-001とは正答ローテーション方式が異なる別データの
+ * ため統合せず独立パックとした。結果としてM2は8パック・全体で12パックになる）
+ */
+const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-vocab-a-001',
+    title: '語彙カード Aランク200語（730帯）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    targetLevel: [600, 730],
+    draftPath: 'drafts/vocab-card-a.jsonl',
+  },
+  {
+    id: 'pack-vocab-b-001',
+    title: '語彙カード Bランク200語（860帯）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    targetLevel: [730, 860],
+    draftPath: 'drafts/vocab-card-b.jsonl',
+  },
+  {
+    id: 'pack-p2-s-002',
+    title: 'Part2瞬発 追加100問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/part2-s2.jsonl',
+  },
+  {
+    id: 'pack-p5-s-002',
+    title: 'Part5文法 追加100問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/part5-s2.jsonl',
+  },
+  {
+    id: 'pack-p34-s-001',
+    title: 'Part3/4セット（会話10・トーク10）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/part34-s.jsonl',
+  },
+  {
+    id: 'pack-dict-s-001',
+    title: 'ディクテーション短文40本',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/dictation-s.jsonl',
+  },
+  {
+    id: 'pack-shadow-s-001',
+    title: 'シャドーイング素材30本',
+    license: 'internal-original',
+    origin: '既存Part3/4スクリプト・Part2応答文の流用＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/shadowing-s.jsonl',
+  },
+  {
+    id: 'pack-p5-similar-s-002',
+    title: 'Part5 key単語類題 追加60問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（key単語システムの循環問題。AIクロスレビュー対象外）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/key-vocab-similar-s2.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）= 12パック（docs/13 3.10節・T-64） */
+export const PACK_DEFINITIONS: readonly PackDefinition[] = [
+  ...M1_PACK_DEFINITIONS,
+  ...M2_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */
@@ -119,6 +198,51 @@ export function applyCorrections(
   }))
 }
 
+/**
+ * explanation品質の機械検証（M2・T-63。正本: docs/13 T-63行）。
+ * vocab_card/shadowingは「正解/不正解」の概念がなくexplanationを持たないため対象外。
+ * audio_setはsubQuestion単位のexplanationを検証する。
+ */
+const MIN_EXPLANATION_LENGTH = 15
+/** 「Aが正解」のように選択肢記号のみを参照し実テキストの引用が無い形式的な解説を検出する */
+const BARE_LETTER_EXPLANATION_RE = /^[A-D][\s.、。）)]*が?\s*(正解|正しい|correct)[\s.。]*$/i
+
+function checkExplanationText(id: string, explanation: string | null | undefined): string[] {
+  const problems: string[] = []
+  const trimmed = (explanation ?? '').trim()
+  if (trimmed === '') {
+    problems.push(`${id}: explanationが空または欠落している`)
+    return problems
+  }
+  if (trimmed.length < MIN_EXPLANATION_LENGTH) {
+    problems.push(
+      `${id}: explanationが短すぎる（${trimmed.length}文字。最低${MIN_EXPLANATION_LENGTH}文字必要）`,
+    )
+  }
+  if (BARE_LETTER_EXPLANATION_RE.test(trimmed)) {
+    problems.push(
+      `${id}: explanationが選択肢記号のみを参照しており実テキストの引用がない: "${trimmed}"`,
+    )
+  }
+  return problems
+}
+
+/** パック内の全問（audio_setはsubQuestions含む）のexplanation品質を検証する */
+export function validateExplanationQuality(questions: readonly Question[]): string[] {
+  const problems: string[] = []
+  for (const q of questions) {
+    if (q.format === 'vocab_card' || q.format === 'shadowing') continue
+    if (q.format === 'audio_set') {
+      for (const sq of q.subQuestions ?? []) {
+        problems.push(...checkExplanationText(`${q.id}/${sq.id}`, sq.explanation))
+      }
+    } else {
+      problems.push(...checkExplanationText(q.id, q.explanation))
+    }
+  }
+  return problems
+}
+
 /** 1パック分の検証・組み立て。エラーがあれば built=null で全エラーを返す */
 export function buildPack(
   source: PackSource,
@@ -137,10 +261,14 @@ export function buildPack(
   }
 
   const result = validatePack(draftPack, { audioFiles })
-  if (!result.ok) {
+  const explanationProblems = validateExplanationQuality(source.questions)
+  if (!result.ok || explanationProblems.length > 0) {
     return {
       built: null,
-      errors: result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
+      errors: [
+        ...result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
+        ...explanationProblems.map((p) => `${source.id} ${p}`),
+      ],
     }
   }
 

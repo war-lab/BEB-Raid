@@ -1,0 +1,25 @@
+{
+  "name": "@beb-raid/review-ui",
+  "private": true,
+  "version": "0.1.0",
+  "description": "コンテンツレビュー用のローカル専用UI（M2・T-57）。開発者ローカル専用でビルド・デプロイ対象外（README参照）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@beb-raid/cli": "*",
+    "@beb-raid/shared-schema": "*",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "jsdom": "^29.1.1",
+    "vite": "^8.1.3"
+  }
+}

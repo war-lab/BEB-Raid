@@ -105,11 +105,20 @@ export interface TagStatRecord {
   windowTotal: number
 }
 
-/** phase: カリキュラム進行（M1では書き込まない=J-7） */
+/** リスニング段階（03の8節 L1–L4。M2=T-51で書き込む） */
+export type ListeningStage = 1 | 2 | 3 | 4
+
+/** phase: カリキュラム進行（M1では書き込まない=J-7。M2=T-51で書き込む） */
 export interface PhaseRecord {
   season: PhaseSeason
   criteriaJson: string
   achievedAt: number | null
+  /**
+   * リスニング段階（L1–L4）。T-42（C-2改訂）で追加した非インデックスフィールド。
+   * 既存レコード（M1時点はphaseを書き込んでいないため実質皆無）には存在しないため省略可とし、
+   * 読み手は1（L1）を既定値として扱う（13の3.2節: リスニングは段階スキップさせない）
+   */
+  listeningStage?: ListeningStage
 }
 
 /** streak: 連続学習日数（02の7節） */
@@ -147,4 +156,22 @@ export interface PendingSyncRecord {
 export interface SettingRecord {
   key: string
   value: unknown
+}
+
+/** 実試験・IPテストのスコア登録元（03の5.5節・06の4節） */
+export type ExamScoreSource = 'IP' | '公開' | 'その他'
+
+/**
+ * examScores: 実試験・IPテストスコアの任意登録（T-42=C-2改訂。M2で新設。
+ * 正本: docs/03 5.5節・06の4節。予測スコアとの乖離の校正データ・シーズンクリア判定=J-16 に使う）
+ */
+export interface ExamScoreRecord {
+  id: string
+  /** 'YYYY-MM-DD' */
+  date: string
+  listening: number
+  reading: number
+  total: number
+  source: ExamScoreSource
+  note?: string
 }

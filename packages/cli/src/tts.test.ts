@@ -6,10 +6,27 @@ import {
   isSupportedAccent,
   PiperTtsProvider,
   rotateAccent,
+  sanitizeForTts,
   SUPPORTED_ACCENTS,
   voiceFor,
   type ProcessRunner,
 } from './tts.js'
+
+describe('sanitizeForTts（M2・T-64。em/enダッシュがPiperのstdinでクラッシュする不具合の回避）', () => {
+  it('em dashをカンマに置換する', () => {
+    expect(sanitizeForTts('That should work — most of the team is free.')).toBe(
+      'That should work, most of the team is free.',
+    )
+  })
+
+  it('en dashも同様に置換する', () => {
+    expect(sanitizeForTts('pages 10–20')).toBe('pages 10, 20')
+  })
+
+  it('ダッシュを含まないテキストはそのまま', () => {
+    expect(sanitizeForTts('Please submit the report.')).toBe('Please submit the report.')
+  })
+})
 
 describe('rotateAccent / voiceFor', () => {
   it('米/英の2アクセントのみをローテーションする（en_AU不在のため縮退）', () => {
@@ -181,5 +198,79 @@ describe('PiperTtsProvider.synthesizeDialogue（Part2: 設問と応答で別話�
     })
     expect(inputsByVoice['/voices/en_GB-jenny_dioco-medium.onnx']).toBe('Who will attend?')
     expect(inputsByVoice['/voices/en_GB-alan-medium.onnx']).toBe('Ms. Tanaka will.')
+  })
+})
+
+describe('PiperTtsProvider.synthesizeMultiTurnDialogue（Part3: Nターンの会話。M2・T-64）', () => {
+  function fakeRunProcess(): { run: ProcessRunner; calls: { command: string; args: string[] }[] } {
+    const calls: { command: string; args: string[] }[] = []
+    const run: ProcessRunner = vi.fn(async (command, args) => {
+      calls.push({ command, args })
+      if (command === 'ffprobe') return { stdout: '5.123' }
+      return { stdout: '' }
+    })
+    return { run, calls }
+  }
+
+  it('piper×4（各ターン）→ffmpeg(N本連結)→ffprobeの順で呼ぶ', async () => {
+    const { run, calls } = fakeRunProcess()
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+
+    const result = await provider.synthesizeMultiTurnDialogue({
+      turns: [
+        { text: 'Do you have a minute?', role: 'primary' },
+        { text: 'Sure, what is it?', role: 'secondary' },
+        { text: 'Could we reschedule?', role: 'primary' },
+        { text: 'That works for me.', role: 'secondary' },
+      ],
+      accent: 'US',
+      outputPath: '/out/p34-p3-01.mp3',
+    })
+
+    expect(calls.map((c) => c.command)).toEqual([
+      'piper',
+      'piper',
+      'piper',
+      'piper',
+      'ffmpeg',
+      'ffprobe',
+    ])
+    // 話者はturnsのrole指定どおりに交互（primary/secondary）
+    expect(calls[0]?.args).toContain('/voices/en_US-lessac-medium.onnx')
+    expect(calls[1]?.args).toContain('/voices/en_US-ryan-medium.onnx')
+    expect(calls[2]?.args).toContain('/voices/en_US-lessac-medium.onnx')
+    expect(calls[3]?.args).toContain('/voices/en_US-ryan-medium.onnx')
+    // ffmpegはconcatフィルタで4本のWAVを発話順どおりに1本にする
+    expect(calls[4]?.args).toContain('[0:0][1:0][2:0][3:0]concat=n=4:v=0:a=1[out]')
+    expect(result.voice).toBe('piper:en_US-lessac-medium+piper:en_US-ryan-medium')
+    expect(result.durationMs).toBe(5123)
+  })
+
+  it('各ターンのテキストをそのターンの話者のstdinに渡す', async () => {
+    const inputsInOrder: (string | undefined)[] = []
+    const run: ProcessRunner = vi.fn(async (command, _args, options) => {
+      if (command === 'piper') inputsInOrder.push(options?.input)
+      if (command === 'ffprobe') return { stdout: '1.0' }
+      return { stdout: '' }
+    })
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+    await provider.synthesizeMultiTurnDialogue({
+      turns: [
+        { text: 'First turn.', role: 'primary' },
+        { text: 'Second turn.', role: 'secondary' },
+        { text: 'Third turn.', role: 'primary' },
+      ],
+      accent: 'US',
+      outputPath: '/out/x.mp3',
+    })
+    expect(inputsInOrder).toEqual(['First turn.', 'Second turn.', 'Third turn.'])
+  })
+
+  it('turnsが空だとエラーになる', async () => {
+    const { run } = fakeRunProcess()
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+    await expect(
+      provider.synthesizeMultiTurnDialogue({ turns: [], accent: 'US', outputPath: '/out/x.mp3' }),
+    ).rejects.toThrow()
   })
 })

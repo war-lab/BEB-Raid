@@ -12,12 +12,19 @@
 import type { Question } from '@beb-raid/shared-schema'
 
 import type { BebRaidDatabase } from '../db/database'
-import type { SrsCardRecord } from '../db/schema'
+import type { ListeningStage, SrsCardRecord } from '../db/schema'
+import { templateForSeason } from './curriculum'
 import { getActiveReviewWords, similarOrFallback } from './keyVocab'
 import rawConfig from './quickPackConfig.json'
 import { getSrsQueue } from './srs'
 import { getWeakTags } from './tagStats'
-import type { QuickPack, QuickPackItem, QuickPackReason, QuickPackRequest } from './types'
+import type {
+  CurriculumTemplate,
+  QuickPack,
+  QuickPackItem,
+  QuickPackReason,
+  QuickPackRequest,
+} from './types'
 
 /** ドリルの配分カテゴリ（J-2 の固定配分の単位） */
 export type DrillCategory = 'vocab' | 'part2' | 'part5'
@@ -55,10 +62,13 @@ export function validateQuickPackConfig(config: QuickPackConfig): void {
 export const QUICK_PACK_CONFIG: QuickPackConfig = rawConfig
 validateQuickPackConfig(QUICK_PACK_CONFIG)
 
-/** ドリル候補1件（重みと出題理由付き）。テストから重み付けを直接検証できるよう公開する */
+/**
+ * ドリル候補1件（重みと出題理由付き）。テストから重み付けを直接検証できるよう公開する。
+ * category は M1=DrillCategory（3種）、M2=フェーズ配分・リスニング内訳のキー（文字列。13の3.2節）
+ */
 export interface DrillCandidate {
   question: Question
-  category: DrillCategory
+  category: string
   weight: number
   reason: QuickPackReason
 }
@@ -72,27 +82,27 @@ export function drillCategoryOf(question: Question): DrillCategory | null {
 }
 
 /**
- * ドリル枠 slots を固定配分（語彙50/Part2 25/Part5 25）で分ける。
- * 最大剰余法で端数を配る（合計が必ず slots になる）
+ * 枠 slots を固定配分（キーは任意の文字列。M1=語彙50/Part2 25/Part5 25、M2=フェーズ配分・
+ * リスニング内訳にも流用する=13の3.2節）で分ける。最大剰余法で端数を配る（合計が必ず slots になる）
  */
 export function computeAllocationCounts(
   slots: number,
-  allocation: Record<DrillCategory, number> = QUICK_PACK_CONFIG.allocation,
-): Record<DrillCategory, number> {
-  const categories = Object.keys(allocation) as DrillCategory[]
-  const exact = categories.map((c) => ({ category: c, exact: slots * allocation[c] }))
+  allocation: Record<string, number> = QUICK_PACK_CONFIG.allocation,
+): Record<string, number> {
+  const categories = Object.keys(allocation)
+  const exact = categories.map((c) => ({ category: c, exact: slots * (allocation[c] ?? 0) }))
   const counts = Object.fromEntries(exact.map((e) => [e.category, Math.floor(e.exact)])) as Record<
-    DrillCategory,
+    string,
     number
   >
-  let rest = slots - categories.reduce((sum, c) => sum + counts[c], 0)
+  let rest = slots - categories.reduce((sum, c) => sum + (counts[c] ?? 0), 0)
   // 端数の大きい順（同値は allocation の記載順）に1ずつ配る
   const byFraction = [...exact].sort(
     (a, b) => b.exact - Math.floor(b.exact) - (a.exact - Math.floor(a.exact)),
   )
   for (const e of byFraction) {
     if (rest <= 0) break
-    counts[e.category] += 1
+    counts[e.category] = (counts[e.category] ?? 0) + 1
     rest -= 1
   }
   return counts
@@ -103,12 +113,16 @@ export function computeAllocationCounts(
  * - 復習対象key単語の類題（在庫ゼロ時は発生元問題そのもの）: 重み1.5・理由 keyVocabReview
  * - 弱点タグを持つ問題: 重み1.5・理由 weakTag
  * - それ以外: 重み1・理由 allocation
- * 重みは重複適用しない（key単語 > 弱点タグ の順で理由を採る）
+ * 重みは重複適用しない（key単語 > 弱点タグ の順で理由を採る）。
+ * categoryResolver 省略時は M1 既定（drillCategoryOf）。M2（フェーズ駆動）は
+ * 弱形状態（weakTags）も見て分類する専用リゾルバを渡す（13の3.2節）
  */
 export async function buildDrillCandidates(
   db: BebRaidDatabase,
   questions: readonly Question[],
   excludeQuestionIds: ReadonlySet<string>,
+  categoryResolver: (question: Question, weakTags: ReadonlySet<string>) => string | null = (q) =>
+    drillCategoryOf(q),
 ): Promise<DrillCandidate[]> {
   const weakTags = new Set(await getWeakTags(db))
   const reviewWords = await getActiveReviewWords(db)
@@ -129,7 +143,7 @@ export async function buildDrillCandidates(
   const result: DrillCandidate[] = []
   for (const question of questions) {
     if (excludeQuestionIds.has(question.id)) continue
-    const category = drillCategoryOf(question)
+    const category = categoryResolver(question, weakTags)
     if (category === null) continue
 
     const boost = keyBoost.get(question.id)
@@ -175,6 +189,138 @@ export function weightedSample<T>(
     picked.push(...pool.splice(index, 1))
   }
   return picked
+}
+
+/** DrillCandidate群 → QuickPackItem群への変換（drillの共通変換。M1/M2両方から使う） */
+function toDrillItems(candidates: readonly DrillCandidate[]): QuickPackItem[] {
+  return candidates.map((candidate) => ({
+    kind: 'drill',
+    mode: 'solo',
+    questionId: candidate.question.id,
+    srsCardId: null,
+    reason: candidate.reason,
+  }))
+}
+
+/** M1（quickPackConfig.json固定配分）のドリル抽出。既存ロジックを無改修のまま関数化しただけ */
+async function buildM1DrillItems(
+  db: BebRaidDatabase,
+  questions: readonly Question[],
+  excludeIds: ReadonlySet<string>,
+  slots: number,
+  rng: () => number,
+): Promise<QuickPackItem[]> {
+  const candidates = await buildDrillCandidates(db, questions, excludeIds)
+  const counts = computeAllocationCounts(slots, QUICK_PACK_CONFIG.allocation)
+
+  const pickedByCategory: DrillCandidate[] = []
+  const leftover: DrillCandidate[] = []
+  for (const category of Object.keys(counts)) {
+    const pool = candidates.filter((c) => c.category === category)
+    const picked = weightedSample(pool, (c) => c.weight, counts[category] ?? 0, rng)
+    pickedByCategory.push(...picked)
+    leftover.push(...pool.filter((c) => !picked.includes(c)))
+  }
+  const shortage = slots - pickedByCategory.length
+  if (shortage > 0) {
+    pickedByCategory.push(...weightedSample(leftover, (c) => c.weight, shortage, rng))
+  }
+  return toDrillItems(pickedByCategory)
+}
+
+/** リスニング枠内の内訳カテゴリ（03の8節: dictation/shadowing/part2/audioSet=13の3.2節） */
+function resolveListeningSubCategory(
+  question: Question,
+): 'dictation' | 'shadowing' | 'part2' | 'audioSet' | null {
+  if (question.format === 'dictation') return 'dictation'
+  if (question.format === 'shadowing') return 'shadowing'
+  if (question.format === 'audio_set') return 'audioSet'
+  if (question.format === 'audio_qa' && question.part === 2) return 'part2'
+  return null
+}
+
+/**
+ * M2: 問題→フェーズ配分カテゴリの解決（13の3.2節）。
+ * - vocab_card は template に 'vocab' キーがある場合のみ対象（P3にはvocabバケットが無い）
+ * - 弱点タグ保有かつ template に 'weakness' キーがある場合（P3）はそちらを優先
+ * - リスニング系（dictation/shadowing/audio_set/Part2音声）は 'listening' バケットへ
+ * - Part5（text_blank）は 'part5' バケットへ
+ */
+function resolveM2Category(
+  question: Question,
+  weakTags: ReadonlySet<string>,
+  template: CurriculumTemplate,
+): string | null {
+  if (question.format === 'vocab_card') {
+    return 'vocab' in template.allocation ? 'vocab' : null
+  }
+  const isWeak = question.tags.some((t) => weakTags.has(t))
+  if (isWeak && 'weakness' in template.allocation) return 'weakness'
+
+  if (resolveListeningSubCategory(question) !== null) {
+    return 'listening' in template.allocation ? 'listening' : null
+  }
+  if (question.part === 5) {
+    return 'part5' in template.allocation ? 'part5' : null
+  }
+  return null
+}
+
+/**
+ * M2: フェーズ配分・リスニング内訳に基づくドリル抽出（13の3.2節）。
+ * ①トップレベル配分（vocab/listening/part5/weakness）で slots を分ける
+ * ②'listening' 枠はさらに listeningBreakdown[listeningStage] で細分する
+ * ③在庫不足の穴は同じ階層内の余りで埋める（配分は目標値であり在庫が優先＝M1と同じ方針）
+ */
+async function buildPhaseDrivenDrillItems(
+  db: BebRaidDatabase,
+  questions: readonly Question[],
+  excludeIds: ReadonlySet<string>,
+  template: CurriculumTemplate,
+  listeningStage: ListeningStage,
+  slots: number,
+  rng: () => number,
+): Promise<QuickPackItem[]> {
+  const candidates = await buildDrillCandidates(db, questions, excludeIds, (q, weakTags) =>
+    resolveM2Category(q, weakTags, template),
+  )
+  const topCounts = computeAllocationCounts(slots, template.allocation)
+
+  const picked: DrillCandidate[] = []
+  const leftover: DrillCandidate[] = []
+  for (const topCategory of Object.keys(topCounts)) {
+    const pool = candidates.filter((c) => c.category === topCategory)
+    const count = topCounts[topCategory] ?? 0
+    if (topCategory === 'listening') {
+      const subCounts = computeAllocationCounts(
+        count,
+        template.listeningBreakdown[listeningStage] as Record<string, number>,
+      )
+      const subPicked: DrillCandidate[] = []
+      const subLeftover: DrillCandidate[] = []
+      for (const subCategory of Object.keys(subCounts)) {
+        const subPool = pool.filter((c) => resolveListeningSubCategory(c.question) === subCategory)
+        const selected = weightedSample(subPool, (c) => c.weight, subCounts[subCategory] ?? 0, rng)
+        subPicked.push(...selected)
+        subLeftover.push(...subPool.filter((c) => !selected.includes(c)))
+      }
+      const subShortage = count - subPicked.length
+      if (subShortage > 0) {
+        subPicked.push(...weightedSample(subLeftover, (c) => c.weight, subShortage, rng))
+      }
+      picked.push(...subPicked)
+      leftover.push(...pool.filter((c) => !subPicked.includes(c)))
+    } else {
+      const selected = weightedSample(pool, (c) => c.weight, count, rng)
+      picked.push(...selected)
+      leftover.push(...pool.filter((c) => !selected.includes(c)))
+    }
+  }
+  const shortage = slots - picked.length
+  if (shortage > 0) {
+    picked.push(...weightedSample(leftover, (c) => c.weight, shortage, rng))
+  }
+  return toDrillItems(picked)
 }
 
 /** SRSカード → パック項目 */
@@ -238,38 +384,26 @@ export async function generateQuickPack(
     items.push(srsItem(card, request.questions, { type: 'srsNew' }))
   }
 
-  // ③ 弱点ドリル（固定配分＋重み1.5倍の抽選）
+  // ③ 弱点ドリル（固定配分＋重み1.5倍の抽選）。
+  // request.phase 指定時は M2 のフェーズ配分・リスニング内訳を使う（13の3.2節）。
+  // 未指定なら M1 の quickPackConfig.json 挙動（既存ロジック無改修）にフォールバックする
   remaining = durationConfig.totalItems - items.length
   if (durationConfig.includeDrills && remaining > 0) {
     const excludeIds = new Set(
       items.flatMap((item) => (item.questionId !== null ? [item.questionId] : [])),
     )
-    const candidates = await buildDrillCandidates(db, request.questions, excludeIds)
-    const counts = computeAllocationCounts(remaining, config.allocation)
-
-    const pickedByCategory: DrillCandidate[] = []
-    const leftover: DrillCandidate[] = []
-    for (const category of Object.keys(counts) as DrillCategory[]) {
-      const pool = candidates.filter((c) => c.category === category)
-      const picked = weightedSample(pool, (c) => c.weight, counts[category], rng)
-      pickedByCategory.push(...picked)
-      leftover.push(...pool.filter((c) => !picked.includes(c)))
-    }
-    // 在庫不足のカテゴリの穴は他カテゴリで埋める（配分は目標値であり在庫が優先）
-    const shortage = remaining - pickedByCategory.length
-    if (shortage > 0) {
-      pickedByCategory.push(...weightedSample(leftover, (c) => c.weight, shortage, rng))
-    }
-
-    for (const candidate of pickedByCategory) {
-      items.push({
-        kind: 'drill',
-        mode: 'solo',
-        questionId: candidate.question.id,
-        srsCardId: null,
-        reason: candidate.reason,
-      })
-    }
+    const pickedItems = request.phase
+      ? await buildPhaseDrivenDrillItems(
+          db,
+          request.questions,
+          excludeIds,
+          templateForSeason(request.phase),
+          request.listeningStage ?? 1,
+          remaining,
+          rng,
+        )
+      : await buildM1DrillItems(db, request.questions, excludeIds, remaining, rng)
+    items.push(...pickedItems)
   }
 
   return { duration: request.duration, items, srsOverflow }

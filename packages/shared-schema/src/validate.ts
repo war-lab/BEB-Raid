@@ -43,6 +43,10 @@ export interface ValidatePackOptions {
 
 const LICENSES: readonly PackLicense[] = ['internal-original', 'cc-by', 'public-domain']
 const FREQ_RANKS: readonly FreqRank[] = ['S', 'A', 'B', 'C']
+/** vocab_card の levelBand（目標スコア帯）の許容値（03の4節・T-41=C-1改訂） */
+const LEVEL_BANDS: readonly number[] = [600, 730, 860, 990]
+/** dictation/shadowing の script/timing/blanks 整合チェックで使う句読点（前後除去対象） */
+const PUNCTUATION_RE = /^[.,?!;:'"]+|[.,?!;:'"]+$/g
 const FORMATS: readonly QuestionFormat[] = [
   'audio_qa',
   'audio_photo',
@@ -111,8 +115,9 @@ export function validatePack(data: unknown, options: ValidatePackOptions = {}): 
     err('questions', 'invalid_value', 'questions が空（問題が1件もないパックは取込不可）')
   } else {
     const seenIds = new Set<string>()
+    const seenSubQuestionIds = new Set<string>()
     data.questions.forEach((q, i) => {
-      validateQuestion(q, `questions[${i}]`, seenIds, options, err)
+      validateQuestion(q, `questions[${i}]`, seenIds, seenSubQuestionIds, options, err)
     })
   }
 
@@ -166,6 +171,7 @@ function validateQuestion(
   q: unknown,
   path: string,
   seenIds: Set<string>,
+  seenSubQuestionIds: Set<string>,
   options: ValidatePackOptions,
   err: (path: string, code: ValidationErrorCode, message: string) => void,
 ): void {
@@ -227,6 +233,25 @@ function validateQuestion(
   if (format === 'shadowing') {
     if (!Array.isArray(q.timing) || q.timing.length === 0 || !q.timing.every(isInt)) {
       err(`${path}.timing`, 'missing_field', 'shadowing には timing（開始msの整数配列）が必要')
+    } else {
+      const timing = q.timing as number[]
+      if (timing.some((t) => t < 0)) {
+        err(`${path}.timing`, 'invalid_value', 'timing は全て0以上でなければならない')
+      }
+      for (let i = 1; i < timing.length; i++) {
+        if (timing[i]! < timing[i - 1]!) {
+          err(`${path}.timing`, 'invalid_value', 'timing は単調増加（非減少）でなければならない')
+          break
+        }
+      }
+      const scriptWords = tokenizeScript(q.script)
+      if (scriptWords.length > 0 && timing.length !== scriptWords.length) {
+        err(
+          `${path}.timing`,
+          'invalid_value',
+          `timing の要素数(${timing.length})が script の語数(${scriptWords.length})と一致しない`,
+        )
+      }
     }
   }
 
@@ -234,12 +259,32 @@ function validateQuestion(
     if (!Array.isArray(q.blanks) || q.blanks.length === 0) {
       err(`${path}.blanks`, 'missing_field', 'dictation には blanks が必要')
     } else {
+      const scriptWords = tokenizeScript(q.script)
       q.blanks.forEach((b, i) => {
         if (!isRecord(b) || !isInt(b.index) || b.index < 0 || !isNonEmptyString(b.answer)) {
           err(
             `${path}.blanks[${i}]`,
             'invalid_value',
             'blanks の要素は { index: 0以上の整数, answer: 文字列 }',
+          )
+          return
+        }
+        if (scriptWords.length === 0) return
+        if (b.index >= scriptWords.length) {
+          err(
+            `${path}.blanks[${i}].index`,
+            'invalid_value',
+            `index(${b.index}) が script の語数(${scriptWords.length})以上`,
+          )
+          return
+        }
+        const scriptWord = normalizeDictationWord(scriptWords[b.index]!)
+        const answerWord = normalizeDictationWord(b.answer)
+        if (scriptWord !== answerWord) {
+          err(
+            `${path}.blanks[${i}].answer`,
+            'invalid_value',
+            `answer "${b.answer}" が script の該当位置の語 "${scriptWords[b.index]}" と一致しない`,
           )
         }
       })
@@ -256,9 +301,17 @@ function validateQuestion(
     validateChoicesAndAnswer(q.choices, q.answer, path, err)
   }
 
+  if (format === 'audio_photo') {
+    if (!isNonEmptyString(q.image)) {
+      err(`${path}.image`, 'missing_field', 'audio_photo には image が必要')
+    }
+  }
+
   if (format === 'audio_set') {
     if (!Array.isArray(q.subQuestions) || q.subQuestions.length === 0) {
       err(`${path}.subQuestions`, 'missing_field', 'audio_set には subQuestions が必要')
+    } else if (q.subQuestions.length > 5) {
+      err(`${path}.subQuestions`, 'invalid_value', 'subQuestions は5件以下')
     } else {
       q.subQuestions.forEach((sq, i) => {
         const sqPath = `${path}.subQuestions[${i}]`
@@ -268,6 +321,10 @@ function validateQuestion(
         }
         if (!isNonEmptyString(sq.id)) {
           err(`${sqPath}.id`, 'missing_field', 'id が必要')
+        } else if (seenSubQuestionIds.has(sq.id)) {
+          err(`${sqPath}.id`, 'invalid_value', `subQuestion id がパック内で重複: ${sq.id}`)
+        } else {
+          seenSubQuestionIds.add(sq.id)
         }
         if (!isNonEmptyString(sq.question)) {
           err(`${sqPath}.question`, 'missing_field', 'question が必要')
@@ -296,8 +353,25 @@ function validateQuestion(
     }
     if (typeof q.levelBand !== 'number') {
       err(`${path}.levelBand`, 'missing_field', 'vocab_card には levelBand（目標スコア帯）が必要')
+    } else if (!LEVEL_BANDS.includes(q.levelBand)) {
+      err(
+        `${path}.levelBand`,
+        'invalid_value',
+        `levelBand は ${LEVEL_BANDS.join(' | ')} のいずれか（実際: ${q.levelBand}）`,
+      )
     }
   }
+}
+
+/** script を空白区切りでトークン化する（dictation/shadowing の整合チェック用） */
+function tokenizeScript(script: unknown): string[] {
+  if (!isNonEmptyString(script)) return []
+  return script.split(/\s+/).filter((w) => w.length > 0)
+}
+
+/** dictation の答え合わせ用正規化（大文字小文字無視・前後の句読点除去） */
+function normalizeDictationWord(word: string): string {
+  return word.toLowerCase().replace(PUNCTUATION_RE, '')
 }
 
 function validateAudioMeta(

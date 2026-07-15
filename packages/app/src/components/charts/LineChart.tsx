@@ -1,6 +1,7 @@
 // 伸びグラフ（S6。docs/07 8節・03 5.5）。
 // 折れ線1系列（金）＋終端値をディスプレイ数字で直付け。単系列のため凡例なし。
-// 予測スコア帯・二軸は作らない（J-1はM1対象外）。データ2点未満は「まだデータが足りない」。
+// 予測スコア帯（M2・T-53）は forecastBand で任意描画（--chart-violet 低透明度の面＋
+// 破線境界=07の8節159行）。予測帯が無い場合はM1と同じ見た目（帯なし）。
 import { useState } from 'react'
 
 export interface LineChartPoint {
@@ -12,13 +13,15 @@ interface Props {
   points: LineChartPoint[]
   /** アクセシビリティ用のタイトル（グラフの意味。単系列なので凡例の代わりに使う） */
   title: string
+  /** 予測スコア帯（M2）。低/高のみでy軸上に水平帯として描く（時系列に紐づかない） */
+  forecastBand?: { low: number; high: number }
 }
 
 const VIEW_WIDTH = 300
 const VIEW_HEIGHT = 120
 const PADDING = 16
 
-export function LineChart({ points, title }: Props) {
+export function LineChart({ points, title, forecastBand }: Props) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   if (points.length < 2) {
@@ -30,8 +33,9 @@ export function LineChart({ points, title }: Props) {
   }
 
   const values = points.map((p) => p.value)
-  const minValue = Math.min(...values)
-  const maxValue = Math.max(...values)
+  const bandValues = forecastBand ? [forecastBand.low, forecastBand.high] : []
+  const minValue = Math.min(...values, ...bandValues)
+  const maxValue = Math.max(...values, ...bandValues)
   const valueRange = maxValue - minValue || 1
 
   const xStep = (VIEW_WIDTH - PADDING * 2) / (points.length - 1)
@@ -49,6 +53,9 @@ export function LineChart({ points, title }: Props) {
   const last = points[points.length - 1]!
   const [lastX, lastY] = toXY(points.length - 1, last.value)
   const active = activeIndex !== null ? points[activeIndex] : null
+  const bandY = forecastBand
+    ? { top: toXY(0, forecastBand.high)[1], bottom: toXY(0, forecastBand.low)[1] }
+    : null
 
   return (
     <div className="chart-line">
@@ -57,6 +64,37 @@ export function LineChart({ points, title }: Props) {
         role="img"
         aria-label={`${title}: ${points[0]!.date}から${last.date}まで、現在値${Math.round(last.value)}`}
       >
+        {/* 予測スコア帯（M2・T-53。折れ線より背面。断定表示ではなく参考レンジ） */}
+        {bandY && (
+          <g className="chart-forecast-band">
+            <rect
+              x={PADDING}
+              y={bandY.top}
+              width={VIEW_WIDTH - PADDING * 2}
+              height={Math.max(bandY.bottom - bandY.top, 0)}
+              fill="var(--chart-violet)"
+              opacity={0.15}
+            />
+            <line
+              x1={PADDING}
+              y1={bandY.top}
+              x2={VIEW_WIDTH - PADDING}
+              y2={bandY.top}
+              stroke="var(--chart-violet)"
+              strokeWidth={1}
+              strokeDasharray="4 3"
+            />
+            <line
+              x1={PADDING}
+              y1={bandY.bottom}
+              x2={VIEW_WIDTH - PADDING}
+              y2={bandY.bottom}
+              stroke="var(--chart-violet)"
+              strokeWidth={1}
+              strokeDasharray="4 3"
+            />
+          </g>
+        )}
         {/* 軸（退行色。07 8節） */}
         <line
           x1={PADDING}

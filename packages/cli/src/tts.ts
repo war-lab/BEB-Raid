@@ -59,6 +59,19 @@ export function isSupportedAccent(accent: AudioAccent): accent is SupportedAccen
   return (SUPPORTED_ACCENTS as readonly string[]).includes(accent)
 }
 
+/**
+ * Piper（espeak-ngベースのフォニマイザ）へ渡す前にテキストを正規化する（M2・T-64）。
+ * 【判明した不具合】em/enダッシュ（—/–）を含むテキストをPiperのstdinへ渡すと、
+ * このサンドボックス環境ではUnicodeEncodeError（サロゲート文字によるエンコード失敗）で
+ * piperプロセスが異常終了し、空のWAVが生成される（part34SetsS.tsのPart3会話文中の
+ * "That should work — most of the team..."で再現確認済み）。既存のPart2 script
+ * （"設問 — 応答"形式）はsplitDialogueScriptがダッシュ自体を除去してから渡すため
+ * この問題を踏んでいなかった。ダッシュを読点相当のカンマに置換して回避する
+ */
+export function sanitizeForTts(text: string): string {
+  return text.replace(/\s*[–—]\s*/g, ', ')
+}
+
 export interface SynthesizeInput {
   text: string
   accent: SupportedAccent
@@ -84,10 +97,26 @@ export interface SynthesizeDialogueInput {
   outputPath: string
 }
 
+/** 1発話ターン分（M2・T-64。Part3の複数ターン会話用） */
+export interface DialogueTurn {
+  text: string
+  role: SpeakerRole
+}
+
+export interface SynthesizeMultiTurnInput {
+  /** 発話順の配列（2件以上。各要素の話者roleで交互に読み上げる） */
+  turns: readonly DialogueTurn[]
+  accent: SupportedAccent
+  /** 出力先mp3パス */
+  outputPath: string
+}
+
 export interface TtsProvider {
   synthesize(input: SynthesizeInput): Promise<SynthesizeResult>
   /** Part2用: 設問と応答を別話者で読み上げ、1本のmp3に連結する（実装指示2） */
   synthesizeDialogue(input: SynthesizeDialogueInput): Promise<SynthesizeResult>
+  /** Part3用: 2話者以上・N ターンの会話を発話順どおりに連結する（M2・T-64） */
+  synthesizeMultiTurnDialogue(input: SynthesizeMultiTurnInput): Promise<SynthesizeResult>
 }
 
 /** 外部プロセス実行の抽象（テストではモックに差し替える。標準出力を返す） */
@@ -163,7 +192,9 @@ export class PiperTtsProvider implements TtsProvider {
   ): Promise<VoiceSpec> {
     const voice = voiceFor(accent, role)
     const modelPath = `${this.voicesDir}/${voice.modelFile}`
-    await this.run(this.piperBin, ['-m', modelPath, '-f', wavPath], { input: text })
+    await this.run(this.piperBin, ['-m', modelPath, '-f', wavPath], {
+      input: sanitizeForTts(text),
+    })
     return voice
   }
 
@@ -238,5 +269,40 @@ export class PiperTtsProvider implements TtsProvider {
     await rm(tmpAnswerWav, { force: true })
 
     return { voice: `${questionVoice.voiceName}+${answerVoice.voiceName}`, durationMs }
+  }
+
+  async synthesizeMultiTurnDialogue(input: SynthesizeMultiTurnInput): Promise<SynthesizeResult> {
+    if (input.turns.length === 0) {
+      throw new Error('synthesizeMultiTurnDialogueにはturnsが1件以上必要')
+    }
+
+    const tmpWavPaths = input.turns.map((_, i) => `${input.outputPath}.turn${i}.tmp.wav`)
+    const voices: VoiceSpec[] = []
+    for (let i = 0; i < input.turns.length; i++) {
+      const turn = input.turns[i]!
+      voices.push(await this.synthesizeToWav(turn.text, input.accent, turn.role, tmpWavPaths[i]!))
+    }
+
+    // N本のWAVを発話順どおりに1本のmp3へ連結する（synthesizeDialogueの2本連結をN本に一般化）
+    const inputArgs = tmpWavPaths.flatMap((p) => ['-i', p])
+    const concatInputs = tmpWavPaths.map((_, i) => `[${i}:0]`).join('')
+    await this.run(this.ffmpegBin, [
+      '-y',
+      ...inputArgs,
+      '-filter_complex',
+      `${concatInputs}concat=n=${tmpWavPaths.length}:v=0:a=1[out]`,
+      '-map',
+      '[out]',
+      '-ac',
+      '1',
+      '-b:a',
+      '80k',
+      input.outputPath,
+    ])
+    const durationMs = await this.probeDurationMs(input.outputPath)
+    await Promise.all(tmpWavPaths.map((p) => rm(p, { force: true })))
+
+    const uniqueVoiceNames = [...new Set(voices.map((v) => v.voiceName))]
+    return { voice: uniqueVoiceNames.join('+'), durationMs }
   }
 }

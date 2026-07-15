@@ -87,7 +87,7 @@ describe('computeAllocationCounts: 固定配分（語彙50/Part2 25/Part5 25 = J
     expect(computeAllocationCounts(12)).toEqual({ vocab: 6, part2: 3, part5: 3 })
     expect(computeAllocationCounts(5)).toEqual({ vocab: 3, part2: 1, part5: 1 })
     const counts = computeAllocationCounts(7)
-    expect(counts.vocab + counts.part2 + counts.part5).toBe(7)
+    expect((counts.vocab ?? 0) + (counts.part2 ?? 0) + (counts.part5 ?? 0)).toBe(7)
   })
 })
 
@@ -297,5 +297,165 @@ describe('validateQuickPackConfig（レビューフォローアップ3.8節: all
       allocation: { vocab: 0.5, part2: 0.25, part5: 0.255 }, // 合計1.005
     }
     expect(() => validateQuickPackConfig(ok)).not.toThrow()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// M2（T-52）: フェーズ配分・リスニング内訳
+// ---------------------------------------------------------------------------
+
+function dictationQuestion(id: string, tags: string[] = []): Question {
+  return { id, part: 2, format: 'dictation', difficulty: 2, tags, keyVocab: [] }
+}
+
+function shadowingQuestion(id: string, tags: string[] = []): Question {
+  return { id, part: 3, format: 'shadowing', difficulty: 2, tags, keyVocab: [] }
+}
+
+function audioSetQuestion(id: string, tags: string[] = []): Question {
+  return { id, part: 3, format: 'audio_set', difficulty: 2, tags, keyVocab: [] }
+}
+
+/** M2用の大きなプール（各カテゴリ十分な在庫。format→count確認用にlookupも返す） */
+function m2Pool(): { questions: Question[]; lookup: QuestionLookup } {
+  const questions = [
+    ...Array.from({ length: 30 }, (_, i) => vocabCard(`v-${i}`, `word-${i}`)),
+    ...Array.from({ length: 30 }, (_, i) => part5Question(`p5-${i}`)),
+    ...Array.from({ length: 30 }, (_, i) => part2Question(`p2-${i}`)),
+    ...Array.from({ length: 30 }, (_, i) => dictationQuestion(`dict-${i}`)),
+    ...Array.from({ length: 30 }, (_, i) => shadowingQuestion(`shadow-${i}`)),
+    ...Array.from({ length: 30 }, (_, i) => audioSetQuestion(`set-${i}`)),
+  ]
+  return { questions, lookup: new Map(questions.map((q) => [q.id, q])) }
+}
+
+function countByFormat(
+  pack: Awaited<ReturnType<typeof generateQuickPack>>,
+  lookup: QuestionLookup,
+  format: string,
+): number {
+  return pack.items.filter(
+    (i) => i.questionId !== null && lookup.get(i.questionId)?.format === format,
+  ).length
+}
+
+describe('generateQuickPack: M2フェーズ配分（P1/P2/P3で配分が変わる）', () => {
+  it('P1: 語彙50/リスニング25/part5 25、L1内訳（dictation40/shadowing30/part2 30）で配分される', async () => {
+    const db = newDb()
+    const { questions, lookup } = m2Pool()
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    expect(pack.items).toHaveLength(40)
+    expect(countByFormat(pack, lookup, 'vocab_card')).toBe(20) // 40*0.5
+    expect(countByFormat(pack, lookup, 'text_blank')).toBe(10) // 40*0.25
+    // リスニング枠10（40*0.25）をL1内訳（dict40/shadow30/part2 30）で分割
+    expect(countByFormat(pack, lookup, 'dictation')).toBe(4)
+    expect(countByFormat(pack, lookup, 'shadowing')).toBe(3)
+    expect(countByFormat(pack, lookup, 'audio_qa')).toBe(3)
+  })
+
+  it('P2: 語彙25/リスニング40/part5 35 で配分が変わる（P1と異なる）', async () => {
+    const db = newDb()
+    const { questions } = m2Pool()
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions,
+      phase: 'P2',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    const p1Pack = await generateQuickPack(newDb(), {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    expect(pack.items.length).toBe(p1Pack.items.length)
+    // 配分自体が異なることの確認（同一構成にはならない）
+    const p2Vocab = pack.items.filter((i) => i.questionId?.startsWith('v-')).length
+    const p1Vocab = p1Pack.items.filter((i) => i.questionId?.startsWith('v-')).length
+    expect(p2Vocab).not.toBe(p1Vocab)
+  })
+
+  it('L3: リスニング内訳がaudioSet70/part2 30に切り替わり、audio_setが出題される', async () => {
+    const db = newDb()
+    const { questions, lookup } = m2Pool()
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 3,
+      now: NOW,
+      rng: firstPick,
+    })
+    expect(countByFormat(pack, lookup, 'audio_set')).toBeGreaterThan(0)
+    expect(countByFormat(pack, lookup, 'dictation')).toBe(0) // L3内訳にdictationは無い
+  })
+
+  it('L1ではdictation/shadowingが出題され、L3ではaudio_setが出題される（対比）', async () => {
+    const { questions, lookup } = m2Pool()
+    const l1Pack = await generateQuickPack(newDb(), {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    const l3Pack = await generateQuickPack(newDb(), {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 3,
+      now: NOW,
+      rng: firstPick,
+    })
+    expect(countByFormat(l1Pack, lookup, 'dictation')).toBeGreaterThan(0)
+    expect(countByFormat(l1Pack, lookup, 'shadowing')).toBeGreaterThan(0)
+    expect(countByFormat(l3Pack, lookup, 'audio_set')).toBeGreaterThan(0)
+  })
+
+  it('phase不在時はM1挙動と一致する（回帰）', async () => {
+    const db = newDb()
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions: bigPool(),
+      now: NOW,
+      rng: firstPick,
+    })
+    // M1の固定配分（語彙50/Part2 25/Part5 25）どおりの件数になる
+    expect(pack.items).toHaveLength(40)
+  })
+
+  it('P3: 弱点タグを持つ問題がweaknessバケットとして優先的に出題される', async () => {
+    const db = newDb()
+    const { questions } = m2Pool()
+    // 一部のpart5問題に弱点タグを付与し、tagStatsで弱点判定させる
+    const weakQuestions = questions.map((q, i) =>
+      q.format === 'text_blank' && i % 3 === 0 ? { ...q, tags: ['weak-tag'] } : q,
+    )
+    await db.tagStats.put({ tag: 'weak-tag', windowCorrect: 1, windowTotal: 10 }) // 正答率10%<60%閾値
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions: weakQuestions,
+      phase: 'P3',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    const weakLookup = new Map(weakQuestions.map((q) => [q.id, q]))
+    const weakTagCount = pack.items.filter(
+      (i) => i.questionId !== null && weakLookup.get(i.questionId)?.tags.includes('weak-tag'),
+    ).length
+    expect(weakTagCount).toBeGreaterThan(0)
   })
 })

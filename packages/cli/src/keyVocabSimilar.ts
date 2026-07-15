@@ -10,20 +10,33 @@
 // 相異なる50語のkeyVocabを持つため、両方に出た語がこの時点での最頻出語にあたる）を対象に、
 // 1語につき3問生成した。T-28が文法形（品詞/動詞の形）中心だったのに対し、ここは語彙選択
 // （コロケーション・言い換え）中心にして出題観点を分けている。
+// 【M2・T-63追記】追加60問（keyVocabSimilarS2.ts）はT-60/T-61/T-62でPart横断・形式横断に
+// 出現した頻出20語が対象で、S/A/B語彙カード（600語）横断でkeyVocabのsense/freqRankを
+// 解決する（vocabEntryForWord。part2Question.ts等のT-60実装と同方式。既存19語=Sランクの
+// 挙動は変えない）。
 
-import { SCHEMA_VERSION, validatePack, type Question } from '@beb-raid/shared-schema'
+import { SCHEMA_VERSION, validatePack, type FreqRank, type Question } from '@beb-raid/shared-schema'
 import { KEY_VOCAB_SIMILAR_ENTRIES, type KeyVocabSimilarEntry } from './data/keyVocabSimilarS.js'
+import { KEY_VOCAB_SIMILAR_ENTRIES_S2 } from './data/keyVocabSimilarS2.js'
+import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
+import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
 import type { GeneratedItemDraft } from './review.js'
 
-export { KEY_VOCAB_SIMILAR_ENTRIES }
+export { KEY_VOCAB_SIMILAR_ENTRIES, KEY_VOCAB_SIMILAR_ENTRIES_S2 }
 
-function senseForWord(word: string): string {
-  const entry = VOCAB_CARDS_S.find((v) => v.word === word)
-  if (!entry) {
-    throw new Error(`word "${word}" が vocabCardsS.ts（Sランク200語）に見つからない`)
-  }
-  return entry.back
+/**
+ * keyVocabのsense/freqRankをS/A/B語彙カード（600語）から引く
+ * （part2Question.ts等のvocabEntryForWordと同方式。M2・T-63でA/B語彙も対象に拡大）
+ */
+function vocabEntryForWord(word: string): { sense: string; freqRank: FreqRank } {
+  const s = VOCAB_CARDS_S.find((v) => v.word === word)
+  if (s) return { sense: s.back, freqRank: 'S' }
+  const a = VOCAB_CARDS_A.find((v) => v.word === word)
+  if (a) return { sense: a.back, freqRank: 'A' }
+  const b = VOCAB_CARDS_B.find((v) => v.word === word)
+  if (b) return { sense: b.back, freqRank: 'B' }
+  throw new Error(`word "${word}" がS/A/B語彙カード（600語）に見つからない`)
 }
 
 /** エントリ→Question（text_blank）への変換。idは対象語＋連番で一意化する */
@@ -31,13 +44,14 @@ export function keyVocabSimilarQuestion(
   entry: KeyVocabSimilarEntry,
   indexInWord: number,
 ): Question {
+  const { sense, freqRank } = vocabEntryForWord(entry.word)
   return {
     id: `similar-${entry.word}-${indexInWord + 1}`,
     part: 5,
     format: 'text_blank',
     difficulty: entry.difficulty,
     tags: entry.tags,
-    keyVocab: [{ word: entry.word, sense: senseForWord(entry.word), freqRank: 'S' }],
+    keyVocab: [{ word: entry.word, sense, freqRank }],
     question: entry.question,
     choices: entry.choices,
     answer: entry.answer,

@@ -89,3 +89,100 @@ describe('ResultScreen', () => {
     expect(await resumeSession(db)).toBeNull()
   })
 })
+
+describe('ResultScreen: フェーズ移行判定・演出（T-54）', () => {
+  function vocabCardQuestion(id: string, word: string): Question {
+    return {
+      id,
+      part: 0,
+      format: 'vocab_card',
+      difficulty: 1,
+      tags: [],
+      keyVocab: [],
+      front: word,
+      phrase: `use ${word}`,
+      phraseAudio: `audio/${word}.mp3`,
+      back: '意味',
+      freqRank: 'S',
+      levelBand: 600,
+    }
+  }
+
+  it('P1→P2の移行条件を満たすセッション完了で移行演出が表示される', async () => {
+    const db = newDb()
+    const words = Array.from({ length: 20 }, (_, i) => `w${i}`)
+    const vocabQuestions = words.map((w) => vocabCardQuestion(`vocab-${w}`, w))
+    await db.srsCards.bulkPut(
+      words.map((w) => ({
+        id: `vocab:${w}`,
+        refType: 'vocab' as const,
+        refId: w,
+        stage: 3,
+        dueAt: 0,
+        lapses: 0,
+        introducedDate: '2026-07-01',
+        graduatedAt: null,
+        sourceQuestionId: null,
+      })),
+    )
+    const p2Question: Question = {
+      id: 'p2-1',
+      part: 2,
+      format: 'audio_qa',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [],
+      audio: '/audio/p2-1.mp3',
+      audioMeta: { accent: 'US', tts: false, voice: 'dev', durationMs: 3000 },
+      script: 'test',
+      choices: [
+        { key: 'A', text: 'a' },
+        { key: 'B', text: 'b' },
+      ],
+      answer: 'A',
+    }
+    await db.attempts.bulkAdd(
+      Array.from({ length: 100 }, (_, i) => ({
+        id: `a-${i}`,
+        questionId: 'p2-1',
+        mode: 'solo' as const,
+        isCorrect: i < 80,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: i,
+      })),
+    )
+
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore
+      .getState()
+      .begin(snapshot, [q('q-1'), p2Question, ...vocabQuestions], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 60,
+    })
+
+    render(<ResultScreen db={db} />)
+
+    await waitFor(() => expect(screen.getByTestId('phase-transition')).toBeTruthy())
+    expect(screen.getByTestId('phase-transition').textContent).toContain('シーズン2')
+  })
+
+  it('移行条件を満たさない場合は演出が表示されない', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 60,
+    })
+
+    render(<ResultScreen db={db} />)
+
+    await waitFor(() => expect(screen.getByText('正解 1 / 1')).toBeTruthy())
+    expect(screen.queryByTestId('phase-transition')).toBeNull()
+  })
+})

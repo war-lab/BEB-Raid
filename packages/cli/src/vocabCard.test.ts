@@ -2,11 +2,20 @@
 // - 200語のvocab_card Questionが正しく組み立てられる
 // - バリデータ（shared-schema validatePack）を通過する
 // - phraseAudioが予約パスになっている（T-31で実音声に差し替える前提）
+// M2・T-59 完了条件のテスト（語彙カードA/B各200語拡充）:
+// - freqRank/levelBandを指定してQuestionを組み立てられる（A=730/B=860=J-22）
+// - 文型の機械的重複検出（対象語だけ置換した用例文の単調な重複を検出）
 import { describe, expect, it } from 'vitest'
+import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
+import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
+import { WORDS_A } from './data/freqListWordsA.js'
+import { WORDS_B } from './data/freqListWordsB.js'
 import {
   buildVocabCardDrafts,
   buildVocabCardQuestions,
+  LEVEL_BAND_FOR_RANK,
   reservedPhraseAudioPath,
+  validatePhraseVariety,
   validateVocabCardQuestions,
   vocabCardQuestion,
   VOCAB_CARDS_S,
@@ -83,5 +92,69 @@ describe('buildVocabCardDrafts', () => {
       expect(d.preview.length).toBeGreaterThan(0)
       expect((d.payload as { format: string }).format).toBe('vocab_card')
     }
+  })
+})
+
+describe.each([
+  ['A', VOCAB_CARDS_A, WORDS_A, 730],
+  ['B', VOCAB_CARDS_B, WORDS_B, 860],
+] as const)('VOCAB_CARDS_%s（M2・T-59データ本体）', (rank, cards, words, expectedBand) => {
+  it('200語あり、freqListの対応ランクと同じ200語（順不同で一致）', () => {
+    expect(cards).toHaveLength(200)
+    expect(new Set(cards.map((c) => c.word))).toEqual(new Set(words.map((w) => w.word)))
+  })
+
+  it('全語にback（和訳）とphrase（用例文）があり、phraseは単語自体を含む', () => {
+    for (const entry of cards) {
+      expect(entry.back.trim()).not.toBe('')
+      expect(entry.phrase.trim()).not.toBe('')
+      expect(entry.phrase.toLowerCase()).toContain(entry.word.toLowerCase())
+    }
+  })
+
+  it('単語が重複しない', () => {
+    const list = cards.map((c) => c.word.toLowerCase())
+    expect(new Set(list).size).toBe(list.length)
+  })
+
+  it('文型の機械的重複が無い（対象語だけ置換した用例文が単調に重複していない）', () => {
+    expect(validatePhraseVariety(cards)).toEqual([])
+  })
+
+  it(`freqRank=${rank}・levelBand=${expectedBand}（J-22）でQuestionを組み立て、バリデータを通過する`, () => {
+    expect(LEVEL_BAND_FOR_RANK[rank]).toBe(expectedBand)
+    const questions = buildVocabCardQuestions(cards, rank)
+    expect(questions).toHaveLength(200)
+    expect(questions.every((q) => q.freqRank === rank)).toBe(true)
+    expect(questions.every((q) => q.levelBand === expectedBand)).toBe(true)
+    expect(validateVocabCardQuestions(questions, expectedBand)).toEqual([])
+  })
+})
+
+describe('S/A/B語彙カード間で単語が重複しない（M2・T-59）', () => {
+  it('全600語を通して重複語が無い', () => {
+    const all = [...VOCAB_CARDS_S, ...VOCAB_CARDS_A, ...VOCAB_CARDS_B].map((c) =>
+      c.word.toLowerCase(),
+    )
+    expect(new Set(all).size).toBe(all.length)
+  })
+})
+
+describe('validatePhraseVariety', () => {
+  it('対象語だけ置換した文型が完全一致すると重複を検出する', () => {
+    const entries = [
+      { word: 'submit', back: '提出する', phrase: 'Please submit the report by Friday.' },
+      { word: 'revise', back: '修正する', phrase: 'Please revise the report by Friday.' },
+    ]
+    const problems = validatePhraseVariety(entries)
+    expect(problems.length).toBeGreaterThan(0)
+  })
+
+  it('文型が異なれば重複扱いしない', () => {
+    const entries = [
+      { word: 'submit', back: '提出する', phrase: 'Please submit the report by Friday.' },
+      { word: 'revise', back: '修正する', phrase: 'The manager asked her to revise the draft.' },
+    ]
+    expect(validatePhraseVariety(entries)).toEqual([])
   })
 })

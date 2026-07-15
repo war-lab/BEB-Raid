@@ -132,6 +132,38 @@ export async function answerCurrentQuestion(
   return next
 }
 
+/**
+ * 現在のitemを解答不要で次へ進める（M2・T-49: audio_setのセット全問終了後に使う）。
+ * サブ設問ごとのattemptsは呼び出し側が個別に記録済みのため、ここではattemptsに
+ * 書かず（重複記録を避ける）スナップショットの answeredCount だけ進める
+ */
+export async function advanceSession(
+  db: BebRaidDatabase,
+  snapshot: SessionSnapshot,
+): Promise<SessionSnapshot> {
+  const item = currentItem(snapshot)
+  if (item === null) {
+    throw new Error('全問解答済みのセッションを進めることはできない')
+  }
+  const next: SessionSnapshot = {
+    ...snapshot,
+    answeredCount: snapshot.answeredCount + 1,
+    updatedAt: Date.now(),
+  }
+  await db.transaction('rw', db.settings, async () => {
+    const stored = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as SessionSnapshot | undefined
+    if (
+      stored === undefined ||
+      stored.sessionId !== snapshot.sessionId ||
+      stored.answeredCount !== snapshot.answeredCount
+    ) {
+      throw new Error('スナップショットが古い（二重解答か、セッションは終了済み）')
+    }
+    await db.settings.put({ key: ACTIVE_SESSION_KEY, value: next })
+  })
+  return next
+}
+
 /** 進行中セッションを復元する。無い/旧形式なら null（=新規セッションを開始する。3.3節） */
 export async function resumeSession(db: BebRaidDatabase): Promise<SessionSnapshot | null> {
   const record = await db.settings.get(ACTIVE_SESSION_KEY)

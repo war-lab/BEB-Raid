@@ -10,6 +10,7 @@ import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import type { CacheUsage, PackCache } from '../platform'
 import { getFontSizeScale } from '../fontSize'
+import { AnthropicAiClient, DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
 import { getTheme } from '../theme'
 import { SettingsScreen } from './SettingsScreen'
 
@@ -181,6 +182,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
         badges: [],
         pendingSync: [],
         settings: [],
+        examScores: [],
       },
     }
 
@@ -193,5 +195,88 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     fireEvent.change(fileInput)
 
     expect(await screen.findByText(/dbVersion/)).toBeTruthy()
+  })
+})
+
+describe('SettingsScreen: BYOK設定（T-55）', () => {
+  it('APIキーを保存するとマスク表示になり、削除すると入力欄に戻る', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+
+    fireEvent.change(screen.getByPlaceholderText('sk-...'), {
+      target: { value: 'sk-ant-abcd1234' },
+    })
+    fireEvent.click(screen.getByText('保存'))
+
+    await vi.waitFor(() => expect(screen.getByText('sk-***...1234')).toBeTruthy())
+    expect((await db.settings.get('byokApiKey'))?.value).toBe('sk-ant-abcd1234')
+    // マスク表示中は生のキーが画面に出ない
+    expect(screen.queryByText('sk-ant-abcd1234')).toBeNull()
+
+    fireEvent.click(screen.getByText('削除'))
+    await vi.waitFor(() => expect(screen.getByPlaceholderText('sk-...')).toBeTruthy())
+    expect(await db.settings.get('byokApiKey')).toBeUndefined()
+  })
+
+  it('注記2点（端末内平文保存・支出上限推奨）が常に表示される', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+
+    expect(screen.getByText('キーは端末内に平文保存され、端末外には送信されません。')).toBeTruthy()
+    expect(screen.getByText('支出上限を設定したAPIキーの利用を推奨します。')).toBeTruthy()
+  })
+
+  it('モデル欄は既定値がplaceholderに出て、変更するとsettingsに保存される', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+
+    const modelInput = screen.getByLabelText('モデル') as HTMLInputElement
+    expect(modelInput.placeholder).toBe(DEFAULT_BYOK_MODEL)
+
+    fireEvent.change(modelInput, { target: { value: 'claude-opus-4-8' } })
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('byokModel'))?.value).toBe('claude-opus-4-8')
+    })
+  })
+
+  it('エクスポートJSONにbyokApiKeyが含まれない（T-42の除外がUI経由でも効く）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'byokApiKey', value: 'sk-ant-secret9999' })
+
+    const createObjectURL = vi.fn((blob: Blob) => `blob:mock:${blob.size}`)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('エクスポート'))
+    await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalled())
+
+    const blobArg = createObjectURL.mock.calls[0]?.[0] as Blob
+    const backupText = await blobArg.text()
+    expect(backupText).not.toContain('sk-ant-secret9999')
+    expect(backupText).not.toContain('byokApiKey')
+  })
+
+  it('キー未設定時はAnthropicAiClient.isConfigured()がfalseを返し、保存後はtrueになる（結線テスト）', async () => {
+    const db = newDb()
+    const getApiKey = async () =>
+      ((await db.settings.get('byokApiKey'))?.value as string | undefined) ?? null
+    const client = new AnthropicAiClient(getApiKey)
+    expect(await client.isConfigured()).toBe(false)
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+    fireEvent.change(screen.getByPlaceholderText('sk-...'), {
+      target: { value: 'sk-ant-abcd1234' },
+    })
+    fireEvent.click(screen.getByText('保存'))
+
+    await vi.waitFor(async () => expect(await client.isConfigured()).toBe(true))
   })
 })

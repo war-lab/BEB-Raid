@@ -1,16 +1,19 @@
-// S6 ダッシュボード（T-22。docs/07 7節S6・8節・03 5.5のJ-1範囲外を除いた部分）。
-// 伸びグラフ（総合レートの日次スナップショット）・弱点マップ・学習ヒートマップの3チャート。
-// 予測スコア帯・到達予測はJ-1（M1対象外）のため実装しない。
-import { useEffect, useState } from 'react'
+// S6 ダッシュボード（T-22＋M2・T-53。docs/07 7節S6・8節・03 5.5節）。
+// 伸びグラフ（総合レートの日次スナップショット＋予測帯）・弱点マップ・学習ヒートマップの
+// 3チャートに加え、予測スコア帯（ヒーロー数値）・到達予測・実試験スコア登録を持つ（J-1解除）。
+import { useEffect, useState, type FormEvent } from 'react'
 import type { BebRaidDatabase } from '../db/database'
+import type { ExamScoreRecord, ExamScoreSource } from '../db/schema'
 import {
   localMidnightAfterDays,
   parseDateString,
   startOfLocalDay,
   toDateString,
 } from '../engine/date'
+import { computeForecast, type RatingHistoryPoint } from '../engine/forecast'
+import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { getTagAccuracies, WEAK_MIN_SAMPLE } from '../engine/tagStats'
-import type { TagAccuracy } from '../engine/types'
+import type { ForecastResult, TagAccuracy } from '../engine/types'
 import { Heatmap, type HeatmapCell } from '../components/charts/Heatmap'
 import { LineChart, type LineChartPoint } from '../components/charts/LineChart'
 import { WeakBars } from '../components/charts/WeakBars'
@@ -18,6 +21,17 @@ import { ScreenLayout } from '../components/ScreenLayout'
 
 interface Props {
   db: BebRaidDatabase
+}
+
+const EXAM_SOURCES: ExamScoreSource[] = ['IP', '公開', 'その他']
+
+/** 到達予測（ForecastResult）の表示文言。断定表現を避け「参考値」を必ず含める（01のR-2） */
+function forecastMessage(forecast: ForecastResult): string {
+  if (forecast.kind === 'measuring') return '計測中（データが14日分たまると表示されます）'
+  if (forecast.kind === 'onTrack') {
+    return `このペースなら${forecast.year}年${forecast.month}月頃到達（参考値）`
+  }
+  return `このペースでは到達しない見込み。週の学習日数をあと${forecast.addDaysPerWeek}日増やすことを目安に（参考値）`
 }
 
 /** 学習ヒートマップの表示週数（07 8節: 直近15週程度） */
@@ -52,13 +66,43 @@ export function DashboardScreen({ db }: Props) {
   const [growthPoints, setGrowthPoints] = useState<LineChartPoint[] | null>(null)
   const [weakBars, setWeakBars] = useState<TagAccuracy[] | null>(null)
   const [heatmapCells, setHeatmapCells] = useState<HeatmapCell[] | null>(null)
+  // M2・T-53: 予測スコア・到達予測・実試験スコア登録
+  const [forecast, setForecast] = useState<ForecastResult | null>(null)
+  const [examScores, setExamScores] = useState<ExamScoreRecord[]>([])
+  const [examDate, setExamDate] = useState('')
+  const [examListening, setExamListening] = useState('')
+  const [examReading, setExamReading] = useState('')
+  const [examSource, setExamSource] = useState<ExamScoreSource>('IP')
+
+  async function reloadForecastAndExamScores() {
+    const [totalRating, history, scores] = await Promise.all([
+      db.ratings.get('total'),
+      db.ratingHistory.where('section').equals('total').sortBy('date'),
+      db.examScores.toArray(),
+    ])
+    const historyPoints: RatingHistoryPoint[] = history.map((h) => ({
+      date: h.date,
+      rating: h.rating,
+    }))
+    setForecast(
+      computeForecast(historyPoints, totalRating?.rating ?? DEFAULT_INITIAL_RATING, Date.now()),
+    )
+    setExamScores(scores.sort((a, b) => (a.date < b.date ? 1 : -1)))
+  }
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const history = await db.ratingHistory.where('section').equals('total').sortBy('date')
-      const accuracies = await getTagAccuracies(db)
-      const attempts = await db.attempts.toArray()
+      // 3チャート用データと予測・実試験スコアを並列取得する（逐次待ちで初期表示が
+      // 遅延しないように=既存3チャートの読み込みレイテンシに揃える）
+      const [[history, accuracies, attempts]] = await Promise.all([
+        Promise.all([
+          db.ratingHistory.where('section').equals('total').sortBy('date'),
+          getTagAccuracies(db),
+          db.attempts.toArray(),
+        ]),
+        reloadForecastAndExamScores(),
+      ])
 
       const countsByDate = new Map<string, number>()
       for (const a of attempts) {
@@ -76,17 +120,51 @@ export function DashboardScreen({ db }: Props) {
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db])
 
-  if (growthPoints === null || weakBars === null || heatmapCells === null) return null
+  async function handleRegisterExamScore(e: FormEvent) {
+    e.preventDefault()
+    const listening = Number(examListening)
+    const reading = Number(examReading)
+    if (!examDate || Number.isNaN(listening) || Number.isNaN(reading)) return
+    await db.examScores.put({
+      id: crypto.randomUUID(),
+      date: examDate,
+      listening,
+      reading,
+      total: listening + reading,
+      source: examSource,
+    })
+    setExamDate('')
+    setExamListening('')
+    setExamReading('')
+    await reloadForecastAndExamScores()
+  }
+
+  if (growthPoints === null || weakBars === null || heatmapCells === null || forecast === null) {
+    return null
+  }
 
   return (
     <ScreenLayout action={null}>
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>ダッシュボード</h1>
 
+      <section className="dashboard-forecast-hero">
+        <p className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
+          {Math.round(forecast.scoreBand.low)}–{Math.round(forecast.scoreBand.high)}
+        </p>
+        <p className="dashboard-forecast-note">予測スコア帯（参考値。社内問題での推定）</p>
+        <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+      </section>
+
       <section>
         <h2 style={{ fontSize: 'var(--fs-sub)' }}>伸びグラフ</h2>
-        <LineChart points={growthPoints} title="総合レート" />
+        <LineChart
+          points={growthPoints}
+          title="総合レート"
+          forecastBand={{ low: forecast.scoreBand.low, high: forecast.scoreBand.high }}
+        />
       </section>
 
       <section>
@@ -97,6 +175,63 @@ export function DashboardScreen({ db }: Props) {
       <section>
         <h2 style={{ fontSize: 'var(--fs-sub)' }}>学習ヒートマップ</h2>
         <Heatmap cells={heatmapCells} />
+      </section>
+
+      <section>
+        <h2 style={{ fontSize: 'var(--fs-sub)' }}>実試験・IPテストスコア登録</h2>
+        <form onSubmit={(e) => void handleRegisterExamScore(e)}>
+          <label>
+            日付
+            <input
+              type="date"
+              value={examDate}
+              onChange={(e) => setExamDate(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            L
+            <input
+              type="number"
+              value={examListening}
+              onChange={(e) => setExamListening(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            R
+            <input
+              type="number"
+              value={examReading}
+              onChange={(e) => setExamReading(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            種別
+            <select
+              value={examSource}
+              onChange={(e) => setExamSource(e.target.value as ExamScoreSource)}
+            >
+              {EXAM_SOURCES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit">登録</button>
+        </form>
+        {examScores.length > 0 && (
+          <ul data-testid="exam-score-list">
+            {examScores.map((score) => (
+              <li key={score.id}>
+                {score.date} {score.source} 合計{score.total}
+                （予測帯との差 {Math.round(score.total - forecast.scoreBand.center)}）
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </ScreenLayout>
   )

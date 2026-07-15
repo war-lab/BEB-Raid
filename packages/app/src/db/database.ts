@@ -9,6 +9,7 @@ import Dexie, { type EntityTable } from 'dexie'
 import type {
   AttemptRecord,
   BadgeRecord,
+  ExamScoreRecord,
   PendingSyncRecord,
   PhaseRecord,
   ProfileRecord,
@@ -35,6 +36,7 @@ export class BebRaidDatabase extends Dexie {
   badges!: EntityTable<BadgeRecord, 'badgeId'>
   pendingSync!: EntityTable<PendingSyncRecord, 'id'>
   settings!: EntityTable<SettingRecord, 'key'>
+  examScores!: EntityTable<ExamScoreRecord, 'id'>
 
   constructor(name: string = DB_NAME) {
     super(name)
@@ -54,6 +56,25 @@ export class BebRaidDatabase extends Dexie {
       badges: 'badgeId',
       pendingSync: '++id, createdAt',
       settings: 'key',
+    })
+
+    // version(2): T-42（C-2改訂・M2）。examScores を新設し、phase.listeningStage を
+    // 非インデックスフィールドとして追加（既存ストアの定義文字列自体は変更不要）。
+    // 既存ストアの定義は version(1) と同一のまま再宣言する（Dexieの規約: 変更しない
+    // ストアも version アップ時は明示する必要がある）
+    this.version(2).stores({
+      profile: 'id',
+      attempts: 'id, questionId, mode, answeredAt',
+      srsCards: 'id, refType, refId, dueAt',
+      ratings: 'section',
+      ratingHistory: '[date+section], date, section',
+      tagStats: 'tag',
+      phase: 'season',
+      streak: 'id',
+      badges: 'badgeId',
+      pendingSync: '++id, createdAt',
+      settings: 'key',
+      examScores: 'id, date',
     })
 
     // attempts の削除・更新禁止（追記のみ）。delete / clear / put / update を

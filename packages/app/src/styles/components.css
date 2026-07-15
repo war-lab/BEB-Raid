@@ -139,6 +139,14 @@
     transform: scale(1);
   }
 }
+.result-phase-transition {
+  padding: var(--sp-1);
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  color: var(--gold);
+  font-weight: 700;
+  text-align: center;
+}
 
 /* --- Part2瞬発の15秒解答タイマー（--listen アクセント） --- */
 .drill-timer {
@@ -244,6 +252,29 @@
     opacity: 1;
   }
 }
+/* --- AIに聞く（M2・T-56。05の5節: 未レビュー注記必須） --- */
+.explanation-card__ai {
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.explanation-card__ai-question {
+  margin: 0 0 var(--sp-half);
+  font-weight: 700;
+}
+.explanation-card__ai-answer {
+  margin: 0 0 var(--sp-1);
+  color: var(--ink-2);
+}
+.explanation-card__ai-note {
+  margin: 0 0 var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-note);
+}
+.explanation-card__ai-error {
+  margin: 0 0 var(--sp-1);
+  color: var(--ng);
+}
 
 /* --- スワイプカード（語彙SRS。07の6節） --- */
 .swipe-card {
@@ -324,6 +355,43 @@
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+.dictation-rate-chips {
+  display: flex;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+.dictation-rate-chips button {
+  flex: 1;
+  min-height: var(--tap-min);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.dictation-rate-chips button.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.dictation-word-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+.dictation-word-bank button {
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+.dictation-word-bank button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* --- チャート共通（08節: グリッド・軸は退行色、数表併設、タップで値表示） --- */
 .chart-empty {
@@ -382,6 +450,29 @@
   font-size: var(--fs-note);
   font-weight: 700;
 }
+.home-season {
+  margin: var(--sp-1) 0;
+}
+.home-season p {
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.home-season-progress {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.home-season-progress-bar {
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-season-progress-bar {
+    transition: none;
+  }
+}
 .home-duration-chips {
   display: flex;
   gap: var(--sp-1);
@@ -402,6 +493,29 @@
   border-color: var(--gold);
   color: var(--ink);
 }
+.home-part2-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+  padding: var(--sp-1);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+}
+.home-part2-options button {
+  min-height: var(--tap-min);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-sub);
+  cursor: pointer;
+}
+.home-part2-options-hint {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
 .home-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -417,6 +531,89 @@
   border-radius: var(--radius-button);
   font-size: var(--fs-sub);
   cursor: pointer;
+}
+
+/* --- S9 BYOK設定の注記（M2・T-55。05の5節: 平文保存・支出上限推奨） --- */
+.settings-byok-note {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+
+/* --- S4シャドーイング（M2・T-48。--listenアクセント=07 6節/7節S4） --- */
+.shadowing-accent-line {
+  height: 3px;
+  margin: 0 0 var(--sp-2);
+  background: var(--listen);
+  border-radius: var(--radius-pill);
+}
+.shadowing-status {
+  color: var(--listen);
+}
+.shadowing-speed-chips {
+  display: flex;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+}
+.shadowing-speed-chips button {
+  flex: 1;
+  min-height: var(--tap-min);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.shadowing-speed-chips button.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.shadowing-script-toggle {
+  display: flex;
+  gap: var(--sp-1);
+}
+.shadowing-script-toggle button {
+  flex: 1;
+  min-height: var(--tap-min);
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+.shadowing-script-toggle button.is-selected {
+  border-color: var(--listen);
+  color: var(--ink);
+}
+.shadowing-translation {
+  margin-top: var(--sp-1);
+  color: var(--ink-2);
+}
+
+/* --- カラオケハイライト（07 6節131行: 発話中=--gold下線+明るい文字、読了=--ink、未読=--ink-2。背景塗り無し） --- */
+.karaoke-script {
+  font-size: var(--fs-ui);
+  line-height: 1.8;
+}
+.karaoke-sentence {
+  cursor: pointer;
+}
+.karaoke-read {
+  color: var(--ink);
+}
+.karaoke-current {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+}
+.karaoke-unread {
+  color: var(--ink-2);
+}
+.karaoke-note {
+  margin-top: var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-note);
 }
 
 /* --- ユーティリティ --- */

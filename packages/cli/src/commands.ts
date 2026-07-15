@@ -25,16 +25,40 @@ import {
   type PackSource,
 } from './build.js'
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
+import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
+import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
+import {
+  buildDictationDrafts,
+  buildDictationQuestions,
+  validateDictationQuestions,
+} from './dictationQuestion.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
+import { aggregateWeeklyKpi, parseKpiExport, renderWeeklyKpiTable } from './kpi.js'
 import {
   buildKeyVocabSimilarDrafts,
   buildKeyVocabSimilarQuestions,
   KEY_VOCAB_SIMILAR_ENTRIES,
+  KEY_VOCAB_SIMILAR_ENTRIES_S2,
   validateKeyVocabSimilarQuestions,
   validateTargetWordCoverage,
 } from './keyVocabSimilar.js'
-import { buildPart2Drafts, buildPart2Questions, validatePart2Questions } from './part2Question.js'
-import { buildPart5Drafts, buildPart5Questions, validatePart5Questions } from './part5Question.js'
+import {
+  buildPart2Drafts,
+  buildPart2EntriesS2,
+  buildPart2Questions,
+  validatePart2Questions,
+} from './part2Question.js'
+import {
+  buildPart34Drafts,
+  buildPart34Questions,
+  validatePart34Questions,
+} from './part34Question.js'
+import {
+  buildPart5Drafts,
+  buildPart5EntriesS2,
+  buildPart5Questions,
+  validatePart5Questions,
+} from './part5Question.js'
 import {
   buildReviewTsv,
   parseJsonl,
@@ -42,6 +66,11 @@ import {
   toJsonl,
   type GeneratedItemDraft,
 } from './review.js'
+import {
+  buildShadowingDrafts,
+  buildShadowingQuestions,
+  validateShadowingQuestions,
+} from './shadowingQuestion.js'
 import { PiperTtsProvider } from './tts.js'
 import { synthesizeDraftsAudio } from './ttsBatch.js'
 import {
@@ -52,9 +81,17 @@ import {
 
 const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
 const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
+const DEFAULT_VOCAB_A_DRAFT_PATH = 'content/drafts/vocab-card-a.jsonl'
+const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
+const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
+const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
+const DEFAULT_PART34_DRAFT_PATH = 'content/drafts/part34-s.jsonl'
+const DEFAULT_DICTATION_DRAFT_PATH = 'content/drafts/dictation-s.jsonl'
+const DEFAULT_SHADOWING_DRAFT_PATH = 'content/drafts/shadowing-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
+const DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH = 'content/drafts/key-vocab-similar-s2.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -70,17 +107,41 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validateVocabCardQuestions,
     defaultPath: DEFAULT_VOCAB_DRAFT_PATH,
   },
+  vocab_card_a: {
+    buildQuestions: () => buildVocabCardQuestions(VOCAB_CARDS_A, 'A'),
+    buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_A, 'A'),
+    validate: (questions) => validateVocabCardQuestions(questions, 730),
+    defaultPath: DEFAULT_VOCAB_A_DRAFT_PATH,
+  },
+  vocab_card_b: {
+    buildQuestions: () => buildVocabCardQuestions(VOCAB_CARDS_B, 'B'),
+    buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_B, 'B'),
+    validate: (questions) => validateVocabCardQuestions(questions, 860),
+    defaultPath: DEFAULT_VOCAB_B_DRAFT_PATH,
+  },
   audio_qa: {
     buildQuestions: buildPart2Questions,
     buildDrafts: buildPart2Drafts,
     validate: validatePart2Questions,
     defaultPath: DEFAULT_PART2_DRAFT_PATH,
   },
+  audio_qa_s2: {
+    buildQuestions: () => buildPart2Questions(buildPart2EntriesS2()),
+    buildDrafts: () => buildPart2Drafts(buildPart2EntriesS2()),
+    validate: validatePart2Questions,
+    defaultPath: DEFAULT_PART2_S2_DRAFT_PATH,
+  },
   text_blank: {
     buildQuestions: buildPart5Questions,
     buildDrafts: buildPart5Drafts,
     validate: validatePart5Questions,
     defaultPath: DEFAULT_PART5_DRAFT_PATH,
+  },
+  text_blank_s2: {
+    buildQuestions: () => buildPart5Questions(buildPart5EntriesS2()),
+    buildDrafts: () => buildPart5Drafts(buildPart5EntriesS2()),
+    validate: validatePart5Questions,
+    defaultPath: DEFAULT_PART5_S2_DRAFT_PATH,
   },
   key_vocab_similar: {
     buildQuestions: buildKeyVocabSimilarQuestions,
@@ -90,6 +151,33 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
       ...validateTargetWordCoverage(KEY_VOCAB_SIMILAR_ENTRIES),
     ],
     defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH,
+  },
+  key_vocab_similar_s2: {
+    buildQuestions: () => buildKeyVocabSimilarQuestions(KEY_VOCAB_SIMILAR_ENTRIES_S2),
+    buildDrafts: () => buildKeyVocabSimilarDrafts(KEY_VOCAB_SIMILAR_ENTRIES_S2),
+    validate: (questions) => [
+      ...validateKeyVocabSimilarQuestions(questions),
+      ...validateTargetWordCoverage(KEY_VOCAB_SIMILAR_ENTRIES_S2),
+    ],
+    defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH,
+  },
+  audio_set: {
+    buildQuestions: buildPart34Questions,
+    buildDrafts: buildPart34Drafts,
+    validate: validatePart34Questions,
+    defaultPath: DEFAULT_PART34_DRAFT_PATH,
+  },
+  dictation: {
+    buildQuestions: buildDictationQuestions,
+    buildDrafts: buildDictationDrafts,
+    validate: validateDictationQuestions,
+    defaultPath: DEFAULT_DICTATION_DRAFT_PATH,
+  },
+  shadowing: {
+    buildQuestions: buildShadowingQuestions,
+    buildDrafts: buildShadowingDrafts,
+    validate: validateShadowingQuestions,
+    defaultPath: DEFAULT_SHADOWING_DRAFT_PATH,
   },
 }
 
@@ -274,6 +362,27 @@ export const commands: CliCommand[] = [
       ctx.out(
         `補正値: difficulty ${difficultyCount}件・freqRank ${freqRankCount}件を ${outputPath} に書き出しました`,
       )
+      return 0
+    },
+  },
+  {
+    name: 'kpi',
+    description:
+      '端末エクスポートJSONから週あたり学習日数・セッション数(近似)・SRS消化率を集計（T-40。ドッグフード計測支援）',
+    run: async (ctx) => {
+      const [exportPath] = ctx.args
+      if (!exportPath) {
+        ctx.errOut('使い方: beb kpi <エクスポート.json>')
+        return 1
+      }
+      const exported = JSON.parse(await readFile(exportPath, 'utf-8')) as unknown
+      const { attempts, srsCards } = parseKpiExport(exported)
+      const rows = aggregateWeeklyKpi(attempts, srsCards)
+      if (rows.length === 0) {
+        ctx.out('attempts が0件のため集計対象がありません')
+        return 0
+      }
+      ctx.out(renderWeeklyKpiTable(rows))
       return 0
     },
   },

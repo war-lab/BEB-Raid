@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedAt": "2026-07-13",
+    "generatedAt": "2026-07-14",
     "method": "llm-only",
     "corpusSource": null,
     "corpusLicense": null,
@@ -1207,6 +1207,2406 @@
       "freqRank": "S",
       "rankSource": "llm",
       "rationale": "認定・資格"
+    },
+    {
+      "word": "summarize",
+      "rationale": "要点をまとめる。会議後の報告で頻出",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "revise",
+      "rationale": "文書・計画を修正する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "outline",
+      "rationale": "概要・要点を示す（名詞・動詞両方で頻出）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "transcript",
+      "rationale": "会議・通話の書き起こし",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "appendix",
+      "rationale": "文書末尾の付録",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "footnote",
+      "rationale": "脚注",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "circulate",
+      "rationale": "文書を関係者に回覧する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "disseminate",
+      "rationale": "情報を広く周知する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "briefing",
+      "rationale": "事前説明会・簡単な報告会",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "consensus",
+      "rationale": "合意・総意",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "unanimous",
+      "rationale": "全会一致の",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "ratify",
+      "rationale": "正式に承認・批准する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "amendment",
+      "rationale": "契約・規則の修正条項",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "addendum",
+      "rationale": "追加条項・補遺",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "disclose",
+      "rationale": "情報を開示する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "confidential",
+      "rationale": "機密の。社内文書の定番形容詞",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "proofread",
+      "rationale": "文書の校正をする",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "qualification",
+      "rationale": "資格・要件",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "credential",
+      "rationale": "資格証明",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "onboarding",
+      "rationale": "新人受け入れ研修",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "mentor",
+      "rationale": "指導役・助言者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "probation",
+      "rationale": "試用期間",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "appraisal",
+      "rationale": "人事評価",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "workforce",
+      "rationale": "労働力・従業員全体",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "personnel",
+      "rationale": "人事・職員",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "seniority",
+      "rationale": "勤続年数・年功",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "tenure",
+      "rationale": "在職期間",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dismiss",
+      "rationale": "解雇する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dismissal",
+      "rationale": "解雇（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "layoff",
+      "rationale": "一時解雇・人員整理",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "severance",
+      "rationale": "退職金・解雇手当",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "pension",
+      "rationale": "年金",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "entitlement",
+      "rationale": "受給資格・権利",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "headcount",
+      "rationale": "人員数",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "liquidity",
+      "rationale": "流動性（資金の）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "solvency",
+      "rationale": "支払い能力",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "depreciation",
+      "rationale": "減価償却",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "amortize",
+      "rationale": "（費用を）分割償却する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "ledger",
+      "rationale": "会計帳簿",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "reconcile",
+      "rationale": "（帳簿を）照合する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "reconciliation",
+      "rationale": "照合・調整（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "arrears",
+      "rationale": "未払い金・延滞",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "surplus",
+      "rationale": "黒字・余剰",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "deficit",
+      "rationale": "赤字・不足",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "overhead",
+      "rationale": "諸経費・間接費",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "capital",
+      "rationale": "資本",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "equity",
+      "rationale": "株式持分・自己資本",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dividend",
+      "rationale": "配当金",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "valuation",
+      "rationale": "評価額の算定",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "underwrite",
+      "rationale": "（保険・融資を）引き受ける",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "collateral",
+      "rationale": "担保",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "prototype",
+      "rationale": "試作品",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "specification",
+      "rationale": "仕様書",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "tolerance",
+      "rationale": "許容誤差",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "calibrate",
+      "rationale": "（機器を）調整・校正する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "durability",
+      "rationale": "耐久性",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "batch",
+      "rationale": "一括処理・一回分の生産量",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "consignment",
+      "rationale": "委託販売・委託貨物",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "procure",
+      "rationale": "調達する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "backlog",
+      "rationale": "未処理の受注・滞積",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "bottleneck",
+      "rationale": "生産・作業の障害箇所",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "throughput",
+      "rationale": "処理能力・生産量",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "refurbish",
+      "rationale": "改修・再整備する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "recall",
+      "rationale": "製品回収",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "obsolete",
+      "rationale": "旧式の・廃れた",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "perishable",
+      "rationale": "（食品等が）傷みやすい",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "bulk",
+      "rationale": "大量の（まとめ買い等）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "stockpile",
+      "rationale": "備蓄・在庫の山",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "demographic",
+      "rationale": "人口統計上の（属性）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "niche",
+      "rationale": "隙間市場",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "benchmark",
+      "rationale": "基準・指標",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "outreach",
+      "rationale": "働きかけ・普及活動",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "sponsorship",
+      "rationale": "協賛・スポンサー活動",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "sponsor",
+      "rationale": "協賛者・後援者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "testimonial",
+      "rationale": "推薦文・利用者の声",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "incentive",
+      "rationale": "奨励金・動機付け",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "markup",
+      "rationale": "上乗せ価格・利幅",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "clearance",
+      "rationale": "在庫一掃セール",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "loyalty",
+      "rationale": "（顧客の）忠誠度・愛顧",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "exclusive",
+      "rationale": "限定の・独占的な",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "premium",
+      "rationale": "割増料金・上質な",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "retailer",
+      "rationale": "小売業者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "wholesaler",
+      "rationale": "卸売業者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "consumer",
+      "rationale": "消費者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "complaint",
+      "rationale": "苦情",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "grievance",
+      "rationale": "不満・苦情（やや形式的）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dissatisfaction",
+      "rationale": "不満",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "apologize",
+      "rationale": "謝罪する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "apology",
+      "rationale": "謝罪（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "resolve",
+      "rationale": "（問題を）解決する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "resolution",
+      "rationale": "解決（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "escalate",
+      "rationale": "（問題を）上位に引き上げる",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "escalation",
+      "rationale": "エスカレーション（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "compensate",
+      "rationale": "補償する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "compensation",
+      "rationale": "補償（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "courteous",
+      "rationale": "丁寧な・礼儀正しい",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "courtesy",
+      "rationale": "礼儀・厚意",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "empathize",
+      "rationale": "共感する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "satisfaction",
+      "rationale": "満足度",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dispute",
+      "rationale": "紛争・異議",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "redress",
+      "rationale": "救済・是正",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "layover",
+      "rationale": "乗り継ぎの待ち時間",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "transit",
+      "rationale": "通過・乗り継ぎ",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "checkpoint",
+      "rationale": "検問所・チェックポイント",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "customs",
+      "rationale": "税関",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "visa",
+      "rationale": "査証",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "passport",
+      "rationale": "旅券",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "chauffeur",
+      "rationale": "専属運転手",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "shuttle",
+      "rationale": "送迎バス",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "concierge",
+      "rationale": "コンシェルジュ",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "amenity",
+      "rationale": "設備・サービス（ホテル等）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "vacancy",
+      "rationale": "空室・欠員",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "overbook",
+      "rationale": "予約を定員以上に取る",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "refundable",
+      "rationale": "払い戻し可能な",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "punctual",
+      "rationale": "時間に正確な",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "connection",
+      "rationale": "乗り継ぎ便",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "firewall",
+      "rationale": "ファイアウォール",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "encryption",
+      "rationale": "暗号化",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "encrypt",
+      "rationale": "暗号化する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "bandwidth",
+      "rationale": "通信帯域幅",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "glitch",
+      "rationale": "一時的な不具合",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "backup",
+      "rationale": "バックアップ",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "malware",
+      "rationale": "悪意あるソフトウェア",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "interface",
+      "rationale": "（システムの）接点・画面",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "browser",
+      "rationale": "ブラウザ",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "algorithm",
+      "rationale": "アルゴリズム",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "configure",
+      "rationale": "設定する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "configuration",
+      "rationale": "設定（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "compatible",
+      "rationale": "互換性のある",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "compatibility",
+      "rationale": "互換性（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "synchronize",
+      "rationale": "同期させる",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "integrate",
+      "rationale": "統合する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "integration",
+      "rationale": "統合（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "zoning",
+      "rationale": "用途地域規制",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "blueprint",
+      "rationale": "設計図",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "contractor",
+      "rationale": "請負業者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "subcontractor",
+      "rationale": "下請け業者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "demolition",
+      "rationale": "解体・取り壊し",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "foundation",
+      "rationale": "基礎（建物の）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "scaffolding",
+      "rationale": "足場",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "permit",
+      "rationale": "許可証",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "easement",
+      "rationale": "地役権",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "condominium",
+      "rationale": "分譲マンション",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "tenancy",
+      "rationale": "賃借期間・借家権",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "eviction",
+      "rationale": "立ち退き",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dwelling",
+      "rationale": "住居",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "occupancy",
+      "rationale": "入居・占有",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "vacant",
+      "rationale": "空いている",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "remodel",
+      "rationale": "改装する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "infrastructure",
+      "rationale": "インフラ・基盤設備",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "storefront",
+      "rationale": "店頭・店舗の正面",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "shelving",
+      "rationale": "棚・棚設備",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "checkout",
+      "rationale": "レジ・会計",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "cashier",
+      "rationale": "レジ係",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "barcode",
+      "rationale": "バーコード",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "restock",
+      "rationale": "在庫を補充する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "overstock",
+      "rationale": "過剰在庫",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "shoplifting",
+      "rationale": "万引き",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "stockroom",
+      "rationale": "倉庫・保管室",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "showroom",
+      "rationale": "ショールーム",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "franchise",
+      "rationale": "フランチャイズ",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "franchisee",
+      "rationale": "加盟店（側）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "outlet",
+      "rationale": "アウトレット店",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "boutique",
+      "rationale": "専門小型店舗",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "kiosk",
+      "rationale": "売店・キオスク",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "merchant",
+      "rationale": "商人・小売業者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "ceremony",
+      "rationale": "式典",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "keynote",
+      "rationale": "基調講演",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "emcee",
+      "rationale": "司会者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "rehearsal",
+      "rationale": "リハーサル",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "backdrop",
+      "rationale": "背景幕",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "decor",
+      "rationale": "装飾",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "invitee",
+      "rationale": "招待客",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "attendee",
+      "rationale": "参加者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "exhibitor",
+      "rationale": "出展者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "showcase",
+      "rationale": "展示・紹介する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "gala",
+      "rationale": "祝賀会・盛大な催し",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "laureate",
+      "rationale": "受賞者",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "commemorate",
+      "rationale": "記念する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "anniversary",
+      "rationale": "記念日",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "unveiling",
+      "rationale": "（新製品等の）披露",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "inauguration",
+      "rationale": "開業式・就任式",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "RSVP",
+      "rationale": "出欠の返信（招待状の定型）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "regulation",
+      "rationale": "規制・規則",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "regulatory",
+      "rationale": "規制上の",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "litigation",
+      "rationale": "訴訟",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "lawsuit",
+      "rationale": "訴訟（個別の）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "plaintiff",
+      "rationale": "原告",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "defendant",
+      "rationale": "被告",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "jurisdiction",
+      "rationale": "管轄権",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "statute",
+      "rationale": "法令・制定法",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "infringe",
+      "rationale": "（権利を）侵害する",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "infringement",
+      "rationale": "侵害（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "sustainability",
+      "rationale": "持続可能性",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "sustainable",
+      "rationale": "持続可能な",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "emission",
+      "rationale": "排出（物）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "recycle",
+      "rationale": "リサイクルする",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "recycling",
+      "rationale": "リサイクル（名詞）",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "biodegradable",
+      "rationale": "生分解性の",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "eco-friendly",
+      "rationale": "環境に優しい",
+      "freqRank": "A",
+      "rankSource": "llm"
+    },
+    {
+      "word": "verbatim",
+      "rationale": "一字一句そのままの",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "paraphrase",
+      "rationale": "言い換える",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "elaborate",
+      "rationale": "詳しく説明する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "elaboration",
+      "rationale": "詳述（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "stipulate",
+      "rationale": "（契約等で）規定する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "stipulation",
+      "rationale": "規定条項",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "preamble",
+      "rationale": "前文",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "annex",
+      "rationale": "別紙・付属文書",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "redact",
+      "rationale": "（機密部分を）削除・黒塗りする",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "redaction",
+      "rationale": "黒塗り・削除（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "codify",
+      "rationale": "成文化する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "promulgate",
+      "rationale": "（法令等を）公布する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "corroborate",
+      "rationale": "裏付ける",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "substantiate",
+      "rationale": "実証する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "annotate",
+      "rationale": "注釈を付ける",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "annotation",
+      "rationale": "注釈（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "synopsis",
+      "rationale": "概要・あらすじ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "attrition",
+      "rationale": "自然減（離職による人員減）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "retention",
+      "rationale": "人材の定着・保持",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "incentivize",
+      "rationale": "動機付けをする",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "gratuity",
+      "rationale": "謝礼・チップ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "nepotism",
+      "rationale": "縁故採用",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "meritocracy",
+      "rationale": "実力主義",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "arbitration",
+      "rationale": "（労使等の）仲裁",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "mediate",
+      "rationale": "仲裁・調停する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "mediation",
+      "rationale": "調停（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "redundancy",
+      "rationale": "（英）人員整理・余剰人員",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "downsize",
+      "rationale": "人員を削減する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "downsizing",
+      "rationale": "人員削減（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "restructure",
+      "rationale": "組織再編する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "restructuring",
+      "rationale": "組織再編（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "moonlighting",
+      "rationale": "副業",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "sabbatical",
+      "rationale": "長期休暇（研究・研修目的）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "expatriate",
+      "rationale": "海外駐在員",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "hedge",
+      "rationale": "（リスクを）回避する・ヘッジする",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "hedging",
+      "rationale": "ヘッジ（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "derivative",
+      "rationale": "金融派生商品",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "arbitrage",
+      "rationale": "裁定取引",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "insolvency",
+      "rationale": "支払不能状態",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "receivership",
+      "rationale": "管財下に置かれた状態",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "bankruptcy",
+      "rationale": "破産",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "foreclosure",
+      "rationale": "（担保物件の）差し押さえ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "asset",
+      "rationale": "資産",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "portfolio",
+      "rationale": "保有資産の組み合わせ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "diversify",
+      "rationale": "（投資等を）分散させる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "diversification",
+      "rationale": "分散（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "leverage",
+      "rationale": "（資金・資産を）活用する・てこ入れ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "subsidy",
+      "rationale": "補助金",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "tariff",
+      "rationale": "関税",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "levy",
+      "rationale": "（税を）課す・課税",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "embezzlement",
+      "rationale": "横領",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "commissioning",
+      "rationale": "（設備の）試運転・引き渡し",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "decommission",
+      "rationale": "（設備を）廃止・退役させる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "retrofit",
+      "rationale": "後付けで改修する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "streamline",
+      "rationale": "（工程を）合理化する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "optimize",
+      "rationale": "最適化する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "optimization",
+      "rationale": "最適化（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "automate",
+      "rationale": "自動化する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "automation",
+      "rationale": "自動化（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "offshoring",
+      "rationale": "海外移転（生産拠点等の）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "subcontracting",
+      "rationale": "下請けに出すこと",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "expedite",
+      "rationale": "（処理を）迅速化する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "consolidate",
+      "rationale": "（貨物・拠点を）統合する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "consolidation",
+      "rationale": "統合（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "standardize",
+      "rationale": "標準化する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "standardization",
+      "rationale": "標準化（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "curtail",
+      "rationale": "（生産・支出を）削減する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "overhaul",
+      "rationale": "大幅な見直し・改修",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "proliferate",
+      "rationale": "急増する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "proliferation",
+      "rationale": "急増（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "saturate",
+      "rationale": "（市場を）飽和させる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "saturation",
+      "rationale": "飽和（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "differentiate",
+      "rationale": "差別化する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "differentiation",
+      "rationale": "差別化（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "positioning",
+      "rationale": "市場での位置付け",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "rebrand",
+      "rationale": "ブランドを刷新する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "rebranding",
+      "rationale": "ブランド刷新（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "viral",
+      "rationale": "（口コミ的に）急速に広がる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "engagement",
+      "rationale": "（顧客の）関与・愛着度",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "conversion",
+      "rationale": "成約・転換（率）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "segmentation",
+      "rationale": "市場細分化",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "upsell",
+      "rationale": "上位商品を勧める",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "affiliate",
+      "rationale": "提携先・アフィリエイト",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "clientele",
+      "rationale": "顧客層",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "markdown",
+      "rationale": "値下げ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "appease",
+      "rationale": "（相手を）なだめる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "placate",
+      "rationale": "（怒りを）鎮める",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "rectify",
+      "rationale": "（誤りを）是正する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "rectification",
+      "rationale": "是正（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "remedy",
+      "rationale": "救済策・改善策",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "remediation",
+      "rationale": "是正措置",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "disgruntled",
+      "rationale": "不満を抱いた",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "alienate",
+      "rationale": "（顧客を）疎外する・離反させる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "retain",
+      "rationale": "（顧客を）つなぎ止める",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "goodwill",
+      "rationale": "（企業の）信用・のれん",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "conciliatory",
+      "rationale": "和解的な・懐柔的な",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "indemnify",
+      "rationale": "損害を補償する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "indemnity",
+      "rationale": "補償・免責（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "liaison",
+      "rationale": "連絡調整役",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "mitigate",
+      "rationale": "（被害・影響を）軽減する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "mitigation",
+      "rationale": "軽減（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "ombudsman",
+      "rationale": "苦情処理担当者・オンブズマン",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "commute",
+      "rationale": "通勤する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "commuter",
+      "rationale": "通勤者",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "congestion",
+      "rationale": "混雑・渋滞",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "detour",
+      "rationale": "迂回路",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "diversion",
+      "rationale": "（交通の）迂回",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "embark",
+      "rationale": "（船・便に）搭乗する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "disembark",
+      "rationale": "（船・便から）降りる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "quarantine",
+      "rationale": "検疫",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "immigration",
+      "rationale": "出入国審査",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "repatriate",
+      "rationale": "本国へ送還・帰任させる",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "repatriation",
+      "rationale": "本国送還（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "chartered",
+      "rationale": "貸し切りの（便・バス）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "nonrefundable",
+      "rationale": "払い戻し不可の",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "punctuality",
+      "rationale": "時間厳守（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "stopover",
+      "rationale": "（旅程上の）短期滞在",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "gateway",
+      "rationale": "玄関口（都市・空港）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "cybersecurity",
+      "rationale": "サイバーセキュリティ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "phishing",
+      "rationale": "フィッシング詐欺",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "ransomware",
+      "rationale": "身代金要求型ウイルス",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "cryptocurrency",
+      "rationale": "暗号資産",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "blockchain",
+      "rationale": "ブロックチェーン",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "protocol",
+      "rationale": "通信規約・手順",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "latency",
+      "rationale": "（通信の）遅延",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "scalable",
+      "rationale": "拡張性のある",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "scalability",
+      "rationale": "拡張性（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "deprecate",
+      "rationale": "（機能等を）非推奨にする",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "provisioning",
+      "rationale": "（システム資源の）割り当て・準備",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "virtualization",
+      "rationale": "仮想化",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "middleware",
+      "rationale": "ミドルウェア",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "firmware",
+      "rationale": "ファームウェア",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "endpoint",
+      "rationale": "（通信の）末端機器",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "authentication",
+      "rationale": "認証",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "encroachment",
+      "rationale": "（境界等への）侵害",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dilapidated",
+      "rationale": "老朽化した",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "uninhabitable",
+      "rationale": "居住に適さない",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "habitable",
+      "rationale": "居住可能な",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "gentrification",
+      "rationale": "（地域の）高級化・再開発",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "leasehold",
+      "rationale": "借地権",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "freehold",
+      "rationale": "自由土地保有権",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "covenant",
+      "rationale": "契約上の誓約条項",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "deed",
+      "rationale": "権利証書",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "escrow",
+      "rationale": "第三者預託（不動産取引の）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "subdivision",
+      "rationale": "土地区画（分譲地）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "rezone",
+      "rationale": "用途地域を変更する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "variance",
+      "rationale": "（規制の）例外許可",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "condemn",
+      "rationale": "（建物を）使用不可と宣告する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "condemnation",
+      "rationale": "使用不可宣告（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "urbanization",
+      "rationale": "都市化",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "sprawl",
+      "rationale": "（都市の）無秩序な拡大",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "liquidation",
+      "rationale": "在庫処分・清算",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "footfall",
+      "rationale": "来店客数",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "ambience",
+      "rationale": "店内の雰囲気",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "upscale",
+      "rationale": "高級志向の",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "bespoke",
+      "rationale": "注文仕立ての",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "artisanal",
+      "rationale": "職人による・手作りの",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "curated",
+      "rationale": "厳選された",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "flagship",
+      "rationale": "旗艦（店舗・商品）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "e-commerce",
+      "rationale": "電子商取引",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "omnichannel",
+      "rationale": "複数販路統合型の",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "understock",
+      "rationale": "在庫不足",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "turnover",
+      "rationale": "（在庫・客の）回転率",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "patronage",
+      "rationale": "（常連客の）ひいき・愛顧",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "shopper",
+      "rationale": "買い物客",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "merchandising",
+      "rationale": "商品化計画・陳列戦略",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "assortment",
+      "rationale": "品揃え",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "pageantry",
+      "rationale": "華やかな儀式・見せ物",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "procession",
+      "rationale": "行列",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "dignitary",
+      "rationale": "要人",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "accolade",
+      "rationale": "称賛・栄誉",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "plaque",
+      "rationale": "記念プレート",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "memorial",
+      "rationale": "記念（の）・追悼の",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "tribute",
+      "rationale": "賛辞・献辞",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "symposium",
+      "rationale": "シンポジウム",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "convocation",
+      "rationale": "式典（学位授与式等）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "plenary",
+      "rationale": "全体会議の",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "festivity",
+      "rationale": "祝賀行事",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "jubilee",
+      "rationale": "記念祝典（周年）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "commencement",
+      "rationale": "開始式・卒業式",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "soiree",
+      "rationale": "夜会・晩餐会",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "mixer",
+      "rationale": "懇親会",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "hospitality",
+      "rationale": "もてなし・接遇",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "fanfare",
+      "rationale": "派手な宣伝・ファンファーレ",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "adjudicate",
+      "rationale": "裁定・判決を下す",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "adjudication",
+      "rationale": "裁定（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "tribunal",
+      "rationale": "審判所・法廷",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "subpoena",
+      "rationale": "召喚状",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "testify",
+      "rationale": "証言する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "testimony",
+      "rationale": "証言（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "affidavit",
+      "rationale": "宣誓供述書",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "injunction",
+      "rationale": "差止命令",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "indictment",
+      "rationale": "起訴",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "prosecute",
+      "rationale": "起訴する",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "prosecution",
+      "rationale": "起訴・検察側（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "acquit",
+      "rationale": "無罪とする",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "acquittal",
+      "rationale": "無罪判決（名詞）",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "culpable",
+      "rationale": "責めを負うべき",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "negligence",
+      "rationale": "過失",
+      "freqRank": "B",
+      "rankSource": "llm"
+    },
+    {
+      "word": "malfeasance",
+      "rationale": "不正行為（職権上の）",
+      "freqRank": "B",
+      "rankSource": "llm"
     }
   ]
 }

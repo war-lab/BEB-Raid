@@ -25,7 +25,7 @@ async function run(argv: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('コマンド体系（04の5節）', () => {
-  it('generate / freq-list / review-export / review-import / tts / calibrate / build の7コマンドがある', () => {
+  it('generate / freq-list / review-export / review-import / tts / calibrate / kpi / build の8コマンドがある', () => {
     expect(commands.map((c) => c.name)).toEqual([
       'generate',
       'freq-list',
@@ -33,6 +33,7 @@ describe('コマンド体系（04の5節）', () => {
       'review-import',
       'tts',
       'calibrate',
+      'kpi',
       'build',
     ])
   })
@@ -117,9 +118,39 @@ describe('generate vocab_card（T-26）', () => {
     expect(missing.code).toBe(1)
     expect(missing.errOutput).toContain('使い方')
 
-    const unsupported = await run(['generate', 'dictation'])
+    const unsupported = await run(['generate', 'not-a-real-kind'])
     expect(unsupported.code).toBe(1)
     expect(unsupported.errOutput).toContain('未対応のkind')
+  })
+})
+
+describe('generate vocab_card_a / vocab_card_b（M2・T-59）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-ab-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it.each([
+    ['vocab_card_a', 730],
+    ['vocab_card_b', 860],
+  ])('%sは200件・levelBand=%iのドラフトを出力する', async (kind, levelBand) => {
+    const outputPath = join(dir, `${kind}.jsonl`)
+    const { code, output } = await run(['generate', kind, outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('200件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: { format: string; front: string; phrase: string; levelBand: number }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(200)
+    expect(drafts.every((d) => d.kind === 'vocab_card')).toBe(true)
+    expect(drafts.every((d) => d.payload.levelBand === levelBand)).toBe(true)
   })
 })
 
@@ -179,6 +210,39 @@ describe('generate audio_qa（T-27）', () => {
   })
 })
 
+describe('generate audio_qa_s2（M2・T-60）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-part2-s2-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で100件のaudio_qaドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'part2-s2.jsonl')
+    const { code, output } = await run(['generate', 'audio_qa_s2', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('100件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        difficulty: number
+        keyVocab: { freqRank: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(100)
+    expect(drafts.every((d) => d.kind === 'audio_qa')).toBe(true)
+    expect(drafts.every((d) => [2, 3, 4].includes(d.payload.difficulty))).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'A')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'B')).toBe(true)
+  })
+})
+
 describe('generate text_blank（T-28）', () => {
   let dir: string
 
@@ -228,6 +292,137 @@ describe('generate text_blank（T-28）', () => {
     expect(code).toBe(0)
     const tsv = await readFile(tsvPath, 'utf-8')
     expect(tsv.trim().split('\n')).toHaveLength(51) // ヘッダー + 50件
+  })
+})
+
+describe('generate text_blank_s2（M2・T-61）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-part5-s2-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で100件のtext_blankドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'part5-s2.jsonl')
+    const { code, output } = await run(['generate', 'text_blank_s2', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('100件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        question: string
+        choices: { key: string; text: string }[]
+        answer: string
+        keyVocab: { freqRank: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(100)
+    expect(drafts.every((d) => d.kind === 'text_blank')).toBe(true)
+    expect(drafts.every((d) => d.payload.question.includes('___'))).toBe(true)
+    expect(drafts.every((d) => d.payload.choices.some((c) => c.key === d.payload.answer))).toBe(
+      true,
+    )
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'A')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'B')).toBe(true)
+  })
+})
+
+describe('generate audio_set（M2・T-62）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-part34-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で20件のaudio_setドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'part34-s.jsonl')
+    const { code, output } = await run(['generate', 'audio_set', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('20件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        subQuestions: { id: string; choices: { key: string; text: string }[]; answer: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(20)
+    expect(drafts.every((d) => d.kind === 'audio_set')).toBe(true)
+    expect(drafts.every((d) => d.payload.subQuestions.length === 3)).toBe(true)
+    expect(
+      drafts.every((d) =>
+        d.payload.subQuestions.every((sq) => sq.choices.some((c) => c.key === sq.answer)),
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('generate dictation（M2・T-62）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-dictation-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で40件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'dictation-s.jsonl')
+    const { code, output } = await run(['generate', 'dictation', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('40件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: { format: string; blanks: { index: number; answer: string }[] }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(40)
+    expect(drafts.every((d) => d.kind === 'dictation')).toBe(true)
+    expect(drafts.every((d) => d.payload.blanks.length >= 1 && d.payload.blanks.length <= 3)).toBe(
+      true,
+    )
+  })
+})
+
+describe('generate shadowing（M2・T-62）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-shadowing-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で30件のshadowingドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'shadowing-s.jsonl')
+    const { code, output } = await run(['generate', 'shadowing', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('30件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: { format: string; timing: number[] }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(30)
+    expect(drafts.every((d) => d.kind === 'shadowing')).toBe(true)
+    expect(
+      drafts.every((d) => Array.isArray(d.payload.timing) && d.payload.timing.length > 0),
+    ).toBe(true)
   })
 })
 
@@ -283,6 +478,44 @@ describe('generate key_vocab_similar（T-29）', () => {
     expect(code).toBe(0)
     const tsv = await readFile(tsvPath, 'utf-8')
     expect(tsv.trim().split('\n')).toHaveLength(58) // ヘッダー + 57件
+  })
+})
+
+describe('generate key_vocab_similar_s2（M2・T-63）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-similar-s2-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('APIキー不要で60件（20語×3問）のドラフト（バリデーション通過済み）が出力される', async () => {
+    const outputPath = join(dir, 'key-vocab-similar-s2.jsonl')
+    const { code, output } = await run(['generate', 'key_vocab_similar_s2', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('60件')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        keyVocab: { word: string; freqRank: string }[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts).toHaveLength(60)
+    expect(drafts.every((d) => d.kind === 'text_blank')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'A')).toBe(true)
+    expect(drafts.some((d) => d.payload.keyVocab[0]?.freqRank === 'B')).toBe(true)
+    const wordCounts = new Map<string, number>()
+    for (const d of drafts) {
+      const word = d.payload.keyVocab[0]!.word
+      wordCounts.set(word, (wordCounts.get(word) ?? 0) + 1)
+    }
+    expect(wordCounts.size).toBe(20)
+    expect([...wordCounts.values()].every((n) => n === 3)).toBe(true)
   })
 })
 
@@ -423,8 +656,17 @@ describe('build（T-32）', () => {
     await mkdir(join(dir, 'drafts'), { recursive: true })
     await mkdir(join(dir, 'audio/vocab'), { recursive: true })
     await mkdir(join(dir, 'audio/part2'), { recursive: true })
+    await mkdir(join(dir, 'audio/part34'), { recursive: true })
+    await mkdir(join(dir, 'audio/dictation'), { recursive: true })
+    await mkdir(join(dir, 'audio/shadow'), { recursive: true })
     await writeFile(join(dir, 'audio/vocab/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/vocab/revise.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/vocab/streamline.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part2/revise.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part34/p3-01.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/dictation/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/shadow/submit.mp3'), 'dummy')
 
     const vocabDraft: GeneratedItemDraft = {
       id: 'vocab-submit',
@@ -464,7 +706,7 @@ describe('build（T-32）', () => {
           { key: 'B', text: 'Yes, I did.' },
         ],
         answer: 'A',
-        explanation: '',
+        explanation: '"By Friday."が正解。締め切りを尋ねる疑問文への具体的な回答になっている。',
         translation: '',
       },
     }
@@ -485,7 +727,8 @@ describe('build（T-32）', () => {
           { key: 'B', text: 'submission' },
         ],
         answer: 'A',
-        explanation: '',
+        explanation:
+          '命令文のため動詞の原形submitが正しい。submissionは名詞で命令文の主動詞にはならない。',
         translation: '',
       },
     }
@@ -506,7 +749,176 @@ describe('build（T-32）', () => {
           { key: 'B', text: 'reject' },
         ],
         answer: 'A',
-        explanation: '',
+        explanation: '応募書類を「提出する」のはsubmit。rejectは「却下する」で文脈に合わない。',
+        translation: '',
+      },
+    }
+    const vocabADraft: GeneratedItemDraft = {
+      id: 'vocab-revise',
+      kind: 'vocab_card',
+      preview: 'revise',
+      payload: {
+        id: 'vocab-revise',
+        part: 0,
+        format: 'vocab_card',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        front: 'revise',
+        phrase: 'Please revise the report.',
+        phraseAudio: 'audio/vocab/revise.mp3',
+        back: '修正する',
+        freqRank: 'A',
+        levelBand: 730,
+      },
+    }
+    const vocabBDraft: GeneratedItemDraft = {
+      id: 'vocab-streamline',
+      kind: 'vocab_card',
+      preview: 'streamline',
+      payload: {
+        id: 'vocab-streamline',
+        part: 0,
+        format: 'vocab_card',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        front: 'streamline',
+        phrase: 'We need to streamline this process.',
+        phraseAudio: 'audio/vocab/streamline.mp3',
+        back: '合理化する',
+        freqRank: 'B',
+        levelBand: 860,
+      },
+    }
+    const part2S2Draft: GeneratedItemDraft = {
+      id: 'part2-revise',
+      kind: 'audio_qa',
+      preview: 'revise',
+      payload: {
+        id: 'part2-revise',
+        part: 2,
+        format: 'audio_qa',
+        difficulty: 2,
+        tags: ['疑問詞聞き取り'],
+        keyVocab: [{ word: 'revise', sense: '修正する', freqRank: 'A' }],
+        audio: 'audio/part2/revise.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 3000 },
+        script: 'When should I revise it? — By Friday.',
+        choices: [
+          { key: 'A', text: 'By Friday.' },
+          { key: 'B', text: 'Yes, I did.' },
+        ],
+        answer: 'A',
+        explanation: '"By Friday."が正解。締め切りを尋ねる疑問文への具体的な回答になっている。',
+        translation: '',
+      },
+    }
+    const part5S2Draft: GeneratedItemDraft = {
+      id: 'part5-revise',
+      kind: 'text_blank',
+      preview: 'revise',
+      payload: {
+        id: 'part5-revise',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 2,
+        tags: ['品詞'],
+        keyVocab: [{ word: 'revise', sense: '修正する', freqRank: 'A' }],
+        question: 'The client requested a full ___ of the contract.',
+        choices: [
+          { key: 'A', text: 'revision' },
+          { key: 'B', text: 'revise' },
+        ],
+        answer: 'A',
+        explanation: '空所は名詞。revisionが正しい。reviseは動詞原形で名詞の位置には合わない。',
+        translation: '',
+      },
+    }
+    const part34Draft: GeneratedItemDraft = {
+      id: 'p34-p3-01',
+      kind: 'audio_set',
+      preview: 'p3-01',
+      payload: {
+        id: 'p34-p3-01',
+        part: 3,
+        format: 'audio_set',
+        difficulty: 2,
+        tags: ['先読み'],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/part34/p3-01.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 5000 },
+        script: 'A: Please submit it today. B: Sure, I will submit it now.',
+        subQuestions: [
+          {
+            id: 'p34-p3-01-q1',
+            question: 'What does A ask B to do?',
+            choices: [
+              { key: 'A', text: 'Submit it today' },
+              { key: 'B', text: 'Cancel the meeting' },
+            ],
+            answer: 'A',
+            explanation: 'Aは"Please submit it today"と述べている。',
+            translation: 'Aは何をするようBに求めていますか。',
+          },
+        ],
+      },
+    }
+    const dictationDraft: GeneratedItemDraft = {
+      id: 'dictation-submit',
+      kind: 'dictation',
+      preview: 'submit',
+      payload: {
+        id: 'dictation-submit',
+        part: 2,
+        format: 'dictation',
+        difficulty: 2,
+        tags: ['弱形・連結'],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/dictation/submit.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 2500 },
+        script: 'Please submit the report by Friday.',
+        blanks: [{ index: 1, answer: 'submit' }],
+        explanation: '弱形になりやすいsubmitを穴にしている。',
+        translation: '金曜日までに報告書を提出してください。',
+      },
+    }
+    const shadowingDraft: GeneratedItemDraft = {
+      id: 'shadow-submit',
+      kind: 'shadowing',
+      preview: 'submit',
+      payload: {
+        id: 'shadow-submit',
+        part: 3,
+        format: 'shadowing',
+        difficulty: 2,
+        tags: [],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        audio: 'audio/shadow/submit.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 2500 },
+        script: 'Please submit the report by Friday.',
+        translation: '金曜日までに報告書を提出してください。',
+        timing: [0, 400, 900, 1400, 1900, 2400],
+      },
+    }
+    const similarS2Draft: GeneratedItemDraft = {
+      id: 'similar-revise-1',
+      kind: 'text_blank',
+      preview: 'revise',
+      payload: {
+        id: 'similar-revise-1',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 2,
+        tags: ['言い換え語彙'],
+        keyVocab: [{ word: 'revise', sense: '修正する', freqRank: 'A' }],
+        question: 'The committee decided to ___ the proposal.',
+        choices: [
+          { key: 'A', text: 'revise' },
+          { key: 'B', text: 'annotate' },
+        ],
+        answer: 'A',
+        explanation: '提案書を修正するのはrevise。annotateは注釈を付けるで文脈に合わない。',
         translation: '',
       },
     }
@@ -519,6 +931,42 @@ describe('build（T-32）', () => {
     await writeFile(join(dir, 'drafts/part2-s.jsonl'), JSON.stringify(part2Draft) + '\n', 'utf-8')
     await writeFile(join(dir, 'drafts/part5-s.jsonl'), JSON.stringify(part5Draft) + '\n', 'utf-8')
     await writeFile(
+      join(dir, 'drafts/vocab-card-a.jsonl'),
+      JSON.stringify(vocabADraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/vocab-card-b.jsonl'),
+      JSON.stringify(vocabBDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/part2-s2.jsonl'),
+      JSON.stringify(part2S2Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/part5-s2.jsonl'),
+      JSON.stringify(part5S2Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(join(dir, 'drafts/part34-s.jsonl'), JSON.stringify(part34Draft) + '\n', 'utf-8')
+    await writeFile(
+      join(dir, 'drafts/dictation-s.jsonl'),
+      JSON.stringify(dictationDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/shadowing-s.jsonl'),
+      JSON.stringify(shadowingDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/key-vocab-similar-s2.jsonl'),
+      JSON.stringify(similarS2Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
       join(dir, 'drafts/key-vocab-similar-s.jsonl'),
       JSON.stringify(similarDraft) + '\n',
       'utf-8',
@@ -529,20 +977,28 @@ describe('build（T-32）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('4パック分のドラフトから packs/*.json と manifest.json を生成する', async () => {
+  it('12パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8。T-64）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('4パック')
+    expect(output).toContain('12パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(4)
+    expect(manifest.packs).toHaveLength(12)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
       'pack-p5-s-001',
       'pack-p5-similar-s-001',
+      'pack-vocab-a-001',
+      'pack-vocab-b-001',
+      'pack-p2-s-002',
+      'pack-p5-s-002',
+      'pack-p34-s-001',
+      'pack-dict-s-001',
+      'pack-shadow-s-001',
+      'pack-p5-similar-s-002',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)
@@ -619,5 +1075,42 @@ describe('build（T-32）', () => {
       await readFile(join(dir, 'packs/pack-p2-s-001.json'), 'utf-8'),
     ) as { questions: { id: string; difficulty: number }[] }
     expect(part2Pack.questions[0]?.difficulty).toBe(3)
+  })
+
+  it('kpi: エクスポートJSONから週次集計を出力する（T-40完了条件）', async () => {
+    const exportPath = join(dir, 'export-kpi.json')
+    const day1 = Date.UTC(2026, 6, 13, 8, 0)
+    const exportData = {
+      formatVersion: 1,
+      dbVersion: 1,
+      exportedAt: 0,
+      stores: {
+        attempts: [
+          {
+            id: 'a-1',
+            questionId: 'q-1',
+            mode: 'solo',
+            isCorrect: true,
+            responseMs: 1000,
+            isTimeout: false,
+            isGuess: false,
+            answeredAt: day1,
+          },
+        ],
+        srsCards: [],
+      },
+    }
+    await writeFile(exportPath, JSON.stringify(exportData), 'utf-8')
+
+    const { code, output } = await run(['kpi', exportPath])
+    expect(code).toBe(0)
+    expect(output).toContain('学習日数')
+    expect(output).toContain('N/A')
+  })
+
+  it('kpi: 引数不足だと使い方をstderrに出して異常終了する', async () => {
+    const { code, errOutput } = await run(['kpi'])
+    expect(code).toBe(1)
+    expect(errOutput).toContain('使い方')
   })
 })

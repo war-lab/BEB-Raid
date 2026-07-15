@@ -4,23 +4,39 @@
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import { getDb } from './db/database'
-import { createAudioPlayer, createPackCache, type PackCache } from './platform'
+import { createAiClient, createAudioPlayer, createPackCache, type PackCache } from './platform'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
+import { BYOK_API_KEY_KEY } from './services/settingsKeys'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
+import { ShadowingScreen } from './screens/ShadowingScreen'
 import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore } from './store/appStore'
 
 /**
- * M1配布4パック（T-32のPACK_DEFINITIONSと対応。cli側の定義をappから直接importはしない
- * ——cliはビルド時ツールでappの実行時依存にしない構成のため、idはここに複製する）
+ * 配布パック全12件（M1の4＋M2の8。T-32/T-64のPACK_DEFINITIONSと対応。cli側の定義を
+ * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
+ * idはここに複製する）
  */
-const PACK_IDS = ['pack-vocab-s-001', 'pack-p2-s-001', 'pack-p5-s-001', 'pack-p5-similar-s-001']
+const PACK_IDS = [
+  'pack-vocab-s-001',
+  'pack-p2-s-001',
+  'pack-p5-s-001',
+  'pack-p5-similar-s-001',
+  'pack-vocab-a-001',
+  'pack-vocab-b-001',
+  'pack-p2-s-002',
+  'pack-p5-s-002',
+  'pack-p34-s-001',
+  'pack-dict-s-001',
+  'pack-shadow-s-001',
+  'pack-p5-similar-s-002',
+]
 
 /**
  * 全パックの問題を読み込み1つのプールにまとめる（T-37: ダミーパック削除・実パック配線）。
@@ -41,6 +57,10 @@ export async function loadQuestionPool(
 
 const audioPlayer = createAudioPlayer()
 const packCache = createPackCache()
+/** BYOK AIクライアント（M2・T-56）。APIキーはsettingsストアから都度読み出す（db直依存を避ける疎結合） */
+const aiClient = createAiClient(
+  async () => ((await getDb().settings.get(BYOK_API_KEY_KEY))?.value as string | undefined) ?? null,
+)
 
 export function App() {
   const screen = useAppStore((s) => s.screen)
@@ -73,14 +93,26 @@ export function App() {
   if (!bootChecked) return null
 
   const vocabQuestions = questionPool.filter((q) => q.format === 'vocab_card')
+  const shadowingQuestions = questionPool.filter((q) => q.format === 'shadowing')
 
   if (screen === 'diagnostic') {
     return <DiagnosticScreen db={getDb()} audioPlayer={audioPlayer} questionPool={questionPool} />
   }
-  if (screen === 'drill') return <DrillScreen db={getDb()} audioPlayer={audioPlayer} />
+  if (screen === 'drill') {
+    return <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} />
+  }
   if (screen === 'result') return <ResultScreen db={getDb()} />
   if (screen === 'vocab') {
     return <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={vocabQuestions} />
+  }
+  if (screen === 'shadowing') {
+    return (
+      <ShadowingScreen
+        db={getDb()}
+        audioPlayer={audioPlayer}
+        shadowingQuestions={shadowingQuestions}
+      />
+    )
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
   if (screen === 'settings') return <SettingsScreen db={getDb()} packCache={packCache} />

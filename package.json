@@ -13,6 +13,7 @@
   "scripts": {
     "build": "npm run build -w @beb-raid/shared-schema && npm run build -w @beb-raid/cli && npm run build -w @beb-raid/app",
     "test": "npm test --workspaces --if-present",
+    "review-ui": "npm run dev -w @beb-raid/review-ui",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

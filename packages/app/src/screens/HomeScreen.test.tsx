@@ -242,6 +242,54 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     fireEvent.click(screen.getByText('ダッシュボード'))
     expect(useAppStore.getState().screen).toBe('dashboard')
   })
+
+  it('下方グリッドからシャドーイングへ直接遷移でき、listeningStageが併記される（T-48）', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    expect(screen.getByText(/シャドーイング L1/)).toBeTruthy()
+    fireEvent.click(screen.getByText(/シャドーイング/))
+    expect(useAppStore.getState().screen).toBe('shadowing')
+  })
+})
+
+describe('HomeScreen: Part2単独モードの再生バリエーション選択（T-39）', () => {
+  it('Part2瞬発タップで選択肢が出て、「通常」選択では partialAudioMode が false のまま開始する', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part2瞬発'))
+    expect(screen.getByText('通常')).toBeTruthy()
+    expect(screen.getByText('冒頭だけ再生（特訓）')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('通常'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().partialAudioMode).toBe(false)
+  })
+
+  it('「冒頭だけ再生（特訓）」選択では partialAudioMode が true でセッションが始まる', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part2瞬発'))
+    fireEvent.click(screen.getByText('冒頭だけ再生（特訓）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().partialAudioMode).toBe(true)
+  })
+
+  it('今日のクエスト開始では partialAudioMode が false のまま（回帰確認）', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().partialAudioMode).toBe(false)
+  })
 })
 
 describe('HomeScreen: イヤホンなしモード（T-23）', () => {
@@ -260,5 +308,38 @@ describe('HomeScreen: イヤホンなしモード（T-23）', () => {
       (item) => questions.get(item.questionId)?.format === 'audio_qa',
     )
     expect(hasListening).toBe(false)
+  })
+})
+
+describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54）', () => {
+  it('phase不在（初回起動相当）でもP1「土台」が表示される', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    expect(screen.getByTestId('home-season').textContent).toContain('シーズン1「土台」')
+  })
+
+  it('総合レートが高いユーザーはP3「実戦」が初期表示される', async () => {
+    const db = newDb()
+    await db.ratings.bulkPut([
+      { section: 'L', rating: 700, updatedAt: 0 },
+      { section: 'R', rating: 700, updatedAt: 0 },
+    ])
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    expect(screen.getByTestId('home-season').textContent).toContain('シーズン3「実戦」')
+  })
+
+  it('今日のクエスト開始時、generateQuickPackにフェーズが渡り配分が反映される（回帰しない）', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    // フェーズ駆動でも既存どおりセッションが開始できることの回帰確認
+    expect(useSessionStore.getState().snapshot!.items.length).toBeGreaterThan(0)
   })
 })

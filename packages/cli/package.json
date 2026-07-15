@@ -7,6 +7,15 @@
   "bin": {
     "beb": "./dist/index.js"
   },
+  "exports": {
+    "./review": {
+      "types": "./dist/review.d.ts",
+      "import": "./dist/review.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run"
