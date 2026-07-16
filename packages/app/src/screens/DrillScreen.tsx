@@ -17,7 +17,7 @@ import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AiClient, AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
-import { advanceSession } from '../services/session'
+import { advanceSession, resumeSession } from '../services/session'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -129,6 +129,8 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   const [subQuestionResults, setSubQuestionResults] = useState<boolean[]>([])
   // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4）
   const [audioError, setAudioError] = useState<string | null>(null)
+  // T-71/T-76: 解答保存（recordAnswerPipeline）失敗時のリカバリ用エラーメッセージ（J-35）
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -285,6 +287,25 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   const total = snapshot.items.length
   const current = displayIndex + 1
 
+  /**
+   * 解答保存（recordAnswerPipeline）失敗時の共通リカバリ（J-35・T-76）。
+   * エラーバナー表示＋正誤表示の取り消し（再解答可能にする）に加え、snapshotベースの
+   * 経路ではDBの実際の状態をresumeSessionで読み直してstateを再同期する
+   * （途中まで書き込みが成立していた場合、answeredCountのずれを解消するため）
+   */
+  async function recoverFromSaveError(err: unknown, options?: { resyncSnapshot?: boolean }) {
+    console.error('[DrillScreen] 解答の保存に失敗', err)
+    setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
+    setResult(null)
+    if (options?.resyncSnapshot ?? true) {
+      const resumed = await resumeSession(db)
+      if (resumed) {
+        useSessionStore.setState({ snapshot: resumed })
+        setDisplayIndex(resumed.answeredCount)
+      }
+    }
+  }
+
   async function finalizeAnswer(
     selectedKey: string | null,
     isCorrect: boolean,
@@ -295,25 +316,29 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setResult({ selectedKey, isCorrect, isTimeout })
     setStreak((s) => (isCorrect ? s + 1 : 0))
 
-    // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
-    // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）
-    const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
-      snapshot,
-      questionId: question.id,
-      question,
-      lookup: questions,
-      isCorrect,
-      responseMs,
-      isTimeout,
-      mode: item.mode,
-      srsCardId: item.srsCardId,
-    })
+    try {
+      // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
+      // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）
+      const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
+        snapshot,
+        questionId: question.id,
+        question,
+        lookup: questions,
+        isCorrect,
+        responseMs,
+        isTimeout,
+        mode: item.mode,
+        srsCardId: item.srsCardId,
+      })
 
-    recordAnswer(nextSnapshot!, {
-      questionId: question.id,
-      isCorrect,
-      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
-    })
+      recordAnswer(nextSnapshot!, {
+        questionId: question.id,
+        isCorrect,
+        basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+      })
+    } catch (err) {
+      await recoverFromSaveError(err)
+    }
   }
 
   function handleSelect(choiceKey: string) {
@@ -333,23 +358,29 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setResult({ selectedKey: choiceKey, isCorrect, isTimeout: false })
     setStreak((s) => (isCorrect ? s + 1 : 0))
 
-    // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
-    // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）
-    const { ratingUpdate } = await recordAnswerPipeline(db, {
-      questionId: currentSubQuestion.id,
-      question,
-      lookup: subQuestionLookup,
-      isCorrect,
-      responseMs,
-      mode: item.mode,
-      skip: { srs: true },
-    })
-    setSubQuestionResults((prev) => [...prev, isCorrect])
-    recordAnswer(snapshot, {
-      questionId: currentSubQuestion.id,
-      isCorrect,
-      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
-    })
+    try {
+      // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
+      // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）
+      const { ratingUpdate } = await recordAnswerPipeline(db, {
+        questionId: currentSubQuestion.id,
+        question,
+        lookup: subQuestionLookup,
+        isCorrect,
+        responseMs,
+        mode: item.mode,
+        skip: { srs: true },
+      })
+      setSubQuestionResults((prev) => [...prev, isCorrect])
+      recordAnswer(snapshot, {
+        questionId: currentSubQuestion.id,
+        isCorrect,
+        basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+      })
+    } catch (err) {
+      // サブ設問はsnapshotのanswerCurrentQuestionを経由しないため、resumeSessionでの
+      // 再同期は対象外（subQuestionIndexはローカルstateのまま据え置き＝同じ設問を再試行できる）
+      await recoverFromSaveError(err, { resyncSnapshot: false })
+    }
   }
 
   function handleSelectSubQuestion(choiceKey: string) {
@@ -481,24 +512,28 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setResult({ selectedKey: null, isCorrect: judgement.isCorrect, isTimeout: false })
     setStreak((s) => (judgement.isCorrect ? s + 1 : 0))
 
-    // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
-    const { nextSnapshot } = await recordAnswerPipeline(db, {
-      snapshot,
-      questionId: question.id,
-      question,
-      lookup: questions,
-      isCorrect: judgement.isCorrect,
-      responseMs,
-      isTimeout: false,
-      mode: item.mode,
-      srsCardId: item.srsCardId,
-      skip: { rating: true },
-    })
-    recordAnswer(nextSnapshot!, {
-      questionId: question.id,
-      isCorrect: judgement.isCorrect,
-      basePoints: 0,
-    })
+    try {
+      // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
+      const { nextSnapshot } = await recordAnswerPipeline(db, {
+        snapshot,
+        questionId: question.id,
+        question,
+        lookup: questions,
+        isCorrect: judgement.isCorrect,
+        responseMs,
+        isTimeout: false,
+        mode: item.mode,
+        srsCardId: item.srsCardId,
+        skip: { rating: true },
+      })
+      recordAnswer(nextSnapshot!, {
+        questionId: question.id,
+        isCorrect: judgement.isCorrect,
+        basePoints: 0,
+      })
+    } catch (err) {
+      await recoverFromSaveError(err)
+    }
   }
 
   function advanceToNext() {
@@ -518,6 +553,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setSubQuestionResults([])
     setPreReadingSecondsLeft(null)
     setAudioError(null)
+    setSaveError(null)
     setStartedAt(now())
   }
 
@@ -540,27 +576,32 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
     const responseMs = now() - startedAt
 
-    // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
-    // tagStats（tags=[]）・レート（part=0）はpipeline内部でno-opになる
-    const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
-      snapshot,
-      questionId: question.id,
-      question,
-      lookup: questions,
-      isCorrect,
-      responseMs,
-      isTimeout: false,
-      mode: item.mode,
-      srsCardId: item.srsCardId,
-      srsGrade: grade,
-      skip: { wrongAnswer: true },
-    })
-    recordAnswer(nextSnapshot!, {
-      questionId: question.id,
-      isCorrect,
-      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
-    })
-    advanceToNext()
+    try {
+      // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
+      // tagStats（tags=[]）・レート（part=0）はpipeline内部でno-opになる
+      const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
+        snapshot,
+        questionId: question.id,
+        question,
+        lookup: questions,
+        isCorrect,
+        responseMs,
+        isTimeout: false,
+        mode: item.mode,
+        srsCardId: item.srsCardId,
+        srsGrade: grade,
+        skip: { wrongAnswer: true },
+      })
+      recordAnswer(nextSnapshot!, {
+        questionId: question.id,
+        isCorrect,
+        basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+      })
+      advanceToNext()
+    } catch (err) {
+      // vocab_cardはresultを使わないため、選択済みの4択表示はそのまま残し再試行できるようにする
+      await recoverFromSaveError(err)
+    }
   }
 
   const choicesInteractive = !needsAudioGate || playState === 'played'
@@ -586,8 +627,13 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       }
       action={
         <>
+          {saveError && (
+            <p className="drill-error" role="alert">
+              {saveError}
+            </p>
+          )}
           {audioError && (
-            <p className="drill-audio-error" role="alert">
+            <p className="drill-error" role="alert">
               {audioError}
             </p>
           )}

@@ -261,7 +261,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       action={
         <>
           {audioError && (
-            <p className="drill-audio-error" role="alert">
+            <p className="drill-error" role="alert">
               {audioError}
             </p>
           )}

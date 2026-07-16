@@ -4,11 +4,11 @@
 
 ## 改修フェーズ（2026-07-16開始。正本: [15_改修計画](15_改修計画_フェーズA-D.md)）
 
-実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン開始。T-67完了、T-68以降を継続実施中**（次セッションは本ファイルの「改修タスク状態」表で最新の未着手タスクを確認し、docs/15の該当タスクシートのみ読んで着手する）。
+実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。次セッションはフェーズB（T-77〜T-79。ドッグフードと並行可）・フェーズC（T-80〜。J-33承認が必要な範囲を除く）・フェーズD（T-87〜T-89）のいずれかから、docs/15の該当タスクシートのみ読んで着手する。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
-- **発起人承認待ちの判断**: J-30（Part2形式）・J-31（アクセントタグ改名）・J-32（M3開始時期）・J-33（増産規模）。承認前でも T-67〜T-82 の大半は着手可（15の1節・2節参照）
-- **M2残タスク**: T-65（M2統合・通し確認）・T-66（ドッグフード開始判定）は🔴人間主体のまま。**フェーズA完了がドッグフード開始の前提品質**（15の7節）
+- **発起人承認待ちの判断**: J-30（Part2形式）・J-31（アクセントタグ改名）・J-32（M3開始時期）・J-33（増産規模）。承認前でも T-77〜T-82・T-87〜T-89 の大半は着手可（15の1節・2節参照）
+- **M2残タスク**: T-65（M2統合・通し確認）・T-66（ドッグフード開始判定）は🔴人間主体のまま。**フェーズA完了によりドッグフード開始の前提品質を満たした**（15の7節）。T-65/T-66は引き続き発起人主体で対応が必要
 
 ### 改修タスク状態（T-67〜T-89。定義は [15](15_改修計画_フェーズA-D.md)）
 
@@ -23,7 +23,7 @@
 | T-73 | packSync堅牢化 | ✅ 完了（2026-07-16） |
 | T-74 | attempts読みの性能改善 | ✅ 完了（2026-07-16） |
 | T-75 | UI構造・視覚の小規模修正バンドル | ✅ 完了（2026-07-16） |
-| T-76 | フェーズA: 安定性（残り） | 未着手 |
+| T-76 | 失敗系テスト補強 | ✅ 完了（2026-07-16）。**フェーズA（T-67〜T-76）全完了** |
 | T-77〜T-79 | フェーズB: 体験の質 | 未着手 |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
 | T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
@@ -45,6 +45,10 @@
 ※ T-74: `services/phase.ts`の`buildCriterionContext`のattempts全件読みを`db.attempts.orderBy('answeredAt').reverse().limit(ATTEMPTS_READ_LIMIT)`の打ち切り読みに変更。**設計判断（docs未記載）**: `ATTEMPTS_READ_LIMIT`は`engine/curriculum.ts`に新設した`maxKnownCriterionWindow()`（全criteria定義＝P1/P2/シーズンクリア/L1-L3中のaccuracy.window・setAccuracy.windowSetsの最大値。現状100）を安全係数2倍・下限500件でくるんだ値（結果500）。安全係数が必要な理由: `evaluateAccuracy`はscope（part/tag）フィルタを生読み取り後にかけるため、直近N件の生読みにその特定scopeの対象がwindow数ちょうど含まれる保証がない（極端に偏った出題パターンでは理論上不足しうるヒューリスティックであることをコードコメントに明記）。関数は`services/phase.ts`からexportし、テストからも参照できるようにした。DashboardScreenの学習ヒートマップの`attempts`読みも`where('answeredAt').aboveOrEqual(15週前)`に変更（表示窓自体が15週固定のため、窓外データを読む必要が元々ない）。tagStatsの全件読み（14の1.7の既知項目）は指示どおり本タスクでは触っていない。テスト: phase 3件（既存の窓外データテストに加え、1万件で読み取り件数が上限どおりになることの確認、窓外の大量の古い誤答ノイズが評価結果を汚染しないことの確認＝いずれもtimeout 20秒に延長）、Dashboard 1件（15週より古い解答がクエリ時点で除外され描画に影響しないこと）。`npm test`（全パッケージ・409件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
 
 ※ T-75: 14の2.2・2.3の低コスト項目を1コミットにまとめて実施。①DashboardScreenに`.secondary-action`流用の「ホームへ」ボタンを追加 ②`.screen-layout__action`の`min-height`を`45dvh`固定から`min(45dvh, 320px)`に変更（横長タブレット等での過大な操作ゾーンを防止）＋`@media (orientation: landscape)`で`auto`に戻す＋status/content/action全てのパディングに`env(safe-area-inset-left/right)`を追加（top/bottomは既存） ③`:root[data-theme='dark']`に`color-scheme: dark`、lightに`color-scheme: light`を追加（OSネイティブのフォーム部品色をテーマに揃える） ④未定義クラス4件（`.install-hint`・`.dashboard-forecast-hero`・`.dashboard-forecast-note`・`.dictation-script`）を既存の視覚言語（カード面＋罫線＋トークン色）で定義 ⑤新設`.settings-list`（SettingsScreenの`<div>`ラッパー・DashboardScreenの実試験スコア登録`<form>`に付与）でbutton/input/select/labelに最小共通スタイル（タップ目標44px=`--tap-min`以上）を適用 ⑥ExplanationCardの正誤ヘッダに`data-correct`属性ベースの色分け（`--ok`/`--ng`）＋CSS疑似要素での✓/✕を追加（色のみに依存しない二重符号化） ⑦`--ink-3`のダーク値を`#6b7492`→`#7e89ac`に変更。**実測コントラスト比（機械計算・WCAG相対輝度式）**: 旧値は`--bg`比4.030:1・`--surface`比3.577:1でいずれもAA基準4.5:1未達だったのに対し、新値は`--bg`比5.383:1・`--surface`比4.777:1で両方4.5:1以上を確保。**未対応（スコープ外の既知課題として記録）**: ライトテーマの`--ink-3`（`#9c958a`）は同じ計算で`--bg`比2.719:1・`--surface`比2.966:1と大きく基準未達だが、本タスクの指示（14の2.3）はダーク側のみだったため今回は変更していない。将来のコントラスト是正タスクで対応要。テスト: Dashboard 1件（「ホームへ」ボタンでの画面遷移）。他はCSSのみのため既存テスト回帰で担保（410件全通過）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-76: 14の1.8優先順1〜5のうち、1（起動時DB open失敗）・2（play() reject復帰）・4（テーマ/文字サイズ起動適用）はT-68/T-70/T-69で既にテスト済みだったため重複させず、**3（answerCurrentQuestion失敗時のUI）・5（packSync→loadQuestionPool→Drillのオフライン結合通し）**を中心に実装・テストを追加した。**発見・修正したバグ（T-71の実装漏れ）**: T-71でDrillScreenの4関数を`recordAnswerPipeline`呼び出しに集約した際、J-35が要求していた「③失敗時のエラーバナー＋スナップショット再同期」（T-71完了条件③）を実装し忘れていた。本タスクで発見し修正: 新規`recoverFromSaveError`（エラーバナー表示＋`result`取り消し＋`resumeSession`でのDB実状態への再同期）を4関数すべてのcatchから呼ぶようにした（audio_setサブ設問のみsnapshot再同期の対象外=`resyncSnapshot: false`。subQuestionIndexはローカルstateで、DBのsnapshot.answeredCountと連動しないため）。バナー用CSSクラスは`.drill-audio-error`から`.drill-error`に改称（音声・保存の両失敗で共用するため）。新規結合テスト`src/integration/offlineDrillFlow.test.tsx`で、fetchが全rejectする状態でもPackCacheにピン留め済みのパックだけでsyncPacks→loadQuestionPool→HomeScreen（クエスト開始）→DrillScreen（解答→リザルト）まで完走することを確認。**テスト実装中に発見した副次的な教訓**: DrillScreenの`finalizeAnswer`系は`setResult(...)`を実際のDB書き込み（`recordAnswerPipeline`）より先に同期的に呼ぶため、「正解」等のテキスト表示をテストの完了シグナルにするとDB書き込み完了を待たずに次の操作に進んでしまいレースになる（既存テストの一部is既にこの罠を`db.ratings.get`待ちで回避済みだった）。新規テストは全て`snapshot.answeredCount`や実際のDB状態を待つ形にして回避した。テスト: DrillScreen 4件（finalizeAnswer・dictation・vocab_card・audio_setサブ設問の解答保存失敗リカバリ）、結合テスト1件（オフライン通し）＝計5件。`npm test`（全パッケージ・415件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 既知の環境要因（変わらず）**: フルスイート実行時、まれにDrillScreenのaudio_set系テストがCPU競合によるwaitForタイムアウトで失敗することがある（本タスクで4/6回のフルスイート実行中2回発生。単体実行・app単体実行では常に通過。T-71で記録した既知の非決定的要因と同一と判断。プロダクトコードの問題ではなくテスト実行環境のCPU競合と判断し、これ以上は追わない）。
+
+**フェーズA（安定性。T-67〜T-76）完了**（15の7節の完了ゲート）。ドッグフード（T-65/T-66）開始可能な品質に到達。次はフェーズB（T-77〜T-79）・フェーズC（T-80〜。J-33承認待ちの部分を除く）・フェーズD（T-87〜T-89）のいずれかへ進む。
 
 ## 今どこにいるか（1行）
 

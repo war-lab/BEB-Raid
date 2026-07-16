@@ -454,6 +454,31 @@ describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
   })
 })
 
+describe('DrillScreen: 解答保存失敗リカバリ（T-76。J-35のpipeline失敗伝播＋UI側の再同期）', () => {
+  it('recordAnswerPipeline失敗時にエラーバナーが出て、DBの実状態に再同期し次の解答を継続できる', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const snapshot = await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする（複数タブ・二重解答と同じ状況を模擬）。
+    // answerCurrentQuestion内部の「スナップショットが古い」検知を経由してpipelineが失敗する
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    fireEvent.click(screen.getByText('b')) // q-1（正解はA）に解答を試みる
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+
+    // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    // 誤って重複記録されていない（DB経由の1件のみ）
+    expect(await db.attempts.count()).toBe(1)
+  })
+})
+
 function vocabCardQuestion(word: string, phraseAudio?: string): Question {
   return {
     id: `vocab-${word}`,
@@ -583,6 +608,44 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(card?.stage).toBe(0) // もう一回はstage0へリセット
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
+  })
+
+  it('T-76: 自己評価時の解答保存失敗もエラーバナーが出て、DBの実状態に再同期する', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const q2 = part5Question('q-2', 'A', 'attend')
+    const items: SessionItem[] = [
+      { questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' },
+      { questionId: q2.id, mode: 'solo' },
+    ]
+    const snapshot = await setupSession(db, items, [q, q2])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+    fireEvent.click(screen.getByText('submit の意味'))
+
+    // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    fireEvent.click(screen.getByText('OK'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(1)
   })
 
   it('vocab_cardとドリル問題が混在するセッションを最後まで進行できる', async () => {
@@ -745,6 +808,37 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
     expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, { rate: 0.85 })
   })
+
+  it('T-76: 確定時の解答保存失敗もエラーバナーが出て、DBの実状態に再同期する', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-fail', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    const q2 = part5Question('q-2', 'A', 'attend')
+    const items: SessionItem[] = [
+      { questionId: q.id, mode: 'solo' },
+      { questionId: q2.id, mode: 'solo' },
+    ]
+    const snapshot = await setupSession(db, items, [q, q2])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+    fireEvent.click(screen.getByText('submit'))
+
+    // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    fireEvent.click(screen.getByText('確定'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(1)
+  })
 })
 
 function audioSetQuestion(id: string, subCount = 3): Question {
@@ -873,6 +967,30 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     })
     const rating = await db.ratings.get('L') // part3はLセクション
     expect(rating).toBeDefined()
+  })
+
+  it('T-76: サブ設問の解答保存失敗時もエラーバナーが出て、同じ設問のまま再試行できる（snapshot再同期の対象外）', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-fail')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    await startAndSkipPreReading()
+    await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
+
+    db.close() // recordAttempt（DB書き込み）を強制的に失敗させる
+
+    fireEvent.click(screen.getByText('a'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // サブ設問はsnapshot経由でないため進行せず、同じ設問のまま（選択肢もまだ見える）
+    expect(screen.getByText('設問0')).toBeTruthy()
+    expect(screen.getByText('a')).toBeTruthy()
+
+    await db.open() // afterEachのdb.delete()が失敗しないよう復旧する
   })
 })
 

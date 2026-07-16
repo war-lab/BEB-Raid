@@ -165,8 +165,8 @@
   outline-offset: 2px;
 }
 
-/* --- 音声再生失敗時のエラーメッセージ（T-70） --- */
-.drill-audio-error {
+/* --- 汎用エラーメッセージ（音声再生失敗=T-70、解答保存失敗=T-76） --- */
+.drill-error {
   margin: 0 0 var(--sp-1);
   color: var(--ng);
   font-size: var(--fs-sub);
