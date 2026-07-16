@@ -402,13 +402,18 @@ export const commands: CliCommand[] = [
         ctx.out(`実測補正（${correctionsPath}）を適用しました`)
       }
 
-      const { built, errors } = buildAllPacks(sources, audioFiles)
+      const { built, errors, warnings } = buildAllPacks(sources, audioFiles)
       if (errors.length > 0) {
         for (const e of errors) ctx.errOut(`エラー: ${e}`)
         ctx.errOut(
           `ビルド失敗: ${errors.length}件のエラー（部分取込はしない。何も書き出していない）`,
         )
         return 1
+      }
+      // T-80: contentLintの検出結果はビルドを止めない警告として表示する（修正はT-81/T-82）
+      if (warnings.length > 0) {
+        for (const w of warnings) ctx.out(`警告: ${w}`)
+        ctx.out(`contentLint: ${warnings.length}件の警告（ビルドは継続。docs/STATUS.md参照）`)
       }
 
       const packsDir = join(contentRoot, 'packs')

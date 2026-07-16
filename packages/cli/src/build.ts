@@ -24,6 +24,7 @@ import {
   type QuestionPack,
 } from '@beb-raid/shared-schema'
 import type { CorrectionsFile } from './calibrate.js'
+import { validateContentLint } from './contentLint.js'
 
 /**
  * ビルド対象パックの定義（実データはドラフトJSONLから読み込む。commands.ts から参照）。
@@ -247,7 +248,7 @@ export function validateExplanationQuality(questions: readonly Question[]): stri
 export function buildPack(
   source: PackSource,
   audioFiles: ReadonlySet<string>,
-): { built: BuiltPack | null; errors: string[] } {
+): { built: BuiltPack | null; errors: string[]; warnings: string[] } {
   const draftPack = {
     schemaVersion: SCHEMA_VERSION,
     pack: {
@@ -260,6 +261,11 @@ export function buildPack(
     questions: source.questions,
   }
 
+  // T-80: 5ルールの機械検証（contentLint.ts）。既存コンテンツに現存する違反を
+  // ビルド失敗に変えると配布が止まってしまうため、warnings（非ブロッキング）として
+  // 扱う（修正はT-81/T-82の担当範囲。docs/STATUS.mdに一括検査結果を記録済み）
+  const contentLintProblems = validateContentLint(source.questions, source.id)
+
   const result = validatePack(draftPack, { audioFiles })
   const explanationProblems = validateExplanationQuality(source.questions)
   if (!result.ok || explanationProblems.length > 0) {
@@ -269,6 +275,7 @@ export function buildPack(
         ...result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
         ...explanationProblems.map((p) => `${source.id} ${p}`),
       ],
+      warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
     }
   }
 
@@ -281,25 +288,31 @@ export function buildPack(
     pack: { ...draftPack.pack, sizeBytes },
   } as QuestionPack
 
-  return { built: { pack, hash }, errors: [] }
+  return {
+    built: { pack, hash },
+    errors: [],
+    warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
+  }
 }
 
 /** 全パック定義を検証・組み立てる。1件でもエラーがあれば built は空（部分取込なし） */
 export function buildAllPacks(
   sources: readonly PackSource[],
   audioFiles: ReadonlySet<string>,
-): { built: BuiltPack[]; errors: string[] } {
+): { built: BuiltPack[]; errors: string[]; warnings: string[] } {
   const errors: string[] = []
+  const warnings: string[] = []
   const built: BuiltPack[] = []
   for (const source of sources) {
     const result = buildPack(source, audioFiles)
+    warnings.push(...result.warnings)
     if (result.built) {
       built.push(result.built)
     } else {
       errors.push(...result.errors)
     }
   }
-  return { built: errors.length === 0 ? built : [], errors }
+  return { built: errors.length === 0 ? built : [], errors, warnings }
 }
 
 /** ビルド済みパック一覧 → manifest.json の中身 */
