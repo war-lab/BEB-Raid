@@ -9,7 +9,7 @@
       730,
       860
     ],
-    "sizeBytes": 52398
+    "sizeBytes": 52421
   },
   "questions": [
     {
@@ -545,7 +545,7 @@
       "translation": "清算を監督する5名の取締役から成る委員会は、30日以内に報告する見込みだ。"
     },
     {
-      "id": "part5-condemn",
+      "id": "part5-warehouse",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -554,12 +554,12 @@
       ],
       "keyVocab": [
         {
-          "word": "condemn",
-          "sense": "使用不可と宣告する",
-          "freqRank": "B"
+          "word": "warehouse",
+          "sense": "倉庫",
+          "freqRank": "S"
         }
       ],
-      "question": "The findings that led inspectors to condemn the old warehouse ___ documented in a lengthy report.",
+      "question": "The findings that led inspectors to close the old warehouse ___ documented in a lengthy report.",
       "choices": [
         {
           "key": "A",
@@ -580,7 +580,7 @@
       ],
       "answer": "C",
       "explanation": "主語はThe findings（複数形）。wereが正しい。",
-      "translation": "検査官がその古い倉庫の使用不可を宣告するに至った所見は、長い報告書に文書化されている。"
+      "translation": "検査官がその古い倉庫の閉鎖を決めるに至った所見は、長い報告書に文書化されている。"
     },
     {
       "id": "part5-appraisal",
@@ -1039,7 +1039,7 @@
       "translation": "新しいマネージャーが着任する前に、サポートチームはすでに保留中の問い合わせ一覧のほとんどを解消していた。"
     },
     {
-      "id": "part5-affidavit",
+      "id": "part5-complaint",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1048,12 +1048,12 @@
       ],
       "keyVocab": [
         {
-          "word": "affidavit",
-          "sense": "宣誓供述書",
-          "freqRank": "B"
+          "word": "complaint",
+          "sense": "苦情",
+          "freqRank": "A"
         }
       ],
-      "question": "The affidavit submitted by Samuel Okafor ___ carefully reviewed by the legal team before the hearing.",
+      "question": "The complaint submitted by Samuel Okafor ___ carefully reviewed by the legal team before the hearing.",
       "choices": [
         {
           "key": "A",
@@ -1073,8 +1073,8 @@
         }
       ],
       "answer": "B",
-      "explanation": "空所の後にreviewed（過去分詞）が続き、affidavitは「見直される」対象なので受動態(was reviewed)が正しい。",
-      "translation": "サミュエル・オカフォル氏が提出した宣誓供述書は、公聴会の前に法務チームによって注意深く見直された。"
+      "explanation": "空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。",
+      "translation": "サミュエル・オカフォル氏が提出した苦情申し立ては、公聴会の前に法務チームによって注意深く見直された。"
     },
     {
       "id": "part5-covenant",
@@ -1115,7 +1115,7 @@
       "translation": "ナオミ・フジタ氏が返済スケジュールについて懸念を示した後、その融資契約条項は再交渉された。"
     },
     {
-      "id": "part5-indictment",
+      "id": "part5-dispute",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1124,12 +1124,12 @@
       ],
       "keyVocab": [
         {
-          "word": "indictment",
-          "sense": "起訴",
-          "freqRank": "B"
+          "word": "dispute",
+          "sense": "紛争",
+          "freqRank": "A"
         }
       ],
-      "question": "A formal indictment ___ filed against the supplier after months of investigation.",
+      "question": "A formal dispute ___ filed against the supplier after months of investigation.",
       "choices": [
         {
           "key": "A",
@@ -1149,8 +1149,8 @@
         }
       ],
       "answer": "D",
-      "explanation": "空所の後にfiled（過去分詞）が続き、indictmentは「提出される」対象なので受動態が正しい。",
-      "translation": "数か月にわたる調査の後、その仕入先に対して正式な起訴状が提出された。"
+      "explanation": "空所の後にfiled（過去分詞）が続き、disputeは「提出される」対象なので受動態が正しい。",
+      "translation": "数か月にわたる調査の後、その仕入先に対して正式な異議申し立てが提出された。"
     },
     {
       "id": "part5-breach",
@@ -1267,7 +1267,7 @@
       "translation": "複数回の家賃支払いを怠った後、イングリッド・ソルベルグ氏には立ち退き通知が送達された。"
     },
     {
-      "id": "part5-subpoena",
+      "id": "part5-memo",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1276,12 +1276,12 @@
       ],
       "keyVocab": [
         {
-          "word": "subpoena",
-          "sense": "召喚状",
-          "freqRank": "B"
+          "word": "memo",
+          "sense": "連絡メモ",
+          "freqRank": "S"
         }
       ],
-      "question": "A subpoena ___ issued to Renata Silva after the internal audit uncovered irregularities.",
+      "question": "A memo ___ issued to Renata Silva after the internal audit uncovered irregularities.",
       "choices": [
         {
           "key": "A",
@@ -1301,8 +1301,8 @@
         }
       ],
       "answer": "D",
-      "explanation": "空所の後にissued（過去分詞）が続き、subpoenaは「発行される」対象なので受動態が正しい。",
-      "translation": "内部監査が不正を発見した後、レナータ・シルバ氏に召喚状が発行された。"
+      "explanation": "空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。",
+      "translation": "内部監査が不正を発見した後、レナータ・シルバ氏に社内通知が発行された。"
     },
     {
       "id": "part5-receivership",
@@ -1343,7 +1343,7 @@
       "translation": "ジョナス・フェルドマン氏がCEOを辞任した直後、その会社は管財人管理下に置かれた。"
     },
     {
-      "id": "part5-injunction",
+      "id": "part5-timeline",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1352,12 +1352,12 @@
       ],
       "keyVocab": [
         {
-          "word": "injunction",
-          "sense": "差止命令",
+          "word": "timeline",
+          "sense": "予定表・スケジュール",
           "freqRank": "B"
         }
       ],
-      "question": "An injunction ___ granted to prevent the merger from proceeding until the review was complete.",
+      "question": "A revised timeline ___ approved, delaying the merger until the review was complete.",
       "choices": [
         {
           "key": "A",
@@ -1377,11 +1377,11 @@
         }
       ],
       "answer": "B",
-      "explanation": "空所の後にgranted（過去分詞）が続き、injunctionは「認められる」対象なので受動態が正しい。",
-      "translation": "審査が完了するまで合併を進めることを止めるため、差し止め命令が認められた。"
+      "explanation": "空所の後にapproved（過去分詞）が続き、timelineは「承認される」対象なので受動態が正しい。",
+      "translation": "審査が完了するまで合併を遅らせる、修正後のスケジュールが承認された。"
     },
     {
-      "id": "part5-culpable",
+      "id": "part5-statement",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1390,12 +1390,12 @@
       ],
       "keyVocab": [
         {
-          "word": "culpable",
-          "sense": "責めを負うべき",
-          "freqRank": "B"
+          "word": "statement",
+          "sense": "明細書",
+          "freqRank": "S"
         }
       ],
-      "question": "Aisha Karim ___ found culpable for the reporting error after an internal review.",
+      "question": "A statement ___ issued naming Aisha Karim in connection with the reporting error after an internal review.",
       "choices": [
         {
           "key": "A",
@@ -1415,11 +1415,11 @@
         }
       ],
       "answer": "A",
-      "explanation": "空所の後にfound（過去分詞）が続き、Aisha Karimは「認定される」対象なので受動態が正しい。",
-      "translation": "アイシャ・カリム氏は、内部審査の結果、報告ミスについて責任があると認定された。"
+      "explanation": "空所の後にissued（過去分詞）が続き、statementは「発行される」対象なので受動態が正しい。",
+      "translation": "内部審査の後、報告ミスに関連してアイシャ・カリム氏の名を挙げる声明が発表された。"
     },
     {
-      "id": "part5-redaction",
+      "id": "part5-milestone",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1428,12 +1428,12 @@
       ],
       "keyVocab": [
         {
-          "word": "redaction",
-          "sense": "黒塗り",
+          "word": "milestone",
+          "sense": "節目・達成目標",
           "freqRank": "B"
         }
       ],
-      "question": "Several sections of the report ___ subjected to redaction before it was released to the public.",
+      "question": "Several sections describing project milestones ___ withheld at the auditor's instruction before the report was released.",
       "choices": [
         {
           "key": "A",
@@ -1453,11 +1453,11 @@
         }
       ],
       "answer": "D",
-      "explanation": "空所の後にsubjected（過去分詞）が続き、sections（複数）は「対象とされる」対象なので受動態(were subjected)が正しい。",
-      "translation": "その報告書のいくつかの箇所は、一般公開される前に編集（黒塗り）の対象となった。"
+      "explanation": "空所の後にwithheld（過去分詞）が続き、sections（複数）は「差し控えられる」対象なので受動態(were withheld)が正しい。",
+      "translation": "プロジェクトの節目を記述したいくつかの箇所は、報告書の公開前に監査人の指示により差し控えられた。"
     },
     {
-      "id": "part5-adjudication",
+      "id": "part5-agreement",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1466,9 +1466,9 @@
       ],
       "keyVocab": [
         {
-          "word": "adjudication",
-          "sense": "裁定",
-          "freqRank": "B"
+          "word": "agreement",
+          "sense": "合意",
+          "freqRank": "S"
         }
       ],
       "question": "The dispute ___ referred for adjudication after Liam Bratton and the contractor failed to reach an agreement.",

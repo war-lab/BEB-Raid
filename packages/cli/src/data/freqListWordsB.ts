@@ -22,10 +22,13 @@ const MEETING_DOCS: Entry[] = [
   { word: 'stipulation', rationale: '規定条項' },
   { word: 'preamble', rationale: '前文' },
   { word: 'annex', rationale: '別紙・付属文書' },
-  { word: 'redact', rationale: '（機密部分を）削除・黒塗りする' },
-  { word: 'redaction', rationale: '黒塗り・削除（名詞）' },
-  { word: 'codify', rationale: '成文化する' },
-  { word: 'promulgate', rationale: '（法令等を）公布する' },
+  { word: 'networking', rationale: '人脈作り（T-86でB帯TOEIC非該当語redactから差し替え）' },
+  { word: 'comprehensive', rationale: '包括的な（T-86でB帯TOEIC非該当語redactionから差し替え）' },
+  {
+    word: 'mentorship',
+    rationale: '指導・メンター制度（T-86でB帯TOEIC非該当語codifyから差し替え）',
+  },
+  { word: 'teamwork', rationale: 'チームワーク（T-86でB帯TOEIC非該当語promulgateから差し替え）' },
   { word: 'corroborate', rationale: '裏付ける' },
   { word: 'substantiate', rationale: '実証する' },
   { word: 'annotate', rationale: '注釈を付ける' },
@@ -72,7 +75,10 @@ const FINANCE_CONTRACT: Entry[] = [
   { word: 'subsidy', rationale: '補助金' },
   { word: 'tariff', rationale: '関税' },
   { word: 'levy', rationale: '（税を）課す・課税' },
-  { word: 'embezzlement', rationale: '横領' },
+  {
+    word: 'licensing',
+    rationale: 'ライセンス供与（T-86でB帯TOEIC非該当語embezzlementから差し替え）',
+  },
 ]
 
 // --- 4. 製造・品質管理・物流 ---
@@ -129,13 +135,13 @@ const CUSTOMER_SERVICE: Entry[] = [
   { word: 'alienate', rationale: '（顧客を）疎外する・離反させる' },
   { word: 'retain', rationale: '（顧客を）つなぎ止める' },
   { word: 'goodwill', rationale: '（企業の）信用・のれん' },
-  { word: 'conciliatory', rationale: '和解的な・懐柔的な' },
+  { word: 'adjacent', rationale: '隣接した（T-86でB帯TOEIC非該当語conciliatoryから差し替え）' },
   { word: 'indemnify', rationale: '損害を補償する' },
   { word: 'indemnity', rationale: '補償・免責（名詞）' },
   { word: 'liaison', rationale: '連絡調整役' },
   { word: 'mitigate', rationale: '（被害・影響を）軽減する' },
   { word: 'mitigation', rationale: '軽減（名詞）' },
-  { word: 'ombudsman', rationale: '苦情処理担当者・オンブズマン' },
+  { word: 'reimburse', rationale: '払い戻す（T-86でB帯TOEIC非該当語ombudsmanから差し替え）' },
 ]
 
 // --- 7. 出張・交通・宿泊 ---
@@ -180,23 +186,26 @@ const IT_SYSTEM: Entry[] = [
 
 // --- 9. 不動産・施設・建築 ---
 const REAL_ESTATE: Entry[] = [
-  { word: 'encroachment', rationale: '（境界等への）侵害' },
+  { word: 'accreditation', rationale: '認定（T-86でB帯TOEIC非該当語encroachmentから差し替え）' },
   { word: 'dilapidated', rationale: '老朽化した' },
   { word: 'uninhabitable', rationale: '居住に適さない' },
   { word: 'habitable', rationale: '居住可能な' },
-  { word: 'gentrification', rationale: '（地域の）高級化・再開発' },
+  {
+    word: 'timeline',
+    rationale: '予定表・スケジュール（T-86でB帯TOEIC非該当語gentrificationから差し替え）',
+  },
   { word: 'leasehold', rationale: '借地権' },
   { word: 'freehold', rationale: '自由土地保有権' },
   { word: 'covenant', rationale: '契約上の誓約条項' },
   { word: 'deed', rationale: '権利証書' },
   { word: 'escrow', rationale: '第三者預託（不動産取引の）' },
   { word: 'subdivision', rationale: '土地区画（分譲地）' },
-  { word: 'rezone', rationale: '用途地域を変更する' },
+  { word: 'expertise', rationale: '専門知識（T-86でB帯TOEIC非該当語rezoneから差し替え）' },
   { word: 'variance', rationale: '（規制の）例外許可' },
-  { word: 'condemn', rationale: '（建物を）使用不可と宣告する' },
-  { word: 'condemnation', rationale: '使用不可宣告（名詞）' },
-  { word: 'urbanization', rationale: '都市化' },
-  { word: 'sprawl', rationale: '（都市の）無秩序な拡大' },
+  { word: 'milestone', rationale: '節目・達成目標（T-86でB帯TOEIC非該当語condemnから差し替え）' },
+  { word: 'deliverable', rationale: '成果物（T-86でB帯TOEIC非該当語condemnationから差し替え）' },
+  { word: 'workflow', rationale: '作業の流れ（T-86でB帯TOEIC非該当語urbanizationから差し替え）' },
+  { word: 'initiative', rationale: '新規の取り組み（T-86でB帯TOEIC非該当語sprawlから差し替え）' },
 ]
 
 // --- 10. 店舗・小売・在庫 ---
@@ -221,20 +230,26 @@ const RETAIL_STOCK: Entry[] = [
 
 // --- 11. イベント・式典・エンターテインメント ---
 const EVENTS: Entry[] = [
-  { word: 'pageantry', rationale: '華やかな儀式・見せ物' },
-  { word: 'procession', rationale: '行列' },
-  { word: 'dignitary', rationale: '要人' },
+  { word: 'proficiency', rationale: '習熟度（T-86でB帯TOEIC非該当語pageantryから差し替え）' },
+  { word: 'efficiency', rationale: '効率性（T-86でB帯TOEIC非該当語processionから差し替え）' },
+  {
+    word: 'versatile',
+    rationale: '多才な・多用途の（T-86でB帯TOEIC非該当語dignitaryから差し替え）',
+  },
   { word: 'accolade', rationale: '称賛・栄誉' },
   { word: 'plaque', rationale: '記念プレート' },
-  { word: 'memorial', rationale: '記念（の）・追悼の' },
+  { word: 'innovation', rationale: '革新（T-86でB帯TOEIC非該当語memorialから差し替え）' },
   { word: 'tribute', rationale: '賛辞・献辞' },
   { word: 'symposium', rationale: 'シンポジウム' },
-  { word: 'convocation', rationale: '式典（学位授与式等）' },
+  {
+    word: 'collaboration',
+    rationale: '協力・共同作業（T-86でB帯TOEIC非該当語convocationから差し替え）',
+  },
   { word: 'plenary', rationale: '全体会議の' },
   { word: 'festivity', rationale: '祝賀行事' },
-  { word: 'jubilee', rationale: '記念祝典（周年）' },
+  { word: 'adaptable', rationale: '適応力のある（T-86でB帯TOEIC非該当語jubileeから差し替え）' },
   { word: 'commencement', rationale: '開始式・卒業式' },
-  { word: 'soiree', rationale: '夜会・晩餐会' },
+  { word: 'productivity', rationale: '生産性（T-86でB帯TOEIC非該当語soireeから差し替え）' },
   { word: 'mixer', rationale: '懇親会' },
   { word: 'hospitality', rationale: 'もてなし・接遇' },
   { word: 'fanfare', rationale: '派手な宣伝・ファンファーレ' },
@@ -242,22 +257,34 @@ const EVENTS: Entry[] = [
 
 // --- 12. 法務・環境 ---
 const LEGAL_ENV: Entry[] = [
-  { word: 'adjudicate', rationale: '裁定・判決を下す' },
-  { word: 'adjudication', rationale: '裁定（名詞）' },
-  { word: 'tribunal', rationale: '審判所・法廷' },
-  { word: 'subpoena', rationale: '召喚状' },
-  { word: 'testify', rationale: '証言する' },
-  { word: 'testimony', rationale: '証言（名詞）' },
-  { word: 'affidavit', rationale: '宣誓供述書' },
-  { word: 'injunction', rationale: '差止命令' },
-  { word: 'indictment', rationale: '起訴' },
-  { word: 'prosecute', rationale: '起訴する' },
-  { word: 'prosecution', rationale: '起訴・検察側（名詞）' },
-  { word: 'acquit', rationale: '無罪とする' },
-  { word: 'acquittal', rationale: '無罪判決（名詞）' },
-  { word: 'culpable', rationale: '責めを負うべき' },
-  { word: 'negligence', rationale: '過失' },
-  { word: 'malfeasance', rationale: '不正行為（職権上の）' },
+  {
+    word: 'provision',
+    rationale: '（契約上の）規定条項（T-86でB帯TOEIC非該当語adjudicateから差し替え）',
+  },
+  { word: 'waiver', rationale: '権利放棄（書）（T-86でB帯TOEIC非該当語adjudicationから差し替え）' },
+  {
+    word: 'enforceable',
+    rationale: '法的強制力のある（T-86でB帯TOEIC非該当語tribunalから差し替え）',
+  },
+  { word: 'nondisclosure', rationale: '秘密保持の（T-86でB帯TOEIC非該当語subpoenaから差し替え）' },
+  { word: 'confidentiality', rationale: '機密性（T-86でB帯TOEIC非該当語testifyから差し替え）' },
+  {
+    word: 'termination',
+    rationale: '（契約の）終了（T-86でB帯TOEIC非該当語testimonyから差し替え）',
+  },
+  { word: 'disclosure', rationale: '開示（T-86でB帯TOEIC非該当語affidavitから差し替え）' },
+  { word: 'safeguard', rationale: '保護措置（T-86でB帯TOEIC非該当語injunctionから差し替え）' },
+  { word: 'transparency', rationale: '透明性（T-86でB帯TOEIC非該当語indictmentから差し替え）' },
+  { word: 'oversight', rationale: '監督（T-86でB帯TOEIC非該当語prosecuteから差し替え）' },
+  { word: 'compliant', rationale: '準拠した（T-86でB帯TOEIC非該当語prosecutionから差し替え）' },
+  { word: 'ratification', rationale: '批准（T-86でB帯TOEIC非該当語acquitから差し替え）' },
+  { word: 'arbitrator', rationale: '仲裁人（T-86でB帯TOEIC非該当語acquittalから差し替え）' },
+  { word: 'negotiator', rationale: '交渉担当者（T-86でB帯TOEIC非該当語culpableから差し替え）' },
+  { word: 'concession', rationale: '譲歩（T-86でB帯TOEIC非該当語negligenceから差し替え）' },
+  {
+    word: 'proprietary',
+    rationale: '独自の・専有の（T-86でB帯TOEIC非該当語malfeasanceから差し替え）',
+  },
 ]
 
 export const WORDS_B: FreqListWordEntry[] = toEntries([

@@ -762,29 +762,27 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'condemnation',
+    keyVocabWord: 'permit',
     tags: ['米英アクセント'],
     script:
-      'Did the city issue a condemnation order for the old building? — Inspectors are coming back tomorrow to decide.',
+      'Did the city issue a permit for the old building? — Inspectors are coming back tomorrow to decide.',
     correctText: 'Inspectors are coming back tomorrow to decide.',
     distractors: ['It was built in the 1950s.', 'The tenants moved out already.'],
     explanation:
-      '間接応答: 「明日また検査員が来て判断する」は「まだ正式決定していない」ことを示す。他の2つは質問（正式に使用不可宣告されたか）に直接答えていない。',
-    translation:
-      'その古い建物は正式に使用不可の宣告を受けたのですか？ — 明日また検査員が来て判断します。',
+      '間接応答: 「明日また検査員が来て判断する」は「まだ正式決定していない」ことを示す。他の2つは質問（許可証が発行されたか）に直接答えていない。',
+    translation: 'その古い建物に許可証は発行されたのですか？ — 明日また検査員が来て判断します。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'acquittal',
+    keyVocabWord: 'complaint',
     tags: ['米英アクセント'],
-    script:
-      'Was the acquittal a surprise to everyone? — Honestly, most of us expected a different outcome.',
-    correctText: 'Honestly, most of us expected a different outcome.',
-    distractors: ['The trial lasted three weeks.', 'The lawyer works downtown.'],
+    script: 'Was the complaint a surprise to everyone? — Honestly, most of us saw it coming.',
+    correctText: 'Honestly, most of us saw it coming.',
+    distractors: ['It was filed last Tuesday.', 'The manager reviewed it already.'],
     explanation:
-      '間接応答: 「ほとんどの人は違う結果を予想していた」は「驚きだった（想定外だった）」ことを示す。他の2つは質問に直接答えていない。',
+      '間接応答: 「予想はついていた（saw it coming）」は「驚きではなかった」ことを示す。他の2つは質問（驚きだったか）に直接答えていない。',
     translation:
-      '無罪判決はみんなにとって驚きでしたか？ — 正直、私たちの多くは違う結果を予想していました。',
+      'その苦情はみんなにとって驚きでしたか？ — 正直、私たちの多くは予想がついていました。',
     difficulty: 4,
   },
   {
@@ -835,14 +833,14 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'embezzlement',
+    keyVocabWord: 'inquiry',
     tags: ['米英アクセント'],
-    script: 'Has the embezzlement case gone to trial yet? — The investigation is still ongoing.',
-    correctText: 'The investigation is still ongoing.',
-    distractors: ['It involves a former treasurer.', 'The amount was quite large.'],
+    script: 'Has the inquiry been completed yet? — We are still gathering information.',
+    correctText: 'We are still gathering information.',
+    distractors: ['It was submitted last week.', 'The customer called twice.'],
     explanation:
-      '間接応答: 「捜査がまだ続いている」は「まだ裁判にはなっていない」ことを示す。他の2つは質問（裁判になったか）に直接答えていない。',
-    translation: '横領事件はもう裁判になりましたか？ — 捜査がまだ続いています。',
+      '間接応答: 「まだ情報を集めている最中」は「まだ完了していない」ことを示す。他の2つは質問（問い合わせ対応が完了したか）に直接答えていない。',
+    translation: 'その問い合わせ対応はもう完了しましたか？ — まだ情報を集めているところです。',
     difficulty: 4,
   },
 

@@ -186,14 +186,14 @@ export const PART5_ENTRIES_S2_RAW: Part5RawEntry[] = [
     difficulty: 3,
   },
   {
-    keyVocabWord: 'codify',
+    keyVocabWord: 'compliant',
     tags: ['品詞'],
-    question: 'The committee proposed the ___ of informal procedures.',
-    correctText: 'codification',
-    distractors: ['codify', 'codifying', 'codified'],
+    question: 'The revised building plans are now fully ___ with fire safety codes.',
+    correctText: 'compliant',
+    distractors: ['compliance', 'comply', 'compliantly'],
     explanation:
-      '空所は定冠詞theに続く名詞。codificationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。',
-    translation: '委員会は非公式な手順を成文化することを提案した。',
+      '空所はbe動詞areの補語となる形容詞。compliantが正しい。complianceは名詞、complyは動詞、compliantlyは副詞で、補語の位置には合わない。',
+    translation: '改訂された建築計画は今や防火基準に完全に準拠している。',
     difficulty: 4,
   },
   {
@@ -553,14 +553,14 @@ export const PART5_ENTRIES_S2_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'dignitary',
+    keyVocabWord: 'supervisor',
     tags: ['代名詞・関係詞'],
-    question: 'The dignitary ___ attended the ceremony gave a brief speech.',
+    question: 'The supervisor ___ attended the ceremony gave a brief speech.',
     correctText: 'who',
     distractors: ['whom', 'whose', 'which'],
     explanation:
       '主格の関係代名詞whoが正しい（後ろに動詞attendedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。',
-    translation: '式典に出席したその要人は短いスピーチを行った。',
+    translation: '式典に出席したその上司は短いスピーチを行った。',
     difficulty: 3,
   },
   {
@@ -819,14 +819,14 @@ export const PART5_ENTRIES_S2_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'embezzlement',
+    keyVocabWord: 'oversight',
     tags: ['接続詞vs前置詞'],
-    question: 'The manager was dismissed ___ evidence of embezzlement.',
+    question: 'The manager was dismissed ___ evidence of poor oversight.',
     correctText: 'because of',
     distractors: ['because', 'although', 'unless'],
     explanation:
-      '空所の後は名詞句（evidence of embezzlement）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。',
-    translation: '横領の証拠のため、そのマネージャーは解雇された。',
+      '空所の後は名詞句（evidence of poor oversight）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。',
+    translation: '管理不足の証拠のため、そのマネージャーは解雇された。',
     difficulty: 3,
   },
   {
@@ -874,25 +874,25 @@ export const PART5_ENTRIES_S2_RAW: Part5RawEntry[] = [
     difficulty: 3,
   },
   {
-    keyVocabWord: 'negligence',
+    keyVocabWord: 'defect',
     tags: ['接続詞vs前置詞'],
-    question: 'The company was sued ___ negligence.',
+    question: 'The company was sued ___ a manufacturing defect.',
     correctText: 'due to',
     distractors: ['because', 'although', 'unless'],
     explanation:
-      '空所の後は名詞句（negligence）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。',
-    translation: '過失のため、その会社は訴えられた。',
+      '空所の後は名詞句（a manufacturing defect）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。',
+    translation: '製造上の欠陥のため、その会社は訴えられた。',
     difficulty: 3,
   },
   {
-    keyVocabWord: 'malfeasance',
+    keyVocabWord: 'audit',
     tags: ['接続詞vs前置詞'],
-    question: 'The official resigned ___ allegations of malfeasance surfaced.',
+    question: 'The official resigned ___ a critical audit finding was made public.',
     correctText: 'because',
     distractors: ['because of', 'despite', 'due to'],
     explanation:
-      '空所の後は節（allegations of malfeasance surfaced）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。',
-    translation: '不正行為の疑惑が浮上したため、その職員は辞任した。',
+      '空所の後は節（a critical audit finding was made public）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。',
+    translation: '重大な監査結果が公になったため、その職員は辞任した。',
     difficulty: 4,
   },
   {

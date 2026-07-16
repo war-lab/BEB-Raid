@@ -5,7 +5,9 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['**/dist/', '**/dev-dist/', '**/node_modules/', '.playwright-mcp/'] },
+  // .claude/ はセッション用worktree（.claude/worktrees/）が置かれるため除外する
+  // （worktree内のファイルをルートからも二重lintするとtsconfigRootDirが多義になりエラーになる）
+  { ignores: ['**/dist/', '**/dev-dist/', '**/node_modules/', '.playwright-mcp/', '.claude/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
