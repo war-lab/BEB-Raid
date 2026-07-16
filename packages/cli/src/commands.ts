@@ -54,11 +54,13 @@ import {
   buildPart34Drafts,
   buildPart34Questions,
   PART34_ENTRIES_S2,
+  PART34_ENTRIES_S3,
   validatePart34Questions,
 } from './part34Question.js'
 import {
   buildPart5Drafts,
   buildPart5EntriesS2,
+  buildPart5EntriesS3,
   buildPart5Questions,
   validatePart5Questions,
 } from './part5Question.js'
@@ -90,8 +92,10 @@ const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
+const DEFAULT_PART5_S3_DRAFT_PATH = 'content/drafts/part5-s3.jsonl'
 const DEFAULT_PART34_DRAFT_PATH = 'content/drafts/part34-s.jsonl'
 const DEFAULT_PART34_S2_DRAFT_PATH = 'content/drafts/part34-s2.jsonl'
+const DEFAULT_PART34_S3_DRAFT_PATH = 'content/drafts/part34-s3.jsonl'
 const DEFAULT_DICTATION_DRAFT_PATH = 'content/drafts/dictation-s.jsonl'
 const DEFAULT_DICTATION_S2_DRAFT_PATH = 'content/drafts/dictation-s2.jsonl'
 const DEFAULT_SHADOWING_DRAFT_PATH = 'content/drafts/shadowing-s.jsonl'
@@ -149,6 +153,12 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validatePart5Questions,
     defaultPath: DEFAULT_PART5_S2_DRAFT_PATH,
   },
+  text_blank_s3: {
+    buildQuestions: () => buildPart5Questions(buildPart5EntriesS3()),
+    buildDrafts: () => buildPart5Drafts(buildPart5EntriesS3()),
+    validate: validatePart5Questions,
+    defaultPath: DEFAULT_PART5_S3_DRAFT_PATH,
+  },
   key_vocab_similar: {
     buildQuestions: buildKeyVocabSimilarQuestions,
     buildDrafts: buildKeyVocabSimilarDrafts,
@@ -187,6 +197,12 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: () => buildPart34Drafts(PART34_ENTRIES_S2),
     validate: validatePart34Questions,
     defaultPath: DEFAULT_PART34_S2_DRAFT_PATH,
+  },
+  audio_set_s3: {
+    buildQuestions: () => buildPart34Questions(PART34_ENTRIES_S3),
+    buildDrafts: () => buildPart34Drafts(PART34_ENTRIES_S3),
+    validate: validatePart34Questions,
+    defaultPath: DEFAULT_PART34_S3_DRAFT_PATH,
   },
   dictation: {
     buildQuestions: buildDictationQuestions,

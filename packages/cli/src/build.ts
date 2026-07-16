@@ -181,12 +181,38 @@ const T84_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）= 15パック（docs/13 3.10節・T-64、docs/15 T-83〜T-84行） */
+/** フェーズC・T-85で追加する1パック（Part5 d4帯+50問。J-33） */
+const T85_PART5_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p5-s-003',
+    title: 'Part5文法 d4帯 追加50問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）',
+    targetLevel: [730, 860],
+    draftPath: 'drafts/part5-s3.jsonl',
+  },
+]
+
+/** フェーズC・T-85で追加するもう1パック（Part3/4本試験長尺化+10セット。J-33） */
+const T85_PART34_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p34-s-003',
+    title: 'Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）',
+    targetLevel: [730, 860],
+    draftPath: 'drafts/part34-s3.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）= 17パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,
   ...T83_PACK_DEFINITIONS,
   ...T84_PACK_DEFINITIONS,
+  ...T85_PART5_PACK_DEFINITIONS,
+  ...T85_PART34_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */

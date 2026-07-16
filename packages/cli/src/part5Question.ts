@@ -13,12 +13,13 @@
 import { SCHEMA_VERSION, validatePack, type FreqRank, type Question } from '@beb-raid/shared-schema'
 import { PART5_ENTRIES_S, type Part5Entry } from './data/part5QuestionsS.js'
 import { PART5_ENTRIES_S2_RAW, type Part5RawEntry } from './data/part5QuestionsS2.js'
+import { PART5_ENTRIES_S3_RAW } from './data/part5QuestionsS3.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
 import type { GeneratedItemDraft } from './review.js'
 
-export { PART5_ENTRIES_S, PART5_ENTRIES_S2_RAW }
+export { PART5_ENTRIES_S, PART5_ENTRIES_S2_RAW, PART5_ENTRIES_S3_RAW }
 
 /**
  * keyVocabWordの和訳（sense）とfreqRankをS/A/B語彙カード（600語）から引く
@@ -109,6 +110,13 @@ export function part5EntryFromRaw(raw: Part5RawEntry, index: number): Part5Entry
 /** Part5追加分（M2・T-61・S2）100問をPart5Entry形式に組み立てる */
 export function buildPart5EntriesS2(
   raw: readonly Part5RawEntry[] = PART5_ENTRIES_S2_RAW,
+): Part5Entry[] {
+  return raw.map((r, i) => part5EntryFromRaw(r, i))
+}
+
+/** Part5追加分（T-85・d4帯・S3）50問をPart5Entry形式に組み立てる */
+export function buildPart5EntriesS3(
+  raw: readonly Part5RawEntry[] = PART5_ENTRIES_S3_RAW,
 ): Part5Entry[] {
   return raw.map((r, i) => part5EntryFromRaw(r, i))
 }

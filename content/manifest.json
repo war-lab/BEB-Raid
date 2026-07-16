@@ -150,6 +150,26 @@
       ],
       "sizeBytes": 38471,
       "hash": "c3fa92167c57af0d"
+    },
+    {
+      "id": "pack-p5-s-003",
+      "title": "Part5文法 d4帯 追加50問",
+      "targetLevel": [
+        730,
+        860
+      ],
+      "sizeBytes": 52398,
+      "hash": "08874bb932d37e33"
+    },
+    {
+      "id": "pack-p34-s-003",
+      "title": "Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）",
+      "targetLevel": [
+        730,
+        860
+      ],
+      "sizeBytes": 42134,
+      "hash": "a4bb8f587df7cd15"
     }
   ]
 }

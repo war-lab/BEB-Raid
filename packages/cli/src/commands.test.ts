@@ -666,6 +666,7 @@ describe('build（T-32）', () => {
     await writeFile(join(dir, 'audio/part2/revise.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-01.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-11.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part34/p3-21.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/dictation/submit.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/dictation/agenda.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/shadow/submit.mp3'), 'dummy')
@@ -1060,21 +1061,81 @@ describe('build（T-32）', () => {
       JSON.stringify(dictationS2Draft) + '\n',
       'utf-8',
     )
+    const part5S3Draft: GeneratedItemDraft = {
+      id: 'part5-scalable',
+      kind: 'text_blank',
+      preview: 'scalable',
+      payload: {
+        id: 'part5-scalable',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 4,
+        tags: ['比較'],
+        keyVocab: [{ word: 'scalable', sense: '拡張可能な', freqRank: 'A' }],
+        question: 'The proposed system is not as ___ as the vendor originally promised.',
+        choices: [
+          { key: 'A', text: 'scalable' },
+          { key: 'B', text: 'scalability' },
+        ],
+        answer: 'A',
+        explanation: '"as ___ as"の間には形容詞が入る。scalableが正しい。',
+        translation: '提案されたシステムは、業者が当初約束していたほど拡張性が高くない。',
+      },
+    }
+    const part34S3Draft: GeneratedItemDraft = {
+      id: 'p34-p3-21',
+      kind: 'audio_set',
+      preview: 'p3-21',
+      payload: {
+        id: 'p34-p3-21',
+        part: 3,
+        format: 'audio_set',
+        difficulty: 4,
+        tags: ['意図推定'],
+        keyVocab: [{ word: 'reconciliation', sense: '照合', freqRank: 'B' }],
+        audio: 'audio/part34/p3-21.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 30000 },
+        script: 'A: I finished the reconciliation. B: Good, was there a variance?',
+        subQuestions: [
+          {
+            id: 'p34-p3-21-q1',
+            question: 'What problem does the woman report?',
+            choices: [
+              { key: 'A', text: 'A mismatch between the ledger and the bank statement' },
+              { key: 'B', text: 'A missing invoice' },
+            ],
+            answer: 'A',
+            explanation: '女性は照合の際に差異があったと述べている。',
+            translation: '女性はどんな問題を報告していますか。',
+          },
+        ],
+      },
+    }
+    await writeFile(
+      join(dir, 'drafts/part5-s3.jsonl'),
+      JSON.stringify(part5S3Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/part34-s3.jsonl'),
+      JSON.stringify(part34S3Draft) + '\n',
+      'utf-8',
+    )
   })
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('15パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2）', async () => {
+  it('17パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('15パック')
+    expect(output).toContain('17パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(15)
+    expect(manifest.packs).toHaveLength(17)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -1091,6 +1152,8 @@ describe('build（T-32）', () => {
       'pack-p5-similar-s-003',
       'pack-p34-s-002',
       'pack-dict-s-002',
+      'pack-p5-s-003',
+      'pack-p34-s-003',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)
