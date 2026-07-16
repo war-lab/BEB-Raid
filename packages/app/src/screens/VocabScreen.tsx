@@ -13,11 +13,11 @@ import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
 import { evaluateStreak } from '../engine/streak'
-import { addSrsCard, getSrsQueue, reviewSrsCard, srsCardId } from '../engine/srs'
+import { addSrsCard, getSrsQueue, srsCardId } from '../engine/srs'
 import type { SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
-import { recordAttempt } from '../services/attempts'
+import { recordAnswerPipeline } from '../services/answerPipeline'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -137,12 +137,27 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     // isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更）。
     // gradeは引き続きSRSの間隔調整（もう一回/OK/余裕）専用
     const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
-    await reviewSrsCard(db, reviewCard.id, grade)
-    await recordAttempt(db, {
-      questionId: attemptQuestionId(reviewCard.refId, reviewQuestion),
-      mode: 'srs',
+    const questionId = attemptQuestionId(reviewCard.refId, reviewQuestion)
+    // このS3画面はDrillScreenのvocab_card分岐と異なりtagStats/レート更新を元々呼ばない
+    // （tags=[]・part=0で実質no-opの処理をここでも通す意味が無いため=skip全指定）。
+    // evaluateStreakはpipelineに含めず、セッション概念の無い画面としてここに残す
+    await recordAnswerPipeline(db, {
+      questionId,
+      question: reviewQuestion ?? {
+        id: questionId,
+        part: 0,
+        format: 'vocab_card',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+      },
+      lookup: new Map(),
       isCorrect,
       responseMs,
+      mode: 'srs',
+      srsCardId: reviewCard.id,
+      srsGrade: grade,
+      skip: { wrongAnswer: true, tagStats: true, rating: true },
     })
     await evaluateStreak(db)
     setReviewIndex((i) => i + 1)

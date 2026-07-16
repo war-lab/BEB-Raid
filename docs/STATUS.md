@@ -18,7 +18,8 @@
 | T-68 | 起動エラー処理＋静的スプラッシュ | ✅ 完了（2026-07-16） |
 | T-69 | テーマ・文字サイズの起動適用 | ✅ 完了（2026-07-16） |
 | T-70 | 音声再生失敗リカバリ | ✅ 完了（2026-07-16） |
-| T-71〜T-76 | フェーズA: 安定性（残り） | 未着手 |
+| T-71 | 解答パイプライン集約（answerPipeline） | ✅ 完了（2026-07-16） |
+| T-72〜T-76 | フェーズA: 安定性（残り） | 未着手 |
 | T-77〜T-79 | フェーズB: 体験の質 | 未着手 |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
 | T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
@@ -30,6 +31,8 @@
 ※ T-69: `SettingsScreen.tsx`にローカル定義されていた`resolveTheme`/`ThemePreference`を`theme.ts`へ移動・export（`SettingsScreen`側は再import。重複初期化ロジックの一本化）。App.tsxの起動チェックPromise.allに`db.settings.get(THEME_PREFERENCE_KEY)`/`db.settings.get(FONT_SIZE_KEY)`を追加し、boot完了時に`setTheme(resolveTheme(pref))`/`setFontSizeScale(scale)`を適用するようにした。**設計判断（docs未記載）**: OS追従（`themePreference==='system'`）時のOS変更追従は、App起動時に取得した`themePreference`をstateに保持し、それを依存配列に持つ別useEffectで`matchMedia('(prefers-color-scheme: dark)')`の`change`リスナーを登録・クリーンアップする形にした（SettingsScreen滞在中に限定せず、アプリ全体で常時追従させるため。設定値自体を変えたのではなく実適用テーマだけを追従させるので、DBへの書き込みは発生しない）。テスト: App 2件（保存済みテーマ/文字サイズが起動時に即適用される・system設定時にOS側のmatchMedia changeイベントでdata-themeが切り替わる。後者はmatchMediaのモックを差し替えてchangeハンドラを直接発火させて検証）。既存`SettingsScreen.test.tsx`は無修正で全通過（重複initロジックの一本化が回帰を起こしていないことの確認）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
 
 ※ T-70: DrillScreen・DiagnosticScreenの音声再生系関数（handlePlayStart・handleStartAudioSet・startAudioSetPlayback・handleReplay）にtry/catchを追加し、失敗時はplayStateを'idle'に戻し「音声を再生できませんでした」のエラーバナー＋主ボタンのラベルを「もう一度試す」に切り替える形にした。**audio_qaのみ**追加で「音声なしで解答する」ボタンを出し、タップで`playState`を直接`'played'`にして選択肢を解放する（`remainingSec`を設定しないため15秒タイマーは起動しない設計を確認済み）。VocabScreen/DrillScreenのフレーズ音声自動再生（`unlock().then(play)`）には`.catch(() => console.warn(...))`を追加（自動再生失敗は学習継続可能なため通知なし、console.warnのみ残す）。ShadowingScreenは自動再生の仕組み自体を持たない（常に手動タップの「再生」ボタン）ため対象外の項目3は該当しないが、`handlePlay`・`handleRewind`・`handleSentenceTap`が`void`のfire-and-forgetでUnhandled Rejectionになりうる状態だったため同様にtry/catch・`.catch()`を追加した（再生ボタンはcompletedにならない限り残るため、再タップがそのまま再試行になる）。テスト: DrillScreen 3件（audio_qa再生失敗→再試行復帰・「音声なしで解答する」でタイマー無しのまま解答完了・audio_set unlock失敗→再試行復帰）、DiagnosticScreen 1件（再生失敗→「音声なしで解答する」で次のturnまで進行）。`npm test`（全パッケージ・380件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-71: 新規`services/answerPipeline.ts`に`recordAnswerPipeline`を実装し、J-35のskipオプション（rating/tagStats/wrongAnswer/srs）で、DrillScreenの4関数（finalizeAnswer・finalizeSubQuestionAnswer・finalizeDictationAnswer・handleVocabGrade）とVocabScreenのhandleGradeを1関数に集約した。**設計判断（docs未記載）**: pipelineの`question`引数は「processWrongAnswer・applyRatingUpdateに使う実体」、`lookup`引数は「updateTagStatsForAnswerに渡すルックアップ表」として分離した（audio_setサブ設問はquestionId=サブ設問ID・question=親Question・lookup=疑似エントリ入りMap、という非対称な組み合わせが必要なため）。VocabScreen（S3）はDrillScreenのvocab_card分岐と異なりtagStats/レート更新を元々呼んでいなかった（tags=[]・part=0で実質no-opだが、そもそも到達すらしていなかった）ため、`skip: { wrongAnswer: true, tagStats: true, rating: true }`で完全に再現した（`evaluateStreak`はセッション概念の無い画面固有の処理としてpipelineに含めず呼び出し側に残す=J-35の指示どおり）。**発見した副作用（テスト修正で対応）**: pipelineの手順順序は「①attempt記録→②誤答復習→③tagStats→④rating→⑤SRS自己評価」に統一されるが、VocabScreenの旧実装は「reviewSrsCard→recordAttempt」の順だった。この順序変更により、`VocabScreen.test.tsx`の一部テストが`db.attempts.count()`の到達のみを完了シグナルにしていたためレースが露呈（attempts書き込みがreviewSrsCard/evaluateStreak完了より先に終わるようになり、テストが早期に完了→afterEachのdb.delete()と競合してUnhandled Rejectionが非決定的に発生）。3件のテストの完了待ち条件を「画面遷移（仕分けフェーズ表示・終了メッセージ表示）」に書き換えて解消（DrillScreen側のテストは無修正で全35件通過=完了条件①を満たす）。テスト: answerPipeline単体13件（attempt記録経路2・誤答復習3・tagStats2・レート2・SRS自己評価3・失敗伝播1）。`npm test`（全パッケージ・393件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 既知の環境要因**: フルスイート実行時、まれ（観測値約1/3）にDrillScreenのaudio_set系テストがCPU競合によるwaitForタイムアウトで失敗することがある（単体実行では常に通過。既存STATUSに記録済みのDashboardScreen系DatabaseClosedErrorと同種の非決定的な環境要因と判断。T-76での結合テスト補強時に再確認）。
 
 ## 今どこにいるか（1行）
 

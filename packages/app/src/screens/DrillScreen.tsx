@@ -10,17 +10,14 @@ import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
 import { computeSetResult } from '../engine/audioSet'
 import { buildWordBank, judgeDictation } from '../engine/dictation'
-import { processWrongAnswer } from '../engine/keyVocab'
 import { formatQuickPackReason } from '../engine/reason'
-import { applyRatingUpdate } from '../engine/rating'
 import { reviewSrsCard } from '../engine/srs'
-import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AiClient, AudioPlayer } from '../platform'
-import { recordAttempt } from '../services/attempts'
+import { recordAnswerPipeline } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
-import { advanceSession, answerCurrentQuestion } from '../services/session'
+import { advanceSession } from '../services/session'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -298,29 +295,21 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setResult({ selectedKey, isCorrect, isTimeout })
     setStreak((s) => (isCorrect ? s + 1 : 0))
 
-    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
+    // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
+    // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）
+    const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
+      snapshot,
+      questionId: question.id,
+      question,
+      lookup: questions,
       isCorrect,
       responseMs,
       isTimeout,
-    })
-
-    if (!isCorrect) {
-      await processWrongAnswer(db, question)
-    }
-    const lookup: QuestionLookup = questions
-    await updateTagStatsForAnswer(db, question.id, lookup)
-    const ratingUpdate = await applyRatingUpdate(db, {
-      part: question.part,
-      difficulty: question.difficulty,
-      isCorrect,
       mode: item.mode,
+      srsCardId: item.srsCardId,
     })
-    if (item.srsCardId) {
-      // S2は客観正誤のみのUIのため、自己評価3段階への写像は正解→good/誤答→again に固定する
-      await reviewSrsCard(db, item.srsCardId, isCorrect ? 'good' : 'again')
-    }
 
-    recordAnswer(nextSnapshot, {
+    recordAnswer(nextSnapshot!, {
       questionId: question.id,
       isCorrect,
       basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
@@ -344,21 +333,16 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setResult({ selectedKey: choiceKey, isCorrect, isTimeout: false })
     setStreak((s) => (isCorrect ? s + 1 : 0))
 
-    await recordAttempt(db, {
+    // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
+    // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）
+    const { ratingUpdate } = await recordAnswerPipeline(db, {
       questionId: currentSubQuestion.id,
-      mode: item.mode,
+      question,
+      lookup: subQuestionLookup,
       isCorrect,
       responseMs,
-    })
-    if (!isCorrect) {
-      await processWrongAnswer(db, question)
-    }
-    await updateTagStatsForAnswer(db, currentSubQuestion.id, subQuestionLookup)
-    const ratingUpdate = await applyRatingUpdate(db, {
-      part: question.part,
-      difficulty: question.difficulty,
-      isCorrect,
       mode: item.mode,
+      skip: { srs: true },
     })
     setSubQuestionResults((prev) => [...prev, isCorrect])
     recordAnswer(snapshot, {
@@ -497,21 +481,20 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setResult({ selectedKey: null, isCorrect: judgement.isCorrect, isTimeout: false })
     setStreak((s) => (judgement.isCorrect ? s + 1 : 0))
 
-    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
+    // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
+    const { nextSnapshot } = await recordAnswerPipeline(db, {
+      snapshot,
+      questionId: question.id,
+      question,
+      lookup: questions,
       isCorrect: judgement.isCorrect,
       responseMs,
       isTimeout: false,
+      mode: item.mode,
+      srsCardId: item.srsCardId,
+      skip: { rating: true },
     })
-    if (!judgement.isCorrect) {
-      await processWrongAnswer(db, question)
-    }
-    const lookup: QuestionLookup = questions
-    await updateTagStatsForAnswer(db, question.id, lookup)
-    // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
-    if (item.srsCardId) {
-      await reviewSrsCard(db, item.srsCardId, judgement.isCorrect ? 'good' : 'again')
-    }
-    recordAnswer(nextSnapshot, {
+    recordAnswer(nextSnapshot!, {
       questionId: question.id,
       isCorrect: judgement.isCorrect,
       basePoints: 0,
@@ -557,23 +540,22 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
     const responseMs = now() - startedAt
 
-    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
+    // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
+    // tagStats（tags=[]）・レート（part=0）はpipeline内部でno-opになる
+    const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
+      snapshot,
+      questionId: question.id,
+      question,
+      lookup: questions,
       isCorrect,
       responseMs,
       isTimeout: false,
-    })
-    const lookup: QuestionLookup = questions
-    await updateTagStatsForAnswer(db, question.id, lookup) // vocab_cardはtags=[]のため実質no-op
-    const ratingUpdate = await applyRatingUpdate(db, {
-      part: question.part, // part=0のためapplyRatingUpdate内部でno-op
-      difficulty: question.difficulty,
-      isCorrect,
       mode: item.mode,
+      srsCardId: item.srsCardId,
+      srsGrade: grade,
+      skip: { wrongAnswer: true },
     })
-    if (item.srsCardId) {
-      await reviewSrsCard(db, item.srsCardId, grade)
-    }
-    recordAnswer(nextSnapshot, {
+    recordAnswer(nextSnapshot!, {
       questionId: question.id,
       isCorrect,
       basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,

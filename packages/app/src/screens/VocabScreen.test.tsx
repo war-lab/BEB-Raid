@@ -132,7 +132,9 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     fireEvent.click(screen.getByText('delta の意味'))
     fireEvent.click(screen.getByText('OK'))
 
-    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // handleGrade（attempt記録→reviewSrsCard→evaluateStreak→setReviewIndex）の完了を、
+    // その最後のsetState由来である仕分けフェーズへの画面遷移で待つ（T-71注記参照）
+    await screen.findByText(/仕分/)
     const card = await db.srsCards.get('vocab:delta')
     expect(card?.stage).toBe(3) // stage2→OK(+1)=3
 
@@ -153,7 +155,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     fireEvent.click(screen.getByText('decoy の意味')) // わざと不正解を選ぶ
     fireEvent.click(screen.getByText('もう一回'))
 
-    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    await screen.findByText(/仕分/)
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
     const card = await db.srsCards.get('vocab:epsilon')
@@ -172,9 +174,16 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     fireEvent.click(screen.getByText('decoy の意味')) // 選択済みなので無視されるはず
     fireEvent.click(screen.getByText('OK'))
 
-    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // handleGrade（attempt記録→reviewSrsCard→evaluateStreak→setReviewIndex）が完全に
+    // 終わるまで待つ。attemptsの件数だけを見ると（T-71でpipelineがattemptを先に書くため）
+    // reviewSrsCard/evaluateStreak完了前にテストが進み、DB切断後の書き込みで
+    // Unhandled Rejectionになりうる。仕分けフェーズへの画面遷移は一連の最後の
+    // setState由来のため、これを待てば全書き込みの完了を保証できる
+    await screen.findByText(/仕分/)
+    expect(await db.attempts.count()).toBe(1)
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(true) // 最初の正解選択のまま
+    expect((await db.srsCards.get('vocab:theta'))?.stage).toBe(3)
   })
 })
 
@@ -219,8 +228,12 @@ describe('VocabScreen: ストリーク成立（02の7節）', () => {
       await waitFor(() => expect(screen.getByText(`復習 ${i + 1}/${words.length}`)).toBeTruthy())
       fireEvent.click(screen.getByText(`${words[i]} の意味`))
       fireEvent.click(screen.getByText('OK'))
-      await waitFor(async () => expect(await db.attempts.count()).toBe(i + 1))
     }
+    // 最終問のhandleGrade完了（attempt記録→reviewSrsCard→evaluateStreak→setReviewIndex）を
+    // 終了画面への遷移で待つ（attempts件数だけを見ると内部のreviewSrsCard/evaluateStreakの
+    // 完了前にテストが進み、DB切断後の書き込みでUnhandled Rejectionになりうるため。T-71注記参照）
+    await screen.findByText('語彙SRSが終了しました')
+    expect(await db.attempts.count()).toBe(words.length)
 
     const status = await evaluateStreak(db)
     expect(status.todayCompleted).toBe(true)
