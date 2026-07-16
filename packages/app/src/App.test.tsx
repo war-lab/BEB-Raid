@@ -1,11 +1,13 @@
 // App.tsx は起動時にprofile有無（T-20 P0診断）をチェックし、未診断ならDiagnosticScreen、
 // 診断済みなら'home'画面でHomeScreen（T-21）を描画する。どちらも実際にIndexedDBを読むため
 // fake-indexeddb が必要
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import 'fake-indexeddb/auto'
 import { render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { QuestionPack } from '@beb-raid/shared-schema'
-import { App, loadQuestionPool } from './App'
+import { App, PACK_IDS, loadQuestionPool } from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
 import { createProfile } from './services/profile'
@@ -105,5 +107,22 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     })
     const pool = await loadQuestionPool(packCache, '/')
     expect(pool.map((q) => q.id)).toEqual(['p2-1'])
+  })
+})
+
+describe('PACK_IDS（手動複製の追加漏れ検知）', () => {
+  it('content/manifest.json（build成果物）のパック一覧と一致する', () => {
+    // PACK_IDSはcli側のPACK_DEFINITIONSを手動複製したものなので、新パック追加時に
+    // ここへの追記を忘れると出題プールから静かに漏れる（レビューで発見したバグの再発防止）。
+    // content/manifest.jsonが無い（buildコマンド未実行）環境ではスキップする
+    const manifestPath = join(__dirname, '../../../content/manifest.json')
+    let manifest: { packs: { id: string }[] }
+    try {
+      manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+    } catch {
+      return
+    }
+    const manifestIds = new Set(manifest.packs.map((p) => p.id))
+    expect(new Set(PACK_IDS)).toEqual(manifestIds)
   })
 })

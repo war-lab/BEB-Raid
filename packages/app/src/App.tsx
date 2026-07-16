@@ -21,9 +21,10 @@ import { useAppStore } from './store/appStore'
 /**
  * 配布パック全12件（M1の4＋M2の8。T-32/T-64のPACK_DEFINITIONSと対応。cli側の定義を
  * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
- * idはここに複製する）
+ * idはここに複製する）。手動複製のため追加漏れが起きうる——App.test.tsxで
+ * content/manifest.json（build成果物）のパック一覧との一致をテストで検証する
  */
-const PACK_IDS = [
+export const PACK_IDS = [
   'pack-vocab-s-001',
   'pack-p2-s-001',
   'pack-p5-s-001',
@@ -49,7 +50,11 @@ export async function loadQuestionPool(
 ): Promise<Question[]> {
   const results = await Promise.all(
     PACK_IDS.map((id) =>
-      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`).catch(() => [] as Question[]),
+      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`).catch((err: unknown) => {
+        // オフラインが正常系のため描画はブロックしないが、原因追跡のためコンソールには残す
+        console.warn(`[loadQuestionPool] パック取得に失敗: ${id}`, err)
+        return [] as Question[]
+      }),
     ),
   )
   return results.flat()

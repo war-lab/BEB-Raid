@@ -249,6 +249,29 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingSec])
 
+  // item はあるが questionId が解決できない場合（未読込パック・データ不整合等で
+  // 発生しうる。発見バグ: 以前はここで navigate('result') も advanceToNext も
+  // 呼ばれず永久に null を返し続け、画面が固まっていた）は記録せずスキップして次へ進める
+  useEffect(() => {
+    if (!snapshot || !item || question) return
+    let cancelled = false
+    console.warn(`[DrillScreen] questionIdが解決できないためスキップ: ${item.questionId}`)
+    void advanceSession(db, snapshot)
+      .then((nextSnapshot) => {
+        if (cancelled) return
+        useSessionStore.setState({ snapshot: nextSnapshot })
+        if (displayIndex + 1 >= snapshot.items.length) {
+          navigate('result')
+        } else {
+          setDisplayIndex((i) => i + 1)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [item, question, snapshot, displayIndex, db, navigate])
+
   if (!snapshot || !item || !question) {
     if (snapshot && !item) navigate('result')
     return null
