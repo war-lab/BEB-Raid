@@ -39,12 +39,7 @@ describe('PART2_ENTRIES_S（データ本体）', () => {
   })
 
   it('全問のtags[0]が音声知覚系タグである（03の7.1節）', () => {
-    const LISTENING_TAGS = new Set([
-      '疑問詞聞き取り',
-      '弱形・連結',
-      '数字・時刻',
-      '米英豪加アクセント',
-    ])
+    const LISTENING_TAGS = new Set(['疑問詞聞き取り', '弱形・連結', '数字・時刻', '米英アクセント'])
     for (const entry of PART2_ENTRIES_S) {
       expect(LISTENING_TAGS.has(entry.tags[0]!)).toBe(true)
     }
@@ -140,7 +135,7 @@ describe('buildPart2Drafts', () => {
   })
 })
 
-const LISTENING_TAGS = new Set(['疑問詞聞き取り', '弱形・連結', '数字・時刻', '米英豪加アクセント'])
+const LISTENING_TAGS = new Set(['疑問詞聞き取り', '弱形・連結', '数字・時刻', '米英アクセント'])
 
 describe('PART2_ENTRIES_S2_RAW（M2・T-60データ本体）', () => {
   it('100問ある', () => {

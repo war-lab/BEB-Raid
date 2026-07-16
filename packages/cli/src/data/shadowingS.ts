@@ -36,7 +36,7 @@ export const SHADOWING_ENTRIES_S: ShadowingRawEntry[] = [
   {
     id: 'shadow-p3-02',
     keyVocabWord: 'malfunction',
-    tags: ['意図推定'],
+    tags: [],
     script:
       "The shared server seems to be malfunctioning again — I can't access any of the project files.",
     translation: '共有サーバーがまた不調のようです—プロジェクトファイルに一切アクセスできません。',
@@ -53,7 +53,7 @@ export const SHADOWING_ENTRIES_S: ShadowingRawEntry[] = [
   {
     id: 'shadow-p3-04',
     keyVocabWord: 'backlog',
-    tags: ['意図推定'],
+    tags: [],
     script: "They mentioned a warehouse backlog, but they couldn't give a firm delivery date.",
     translation: '彼らは倉庫の滞積を理由に挙げましたが、確実な配送日は教えてもらえませんでした。',
     difficulty: 3,
@@ -77,7 +77,7 @@ export const SHADOWING_ENTRIES_S: ShadowingRawEntry[] = [
   {
     id: 'shadow-p3-07',
     keyVocabWord: 'synchronize',
-    tags: ['意図推定'],
+    tags: [],
     script: 'Yes, IT said all our files will automatically synchronize before the update starts.',
     translation:
       'ええ、ITによると更新が始まる前に私たちのファイルは全て自動的に同期されるそうです。',
@@ -103,7 +103,7 @@ export const SHADOWING_ENTRIES_S: ShadowingRawEntry[] = [
   {
     id: 'shadow-p3-10',
     keyVocabWord: 'renewal',
-    tags: ['意図推定'],
+    tags: [],
     script:
       'The overall cost is about the same, but they want to shorten the renewal period to six months.',
     translation: '全体のコストはほぼ同じですが、更新期間を6か月に短縮したいそうです。',
@@ -134,7 +134,7 @@ export const SHADOWING_ENTRIES_S: ShadowingRawEntry[] = [
   {
     id: 'shadow-p4-03',
     keyVocabWord: 'confirm',
-    tags: ['意図推定'],
+    tags: [],
     script:
       "Hi, this is Dana calling from Crestview Dental. I'm calling to let you know that your appointment originally scheduled for Tuesday at ten needs to be moved due to a scheduling conflict. We have an opening on Wednesday at the same time. Please call us back at your convenience to confirm.",
     translation:

@@ -1,5 +1,9 @@
 // Part3/4・ディクテーション短文40本のデータ本体（M2・T-62。正本: docs/13 T-62行・3.4節）。
 // 全問tags[0]='弱形・連結'固定。1文8〜14語・blanks 1〜3穴（弱形になりやすい機能語を穴にする）。
+// tags[1]は穴の内容に応じたサブタグ（T-82・J-41）: 助動詞弱形（would/should/could/will/
+// must/can/may/has/have/was/were/is/are等のモーダル・助動詞の弱形化）・冠詞・前置詞
+// （a/an/the/to/for/from/at/in/with/within/on/before等の弱形化）・音の連結（and/than/
+// if/your/this/her+母音等、隣接語との連結・リエゾンが生じる機能語）の3種から1つを付与する。
 // keyVocabWordはS/A/B語彙カード（600語）から選び、scriptに文字列として実在する語のみを使う。
 // ワードバンク（正解語＋ダミー計6語）はランタイム側（engine/dictation.ts）が動的に組み立てるため、
 // ここではscript/blanksのみを持つ（採点はblanks全穴一致。03の8節・13の3.4節）。
@@ -17,7 +21,7 @@ export interface DictationRawEntry {
 export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   {
     keyVocabWord: 'shipment',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'She would like to confirm the delivery date for the shipment.',
     blanks: [
       {
@@ -39,7 +43,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'invoice',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '冠詞・前置詞'],
     script: 'Please send the invoice to the accounting department today.',
     blanks: [
       {
@@ -57,7 +61,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'candidate',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'The candidate has already submitted her resume and references.',
     blanks: [
       {
@@ -75,7 +79,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'warehouse',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The boxes were moved from the warehouse this morning.',
     blanks: [
       {
@@ -93,7 +97,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'contract',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'They should review the contract before they sign it.',
     blanks: [
       {
@@ -111,7 +115,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'vendor',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'We could ask the vendor for a better price.',
     blanks: [
       {
@@ -129,7 +133,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'renovation',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'The renovation will take longer than we expected.',
     blanks: [
       {
@@ -147,7 +151,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'inspection',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The inspection is scheduled for next Tuesday morning.',
     blanks: [
       {
@@ -165,7 +169,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'employee',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'Every employee must complete the survey by Friday.',
     blanks: [
       {
@@ -183,7 +187,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'presentation',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'She is preparing a presentation for the client.',
     blanks: [
       {
@@ -201,7 +205,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'budget',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The budget was approved, but it was later revised.',
     blanks: [
       {
@@ -219,7 +223,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'reservation',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '冠詞・前置詞'],
     script: 'We made a reservation for four people tonight.',
     blanks: [
       {
@@ -237,7 +241,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'deadline',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The deadline was extended to next Monday afternoon.',
     blanks: [
       {
@@ -255,7 +259,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'warranty',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '冠詞・前置詞'],
     script: 'This product comes with a warranty that lasts two years.',
     blanks: [
       {
@@ -273,7 +277,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'supervisor',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'Ask your supervisor if you have any questions.',
     blanks: [
       {
@@ -291,7 +295,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'brochure',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The brochure is available at the front desk.',
     blanks: [
       {
@@ -309,7 +313,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'merger',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The merger could be finalized sooner than the board expected.',
     blanks: [
       {
@@ -327,7 +331,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'subscription',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'You can cancel your subscription at any time.',
     blanks: [
       {
@@ -345,7 +349,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'voucher',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'Bring this voucher with you to the store.',
     blanks: [
       {
@@ -363,7 +367,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'franchise',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'They are planning to open a new franchise downtown.',
     blanks: [
       {
@@ -381,7 +385,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'itinerary',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'I have sent you the itinerary for next week.',
     blanks: [
       {
@@ -399,7 +403,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'malfunction',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'The printer seems to be malfunctioning again this week.',
     blanks: [
       {
@@ -417,7 +421,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'refund',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'You may request a refund within thirty days.',
     blanks: [
       {
@@ -435,7 +439,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'orientation',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'New employees must attend orientation on their first day.',
     blanks: [
       {
@@ -453,7 +457,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'clearance',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The store will hold a clearance sale next weekend.',
     blanks: [
       {
@@ -471,7 +475,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'technician',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'A repair technician will arrive before noon tomorrow.',
     blanks: [
       {
@@ -489,7 +493,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'compliance',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The report must show full compliance with the new regulation.',
     blanks: [
       {
@@ -507,7 +511,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'applicant',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '冠詞・前置詞'],
     script: 'Only a few applicants were invited for the second round.',
     blanks: [
       {
@@ -525,7 +529,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'premises',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'Visitors must sign in before entering the premises.',
     blanks: [
       {
@@ -543,7 +547,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'supplier',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'We have not received the invoice from the supplier yet.',
     blanks: [
       {
@@ -561,7 +565,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'commute',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'Her commute takes about an hour each way.',
     blanks: [
       {
@@ -579,7 +583,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'contractor',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The contractor will send an estimate before the end of the week.',
     blanks: [
       {
@@ -597,7 +601,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'renewal',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'The renewal notice was mailed to all members last week.',
     blanks: [
       {
@@ -615,7 +619,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'feedback',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'We would appreciate your feedback on the new design.',
     blanks: [
       {
@@ -633,7 +637,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'shuttle',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '冠詞・前置詞'],
     script: 'The shuttle leaves every hour from the main entrance.',
     blanks: [
       {
@@ -651,7 +655,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'certification',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'Employees must renew their certification every two years.',
     blanks: [
       {
@@ -669,7 +673,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'outlet',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '冠詞・前置詞'],
     script: 'The new outlet opens at nine tomorrow morning.',
     blanks: [
       {
@@ -687,7 +691,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'layover',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'Our flight has a two-hour layover in Chicago.',
     blanks: [
       {
@@ -705,7 +709,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'receipt',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '助動詞弱形'],
     script: 'You should keep the receipt in case you need the warranty.',
     blanks: [
       {
@@ -723,7 +727,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   },
   {
     keyVocabWord: 'consignment',
-    tags: ['弱形・連結'],
+    tags: ['弱形・連結', '音の連結'],
     script: 'The consignment was delayed because of a customs issue.',
     blanks: [
       {

@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 36972
+    "sizeBytes": 38043
   },
   "questions": [
     {
@@ -18,7 +18,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -58,7 +59,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "冠詞・前置詞"
       ],
       "keyVocab": [
         {
@@ -94,7 +96,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -130,7 +133,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -166,7 +170,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -202,7 +207,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -238,7 +244,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -274,7 +281,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -310,7 +318,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -346,7 +355,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -382,7 +392,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -418,7 +429,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "冠詞・前置詞"
       ],
       "keyVocab": [
         {
@@ -454,7 +466,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -490,7 +503,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "冠詞・前置詞"
       ],
       "keyVocab": [
         {
@@ -526,7 +540,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -562,7 +577,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -598,7 +614,8 @@
       "format": "dictation",
       "difficulty": 4,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -634,7 +651,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -670,7 +688,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -706,7 +725,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -742,7 +762,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -778,7 +799,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -814,7 +836,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -850,7 +873,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -886,7 +910,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -922,7 +947,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -958,7 +984,8 @@
       "format": "dictation",
       "difficulty": 4,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -994,7 +1021,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "冠詞・前置詞"
       ],
       "keyVocab": [
         {
@@ -1030,7 +1058,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -1066,7 +1095,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -1102,7 +1132,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -1138,7 +1169,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -1174,7 +1206,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -1210,7 +1243,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {
@@ -1246,7 +1280,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "冠詞・前置詞"
       ],
       "keyVocab": [
         {
@@ -1282,7 +1317,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -1318,7 +1354,8 @@
       "format": "dictation",
       "difficulty": 2,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "冠詞・前置詞"
       ],
       "keyVocab": [
         {
@@ -1354,7 +1391,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -1390,7 +1428,8 @@
       "format": "dictation",
       "difficulty": 3,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "助動詞弱形"
       ],
       "keyVocab": [
         {
@@ -1426,7 +1465,8 @@
       "format": "dictation",
       "difficulty": 4,
       "tags": [
-        "弱形・連結"
+        "弱形・連結",
+        "音の連結"
       ],
       "keyVocab": [
         {

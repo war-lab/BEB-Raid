@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 37837
+    "sizeBytes": 37687
   },
   "questions": [
     {
@@ -65,9 +65,7 @@
       "part": 3,
       "format": "shadowing",
       "difficulty": 3,
-      "tags": [
-        "意図推定"
-      ],
+      "tags": [],
       "keyVocab": [
         {
           "word": "malfunction",
@@ -148,9 +146,7 @@
       "part": 3,
       "format": "shadowing",
       "difficulty": 3,
-      "tags": [
-        "意図推定"
-      ],
+      "tags": [],
       "keyVocab": [
         {
           "word": "backlog",
@@ -264,9 +260,7 @@
       "part": 3,
       "format": "shadowing",
       "difficulty": 3,
-      "tags": [
-        "意図推定"
-      ],
+      "tags": [],
       "keyVocab": [
         {
           "word": "synchronize",
@@ -384,9 +378,7 @@
       "part": 3,
       "format": "shadowing",
       "difficulty": 4,
-      "tags": [
-        "意図推定"
-      ],
+      "tags": [],
       "keyVocab": [
         {
           "word": "renewal",
@@ -586,9 +578,7 @@
       "part": 3,
       "format": "shadowing",
       "difficulty": 3,
-      "tags": [
-        "意図推定"
-      ],
+      "tags": [],
       "keyVocab": [
         {
           "word": "confirm",
