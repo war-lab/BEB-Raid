@@ -17,7 +17,8 @@
 | T-67 | セッション中断復帰の配線＋中断ボタン | ✅ 完了（2026-07-16） |
 | T-68 | 起動エラー処理＋静的スプラッシュ | ✅ 完了（2026-07-16） |
 | T-69 | テーマ・文字サイズの起動適用 | ✅ 完了（2026-07-16） |
-| T-70〜T-76 | フェーズA: 安定性（残り） | 未着手 |
+| T-70 | 音声再生失敗リカバリ | ✅ 完了（2026-07-16） |
+| T-71〜T-76 | フェーズA: 安定性（残り） | 未着手 |
 | T-77〜T-79 | フェーズB: 体験の質 | 未着手 |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
 | T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
@@ -27,6 +28,8 @@
 ※ T-68: App.tsxの起動チェック（hasProfile/loadQuestionPool/resumeSession）にcatchを追加し、失敗時は`bootError` stateに格納してエラー画面（「データの読み込みに失敗しました」＋再試行ボタン＋「設定→エクスポートで学習データを退避できます」の案内文）を描画するようにした。**設計判断（docs未記載）**: 再試行は`retryToken`という数値stateをインクリメントしてboot用useEffectの依存配列に含めることで同じチェックを再実行させる方式にした（関数をuseEffect外に切り出して直接呼ぶ方式だと、cancelledガードの二重管理が必要になり複雑化するため）。当初`useEffect`本体の先頭で`setBootError(null)`を呼んでいたところ`react-hooks/set-state-in-effect`のESLintエラーになったため、リセットは再試行ボタンのonClickハンドラ側（イベントハンドラ内なので許容される）に移した。index.htmlにJ-39どおりの静的スプラッシュ（`#root`直下、夜紺#0E1220地＋アプリ名＋CSSスピナー、インラインstyleで直書き）を追加——`main.tsx`が`createRoot(root).render()`で`#root`の子要素を丸ごと置換するため、Reactマウント後に自然に消える。テスト: App 2件（`getDb().close()`でDB接続を切って起動チェックを実際に失敗させ、エラー画面表示→`getDb().open()`後の再試行でホーム画面まで復帰することを確認。テスト内で必ずdbを再オープンして他テストへの影響を防いだ）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: スプラッシュの実ブラウザでの目視確認（本セッションはブラウザ自動化ツールが使えない。ビルド成果物のindex.htmlに静的HTMLが実際に出力されることはbuildで確認済み）。
 
 ※ T-69: `SettingsScreen.tsx`にローカル定義されていた`resolveTheme`/`ThemePreference`を`theme.ts`へ移動・export（`SettingsScreen`側は再import。重複初期化ロジックの一本化）。App.tsxの起動チェックPromise.allに`db.settings.get(THEME_PREFERENCE_KEY)`/`db.settings.get(FONT_SIZE_KEY)`を追加し、boot完了時に`setTheme(resolveTheme(pref))`/`setFontSizeScale(scale)`を適用するようにした。**設計判断（docs未記載）**: OS追従（`themePreference==='system'`）時のOS変更追従は、App起動時に取得した`themePreference`をstateに保持し、それを依存配列に持つ別useEffectで`matchMedia('(prefers-color-scheme: dark)')`の`change`リスナーを登録・クリーンアップする形にした（SettingsScreen滞在中に限定せず、アプリ全体で常時追従させるため。設定値自体を変えたのではなく実適用テーマだけを追従させるので、DBへの書き込みは発生しない）。テスト: App 2件（保存済みテーマ/文字サイズが起動時に即適用される・system設定時にOS側のmatchMedia changeイベントでdata-themeが切り替わる。後者はmatchMediaのモックを差し替えてchangeハンドラを直接発火させて検証）。既存`SettingsScreen.test.tsx`は無修正で全通過（重複initロジックの一本化が回帰を起こしていないことの確認）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-70: DrillScreen・DiagnosticScreenの音声再生系関数（handlePlayStart・handleStartAudioSet・startAudioSetPlayback・handleReplay）にtry/catchを追加し、失敗時はplayStateを'idle'に戻し「音声を再生できませんでした」のエラーバナー＋主ボタンのラベルを「もう一度試す」に切り替える形にした。**audio_qaのみ**追加で「音声なしで解答する」ボタンを出し、タップで`playState`を直接`'played'`にして選択肢を解放する（`remainingSec`を設定しないため15秒タイマーは起動しない設計を確認済み）。VocabScreen/DrillScreenのフレーズ音声自動再生（`unlock().then(play)`）には`.catch(() => console.warn(...))`を追加（自動再生失敗は学習継続可能なため通知なし、console.warnのみ残す）。ShadowingScreenは自動再生の仕組み自体を持たない（常に手動タップの「再生」ボタン）ため対象外の項目3は該当しないが、`handlePlay`・`handleRewind`・`handleSentenceTap`が`void`のfire-and-forgetでUnhandled Rejectionになりうる状態だったため同様にtry/catch・`.catch()`を追加した（再生ボタンはcompletedにならない限り残るため、再タップがそのまま再試行になる）。テスト: DrillScreen 3件（audio_qa再生失敗→再試行復帰・「音声なしで解答する」でタイマー無しのまま解答完了・audio_set unlock失敗→再試行復帰）、DiagnosticScreen 1件（再生失敗→「音声なしで解答する」で次のturnまで進行）。`npm test`（全パッケージ・380件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
 
 ## 今どこにいるか（1行）
 

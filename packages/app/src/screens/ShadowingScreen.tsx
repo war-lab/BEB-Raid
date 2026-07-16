@@ -68,9 +68,15 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
 
   async function handlePlay() {
     if (!question?.audio) return
-    await audioPlayer.unlock()
-    setPositionMs(0)
-    await audioPlayer.play(question.audio, playOptions())
+    try {
+      await audioPlayer.unlock()
+      setPositionMs(0)
+      await audioPlayer.play(question.audio, playOptions())
+    } catch (err) {
+      // 失敗しても再生ボタンはそのまま残るため、タップし直せば再試行できる
+      console.warn('[ShadowingScreen] 音声再生に失敗', err)
+      return
+    }
     await handlePlaybackEnded()
   }
 
@@ -93,15 +99,21 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   function handleRewind() {
     if (!question?.audio) return
     const startMs = Math.max(0, positionMs - REWIND_MS)
-    void audioPlayer.play(question.audio, playOptions({ startMs }))
+    audioPlayer.play(question.audio, playOptions({ startMs })).catch((err: unknown) => {
+      console.warn('[ShadowingScreen] 音声再生に失敗', err)
+    })
   }
 
   function handleSentenceTap(sentence: ShadowingSentence) {
     if (!question?.audio) return
-    void audioPlayer.play(
-      question.audio,
-      playOptions({ startMs: sentence.startMs, durationMs: sentence.durationMs }),
-    )
+    audioPlayer
+      .play(
+        question.audio,
+        playOptions({ startMs: sentence.startMs, durationMs: sentence.durationMs }),
+      )
+      .catch((err: unknown) => {
+        console.warn('[ShadowingScreen] 音声再生に失敗', err)
+      })
   }
 
   function handleNext() {

@@ -54,6 +54,8 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
 
   const [resultL, setResultL] = useState(DEFAULT_INITIAL_RATING)
   const [resultR, setResultR] = useState(DEFAULT_INITIAL_RATING)
+  // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4。DrillScreenと同じパターン）
+  const [audioError, setAudioError] = useState<string | null>(null)
 
   const lPool = questionPool.filter((q) => sectionForPart(q.part) === 'L')
   const rPool = questionPool.filter((q) => sectionForPart(q.part) === 'R')
@@ -176,15 +178,34 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
 
   async function handlePlayStart() {
     setPlayState('playing')
-    await audioPlayer.unlock()
-    if (question!.audio) {
-      await audioPlayer.play(question!.audio)
+    setAudioError(null)
+    try {
+      await audioPlayer.unlock()
+      if (question!.audio) {
+        await audioPlayer.play(question!.audio)
+      }
+    } catch (err) {
+      console.warn('[DiagnosticScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
     }
     setPlayState('played')
   }
 
+  /** 音声再生に失敗した際、音声なしで解答へ進むフォールバック */
+  function handlePlayWithoutAudio() {
+    setAudioError(null)
+    setPlayState('played')
+  }
+
   async function handleReplay() {
-    await audioPlayer.replay()
+    try {
+      await audioPlayer.replay()
+    } catch (err) {
+      console.warn('[DiagnosticScreen] 再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
   }
 
   async function handleSelect(choiceKey: string) {
@@ -226,6 +247,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     setTurn(nextTurn)
     setStartedAt(now())
     setPlayState('idle')
+    setAudioError(null)
   }
 
   return (
@@ -238,13 +260,29 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       }
       action={
         <>
+          {audioError && (
+            <p className="drill-audio-error" role="alert">
+              {audioError}
+            </p>
+          )}
           {needsAudioGate && playState !== 'played' && (
-            <PrimaryButton
-              onClick={() => void handlePlayStart()}
-              disabled={playState === 'playing'}
-            >
-              {playState === 'playing' ? '再生中…' : 'タップして開始'}
-            </PrimaryButton>
+            <>
+              <PrimaryButton
+                onClick={() => void handlePlayStart()}
+                disabled={playState === 'playing'}
+              >
+                {playState === 'playing'
+                  ? '再生中…'
+                  : audioError
+                    ? 'もう一度試す'
+                    : 'タップして開始'}
+              </PrimaryButton>
+              {audioError && (
+                <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
+                  音声なしで解答する
+                </button>
+              )}
+            </>
           )}
           {needsAudioGate && playState === 'played' && (
             <button type="button" className="drill-replay" onClick={() => void handleReplay()}>

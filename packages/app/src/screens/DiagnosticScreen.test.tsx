@@ -202,3 +202,24 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
     expect(useAppStore.getState().screen).toBe('home')
   })
 })
+
+describe('DiagnosticScreen: 音声再生失敗リカバリ（T-70）', () => {
+  it('再生失敗でボタンが「もう一度試す」に変わり、「音声なしで解答する」で解答へ進める', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play.mockRejectedValue(new Error('boom'))
+    render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={buildPool()} />)
+    await startDiagnostic('')
+
+    await screen.findByText('1/30')
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    expect(screen.getByText('もう一度試す')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('音声なしで解答する'))
+    const choiceA = await screen.findByText('a')
+    fireEvent.click(choiceA)
+    await screen.findByText('2/30')
+  })
+})

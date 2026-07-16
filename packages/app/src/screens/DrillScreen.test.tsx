@@ -398,6 +398,62 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
   })
 })
 
+describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
+  it('audio_qa: 再生失敗でボタンが「もう一度試す」に変わり、再試行すると再生が復帰する', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined)
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    expect(screen.getByText('もう一度試す')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('もう一度試す'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    expect(screen.queryByText('音声を再生できませんでした')).toBeNull()
+  })
+
+  it('audio_qa: 「音声なしで解答する」でタイマーを起動せず選択肢が解放され、解答できる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play.mockRejectedValue(new Error('boom'))
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await screen.findByText('音声なしで解答する')
+
+    fireEvent.click(screen.getByText('音声なしで解答する'))
+    expect(screen.getByText('Yesterday.')).toBeTruthy()
+    // 15秒タイマーは開始していない（表示自体が出ない）
+    expect(screen.queryByText('15')).toBeNull()
+
+    await answerAndSettle('Yesterday.', 1)
+    expect(screen.getByText('正解')).toBeTruthy()
+  })
+
+  it('audio_set: unlock失敗でidleへ戻り、再試行できる', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-1')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.unlock.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined)
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('もう一度試す'))
+
+    await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
+  })
+})
+
 function vocabCardQuestion(word: string, phraseAudio?: string): Question {
   return {
     id: `vocab-${word}`,

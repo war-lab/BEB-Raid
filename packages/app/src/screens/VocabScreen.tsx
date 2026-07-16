@@ -108,12 +108,20 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     if (!autoPlay) return
     const phraseAudio = reviewQuestion?.phraseAudio ?? triageQuestion?.phraseAudio
     if (!phraseAudio) return
-    void audioPlayer.unlock().then(() => audioPlayer.play(phraseAudio))
+    void audioPlayer
+      .unlock()
+      .then(() => audioPlayer.play(phraseAudio))
+      .catch((err: unknown) => {
+        // 自動再生は失敗しても学習継続可能（4択・スワイプ操作は既に表示されている）なので通知はしない
+        console.warn('[VocabScreen] フレーズ音声の自動再生に失敗', err)
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, reviewQuestion?.phraseAudio, triageQuestion?.phraseAudio])
 
   function handleReplay() {
-    void audioPlayer.replay()
+    audioPlayer.replay().catch((err: unknown) => {
+      console.warn('[VocabScreen] 再生に失敗', err)
+    })
   }
 
   if (reviewQueue === null || triageQueue === null) return null

@@ -165,6 +165,13 @@
   outline-offset: 2px;
 }
 
+/* --- 音声再生失敗時のエラーメッセージ（T-70） --- */
+.drill-audio-error {
+  margin: 0 0 var(--sp-1);
+  color: var(--ng);
+  font-size: var(--fs-sub);
+}
+
 /* --- Part2瞬発の15秒解答タイマー（--listen アクセント） --- */
 .drill-timer {
   margin: var(--sp-half) 0 0;

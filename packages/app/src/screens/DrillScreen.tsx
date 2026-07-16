@@ -130,6 +130,8 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   // audio_set 専用（M2・T-49）: セット内で今どの設問か・各設問の正誤（セット正解判定に使う）
   const [subQuestionIndex, setSubQuestionIndex] = useState(0)
   const [subQuestionResults, setSubQuestionResults] = useState<boolean[]>([])
+  // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4）
+  const [audioError, setAudioError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -203,7 +205,13 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）
   useEffect(() => {
     if (!settingsLoaded || !isVocabCard || noEarphoneMode || !question?.phraseAudio) return
-    void audioPlayer.unlock().then(() => audioPlayer.play(question.phraseAudio!))
+    void audioPlayer
+      .unlock()
+      .then(() => audioPlayer.play(question.phraseAudio!))
+      .catch((err: unknown) => {
+        // 自動再生は失敗しても学習継続可能（4択は既に表示されている）なので通知はしない
+        console.warn('[DrillScreen] フレーズ音声の自動再生に失敗', err)
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
@@ -391,7 +399,15 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
    * unlockはここで済ませ、実際の再生は先読み満了 or 早期開始タップで startAudioSetPlayback が行う
    */
   async function handleStartAudioSet() {
-    await audioPlayer.unlock()
+    setAudioError(null)
+    try {
+      await audioPlayer.unlock()
+    } catch (err) {
+      console.warn('[DrillScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
+    }
     const seconds = PRE_READING_SECONDS[season ?? 'P2']
     setPlayState('prereading')
     setPreReadingSecondsLeft(seconds)
@@ -401,8 +417,15 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   async function startAudioSetPlayback() {
     setPlayState('playing')
     setPreReadingSecondsLeft(null)
-    if (question!.audio) {
-      await audioPlayer.play(question!.audio)
+    try {
+      if (question!.audio) {
+        await audioPlayer.play(question!.audio)
+      }
+    } catch (err) {
+      console.warn('[DrillScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
     }
     setPlayState('played')
   }
@@ -413,19 +436,41 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       return
     }
     setPlayState('playing')
-    await audioPlayer.unlock()
-    const options: { durationMs?: number; rate?: number } = {}
-    if (partialAudioMode) options.durationMs = PARTIAL_AUDIO_DURATION_MS
-    if (isDictation && dictationRate !== 1) options.rate = dictationRate
-    if (question!.audio) {
-      await audioPlayer.play(question!.audio, Object.keys(options).length > 0 ? options : undefined)
+    setAudioError(null)
+    try {
+      await audioPlayer.unlock()
+      const options: { durationMs?: number; rate?: number } = {}
+      if (partialAudioMode) options.durationMs = PARTIAL_AUDIO_DURATION_MS
+      if (isDictation && dictationRate !== 1) options.rate = dictationRate
+      if (question!.audio) {
+        await audioPlayer.play(
+          question!.audio,
+          Object.keys(options).length > 0 ? options : undefined,
+        )
+      }
+    } catch (err) {
+      console.warn('[DrillScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
     }
     setPlayState('played')
     if (isAudioQa) setRemainingSec(ANSWER_TIMER_SECONDS)
   }
 
+  /** audio_qa: 音声再生に失敗した際、音声なしで解答へ進むフォールバック（タイマーは開始しない） */
+  function handlePlayWithoutAudio() {
+    setAudioError(null)
+    setPlayState('played')
+  }
+
   async function handleReplay() {
-    await audioPlayer.replay()
+    try {
+      await audioPlayer.replay()
+    } catch (err) {
+      console.warn('[DrillScreen] 再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
   }
 
   /** dictation: ワードバンクの語を次の未回答の穴に順にタップで埋める（3.4節） */
@@ -489,6 +534,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setSubQuestionIndex(0)
     setSubQuestionResults([])
     setPreReadingSecondsLeft(null)
+    setAudioError(null)
     setStartedAt(now())
   }
 
@@ -558,6 +604,11 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       }
       action={
         <>
+          {audioError && (
+            <p className="drill-audio-error" role="alert">
+              {audioError}
+            </p>
+          )}
           {isVocabCard &&
             quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
@@ -627,15 +678,28 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
             </div>
           )}
           {!isVocabCard && !isAudioSet && needsAudioGate && playState !== 'played' && (
-            <PrimaryButton
-              onClick={() => void handlePlayStart()}
-              disabled={playState === 'playing'}
-            >
-              {playState === 'playing' ? '再生中…' : 'タップして開始'}
-            </PrimaryButton>
+            <>
+              <PrimaryButton
+                onClick={() => void handlePlayStart()}
+                disabled={playState === 'playing'}
+              >
+                {playState === 'playing'
+                  ? '再生中…'
+                  : audioError
+                    ? 'もう一度試す'
+                    : 'タップして開始'}
+              </PrimaryButton>
+              {audioError && isAudioQa && (
+                <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
+                  音声なしで解答する
+                </button>
+              )}
+            </>
           )}
           {isAudioSet && playState === 'idle' && (
-            <PrimaryButton onClick={() => void handlePlayStart()}>タップして開始</PrimaryButton>
+            <PrimaryButton onClick={() => void handlePlayStart()}>
+              {audioError ? 'もう一度試す' : 'タップして開始'}
+            </PrimaryButton>
           )}
           {isAudioSet && playState === 'prereading' && (
             <>
