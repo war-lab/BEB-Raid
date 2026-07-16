@@ -19,6 +19,10 @@ beforeEach(() => {
 
 afterEach(async () => {
   await getDb().profile.clear()
+  await getDb().settings.clear()
+  delete document.documentElement.dataset.theme
+  delete document.documentElement.dataset.fontSize
+  vi.restoreAllMocks()
 })
 
 describe('App（配線確認）', () => {
@@ -60,6 +64,50 @@ describe('App（起動チェック失敗時のエラー表示。T-68）', () => 
     fireEvent.click(screen.getByText('再試行'))
 
     expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+  })
+})
+
+describe('App（テーマ・文字サイズの起動時適用。T-69）', () => {
+  it('保存済みのテーマ・文字サイズ設定が起動時に即適用される', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await getDb().settings.put({ key: 'themePreference', value: 'light' })
+    await getDb().settings.put({ key: 'fontSizeScale', value: 'L' })
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'BEB Raid' })
+
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(document.documentElement.dataset.fontSize).toBe('L')
+  })
+
+  it('テーマ設定がsystemのとき、OS側のダーク/ライト切替に追従する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await getDb().settings.put({ key: 'themePreference', value: 'system' })
+
+    const state = { matches: false }
+    const listeners: (() => void)[] = []
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          get matches() {
+            return state.matches
+          },
+          media: query,
+          addEventListener: (_event: string, handler: () => void) => {
+            listeners.push(handler)
+          },
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList,
+    )
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'BEB Raid' })
+    expect(document.documentElement.dataset.theme).toBe('light')
+
+    state.matches = true
+    listeners.forEach((handler) => handler())
+
+    expect(document.documentElement.dataset.theme).toBe('dark')
   })
 })
 

@@ -4,11 +4,14 @@
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import { getDb } from './db/database'
+import type { FontSizeScale } from './fontSize'
+import { setFontSizeScale } from './fontSize'
 import { createAiClient, createAudioPlayer, createPackCache, type PackCache } from './platform'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
 import { resumeSession, type SessionSnapshot } from './services/session'
-import { BYOK_API_KEY_KEY } from './services/settingsKeys'
+import { BYOK_API_KEY_KEY, FONT_SIZE_KEY, THEME_PREFERENCE_KEY } from './services/settingsKeys'
+import { resolveTheme, setTheme, type ThemePreference } from './theme'
 import { PrimaryButton } from './components/PrimaryButton'
 import { ScreenLayout } from './components/ScreenLayout'
 import { DashboardScreen } from './screens/DashboardScreen'
@@ -83,15 +86,27 @@ export function App() {
   // T-68: 起動チェック失敗時の白画面防止（14の1.2）。retryTokenを変えて同じeffectを再実行させる
   const [bootError, setBootError] = useState<string | null>(null)
   const [retryToken, setRetryToken] = useState(0)
+  // T-69: テーマ・文字サイズの起動時適用（14の1.3）。themePreferenceはOS追従リスナーの要否判定に使う
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system')
 
   useEffect(() => {
     let cancelled = false
-    void Promise.all([hasProfile(getDb()), loadQuestionPool(packCache), resumeSession(getDb())])
-      .then(([exists, pool, resumed]) => {
+    void Promise.all([
+      hasProfile(getDb()),
+      loadQuestionPool(packCache),
+      resumeSession(getDb()),
+      getDb().settings.get(THEME_PREFERENCE_KEY),
+      getDb().settings.get(FONT_SIZE_KEY),
+    ])
+      .then(([exists, pool, resumed, themeSetting, fontSetting]) => {
         if (cancelled) return
         if (!exists) navigate('diagnostic')
         setQuestionPool(pool)
         setResumeSnapshot(resumed)
+        const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
+        setThemePreferenceState(pref)
+        setTheme(resolveTheme(pref))
+        setFontSizeScale((fontSetting?.value as FontSizeScale | undefined) ?? 'M')
         setBootChecked(true)
       })
       .catch((err: unknown) => {
@@ -103,6 +118,17 @@ export function App() {
       cancelled = true
     }
   }, [navigate, retryToken])
+
+  // OS追従（themePreference==='system'）のとき、OS側のダーク/ライト切替に追従する
+  useEffect(() => {
+    if (themePreference !== 'system') return
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => setTheme(resolveTheme('system'))
+    mql.addEventListener('change', handleChange)
+    return () => {
+      mql.removeEventListener('change', handleChange)
+    }
+  }, [themePreference])
 
   // ホームに戻るたび（起動時に加え、ドリルの「中断」ボタンからの復帰時も）に
   // 中断状態を再取得する。App自体はscreen切替では再マウントしないため、boot時点の

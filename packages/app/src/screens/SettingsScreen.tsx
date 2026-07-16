@@ -17,8 +17,7 @@ import {
   NO_EARPHONE_MODE_KEY,
   THEME_PREFERENCE_KEY,
 } from '../services/settingsKeys'
-import type { Theme } from '../theme'
-import { setTheme } from '../theme'
+import { resolveTheme, setTheme, type ThemePreference } from '../theme'
 import { useAppStore } from '../store/appStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -32,16 +31,6 @@ interface Props {
   db: BebRaidDatabase
   /** platform層のPackCache（App.tsxがモジュールスコープで生成し、audioPlayerと同様に注入する） */
   packCache: PackCache
-}
-
-/** テーマ設定は「OS追従」を含む3値（実際に適用されるのはTheme=dark/light） */
-export type ThemePreference = 'system' | Theme
-
-function resolveTheme(pref: ThemePreference): Theme {
-  if (pref === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
-  return pref
 }
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ

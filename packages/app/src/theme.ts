@@ -3,6 +3,20 @@
 
 export type Theme = 'dark' | 'light'
 
+/** テーマ設定は「OS追従」を含む3値（実際に適用されるのはTheme=dark/light） */
+export type ThemePreference = 'system' | Theme
+
+/**
+ * 設定値（system/dark/light）から実際に適用するThemeを決定する。
+ * T-69: SettingsScreen専用だったものを起動時適用（App.tsx）と共有するためここへ移した
+ */
+export function resolveTheme(pref: ThemePreference): Theme {
+  if (pref === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  return pref
+}
+
 /** manifest の theme_color と揃えるステータスバー色（07の5.2） */
 const THEME_COLOR: Record<Theme, string> = {
   dark: '#0E1220',
