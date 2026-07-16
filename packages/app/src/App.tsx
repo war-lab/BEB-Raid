@@ -9,6 +9,8 @@ import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
 import { resumeSession, type SessionSnapshot } from './services/session'
 import { BYOK_API_KEY_KEY } from './services/settingsKeys'
+import { PrimaryButton } from './components/PrimaryButton'
+import { ScreenLayout } from './components/ScreenLayout'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
@@ -78,24 +80,29 @@ export function App() {
   const [questionPool, setQuestionPool] = useState<Question[]>([])
   // T-67: 進行中セッションの中断復帰（docs/15 T-67・J-34）
   const [resumeSnapshot, setResumeSnapshot] = useState<SessionSnapshot | null>(null)
+  // T-68: 起動チェック失敗時の白画面防止（14の1.2）。retryTokenを変えて同じeffectを再実行させる
+  const [bootError, setBootError] = useState<string | null>(null)
+  const [retryToken, setRetryToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
-    void Promise.all([
-      hasProfile(getDb()),
-      loadQuestionPool(packCache),
-      resumeSession(getDb()),
-    ]).then(([exists, pool, resumed]) => {
-      if (cancelled) return
-      if (!exists) navigate('diagnostic')
-      setQuestionPool(pool)
-      setResumeSnapshot(resumed)
-      setBootChecked(true)
-    })
+    void Promise.all([hasProfile(getDb()), loadQuestionPool(packCache), resumeSession(getDb())])
+      .then(([exists, pool, resumed]) => {
+        if (cancelled) return
+        if (!exists) navigate('diagnostic')
+        setQuestionPool(pool)
+        setResumeSnapshot(resumed)
+        setBootChecked(true)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        console.error('[App] 起動チェックに失敗', err)
+        setBootError('データの読み込みに失敗しました')
+      })
     return () => {
       cancelled = true
     }
-  }, [navigate])
+  }, [navigate, retryToken])
 
   // ホームに戻るたび（起動時に加え、ドリルの「中断」ボタンからの復帰時も）に
   // 中断状態を再取得する。App自体はscreen切替では再マウントしないため、boot時点の
@@ -116,6 +123,27 @@ export function App() {
   useEffect(() => {
     void syncPacks({ db: getDb(), packCache })
   }, [])
+
+  if (bootError) {
+    return (
+      <ScreenLayout
+        status={<p>起動エラー</p>}
+        action={
+          <PrimaryButton
+            onClick={() => {
+              setBootError(null)
+              setRetryToken((n) => n + 1)
+            }}
+          >
+            再試行
+          </PrimaryButton>
+        }
+      >
+        <p>{bootError}</p>
+        <p>設定→エクスポートで学習データを退避できます</p>
+      </ScreenLayout>
+    )
+  }
 
   if (!bootChecked) return null
 

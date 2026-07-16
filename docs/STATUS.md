@@ -15,12 +15,15 @@
 | ID | タスク | 状態 |
 |----|--------|------|
 | T-67 | セッション中断復帰の配線＋中断ボタン | ✅ 完了（2026-07-16） |
-| T-68〜T-76 | フェーズA: 安定性（残り） | 未着手 |
+| T-68 | 起動エラー処理＋静的スプラッシュ | ✅ 完了（2026-07-16） |
+| T-69〜T-76 | フェーズA: 安定性（残り） | 未着手 |
 | T-77〜T-79 | フェーズB: 体験の質 | 未着手 |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
 | T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
 
 ※ T-67: `services/session.ts`の`resumeSession`をApp起動時のPromise.allに追加し、結果を`resumeSnapshot`としてHomeScreenへprop注入した。**設計判断（docs未記載）**: App自体はscreen切替では再マウントしないため、boot時点1回だけの取得では「ドリル中断→ホーム」を経由した直後の再開ボタンに反映されない。これを解消するため、boot完了後は`screen`が`'home'`になるたび（起動直後を含む）に`resumeSession`を再取得する2本目のuseEffectを追加した（HomeScreen側での重複DB読みを避け、App側1箇所に集約）。HomeScreenは「続きから再開（残りN問）」ボタン（`.secondary-action`流用、主ボタン直上）をresumeSnapshot存在時のみ表示し、タップで既存スナップショットをそのまま`beginSession`に渡してdrillへ遷移する（ratingBeforeはJ-34どおり現在値で再取得）。「今日のクエスト」「単独モード」開始時は、resumeSnapshotがあれば`window.confirm`で破棄確認を挟む（共通の`startSessionAndNavigate`1箇所に集約）。DrillScreenのステータス帯に「中断」テキストボタンを追加（`navigate('home')`のみでsessionStore/DBは一切変更しない。中断=破棄ではなく、次の解答時にDB上のスナップショットへ自然に追記される設計を維持）。テスト: HomeScreen 4件（再開ボタンの表示/非表示・タップでdrill遷移・confirm拒否/承諾の分岐）、DrillScreen 1件（中断→home遷移＋activeSessionがDBに残ることの確認）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの操作確認（本セッションはブラウザ自動化ツールが使えない）。
+
+※ T-68: App.tsxの起動チェック（hasProfile/loadQuestionPool/resumeSession）にcatchを追加し、失敗時は`bootError` stateに格納してエラー画面（「データの読み込みに失敗しました」＋再試行ボタン＋「設定→エクスポートで学習データを退避できます」の案内文）を描画するようにした。**設計判断（docs未記載）**: 再試行は`retryToken`という数値stateをインクリメントしてboot用useEffectの依存配列に含めることで同じチェックを再実行させる方式にした（関数をuseEffect外に切り出して直接呼ぶ方式だと、cancelledガードの二重管理が必要になり複雑化するため）。当初`useEffect`本体の先頭で`setBootError(null)`を呼んでいたところ`react-hooks/set-state-in-effect`のESLintエラーになったため、リセットは再試行ボタンのonClickハンドラ側（イベントハンドラ内なので許容される）に移した。index.htmlにJ-39どおりの静的スプラッシュ（`#root`直下、夜紺#0E1220地＋アプリ名＋CSSスピナー、インラインstyleで直書き）を追加——`main.tsx`が`createRoot(root).render()`で`#root`の子要素を丸ごと置換するため、Reactマウント後に自然に消える。テスト: App 2件（`getDb().close()`でDB接続を切って起動チェックを実際に失敗させ、エラー画面表示→`getDb().open()`後の再試行でホーム画面まで復帰することを確認。テスト内で必ずdbを再オープンして他テストへの影響を防いだ）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: スプラッシュの実ブラウザでの目視確認（本セッションはブラウザ自動化ツールが使えない。ビルド成果物のindex.htmlに静的HTMLが実際に出力されることはbuildで確認済み）。
 
 ## 今どこにいるか（1行）
 

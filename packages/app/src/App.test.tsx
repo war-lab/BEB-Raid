@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import 'fake-indexeddb/auto'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { QuestionPack } from '@beb-raid/shared-schema'
 import { App, PACK_IDS, loadQuestionPool } from './App'
@@ -32,6 +32,34 @@ describe('App（配線確認）', () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
+  })
+})
+
+describe('App（起動チェック失敗時のエラー表示。T-68）', () => {
+  it('起動チェックが失敗すると白画面ではなくエラー画面と再試行ボタンを表示する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    getDb().close()
+
+    render(<App />)
+
+    expect(await screen.findByText('データの読み込みに失敗しました')).toBeTruthy()
+    expect(screen.getByText('再試行')).toBeTruthy()
+
+    // 他テストへ影響しないようDB接続を戻す
+    await getDb().open()
+  })
+
+  it('再試行に成功すると通常どおりホーム画面まで復帰する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    getDb().close()
+
+    render(<App />)
+    await screen.findByText('データの読み込みに失敗しました')
+
+    await getDb().open()
+    fireEvent.click(screen.getByText('再試行'))
+
+    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
   })
 })
 
