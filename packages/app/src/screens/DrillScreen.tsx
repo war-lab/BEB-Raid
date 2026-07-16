@@ -19,7 +19,7 @@ import type { AiClient, AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
 import { advanceSession, resumeSession } from '../services/session'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -63,6 +63,12 @@ const PRE_READING_SECONDS: Record<PhaseSeason, number> = { P1: 15, P2: 15, P3: 1
 // （イベントハンドラ内の呼び出しも静的解析では判別されない）、別関数越しに呼ぶ
 function now(): number {
   return Date.now()
+}
+
+/** T-78（J-42の対象外＝ハプティクスは演出でなく操作フィードバック）: 正解確定時の軽い振動 */
+function triggerCorrectHaptics(hapticsEnabled: boolean, isCorrect: boolean) {
+  if (!hapticsEnabled || !isCorrect) return
+  navigator.vibrate?.(15)
 }
 
 /**
@@ -132,12 +138,18 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   const [audioError, setAudioError] = useState<string | null>(null)
   // T-71/T-76: 解答保存（recordAnswerPipeline）失敗時のリカバリ用エラーメッセージ（J-35）
   const [saveError, setSaveError] = useState<string | null>(null)
+  // T-78: ハプティクス設定（既定ON）。正解確定時のnavigator.vibrateに使う
+  const [hapticsEnabled, setHapticsEnabled] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-    void db.settings.get(NO_EARPHONE_MODE_KEY).then((setting) => {
+    void Promise.all([
+      db.settings.get(NO_EARPHONE_MODE_KEY),
+      db.settings.get(HAPTICS_ENABLED_KEY),
+    ]).then(([earphoneSetting, hapticsSetting]) => {
       if (cancelled) return
-      setNoEarphoneMode(setting?.value === true)
+      setNoEarphoneMode(earphoneSetting?.value === true)
+      setHapticsEnabled(hapticsSetting?.value !== false)
       setSettingsLoaded(true)
     })
     return () => {
@@ -330,6 +342,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const responseMs = now() - startedAt
     setResult({ selectedKey, isCorrect, isTimeout })
     setStreak((s) => (isCorrect ? s + 1 : 0))
+    triggerCorrectHaptics(hapticsEnabled, isCorrect)
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
@@ -372,6 +385,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const responseMs = now() - startedAt
     setResult({ selectedKey: choiceKey, isCorrect, isTimeout: false })
     setStreak((s) => (isCorrect ? s + 1 : 0))
+    triggerCorrectHaptics(hapticsEnabled, isCorrect)
 
     try {
       // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
@@ -526,6 +540,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const responseMs = now() - startedAt
     setResult({ selectedKey: null, isCorrect: judgement.isCorrect, isTimeout: false })
     setStreak((s) => (judgement.isCorrect ? s + 1 : 0))
+    triggerCorrectHaptics(hapticsEnabled, judgement.isCorrect)
 
     try {
       // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
@@ -579,6 +594,10 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   function handleSelectVocabChoice(key: string) {
     if (selectedChoiceKey !== null) return
     setSelectedChoiceKey(key)
+    triggerCorrectHaptics(
+      hapticsEnabled,
+      quizChoices.find((c) => c.key === key)?.isCorrect ?? false,
+    )
   }
 
   /**
@@ -916,6 +935,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       ) : (
         <p className="question-text">{question.question}</p>
       )}
+      {settingsLoaded && <span data-testid="drill-settings-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>
   )
 }

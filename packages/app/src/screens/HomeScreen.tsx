@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
-import { daysBetween, toDateString } from '../engine/date'
+import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
+import { buildHeatmapCells } from '../engine/heatmapCells'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { generateQuickPack } from '../engine/quickPack'
@@ -15,10 +16,11 @@ import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
 import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { LAST_SEEN_STREAK_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
+import { Heatmap } from '../components/charts/Heatmap'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 
@@ -37,6 +39,8 @@ const DURATIONS: QuickPackDuration[] = [3, 7, 15]
 const DEFAULT_DURATION: QuickPackDuration = 7
 /** 途切れ判定の閾値（レビューフォローアップ3.8節: gap≥2） */
 const BROKEN_GAP_DAYS = 2
+/** ホームのミニヒートマップの表示週数（T-78。DashboardScreenの15週の縮小版） */
+const MINI_HEATMAP_WEEKS = 4
 
 /** QuickPackItem → SessionItem（questionId が null の語彙カードは 3.4節の規約で補う） */
 export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
@@ -68,16 +72,29 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
   const [phase, setPhase] = useState<PhaseState | null>(null)
   // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
   const [phaseProgress, setPhaseProgress] = useState<number | null>(null)
+  // T-78: 直近4週間のミニヒートマップ（既存Heatmapコンポーネントの縮小版=セル数を絞るだけ）
+  const [miniHeatmapCells, setMiniHeatmapCells] = useState<ReturnType<
+    typeof buildHeatmapCells
+  > | null>(null)
+  // T-78: 前回表示値より日数が増えたときだけストリーク表示を1回パルスさせる
+  const [streakPulse, setStreakPulse] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const [status, record, queue, phaseState] = await Promise.all([
-        evaluateStreak(db),
-        getStreak(db),
-        getSrsQueue(db),
-        getOrInitPhaseState(db),
-      ])
+      const heatmapCutoff = localMidnightAfterDays(
+        startOfLocalDay(Date.now()),
+        -(MINI_HEATMAP_WEEKS * 7 - 1),
+      )
+      const [status, record, queue, phaseState, lastSeenSetting, recentAttempts] =
+        await Promise.all([
+          evaluateStreak(db),
+          getStreak(db),
+          getSrsQueue(db),
+          getOrInitPhaseState(db),
+          db.settings.get(LAST_SEEN_STREAK_KEY),
+          db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
+        ])
       if (cancelled) return
       const today = toDateString(Date.now())
       const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
@@ -87,6 +104,19 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
       setBrokenSinceDays(isBroken ? status.currentDays : null)
       setDueCount(queue.dueReviews.length)
       setPhase(phaseState)
+
+      const lastSeen = (lastSeenSetting?.value as number | undefined) ?? 0
+      setStreakPulse(status.currentDays > lastSeen)
+      if (status.currentDays !== lastSeen) {
+        void db.settings.put({ key: LAST_SEEN_STREAK_KEY, value: status.currentDays })
+      }
+
+      const countsByDate = new Map<string, number>()
+      for (const a of recentAttempts) {
+        const date = toDateString(a.answeredAt)
+        countsByDate.set(date, (countsByDate.get(date) ?? 0) + 1)
+      }
+      setMiniHeatmapCells(buildHeatmapCells(countsByDate, Date.now(), MINI_HEATMAP_WEEKS))
 
       const questionLookup = new Map(questionPool.map((q) => [q.id, q]))
       const ctx = await buildCriterionContext(db, questionLookup)
@@ -165,7 +195,14 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
           {brokenSinceDays !== null ? (
             <p>途切れ（前回{brokenSinceDays}日）</p>
           ) : (
-            streakDays > 0 && <p className="session-streak display-num">🔥{streakDays}</p>
+            streakDays > 0 && (
+              <p
+                key={streakDays}
+                className={`streak-flame display-num${streakPulse ? ' is-pulse' : ''}`}
+              >
+                🔥{streakDays}
+              </p>
+            )
           )}
           {dueCount > 0 && <span className="home-due-badge">SRS期限 {dueCount}</span>}
         </>
@@ -268,6 +305,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
               />
             </div>
           )}
+        </div>
+      )}
+      {miniHeatmapCells && (
+        <div className="home-mini-heatmap" data-testid="home-mini-heatmap">
+          <Heatmap cells={miniHeatmapCells} />
         </div>
       )}
       <InstallHint />

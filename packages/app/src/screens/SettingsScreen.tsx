@@ -14,6 +14,7 @@ import {
   BYOK_API_KEY_KEY,
   BYOK_MODEL_KEY,
   FONT_SIZE_KEY,
+  HAPTICS_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
   THEME_PREFERENCE_KEY,
 } from '../services/settingsKeys'
@@ -43,6 +44,8 @@ export function SettingsScreen({ db, packCache }: Props) {
 
   const [displayName, setDisplayName] = useState('')
   const [noEarphoneMode, setNoEarphoneModeState] = useState(false)
+  // T-78: ハプティクス（正解確定時の振動）。既定ON（14の2.4節）
+  const [hapticsEnabled, setHapticsEnabledState] = useState(true)
   const [themePref, setThemePrefState] = useState<ThemePreference>('system')
   const [fontSize, setFontSizeState] = useState<FontSizeScale>(getFontSizeScale())
   const [cacheUsage, setCacheUsage] = useState<CacheUsage | null>(null)
@@ -70,6 +73,7 @@ export function SettingsScreen({ db, packCache }: Props) {
         modelSetting,
         persistedResult,
         estimateResult,
+        hapticsSetting,
       ] = await Promise.all([
         db.profile.get(PROFILE_ID),
         db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -80,10 +84,12 @@ export function SettingsScreen({ db, packCache }: Props) {
         db.settings.get(BYOK_MODEL_KEY),
         navigator.storage?.persisted?.() ?? Promise.resolve(null),
         navigator.storage?.estimate?.() ?? Promise.resolve(null),
+        db.settings.get(HAPTICS_ENABLED_KEY),
       ])
       if (cancelled) return
       if (profile) setDisplayName(profile.displayName)
       setNoEarphoneModeState(earphoneSetting?.value === true)
+      setHapticsEnabledState(hapticsSetting?.value !== false)
       const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
       setThemePrefState(pref)
       setTheme(resolveTheme(pref))
@@ -115,6 +121,12 @@ export function SettingsScreen({ db, packCache }: Props) {
     const next = !noEarphoneMode
     setNoEarphoneModeState(next)
     await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: next })
+  }
+
+  async function handleToggleHaptics() {
+    const next = !hapticsEnabled
+    setHapticsEnabledState(next)
+    await db.settings.put({ key: HAPTICS_ENABLED_KEY, value: next })
   }
 
   async function handleThemeChange(pref: ThemePreference) {
@@ -206,6 +218,17 @@ export function SettingsScreen({ db, packCache }: Props) {
               onChange={() => void handleToggleEarphone()}
             />
             イヤホンなしモード（リスニング問題をリーディング系に差し替える）
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <input
+              type="checkbox"
+              checked={hapticsEnabled}
+              onChange={() => void handleToggleHaptics()}
+            />
+            ハプティクス（正解確定時に振動する）
           </label>
         </section>
 

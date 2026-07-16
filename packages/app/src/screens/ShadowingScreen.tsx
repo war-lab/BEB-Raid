@@ -7,11 +7,13 @@ import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { ListeningStage } from '../db/schema'
 import type { ShadowingSentence } from '../engine/shadowing'
-import { evaluateStreak } from '../engine/streak'
+import { evaluateStreak, getStreak } from '../engine/streak'
 import type { AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
+import { countAttemptsToday } from '../services/dailyStats'
 import { getOrInitPhaseState } from '../services/phase'
 import { useAppStore } from '../store/appStore'
+import { CompletionCard } from '../components/CompletionCard'
 import { KaraokeScript } from '../components/KaraokeScript'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -55,6 +57,23 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
       cancelled = true
     }
   }, [db])
+
+  // T-78: 完了カード用の「今日の実施数・ストリーク」は全素材完了到達時に1回だけ取得する
+  const [completionStats, setCompletionStats] = useState<{
+    count: number
+    streakDays: number
+  } | null>(null)
+  const allDone = index >= shadowingQuestions.length
+  useEffect(() => {
+    if (!allDone) return
+    let cancelled = false
+    void Promise.all([countAttemptsToday(db), getStreak(db)]).then(([count, streak]) => {
+      if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [allDone, db])
 
   const question = shadowingQuestions[index]
 
@@ -128,7 +147,20 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
       <ScreenLayout
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}
       >
-        <p>シャドーイング素材がありません</p>
+        {shadowingQuestions.length === 0 ? (
+          <p>シャドーイング素材がありません</p>
+        ) : (
+          <>
+            <p>シャドーイングが完了しました</p>
+            {completionStats && (
+              <CompletionCard
+                countLabel={`今日の実施数 ${completionStats.count}問`}
+                streakDays={completionStats.streakDays}
+                message="この調子で続けましょう"
+              />
+            )}
+          </>
+        )}
       </ScreenLayout>
     )
   }

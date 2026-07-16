@@ -162,6 +162,30 @@ describe('ShadowingScreen: 実施ログ（J-13）', () => {
   })
 })
 
+describe('ShadowingScreen: 完了カード（T-78）', () => {
+  it('全素材の完了後は完了カードを含む完了画面を表示する', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const question = shadowingQuestion()
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[question]} />)
+
+    for (let lap = 1; lap <= 3; lap++) {
+      fireEvent.click(screen.getByText('再生'))
+      await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(lap))
+      await act(async () => {
+        audioPlayer.resolveLatest()
+        await Promise.resolve()
+      })
+    }
+    await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+    fireEvent.click(screen.getByText('次へ'))
+
+    await screen.findByText('シャドーイングが完了しました')
+    const card = await screen.findByTestId('completion-card')
+    expect(card.textContent).toContain('今日の実施数 1問')
+  })
+})
+
 describe('ShadowingScreen: スクリプト表示トグル', () => {
   it('非表示→英文→英文+和訳の3段階を切り替えられる', async () => {
     const db = newDb()

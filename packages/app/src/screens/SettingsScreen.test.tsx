@@ -82,6 +82,19 @@ describe('SettingsScreen: 永続化', () => {
     })
   })
 
+  it('ハプティクスのトグルがsettingsストアに永続化される（T-78。既定はON）', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+
+    expect((screen.getByLabelText(/ハプティクス/) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByLabelText(/ハプティクス/))
+
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('hapticsEnabled'))?.value).toBe(false)
+    })
+  })
+
   it('テーマ切替がsettingsストアに永続化され、data-themeが反映される', async () => {
     const db = newDb()
     render(<SettingsScreen db={db} packCache={new FakePackCache()} />)

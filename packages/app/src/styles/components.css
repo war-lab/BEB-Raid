@@ -159,6 +159,28 @@
   }
 }
 
+/* --- 完了カード（T-78。語彙SRS終了・診断完了・シャドーイング完了で共用） --- */
+.completion-card {
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  text-align: center;
+  animation: result-scale-in 250ms ease-out;
+}
+.completion-card__count {
+  font-weight: 700;
+  margin: 0 0 var(--sp-half);
+}
+.completion-card__streak {
+  color: var(--gold);
+  margin: 0 0 var(--sp-half);
+}
+.completion-card__message {
+  color: var(--ink-2);
+  margin: 0;
+}
+
 /* --- リザルト報酬演出（T-77。J-42: 総時間600〜900ms・reduced-motionでは静止表示） --- */
 .result-stats {
   list-style: none;
@@ -564,6 +586,17 @@
   color: var(--on-gold);
   font-size: var(--fs-note);
   font-weight: 700;
+}
+/* --- ホームの日数ストリーク（T-78。session-streakとは別物: 増えた回だけパルスさせる） --- */
+.streak-flame {
+  color: var(--gold);
+}
+.streak-flame.is-pulse {
+  animation: streak-pulse 400ms ease-out;
+}
+/* --- ホームのミニヒートマップ（T-78。直近4週間。DashboardScreenの15週版の縮小版） --- */
+.home-mini-heatmap {
+  margin: var(--sp-1) 0;
 }
 .home-season {
   margin: var(--sp-1) 0;

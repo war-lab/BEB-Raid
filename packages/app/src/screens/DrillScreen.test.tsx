@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion, startSession, type SessionItem } from '../services/session'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { DrillScreen } from './DrillScreen'
@@ -1099,6 +1099,63 @@ describe('DrillScreen: 選択肢ランタイムシャッフル（T-79。J-36）'
       expect(screen.getByText('正解')).toBeTruthy()
     } finally {
       randomSpy.mockRestore()
+    }
+  })
+})
+
+describe('DrillScreen: ハプティクス（T-78。正解確定時のnavigator.vibrate）', () => {
+  it('正解確定時、設定ONならnavigator.vibrateが呼ばれる', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // q-1 の正解は A
+      await answerAndSettle('a', 1)
+      expect(vibrate).toHaveBeenCalledWith(15)
+    } finally {
+      Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true })
+    }
+  })
+
+  it('設定OFFなら正解確定時でもnavigator.vibrateが呼ばれない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: HAPTICS_ENABLED_KEY, value: false })
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // DrillScreen起動時のsettings読み込み（非同期）が解決してhapticsEnabled=falseが
+      // stateに反映されるのを待ってからクリックする（先にクリックするとstate初期値=true
+      // のままfinalizeAnswerが評価してしまい、falseとの競合レースになる）
+      await screen.findByTestId('drill-settings-loaded')
+      await answerAndSettle('a', 1)
+      expect(vibrate).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true })
+    }
+  })
+
+  it('誤答時はnavigator.vibrateが呼ばれない', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // q-1 の正解はA。誤答のbを選ぶ
+      await answerAndSettle('b', 1)
+      expect(vibrate).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true })
     }
   })
 })

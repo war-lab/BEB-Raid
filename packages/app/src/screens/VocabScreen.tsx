@@ -12,15 +12,17 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
-import { evaluateStreak } from '../engine/streak'
+import { evaluateStreak, getStreak } from '../engine/streak'
 import { addSrsCard, getSrsQueue, srsCardId } from '../engine/srs'
 import type { SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { countAttemptsToday } from '../services/dailyStats'
+import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
+import { CompletionCard } from '../components/CompletionCard'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -65,6 +67,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   // 復習モード専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
   const [startedAt, setStartedAt] = useState(() => now())
+  // T-78: ハプティクス設定（既定ON）
+  const [hapticsEnabled, setHapticsEnabled] = useState(true)
 
   // 初回ロード: 復習キュー（期限到来＋新規導入。4節）と仕分け候補（未SRS化の語彙）を用意する
   useEffect(() => {
@@ -77,11 +81,15 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         (q) =>
           q.format === 'vocab_card' && q.front && !existingIds.has(srsCardId('vocab', q.front)),
       )
-      const noEarphoneSetting = await db.settings.get(NO_EARPHONE_MODE_KEY)
+      const [noEarphoneSetting, hapticsSetting] = await Promise.all([
+        db.settings.get(NO_EARPHONE_MODE_KEY),
+        db.settings.get(HAPTICS_ENABLED_KEY),
+      ])
       if (!cancelled) {
         setReviewQueue(reviewCards)
         setTriageQueue(candidates)
         setAutoPlay(noEarphoneSetting?.value !== true)
+        setHapticsEnabled(hapticsSetting?.value !== false)
       }
     }
     void load()
@@ -124,11 +132,36 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     })
   }
 
+  // T-78: 完了カード用の「今日の実施数・ストリーク」は完了到達時に1回だけ取得する
+  const isDone =
+    reviewQueue !== null &&
+    triageQueue !== null &&
+    reviewIndex >= reviewQueue.length &&
+    triageIndex >= triageQueue.length
+  const [completionStats, setCompletionStats] = useState<{
+    count: number
+    streakDays: number
+  } | null>(null)
+  useEffect(() => {
+    if (!isDone) return
+    let cancelled = false
+    void Promise.all([countAttemptsToday(db), getStreak(db)]).then(([count, streak]) => {
+      if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [isDone, db])
+
   if (reviewQueue === null || triageQueue === null) return null
 
   function handleSelectChoice(key: string) {
     if (selectedChoiceKey !== null) return
     setSelectedChoiceKey(key)
+    // T-78: 正解確定時の軽い振動フィードバック（設定でOFF・非対応環境では何もしない）
+    if (hapticsEnabled && quizChoices.find((c) => c.key === key)?.isCorrect) {
+      navigator.vibrate?.(15)
+    }
   }
 
   async function handleGrade(grade: SrsGrade) {
@@ -301,6 +334,13 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   return (
     <ScreenLayout action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}>
       <p>語彙SRSが終了しました</p>
+      {completionStats && (
+        <CompletionCard
+          countLabel={`今日の実施数 ${completionStats.count}問`}
+          streakDays={completionStats.streakDays}
+          message="この調子で続けましょう"
+        />
+      )}
     </ScreenLayout>
   )
 }

@@ -3,7 +3,7 @@
 // 完了画面（L/R初期レート＋「ここから伸ばす」。予測スコア帯は出さない=J-1）。
 // 診断は独立したレートキャリブレーションのフローのため、通常ドリルの
 // tagStats・SRS・processWrongAnswer 等の副作用は起こさない。
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import {
@@ -14,11 +14,14 @@ import {
   updateDiagnosticRating,
 } from '../engine/diagnostic'
 import { DEFAULT_INITIAL_RATING, initializeRatings, sectionForPart } from '../engine/rating'
+import { getStreak } from '../engine/streak'
 import type { AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
+import { countAttemptsToday } from '../services/dailyStats'
 import { createProfile } from '../services/profile'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton } from '../components/ChoiceButton'
+import { CompletionCard } from '../components/CompletionCard'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
@@ -56,6 +59,21 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   const [resultR, setResultR] = useState(DEFAULT_INITIAL_RATING)
   // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4。DrillScreenと同じパターン）
   const [audioError, setAudioError] = useState<string | null>(null)
+  // T-78: 完了カード用の「今日の実施数・ストリーク」は診断完了到達時に1回だけ取得する
+  const [completionStats, setCompletionStats] = useState<{
+    count: number
+    streakDays: number
+  } | null>(null)
+  useEffect(() => {
+    if (step !== 'complete') return
+    let cancelled = false
+    void Promise.all([countAttemptsToday(db), getStreak(db)]).then(([count, streak]) => {
+      if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [step, db])
 
   const lPool = questionPool.filter((q) => sectionForPart(q.part) === 'L')
   const rPool = questionPool.filter((q) => sectionForPart(q.part) === 'R')
@@ -152,6 +170,13 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
         <p className="display-num">L: {Math.round(resultL)}</p>
         <p className="display-num">R: {Math.round(resultR)}</p>
         <p>ここから伸ばしていきましょう。</p>
+        {completionStats && (
+          <CompletionCard
+            countLabel={`今日の実施数 ${completionStats.count}問`}
+            streakDays={completionStats.streakDays}
+            message="ここから伸ばしていきましょう"
+          />
+        )}
       </ScreenLayout>
     )
   }

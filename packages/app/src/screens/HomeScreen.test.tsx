@@ -185,6 +185,69 @@ describe('HomeScreen: 実データの表示', () => {
   })
 })
 
+describe('HomeScreen: ミニヒートマップ・ストリークパルス（T-78）', () => {
+  it('直近4週間のattemptsのみがミニヒートマップに反映される（4週より前のデータは除外）', async () => {
+    const db = newDb()
+    const now = Date.now()
+    const WEEK_MS = 7 * 86_400_000
+    await db.attempts.bulkAdd([
+      {
+        id: 'recent',
+        questionId: 'q-1',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now,
+      },
+      {
+        // 4週間の表示窓より古い解答（クエリ時点で除外される想定）
+        id: 'too-old',
+        questionId: 'q-2',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now - 5 * WEEK_MS,
+      },
+    ])
+
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
+    await flushLoad()
+
+    const heatmap = await screen.findByTestId('home-mini-heatmap')
+    const filledCells = Array.from(heatmap.querySelectorAll('.chart-heatmap rect')).filter(
+      (r) => r.getAttribute('fill') !== 'none',
+    )
+    expect(filledCells.length).toBe(1)
+  })
+
+  it('前回表示時よりストリーク日数が増えたときだけパルス表示になる', async () => {
+    const db = newDb()
+    const today = toDateString(Date.now())
+    await db.streak.put({
+      id: 'streak',
+      currentDays: 3,
+      bestDays: 3,
+      lastActiveDate: today,
+      protectionUsedAt: null,
+    })
+
+    // 1回目の表示: lastSeenStreak未保存のため、初回はパルスする
+    const first = render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
+    await flushLoad()
+    expect(screen.getByText('🔥3').className).toContain('is-pulse')
+    first.unmount()
+
+    // 2回目の表示: 同じストリーク日数のままなのでパルスしない
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
+    await flushLoad()
+    expect(screen.getByText('🔥3').className).not.toContain('is-pulse')
+  })
+})
+
 describe('HomeScreen: クエスト開始が2タップ以内', () => {
   it('主ボタンを1タップするだけで既定7分のクエストが開始する', async () => {
     const db = newDb()

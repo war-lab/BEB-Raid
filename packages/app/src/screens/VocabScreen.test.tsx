@@ -240,3 +240,26 @@ describe('VocabScreen: ストリーク成立（02の7節）', () => {
     expect(status.currentDays).toBeGreaterThanOrEqual(1)
   })
 })
+
+describe('VocabScreen: 完了カード（T-78）', () => {
+  it('全復習・仕分けが終わると今日の実施数・ストリークを含む完了カードを表示する', async () => {
+    const db = newDb()
+    const words = ['w1', 'w2', 'w3', 'w4', 'w5']
+    for (const w of words) await seedDueCard(db, w)
+    const questions = words.map((w) => vocabQuestion(w))
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    for (let i = 0; i < words.length; i++) {
+      await waitFor(() => expect(screen.getByText(`復習 ${i + 1}/${words.length}`)).toBeTruthy())
+      fireEvent.click(screen.getByText(`${words[i]} の意味`))
+      fireEvent.click(screen.getByText('OK'))
+    }
+    await screen.findByText('語彙SRSが終了しました')
+
+    const card = await screen.findByTestId('completion-card')
+    expect(card.textContent).toContain(`今日の実施数 ${words.length}問`)
+    expect(card.textContent).toContain('🔥')
+  })
+})

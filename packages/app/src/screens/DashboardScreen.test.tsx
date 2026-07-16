@@ -9,8 +9,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { toDateString } from '../engine/date'
+import { buildHeatmapCells } from '../engine/heatmapCells'
 import { useAppStore } from '../store/appStore'
-import { buildHeatmapCells, DashboardScreen } from './DashboardScreen'
+import { DashboardScreen } from './DashboardScreen'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []

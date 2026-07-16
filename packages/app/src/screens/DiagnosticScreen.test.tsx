@@ -203,6 +203,23 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
   })
 })
 
+describe('DiagnosticScreen: 完了カード（T-78）', () => {
+  it('診断完了時に今日の実施数を含む完了カードを表示する', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(screen.getByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
+    fireEvent.click(screen.getByText('自己申告スコアで診断をスキップ'))
+
+    await screen.findByText('診断完了')
+
+    const card = await screen.findByTestId('completion-card')
+    expect(card.textContent).toContain('今日の実施数 0問')
+  })
+})
+
 describe('DiagnosticScreen: 音声再生失敗リカバリ（T-70）', () => {
   it('再生失敗でボタンが「もう一度試す」に変わり、「音声なしで解答する」で解答へ進める', async () => {
     const db = newDb()

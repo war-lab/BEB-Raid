@@ -4,7 +4,7 @@
 
 ## 改修フェーズ（2026-07-16開始。正本: [15_改修計画](15_改修計画_フェーズA-D.md)）
 
-実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。**2026-07-16続き: フェーズB自走ラン開始（T-77〜）**。
+実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。**2026-07-16続き: フェーズB自走ラン完了（T-77〜T-79全完了）**。次セッションはフェーズC（T-80〜。J-33承認待ちの範囲を除く）・フェーズD（T-87〜T-89）から着手する。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）・J-31（アクセントタグ改名）・J-32（M3開始時期）・J-33（増産規模）。承認前でも T-77〜T-82・T-87〜T-89 の大半は着手可（15の1節・2節参照）
@@ -25,7 +25,7 @@
 | T-75 | UI構造・視覚の小規模修正バンドル | ✅ 完了（2026-07-16） |
 | T-76 | 失敗系テスト補強 | ✅ 完了（2026-07-16）。**フェーズA（T-67〜T-76）全完了** |
 | T-77 | リザルト報酬演出 | ✅ 完了（2026-07-16） |
-| T-78 | 完了カード共通化＋継続動機の可視化 | 未着手 |
+| T-78 | 完了カード共通化＋継続動機の可視化 | ✅ 完了（2026-07-16）。**フェーズB（T-77〜T-79）全完了** |
 | T-79 | 選択肢ランタイムシャッフル | ✅ 完了（2026-07-16） |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
 | T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
@@ -55,6 +55,10 @@
 ※ T-77: `ResultScreen.tsx`にJ-42の演出制約（CSSアニメーション＋rAFのみ・総時間600〜900ms・reduced-motionで静止・タップで即スキップ）を実装した。獲得ポイント合計は`usePointsCountUp`（新設のrAFカウントアップhook）で700msかけて0→最終値に増える。**設計判断（docs未記載）**: 当初`useEffect`内で`instant`true時に`setValue(target)`を呼ぶ実装にしたところ`react-hooks/set-state-in-effect`のESLintエラーになった（外部システムとの同期ではなくpropsの折り返しに過ぎないため）。hookの戻り値を`instant ? target : animatedState`という同期的な三項式にし、`instant=false`のときだけuseEffect内でrAFループがanimatedStateを更新する形に変更して解消した（T-68で発見した同種のlintルールへの対処と同じ考え方）。正解数/レート変動/誤答復習の3行は`.result-stat`のCSS `animation-delay`（0/150/300ms）でstaggerフェードインさせる（JS側の状態管理は不要。reduced-motionは`base.css`の既存のグローバルkillerでanimation-durationが0.01msになり実質静止表示になる）。正誤一覧は`.result-list__item[data-correct]`でCSS `::before`により✓/✕を色分け表示（ExplanationCardのT-75パターンを踏襲）、問題文は`text-overflow: ellipsis`で1行省略。タップスキップは`.result-content`のonClickで`skipAnimation`をtrueにするのみ（`prefers-reduced-motion`時は初期値から`true`）。テスト: ResultScreen 3件（演出完了後の最終値・reduced-motion時の即時静止表示・タップスキップ）に加え、既存テスト1件をタップスキップ経由に軽微修正（カウントアップ中は0のため）。`npm test`（全パッケージ・423件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの視覚確認（本セッションはブラウザ自動化ツールが使えない）。
 
 ※ T-79: 選択肢シャッフル（J-36）を実装。dictation.ts・vocabQuiz.tsに重複していたFisher-Yates実装を新設`engine/shuffle.ts`（`shuffle(items, rng = Math.random)`）に集約し、両ファイルはそちらをimportする形に変更した（コードレビュー既知の重複解消を兼ねる。rngのデフォルト引数化以外は既存の呼び出し互換）。DrillScreenの通常選択肢（`question.choices`）とaudio_setサブ設問選択肢（`currentSubQuestion.choices`）を`useMemo`でシャッフルしてから描画するようにした（依存配列は前者が`question.id`、後者が`question.id`と`subQuestionIndex`の組。vocab_cardは`buildVocabQuizChoices`側で既にシャッフル済みのため対象外=指示どおり）。正誤判定・解説表示は元々choice.key参照のため、表示順の変更による影響はない。テスト: `engine/shuffle.test.ts`3件（rng=0固定での決定的な並びの検証・要素の欠落/重複が無く元配列を破壊しないこと・rng省略時の既定動作）、DrillScreen 2件（`vi.spyOn(Math, 'random').mockReturnValue(0)`で決定的に表示順が`[b,c,d,a]`へ変わることを検証・シャッフル後も正解の選択で正解表示になることを検証。いずれもshuffle.test.tsで検証済みのFisher-Yates手順から逆算した期待値）。既存のdictation/vocabQuiz/DrillScreenテストは無修正で全通過（後方互換の確認）。`npm test`（全パッケージ・423件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-78: 4点を実装。①新規`components/CompletionCard.tsx`（今日の実施数・ストリーク日数・一言メッセージ＋result-scale-inの軽いスケールイン流用）を語彙SRS終了（VocabScreen）・診断完了（DiagnosticScreen）・シャドーイング完了（ShadowingScreen）の3画面の完了状態に追加。新設`services/dailyStats.ts`の`countAttemptsToday`（暦日で絞ったattempts件数）と既存`engine/streak.ts`の`getStreak`を組み合わせて表示データを作る。**設計判断（docs未記載）**: ShadowingScreenは元々「素材が無い（0件）」と「全素材完了（index到達）」を同じ`!question`分岐・同じ文言で扱っていたため、両者を`shadowingQuestions.length===0`で分岐し、後者にのみ完了カードを出すようにした（前者は素材が無いだけで達成ではないため）。②HomeScreenに直近4週間のミニヒートマップを追加。既存`DashboardScreen.tsx`内にあった`buildHeatmapCells`は元々15週固定のHEATMAP_WEEKS前提だったため、`engine/heatmapCells.ts`へ切り出し`weeks`引数必須化（DashboardScreen側もHEATMAP_WEEKSを明示的に渡すよう更新。`Heatmap`コンポーネント自体はセル数に応じて自動で縮小するため「縮小版」は新規コンポーネントを作らずセル数を28（4週）に絞るだけで実現できた）。③ホームの日数ストリーク表示を`session-streak`（ドリル中の連続正解用。既存のまま）から分離した`.streak-flame`に変更し、新設の設定キー`LAST_SEEN_STREAK_KEY`（前回表示値）と比較して増えたときだけ`.is-pulse`（`streak-pulse`キーフレーム流用）を1回だけ付与する。④ハプティクス設定（`HAPTICS_ENABLED_KEY`。既定ON）をSettingsScreenにトグル追加し、DrillScreen・VocabScreen（S3側の4択リコール）の「正解確定」タイミング（DrillScreenは4関数すべて、VocabScreenはhandleSelectChoice）で`navigator.vibrate?.(15)`を呼ぶ（設定OFF・誤答・非対応環境ではno-op）。**テスト同期の課題と対処**: DrillScreenのハプティクス設定はDB非同期読み込み（`settingsLoaded`）を経てstateに反映されるため、設定OFFのテストで読み込み前にクリックするとstate初期値=true（既定）のまま評価されるレースが起きた。DrillScreenに既存の`home-loaded`（HomeScreen）と同じパターンの隠しマーカー`data-testid="drill-settings-loaded"`を追加してテストから待てるようにした（本番の見た目には影響しない）。テスト: CompletionCard 2件（表示内容・ストリーク0時は炎非表示）、VocabScreen/DiagnosticScreen/ShadowingScreen 各1件（完了カード表示）、HomeScreen 2件（ミニヒートマップのデータ反映=4週より前のattemptsが除外される・ストリークパルスの増加時のみ発火）、SettingsScreen 1件（ハプティクストグルの永続化・既定ON確認）、DrillScreen 3件（設定ON時の振動・OFF時の非発火・誤答時の非発火）。`npm test`（全パッケージ・434件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの視覚・触覚確認（本セッションはブラウザ自動化ツールが使えず、実機の振動確認もできない）。
+
+**フェーズB（体験の質。T-77〜T-79）完了**（15の7節の完了ゲート）。継続動機の装置（報酬演出・完了カード・ミニヒートマップ・ストリークパルス・ハプティクス・選択肢シャッフル）が実装済み。
 
 ## 今どこにいるか（1行）
 

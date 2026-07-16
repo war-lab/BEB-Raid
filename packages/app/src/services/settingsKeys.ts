@@ -9,3 +9,7 @@ export const FONT_SIZE_KEY = 'fontSizeScale'
 export const BYOK_API_KEY_KEY = 'byokApiKey'
 /** BYOKで使うモデルID（既定値表示＋上級者向け自由入力=13の9節T-55） */
 export const BYOK_MODEL_KEY = 'byokModel'
+/** ハプティクス（正解確定時の振動）の有効/無効。既定ON（T-78・14の2.4節） */
+export const HAPTICS_ENABLED_KEY = 'hapticsEnabled'
+/** 前回HomeScreen表示時のストリーク日数（T-78: パルス演出を「増えた回だけ」にするための記憶） */
+export const LAST_SEEN_STREAK_KEY = 'lastSeenStreak'
