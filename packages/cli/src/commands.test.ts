@@ -971,21 +971,47 @@ describe('build（T-32）', () => {
       JSON.stringify(similarDraft) + '\n',
       'utf-8',
     )
+    const similarS3Draft: GeneratedItemDraft = {
+      id: 'similar-delivery-1',
+      kind: 'text_blank',
+      preview: 'delivery',
+      payload: {
+        id: 'similar-delivery-1',
+        part: 5,
+        format: 'text_blank',
+        difficulty: 2,
+        tags: ['ビジネス名詞'],
+        keyVocab: [{ word: 'delivery', sense: '配達', freqRank: 'S' }],
+        question: 'The ___ of the new equipment was delayed by a week.',
+        choices: [
+          { key: 'A', text: 'delivery' },
+          { key: 'B', text: 'warranty' },
+        ],
+        answer: 'A',
+        explanation: '機材が届く行為はdelivery。warrantyは保証で文脈に合わない。',
+        translation: '',
+      },
+    }
+    await writeFile(
+      join(dir, 'drafts/key-vocab-similar-s3.jsonl'),
+      JSON.stringify(similarS3Draft) + '\n',
+      'utf-8',
+    )
   })
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('12パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8。T-64）', async () => {
+  it('13パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('12パック')
+    expect(output).toContain('13パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(12)
+    expect(manifest.packs).toHaveLength(13)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -999,6 +1025,7 @@ describe('build（T-32）', () => {
       'pack-dict-s-001',
       'pack-shadow-s-001',
       'pack-p5-similar-s-002',
+      'pack-p5-similar-s-003',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)

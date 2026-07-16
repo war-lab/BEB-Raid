@@ -149,10 +149,23 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）= 12パック（docs/13 3.10節・T-64） */
+/** フェーズC・T-83で追加する1パック（key単語類題 追加120問。J-44） */
+const T83_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p5-similar-s-003',
+    title: 'Part5 key単語類題 追加120問（1語1問）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（q1語=類題ゼロの語彙循環解消。AIクロスレビュー対象外）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/key-vocab-similar-s3.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）+ T-83（1）= 13パック（docs/13 3.10節・T-64、docs/15 T-83行） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,
+  ...T83_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */

@@ -18,6 +18,10 @@
 import { SCHEMA_VERSION, validatePack, type FreqRank, type Question } from '@beb-raid/shared-schema'
 import { KEY_VOCAB_SIMILAR_ENTRIES, type KeyVocabSimilarEntry } from './data/keyVocabSimilarS.js'
 import { KEY_VOCAB_SIMILAR_ENTRIES_S2 } from './data/keyVocabSimilarS2.js'
+import {
+  KEY_VOCAB_SIMILAR_S3_RAW,
+  type KeyVocabSimilarS3RawEntry,
+} from './data/keyVocabSimilarS3.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
@@ -119,4 +123,48 @@ export function validateTargetWordCoverage(entries: readonly KeyVocabSimilarEntr
     }
   }
   return problems
+}
+
+/**
+ * T-83（J-44）: q1語（類題ゼロ）120語×1問の正答キーローテーション。
+ * rawエントリは常にcorrectTextを「正解」・distractors（3件）を「誤答」として書き、
+ * index%4の回転で4択の並び順・正答キーを機械的に決める（rotatePart2Choicesと同方式。
+ * 4択なのでindex%4になる点のみ異なる）
+ */
+export function rotateKeyVocabSimilarS3Choices(
+  raw: KeyVocabSimilarS3RawEntry,
+  index: number,
+): Pick<KeyVocabSimilarEntry, 'choices' | 'answer'> {
+  const texts = [raw.correctText, raw.distractors[0], raw.distractors[1], raw.distractors[2]]
+  const rotation = index % 4
+  const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
+  const keys = ['A', 'B', 'C', 'D']
+  const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
+  const answer = keys[rotatedTexts.indexOf(raw.correctText)]!
+  return { choices, answer }
+}
+
+/** rawエントリ（correctText/distractors形式）→KeyVocabSimilarEntry（choices/answer確定済み）への変換 */
+export function keyVocabSimilarS3EntryFromRaw(
+  raw: KeyVocabSimilarS3RawEntry,
+  index: number,
+): KeyVocabSimilarEntry {
+  const { choices, answer } = rotateKeyVocabSimilarS3Choices(raw, index)
+  return {
+    word: raw.word,
+    tags: raw.tags,
+    question: raw.question,
+    choices,
+    answer,
+    explanation: raw.explanation,
+    translation: raw.translation,
+    difficulty: raw.difficulty,
+  }
+}
+
+/** T-83追加分（120語×1問）をKeyVocabSimilarEntry形式に組み立てる */
+export function buildKeyVocabSimilarS3Entries(
+  raw: readonly KeyVocabSimilarS3RawEntry[] = KEY_VOCAB_SIMILAR_S3_RAW,
+): KeyVocabSimilarEntry[] {
+  return raw.map((r, i) => keyVocabSimilarS3EntryFromRaw(r, i))
 }

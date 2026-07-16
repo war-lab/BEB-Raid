@@ -44,6 +44,7 @@ export const PACK_IDS = [
   'pack-dict-s-001',
   'pack-shadow-s-001',
   'pack-p5-similar-s-002',
+  'pack-p5-similar-s-003',
 ]
 
 /**
