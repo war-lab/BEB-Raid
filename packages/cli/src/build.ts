@@ -161,11 +161,32 @@ const T83_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）+ T-83（1）= 13パック（docs/13 3.10節・T-64、docs/15 T-83行） */
+/** フェーズC・T-84で追加する2パック（audio_set+20・dictation+40。J-33） */
+const T84_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p34-s-002',
+    title: 'Part3/4セット 追加20（会話10・トーク10）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-84。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/part34-s2.jsonl',
+  },
+  {
+    id: 'pack-dict-s-002',
+    title: 'ディクテーション追加40本',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-84。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/dictation-s2.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）= 15パック（docs/13 3.10節・T-64、docs/15 T-83〜T-84行） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,
   ...T83_PACK_DEFINITIONS,
+  ...T84_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */

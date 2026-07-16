@@ -665,7 +665,9 @@ describe('build（T-32）', () => {
     await writeFile(join(dir, 'audio/part2/submit.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/revise.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-01.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part34/p3-11.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/dictation/submit.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/dictation/agenda.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/shadow/submit.mp3'), 'dummy')
 
     const vocabDraft: GeneratedItemDraft = {
@@ -997,21 +999,82 @@ describe('build（T-32）', () => {
       JSON.stringify(similarS3Draft) + '\n',
       'utf-8',
     )
+    const part34S2Draft: GeneratedItemDraft = {
+      id: 'p34-p3-11',
+      kind: 'audio_set',
+      preview: 'p3-11',
+      payload: {
+        id: 'p34-p3-11',
+        part: 3,
+        format: 'audio_set',
+        difficulty: 3,
+        tags: ['パラフレーズ照合'],
+        keyVocab: [{ word: 'procurement', sense: '調達', freqRank: 'S' }],
+        audio: 'audio/part34/p3-11.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 5000 },
+        script: 'A: Have you heard from procurement? B: Yes, they sent an estimate.',
+        subQuestions: [
+          {
+            id: 'p34-p3-11-q1',
+            question: 'What are the speakers discussing?',
+            choices: [
+              { key: 'A', text: 'The cost of new laptops' },
+              { key: 'B', text: 'A delayed interview' },
+            ],
+            answer: 'A',
+            explanation: '会話は見積もり価格について話している。',
+            translation: '話者たちは何について話していますか。',
+          },
+        ],
+      },
+    }
+    const dictationS2Draft: GeneratedItemDraft = {
+      id: 'dictation-agenda',
+      kind: 'dictation',
+      preview: 'agenda',
+      payload: {
+        id: 'dictation-agenda',
+        part: 2,
+        format: 'dictation',
+        difficulty: 2,
+        tags: ['弱形・連結', '助動詞弱形'],
+        keyVocab: [{ word: 'agenda', sense: '議題', freqRank: 'S' }],
+        audio: 'audio/dictation/agenda.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 2500 },
+        script: 'The agenda for the meeting was sent to everyone this morning.',
+        blanks: [
+          { index: 5, answer: 'was' },
+          { index: 7, answer: 'to' },
+        ],
+        explanation: '弱形になりやすいwas/toを穴にしている。',
+        translation: '会議の議題は今朝、全員に送られた。',
+      },
+    }
+    await writeFile(
+      join(dir, 'drafts/part34-s2.jsonl'),
+      JSON.stringify(part34S2Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/dictation-s2.jsonl'),
+      JSON.stringify(dictationS2Draft) + '\n',
+      'utf-8',
+    )
   })
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('13パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1）', async () => {
+  it('15パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('13パック')
+    expect(output).toContain('15パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(13)
+    expect(manifest.packs).toHaveLength(15)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -1026,6 +1089,8 @@ describe('build（T-32）', () => {
       'pack-shadow-s-001',
       'pack-p5-similar-s-002',
       'pack-p5-similar-s-003',
+      'pack-p34-s-002',
+      'pack-dict-s-002',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)

@@ -30,6 +30,7 @@ import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import {
   buildDictationDrafts,
   buildDictationQuestions,
+  DICTATION_ENTRIES_S2,
   validateDictationQuestions,
 } from './dictationQuestion.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
@@ -52,6 +53,7 @@ import {
 import {
   buildPart34Drafts,
   buildPart34Questions,
+  PART34_ENTRIES_S2,
   validatePart34Questions,
 } from './part34Question.js'
 import {
@@ -89,7 +91,9 @@ const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
 const DEFAULT_PART34_DRAFT_PATH = 'content/drafts/part34-s.jsonl'
+const DEFAULT_PART34_S2_DRAFT_PATH = 'content/drafts/part34-s2.jsonl'
 const DEFAULT_DICTATION_DRAFT_PATH = 'content/drafts/dictation-s.jsonl'
+const DEFAULT_DICTATION_S2_DRAFT_PATH = 'content/drafts/dictation-s2.jsonl'
 const DEFAULT_SHADOWING_DRAFT_PATH = 'content/drafts/shadowing-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH = 'content/drafts/key-vocab-similar-s2.jsonl'
@@ -178,11 +182,23 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validatePart34Questions,
     defaultPath: DEFAULT_PART34_DRAFT_PATH,
   },
+  audio_set_s2: {
+    buildQuestions: () => buildPart34Questions(PART34_ENTRIES_S2),
+    buildDrafts: () => buildPart34Drafts(PART34_ENTRIES_S2),
+    validate: validatePart34Questions,
+    defaultPath: DEFAULT_PART34_S2_DRAFT_PATH,
+  },
   dictation: {
     buildQuestions: buildDictationQuestions,
     buildDrafts: buildDictationDrafts,
     validate: validateDictationQuestions,
     defaultPath: DEFAULT_DICTATION_DRAFT_PATH,
+  },
+  dictation_s2: {
+    buildQuestions: () => buildDictationQuestions(DICTATION_ENTRIES_S2),
+    buildDrafts: () => buildDictationDrafts(DICTATION_ENTRIES_S2),
+    validate: validateDictationQuestions,
+    defaultPath: DEFAULT_DICTATION_S2_DRAFT_PATH,
   },
   shadowing: {
     buildQuestions: buildShadowingQuestions,
