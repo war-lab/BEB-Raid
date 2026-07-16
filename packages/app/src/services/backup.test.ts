@@ -273,6 +273,35 @@ describe('BYOKキーのエクスポート除外（T-42=C-2改訂。レビュー�
   it('EXPORT_EXCLUDED_KEYS は byokApiKey を含む', () => {
     expect(EXPORT_EXCLUDED_KEYS).toContain(BYOK_API_KEY_KEY)
   })
+
+  it('T-72: 端末に保存済みのbyokApiKeyは、バックアップ（キー無し）のインポート後も残る', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source) // byokApiKeyを含まないバックアップ
+
+    const target = newDb()
+    await target.settings.put({ key: BYOK_API_KEY_KEY, value: 'sk-ant-local-key' })
+    await importAll(target, exported)
+
+    // 以前はsettingsストアのclear()でこの値が消えたまま復元されないバグだった
+    expect((await target.settings.get(BYOK_API_KEY_KEY))?.value).toBe('sk-ant-local-key')
+    expect(await target.settings.get('noEarphoneMode')).toBeDefined() // 通常設定は復元される
+  })
+
+  it('T-72: byokApiKeyの保持は2回インポートしても重複せず1件のまま', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const target = newDb()
+    await target.settings.put({ key: BYOK_API_KEY_KEY, value: 'sk-ant-local-key' })
+    await importAll(target, exported)
+    await importAll(target, exported)
+
+    const keys = (await target.settings.toArray()).filter((s) => s.key === BYOK_API_KEY_KEY)
+    expect(keys).toHaveLength(1)
+    expect(keys[0]?.value).toBe('sk-ant-local-key')
+  })
 })
 
 describe('examScores ストア（T-42=C-2改訂。M2新設）', () => {

@@ -111,6 +111,32 @@ describe('App（テーマ・文字サイズの起動時適用。T-69）', () => 
   })
 })
 
+describe('App（ストレージ保全。T-72）', () => {
+  it('navigator.storage が存在しない環境（jsdom既定）でも例外にならず起動できる', async () => {
+    expect(navigator.storage).toBeUndefined() // jsdomの既定確認（前提が崩れていないか）
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+  })
+
+  it('navigator.storage.persist() が拒否されても起動を妨げない', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { persist: async () => Promise.reject(new Error('denied')) },
+    })
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
+  })
+})
+
 describe('loadQuestionPool（T-37: 実パック配線）', () => {
   function pack(id: string, questions: QuestionPack['questions']): QuestionPack {
     return {

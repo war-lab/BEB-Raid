@@ -122,6 +122,33 @@ describe('SettingsScreen: 永続化', () => {
     expect(await screen.findByText(/0件/)).toBeTruthy()
     expect(cache.clear).toHaveBeenCalled()
   })
+
+  it('T-72: 永続化状態・端末ストレージ使用量が表示される', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: {
+        persisted: async () => true,
+        estimate: async () => ({ usage: 5 * 1024 * 1024, quota: 100 * 1024 * 1024 }),
+      },
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+
+    expect(screen.getByText('永続化: 有効')).toBeTruthy()
+    expect(screen.getByText(/5\.0MB \/ 100\.0MB/)).toBeTruthy()
+
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
+  })
+
+  it('T-72: navigator.storageが無い環境では「取得不可」表示になり破綻しない', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    await flushLoad()
+
+    expect(screen.getByText('永続化: 取得不可')).toBeTruthy()
+  })
 })
 
 describe('SettingsScreen: エクスポート/インポート', () => {

@@ -46,6 +46,9 @@ export function SettingsScreen({ db, packCache }: Props) {
   const [themePref, setThemePrefState] = useState<ThemePreference>('system')
   const [fontSize, setFontSizeState] = useState<FontSizeScale>(getFontSizeScale())
   const [cacheUsage, setCacheUsage] = useState<CacheUsage | null>(null)
+  // T-72: ストレージ永続化状態・端末ストレージ使用量（J-38）
+  const [persisted, setPersisted] = useState<boolean | null>(null)
+  const [storageEstimate, setStorageEstimate] = useState<StorageEstimate | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   // BYOK APIキー（T-55）: 保存済みキーの実値（マスク表示の元。画面外へは出さない）
@@ -65,6 +68,8 @@ export function SettingsScreen({ db, packCache }: Props) {
         usage,
         apiKeySetting,
         modelSetting,
+        persistedResult,
+        estimateResult,
       ] = await Promise.all([
         db.profile.get(PROFILE_ID),
         db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -73,6 +78,8 @@ export function SettingsScreen({ db, packCache }: Props) {
         packCache.usage(),
         db.settings.get(BYOK_API_KEY_KEY),
         db.settings.get(BYOK_MODEL_KEY),
+        navigator.storage?.persisted?.() ?? Promise.resolve(null),
+        navigator.storage?.estimate?.() ?? Promise.resolve(null),
       ])
       if (cancelled) return
       if (profile) setDisplayName(profile.displayName)
@@ -86,6 +93,8 @@ export function SettingsScreen({ db, packCache }: Props) {
       setCacheUsage(usage)
       setApiKey((apiKeySetting?.value as string | undefined) ?? null)
       setByokModel((modelSetting?.value as string | undefined) ?? DEFAULT_BYOK_MODEL)
+      setPersisted(persistedResult)
+      setStorageEstimate(estimateResult)
       setLoaded(true)
     }
     void load()
@@ -239,6 +248,13 @@ export function SettingsScreen({ db, packCache }: Props) {
         <button type="button" onClick={() => void handleClearCache()}>
           キャッシュを削除
         </button>
+        <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
+        {storageEstimate && (
+          <p>
+            端末ストレージ使用量: {((storageEstimate.usage ?? 0) / 1024 / 1024).toFixed(1)}MB /{' '}
+            {((storageEstimate.quota ?? 0) / 1024 / 1024).toFixed(1)}MB
+          </p>
+        )}
       </section>
 
       <section>

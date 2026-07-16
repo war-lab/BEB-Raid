@@ -150,6 +150,12 @@ export function App() {
     void syncPacks({ db: getDb(), packCache })
   }, [])
 
+  // T-72: ストレージ保全（J-38）。拒否されても動作は変えない（iOS Safariはインストール済み
+  // PWAで自動許可される仕様）。navigator.storage不在環境（jsdom等）でも例外にならない
+  useEffect(() => {
+    void navigator.storage?.persist?.().catch(() => {})
+  }, [])
+
   if (bootError) {
     return (
       <ScreenLayout

@@ -190,8 +190,13 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
         const incoming = (rows as SettingRecord[]).filter(
           (r) => !EXPORT_EXCLUDED_KEYS.includes(r.key),
         )
+        // T-72: EXPORT_EXCLUDED_KEYS該当（BYOK APIキー等）は端末内にしかない値のため、
+        // clear前に退避し復元後に書き戻す（以前はclearで消えたまま二度と戻らないバグだった）
+        const preserved = (await db.table(name).toArray()).filter((r: SettingRecord) =>
+          EXPORT_EXCLUDED_KEYS.includes(r.key),
+        )
         await db.table(name).clear()
-        await db.table(name).bulkPut(incoming)
+        await db.table(name).bulkPut([...incoming, ...preserved])
       } else {
         await db.table(name).clear()
         await db.table(name).bulkPut(rows)
