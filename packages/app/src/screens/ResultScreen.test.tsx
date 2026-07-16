@@ -64,6 +64,8 @@ describe('ResultScreen', () => {
     await db.ratings.put({ section: 'R', rating: 420, updatedAt: Date.now(), answerCount: 2 })
 
     render(<ResultScreen db={db} />)
+    // カウントアップ演出中は値が0から始まるため、タップして即スキップしてから検証する
+    fireEvent.click(screen.getByTestId('result-content'))
 
     expect(screen.getByText('+80')).toBeTruthy()
     expect(screen.getByText('正解 1 / 2')).toBeTruthy()
@@ -184,5 +186,62 @@ describe('ResultScreen: フェーズ移行判定・演出（T-54）', () => {
 
     await waitFor(() => expect(screen.getByText('正解 1 / 1')).toBeTruthy())
     expect(screen.queryByTestId('phase-transition')).toBeNull()
+  })
+})
+
+describe('ResultScreen: 報酬演出（T-77）', () => {
+  async function setupSession(db: BebRaidDatabase) {
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 80,
+    })
+  }
+
+  it('演出終了後は最終値（獲得ポイント）を表示する', async () => {
+    const db = newDb()
+    await setupSession(db)
+
+    render(<ResultScreen db={db} />)
+
+    // タップ等でスキップしない場合でも、rAFカウントアップの完了後は最終値に達する
+    await waitFor(() => expect(screen.getByText('+80')).toBeTruthy(), { timeout: 2000 })
+  })
+
+  it('prefers-reduced-motionでは最初から最終値を静止表示する', async () => {
+    const db = newDb()
+    await setupSession(db)
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia
+
+    try {
+      render(<ResultScreen db={db} />)
+      // waitForを使わず即座に最終値であることを確認する（静止表示＝アニメーションなしの証明）
+      expect(screen.getByText('+80')).toBeTruthy()
+    } finally {
+      window.matchMedia = original
+    }
+  })
+
+  it('タップでカウントアップ演出を即スキップできる', async () => {
+    const db = newDb()
+    await setupSession(db)
+
+    render(<ResultScreen db={db} />)
+    fireEvent.click(screen.getByTestId('result-content'))
+
+    // クリック直後（rAF待ちなし）に最終値へ到達していることを確認する
+    expect(screen.getByText('+80')).toBeTruthy()
   })
 })

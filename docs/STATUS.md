@@ -4,7 +4,7 @@
 
 ## 改修フェーズ（2026-07-16開始。正本: [15_改修計画](15_改修計画_フェーズA-D.md)）
 
-実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。次セッションはフェーズB（T-77〜T-79。ドッグフードと並行可）・フェーズC（T-80〜。J-33承認が必要な範囲を除く）・フェーズD（T-87〜T-89）のいずれかから、docs/15の該当タスクシートのみ読んで着手する。
+実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。**2026-07-16続き: フェーズB自走ラン開始（T-77〜）**。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）・J-31（アクセントタグ改名）・J-32（M3開始時期）・J-33（増産規模）。承認前でも T-77〜T-82・T-87〜T-89 の大半は着手可（15の1節・2節参照）
@@ -24,7 +24,9 @@
 | T-74 | attempts読みの性能改善 | ✅ 完了（2026-07-16） |
 | T-75 | UI構造・視覚の小規模修正バンドル | ✅ 完了（2026-07-16） |
 | T-76 | 失敗系テスト補強 | ✅ 完了（2026-07-16）。**フェーズA（T-67〜T-76）全完了** |
-| T-77〜T-79 | フェーズB: 体験の質 | 未着手 |
+| T-77 | リザルト報酬演出 | ✅ 完了（2026-07-16） |
+| T-78 | 完了カード共通化＋継続動機の可視化 | 未着手 |
+| T-79 | 選択肢ランタイムシャッフル | ✅ 完了（2026-07-16） |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
 | T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
 
@@ -48,7 +50,11 @@
 
 ※ T-76: 14の1.8優先順1〜5のうち、1（起動時DB open失敗）・2（play() reject復帰）・4（テーマ/文字サイズ起動適用）はT-68/T-70/T-69で既にテスト済みだったため重複させず、**3（answerCurrentQuestion失敗時のUI）・5（packSync→loadQuestionPool→Drillのオフライン結合通し）**を中心に実装・テストを追加した。**発見・修正したバグ（T-71の実装漏れ）**: T-71でDrillScreenの4関数を`recordAnswerPipeline`呼び出しに集約した際、J-35が要求していた「③失敗時のエラーバナー＋スナップショット再同期」（T-71完了条件③）を実装し忘れていた。本タスクで発見し修正: 新規`recoverFromSaveError`（エラーバナー表示＋`result`取り消し＋`resumeSession`でのDB実状態への再同期）を4関数すべてのcatchから呼ぶようにした（audio_setサブ設問のみsnapshot再同期の対象外=`resyncSnapshot: false`。subQuestionIndexはローカルstateで、DBのsnapshot.answeredCountと連動しないため）。バナー用CSSクラスは`.drill-audio-error`から`.drill-error`に改称（音声・保存の両失敗で共用するため）。新規結合テスト`src/integration/offlineDrillFlow.test.tsx`で、fetchが全rejectする状態でもPackCacheにピン留め済みのパックだけでsyncPacks→loadQuestionPool→HomeScreen（クエスト開始）→DrillScreen（解答→リザルト）まで完走することを確認。**テスト実装中に発見した副次的な教訓**: DrillScreenの`finalizeAnswer`系は`setResult(...)`を実際のDB書き込み（`recordAnswerPipeline`）より先に同期的に呼ぶため、「正解」等のテキスト表示をテストの完了シグナルにするとDB書き込み完了を待たずに次の操作に進んでしまいレースになる（既存テストの一部is既にこの罠を`db.ratings.get`待ちで回避済みだった）。新規テストは全て`snapshot.answeredCount`や実際のDB状態を待つ形にして回避した。テスト: DrillScreen 4件（finalizeAnswer・dictation・vocab_card・audio_setサブ設問の解答保存失敗リカバリ）、結合テスト1件（オフライン通し）＝計5件。`npm test`（全パッケージ・415件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 既知の環境要因（変わらず）**: フルスイート実行時、まれにDrillScreenのaudio_set系テストがCPU競合によるwaitForタイムアウトで失敗することがある（本タスクで4/6回のフルスイート実行中2回発生。単体実行・app単体実行では常に通過。T-71で記録した既知の非決定的要因と同一と判断。プロダクトコードの問題ではなくテスト実行環境のCPU競合と判断し、これ以上は追わない）。
 
-**フェーズA（安定性。T-67〜T-76）完了**（15の7節の完了ゲート）。ドッグフード（T-65/T-66）開始可能な品質に到達。次はフェーズB（T-77〜T-79）・フェーズC（T-80〜。J-33承認待ちの部分を除く）・フェーズD（T-87〜T-89）のいずれかへ進む。
+**フェーズA（安定性。T-67〜T-76）完了**（15の7節の完了ゲート）。ドッグフード（T-65/T-66）開始可能な品質に到達。
+
+※ T-77: `ResultScreen.tsx`にJ-42の演出制約（CSSアニメーション＋rAFのみ・総時間600〜900ms・reduced-motionで静止・タップで即スキップ）を実装した。獲得ポイント合計は`usePointsCountUp`（新設のrAFカウントアップhook）で700msかけて0→最終値に増える。**設計判断（docs未記載）**: 当初`useEffect`内で`instant`true時に`setValue(target)`を呼ぶ実装にしたところ`react-hooks/set-state-in-effect`のESLintエラーになった（外部システムとの同期ではなくpropsの折り返しに過ぎないため）。hookの戻り値を`instant ? target : animatedState`という同期的な三項式にし、`instant=false`のときだけuseEffect内でrAFループがanimatedStateを更新する形に変更して解消した（T-68で発見した同種のlintルールへの対処と同じ考え方）。正解数/レート変動/誤答復習の3行は`.result-stat`のCSS `animation-delay`（0/150/300ms）でstaggerフェードインさせる（JS側の状態管理は不要。reduced-motionは`base.css`の既存のグローバルkillerでanimation-durationが0.01msになり実質静止表示になる）。正誤一覧は`.result-list__item[data-correct]`でCSS `::before`により✓/✕を色分け表示（ExplanationCardのT-75パターンを踏襲）、問題文は`text-overflow: ellipsis`で1行省略。タップスキップは`.result-content`のonClickで`skipAnimation`をtrueにするのみ（`prefers-reduced-motion`時は初期値から`true`）。テスト: ResultScreen 3件（演出完了後の最終値・reduced-motion時の即時静止表示・タップスキップ）に加え、既存テスト1件をタップスキップ経由に軽微修正（カウントアップ中は0のため）。`npm test`（全パッケージ・423件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの視覚確認（本セッションはブラウザ自動化ツールが使えない）。
+
+※ T-79: 選択肢シャッフル（J-36）を実装。dictation.ts・vocabQuiz.tsに重複していたFisher-Yates実装を新設`engine/shuffle.ts`（`shuffle(items, rng = Math.random)`）に集約し、両ファイルはそちらをimportする形に変更した（コードレビュー既知の重複解消を兼ねる。rngのデフォルト引数化以外は既存の呼び出し互換）。DrillScreenの通常選択肢（`question.choices`）とaudio_setサブ設問選択肢（`currentSubQuestion.choices`）を`useMemo`でシャッフルしてから描画するようにした（依存配列は前者が`question.id`、後者が`question.id`と`subQuestionIndex`の組。vocab_cardは`buildVocabQuizChoices`側で既にシャッフル済みのため対象外=指示どおり）。正誤判定・解説表示は元々choice.key参照のため、表示順の変更による影響はない。テスト: `engine/shuffle.test.ts`3件（rng=0固定での決定的な並びの検証・要素の欠落/重複が無く元配列を破壊しないこと・rng省略時の既定動作）、DrillScreen 2件（`vi.spyOn(Math, 'random').mockReturnValue(0)`で決定的に表示順が`[b,c,d,a]`へ変わることを検証・シャッフル後も正解の選択で正解表示になることを検証。いずれもshuffle.test.tsで検証済みのFisher-Yates手順から逆算した期待値）。既存のdictation/vocabQuiz/DrillScreenテストは無修正で全通過（後方互換の確認）。`npm test`（全パッケージ・423件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
 
 ## 今どこにいるか（1行）
 

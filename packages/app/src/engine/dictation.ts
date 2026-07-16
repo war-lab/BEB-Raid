@@ -6,18 +6,10 @@
 
 import type { DictationBlank, Question } from '@beb-raid/shared-schema'
 import { DICTATION_DISTRACTOR_POOL } from './dictationDistractors'
+import { shuffle } from './shuffle'
 import type { DictationAnswer, DictationJudgement, DictationWordBank } from './types'
 
 const WORD_BANK_SIZE = 6
-
-function shuffle<T>(items: readonly T[], rng: () => number): T[] {
-  const arr = [...items]
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
-  }
-  return arr
-}
 
 /**
  * ワードバンクを組み立てる（13の3.4節: 正解語N＋ダミー(6−N)語）。

@@ -1065,3 +1065,40 @@ describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
     expect(screen.queryByText('もう再生する')).toBeNull()
   })
 })
+
+describe('DrillScreen: 選択肢ランタイムシャッフル（T-79。J-36）', () => {
+  it('決定的なrng注入で、選択肢の表示順が元の並び（A/B/C/D）と変わりうる', async () => {
+    const db = newDb()
+    const q = part5Question('q-shuffle', 'A', 'submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+
+    try {
+      const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // .choice-button__label はDOM出現順で並ぶため、そのまま表示順として検証できる
+      const order = [...container.querySelectorAll('.choice-button__label')].map(
+        (el) => el.textContent,
+      )
+      // rngが常に0を返すFisher-Yatesでは [a,b,c,d] → [b,c,d,a] になる（shuffle.test.tsで検証済みの手順）
+      expect(order).toEqual(['b', 'c', 'd', 'a'])
+    } finally {
+      randomSpy.mockRestore()
+    }
+  })
+
+  it('表示順が変わっても正誤判定はchoice.key基準のまま（シャッフル後も正解選択で正解表示になる）', async () => {
+    const db = newDb()
+    const q = part5Question('q-shuffle-2', 'A', 'submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // シャッフル後の表示順は b,c,d,a だが、正解キーAに対応するテキスト'a'を選べば正解になる
+      await answerAndSettle('a', 1)
+      expect(screen.getByText('正解')).toBeTruthy()
+    } finally {
+      randomSpy.mockRestore()
+    }
+  })
+})

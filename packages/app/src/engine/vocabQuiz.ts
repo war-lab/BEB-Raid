@@ -7,6 +7,7 @@
 // SRSのスケジューリング用で、こちらは引き続き自己申告のまま残す）に進む。
 
 import type { Question } from '@beb-raid/shared-schema'
+import { shuffle } from './shuffle'
 
 export interface VocabQuizChoice {
   key: string
@@ -15,15 +16,6 @@ export interface VocabQuizChoice {
 }
 
 const CHOICE_KEYS = ['A', 'B', 'C', 'D']
-
-function shuffle<T>(items: readonly T[], rng: () => number): T[] {
-  const arr = [...items]
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
-  }
-  return arr
-}
 
 /**
  * 対象語のback（正解）と、他の語彙カードのbackから選んだダミー最大3件で4択を組み立てる。

@@ -146,6 +146,70 @@
   color: var(--gold);
   font-weight: 700;
   text-align: center;
+  animation: result-scale-in 250ms ease-out;
+}
+@keyframes result-scale-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* --- リザルト報酬演出（T-77。J-42: 総時間600〜900ms・reduced-motionでは静止表示） --- */
+.result-stats {
+  list-style: none;
+  margin: var(--sp-1) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+.result-stat {
+  animation: result-stat-in 300ms ease-out both;
+}
+@keyframes result-stat-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.result-list {
+  list-style: none;
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+.result-list__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.result-list__question {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+.result-list__icon::before {
+  font-weight: 700;
+}
+.result-list__item[data-correct='true'] .result-list__icon::before {
+  content: '✓';
+  color: var(--ok);
+}
+.result-list__item[data-correct='false'] .result-list__icon::before {
+  content: '✕';
+  color: var(--ng);
 }
 
 /* --- 中断ボタン（ステータス帯。T-67: セッションを破棄せずホームへ戻る） --- */

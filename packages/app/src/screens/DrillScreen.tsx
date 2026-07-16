@@ -11,6 +11,7 @@ import type { PhaseSeason } from '../db/schema'
 import { computeSetResult } from '../engine/audioSet'
 import { buildWordBank, judgeDictation } from '../engine/dictation'
 import { formatQuickPackReason } from '../engine/reason'
+import { shuffle } from '../engine/shuffle'
 import { reviewSrsCard } from '../engine/srs'
 import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
@@ -182,6 +183,20 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     () => (isVocabCard && question ? buildVocabQuizChoices(question, [...questions.values()]) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- questionsはセッション開始時に固定される想定
     [isVocabCard, question?.id],
+  )
+
+  // T-79（J-36）: 選択肢は問題が変わるたびに1回だけシャッフルする（丸暗記防止。
+  // 正誤判定はchoice.key参照のため順序に依存しない。vocab_cardはbuildVocabQuizChoices側で
+  // 既にシャッフル済みのため対象外）
+  const shuffledChoices = useMemo(
+    () => (question?.choices ? shuffle(question.choices) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [question?.id],
+  )
+  const shuffledSubQuestionChoices = useMemo(
+    () => (currentSubQuestion?.choices ? shuffle(currentSubQuestion.choices) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [question?.id, subQuestionIndex],
   )
 
   // dictation: ワードバンク（3.4節の6語構成）はカードが変わるたびに1回だけ組み立てる
@@ -773,7 +788,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
             !isDictation &&
             !isAudioSet &&
             choicesInteractive &&
-            (question.choices ?? []).map((choice) => {
+            shuffledChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (result) {
                 if (choice.key === question.answer) state = 'correct'
@@ -795,7 +810,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
           {isAudioSet &&
             (playState === 'prereading' || playState === 'played') &&
             currentSubQuestion &&
-            (currentSubQuestion.choices ?? []).map((choice) => {
+            shuffledSubQuestionChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (result) {
                 if (choice.key === currentSubQuestion.answer) state = 'correct'
