@@ -6,11 +6,66 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import {
+  ATTEMPTS_READ_LIMIT,
   buildCriterionContext,
   evaluateAndPersistPhaseTransition,
   getOrInitPhaseState,
   savePhaseState,
 } from './phase'
+
+/** P1→P2条件をすべて満たすquestionLookup＋srsCardsを仕込む（複数テストで共有） */
+async function seedP1ToP2Fixture(db: BebRaidDatabase) {
+  const questionLookup = new Map<string, import('@beb-raid/shared-schema').Question>()
+  const words = Array.from({ length: 20 }, (_, i) => `w${i}`)
+  for (const w of words) {
+    questionLookup.set(`vocab-${w}`, {
+      id: `vocab-${w}`,
+      part: 0,
+      format: 'vocab_card',
+      difficulty: 1,
+      tags: [],
+      keyVocab: [],
+      front: w,
+      phrase: `use ${w}`,
+      phraseAudio: `audio/${w}.mp3`,
+      back: '意味',
+      freqRank: 'S',
+      levelBand: 600,
+    })
+  }
+  await db.srsCards.bulkPut(
+    words.map((w) => ({
+      id: `vocab:${w}`,
+      refType: 'vocab' as const,
+      refId: w,
+      stage: 3,
+      dueAt: 0,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })),
+  )
+  questionLookup.set('p2-1', {
+    id: 'p2-1',
+    part: 2,
+    format: 'audio_qa',
+    difficulty: 2,
+    tags: [],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    audio: '/audio/p2-1.mp3',
+    audioMeta: { accent: 'US', tts: false, voice: 'dev', durationMs: 3000 },
+    script: 'When did you submit it?',
+    choices: [
+      { key: 'A', text: 'Yesterday.' },
+      { key: 'B', text: 'By email.' },
+    ],
+    answer: 'A',
+    explanation: '解説',
+    translation: '和訳',
+  })
+  return questionLookup
+}
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -85,56 +140,7 @@ describe('getOrInitPhaseState: 初期割当（J-18）', () => {
 describe('evaluateAndPersistPhaseTransition: 永続化', () => {
   it('移行が成立するとphaseストアが更新され、再起動後も保持される', async () => {
     const db = newDb()
-    // P1→P2の条件をすべて満たすデータを仕込む
-    const questionLookup = new Map<string, import('@beb-raid/shared-schema').Question>()
-    const words = Array.from({ length: 20 }, (_, i) => `w${i}`)
-    for (const w of words) {
-      questionLookup.set(`vocab-${w}`, {
-        id: `vocab-${w}`,
-        part: 0,
-        format: 'vocab_card',
-        difficulty: 1,
-        tags: [],
-        keyVocab: [],
-        front: w,
-        phrase: `use ${w}`,
-        phraseAudio: `audio/${w}.mp3`,
-        back: '意味',
-        freqRank: 'S',
-        levelBand: 600,
-      })
-    }
-    await db.srsCards.bulkPut(
-      words.map((w) => ({
-        id: `vocab:${w}`,
-        refType: 'vocab' as const,
-        refId: w,
-        stage: 3,
-        dueAt: 0,
-        lapses: 0,
-        introducedDate: '2026-07-01',
-        graduatedAt: null,
-        sourceQuestionId: null,
-      })),
-    )
-    questionLookup.set('p2-1', {
-      id: 'p2-1',
-      part: 2,
-      format: 'audio_qa',
-      difficulty: 2,
-      tags: [],
-      keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
-      audio: '/audio/p2-1.mp3',
-      audioMeta: { accent: 'US', tts: false, voice: 'dev', durationMs: 3000 },
-      script: 'When did you submit it?',
-      choices: [
-        { key: 'A', text: 'Yesterday.' },
-        { key: 'B', text: 'By email.' },
-      ],
-      answer: 'A',
-      explanation: '解説',
-      translation: '和訳',
-    })
+    const questionLookup = await seedP1ToP2Fixture(db)
     await db.attempts.bulkAdd(
       Array.from({ length: 100 }, (_, i) => ({
         id: `a-${i}`,
@@ -196,4 +202,61 @@ describe('buildCriterionContext', () => {
     expect(ctx.attempts).toHaveLength(1)
     expect(ctx.examScores).toEqual([{ total: 800 }])
   })
+
+  it('T-74: 1万件のattemptsがあっても読み取り件数はATTEMPTS_READ_LIMIT以下（性能改善）', async () => {
+    const db = newDb()
+    await db.attempts.bulkAdd(
+      Array.from({ length: 10_000 }, (_, i) => ({
+        id: `bulk-${i}`,
+        questionId: 'q-x',
+        mode: 'solo' as const,
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: i,
+      })),
+    )
+
+    const ctx = await buildCriterionContext(db, new Map())
+    // 10000 > ATTEMPTS_READ_LIMIT なので必ず上限ちょうどまで読まれる
+    expect(ctx.attempts).toHaveLength(ATTEMPTS_READ_LIMIT)
+  }, 20_000)
+
+  it('T-74: 窓外の大量の古いattemptsが評価結果を汚染しない（打ち切り読みでも直近分は確実に読める）', async () => {
+    const db = newDb()
+    const questionLookup = await seedP1ToP2Fixture(db)
+    // 実データ（直近・条件を満たす100件）は大きめのanswereAtにして「最も新しい」扱いにする
+    await db.attempts.bulkAdd(
+      Array.from({ length: 100 }, (_, i) => ({
+        id: `a-${i}`,
+        questionId: 'p2-1',
+        mode: 'solo' as const,
+        isCorrect: i < 80,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: 100_000 + i,
+      })),
+    )
+    // 窓外の古いノイズ（ATTEMPTS_READ_LIMITを超える件数・全て不正解・実データよりずっと古い）。
+    // もし打ち切り読みが直近分を取りこぼしたり、ノイズが紛れ込んだりすれば
+    // 正答率が下がり不成立になるはず
+    await db.attempts.bulkAdd(
+      Array.from({ length: ATTEMPTS_READ_LIMIT + 1000 }, (_, i) => ({
+        id: `noise-${i}`,
+        questionId: 'p2-1',
+        mode: 'solo' as const,
+        isCorrect: false,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: i,
+      })),
+    )
+
+    const outcome = await evaluateAndPersistPhaseTransition(db, questionLookup)
+    expect(outcome.season).toBe('P2')
+    expect(outcome.seasonTransitioned).toBe(true)
+  }, 20_000)
 })

@@ -95,11 +95,17 @@ export function DashboardScreen({ db }: Props) {
     async function load() {
       // 3チャート用データと予測・実試験スコアを並列取得する（逐次待ちで初期表示が
       // 遅延しないように=既存3チャートの読み込みレイテンシに揃える）
+      // T-74（14の1.7）: ヒートマップは直近HEATMAP_WEEKS週分しか表示しないため、
+      // 全件読みではなくその期間分だけをindex（answeredAt）で絞り込んで読む
+      const heatmapCutoff = localMidnightAfterDays(
+        startOfLocalDay(Date.now()),
+        -(HEATMAP_WEEKS * 7 - 1),
+      )
       const [[history, accuracies, attempts]] = await Promise.all([
         Promise.all([
           db.ratingHistory.where('section').equals('total').sortBy('date'),
           getTagAccuracies(db),
-          db.attempts.toArray(),
+          db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
         ]),
         reloadForecastAndExamScores(),
       ])

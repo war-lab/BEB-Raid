@@ -9,6 +9,7 @@ import {
   criteriaForSeason,
   evaluatePhaseTransition,
   initialSeasonForRating,
+  maxKnownCriterionWindow,
   type CriterionContext,
   type PhaseTransitionOutcome,
 } from '../engine/curriculum'
@@ -16,6 +17,23 @@ import type { PhaseCriteria, PhaseState } from '../engine/types'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import type { BebRaidDatabase } from '../db/database'
 import type { ListeningStage, PhaseRecord } from '../db/schema'
+
+/**
+ * T-74（14の1.7）: attempts全件読みは1年運用相当のデータ量で数百ms級に劣化するため、
+ * 直近answeredAt順の打ち切り読みに変更する。
+ * evaluateAccuracy/evaluateSetAccuracyはscope（part/tag）フィルタを生読み取り後にかけるため、
+ * criteriaが要求するwindow値そのものではなく余裕を持たせた件数が必要（直近N件の中に該当scope分が
+ * window数ちょうど含まれる保証はない）。安全係数2倍は「通常のクイックパック運用（複数part・複数
+ * タグが混在した出題）なら直近N件中に該当scope分がwindow数以上含まれる」ことを実用上期待する
+ * ヒューリスティックで、極端に偏った出題パターン（同一part/tagばかり長期間解かない等）では
+ * 理論上不足しうる。下限500件は初期の少量データ時でも安全側に倒すための床
+ */
+const ATTEMPTS_READ_SAFETY_FACTOR = 2
+const ATTEMPTS_READ_MIN = 500
+export const ATTEMPTS_READ_LIMIT = Math.max(
+  ATTEMPTS_READ_MIN,
+  maxKnownCriterionWindow() * ATTEMPTS_READ_SAFETY_FACTOR,
+)
 
 function recordToState(record: PhaseRecord): PhaseState {
   const criteria = JSON.parse(record.criteriaJson) as PhaseCriteria
@@ -72,7 +90,7 @@ export async function buildCriterionContext(
   questionLookup: QuestionLookup,
 ): Promise<CriterionContext> {
   const [attempts, srsCards, examScores] = await Promise.all([
-    db.attempts.toArray(),
+    db.attempts.orderBy('answeredAt').reverse().limit(ATTEMPTS_READ_LIMIT).toArray(),
     db.srsCards.toArray(),
     db.examScores.toArray(),
   ])

@@ -21,7 +21,8 @@
 | T-71 | 解答パイプライン集約（answerPipeline） | ✅ 完了（2026-07-16） |
 | T-72 | ストレージ保全 | ✅ 完了（2026-07-16） |
 | T-73 | packSync堅牢化 | ✅ 完了（2026-07-16） |
-| T-74〜T-76 | フェーズA: 安定性（残り） | 未着手 |
+| T-74 | attempts読みの性能改善 | ✅ 完了（2026-07-16） |
+| T-75〜T-76 | フェーズA: 安定性（残り） | 未着手 |
 | T-77〜T-79 | フェーズB: 体験の質 | 未着手 |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
 | T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
@@ -39,6 +40,8 @@
 ※ T-72: App.tsxに起動時`navigator.storage?.persist?.().catch(() => {})`を追加（J-38。拒否・非対応環境でも例外にならない設計を確認）。SettingsScreenのキャッシュ節に`navigator.storage.persisted()`（永続化: 有効/無効/取得不可）と`estimate()`（使用量/上限のMB表示）を追加。**バグ修正（14の1.6で発見済み）**: `services/backup.ts`の`importAll`がsettingsストアを`clear()`してから`bulkPut`する際、`EXPORT_EXCLUDED_KEYS`（BYOK APIキー）は元々バックアップに含まれないため、インポートのたびに端末内のBYOKキーが復元されず消失するバグだった。clear前に該当キーの既存レコードを退避し、復元後に書き戻す形に修正（2回インポートしても重複しないことも確認）。テスト: backup 2件（保持の確認・二重インポートでの非重複）、SettingsScreen 2件（永続化状態・使用量表示、navigator.storage不在時の「取得不可」表示）、App 2件（jsdom既定でnavigator.storage不在でも起動できる・persist()拒否でも起動を妨げない）。`npm test`（全パッケージ・399件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
 
 ※ T-73: `services/packSync.ts`の`syncPacks`に、現行manifest未参照のCache Storageエントリを掃除する処理を追加した（`PackCache`は既に`keys()`/`delete()`を持っていたためC-3改訂は不要だった）。**設計判断（docs未記載）**: 掃除対象外（＝守るべきURL）の判定は「同期成功パックの新URL」に加え「スキップ（ハッシュ不変）パック」「再同期に失敗したパック」の既存キャッシュ内容もcache-onlyで読んで収集する必要があった（再同期失敗時に旧内容のURLを掃除対象から保護しないと、ネットワーク不調のたびに正常なキャッシュ済み音声が消えるバグになるため。新設`collectCachedAudioUrls`がこの保護を担う）。`loadPackQuestions`のfetchフォールバックに`res.ok`チェックを追加（404等でJSONパースエラーにならず明示的なエラーを投げる）。**App.tsxのリファクタ**: 起動後の同期処理を新規`syncPacksAndReload`（exported）に切り出し、`synced.length>0`のときのみ`loadQuestionPool`を呼び直す形にした（関数として切り出したのは、モジュールスコープの`packCache`シングルトンに依存する`<App/>`をレンダリングせずにこの分岐を単体テストするため）。HomeScreenは`questionPool.length===0`のとき主ボタンをdisabledにし「問題データを取得できていません。オンラインで開き直してください」を表示。テスト: packSync 4件（改版時の旧URL掃除・再同期失敗時の保護・404での明示エラー化。既存5件は無修正で通過）、App 2件（synced>0でのプール再読込・synced=0でのnull返却＝再読込スキップ）、HomeScreen 2件（プール空でdisabled+案内文、プールありで通常表示）。`npm test`（全パッケージ・406件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-74: `services/phase.ts`の`buildCriterionContext`のattempts全件読みを`db.attempts.orderBy('answeredAt').reverse().limit(ATTEMPTS_READ_LIMIT)`の打ち切り読みに変更。**設計判断（docs未記載）**: `ATTEMPTS_READ_LIMIT`は`engine/curriculum.ts`に新設した`maxKnownCriterionWindow()`（全criteria定義＝P1/P2/シーズンクリア/L1-L3中のaccuracy.window・setAccuracy.windowSetsの最大値。現状100）を安全係数2倍・下限500件でくるんだ値（結果500）。安全係数が必要な理由: `evaluateAccuracy`はscope（part/tag）フィルタを生読み取り後にかけるため、直近N件の生読みにその特定scopeの対象がwindow数ちょうど含まれる保証がない（極端に偏った出題パターンでは理論上不足しうるヒューリスティックであることをコードコメントに明記）。関数は`services/phase.ts`からexportし、テストからも参照できるようにした。DashboardScreenの学習ヒートマップの`attempts`読みも`where('answeredAt').aboveOrEqual(15週前)`に変更（表示窓自体が15週固定のため、窓外データを読む必要が元々ない）。tagStatsの全件読み（14の1.7の既知項目）は指示どおり本タスクでは触っていない。テスト: phase 3件（既存の窓外データテストに加え、1万件で読み取り件数が上限どおりになることの確認、窓外の大量の古い誤答ノイズが評価結果を汚染しないことの確認＝いずれもtimeout 20秒に延長）、Dashboard 1件（15週より古い解答がクエリ時点で除外され描画に影響しないこと）。`npm test`（全パッケージ・409件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
 
 ## 今どこにいるか（1行）
 

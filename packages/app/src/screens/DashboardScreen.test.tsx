@@ -127,6 +127,44 @@ describe('DashboardScreen: 実データからの描画', () => {
     expect(filledCells.length).toBeGreaterThan(0)
   })
 
+  it('T-74: 表示窓（15週）より古いattemptsは読み込まれず描画にも影響しない', async () => {
+    const db = newDb()
+    const now = Date.now()
+    const WEEK_MS = 7 * DAY_MS
+    await db.attempts.bulkAdd([
+      {
+        id: 'recent',
+        questionId: 'q-1',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now,
+      },
+      {
+        // 表示窓（15週）より古い解答。where('answeredAt').aboveOrEqual(...)で
+        // そもそもDBから読まれなくなるはずで、クラッシュせず描画にも影響しない
+        id: 'too-old',
+        questionId: 'q-2',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now - 16 * WEEK_MS,
+      },
+    ])
+    render(<DashboardScreen db={db} />)
+
+    await screen.findByRole('img', { name: /学習ヒートマップ/ })
+    const filledCells = Array.from(document.querySelectorAll('.chart-heatmap rect')).filter(
+      (r) => r.getAttribute('fill') !== 'none',
+    )
+    // 「recent」1件分のみが反映される（too-oldはDBクエリの時点で除外される）
+    expect(filledCells.length).toBe(1)
+  })
+
   it('3チャート全てに数表ビュー（詳細開閉）がある', async () => {
     const db = newDb()
     await db.ratingHistory.bulkPut([

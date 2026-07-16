@@ -239,6 +239,26 @@ export const LISTENING_TRANSITION_CRITERIA: Record<1 | 2 | 3, PhaseCriteria> = {
   3: { all: [{ type: 'setAccuracy', min: 0.6, windowSets: 20 }] },
 }
 
+/**
+ * 全criteria定義（P1/P2/シーズンクリア/L1-L3）中のwindow・windowSetsの最大値。
+ * T-74: attempts読み取り上限（services/phase.tsのATTEMPTS_READ_LIMIT）の算出に使う
+ */
+export function maxKnownCriterionWindow(): number {
+  const all: PhaseCriterion[] = [
+    ...PHASE_TRANSITION_CRITERIA.P1.all,
+    ...PHASE_TRANSITION_CRITERIA.P2.all,
+    ...SEASON_CLEAR_CRITERIA.all,
+    ...LISTENING_TRANSITION_CRITERIA[1].all,
+    ...LISTENING_TRANSITION_CRITERIA[2].all,
+    ...LISTENING_TRANSITION_CRITERIA[3].all,
+  ]
+  return all.reduce((max, c) => {
+    if (c.type === 'accuracy') return Math.max(max, c.window)
+    if (c.type === 'setAccuracy') return Math.max(max, c.windowSets)
+    return max
+  }, 0)
+}
+
 /** シーズンの表示名（03の1.2節。ホーム画面のシーズン表示に使う=T-54） */
 export const SEASON_LABELS: Record<PhaseSeason, string> = {
   P1: 'シーズン1「土台」',
