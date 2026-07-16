@@ -223,6 +223,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
         pendingSync: [],
         settings: [],
         examScores: [],
+        raidState: [],
       },
     }
 

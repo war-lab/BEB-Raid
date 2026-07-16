@@ -13,6 +13,7 @@ import type {
   PendingSyncRecord,
   PhaseRecord,
   ProfileRecord,
+  RaidStateRecord,
   RatingHistoryRecord,
   RatingRecord,
   SettingRecord,
@@ -37,6 +38,7 @@ export class BebRaidDatabase extends Dexie {
   pendingSync!: EntityTable<PendingSyncRecord, 'id'>
   settings!: EntityTable<SettingRecord, 'key'>
   examScores!: EntityTable<ExamScoreRecord, 'id'>
+  raidState!: EntityTable<RaidStateRecord, 'id'>
 
   constructor(name: string = DB_NAME) {
     super(name)
@@ -75,6 +77,24 @@ export class BebRaidDatabase extends Dexie {
       pendingSync: '++id, createdAt',
       settings: 'key',
       examScores: 'id, date',
+    })
+
+    // version(3): T-88（C-2改訂・M3基盤）。raidState を新設（単一レコード運用。
+    // S1のHPバー・S5画面のオフライン表示の受け皿）。既存ストアの定義は不変のまま再宣言する
+    this.version(3).stores({
+      profile: 'id',
+      attempts: 'id, questionId, mode, answeredAt',
+      srsCards: 'id, refType, refId, dueAt',
+      ratings: 'section',
+      ratingHistory: '[date+section], date, section',
+      tagStats: 'tag',
+      phase: 'season',
+      streak: 'id',
+      badges: 'badgeId',
+      pendingSync: '++id, createdAt',
+      settings: 'key',
+      examScores: 'id, date',
+      raidState: 'id',
     })
 
     // attempts の削除・更新禁止（追記のみ）。delete / clear / put / update を

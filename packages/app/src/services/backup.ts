@@ -16,6 +16,7 @@ import type {
   PendingSyncRecord,
   PhaseRecord,
   ProfileRecord,
+  RaidStateRecord,
   RatingHistoryRecord,
   RatingRecord,
   SettingRecord,
@@ -42,6 +43,8 @@ export interface BackupStores {
   settings: SettingRecord[]
   /** T-42（C-2改訂）で追加。旧バージョンのバックアップには存在しない（インポート側は空扱いで許容） */
   examScores: ExamScoreRecord[]
+  /** T-88（C-2改訂）で追加。旧バージョンのバックアップには存在しない（インポート側は空扱いで許容） */
+  raidState: RaidStateRecord[]
 }
 
 /**
@@ -69,6 +72,7 @@ const STORE_INTRODUCED_AT: Record<keyof BackupStores, number> = {
   pendingSync: 1,
   settings: 1,
   examScores: 2,
+  raidState: 3,
 }
 
 export interface BackupFile {
@@ -92,6 +96,7 @@ const STORE_NAMES = [
   'pendingSync',
   'settings',
   'examScores',
+  'raidState',
 ] as const satisfies readonly (keyof BackupStores)[]
 
 /**

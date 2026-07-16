@@ -25,7 +25,7 @@ afterEach(async () => {
 })
 
 describe('BebRaidDatabase: ストア定義', () => {
-  it('04の3節の全11ストア＋examScores（T-42=C-2改訂）が定義されている（J-7）', () => {
+  it('04の3節の全11ストア＋examScores（T-42=C-2改訂）＋raidState（T-88=C-2改訂）が定義されている（J-7）', () => {
     const db = newDb()
     const names = db.tables.map((t) => t.name).sort()
     expect(names).toEqual(
@@ -42,6 +42,7 @@ describe('BebRaidDatabase: ストア定義', () => {
         'pendingSync',
         'settings',
         'examScores',
+        'raidState',
       ].sort(),
     )
   })
@@ -279,5 +280,84 @@ describe('マイグレーション: version(1)→version(2)（T-42=C-2改訂）'
       source: 'IP',
     })
     expect(await upgraded.examScores.count()).toBe(1)
+  })
+})
+
+describe('マイグレーション: version(2)→version(3)（T-88=C-2改訂）', () => {
+  it('version(2)スキーマで作成済みのデータがversion(3)でも無傷で読め、raidStateが新規に読み書きできる', async () => {
+    const name = `beb-raid-migration-test-${++seq}`
+
+    // 旧アプリ相当: version(1)+version(2)のみを宣言した素のDexieインスタンスでデータを作る
+    const legacy = new Dexie(name)
+    legacy.version(1).stores({
+      profile: 'id',
+      attempts: 'id, questionId, mode, answeredAt',
+      srsCards: 'id, refType, refId, dueAt',
+      ratings: 'section',
+      ratingHistory: '[date+section], date, section',
+      tagStats: 'tag',
+      phase: 'season',
+      streak: 'id',
+      badges: 'badgeId',
+      pendingSync: '++id, createdAt',
+      settings: 'key',
+    })
+    legacy.version(2).stores({
+      profile: 'id',
+      attempts: 'id, questionId, mode, answeredAt',
+      srsCards: 'id, refType, refId, dueAt',
+      ratings: 'section',
+      ratingHistory: '[date+section], date, section',
+      tagStats: 'tag',
+      phase: 'season',
+      streak: 'id',
+      badges: 'badgeId',
+      pendingSync: '++id, createdAt',
+      settings: 'key',
+      examScores: 'id, date',
+    })
+    await legacy.open()
+    await legacy.table('profile').put({
+      id: PROFILE_ID,
+      displayName: '旧データv2',
+      initialToeic: null,
+      createdAt: 1000,
+      deviceToken: 'legacy-token',
+    })
+    await legacy.table('examScores').put({
+      id: 'e-legacy',
+      date: '2026-07-15',
+      listening: 400,
+      reading: 400,
+      total: 800,
+      source: 'IP',
+    })
+    legacy.close()
+
+    // 新アプリ相当: version(1)+version(2)+version(3)を宣言するBebRaidDatabaseで同名DBを開く
+    const upgraded = new BebRaidDatabase(name)
+    dbs.push(upgraded)
+    await upgraded.open()
+
+    // 既存データ（version(2)時代に書いたもの）が消えずに読める
+    const profile = await upgraded.profile.get(PROFILE_ID)
+    expect(profile?.displayName).toBe('旧データv2')
+    expect(await upgraded.examScores.count()).toBe(1)
+
+    // 新設ストア（raidState）が読み書きできる
+    expect(await upgraded.raidState.toArray()).toEqual([])
+    await upgraded.raidState.put({
+      id: 'current',
+      bossId: 'boss-2026-w29',
+      profileJson: '{}',
+      hp: 8000,
+      maxHp: 10000,
+      myDamage: 120,
+      joined: true,
+      startAt: 1000,
+      endAt: 2000,
+      lastSyncedAt: 1500,
+    })
+    expect(await upgraded.raidState.count()).toBe(1)
   })
 })

@@ -4,7 +4,7 @@
 
 ## 改修フェーズ（2026-07-16開始。正本: [15_改修計画](15_改修計画_フェーズA-D.md)）
 
-実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。**2026-07-16続き: フェーズB自走ラン完了（T-77〜T-79全完了）**。次セッションはフェーズC（T-80〜。J-33承認待ちの範囲を除く）・フェーズD（T-87〜T-89）から着手する。
+実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。**2026-07-16続き: フェーズB自走ラン完了（T-77〜T-79全完了）**。**2026-07-16続き: フェーズD自走ラン開始（T-87完了・T-88完了・T-89着手中）**。次セッションはフェーズC（T-80〜。J-33承認待ちの範囲を除く）から着手する。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）・J-31（アクセントタグ改名）・J-32（M3開始時期）・J-33（増産規模）。承認前でも T-77〜T-82・T-87〜T-89 の大半は着手可（15の1節・2節参照）
@@ -28,7 +28,9 @@
 | T-78 | 完了カード共通化＋継続動機の可視化 | ✅ 完了（2026-07-16）。**フェーズB（T-77〜T-79）全完了** |
 | T-79 | 選択肢ランタイムシャッフル | ✅ 完了（2026-07-16） |
 | T-80〜T-86 | フェーズC: コンテンツ是正（T-83以降はJ-33承認待ち） | 未着手 |
-| T-87〜T-89 | フェーズD: M3基盤（端末内完結まで） | 未着手 |
+| T-87 | M3タスク分解ドキュメント（docs/16）作成 | ✅ 完了（2026-07-16） |
+| T-88 | C-2改訂: raidStateストア追加 | ✅ 完了（2026-07-16） |
+| T-89 | engine/damage.ts＋pendingSync書込 | 進行中 |
 
 ※ T-67: `services/session.ts`の`resumeSession`をApp起動時のPromise.allに追加し、結果を`resumeSnapshot`としてHomeScreenへprop注入した。**設計判断（docs未記載）**: App自体はscreen切替では再マウントしないため、boot時点1回だけの取得では「ドリル中断→ホーム」を経由した直後の再開ボタンに反映されない。これを解消するため、boot完了後は`screen`が`'home'`になるたび（起動直後を含む）に`resumeSession`を再取得する2本目のuseEffectを追加した（HomeScreen側での重複DB読みを避け、App側1箇所に集約）。HomeScreenは「続きから再開（残りN問）」ボタン（`.secondary-action`流用、主ボタン直上）をresumeSnapshot存在時のみ表示し、タップで既存スナップショットをそのまま`beginSession`に渡してdrillへ遷移する（ratingBeforeはJ-34どおり現在値で再取得）。「今日のクエスト」「単独モード」開始時は、resumeSnapshotがあれば`window.confirm`で破棄確認を挟む（共通の`startSessionAndNavigate`1箇所に集約）。DrillScreenのステータス帯に「中断」テキストボタンを追加（`navigate('home')`のみでsessionStore/DBは一切変更しない。中断=破棄ではなく、次の解答時にDB上のスナップショットへ自然に追記される設計を維持）。テスト: HomeScreen 4件（再開ボタンの表示/非表示・タップでdrill遷移・confirm拒否/承諾の分岐）、DrillScreen 1件（中断→home遷移＋activeSessionがDBに残ることの確認）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの操作確認（本セッションはブラウザ自動化ツールが使えない）。
 
@@ -59,6 +61,10 @@
 ※ T-78: 4点を実装。①新規`components/CompletionCard.tsx`（今日の実施数・ストリーク日数・一言メッセージ＋result-scale-inの軽いスケールイン流用）を語彙SRS終了（VocabScreen）・診断完了（DiagnosticScreen）・シャドーイング完了（ShadowingScreen）の3画面の完了状態に追加。新設`services/dailyStats.ts`の`countAttemptsToday`（暦日で絞ったattempts件数）と既存`engine/streak.ts`の`getStreak`を組み合わせて表示データを作る。**設計判断（docs未記載）**: ShadowingScreenは元々「素材が無い（0件）」と「全素材完了（index到達）」を同じ`!question`分岐・同じ文言で扱っていたため、両者を`shadowingQuestions.length===0`で分岐し、後者にのみ完了カードを出すようにした（前者は素材が無いだけで達成ではないため）。②HomeScreenに直近4週間のミニヒートマップを追加。既存`DashboardScreen.tsx`内にあった`buildHeatmapCells`は元々15週固定のHEATMAP_WEEKS前提だったため、`engine/heatmapCells.ts`へ切り出し`weeks`引数必須化（DashboardScreen側もHEATMAP_WEEKSを明示的に渡すよう更新。`Heatmap`コンポーネント自体はセル数に応じて自動で縮小するため「縮小版」は新規コンポーネントを作らずセル数を28（4週）に絞るだけで実現できた）。③ホームの日数ストリーク表示を`session-streak`（ドリル中の連続正解用。既存のまま）から分離した`.streak-flame`に変更し、新設の設定キー`LAST_SEEN_STREAK_KEY`（前回表示値）と比較して増えたときだけ`.is-pulse`（`streak-pulse`キーフレーム流用）を1回だけ付与する。④ハプティクス設定（`HAPTICS_ENABLED_KEY`。既定ON）をSettingsScreenにトグル追加し、DrillScreen・VocabScreen（S3側の4択リコール）の「正解確定」タイミング（DrillScreenは4関数すべて、VocabScreenはhandleSelectChoice）で`navigator.vibrate?.(15)`を呼ぶ（設定OFF・誤答・非対応環境ではno-op）。**テスト同期の課題と対処**: DrillScreenのハプティクス設定はDB非同期読み込み（`settingsLoaded`）を経てstateに反映されるため、設定OFFのテストで読み込み前にクリックするとstate初期値=true（既定）のまま評価されるレースが起きた。DrillScreenに既存の`home-loaded`（HomeScreen）と同じパターンの隠しマーカー`data-testid="drill-settings-loaded"`を追加してテストから待てるようにした（本番の見た目には影響しない）。テスト: CompletionCard 2件（表示内容・ストリーク0時は炎非表示）、VocabScreen/DiagnosticScreen/ShadowingScreen 各1件（完了カード表示）、HomeScreen 2件（ミニヒートマップのデータ反映=4週より前のattemptsが除外される・ストリークパルスの増加時のみ発火）、SettingsScreen 1件（ハプティクストグルの永続化・既定ON確認）、DrillScreen 3件（設定ON時の振動・OFF時の非発火・誤答時の非発火）。`npm test`（全パッケージ・434件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの視覚・触覚確認（本セッションはブラウザ自動化ツールが使えず、実機の振動確認もできない）。
 
 **フェーズB（体験の質。T-77〜T-79）完了**（15の7節の完了ゲート）。継続動機の装置（報酬演出・完了カード・ミニヒートマップ・ストリークパルス・ハプティクス・選択肢シャッフル）が実装済み。
+
+※ T-87: 新規`docs/16_M3タスク分解.md`を作成した。14の4.2（判断リスト）・4.3（Workers設計方針）を根拠に、判断J-45〜J-50（API契約・認証・ダメージ式モード係数＋レイド対象定義・ボスHP入力・帰属ルール・週次運転トリガー。推奨案・代替案・リスクを併記）と、KV/DO無料枠見積り表、段階導入6段階（15のT-87〜T-89=ステップ1に続くステップ2〜6）のタスク表（T-90〜T-102）を作成した。**設計判断（docs未記載）**: J-32（15で確定済み。M3開始時期は参加見込み人数確認後）を踏まえ、本書のJ-45〜J-50は「Workers疎通（T-90〜）着手前に一括承認が必要」と明記し、タスク分解自体は先に完成させても着手はJ-32の判断待ちであることを明確にした。`docs/00_README.md`のドキュメント構成表に14・15・16を追記（既存の抜け。今回追記のついでに解消）。完了条件（docs/16が存在しM3全タスクが1タスク=1セッション粒度で分解され判断表に未決事項が集約されている）を満たす。コード変更なし（docsのみ）のため`npm test`等は対象外。
+
+※ T-88: Dexie `version(3)`で`raidState`ストアを追加した（単一レコード運用。`{ id:'current', bossId, profileJson, hp, maxHp, myDamage, joined, startAt, endAt, lastSyncedAt }`）。`docs/04`3節のストア表・バージョン注記を同時更新。**設計判断（docs未記載）**: T-88の指示は「単独コミット」だったが、新規ストアはエクスポート/インポート（`services/backup.ts`）の対象にも自然と含まれるべきため、`BackupStores`・`STORE_INTRODUCED_AT`（導入バージョン3）・`STORE_NAMES`に`raidState`を追加した（T-42=examScores追加時と同じ扱い。これは契約変更そのものであり「他の変更と混ぜない」の対象外と判断）。既存の「dbVersionが現在のDBより新しいバックアップを拒否する」テスト（backup.test.ts・SettingsScreen.test.tsx）は、全ストア列挙のモックオブジェクトに`raidState`が無いと`validateBackup`が新たに検出してしまい、期待していた`/dbVersion/`エラーではなく`/不正/`エラーになって失敗することが判明したため、両テストのモックに`raidState: []`を追加して修正した。テスト: database 1件（v2→v3マイグレーション。既存データ無傷＋raidState新規読み書き）、backup 2件（raidStateの往復対象化の確認は既存の全ストア往復テストに`seedAllStores`経由で自然に含まれる形にした）。`npm test`（全パッケージ・435件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。
 
 ## 今どこにいるか（1行）
 

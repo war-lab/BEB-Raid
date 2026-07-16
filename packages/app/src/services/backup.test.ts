@@ -27,7 +27,7 @@ afterEach(async () => {
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
-/** 全11ストアにテストデータを投入する */
+/** 全13ストアにテストデータを投入する */
 async function seedAllStores(db: BebRaidDatabase): Promise<void> {
   await db.profile.put({
     id: PROFILE_ID,
@@ -91,6 +91,18 @@ async function seedAllStores(db: BebRaidDatabase): Promise<void> {
     reading: 400,
     total: 780,
     source: 'IP',
+  })
+  await db.raidState.put({
+    id: 'current',
+    bossId: 'boss-2026-w29',
+    profileJson: '{}',
+    hp: 8000,
+    maxHp: 10000,
+    myDamage: 120,
+    joined: true,
+    startAt: 1000,
+    endAt: 2000,
+    lastSyncedAt: 1500,
   })
 }
 
@@ -239,6 +251,7 @@ describe('validateBackup / importAll: 不正データの拒否', () => {
         pendingSync: [],
         settings: [],
         examScores: [],
+        raidState: [],
       },
     }
     await expect(importAll(target, tooNew)).rejects.toThrow(/dbVersion/)
