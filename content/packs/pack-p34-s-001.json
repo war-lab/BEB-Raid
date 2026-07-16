@@ -32,7 +32,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 15282
+        "durationMs": 18469
       },
       "script": "A: Do you have a few minutes to talk about tomorrow's budget meeting? B: Actually, I just found out I have a client call at the same time. Could we reschedule it to Thursday afternoon? A: That should work — most of the team is free then. I'll send a new invite this afternoon. B: Great, thanks for being so flexible.",
       "subQuestions": [
@@ -138,7 +138,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 19174
+        "durationMs": 22779
       },
       "script": "A: The shared server seems to be malfunctioning again — I can't access any of the project files. B: I noticed that too. I already called the technician, but he said he can't come until tomorrow morning. A: That's a problem. Do we have a backup we can use in the meantime? B: I'll check with IT and email you a temporary link within the hour.",
       "subQuestions": [
@@ -239,7 +239,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12696
+        "durationMs": 15778
       },
       "script": "A: We're almost out of printer paper and toner in the supply closet. B: Really? I thought we just placed an order last month. A: We did, but the new interns have been printing a lot of training materials. B: Let's submit a request today so it arrives before the weekend.",
       "subQuestions": [
@@ -340,7 +340,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 16562
+        "durationMs": 20454
       },
       "script": "A: I just got off the phone with the client — their shipment still hasn't arrived. B: That's the third delay this quarter. Did the carrier give a reason? A: They mentioned a warehouse backlog, but they couldn't give a firm delivery date. B: Let's offer the client a discount on their next order as an apology.",
       "subQuestions": [
@@ -441,7 +441,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 14158
+        "durationMs": 17528
       },
       "script": "A: What did you think of the candidate we interviewed this morning? B: I was impressed — her experience matches the role closely, and she asked great questions. A: Agreed. Should we move forward with a second interview? B: Yes, let's schedule it for early next week and loop in the department manager.",
       "subQuestions": [
@@ -547,7 +547,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 16039
+        "durationMs": 19905
       },
       "script": "A: Have we finalized the catering order for Friday's event? B: Almost — I'm still waiting to hear back about how many guests are vegetarian. A: I'll send a quick survey to the attendee list this afternoon. B: Perfect, let's finalize the order by tomorrow morning at the latest.",
       "subQuestions": [
@@ -648,7 +648,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 14707
+        "durationMs": 17894
       },
       "script": "A: Did you see the notice about the software upgrade this weekend? B: Yes, IT said all our files will automatically synchronize before the update starts. A: Good, I was worried I'd lose my project files. B: Same here — let's just save everything one more time on Friday to be safe.",
       "subQuestions": [
@@ -754,7 +754,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 18077
+        "durationMs": 21864
       },
       "script": "A: Have you finished putting together my itinerary for the conference next month? B: Almost — I booked your flight and hotel, but I'm still waiting on the shuttle reservation. A: No rush, just make sure I land with enough time before the opening reception. B: Understood, I'll confirm everything by the end of the week.",
       "subQuestions": [
@@ -855,7 +855,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 13610
+        "durationMs": 16483
       },
       "script": "A: The shelves in the front section look almost empty again. B: I know, our best-selling items keep selling out faster than we can restock them. A: Should we increase the order size for next month? B: Yes, and let's also move some inventory from the stockroom out front today.",
       "subQuestions": [
@@ -961,7 +961,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 15543
+        "durationMs": 19304
       },
       "script": "A: The vendor sent over the new contract terms for next year. B: How do the numbers compare to our current agreement? A: The overall cost is about the same, but they want to shorten the renewal period to six months. B: Let's negotiate for a full year before we sign anything.",
       "subQuestions": [
@@ -1062,7 +1062,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 17189
+        "durationMs": 19487
       },
       "script": "Attention all building tenants: the east elevator will be out of service for routine maintenance from nine to eleven tomorrow morning. During that time, please use the west elevator or the stairs near the lobby. We apologize for any inconvenience and expect the elevator to be back in service by early afternoon.",
       "subQuestions": [
@@ -1168,7 +1168,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 17972
+        "durationMs": 21603
       },
       "script": "This weekend only, visit Harbor Outlet for our biggest clearance sale of the year. Every item in the store is marked down, with select merchandise up to seventy percent off. Doors open early at eight, and the first fifty customers will receive a complimentary gift bag. Don't miss this once-a-year event.",
       "subQuestions": [
@@ -1269,7 +1269,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 15073
+        "durationMs": 16927
       },
       "script": "Hi, this is Dana calling from Crestview Dental. I'm calling to let you know that your appointment originally scheduled for Tuesday at ten needs to be moved due to a scheduling conflict. We have an opening on Wednesday at the same time. Please call us back at your convenience to confirm.",
       "subQuestions": [
@@ -1370,7 +1370,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 14498
+        "durationMs": 16980
       },
       "script": "Attention passengers on flight two-fourteen to Denver: your departure gate has changed from gate twelve to gate twenty-three. Boarding will begin in approximately twenty minutes. Please proceed to the new gate as soon as possible, and have your boarding pass ready for the agent.",
       "subQuestions": [
@@ -1471,7 +1471,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 19618
+        "durationMs": 22335
       },
       "script": "Welcome, everyone, to the Riverside History Museum. My name is Carlos, and I'll be your guide for the next hour. Let me walk you through today's itinerary: we'll begin in the main hall, where you'll see artifacts dating back over two hundred years, before moving on to the interactive exhibit on the second floor. Please feel free to ask questions along the way.",
       "subQuestions": [
@@ -1577,7 +1577,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 19278
+        "durationMs": 20924
       },
       "script": "Good afternoon, everyone. Before we wrap up today's meeting, I want to share a quick update on our quarterly results. Revenue grew twelve percent compared to last quarter, largely thanks to strong sales in the retail division. I want to thank each of you for your hard work, and I look forward to sharing more details at next month's review.",
       "subQuestions": [
@@ -1683,7 +1683,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 18024
+        "durationMs": 21211
       },
       "script": "Thank you all for coming today. I'm excited to introduce our newest product line, designed specifically to help small businesses streamline their daily operations. After months of testing and customer feedback, we're confident this launch will set a new standard in the industry. We'll be taking questions after a short demonstration.",
       "subQuestions": [
@@ -1789,7 +1789,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 18991
+        "durationMs": 20976
       },
       "script": "Thank you for calling Meridian Bank customer service. For account balance and recent transactions, press one. To report a lost or stolen card, press two. To speak with a representative about a loan or mortgage, press three. For any other inquiry, please stay on the line and the next available representative will assist you.",
       "subQuestions": [
@@ -1900,7 +1900,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 17450
+        "durationMs": 19931
       },
       "script": "Good morning, and welcome to your first day of orientation. Over the next two days, you'll learn about our company policies, meet your department supervisor, and complete a few required training modules. Please keep your employee badge visible at all times, and don't hesitate to ask your mentor if you have any questions.",
       "subQuestions": [
@@ -2001,7 +2001,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 16588
+        "durationMs": 19043
       },
       "script": "Good morning, commuters. Traffic on the downtown expressway is moving slowly this morning due to ongoing construction near exit seven. Drivers should expect delays of up to twenty minutes and may want to consider the riverside route as an alternative. We'll have another update in thirty minutes.",
       "subQuestions": [

@@ -18,8 +18,8 @@
         600,
         600
       ],
-      "sizeBytes": 64710,
-      "hash": "aff68a30ab841e35"
+      "sizeBytes": 65165,
+      "hash": "941e4468f5bb9043"
     },
     {
       "id": "pack-p5-s-001",
@@ -68,8 +68,8 @@
         600,
         600
       ],
-      "sizeBytes": 128361,
-      "hash": "a663b8527222acd0"
+      "sizeBytes": 128402,
+      "hash": "e34d613d923af6c6"
     },
     {
       "id": "pack-p5-s-002",
@@ -89,7 +89,7 @@
         600
       ],
       "sizeBytes": 67078,
-      "hash": "a4d44e453d36c631"
+      "hash": "66d7ce54b58b307a"
     },
     {
       "id": "pack-dict-s-001",
@@ -99,7 +99,7 @@
         600
       ],
       "sizeBytes": 36972,
-      "hash": "2cd0ebc9309a337d"
+      "hash": "3ac119da8f747fdb"
     },
     {
       "id": "pack-shadow-s-001",
@@ -108,8 +108,8 @@
         600,
         600
       ],
-      "sizeBytes": 37792,
-      "hash": "ed08876b929cf6c8"
+      "sizeBytes": 37837,
+      "hash": "85bd8698d7281fb3"
     },
     {
       "id": "pack-p5-similar-s-002",

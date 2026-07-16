@@ -1,6 +1,6 @@
-// T-80完了条件のテスト（正本: docs/15 T-80行）:
+// T-80/T-81完了条件のテスト（正本: docs/15 T-80・T-81行）:
 // - 5ルールの単体テスト（①Part2応答部一致 ②keyVocab出現 ③カジュアル縮約 ④text_blank本文長 ⑤文頭偏り）
-// - 全パック（実コンテンツ）に対する一括検査で、既知の①43問・③6問が実際に検出される
+// - 全パック（実コンテンツ）に対する一括検査で、T-81修正後は①③の検出が0件になる
 import type { Question } from '@beb-raid/shared-schema'
 import { describe, expect, it } from 'vitest'
 
@@ -176,8 +176,8 @@ describe('checkOpeningPhraseDiversity（⑤。警告のみ）', () => {
   })
 })
 
-describe('全パック一括検査（T-80完了条件: 既知の①43問・③6問が実際に検出される）', () => {
-  it('①③の既知問題数を検出し、検査結果の総数を記録できる', () => {
+describe('全パック一括検査（T-81完了条件: T-80ルール①③の検出ゼロ）', () => {
+  it('J-43（S1選択肢書き換え）・カジュアル縮約6問修正（T-81）により①③の検出が0件になる', () => {
     const packs: Array<{ id: string; questions: Question[] }> = [
       { id: 'pack-vocab-s-001', questions: buildVocabCardQuestions() },
       { id: 'pack-vocab-a-001', questions: buildVocabCardQuestions(VOCAB_CARDS_A, 'A') },
@@ -203,9 +203,8 @@ describe('全パック一括検査（T-80完了条件: 既知の①43問・③6�
     const scriptMismatches = allProblems.filter((p) => p.includes('script応答部'))
     const casualContractions = allProblems.filter((p) => p.includes('カジュアル縮約'))
 
-    // 既知件数（14の3.7-2・15のT-80完了条件）。実データの実測値をそのまま固定して
-    // 回帰検知に使う（今後の修正=T-81/T-82でこの数が減っていくのが期待挙動）
-    expect(scriptMismatches.length).toBe(43)
-    expect(casualContractions.length).toBe(6)
+    // T-81完了条件: T-80で検出した既知の①43問・③6問が、S1選択肢書き換え・S2縮約修正により0件になる
+    expect(scriptMismatches.length).toBe(0)
+    expect(casualContractions.length).toBe(0)
   })
 })

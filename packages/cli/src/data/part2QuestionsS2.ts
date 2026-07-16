@@ -402,7 +402,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'onboarding',
     tags: ['弱形・連結'],
-    script: 'Wanna sit in on the onboarding session tomorrow? — I’d love to, actually.',
+    script: 'Do you want to sit in on the onboarding session tomorrow? — I’d love to, actually.',
     correctText: 'I’d love to, actually.',
     distractors: ['It lasted two hours.', 'She joined last week.'],
     explanation:
@@ -424,7 +424,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'reconciliation',
     tags: ['弱形・連結'],
-    script: 'Didja finish the reconciliation for March yet? — Almost, just one account left.',
+    script: 'Did you finish the reconciliation for March yet? — Almost, just one account left.',
     correctText: 'Almost, just one account left.',
     distractors: ['The finance team handles that.', 'It was due last Friday.'],
     explanation:
@@ -435,7 +435,8 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'streamline',
     tags: ['弱形・連結'],
-    script: 'Gonna streamline the approval process this quarter? — That’s the plan, yes.',
+    script:
+      'Are you going to streamline the approval process this quarter? — That’s the plan, yes.',
     correctText: 'That’s the plan, yes.',
     distractors: ['It took three weeks last time.', 'The operations team suggested it.'],
     explanation:
@@ -457,7 +458,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'appraisal',
     tags: ['弱形・連結'],
-    script: 'D’you know when my appraisal is scheduled? — I believe it’s next Monday.',
+    script: 'Do you know when my appraisal is scheduled? — I believe it’s next Monday.',
     correctText: 'I believe it’s next Monday.',
     distractors: ['Your manager conducted it.', 'It usually takes an hour.'],
     explanation:
@@ -468,7 +469,8 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'retention',
     tags: ['弱形・連結'],
-    script: 'Wanna review the retention numbers together this afternoon? — Sounds good to me.',
+    script:
+      'Do you want to review the retention numbers together this afternoon? — Sounds good to me.',
     correctText: 'Sounds good to me.',
     distractors: ['They improved last quarter.', 'The HR analyst prepared them.'],
     explanation:
@@ -479,7 +481,8 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'automate',
     tags: ['弱形・連結'],
-    script: 'Gonna automate the invoicing this year? — We’re still discussing the budget for it.',
+    script:
+      'Are you going to automate the invoicing this year? — We’re still discussing the budget for it.',
     correctText: 'We’re still discussing the budget for it.',
     distractors: ['It saved us a lot of time.', 'The software vendor called yesterday.'],
     explanation:

@@ -32,7 +32,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2743
+        "durationMs": 3291
       },
       "script": "She would like to confirm the delivery date for the shipment.",
       "translation": "彼女はその出荷分の配送日を確認したいと考えている。",
@@ -72,7 +72,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3135
+        "durationMs": 3631
       },
       "script": "Please send the invoice to the accounting department today.",
       "translation": "その請求書を今日、経理部に送ってください。",
@@ -108,7 +108,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3318
+        "durationMs": 4153
       },
       "script": "The candidate has already submitted her resume and references.",
       "translation": "その候補者はすでに履歴書と推薦状を提出している。",
@@ -144,7 +144,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2482
+        "durationMs": 2873
       },
       "script": "The boxes were moved from the warehouse this morning.",
       "translation": "その箱は今朝、倉庫から移動された。",
@@ -180,7 +180,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2769
+        "durationMs": 3239
       },
       "script": "They should review the contract before they sign it.",
       "translation": "彼らは署名する前にその契約書を確認すべきだ。",
@@ -216,7 +216,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2377
+        "durationMs": 2873
       },
       "script": "We could ask the vendor for a better price.",
       "translation": "私たちは業者にもっと良い価格を求めることができる。",
@@ -252,7 +252,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2821
+        "durationMs": 3109
       },
       "script": "The renovation will take longer than we expected.",
       "translation": "その改装は私たちが予想したより長くかかるだろう。",
@@ -288,7 +288,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3239
+        "durationMs": 3396
       },
       "script": "The inspection is scheduled for next Tuesday morning.",
       "translation": "その検査は来週火曜日の朝に予定されている。",
@@ -324,7 +324,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3161
+        "durationMs": 3553
       },
       "script": "Every employee must complete the survey by Friday.",
       "translation": "すべての従業員は金曜日までにその調査を完了しなければならない。",
@@ -360,7 +360,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2586
+        "durationMs": 2900
       },
       "script": "She is preparing a presentation for the client.",
       "translation": "彼女は顧客向けのプレゼンテーションを準備している。",
@@ -396,7 +396,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3030
+        "durationMs": 3318
       },
       "script": "The budget was approved, but it was later revised.",
       "translation": "その予算は承認されたが、後に修正された。",
@@ -432,7 +432,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2873
+        "durationMs": 2978
       },
       "script": "We made a reservation for four people tonight.",
       "translation": "私たちは今夜4人分の予約をした。",
@@ -468,7 +468,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2952
+        "durationMs": 3474
       },
       "script": "The deadline was extended to next Monday afternoon.",
       "translation": "締め切りは来週の月曜日の午後まで延長された。",
@@ -504,7 +504,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3161
+        "durationMs": 3788
       },
       "script": "This product comes with a warranty that lasts two years.",
       "translation": "この製品には2年間続く保証が付いている。",
@@ -540,7 +540,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2638
+        "durationMs": 3135
       },
       "script": "Ask your supervisor if you have any questions.",
       "translation": "質問があれば、上司に尋ねてください。",
@@ -576,7 +576,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2299
+        "durationMs": 2743
       },
       "script": "The brochure is available at the front desk.",
       "translation": "そのパンフレットはフロントデスクで入手できる。",
@@ -612,7 +612,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3082
+        "durationMs": 3579
       },
       "script": "The merger could be finalized sooner than the board expected.",
       "translation": "その合併は取締役会が予想したより早く成立する可能性がある。",
@@ -648,7 +648,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2299
+        "durationMs": 2795
       },
       "script": "You can cancel your subscription at any time.",
       "translation": "あなたはいつでも購読を解約できる。",
@@ -684,7 +684,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2064
+        "durationMs": 2116
       },
       "script": "Bring this voucher with you to the store.",
       "translation": "この割引券を店に持ってきてください。",
@@ -720,7 +720,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2717
+        "durationMs": 3030
       },
       "script": "They are planning to open a new franchise downtown.",
       "translation": "彼らは中心街に新しいフランチャイズ店を開く予定だ。",
@@ -756,7 +756,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2638
+        "durationMs": 2377
       },
       "script": "I have sent you the itinerary for next week.",
       "translation": "来週の旅程表をあなたに送りました。",
@@ -792,7 +792,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2743
+        "durationMs": 3187
       },
       "script": "The printer seems to be malfunctioning again this week.",
       "translation": "そのプリンターは今週また故障しているようだ。",
@@ -828,7 +828,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2560
+        "durationMs": 3082
       },
       "script": "You may request a refund within thirty days.",
       "translation": "あなたは30日以内であれば返金を請求できる。",
@@ -864,7 +864,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3422
+        "durationMs": 3971
       },
       "script": "New employees must attend orientation on their first day.",
       "translation": "新入社員は初日にオリエンテーションに出席しなければならない。",
@@ -900,7 +900,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2586
+        "durationMs": 2978
       },
       "script": "The store will hold a clearance sale next weekend.",
       "translation": "その店は来週末にクリアランスセールを開催する。",
@@ -936,7 +936,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3056
+        "durationMs": 3605
       },
       "script": "A repair technician will arrive before noon tomorrow.",
       "translation": "修理の技術者が明日の正午前に到着する予定だ。",
@@ -972,7 +972,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3448
+        "durationMs": 3866
       },
       "script": "The report must show full compliance with the new regulation.",
       "translation": "その報告書は新しい規制への完全な遵守を示さなければならない。",
@@ -1008,7 +1008,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3030
+        "durationMs": 3709
       },
       "script": "Only a few applicants were invited for the second round.",
       "translation": "ごく少数の応募者だけが2次選考に招待された。",
@@ -1044,7 +1044,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2873
+        "durationMs": 3422
       },
       "script": "Visitors must sign in before entering the premises.",
       "translation": "訪問者は敷地に入る前に署名しなければならない。",
@@ -1080,7 +1080,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2769
+        "durationMs": 3448
       },
       "script": "We have not received the invoice from the supplier yet.",
       "translation": "私たちはまだ仕入先から請求書を受け取っていない。",
@@ -1116,7 +1116,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2299
+        "durationMs": 2612
       },
       "script": "Her commute takes about an hour each way.",
       "translation": "彼女の通勤は片道約1時間かかる。",
@@ -1152,7 +1152,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3082
+        "durationMs": 3265
       },
       "script": "The contractor will send an estimate before the end of the week.",
       "translation": "その請負業者は週末までに見積もりを送るだろう。",
@@ -1188,7 +1188,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3082
+        "durationMs": 3396
       },
       "script": "The renewal notice was mailed to all members last week.",
       "translation": "更新のお知らせは先週、全会員に郵送された。",
@@ -1224,7 +1224,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2795
+        "durationMs": 3187
       },
       "script": "We would appreciate your feedback on the new design.",
       "translation": "新しいデザインについてのご意見をいただければ幸いです。",
@@ -1260,7 +1260,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2873
+        "durationMs": 3161
       },
       "script": "The shuttle leaves every hour from the main entrance.",
       "translation": "シャトルバスは正面玄関から毎時発車する。",
@@ -1296,7 +1296,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3344
+        "durationMs": 3840
       },
       "script": "Employees must renew their certification every two years.",
       "translation": "従業員は2年ごとに資格を更新しなければならない。",
@@ -1332,7 +1332,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2638
+        "durationMs": 3135
       },
       "script": "The new outlet opens at nine tomorrow morning.",
       "translation": "その新しい店舗は明日の朝9時に開店する。",
@@ -1368,7 +1368,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2743
+        "durationMs": 3291
       },
       "script": "Our flight has a two-hour layover in Chicago.",
       "translation": "私たちの便はシカゴで2時間の乗り継ぎがある。",
@@ -1404,7 +1404,7 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2664
+        "durationMs": 3056
       },
       "script": "You should keep the receipt in case you need the warranty.",
       "translation": "保証を利用する場合に備えて、レシートを保管しておくべきだ。",
@@ -1440,7 +1440,7 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2717
+        "durationMs": 2900
       },
       "script": "The consignment was delayed because of a customs issue.",
       "translation": "その委託荷物は税関の問題のため遅延した。",

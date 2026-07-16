@@ -314,15 +314,23 @@ export const commands: CliCommand[] = [
   },
   {
     name: 'tts',
-    description: 'Piperで音声合成しaudioMetaを実測値に更新（vocab_card/audio_qaのみ対象。T-31）',
+    description:
+      'Piperで音声合成しaudioMetaを実測値に更新（vocab_card/audio_qa/audio_set/dictation/shadowing対象。T-31・T-81でlength_scale校正に対応）',
     run: async (ctx) => {
-      const [draftPath, audioRoot, outputDraftPath] = ctx.args
+      const [draftPath, audioRoot, outputDraftPath, lengthScaleArg] = ctx.args
       if (!draftPath || !audioRoot || !outputDraftPath) {
-        ctx.errOut('使い方: beb tts <ドラフト.jsonl> <音声出力ルート> <更新後ドラフト.jsonl>')
+        ctx.errOut(
+          '使い方: beb tts <ドラフト.jsonl> <音声出力ルート> <更新後ドラフト.jsonl> [length_scale]',
+        )
+        return 1
+      }
+      const lengthScale = lengthScaleArg !== undefined ? Number(lengthScaleArg) : undefined
+      if (lengthScaleArg !== undefined && Number.isNaN(lengthScale)) {
+        ctx.errOut(`length_scaleが数値ではない: ${lengthScaleArg}`)
         return 1
       }
       const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
-      const provider = new PiperTtsProvider()
+      const provider = new PiperTtsProvider(lengthScale !== undefined ? { lengthScale } : {})
       const { updatedDrafts, synthesized, skipped } = await synthesizeDraftsAudio(
         drafts,
         provider,

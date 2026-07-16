@@ -1,6 +1,7 @@
 // T-31 完了条件のテスト（純粋ロジック層）:
 // - 話者ローテーション（米/英2アクセント。en_AU不在のため縮退）
 // - モックプロバイダでの生成フロー・メタ記録（voice/durationMs）
+import { EventEmitter } from 'node:events'
 import { describe, expect, it, vi } from 'vitest'
 import {
   isSupportedAccent,
@@ -11,6 +12,52 @@ import {
   voiceFor,
   type ProcessRunner,
 } from './tts.js'
+
+vi.mock('node:child_process', () => ({ spawn: vi.fn() }))
+
+describe('runProcess: 一過性の失敗への再試行（T-81。Windowsのウイルス対策ソフトによる一時的なファイルロック対策）', () => {
+  it('2回失敗しても3回目で成功すれば解決する', async () => {
+    const { spawn } = await import('node:child_process')
+    let callCount = 0
+    vi.mocked(spawn).mockImplementation(() => {
+      callCount++
+      const child = new EventEmitter() as unknown as {
+        stdout: EventEmitter
+        stdin: { write: () => void; end: () => void }
+        on: EventEmitter['on']
+      }
+      child.stdout = new EventEmitter()
+      child.stdin = { write: () => {}, end: () => {} }
+      const exitCode = callCount < 3 ? 1 : 0
+      queueMicrotask(() => (child as unknown as EventEmitter).emit('close', exitCode))
+      return child as never
+    })
+
+    const { runProcess } = await import('./tts.js')
+    const result = await runProcess('ffmpeg', ['-y'])
+
+    expect(callCount).toBe(3)
+    expect(result.stdout).toBe('')
+  })
+
+  it('3回とも失敗したら最終的にエラーを投げる', async () => {
+    const { spawn } = await import('node:child_process')
+    vi.mocked(spawn).mockImplementation(() => {
+      const child = new EventEmitter() as unknown as {
+        stdout: EventEmitter
+        stdin: { write: () => void; end: () => void }
+        on: EventEmitter['on']
+      }
+      child.stdout = new EventEmitter()
+      child.stdin = { write: () => {}, end: () => {} }
+      queueMicrotask(() => (child as unknown as EventEmitter).emit('close', 1))
+      return child as never
+    })
+
+    const { runProcess } = await import('./tts.js')
+    await expect(runProcess('ffmpeg', ['-y'])).rejects.toThrow(/コード1/)
+  })
+})
 
 describe('sanitizeForTts（M2・T-64。em/enダッシュがPiperのstdinでクラッシュする不具合の回避）', () => {
   it('em dashをカンマに置換する', () => {
@@ -91,6 +138,40 @@ describe('PiperTtsProvider（モックプロセスでの生成フロー）', () 
     expect(result.durationMs).toBe(3396)
   })
 
+  it('piperにlength_scale（既定1.15。T-81・J-37）を渡す', async () => {
+    const { run, calls } = fakeRunProcess()
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+
+    await provider.synthesize({
+      text: 'Please submit the report.',
+      accent: 'US',
+      role: 'primary',
+      outputPath: '/out/x.mp3',
+    })
+
+    const piperArgs = calls[0]!.args
+    expect(piperArgs[piperArgs.indexOf('--length_scale') + 1]).toBe('1.15')
+  })
+
+  it('lengthScaleオプションで話速を上書きできる', async () => {
+    const { run, calls } = fakeRunProcess()
+    const provider = new PiperTtsProvider({
+      voicesDir: '/voices',
+      runProcess: run,
+      lengthScale: 1.2,
+    })
+
+    await provider.synthesize({
+      text: 'Please submit the report.',
+      accent: 'US',
+      role: 'primary',
+      outputPath: '/out/x.mp3',
+    })
+
+    const piperArgs = calls[0]!.args
+    expect(piperArgs[piperArgs.indexOf('--length_scale') + 1]).toBe('1.2')
+  })
+
   it('accent/roleに応じて異なるモデルファイルを指定する', async () => {
     const { run, calls } = fakeRunProcess()
     const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
@@ -169,12 +250,16 @@ describe('PiperTtsProvider.synthesizeDialogue（Part2: 設問と応答で別話�
       outputPath: '/out/part2-submit.mp3',
     })
 
-    expect(calls.map((c) => c.command)).toEqual(['piper', 'piper', 'ffmpeg', 'ffprobe'])
+    // piper(質問)→piper(応答)→ffmpeg(無音生成。J-37の400msギャップ)→ffmpeg(連結)→ffprobe
+    expect(calls.map((c) => c.command)).toEqual(['piper', 'piper', 'ffmpeg', 'ffmpeg', 'ffprobe'])
     // 設問はprimary、応答はsecondaryの声で読む
     expect(calls[0]?.args).toContain('/voices/en_US-lessac-medium.onnx')
     expect(calls[1]?.args).toContain('/voices/en_US-ryan-medium.onnx')
-    // ffmpegはconcatフィルタで2本のWAVを1本にする
-    expect(calls[2]?.args).toContain('[0:0][1:0]concat=n=2:v=0:a=1[out]')
+    // 無音生成: 400ms・モノラル
+    expect(calls[2]?.args).toContain('anullsrc=r=22050:cl=mono')
+    expect(calls[2]?.args).toContain('0.4')
+    // ffmpegはconcatフィルタで「設問・無音・応答」の3本を1本にする（aformatで正規化してから連結）
+    expect(calls[3]?.args.join(' ')).toContain('concat=n=3:v=0:a=1[out]')
     expect(result.voice).toBe('piper:en_US-lessac-medium+piper:en_US-ryan-medium')
     expect(result.durationMs).toBe(3579)
   })
@@ -233,6 +318,7 @@ describe('PiperTtsProvider.synthesizeMultiTurnDialogue（Part3: Nターンの会
       'piper',
       'piper',
       'ffmpeg',
+      'ffmpeg',
       'ffprobe',
     ])
     // 話者はturnsのrole指定どおりに交互（primary/secondary）
@@ -240,8 +326,10 @@ describe('PiperTtsProvider.synthesizeMultiTurnDialogue（Part3: Nターンの会
     expect(calls[1]?.args).toContain('/voices/en_US-ryan-medium.onnx')
     expect(calls[2]?.args).toContain('/voices/en_US-lessac-medium.onnx')
     expect(calls[3]?.args).toContain('/voices/en_US-ryan-medium.onnx')
-    // ffmpegはconcatフィルタで4本のWAVを発話順どおりに1本にする
-    expect(calls[4]?.args).toContain('[0:0][1:0][2:0][3:0]concat=n=4:v=0:a=1[out]')
+    // 無音生成（J-37の400msギャップ。ターン数によらず1回だけ生成し使い回す）
+    expect(calls[4]?.args).toContain('anullsrc=r=22050:cl=mono')
+    // ffmpegはconcatフィルタで「発話・無音」を交互に7本（4発話+3ギャップ）連結する
+    expect(calls[5]?.args.join(' ')).toContain('concat=n=7:v=0:a=1[out]')
     expect(result.voice).toBe('piper:en_US-lessac-medium+piper:en_US-ryan-medium')
     expect(result.durationMs).toBe(5123)
   })

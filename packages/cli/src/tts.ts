@@ -126,8 +126,11 @@ export type ProcessRunner = (
   options?: { input?: string },
 ) => Promise<{ stdout: string }>
 
-/** 実プロセス実行（spawn）。stdin入力対応、非0終了はエラー */
-export const runProcess: ProcessRunner = (command, args, options) => {
+function spawnOnce(
+  command: string,
+  args: string[],
+  options?: { input?: string },
+): Promise<{ stdout: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: [options?.input !== undefined ? 'pipe' : 'ignore', 'pipe', 'inherit'],
@@ -148,6 +151,34 @@ export const runProcess: ProcessRunner = (command, args, options) => {
   })
 }
 
+/** リトライ間隔（ms）。Windows実行時、ウイルス対策ソフトの実時間スキャンが
+ * 直後のffmpeg出力ファイルオープンと競合し「Invalid argument」で失敗することがある
+ * （T-81の全量再生成で複数回実際に発生・再試行で解消することを確認済み） */
+const RETRY_DELAY_MS = 300
+const MAX_ATTEMPTS = 3
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * 実プロセス実行（spawn）。stdin入力対応、非0終了はエラー。
+ * 同一コマンド・同一引数での再実行は冪等（piper/ffmpegはいずれも同じ入力から
+ * 同じ出力を作る）ため、一過性の失敗（ファイルロック等）に備え最大3回まで再試行する
+ */
+export const runProcess: ProcessRunner = async (command, args, options) => {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await spawnOnce(command, args, options)
+    } catch (err) {
+      lastError = err
+      if (attempt < MAX_ATTEMPTS) await sleep(RETRY_DELAY_MS)
+    }
+  }
+  throw lastError
+}
+
 export interface PiperTtsProviderOptions {
   /** piper実行ファイルのパス（省略時は環境変数 PIPER_BIN、さらに省略時は 'piper'） */
   piperBin?: string
@@ -161,11 +192,23 @@ export interface PiperTtsProviderOptions {
   runProcess?: ProcessRunner
   /** 一時WAVファイルの置き場所（省略時はos.tmpdir()） */
   tmpDir?: string
+  /**
+   * Piperのlength_scale（話速。値が大きいほど遅い。T-81・J-37）。
+   * 全音声再生成時の実測wpmが150〜170wpmレンジに収まるよう校正した初期値=1.15
+   */
+  lengthScale?: number
 }
 
 function resolve(value: string | undefined, envName: string, fallback: string): string {
   return value ?? process.env[envName] ?? fallback
 }
+
+/** J-37の既定値（docs/15 T-81行）。全形式共通の初期値とし、レンジ外の形式は個別に再調整する */
+export const DEFAULT_LENGTH_SCALE = 1.15
+/** ターン間の無音長（秒）。J-37: ダイアログ/マルチターン連結時に挿入する400ms */
+export const TURN_GAP_SECONDS = 0.4
+/** 連結WAVのサンプルレート・チャンネル（Piperの'medium'品質ボイス各種の実測値に合わせる） */
+const CONCAT_SAMPLE_RATE = 22050
 
 /** Piperベースの TtsProvider 実装。piper（WAV生成）→ffmpeg（mp3変換）→ffprobe（duration実測）の順で呼ぶ */
 export class PiperTtsProvider implements TtsProvider {
@@ -174,6 +217,7 @@ export class PiperTtsProvider implements TtsProvider {
   private readonly ffmpegBin: string
   private readonly ffprobeBin: string
   private readonly run: ProcessRunner
+  private readonly lengthScale: number
 
   constructor(options: PiperTtsProviderOptions = {}) {
     this.piperBin = resolve(options.piperBin, 'PIPER_BIN', 'piper')
@@ -181,6 +225,7 @@ export class PiperTtsProvider implements TtsProvider {
     this.ffmpegBin = resolve(options.ffmpegBin, 'FFMPEG_BIN', 'ffmpeg')
     this.ffprobeBin = resolve(options.ffprobeBin, 'FFPROBE_BIN', 'ffprobe')
     this.run = options.runProcess ?? runProcess
+    this.lengthScale = options.lengthScale ?? DEFAULT_LENGTH_SCALE
   }
 
   /** テキスト1件をpiperでWAVに変換する（内部ヘルパ。synthesize/synthesizeDialogue共用） */
@@ -192,10 +237,70 @@ export class PiperTtsProvider implements TtsProvider {
   ): Promise<VoiceSpec> {
     const voice = voiceFor(accent, role)
     const modelPath = `${this.voicesDir}/${voice.modelFile}`
-    await this.run(this.piperBin, ['-m', modelPath, '-f', wavPath], {
-      input: sanitizeForTts(text),
-    })
+    await this.run(
+      this.piperBin,
+      ['-m', modelPath, '-f', wavPath, '--length_scale', String(this.lengthScale)],
+      { input: sanitizeForTts(text) },
+    )
     return voice
+  }
+
+  /** ターン間400ms無音（J-37）を挟むための無音WAVを1本生成する */
+  private async createSilenceWav(path: string): Promise<void> {
+    await this.run(this.ffmpegBin, [
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      `anullsrc=r=${CONCAT_SAMPLE_RATE}:cl=mono`,
+      '-t',
+      String(TURN_GAP_SECONDS),
+      path,
+    ])
+  }
+
+  /**
+   * N本のWAV（ターンごとの発話）を、ターン間にTURN_GAP_SECONDSの無音を挟んで1本のmp3に
+   * 連結する（J-37）。各入力はaformatでサンプルレート・チャンネルを揃えてからconcatする
+   * （ボイスモデルによってサンプルレートが異なる可能性への安全策）
+   */
+  private async concatTurnsWithGaps(
+    turnWavPaths: readonly string[],
+    outputPath: string,
+  ): Promise<number> {
+    const silenceWavPath = `${outputPath}.gap.tmp.wav`
+    await this.createSilenceWav(silenceWavPath)
+
+    // 発話0, 無音, 発話1, 無音, ... の順で入力を並べる（同じ無音ファイルを複数回-iで開く）
+    const inputPaths: string[] = []
+    turnWavPaths.forEach((p, i) => {
+      if (i > 0) inputPaths.push(silenceWavPath)
+      inputPaths.push(p)
+    })
+    const inputArgs = inputPaths.flatMap((p) => ['-i', p])
+    const normalized = inputPaths.map(
+      (_, i) =>
+        `[${i}:0]aformat=sample_fmts=s16:sample_rates=${CONCAT_SAMPLE_RATE}:channel_layouts=mono[a${i}]`,
+    )
+    const concatRefs = inputPaths.map((_, i) => `[a${i}]`).join('')
+    const filterComplex = `${normalized.join(';')};${concatRefs}concat=n=${inputPaths.length}:v=0:a=1[out]`
+
+    await this.run(this.ffmpegBin, [
+      '-y',
+      ...inputArgs,
+      '-filter_complex',
+      filterComplex,
+      '-map',
+      '[out]',
+      '-ac',
+      '1',
+      '-b:a',
+      '80k',
+      outputPath,
+    ])
+    const durationMs = await this.probeDurationMs(outputPath)
+    await rm(silenceWavPath, { force: true })
+    return durationMs
   }
 
   private async probeDurationMs(path: string): Promise<number> {
@@ -247,24 +352,11 @@ export class PiperTtsProvider implements TtsProvider {
       tmpAnswerWav,
     )
 
-    // 2本のWAVを1本のmp3に連結する（ffmpeg concatフィルタ。中間mp3を作らず直接連結）
-    await this.run(this.ffmpegBin, [
-      '-y',
-      '-i',
-      tmpQuestionWav,
-      '-i',
-      tmpAnswerWav,
-      '-filter_complex',
-      '[0:0][1:0]concat=n=2:v=0:a=1[out]',
-      '-map',
-      '[out]',
-      '-ac',
-      '1',
-      '-b:a',
-      '80k',
+    // 2本のWAVをターン間400ms無音を挟んで1本のmp3に連結する（J-37）
+    const durationMs = await this.concatTurnsWithGaps(
+      [tmpQuestionWav, tmpAnswerWav],
       input.outputPath,
-    ])
-    const durationMs = await this.probeDurationMs(input.outputPath)
+    )
     await rm(tmpQuestionWav, { force: true })
     await rm(tmpAnswerWav, { force: true })
 
@@ -283,23 +375,8 @@ export class PiperTtsProvider implements TtsProvider {
       voices.push(await this.synthesizeToWav(turn.text, input.accent, turn.role, tmpWavPaths[i]!))
     }
 
-    // N本のWAVを発話順どおりに1本のmp3へ連結する（synthesizeDialogueの2本連結をN本に一般化）
-    const inputArgs = tmpWavPaths.flatMap((p) => ['-i', p])
-    const concatInputs = tmpWavPaths.map((_, i) => `[${i}:0]`).join('')
-    await this.run(this.ffmpegBin, [
-      '-y',
-      ...inputArgs,
-      '-filter_complex',
-      `${concatInputs}concat=n=${tmpWavPaths.length}:v=0:a=1[out]`,
-      '-map',
-      '[out]',
-      '-ac',
-      '1',
-      '-b:a',
-      '80k',
-      input.outputPath,
-    ])
-    const durationMs = await this.probeDurationMs(input.outputPath)
+    // N本のWAVを発話順どおり、ターン間400ms無音を挟んで1本のmp3へ連結する（J-37）
+    const durationMs = await this.concatTurnsWithGaps(tmpWavPaths, input.outputPath)
     await Promise.all(tmpWavPaths.map((p) => rm(p, { force: true })))
 
     const uniqueVoiceNames = [...new Set(voices.map((v) => v.voiceName))]
