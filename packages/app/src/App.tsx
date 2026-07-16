@@ -3,6 +3,7 @@
 // 起動時、profile未作成（=P0診断未完了）なら診断画面から始める（T-20）。
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
+import type { BebRaidDatabase } from './db/database'
 import { getDb } from './db/database'
 import type { FontSizeScale } from './fontSize'
 import { setFontSizeScale } from './fontSize'
@@ -64,6 +65,20 @@ export async function loadQuestionPool(
     ),
   )
   return results.flat()
+}
+
+/**
+ * 起動後のバックグラウンド同期（T-73）。syncPacks成功後、新規/更新パックがあれば
+ * （synced.length>0）questionPoolを再読込して返す。変化が無ければnull
+ * （呼び出し側はsetState不要と判断できる）
+ */
+export async function syncPacksAndReload(
+  db: BebRaidDatabase,
+  packCache: PackCache,
+): Promise<Question[] | null> {
+  const result = await syncPacks({ db, packCache })
+  if (!result || result.synced.length === 0) return null
+  return loadQuestionPool(packCache)
 }
 
 const audioPlayer = createAudioPlayer()
@@ -145,9 +160,17 @@ export function App() {
   }, [bootChecked, screen])
 
   // 起動時のパック配信・キャッシュ同期（T-35）。bootChecked（診断遷移判定）とは
-  // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）
+  // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）。
+  // T-73: 新規/更新パックが同期できたら（synced.length>0）questionPoolを再読込し、
+  // 初回同期直後から新パックが出題対象になるようにする
   useEffect(() => {
-    void syncPacks({ db: getDb(), packCache })
+    let cancelled = false
+    void syncPacksAndReload(getDb(), packCache).then((pool) => {
+      if (!cancelled && pool) setQuestionPool(pool)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // T-72: ストレージ保全（J-38）。拒否されても動作は変えない（iOS Safariはインストール済み

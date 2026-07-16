@@ -408,3 +408,27 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
     confirmSpy.mockRestore()
   })
 })
+
+describe('HomeScreen: 出題プール空の案内（T-73）', () => {
+  it('questionPoolが空のとき、主ボタンがdisabledになり案内文が表示される', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={[]} resumeSnapshot={null} />)
+    await flushLoad()
+
+    const button = screen.getByText('今日のクエスト') as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(
+      screen.getByText('問題データを取得できていません。オンラインで開き直してください'),
+    ).toBeTruthy()
+  })
+
+  it('questionPoolがあるとき、主ボタンは有効で案内文は出ない', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
+    await flushLoad()
+
+    const button = screen.getByText('今日のクエスト') as HTMLButtonElement
+    expect(button.disabled).toBe(false)
+    expect(screen.queryByText(/問題データを取得できていません/)).toBeNull()
+  })
+})

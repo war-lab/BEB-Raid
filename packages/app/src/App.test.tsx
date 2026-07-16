@@ -7,7 +7,7 @@ import 'fake-indexeddb/auto'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { QuestionPack } from '@beb-raid/shared-schema'
-import { App, PACK_IDS, loadQuestionPool } from './App'
+import { App, PACK_IDS, loadQuestionPool, syncPacksAndReload } from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
 import { createProfile } from './services/profile'
@@ -209,6 +209,110 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     })
     const pool = await loadQuestionPool(packCache, '/')
     expect(pool.map((q) => q.id)).toEqual(['p2-1'])
+  })
+})
+
+describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () => {
+  function pack(id: string, questions: QuestionPack['questions']): QuestionPack {
+    return {
+      schemaVersion: 2,
+      pack: {
+        id,
+        title: id,
+        license: 'internal-original',
+        origin: 'test',
+        targetLevel: [600, 600],
+      },
+      questions,
+    }
+  }
+
+  function fakePackCache(get: PackCache['get']): PackCache {
+    return {
+      has: vi.fn(async () => false),
+      get,
+      addAll: vi.fn(async () => {}),
+      delete: vi.fn(async () => {}),
+      keys: vi.fn(async () => []),
+      usage: vi.fn(async () => ({ bytes: 0, entries: 0 })),
+      clear: vi.fn(async () => {}),
+    }
+  }
+
+  it('synced.length>0のとき、同期後の内容でquestionPoolを再読込して返す', async () => {
+    // PackCache.get は「既にピン留め済みの内容」役（loadQuestionPool側のcache-first読み込み用）。
+    // 1件だけ問題入りにし、再読込後のプールに反映されることを確認する
+    const packCache = fakePackCache(async (url) => {
+      const id = PACK_IDS.find((i) => url === `/packs/${i}.json`)
+      if (!id) throw new Error(`unexpected url: ${url}`)
+      const questions = id === PACK_IDS[0] ? [{ id: 'new-question' } as never] : []
+      return new Blob([JSON.stringify(pack(id, questions))])
+    })
+
+    const manifestBody = {
+      schemaVersion: 2,
+      packs: PACK_IDS.map((id) => ({
+        id,
+        title: id,
+        targetLevel: [600, 600] as [number, number],
+        sizeBytes: 10,
+        hash: `h-${id}`,
+      })),
+    }
+    const originalFetch = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        return { ok: true, json: async () => manifestBody } as Response
+      }
+      const id = PACK_IDS.find((i) => url === `/packs/${i}.json`)
+      if (id) return { ok: true, json: async () => pack(id, []) } as Response
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+
+    try {
+      const pool = await syncPacksAndReload(getDb(), packCache)
+      expect(pool).not.toBeNull()
+      expect(pool?.map((q) => q.id)).toEqual(['new-question'])
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('syncPacksがsynced=0（変化なし）のとき、nullを返しプールを再読込しない', async () => {
+    await getDb().settings.put({
+      key: 'packSyncState',
+      value: {
+        packHashes: Object.fromEntries(PACK_IDS.map((id) => [id, `h-${id}`])),
+        totalSizeBytes: 0,
+        lastSyncedAt: 0,
+      },
+    })
+    const packCache = fakePackCache(async () => null)
+    const manifestBody = {
+      schemaVersion: 2,
+      packs: PACK_IDS.map((id) => ({
+        id,
+        title: id,
+        targetLevel: [600, 600] as [number, number],
+        sizeBytes: 10,
+        hash: `h-${id}`, // 前回と同一ハッシュ=全件skip
+      })),
+    }
+    const originalFetch = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') return { ok: true, json: async () => manifestBody } as Response
+      throw new Error(`unexpected fetch (skip対象のはず): ${url}`)
+    }) as unknown as typeof fetch
+
+    try {
+      const pool = await syncPacksAndReload(getDb(), packCache)
+      expect(pool).toBeNull()
+    } finally {
+      global.fetch = originalFetch
+      await getDb().settings.delete('packSyncState')
+    }
   })
 })
 

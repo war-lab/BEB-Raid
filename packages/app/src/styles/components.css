@@ -540,6 +540,11 @@
   color: var(--ink-2);
   font-size: var(--fs-note);
 }
+/* --- 出題プール空の案内（T-73。主ボタンdisabled時に表示） --- */
+.home-pool-empty-hint {
+  color: var(--ng);
+  font-size: var(--fs-sub);
+}
 .home-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

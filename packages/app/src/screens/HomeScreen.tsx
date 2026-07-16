@@ -177,7 +177,17 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
               続きから再開（残り{resumeSnapshot.items.length - resumeSnapshot.answeredCount}問）
             </button>
           )}
-          <PrimaryButton onClick={() => void handleStartQuest()}>今日のクエスト</PrimaryButton>
+          <PrimaryButton
+            onClick={() => void handleStartQuest()}
+            disabled={questionPool.length === 0}
+          >
+            今日のクエスト
+          </PrimaryButton>
+          {questionPool.length === 0 && (
+            <p className="home-pool-empty-hint">
+              問題データを取得できていません。オンラインで開き直してください
+            </p>
+          )}
           <div className="home-duration-chips">
             {DURATIONS.map((d) => (
               <button
