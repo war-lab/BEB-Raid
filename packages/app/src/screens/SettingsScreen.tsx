@@ -186,140 +186,144 @@ export function SettingsScreen({ db, packCache }: Props) {
     <ScreenLayout action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}>
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>設定</h1>
 
-      <section>
-        <label>
-          表示名
-          <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            onBlur={() => void handleDisplayNameBlur()}
-          />
-        </label>
-      </section>
-
-      <section>
-        <label>
-          <input
-            type="checkbox"
-            checked={noEarphoneMode}
-            onChange={() => void handleToggleEarphone()}
-          />
-          イヤホンなしモード（リスニング問題をリーディング系に差し替える）
-        </label>
-      </section>
-
-      <section>
-        <p>テーマ</p>
-        {(['system', 'dark', 'light'] as const).map((pref) => (
-          <label key={pref}>
+      <div className="settings-list">
+        <section>
+          <label>
+            表示名
             <input
-              type="radio"
-              name="theme"
-              checked={themePref === pref}
-              onChange={() => void handleThemeChange(pref)}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              onBlur={() => void handleDisplayNameBlur()}
             />
-            {pref === 'system' ? 'OS追従' : pref === 'dark' ? 'ダーク' : 'ライト'}
           </label>
-        ))}
-      </section>
+        </section>
 
-      <section>
-        <p>文字サイズ（英文問題文）</p>
-        {(['S', 'M', 'L'] as const).map((scale) => (
-          <label key={scale}>
+        <section>
+          <label>
             <input
-              type="radio"
-              name="fontSize"
-              checked={fontSize === scale}
-              onChange={() => void handleFontSizeChange(scale)}
+              type="checkbox"
+              checked={noEarphoneMode}
+              onChange={() => void handleToggleEarphone()}
             />
-            {scale}
+            イヤホンなしモード（リスニング問題をリーディング系に差し替える）
           </label>
-        ))}
-      </section>
+        </section>
 
-      <section>
-        <p>
-          キャッシュ使用量:{' '}
-          {cacheUsage
-            ? `${(cacheUsage.bytes / 1024 / 1024).toFixed(1)}MB（${cacheUsage.entries}件）`
-            : '取得中…'}
-        </p>
-        <button type="button" onClick={() => void handleClearCache()}>
-          キャッシュを削除
-        </button>
-        <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
-        {storageEstimate && (
-          <p>
-            端末ストレージ使用量: {((storageEstimate.usage ?? 0) / 1024 / 1024).toFixed(1)}MB /{' '}
-            {((storageEstimate.quota ?? 0) / 1024 / 1024).toFixed(1)}MB
-          </p>
-        )}
-      </section>
-
-      <section>
-        <p>AIに聞く（BYOK）</p>
-        <p className="settings-byok-note">キーは端末内に平文保存され、端末外には送信されません。</p>
-        <p className="settings-byok-note">支出上限を設定したAPIキーの利用を推奨します。</p>
-        {apiKey !== null && !editingApiKey ? (
-          <>
-            <p>{maskApiKey(apiKey)}</p>
-            <button type="button" onClick={() => setEditingApiKey(true)}>
-              変更
-            </button>
-            <button type="button" onClick={() => void handleDeleteApiKey()}>
-              削除
-            </button>
-          </>
-        ) : (
-          <>
-            <label>
-              APIキー
+        <section>
+          <p>テーマ</p>
+          {(['system', 'dark', 'light'] as const).map((pref) => (
+            <label key={pref}>
               <input
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="sk-..."
+                type="radio"
+                name="theme"
+                checked={themePref === pref}
+                onChange={() => void handleThemeChange(pref)}
               />
+              {pref === 'system' ? 'OS追従' : pref === 'dark' ? 'ダーク' : 'ライト'}
             </label>
-            <button type="button" onClick={() => void handleSaveApiKey()}>
-              保存
-            </button>
-            {apiKey !== null && (
-              <button type="button" onClick={() => setEditingApiKey(false)}>
-                キャンセル
-              </button>
-            )}
-          </>
-        )}
-        <label>
-          モデル
-          <input
-            value={byokModel}
-            onChange={(e) => void handleByokModelChange(e.target.value)}
-            placeholder={DEFAULT_BYOK_MODEL}
-          />
-        </label>
-      </section>
+          ))}
+        </section>
 
-      <section>
-        <button type="button" onClick={() => void handleExport()}>
-          エクスポート
-        </button>
-        <label>
-          インポート
-          <input
-            type="file"
-            accept="application/json"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) void handleImportFile(file)
-              e.target.value = ''
-            }}
-          />
-        </label>
-        {message && <p role="status">{message}</p>}
-      </section>
+        <section>
+          <p>文字サイズ（英文問題文）</p>
+          {(['S', 'M', 'L'] as const).map((scale) => (
+            <label key={scale}>
+              <input
+                type="radio"
+                name="fontSize"
+                checked={fontSize === scale}
+                onChange={() => void handleFontSizeChange(scale)}
+              />
+              {scale}
+            </label>
+          ))}
+        </section>
+
+        <section>
+          <p>
+            キャッシュ使用量:{' '}
+            {cacheUsage
+              ? `${(cacheUsage.bytes / 1024 / 1024).toFixed(1)}MB（${cacheUsage.entries}件）`
+              : '取得中…'}
+          </p>
+          <button type="button" onClick={() => void handleClearCache()}>
+            キャッシュを削除
+          </button>
+          <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
+          {storageEstimate && (
+            <p>
+              端末ストレージ使用量: {((storageEstimate.usage ?? 0) / 1024 / 1024).toFixed(1)}MB /{' '}
+              {((storageEstimate.quota ?? 0) / 1024 / 1024).toFixed(1)}MB
+            </p>
+          )}
+        </section>
+
+        <section>
+          <p>AIに聞く（BYOK）</p>
+          <p className="settings-byok-note">
+            キーは端末内に平文保存され、端末外には送信されません。
+          </p>
+          <p className="settings-byok-note">支出上限を設定したAPIキーの利用を推奨します。</p>
+          {apiKey !== null && !editingApiKey ? (
+            <>
+              <p>{maskApiKey(apiKey)}</p>
+              <button type="button" onClick={() => setEditingApiKey(true)}>
+                変更
+              </button>
+              <button type="button" onClick={() => void handleDeleteApiKey()}>
+                削除
+              </button>
+            </>
+          ) : (
+            <>
+              <label>
+                APIキー
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="sk-..."
+                />
+              </label>
+              <button type="button" onClick={() => void handleSaveApiKey()}>
+                保存
+              </button>
+              {apiKey !== null && (
+                <button type="button" onClick={() => setEditingApiKey(false)}>
+                  キャンセル
+                </button>
+              )}
+            </>
+          )}
+          <label>
+            モデル
+            <input
+              value={byokModel}
+              onChange={(e) => void handleByokModelChange(e.target.value)}
+              placeholder={DEFAULT_BYOK_MODEL}
+            />
+          </label>
+        </section>
+
+        <section>
+          <button type="button" onClick={() => void handleExport()}>
+            エクスポート
+          </button>
+          <label>
+            インポート
+            <input
+              type="file"
+              accept="application/json"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void handleImportFile(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          {message && <p role="status">{message}</p>}
+        </section>
+      </div>
 
       {loaded && <span data-testid="settings-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>

@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { toDateString } from '../engine/date'
+import { useAppStore } from '../store/appStore'
 import { buildHeatmapCells, DashboardScreen } from './DashboardScreen'
 
 let seq = 0
@@ -35,6 +36,15 @@ describe('DashboardScreen: データ0件・1件でも壊れない', () => {
     expect(await screen.findByText(/対象タグがまだない/)).toBeTruthy()
     // ヒートマップは0件でも15週分の空グリッドとして描画される（クラッシュしない）
     expect(document.querySelector('.chart-heatmap svg')).not.toBeNull()
+  })
+
+  it('T-75: 「ホームへ」ボタンでホーム画面へ戻れる', async () => {
+    const db = newDb()
+    useAppStore.setState({ screen: 'dashboard' })
+    render(<DashboardScreen db={db} />)
+
+    fireEvent.click(await screen.findByText('ホームへ'))
+    expect(useAppStore.getState().screen).toBe('home')
   })
 
   it('伸びグラフのデータが1件だけでも壊れない（2点未満は案内表示）', async () => {

@@ -13,6 +13,9 @@
 
 :root,
 :root[data-theme='dark'] {
+  /* OSのフォーム部品既定色をダーク基調に揃える（T-75。--bg/--surfaceが暗いため） */
+  color-scheme: dark;
+
   /* 3.1 グラウンド・インク */
   --bg: #0e1220;
   --surface: #181e31;
@@ -20,7 +23,9 @@
   --line: #2c3552;
   --ink: #eaedf6;
   --ink-2: #a6aec6;
-  --ink-3: #6b7492;
+  /* T-75: #6b7492（--bg比4.030:1・--surface比3.577:1で共にWCAG AA=4.5:1未達）から
+     明度を上げ、--bg比5.383:1・--surface比4.777:1（機械計算値）に改善 */
+  --ink-3: #7e89ac;
 
   /* 3.2 ブランド・モードアクセント */
   --gold: #f5b83d;
@@ -72,6 +77,8 @@
 }
 
 :root[data-theme='light'] {
+  color-scheme: light;
+
   --bg: #f6f5f1;
   --surface: #ffffff;
   --surface-2: #efede6;

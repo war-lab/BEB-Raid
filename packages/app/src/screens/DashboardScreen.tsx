@@ -14,6 +14,7 @@ import { computeForecast, type RatingHistoryPoint } from '../engine/forecast'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { getTagAccuracies, WEAK_MIN_SAMPLE } from '../engine/tagStats'
 import type { ForecastResult, TagAccuracy } from '../engine/types'
+import { useAppStore } from '../store/appStore'
 import { Heatmap, type HeatmapCell } from '../components/charts/Heatmap'
 import { LineChart, type LineChartPoint } from '../components/charts/LineChart'
 import { WeakBars } from '../components/charts/WeakBars'
@@ -63,6 +64,7 @@ export function buildHeatmapCells(
 }
 
 export function DashboardScreen({ db }: Props) {
+  const navigate = useAppStore((s) => s.navigate)
   const [growthPoints, setGrowthPoints] = useState<LineChartPoint[] | null>(null)
   const [weakBars, setWeakBars] = useState<TagAccuracy[] | null>(null)
   const [heatmapCells, setHeatmapCells] = useState<HeatmapCell[] | null>(null)
@@ -153,7 +155,13 @@ export function DashboardScreen({ db }: Props) {
   }
 
   return (
-    <ScreenLayout action={null}>
+    <ScreenLayout
+      action={
+        <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+          ホームへ
+        </button>
+      }
+    >
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>ダッシュボード</h1>
 
       <section className="dashboard-forecast-hero">
@@ -185,7 +193,7 @@ export function DashboardScreen({ db }: Props) {
 
       <section>
         <h2 style={{ fontSize: 'var(--fs-sub)' }}>実試験・IPテストスコア登録</h2>
-        <form onSubmit={(e) => void handleRegisterExamScore(e)}>
+        <form className="settings-list" onSubmit={(e) => void handleRegisterExamScore(e)}>
           <label>
             日付
             <input
