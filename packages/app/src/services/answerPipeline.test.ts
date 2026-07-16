@@ -8,9 +8,11 @@ import type { Question } from '@beb-raid/shared-schema'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import { RAID_STATE_ID } from '../db/schema'
 import type { QuestionLookup } from '../engine/types'
 import { recordAnswerPipeline } from './answerPipeline'
 import { startSession } from './session'
+import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -309,5 +311,118 @@ describe('recordAnswerPipeline: 失敗伝播', () => {
         mode: 'solo',
       }),
     ).rejects.toThrow(/古い/)
+  })
+})
+
+describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュー（T-89。既定OFFの縮退設計）', () => {
+  it('raidSyncEnabled未設定（既定OFF）では、レイド参加中でもpendingSyncへ一切書き込まない', async () => {
+    const db = newDb()
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-w29',
+      profileJson: '{}',
+      hp: 8000,
+      maxHp: 10000,
+      myDamage: 0,
+      joined: true,
+      startAt: 1000,
+      endAt: 2000,
+      lastSyncedAt: 1000,
+    })
+    const q = question('q-1')
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(await db.pendingSync.count()).toBe(0)
+  })
+
+  it('raidSyncEnabled=ON かつ 参加中 かつ 正解（ダメージ>0）のとき、個人情報を含まないpayloadでpendingSyncへ1件エンキューされる', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-w29',
+      profileJson: '{}',
+      hp: 8000,
+      maxHp: 10000,
+      myDamage: 0,
+      joined: true,
+      startAt: 1000,
+      endAt: 2000,
+      lastSyncedAt: 1000,
+    })
+    const q = question('q-1')
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    const queued = await db.pendingSync.toArray()
+    expect(queued).toHaveLength(1)
+    expect(queued[0]!.kind).toBe('raidDamage')
+    const payload = JSON.parse(queued[0]!.payloadJson) as Record<string, unknown>
+    expect(Object.keys(payload).sort()).toEqual(
+      ['attemptId', 'bossId', 'damage', 'questionCount'].sort(),
+    )
+    expect(payload.bossId).toBe('boss-2026-w29')
+    expect(payload.damage).toBeGreaterThan(0)
+  })
+
+  it('raidSyncEnabled=ON でも参加中のレイドが無ければpendingSyncへ書き込まない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    const q = question('q-1')
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(await db.pendingSync.count()).toBe(0)
+  })
+
+  it('raidSyncEnabled=ON かつ参加中でも、誤答（ダメージ0）ならpendingSyncへ書き込まない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-w29',
+      profileJson: '{}',
+      hp: 8000,
+      maxHp: 10000,
+      myDamage: 0,
+      joined: true,
+      startAt: 1000,
+      endAt: 2000,
+      lastSyncedAt: 1000,
+    })
+    const q = question('q-1')
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: false,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(await db.pendingSync.count()).toBe(0)
   })
 })

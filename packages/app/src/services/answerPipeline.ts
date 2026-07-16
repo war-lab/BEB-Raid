@@ -3,16 +3,18 @@
 // DrillScreen が持っていた4つのほぼ重複した解答確定関数
 // （finalizeAnswer・finalizeSubQuestionAnswer・finalizeDictationAnswer・handleVocabGrade）と、
 // VocabScreen の handleGrade を、この1関数の skip オプションの組み合わせで表現する。
-// M3ではこの関数に pendingSync エンキューを追加する予定（4.1節の挿入点）。
+// T-89でpendingSyncエンキュー（4.1節の挿入点）を追加した。
 //
 // 【トランザクション境界】attempts+snapshotの原子性は answerCurrentQuestion 内で
 // 確保済み。②〜⑤を含めた全ステップの単一トランザクション化はDexieのストア跨ぎコストと
 // T-07設計を尊重して見送る（現状維持）。途中で例外が起きたら呼び出し側（UI）が
 // catchしてトースト表示＋スナップショット再読込を行う（T-70と同じ復旧方針）。
 
-import type { Question } from '@beb-raid/shared-schema'
+import { buildDamageSyncPayload, type Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { AttemptMode } from '../db/schema'
+import { RAID_STATE_ID } from '../db/schema'
+import { computeDamage } from '../engine/damage'
 import { processWrongAnswer } from '../engine/keyVocab'
 import { applyRatingUpdate } from '../engine/rating'
 import { reviewSrsCard } from '../engine/srs'
@@ -20,6 +22,7 @@ import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { QuestionLookup, RatingUpdate, SrsGrade } from '../engine/types'
 import { recordAttempt } from './attempts'
 import { answerCurrentQuestion, type SessionSnapshot } from './session'
+import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 export interface AnswerPipelineSkip {
   /** J-29: ディクテーションはレート更新の対象外 */
@@ -63,6 +66,38 @@ export interface AnswerPipelineResult {
 }
 
 /**
+ * レイドダメージをpendingSyncへエンキューする（T-89。M3基盤・端末内完結ステップ）。
+ * `raidSyncEnabled`設定が既定OFFのため、OFF時はこの読み取り1回のみで追加の書き込みは
+ * 一切発生しない（縮退設計の常時保証）。参加中のレイドが無い・ダメージが0の場合も送らない
+ */
+async function enqueueRaidSyncIfEnabled(
+  db: BebRaidDatabase,
+  params: { attemptId: string; mode: AttemptMode; isCorrect: boolean; basePoints: number },
+): Promise<void> {
+  const setting = await db.settings.get(RAID_SYNC_ENABLED_KEY)
+  if (setting?.value !== true) return
+
+  const raidState = await db.raidState.get(RAID_STATE_ID)
+  if (!raidState?.joined) return
+
+  const points = params.isCorrect ? params.basePoints : 0
+  const damage = computeDamage(points, params.mode)
+  if (damage <= 0) return
+
+  const payload = buildDamageSyncPayload({
+    attemptId: params.attemptId,
+    bossId: raidState.bossId,
+    damage,
+    questionCount: 1,
+  })
+  await db.pendingSync.add({
+    kind: 'raidDamage',
+    payloadJson: JSON.stringify(payload),
+    createdAt: Date.now(),
+  })
+}
+
+/**
  * 1問の解答を確定し、attempts・srsCards（誤答復習デッキ）・tagStats・ratings・
  * SRSカード（自己評価）を必要な範囲だけ更新する。
  */
@@ -85,10 +120,13 @@ export async function recordAnswerPipeline(
   } = input
 
   let nextSnapshot: SessionSnapshot | undefined
+  let attemptId: string
   if (snapshot) {
     nextSnapshot = await answerCurrentQuestion(db, snapshot, { isCorrect, responseMs, isTimeout })
+    attemptId = nextSnapshot.attemptIds.at(-1)!
   } else {
-    await recordAttempt(db, { questionId, mode, isCorrect, responseMs, isTimeout })
+    const attempt = await recordAttempt(db, { questionId, mode, isCorrect, responseMs, isTimeout })
+    attemptId = attempt.id
   }
 
   if (!isCorrect && !skip?.wrongAnswer) {
@@ -112,6 +150,13 @@ export async function recordAnswerPipeline(
   if (srsCardId && !skip?.srs) {
     await reviewSrsCard(db, srsCardId, srsGrade ?? (isCorrect ? 'good' : 'again'))
   }
+
+  await enqueueRaidSyncIfEnabled(db, {
+    attemptId,
+    mode,
+    isCorrect,
+    basePoints: ratingUpdate?.basePoints ?? 0,
+  })
 
   return { nextSnapshot, ratingUpdate }
 }

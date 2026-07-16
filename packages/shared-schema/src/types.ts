@@ -138,3 +138,19 @@ export interface Manifest {
   schemaVersion: typeof SCHEMA_VERSION
   packs: ManifestPackEntry[]
 }
+
+/**
+ * レイドダメージの共有API送信ペイロード（M3基盤・T-89。正本: docs/14 4.4節、docs/16 T-91行）。
+ * プライバシー境界の強制のため閉じた型として定義する。questionId・isCorrect・レート実値・
+ * responseMs等の個人単位の正誤詳細は**含めない**（04の不変条件: 共有APIに送るのは
+ * 「ダメージ換算値＋表示名」相当のみ）。実際の変換（attempts→payload）は
+ * `buildDamageSyncPayload`（damageSync.ts）に限定し、この型のフィールドのみを生成する
+ */
+export interface DamageSyncPayload {
+  /** 冪等キー（サーバー側でINSERT OR IGNOREに使う） */
+  attemptId: string
+  bossId: string
+  damage: number
+  /** このペイロードが何問分の集約か（バッチ送信時の内訳用） */
+  questionCount: number
+}
