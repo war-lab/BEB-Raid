@@ -148,6 +148,23 @@
   text-align: center;
 }
 
+/* --- 中断ボタン（ステータス帯。T-67: セッションを破棄せずホームへ戻る） --- */
+.drill-abort {
+  display: inline-block;
+  margin-top: var(--sp-half);
+  padding: var(--sp-half) 0;
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  font-size: var(--fs-ui);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.drill-abort:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* --- Part2瞬発の15秒解答タイマー（--listen アクセント） --- */
 .drill-timer {
   margin: var(--sp-half) 0 0;

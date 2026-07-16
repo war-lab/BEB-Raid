@@ -542,6 +542,9 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       status={
         <>
           <SessionProgress current={current} total={total} />
+          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            中断
+          </button>
           {item.reason && <p className="drill-reason">{formatQuickPackReason(item.reason)}</p>}
           {streak > 0 && (
             <p key={streak} className="session-streak display-num">

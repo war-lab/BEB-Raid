@@ -14,7 +14,7 @@ import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
-import { startSession, type SessionItem } from '../services/session'
+import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
 import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
@@ -26,7 +26,12 @@ interface Props {
   db: BebRaidDatabase
   /** クイックパック生成・単独モード起動の出題候補プール（実パック読み込みはT-35） */
   questionPool: Question[]
+  /** 進行中セッション（T-67。App起動時＋ホーム復帰時に取得。無ければnull） */
+  resumeSnapshot: SessionSnapshot | null
 }
+
+/** 進行中セッションを破棄して新規開始してよいかの確認（J-34） */
+const CONFIRM_DISCARD_MESSAGE = '進行中のセッションを破棄して新しく始めますか？'
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
 const DEFAULT_DURATION: QuickPackDuration = 7
@@ -46,7 +51,7 @@ export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
   })
 }
 
-export function HomeScreen({ db, questionPool }: Props) {
+export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
 
@@ -97,6 +102,17 @@ export function HomeScreen({ db, questionPool }: Props) {
     }
   }, [db, questionPool])
 
+  /** 続きから再開（T-67）。既存スナップショットをそのまま beginSession に渡す */
+  async function handleResume() {
+    if (!resumeSnapshot) return
+    const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
+    beginSession(resumeSnapshot, questionPool, {
+      L: l?.rating ?? DEFAULT_INITIAL_RATING,
+      R: r?.rating ?? DEFAULT_INITIAL_RATING,
+    })
+    navigate('drill')
+  }
+
   async function handleStartQuest() {
     const pack = await generateQuickPack(db, {
       duration,
@@ -127,6 +143,7 @@ export function HomeScreen({ db, questionPool }: Props) {
     options?: { partialAudioMode?: boolean },
   ) {
     if (items.length === 0) return
+    if (resumeSnapshot && !window.confirm(CONFIRM_DISCARD_MESSAGE)) return
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
     beginSession(
@@ -155,6 +172,11 @@ export function HomeScreen({ db, questionPool }: Props) {
       }
       action={
         <>
+          {resumeSnapshot && (
+            <button type="button" className="secondary-action" onClick={() => void handleResume()}>
+              続きから再開（残り{resumeSnapshot.items.length - resumeSnapshot.answeredCount}問）
+            </button>
+          )}
           <PrimaryButton onClick={() => void handleStartQuest()}>今日のクエスト</PrimaryButton>
           <div className="home-duration-chips">
             {DURATIONS.map((d) => (

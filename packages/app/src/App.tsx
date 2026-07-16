@@ -7,6 +7,7 @@ import { getDb } from './db/database'
 import { createAiClient, createAudioPlayer, createPackCache, type PackCache } from './platform'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
+import { resumeSession, type SessionSnapshot } from './services/session'
 import { BYOK_API_KEY_KEY } from './services/settingsKeys'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
@@ -75,19 +76,40 @@ export function App() {
   // PackCacheヒット時は高速なため、起動3秒要件への影響は軽微な想定）
   const [bootChecked, setBootChecked] = useState(false)
   const [questionPool, setQuestionPool] = useState<Question[]>([])
+  // T-67: 進行中セッションの中断復帰（docs/15 T-67・J-34）
+  const [resumeSnapshot, setResumeSnapshot] = useState<SessionSnapshot | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    void Promise.all([hasProfile(getDb()), loadQuestionPool(packCache)]).then(([exists, pool]) => {
+    void Promise.all([
+      hasProfile(getDb()),
+      loadQuestionPool(packCache),
+      resumeSession(getDb()),
+    ]).then(([exists, pool, resumed]) => {
       if (cancelled) return
       if (!exists) navigate('diagnostic')
       setQuestionPool(pool)
+      setResumeSnapshot(resumed)
       setBootChecked(true)
     })
     return () => {
       cancelled = true
     }
   }, [navigate])
+
+  // ホームに戻るたび（起動時に加え、ドリルの「中断」ボタンからの復帰時も）に
+  // 中断状態を再取得する。App自体はscreen切替では再マウントしないため、boot時点の
+  // 値のままだと中断直後のセッションが再開ボタンに反映されない
+  useEffect(() => {
+    if (!bootChecked || screen !== 'home') return
+    let cancelled = false
+    void resumeSession(getDb()).then((resumed) => {
+      if (!cancelled) setResumeSnapshot(resumed)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [bootChecked, screen])
 
   // 起動時のパック配信・キャッシュ同期（T-35）。bootChecked（診断遷移判定）とは
   // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）
@@ -123,5 +145,5 @@ export function App() {
   if (screen === 'settings') return <SettingsScreen db={getDb()} packCache={packCache} />
 
   // 'home' に加え、未実装の画面もホームへフォールバックする
-  return <HomeScreen db={getDb()} questionPool={questionPool} />
+  return <HomeScreen db={getDb()} questionPool={questionPool} resumeSnapshot={resumeSnapshot} />
 }

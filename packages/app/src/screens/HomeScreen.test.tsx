@@ -8,7 +8,7 @@
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { toDateString } from '../engine/date'
@@ -110,7 +110,7 @@ const QUESTION_POOL: Question[] = [
 describe('HomeScreen: 初期状態でも破綻しない', () => {
   it('期限0・ストリーク0でも破綻せず描画できる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
 
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
     expect(screen.queryByText(/SRS期限/)).toBeNull()
@@ -159,7 +159,7 @@ describe('HomeScreen: 実データの表示', () => {
       },
     ])
 
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     expect(screen.getByText('🔥3')).toBeTruthy()
@@ -177,7 +177,7 @@ describe('HomeScreen: 実データの表示', () => {
       protectionUsedAt: null,
     })
 
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     expect(screen.getByText('途切れ（前回5日）')).toBeTruthy()
@@ -188,7 +188,7 @@ describe('HomeScreen: 実データの表示', () => {
 describe('HomeScreen: クエスト開始が2タップ以内', () => {
   it('主ボタンを1タップするだけで既定7分のクエストが開始する', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     // 既定で7分チップが選択されている
@@ -215,7 +215,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
       graduatedAt: null,
       sourceQuestionId: null,
     })
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('3分'))
@@ -227,7 +227,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
   it('下方グリッドから語彙SRSへ直接遷移できる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('語彙SRS'))
@@ -236,7 +236,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
   it('下方グリッドからダッシュボードへ直接遷移できる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('ダッシュボード'))
@@ -245,7 +245,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
   it('下方グリッドからシャドーイングへ直接遷移でき、listeningStageが併記される（T-48）', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     expect(screen.getByText(/シャドーイング L1/)).toBeTruthy()
@@ -257,7 +257,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 describe('HomeScreen: Part2単独モードの再生バリエーション選択（T-39）', () => {
   it('Part2瞬発タップで選択肢が出て、「通常」選択では partialAudioMode が false のまま開始する', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('Part2瞬発'))
@@ -271,7 +271,7 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
 
   it('「冒頭だけ再生（特訓）」選択では partialAudioMode が true でセッションが始まる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('Part2瞬発'))
@@ -283,7 +283,7 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
 
   it('今日のクエスト開始では partialAudioMode が false のまま（回帰確認）', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('今日のクエスト'))
@@ -296,7 +296,7 @@ describe('HomeScreen: イヤホンなしモード（T-23）', () => {
   it('ONの場合、今日のクエストにリスニング問題(audio_qa)が含まれない', async () => {
     const db = newDb()
     await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('今日のクエスト'))
@@ -314,7 +314,7 @@ describe('HomeScreen: イヤホンなしモード（T-23）', () => {
 describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54）', () => {
   it('phase不在（初回起動相当）でもP1「土台」が表示される', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     expect(screen.getByTestId('home-season').textContent).toContain('シーズン1「土台」')
@@ -326,7 +326,7 @@ describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54
       { section: 'L', rating: 700, updatedAt: 0 },
       { section: 'R', rating: 700, updatedAt: 0 },
     ])
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     expect(screen.getByTestId('home-season').textContent).toContain('シーズン3「実戦」')
@@ -334,12 +334,77 @@ describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54
 
   it('今日のクエスト開始時、generateQuickPackにフェーズが渡り配分が反映される（回帰しない）', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('今日のクエスト'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     // フェーズ駆動でも既存どおりセッションが開始できることの回帰確認
     expect(useSessionStore.getState().snapshot!.items.length).toBeGreaterThan(0)
+  })
+})
+
+describe('HomeScreen: セッション中断復帰（T-67）', () => {
+  function snapshotOf(overrides: Partial<import('../services/session').SessionSnapshot> = {}) {
+    return {
+      sessionId: 'resume-session-1',
+      items: [
+        { questionId: 'p2-1', mode: 'solo' as const },
+        { questionId: 'p2-2', mode: 'solo' as const },
+      ],
+      answeredCount: 1,
+      attemptIds: ['a-1'],
+      startedAt: 0,
+      updatedAt: 0,
+      ...overrides,
+    }
+  }
+
+  it('進行中セッションが無いとき再開ボタンは出ない', async () => {
+    const db = newDb()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} />)
+    await flushLoad()
+
+    expect(screen.queryByText(/続きから再開/)).toBeNull()
+  })
+
+  it('進行中セッションがあるとき「続きから再開（残りN問）」が表示され、タップでdrillへ進む', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={snapshot} />)
+    await flushLoad()
+
+    expect(screen.getByText('続きから再開（残り1問）')).toBeTruthy()
+    fireEvent.click(screen.getByText('続きから再開（残り1問）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot).toEqual(snapshot)
+  })
+
+  it('進行中セッションがある状態で「今日のクエスト」を開始しようとするとconfirmが出て、キャンセルすると開始しない', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={snapshot} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
+
+    expect(useAppStore.getState().screen).toBe('home')
+    confirmSpy.mockRestore()
+  })
+
+  it('進行中セッションがある状態でconfirmを承諾すると新規セッションが開始する', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={snapshot} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot!.sessionId).not.toBe(snapshot.sessionId)
+    confirmSpy.mockRestore()
   })
 })

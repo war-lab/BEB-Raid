@@ -213,6 +213,19 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     // 2問目（q-2）から再開する
     expect(screen.getByText(/attend/)).toBeTruthy()
   })
+
+  it('「中断」ボタンでホームへ戻る（T-67。スナップショットは破棄しない）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('中断'))
+
+    expect(useAppStore.getState().screen).toBe('home')
+    // 進行中セッションはDB上に残っている（中断=破棄ではない）
+    expect(await db.settings.get('activeSession')).toBeTruthy()
+  })
 })
 
 describe('DrillScreen: Part5ドリル（text_blank。T-18）', () => {
