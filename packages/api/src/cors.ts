@@ -3,9 +3,7 @@
 // ALLOWED_ORIGINSに完全一致したOriginにのみCORSヘッダを付与する。
 // 不一致Originにはヘッダを付与しない（ブラウザ側がレスポンス読み取りをブロックする）
 
-export interface Env {
-  ALLOWED_ORIGINS: string
-}
+import type { Env } from './env.js'
 
 function parseAllowedOrigins(env: Env): string[] {
   return env.ALLOWED_ORIGINS.split(',')
