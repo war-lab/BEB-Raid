@@ -8,8 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
-import type { RaidApi } from '../platform'
-import { syncRaidDamage } from './raidSync'
+import { RaidApiError, type RaidApi } from '../platform'
+import { isLastRaidSyncUnauthorized, syncRaidDamage } from './raidSync'
 import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 let seq = 0
@@ -218,5 +218,52 @@ describe('syncRaidDamage: 失敗時はpendingSyncを失わない', () => {
     const raidState = await db.raidState.get(RAID_STATE_ID)
     expect(raidState?.lastSyncedAt).toBe(500) // 更新されていない
     expect(raidState?.hp).toBe(4800) // BOSSの値(4200)に変わっていない
+  })
+})
+
+describe('syncRaidDamage: 戻り値とisLastRaidSyncUnauthorized（M3・T-98の手動同期ボタンが使う）', () => {
+  it('成功時はtrueを返す', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+
+    const ok = await syncRaidDamage(db, raidApi)
+
+    expect(ok).toBe(true)
+  })
+
+  it('isConfigured=falseで即returnした場合はfalseを返す', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(false)
+
+    expect(await syncRaidDamage(db, raidApi)).toBe(false)
+  })
+
+  it('通信失敗（network）はfalseを返すが、isLastRaidSyncUnauthorizedはtrueにしない', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+
+    const ok = await syncRaidDamage(db, raidApi)
+
+    expect(ok).toBe(false)
+    expect(isLastRaidSyncUnauthorized()).toBe(false)
+  })
+
+  it('401（RaidApiError kind=unauthorized）はisLastRaidSyncUnauthorizedをtrueにし、次回成功時にfalseへ戻る', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockRejectedValueOnce(new RaidApiError('unauthorized', '401'))
+
+    const failed = await syncRaidDamage(db, raidApi)
+    expect(failed).toBe(false)
+    expect(isLastRaidSyncUnauthorized()).toBe(true)
+
+    const succeeded = await syncRaidDamage(db, raidApi)
+    expect(succeeded).toBe(true)
+    expect(isLastRaidSyncUnauthorized()).toBe(false)
   })
 })

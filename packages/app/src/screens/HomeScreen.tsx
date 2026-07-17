@@ -38,7 +38,7 @@ interface Props {
 }
 
 /** 進行中セッションを破棄して新規開始してよいかの確認（J-34） */
-const CONFIRM_DISCARD_MESSAGE = '進行中のセッションを破棄して新しく始めますか？'
+export const CONFIRM_DISCARD_MESSAGE = '進行中のセッションを破棄して新しく始めますか？'
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
 const DEFAULT_DURATION: QuickPackDuration = 7
@@ -306,6 +306,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <button type="button" onClick={() => navigate('settings')}>
               設定
             </button>
+            {raidApi.isConfigured() && (
+              <button type="button" onClick={() => navigate('raid')}>
+                レイド
+              </button>
+            )}
           </div>
         </>
       }
@@ -331,7 +336,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         </div>
       )}
       {showRaidHp && (
-        <div className="home-raid-hp" data-testid="home-raid-hp">
+        <button
+          type="button"
+          className="home-raid-hp"
+          data-testid="home-raid-hp"
+          onClick={() => navigate('raid')}
+        >
           <p>{bossName}</p>
           <div
             className="home-raid-hp-bar"
@@ -343,7 +353,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <div className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
           </div>
           <p>残り{remainingDays}日</p>
-        </div>
+        </button>
       )}
       {miniHeatmapCells && (
         <div className="home-mini-heatmap" data-testid="home-mini-heatmap">
