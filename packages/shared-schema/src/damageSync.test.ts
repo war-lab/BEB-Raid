@@ -12,6 +12,7 @@ describe('buildDamageSyncPayload: ホワイトリスト照合', () => {
       bossId: 'boss-2026-w29',
       damage: 40,
       questionCount: 1,
+      answeredAt: 1_700_000_000_000,
     })
 
     expect(Object.keys(payload).sort()).toEqual([...DAMAGE_SYNC_PAYLOAD_KEYS].sort())
@@ -24,6 +25,7 @@ describe('buildDamageSyncPayload: ホワイトリスト照合', () => {
       bossId: 'boss-2026-w29',
       damage: 40,
       questionCount: 1,
+      answeredAt: 1_700_000_000_000,
       questionId: 'q-1',
       isCorrect: true,
       rating: 650,

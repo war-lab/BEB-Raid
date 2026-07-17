@@ -20,7 +20,13 @@
 - **`packages/api/.wrangler/`（wrangler dev/vitestのローカル実行時生成物）は.gitignore・ESLint ignoresの両方に追加が必要**だった（放置するとビルド成果物のJSがlintエラーになる）。
 - **BOSS_HP_FACTORの値は03の6.2で既に確定済みの討伐率係数=0.85を流用**することにした（docs/17起草時に0.8という新値を書いてしまっていたのを本タスクで発見・修正。03が上流正本のため17を訂正）。
 - 検証: `wrangler dev`実起動→curl `/health`→200 `{"ok":true}`確認、api単体テスト6件、ルート `npm run lint`・`npm run format:check`・`npm run build`（api込み）・`npm test`（全ワークスペース。api 6件/app 444件/cli 305件/review-ui 15件/shared-schema 38件、計808件）すべて通過。デプロイは未実施（T-93の範囲）。
-- 次のアクション: T-91（shared-schema契約改訂・単独PR）へ進む。
+
+**T-91 完了（2026-07-17。契約改訂・単独PR）**: `DamageSyncPayload` に `answeredAt`（epoch ms）を追加（J-49のサーバー側期間判定の入力）。M3共有APIの契約型一式をshared-schemaに新設: `RegisterRequest`・`DailyGoal`・`RaidBossState`（`RaidContribution`込み）・`RaidStatus`・`RaidSyncRequest`・`RaidSyncResponse`・`QuestionStatPayload`・`QuestionStatsRequest`・`QuestionReportPayload`（`QuestionReportReason`）・`ApiError`（docs/types.ts）。**`buildDamageSyncPayload`と同じホワイトリスト方式**で新規 `buildQuestionStatPayload`/`QUESTION_STAT_PAYLOAD_KEYS`（questionStats.ts）も追加し、`QuestionStatPayload` にdeviceTokenが構造的に混入しないことをテストで担保（14の4.4-④・T-91完了条件）。
+
+- **app側の対応（同PR）**: `services/answerPipeline.ts` の `enqueueRaidSyncIfEnabled` に `answeredAt` を追加。snapshot経由（`answerCurrentQuestion`の戻り値の`updatedAt`＝今回記録したattemptの`answeredAt`と一致することを`session.ts`実装で確認）・直接記録経由（`recordAttempt`の戻り値の`answeredAt`）の両方から取得できるようにした（T-89実装済みのattemptId捕捉と同じ非対称な取得パターン）。
+- **04の4節を更新**: members行にdailyGoal/emaDailyDamage、damageLogs行に`answeredAt`（帰属判定用・サーバー側クランプの注記）、questionStatsに保証範囲の注記（「保存データとして結合しない」が保証範囲であり「一切の突合が不可能」とまでは主張しない）を追記。
+- 検証: shared-schema単体47件（既存38件+新規9件）・app単体444件（既存回帰＋answerPipeline拡張分）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース計808件）すべて通過。
+- 次のアクション: T-92（deviceToken登録フロー）へ進む。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）

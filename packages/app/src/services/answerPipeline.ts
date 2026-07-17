@@ -72,7 +72,13 @@ export interface AnswerPipelineResult {
  */
 async function enqueueRaidSyncIfEnabled(
   db: BebRaidDatabase,
-  params: { attemptId: string; mode: AttemptMode; isCorrect: boolean; basePoints: number },
+  params: {
+    attemptId: string
+    answeredAt: number
+    mode: AttemptMode
+    isCorrect: boolean
+    basePoints: number
+  },
 ): Promise<void> {
   const setting = await db.settings.get(RAID_SYNC_ENABLED_KEY)
   if (setting?.value !== true) return
@@ -89,6 +95,7 @@ async function enqueueRaidSyncIfEnabled(
     bossId: raidState.bossId,
     damage,
     questionCount: 1,
+    answeredAt: params.answeredAt,
   })
   await db.pendingSync.add({
     kind: 'raidDamage',
@@ -121,12 +128,16 @@ export async function recordAnswerPipeline(
 
   let nextSnapshot: SessionSnapshot | undefined
   let attemptId: string
+  let answeredAt: number
   if (snapshot) {
     nextSnapshot = await answerCurrentQuestion(db, snapshot, { isCorrect, responseMs, isTimeout })
     attemptId = nextSnapshot.attemptIds.at(-1)!
+    // answerCurrentQuestion は updatedAt に今回記録した attempt の answeredAt をそのまま入れる（session.ts参照）
+    answeredAt = nextSnapshot.updatedAt
   } else {
     const attempt = await recordAttempt(db, { questionId, mode, isCorrect, responseMs, isTimeout })
     attemptId = attempt.id
+    answeredAt = attempt.answeredAt
   }
 
   if (!isCorrect && !skip?.wrongAnswer) {
@@ -153,6 +164,7 @@ export async function recordAnswerPipeline(
 
   await enqueueRaidSyncIfEnabled(db, {
     attemptId,
+    answeredAt,
     mode,
     isCorrect,
     basePoints: ratingUpdate?.basePoints ?? 0,
