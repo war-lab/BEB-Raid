@@ -338,6 +338,56 @@ describe('RaidScreen: 討伐演出（T-98）', () => {
   })
 })
 
+describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
+  it('レイド系バッジがあれば一覧表示される', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.badges.bulkPut([
+      { badgeId: 'raid-first-clear', earnedAt: 1000 },
+      { badgeId: 'raid-clear:boss-2026-W29', earnedAt: 2000 },
+    ])
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const list = await screen.findByTestId('raid-badges')
+    expect(list.textContent).toContain('初回討伐')
+    expect(list.textContent).toContain('討伐: boss-2026-W29')
+  })
+
+  it('レイド系バッジが無ければ一覧セクション自体が出ない', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.queryByTestId('raid-badges')).toBeNull()
+  })
+
+  it('レイド系以外のバッジ（badgeIdがraid-*でない）は一覧に含めない', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.badges.put({ badgeId: 'first-session', earnedAt: 1000 })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.queryByTestId('raid-badges')).toBeNull()
+  })
+})
+
 describe('RaidScreen: isConfigured=false（縮退設計）', () => {
   it('レイド機能が利用できない旨のメッセージのみ表示する', async () => {
     const db = newDb()

@@ -270,3 +270,62 @@ describe('syncRaidDamage: 戻り値とisLastRaidSyncUnauthorized（M3・T-98の�
     expect(isLastRaidSyncUnauthorized()).toBe(false)
   })
 })
+
+describe('syncRaidDamage: レイド系バッジの導出（M3・T-102）', () => {
+  const DEFEATED_BOSS: RaidBossState = { ...BOSS, status: 'defeated', myDamage: 300 }
+
+  it('討伐確定（status=defeated）かつmyDamage>0でraid-first-clear・raid-clear:<bossId>が書き込まれる', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: [], boss: DEFEATED_BOSS })
+
+    await syncRaidDamage(db, raidApi)
+
+    const badges = await db.badges.toArray()
+    expect(badges.map((b) => b.badgeId).sort()).toEqual(
+      ['raid-clear:boss-2026-W30', 'raid-first-clear'].sort(),
+    )
+  })
+
+  it('myDamage=0（貢献なし）ではバッジが書き込まれない', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({
+      acceptedIds: [],
+      boss: { ...DEFEATED_BOSS, myDamage: 0 },
+    })
+
+    await syncRaidDamage(db, raidApi)
+
+    expect(await db.badges.count()).toBe(0)
+  })
+
+  it('status=activeではバッジが書き込まれない', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: [], boss: BOSS })
+
+    await syncRaidDamage(db, raidApi)
+
+    expect(await db.badges.count()).toBe(0)
+  })
+
+  it('再受信（同一bossIdの討伐済みを2回受信）してもearnedAtは上書きされない', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValue({ acceptedIds: [], boss: DEFEATED_BOSS })
+
+    await syncRaidDamage(db, raidApi)
+    const firstEarnedAt = (await db.badges.get('raid-first-clear'))?.earnedAt
+
+    await syncRaidDamage(db, raidApi)
+    const secondEarnedAt = (await db.badges.get('raid-first-clear'))?.earnedAt
+
+    expect(await db.badges.count()).toBe(2)
+    expect(secondEarnedAt).toBe(firstEarnedAt)
+  })
+})

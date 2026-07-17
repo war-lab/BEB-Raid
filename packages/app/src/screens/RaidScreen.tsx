@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react'
 import type { DailyGoal, Question, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
-import { PROFILE_ID, RAID_STATE_ID, type RaidStateRecord } from '../db/schema'
+import { PROFILE_ID, RAID_STATE_ID, type BadgeRecord, type RaidStateRecord } from '../db/schema'
 import { generateQuickPack } from '../engine/quickPack'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { formatRelativeTime } from '../engine/relativeTime'
@@ -15,6 +15,7 @@ import { getOrInitPhaseState } from '../services/phase'
 import {
   isLastRaidSyncFailed,
   isLastRaidSyncUnauthorized,
+  RAID_FIRST_CLEAR_BADGE_ID,
   syncRaidDamage,
 } from '../services/raidSync'
 import { startSession, type SessionSnapshot } from '../services/session'
@@ -47,6 +48,22 @@ function now(): number {
   return Date.now()
 }
 
+/** レイド系バッジ判定（M3・T-102。3.9節のbadgeId規約） */
+function isRaidBadge(badgeId: string): boolean {
+  return badgeId === RAID_FIRST_CLEAR_BADGE_ID || badgeId.startsWith('raid-clear:')
+}
+
+/** 討伐履歴を兼ねる簡素な表示ラベル（3.9節: S5内の簡素な一覧でよい） */
+function raidBadgeLabel(badgeId: string): string {
+  if (badgeId === RAID_FIRST_CLEAR_BADGE_ID) return '初回討伐'
+  return `討伐: ${badgeId.slice('raid-clear:'.length)}`
+}
+
+async function loadRaidBadges(db: BebRaidDatabase): Promise<BadgeRecord[]> {
+  const all = await db.badges.toArray()
+  return all.filter((b) => isRaidBadge(b.badgeId)).sort((a, b) => b.earnedAt - a.earnedAt)
+}
+
 export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
@@ -56,6 +73,7 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   const [deviceToken, setDeviceToken] = useState('')
   const [raidState, setRaidState] = useState<RaidStateRecord | null>(null)
   const [currentBoss, setCurrentBoss] = useState<RaidBossState | null>(null)
+  const [raidBadges, setRaidBadges] = useState<BadgeRecord[]>([])
 
   const [inviteCode, setInviteCode] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -67,10 +85,11 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const [profile, registeredSetting, raidStateRecord] = await Promise.all([
+      const [profile, registeredSetting, raidStateRecord, badges] = await Promise.all([
         db.profile.get(PROFILE_ID),
         db.settings.get(RAID_REGISTERED_AT_KEY),
         db.raidState.get(RAID_STATE_ID),
+        loadRaidBadges(db),
       ])
       if (cancelled) return
       if (profile) {
@@ -80,6 +99,7 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       const isRegistered = registeredSetting?.value !== undefined
       setRegistered(isRegistered)
       setRaidState(raidStateRecord ?? null)
+      setRaidBadges(badges)
 
       if (isRegistered && raidApi.isConfigured()) {
         const boss = await raidApi.fetchCurrentBoss().catch(() => null)
@@ -172,12 +192,14 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       )
       return
     }
-    const [updatedRaidState, updatedBoss] = await Promise.all([
+    const [updatedRaidState, updatedBoss, updatedBadges] = await Promise.all([
       db.raidState.get(RAID_STATE_ID),
       raidApi.fetchCurrentBoss().catch(() => null),
+      loadRaidBadges(db),
     ])
     setRaidState(updatedRaidState ?? null)
     if (updatedBoss) setCurrentBoss(updatedBoss)
+    setRaidBadges(updatedBadges)
   }
 
   if (!raidApi.isConfigured()) {
@@ -314,6 +336,16 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
             </p>
           )}
           <p>討伐の確定はサーバー側の判定が正です</p>
+        </div>
+      )}
+      {raidBadges.length > 0 && (
+        <div data-testid="raid-badges">
+          <p>獲得バッジ</p>
+          <ul>
+            {raidBadges.map((b) => (
+              <li key={b.badgeId}>{raidBadgeLabel(b.badgeId)}</li>
+            ))}
+          </ul>
         </div>
       )}
     </ScreenLayout>

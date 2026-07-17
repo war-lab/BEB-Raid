@@ -6,12 +6,37 @@
 //
 // 【縮退設計】isConfigured()=false または raidSyncEnabled=false または未参加（raidState.joined!==true）
 // のいずれかなら、関数冒頭で即returnし通信・追加のDB読み取りを最小化する
+//
+// レイド系バッジの導出（M3・T-102。正本: docs/17 3.9節）: サーバーはバッジを持たず、
+// 端末側がこの同期レスポンスから導出する。boss.status==='defeated' && myDamage>0のときのみ
+// raid-first-clear・raid-clear:<bossId>をbadgesストアへput（badgeId主キーで冪等。
+// 既に獲得済みならearnedAtを上書きしない）
 
-import type { DamageSyncPayload } from '@beb-raid/shared-schema'
+import type { DamageSyncPayload, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
+
+/** 初回討伐参加バッジ（週を問わず1回のみ） */
+export const RAID_FIRST_CLEAR_BADGE_ID = 'raid-first-clear'
+
+/** 週次討伐バッジ（`raid-clear:<bossId>`） */
+export function raidClearBadgeId(bossId: string): string {
+  return `raid-clear:${bossId}`
+}
+
+async function grantRaidBadgesIfDefeated(db: BebRaidDatabase, boss: RaidBossState): Promise<void> {
+  if (boss.status !== 'defeated' || boss.myDamage <= 0) return
+
+  const now = Date.now()
+  for (const badgeId of [RAID_FIRST_CLEAR_BADGE_ID, raidClearBadgeId(boss.bossId)]) {
+    const existing = await db.badges.get(badgeId)
+    if (!existing) {
+      await db.badges.put({ badgeId, earnedAt: now })
+    }
+  }
+}
 
 /** 1リクエストで送る上限（3.6節。超過分は次回のトリガーに回る） */
 export const RAID_SYNC_BATCH_LIMIT = 200
@@ -96,5 +121,8 @@ export async function syncRaidDamage(db: BebRaidDatabase, raidApi: RaidApi): Pro
     endAt: boss.endAt,
     lastSyncedAt: Date.now(),
   })
+
+  await grantRaidBadgesIfDefeated(db, boss)
+
   return true
 }
