@@ -652,6 +652,16 @@
     transition: none;
   }
 }
+/* --- レイドのオフライン表示規約（M3・T-99。3.7節） --- */
+.home-raid-hp-sync.is-stale,
+.raid-sync-label.is-stale {
+  color: var(--ng);
+  font-weight: 700;
+}
+.home-raid-hp-note {
+  font-size: var(--fs-sub);
+  color: var(--ink-3);
+}
 .home-duration-chips {
   display: flex;
   gap: var(--sp-1);

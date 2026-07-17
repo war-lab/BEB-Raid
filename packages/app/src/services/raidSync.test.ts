@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
-import { isLastRaidSyncUnauthorized, syncRaidDamage } from './raidSync'
+import { isLastRaidSyncUnauthorized, resetRaidSyncFlagsForTest, syncRaidDamage } from './raidSync'
 import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 let seq = 0
@@ -22,6 +22,7 @@ function newDb(): BebRaidDatabase {
 }
 
 afterEach(async () => {
+  resetRaidSyncFlagsForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 

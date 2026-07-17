@@ -13,11 +13,13 @@ import { buildHeatmapCells } from '../engine/heatmapCells'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { generateQuickPack } from '../engine/quickPack'
+import { formatRelativeTime } from '../engine/relativeTime'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
+import { isLastRaidSyncFailed } from '../services/raidSync'
 import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
 import { LAST_SEEN_STREAK_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
@@ -210,6 +212,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const hpPercent =
     raidState && raidState.maxHp > 0 ? Math.round((raidState.hp / raidState.maxHp) * 100) : 0
   const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - now()) / DAY_MS)) : 0
+  // M3・T-99: オフライン表示規約（3.7節）
+  const lastSyncedLabel = raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : ''
+  const syncFailed = isLastRaidSyncFailed()
 
   return (
     <ScreenLayout
@@ -353,6 +358,13 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <div className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
           </div>
           <p>残り{remainingDays}日</p>
+          <p
+            className={syncFailed ? 'home-raid-hp-sync is-stale' : 'home-raid-hp-sync'}
+            data-testid="home-raid-last-synced"
+          >
+            最終同期: {lastSyncedLabel}
+          </p>
+          <p className="home-raid-hp-note">討伐の確定はサーバー側の判定が正です</p>
         </button>
       )}
       {miniHeatmapCells && (

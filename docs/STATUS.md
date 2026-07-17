@@ -67,7 +67,12 @@
 - **実機相当の検証**: `wrangler dev --local`（api）＋`vite`（app、`VITE_RAID_API_BASE_URL`をローカルwranglerへ向け）を起動し、`/cdn-cgi/handler/scheduled`で週次ボスを手動生成した上で、Playwrightで実ブラウザ操作を実施。登録→参加→「レイドに挑む」→ディクテーション1問解答まで完走し、IndexedDBを直接読んで`activeSession`の全20項目が`mode:"raid"`・`attempts`レコードが`mode:"raid"`で記録されていることを確認した（ユニットテストでは検証しきれないend-to-endの実データ確認）。
 - **手動同期ボタンのため`syncRaidDamage`の戻り値をvoid→booleanに変更**（成功/失敗をS5が表示できるように）。あわせて`isLastRaidSyncUnauthorized()`（モジュールスコープの一時フラグ）を新設し、401時のみ「登録が無効です」の案内を出す（3.6節の設計どおり）。
 - 検証: RaidScreen単体テスト10件（未登録/登録成功/401エラー/登録済みスキップ/参加/ボス未生成/挑戦時のmode='raid'/討伐演出あり・なし/isConfigured=false）、raidSync.test.ts追加4件（戻り値・isLastRaidSyncUnauthorized）、既存HomeScreen・App・offlineDrillFlowの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
-- 次のアクション: T-99（オフライン表示規約）へ進む。
+**T-99 完了（2026-07-17）**: `engine/relativeTime.ts`（新規。`formatRelativeTime`: 60分未満は「N分前」、24時間未満は「N時間前」、それ以降は「N日前」）を新設し、HomeScreen（HPバー内）・RaidScreen（ボス表示内）の両方に「最終同期: N分前」表示と「討伐の確定はサーバー側の判定が正です」注記を追加。
+
+- **同期失敗時の強調表示**: `services/raidSync.ts`に`isLastRaidSyncFailed()`（種別を問わない直近同期失敗フラグ。既存の`isLastRaidSyncUnauthorized()`と対）を新設し、失敗時は「最終同期」表示に`is-stale`クラス（`--ng`色・太字）を付与する。テスト用に`resetRaidSyncFlagsForTest()`も追加（モジュールスコープの一時フラグがテストファイル間で漏れないようにする安全策）。
+- **これでM3ステップ4「画面」（T-97〜T-99）が完了**。ステップ5「統計」（T-100・T-101）へ進める状態。
+- 検証: relativeTime単体テスト7件（境界値: 59分/60分/23時間59分/24時間/負値）、HomeScreen・RaidScreenへの追加テスト計5件、raidSync.test.ts追加分の回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- 次のアクション: T-100（questionStats送信）へ進む。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）

@@ -8,10 +8,15 @@ import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, RAID_STATE_ID, type RaidStateRecord } from '../db/schema'
 import { generateQuickPack } from '../engine/quickPack'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
+import { formatRelativeTime } from '../engine/relativeTime'
 import type { RaidApi } from '../platform'
 import { RaidApiError } from '../platform'
 import { getOrInitPhaseState } from '../services/phase'
-import { isLastRaidSyncUnauthorized, syncRaidDamage } from '../services/raidSync'
+import {
+  isLastRaidSyncFailed,
+  isLastRaidSyncUnauthorized,
+  syncRaidDamage,
+} from '../services/raidSync'
 import { startSession, type SessionSnapshot } from '../services/session'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
@@ -34,6 +39,12 @@ const DAILY_GOAL_LABELS: Record<DailyGoal, string> = {
   light: '少なめ',
   normal: '普通',
   heavy: '多め',
+}
+
+// Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ
+// （HomeScreen.tsx・SettingsScreen.tsxと同じ回避策）
+function now(): number {
+  return Date.now()
 }
 
 export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props) {
@@ -238,6 +249,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       ? Math.round((currentBoss.hp / currentBoss.maxHp) * 100)
       : 0
   const joined = raidState?.joined === true
+  // M3・T-99: オフライン表示規約（3.7節）。参加前はlastSyncedAtが無意味なのでjoined時のみ表示
+  const lastSyncedLabel =
+    joined && raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : null
+  const syncFailed = isLastRaidSyncFailed()
 
   return (
     <ScreenLayout
@@ -290,6 +305,14 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               </li>
             ))}
           </ul>
+          {lastSyncedLabel !== null && (
+            <p
+              className={syncFailed ? 'raid-sync-label is-stale' : 'raid-sync-label'}
+              data-testid="raid-last-synced"
+            >
+              最終同期: {lastSyncedLabel}
+            </p>
+          )}
           <p>討伐の確定はサーバー側の判定が正です</p>
         </div>
       )}
