@@ -8,11 +8,14 @@
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import { RAID_STATE_ID } from '../db/schema'
 import { toDateString } from '../engine/date'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import type { RaidApi } from '../platform'
+import { resetRaidSyncFlagsForTest, syncRaidDamage } from '../services/raidSync'
+import { NO_EARPHONE_MODE_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { HomeScreen } from './HomeScreen'
@@ -26,12 +29,37 @@ function newDb(): BebRaidDatabase {
   return db
 }
 
+class FakeRaidApi implements RaidApi {
+  constructor(private readonly configured = false) {}
+  isConfigured = () => this.configured
+  register = vi.fn(async () => {})
+  fetchCurrentBoss = vi.fn(async () => null)
+  syncDamage = vi.fn(async () => ({
+    acceptedIds: [],
+    boss: {
+      bossId: 'boss-test',
+      name: 'テストボス',
+      hp: 100,
+      maxHp: 100,
+      startAt: 0,
+      endAt: 0,
+      status: 'active' as const,
+      participantCount: 0,
+      myDamage: 0,
+      contributions: [],
+    },
+  }))
+  sendQuestionStats = vi.fn(async () => 0)
+  sendReport = vi.fn(async () => {})
+}
+
 beforeEach(() => {
   useAppStore.setState({ screen: 'home' })
   useSessionStore.getState().reset()
 })
 
 afterEach(async () => {
+  resetRaidSyncFlagsForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -110,7 +138,14 @@ const QUESTION_POOL: Question[] = [
 describe('HomeScreen: 初期状態でも破綻しない', () => {
   it('期限0・ストリーク0でも破綻せず描画できる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
 
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
     expect(screen.queryByText(/SRS期限/)).toBeNull()
@@ -159,7 +194,14 @@ describe('HomeScreen: 実データの表示', () => {
       },
     ])
 
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     expect(screen.getByText('🔥3')).toBeTruthy()
@@ -177,7 +219,14 @@ describe('HomeScreen: 実データの表示', () => {
       protectionUsedAt: null,
     })
 
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     expect(screen.getByText('途切れ（前回5日）')).toBeTruthy()
@@ -185,10 +234,101 @@ describe('HomeScreen: 実データの表示', () => {
   })
 })
 
+describe('HomeScreen: ミニヒートマップ・ストリークパルス（T-78）', () => {
+  it('直近4週間のattemptsのみがミニヒートマップに反映される（4週より前のデータは除外）', async () => {
+    const db = newDb()
+    const now = Date.now()
+    const WEEK_MS = 7 * 86_400_000
+    await db.attempts.bulkAdd([
+      {
+        id: 'recent',
+        questionId: 'q-1',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now,
+      },
+      {
+        // 4週間の表示窓より古い解答（クエリ時点で除外される想定）
+        id: 'too-old',
+        questionId: 'q-2',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now - 5 * WEEK_MS,
+      },
+    ])
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const heatmap = await screen.findByTestId('home-mini-heatmap')
+    const filledCells = Array.from(heatmap.querySelectorAll('.chart-heatmap rect')).filter(
+      (r) => r.getAttribute('fill') !== 'none',
+    )
+    expect(filledCells.length).toBe(1)
+  })
+
+  it('前回表示時よりストリーク日数が増えたときだけパルス表示になる', async () => {
+    const db = newDb()
+    const today = toDateString(Date.now())
+    await db.streak.put({
+      id: 'streak',
+      currentDays: 3,
+      bestDays: 3,
+      lastActiveDate: today,
+      protectionUsedAt: null,
+    })
+
+    // 1回目の表示: lastSeenStreak未保存のため、初回はパルスする
+    const first = render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    expect(screen.getByText('🔥3').className).toContain('is-pulse')
+    first.unmount()
+
+    // 2回目の表示: 同じストリーク日数のままなのでパルスしない
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    expect(screen.getByText('🔥3').className).not.toContain('is-pulse')
+  })
+})
+
 describe('HomeScreen: クエスト開始が2タップ以内', () => {
   it('主ボタンを1タップするだけで既定7分のクエストが開始する', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     // 既定で7分チップが選択されている
@@ -215,7 +355,14 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
       graduatedAt: null,
       sourceQuestionId: null,
     })
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('3分'))
@@ -227,7 +374,14 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
   it('下方グリッドから語彙SRSへ直接遷移できる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('語彙SRS'))
@@ -236,7 +390,14 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
   it('下方グリッドからダッシュボードへ直接遷移できる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('ダッシュボード'))
@@ -245,7 +406,14 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
   it('下方グリッドからシャドーイングへ直接遷移でき、listeningStageが併記される（T-48）', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     expect(screen.getByText(/シャドーイング L1/)).toBeTruthy()
@@ -257,7 +425,14 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 describe('HomeScreen: Part2単独モードの再生バリエーション選択（T-39）', () => {
   it('Part2瞬発タップで選択肢が出て、「通常」選択では partialAudioMode が false のまま開始する', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('Part2瞬発'))
@@ -271,7 +446,14 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
 
   it('「冒頭だけ再生（特訓）」選択では partialAudioMode が true でセッションが始まる', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('Part2瞬発'))
@@ -283,7 +465,14 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
 
   it('今日のクエスト開始では partialAudioMode が false のまま（回帰確認）', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('今日のクエスト'))
@@ -296,7 +485,14 @@ describe('HomeScreen: イヤホンなしモード（T-23）', () => {
   it('ONの場合、今日のクエストにリスニング問題(audio_qa)が含まれない', async () => {
     const db = newDb()
     await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('今日のクエスト'))
@@ -314,7 +510,14 @@ describe('HomeScreen: イヤホンなしモード（T-23）', () => {
 describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54）', () => {
   it('phase不在（初回起動相当）でもP1「土台」が表示される', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     expect(screen.getByTestId('home-season').textContent).toContain('シーズン1「土台」')
@@ -326,7 +529,14 @@ describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54
       { section: 'L', rating: 700, updatedAt: 0 },
       { section: 'R', rating: 700, updatedAt: 0 },
     ])
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     expect(screen.getByTestId('home-season').textContent).toContain('シーズン3「実戦」')
@@ -334,12 +544,316 @@ describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54
 
   it('今日のクエスト開始時、generateQuickPackにフェーズが渡り配分が反映される（回帰しない）', async () => {
     const db = newDb()
-    render(<HomeScreen db={db} questionPool={QUESTION_POOL} />)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
     await flushLoad()
 
     fireEvent.click(screen.getByText('今日のクエスト'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     // フェーズ駆動でも既存どおりセッションが開始できることの回帰確認
     expect(useSessionStore.getState().snapshot!.items.length).toBeGreaterThan(0)
+  })
+})
+
+describe('HomeScreen: セッション中断復帰（T-67）', () => {
+  function snapshotOf(overrides: Partial<import('../services/session').SessionSnapshot> = {}) {
+    return {
+      sessionId: 'resume-session-1',
+      items: [
+        { questionId: 'p2-1', mode: 'solo' as const },
+        { questionId: 'p2-2', mode: 'solo' as const },
+      ],
+      answeredCount: 1,
+      attemptIds: ['a-1'],
+      startedAt: 0,
+      updatedAt: 0,
+      ...overrides,
+    }
+  }
+
+  it('進行中セッションが無いとき再開ボタンは出ない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/続きから再開/)).toBeNull()
+  })
+
+  it('進行中セッションがあるとき「続きから再開（残りN問）」が表示され、タップでdrillへ進む', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('続きから再開（残り1問）')).toBeTruthy()
+    fireEvent.click(screen.getByText('続きから再開（残り1問）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot).toEqual(snapshot)
+  })
+
+  it('進行中セッションがある状態で「今日のクエスト」を開始しようとするとconfirmが出て、キャンセルすると開始しない', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
+
+    expect(useAppStore.getState().screen).toBe('home')
+    confirmSpy.mockRestore()
+  })
+
+  it('進行中セッションがある状態でconfirmを承諾すると新規セッションが開始する', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot!.sessionId).not.toBe(snapshot.sessionId)
+    confirmSpy.mockRestore()
+  })
+})
+
+describe('HomeScreen: 出題プール空の案内（T-73）', () => {
+  it('questionPoolが空のとき、主ボタンがdisabledになり案内文が表示される', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen db={db} questionPool={[]} resumeSnapshot={null} raidApi={new FakeRaidApi()} />,
+    )
+    await flushLoad()
+
+    const button = screen.getByText('今日のクエスト') as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(
+      screen.getByText('問題データを取得できていません。オンラインで開き直してください'),
+    ).toBeTruthy()
+  })
+
+  it('questionPoolがあるとき、主ボタンは有効で案内文は出ない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const button = screen.getByText('今日のクエスト') as HTMLButtonElement
+    expect(button.disabled).toBe(false)
+    expect(screen.queryByText(/問題データを取得できていません/)).toBeNull()
+  })
+})
+
+describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
+  async function putRaidState(
+    db: BebRaidDatabase,
+    overrides: Partial<{
+      joined: boolean
+      hp: number
+      maxHp: number
+      endAt: number
+      lastSyncedAt: number
+    }> = {},
+  ) {
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp: overrides.hp ?? 4200,
+      maxHp: overrides.maxHp ?? 5000,
+      myDamage: 300,
+      joined: overrides.joined ?? true,
+      startAt: Date.now() - 86_400_000,
+      endAt: overrides.endAt ?? Date.now() + 2 * 86_400_000,
+      lastSyncedAt: overrides.lastSyncedAt ?? Date.now(),
+    })
+  }
+
+  it('raidStateが無ければ何も表示されない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByTestId('home-raid-hp')).toBeNull()
+  })
+
+  it('raidApi.isConfigured()=falseなら、raidState.joined=trueでも表示されない', async () => {
+    const db = newDb()
+    await putRaidState(db, { joined: true })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(false)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByTestId('home-raid-hp')).toBeNull()
+  })
+
+  it('raidState.joined=falseなら表示されない', async () => {
+    const db = newDb()
+    await putRaidState(db, { joined: false })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByTestId('home-raid-hp')).toBeNull()
+  })
+
+  it('isConfigured=true かつ joined=true なら、ボス名・HP%・残り日数が表示される', async () => {
+    const db = newDb()
+    await putRaidState(db, {
+      hp: 2500,
+      maxHp: 5000,
+      endAt: Date.now() + 3 * 86_400_000 - 1000,
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const hpBar = await screen.findByTestId('home-raid-hp')
+    expect(hpBar.textContent).toContain('テストボス')
+    expect(hpBar.textContent).toContain('残り3日')
+    const bar = hpBar.querySelector('[role="progressbar"]')
+    expect(bar?.getAttribute('aria-valuenow')).toBe('50')
+  })
+
+  it('討伐の確定はサーバー側の判定が正です、の注記を表示する', async () => {
+    const db = newDb()
+    await putRaidState(db)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const hpBar = await screen.findByTestId('home-raid-hp')
+    expect(hpBar.textContent).toContain('討伐の確定はサーバー側の判定が正です')
+  })
+})
+
+describe('HomeScreen: オフライン表示規約（M3・T-99）', () => {
+  async function putRaidStateWithSync(db: BebRaidDatabase, lastSyncedAt: number) {
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp: 4200,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt,
+    })
+  }
+
+  it('最終同期をN分前として表示する（強調なし）', async () => {
+    const db = newDb()
+    await putRaidStateWithSync(db, Date.now() - 5 * 60_000)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const label = await screen.findByTestId('home-raid-last-synced')
+    expect(label.textContent).toContain('最終同期: 5分前')
+    expect(label.className).not.toContain('is-stale')
+  })
+
+  it('直近の同期が失敗していた場合、最終同期表示が強調色（is-stale）になる', async () => {
+    const db = newDb()
+    await putRaidStateWithSync(db, Date.now() - 10 * 60_000)
+    const failingRaidApi = new FakeRaidApi(true)
+    failingRaidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await syncRaidDamage(db, failingRaidApi) // lastSyncFailedフラグを実際の失敗経路で立てる
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const label = await screen.findByTestId('home-raid-last-synced')
+    expect(label.className).toContain('is-stale')
   })
 })

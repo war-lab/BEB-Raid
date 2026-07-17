@@ -18,8 +18,8 @@
         600,
         600
       ],
-      "sizeBytes": 64710,
-      "hash": "aff68a30ab841e35"
+      "sizeBytes": 65165,
+      "hash": "941e4468f5bb9043"
     },
     {
       "id": "pack-p5-s-001",
@@ -68,8 +68,8 @@
         600,
         600
       ],
-      "sizeBytes": 128361,
-      "hash": "a663b8527222acd0"
+      "sizeBytes": 128234,
+      "hash": "d3a479584255f1b5"
     },
     {
       "id": "pack-p5-s-002",
@@ -89,7 +89,7 @@
         600
       ],
       "sizeBytes": 67078,
-      "hash": "a4d44e453d36c631"
+      "hash": "66d7ce54b58b307a"
     },
     {
       "id": "pack-dict-s-001",
@@ -98,8 +98,8 @@
         600,
         600
       ],
-      "sizeBytes": 36972,
-      "hash": "2cd0ebc9309a337d"
+      "sizeBytes": 38043,
+      "hash": "1fb90193b588ef8e"
     },
     {
       "id": "pack-shadow-s-001",
@@ -108,8 +108,8 @@
         600,
         600
       ],
-      "sizeBytes": 37792,
-      "hash": "ed08876b929cf6c8"
+      "sizeBytes": 37687,
+      "hash": "9e23c524d8a1bf07"
     },
     {
       "id": "pack-p5-similar-s-002",
@@ -120,6 +120,56 @@
       ],
       "sizeBytes": 64331,
       "hash": "13b17d495f5a02a0"
+    },
+    {
+      "id": "pack-p5-similar-s-003",
+      "title": "Part5 key単語類題 追加120問（1語1問）",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 129216,
+      "hash": "4753186e84f2e13d"
+    },
+    {
+      "id": "pack-p34-s-002",
+      "title": "Part3/4セット 追加20（会話10・トーク10）",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 66865,
+      "hash": "db443fdc49b9acc3"
+    },
+    {
+      "id": "pack-dict-s-002",
+      "title": "ディクテーション追加40本",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 38471,
+      "hash": "c3fa92167c57af0d"
+    },
+    {
+      "id": "pack-p5-s-003",
+      "title": "Part5文法 d4帯 追加50問",
+      "targetLevel": [
+        730,
+        860
+      ],
+      "sizeBytes": 52398,
+      "hash": "08874bb932d37e33"
+    },
+    {
+      "id": "pack-p34-s-003",
+      "title": "Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）",
+      "targetLevel": [
+        730,
+        860
+      ],
+      "sizeBytes": 42134,
+      "hash": "a4bb8f587df7cd15"
     }
   ]
 }

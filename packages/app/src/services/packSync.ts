@@ -62,6 +62,27 @@ function collectAudioUrls(baseUrl: string, questions: readonly Question[]): stri
 }
 
 /**
+ * 既にキャッシュ済みのパック内容からURL一覧を読む（cache-onlyで再fetchしない）。
+ * T-73: 掃除処理が「同期未変化（skip）」「再同期に失敗」のパックの現行URLを
+ * 誤って削除しないよう保護するために使う。読めなければ空配列（掃除対象から守れないが、
+ * 同期失敗自体は既存の再試行に任せるため例外にはしない）
+ */
+async function collectCachedAudioUrls(
+  packCache: PackCache,
+  baseUrl: string,
+  packUrl: string,
+): Promise<string[]> {
+  try {
+    const cached = await packCache.get(packUrl)
+    if (!cached) return []
+    const pack = JSON.parse(await cached.text()) as QuestionPack
+    return collectAudioUrls(baseUrl, pack.questions)
+  } catch {
+    return []
+  }
+}
+
+/**
  * manifest.jsonを取得し、ハッシュに変化のあるパックだけをPackCacheへピン留めする。
  * オフライン・manifest取得失敗時はnullを返す（呼び出し側はエラーUIを出さない）
  */
@@ -84,25 +105,52 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   const packHashes = { ...state.packHashes }
   const synced: string[] = []
   const skipped: string[] = []
+  // T-73: 現行manifestに対応するURL集合（パックJSON＋全音声）。掃除処理の「削除してよいか」判定に使う
+  const validUrls = new Set<string>()
 
   for (const entry of manifest.packs) {
+    const packUrl = `${baseUrl}packs/${entry.id}.json`
+    validUrls.add(packUrl)
     if (packHashes[entry.id] === entry.hash) {
       skipped.push(entry.id)
+      for (const url of await collectCachedAudioUrls(packCache, baseUrl, packUrl)) {
+        validUrls.add(url)
+      }
       continue
     }
+    let syncSucceeded = false
     try {
-      const packUrl = `${baseUrl}packs/${entry.id}.json`
       const packRes = await fetchImpl(packUrl)
-      if (!packRes.ok) continue
-      const pack = (await packRes.json()) as QuestionPack
-      const urls = [packUrl, ...collectAudioUrls(baseUrl, pack.questions)]
-      await packCache.addAll(urls)
-      packHashes[entry.id] = entry.hash
-      synced.push(entry.id)
+      if (packRes.ok) {
+        const pack = (await packRes.json()) as QuestionPack
+        const urls = [packUrl, ...collectAudioUrls(baseUrl, pack.questions)]
+        await packCache.addAll(urls)
+        packHashes[entry.id] = entry.hash
+        synced.push(entry.id)
+        for (const url of urls) validUrls.add(url)
+        syncSucceeded = true
+      }
     } catch {
       // このパックの同期失敗は無視し、他パックの同期は継続する（次回起動時に再試行）
-      continue
     }
+    if (!syncSucceeded) {
+      // 新版の取得に失敗した場合、旧版の内容を掃除で誤って消さないよう既存キャッシュから保護する
+      for (const url of await collectCachedAudioUrls(packCache, baseUrl, packUrl)) {
+        validUrls.add(url)
+      }
+    }
+  }
+
+  // 現行manifestに含まれないURL（旧バージョンのパック・差し替え済み音声）を掃除する。
+  // 掃除自体が失敗しても同期の成立には影響しないため無視する（次回同期時に再試行される）
+  try {
+    const cachedKeys = await packCache.keys()
+    const staleUrls = cachedKeys.filter((url) => !validUrls.has(url))
+    if (staleUrls.length > 0) {
+      await packCache.delete(staleUrls)
+    }
+  } catch {
+    // 無視（掃除は次回同期時にも再試行される）
   }
 
   const totalSizeBytes = manifest.packs.reduce((sum, p) => sum + p.sizeBytes, 0)
@@ -127,6 +175,7 @@ export async function loadPackQuestions(
     return pack.questions
   }
   const res = await fetchImpl(packUrl)
+  if (!res.ok) throw new Error(`パック取得に失敗（HTTP ${res.status}）: ${packUrl}`)
   const pack = (await res.json()) as QuestionPack
   return pack.questions
 }

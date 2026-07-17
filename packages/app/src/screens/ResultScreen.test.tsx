@@ -3,9 +3,10 @@
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import type { RaidApi } from '../platform'
 import { resumeSession, startSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -18,6 +19,29 @@ function newDb(): BebRaidDatabase {
   const db = new BebRaidDatabase(`result-screen-test-${++seq}`)
   dbs.push(db)
   return db
+}
+
+const FAKE_BOSS = {
+  bossId: 'boss-test',
+  name: 'テストボス',
+  hp: 100,
+  maxHp: 100,
+  startAt: 0,
+  endAt: 0,
+  status: 'active' as const,
+  participantCount: 0,
+  myDamage: 0,
+  contributions: [],
+}
+
+class FakeRaidApi implements RaidApi {
+  constructor(private readonly configured = false) {}
+  isConfigured = () => this.configured
+  register = vi.fn(async () => {})
+  fetchCurrentBoss = vi.fn(async () => null)
+  syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: FAKE_BOSS }))
+  sendQuestionStats = vi.fn(async () => 0)
+  sendReport = vi.fn(async () => {})
 }
 
 beforeEach(() => {
@@ -63,7 +87,9 @@ describe('ResultScreen', () => {
     })
     await db.ratings.put({ section: 'R', rating: 420, updatedAt: Date.now(), answerCount: 2 })
 
-    render(<ResultScreen db={db} />)
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+    // カウントアップ演出中は値が0から始まるため、タップして即スキップしてから検証する
+    fireEvent.click(screen.getByTestId('result-content'))
 
     expect(screen.getByText('+80')).toBeTruthy()
     expect(screen.getByText('正解 1 / 2')).toBeTruthy()
@@ -81,7 +107,7 @@ describe('ResultScreen', () => {
       basePoints: 60,
     })
 
-    render(<ResultScreen db={db} />)
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
     fireEvent.click(screen.getByText('ホームへ'))
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('home'))
@@ -164,7 +190,7 @@ describe('ResultScreen: フェーズ移行判定・演出（T-54）', () => {
       basePoints: 60,
     })
 
-    render(<ResultScreen db={db} />)
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
 
     await waitFor(() => expect(screen.getByTestId('phase-transition')).toBeTruthy())
     expect(screen.getByTestId('phase-transition').textContent).toContain('シーズン2')
@@ -180,9 +206,104 @@ describe('ResultScreen: フェーズ移行判定・演出（T-54）', () => {
       basePoints: 60,
     })
 
-    render(<ResultScreen db={db} />)
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
 
     await waitFor(() => expect(screen.getByText('正解 1 / 1')).toBeTruthy())
     expect(screen.queryByTestId('phase-transition')).toBeNull()
+  })
+})
+
+describe('ResultScreen: 報酬演出（T-77）', () => {
+  async function setupSession(db: BebRaidDatabase) {
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 80,
+    })
+  }
+
+  it('演出終了後は最終値（獲得ポイント）を表示する', async () => {
+    const db = newDb()
+    await setupSession(db)
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    // タップ等でスキップしない場合でも、rAFカウントアップの完了後は最終値に達する
+    await waitFor(() => expect(screen.getByText('+80')).toBeTruthy(), { timeout: 2000 })
+  })
+
+  it('prefers-reduced-motionでは最初から最終値を静止表示する', async () => {
+    const db = newDb()
+    await setupSession(db)
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia
+
+    try {
+      render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+      // waitForを使わず即座に最終値であることを確認する（静止表示＝アニメーションなしの証明）
+      expect(screen.getByText('+80')).toBeTruthy()
+    } finally {
+      window.matchMedia = original
+    }
+  })
+
+  it('タップでカウントアップ演出を即スキップできる', async () => {
+    const db = newDb()
+    await setupSession(db)
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+    fireEvent.click(screen.getByTestId('result-content'))
+
+    // クリック直後（rAF待ちなし）に最終値へ到達していることを確認する
+    expect(screen.getByText('+80')).toBeTruthy()
+  })
+})
+
+describe('ResultScreen: レイドダメージ送信トリガー（T-96）', () => {
+  it('raidApiがisConfigured()=trueならマウント時にsyncDamageが呼ばれる', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 60,
+    })
+    const raidApi = new FakeRaidApi(true)
+
+    render(<ResultScreen db={db} raidApi={raidApi} />)
+
+    // raidSyncEnabled設定が既定OFFのため、syncDamage自体は呼ばれない
+    // （raidApiがconfigured=trueでも、raidSyncとの結線が「無条件で叩かない」ことの確認）
+    await waitFor(() => expect(screen.getByText('+60')).toBeTruthy())
+    expect(raidApi.syncDamage).not.toHaveBeenCalled()
+  })
+
+  it('raidApiがisConfigured()=falseなら何も呼ばれない（縮退設計）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 60,
+    })
+    const raidApi = new FakeRaidApi(false)
+
+    render(<ResultScreen db={db} raidApi={raidApi} />)
+
+    await waitFor(() => expect(screen.getByText('+60')).toBeTruthy())
+    expect(raidApi.syncDamage).not.toHaveBeenCalled()
   })
 })

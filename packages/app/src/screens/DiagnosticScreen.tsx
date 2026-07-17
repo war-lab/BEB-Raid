@@ -3,7 +3,7 @@
 // 完了画面（L/R初期レート＋「ここから伸ばす」。予測スコア帯は出さない=J-1）。
 // 診断は独立したレートキャリブレーションのフローのため、通常ドリルの
 // tagStats・SRS・processWrongAnswer 等の副作用は起こさない。
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import {
@@ -14,11 +14,14 @@ import {
   updateDiagnosticRating,
 } from '../engine/diagnostic'
 import { DEFAULT_INITIAL_RATING, initializeRatings, sectionForPart } from '../engine/rating'
+import { getStreak } from '../engine/streak'
 import type { AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
+import { countAttemptsToday } from '../services/dailyStats'
 import { createProfile } from '../services/profile'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton } from '../components/ChoiceButton'
+import { CompletionCard } from '../components/CompletionCard'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
@@ -54,6 +57,23 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
 
   const [resultL, setResultL] = useState(DEFAULT_INITIAL_RATING)
   const [resultR, setResultR] = useState(DEFAULT_INITIAL_RATING)
+  // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4。DrillScreenと同じパターン）
+  const [audioError, setAudioError] = useState<string | null>(null)
+  // T-78: 完了カード用の「今日の実施数・ストリーク」は診断完了到達時に1回だけ取得する
+  const [completionStats, setCompletionStats] = useState<{
+    count: number
+    streakDays: number
+  } | null>(null)
+  useEffect(() => {
+    if (step !== 'complete') return
+    let cancelled = false
+    void Promise.all([countAttemptsToday(db), getStreak(db)]).then(([count, streak]) => {
+      if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [step, db])
 
   const lPool = questionPool.filter((q) => sectionForPart(q.part) === 'L')
   const rPool = questionPool.filter((q) => sectionForPart(q.part) === 'R')
@@ -150,6 +170,13 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
         <p className="display-num">L: {Math.round(resultL)}</p>
         <p className="display-num">R: {Math.round(resultR)}</p>
         <p>ここから伸ばしていきましょう。</p>
+        {completionStats && (
+          <CompletionCard
+            countLabel={`今日の実施数 ${completionStats.count}問`}
+            streakDays={completionStats.streakDays}
+            message="ここから伸ばしていきましょう"
+          />
+        )}
       </ScreenLayout>
     )
   }
@@ -176,15 +203,34 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
 
   async function handlePlayStart() {
     setPlayState('playing')
-    await audioPlayer.unlock()
-    if (question!.audio) {
-      await audioPlayer.play(question!.audio)
+    setAudioError(null)
+    try {
+      await audioPlayer.unlock()
+      if (question!.audio) {
+        await audioPlayer.play(question!.audio)
+      }
+    } catch (err) {
+      console.warn('[DiagnosticScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
     }
     setPlayState('played')
   }
 
+  /** 音声再生に失敗した際、音声なしで解答へ進むフォールバック */
+  function handlePlayWithoutAudio() {
+    setAudioError(null)
+    setPlayState('played')
+  }
+
   async function handleReplay() {
-    await audioPlayer.replay()
+    try {
+      await audioPlayer.replay()
+    } catch (err) {
+      console.warn('[DiagnosticScreen] 再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
   }
 
   async function handleSelect(choiceKey: string) {
@@ -226,6 +272,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     setTurn(nextTurn)
     setStartedAt(now())
     setPlayState('idle')
+    setAudioError(null)
   }
 
   return (
@@ -238,13 +285,29 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       }
       action={
         <>
+          {audioError && (
+            <p className="drill-error" role="alert">
+              {audioError}
+            </p>
+          )}
           {needsAudioGate && playState !== 'played' && (
-            <PrimaryButton
-              onClick={() => void handlePlayStart()}
-              disabled={playState === 'playing'}
-            >
-              {playState === 'playing' ? '再生中…' : 'タップして開始'}
-            </PrimaryButton>
+            <>
+              <PrimaryButton
+                onClick={() => void handlePlayStart()}
+                disabled={playState === 'playing'}
+              >
+                {playState === 'playing'
+                  ? '再生中…'
+                  : audioError
+                    ? 'もう一度試す'
+                    : 'タップして開始'}
+              </PrimaryButton>
+              {audioError && (
+                <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
+                  音声なしで解答する
+                </button>
+              )}
+            </>
           )}
           {needsAudioGate && playState === 'played' && (
             <button type="button" className="drill-replay" onClick={() => void handleReplay()}>

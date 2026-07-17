@@ -30,6 +30,7 @@ import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import {
   buildDictationDrafts,
   buildDictationQuestions,
+  DICTATION_ENTRIES_S2,
   validateDictationQuestions,
 } from './dictationQuestion.js'
 import { buildFreqList, validateFreqList } from './freqList.js'
@@ -37,6 +38,7 @@ import { aggregateWeeklyKpi, parseKpiExport, renderWeeklyKpiTable } from './kpi.
 import {
   buildKeyVocabSimilarDrafts,
   buildKeyVocabSimilarQuestions,
+  buildKeyVocabSimilarS3Entries,
   KEY_VOCAB_SIMILAR_ENTRIES,
   KEY_VOCAB_SIMILAR_ENTRIES_S2,
   validateKeyVocabSimilarQuestions,
@@ -51,11 +53,14 @@ import {
 import {
   buildPart34Drafts,
   buildPart34Questions,
+  PART34_ENTRIES_S2,
+  PART34_ENTRIES_S3,
   validatePart34Questions,
 } from './part34Question.js'
 import {
   buildPart5Drafts,
   buildPart5EntriesS2,
+  buildPart5EntriesS3,
   buildPart5Questions,
   validatePart5Questions,
 } from './part5Question.js'
@@ -87,11 +92,16 @@ const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
+const DEFAULT_PART5_S3_DRAFT_PATH = 'content/drafts/part5-s3.jsonl'
 const DEFAULT_PART34_DRAFT_PATH = 'content/drafts/part34-s.jsonl'
+const DEFAULT_PART34_S2_DRAFT_PATH = 'content/drafts/part34-s2.jsonl'
+const DEFAULT_PART34_S3_DRAFT_PATH = 'content/drafts/part34-s3.jsonl'
 const DEFAULT_DICTATION_DRAFT_PATH = 'content/drafts/dictation-s.jsonl'
+const DEFAULT_DICTATION_S2_DRAFT_PATH = 'content/drafts/dictation-s2.jsonl'
 const DEFAULT_SHADOWING_DRAFT_PATH = 'content/drafts/shadowing-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH = 'content/drafts/key-vocab-similar-s2.jsonl'
+const DEFAULT_KEY_VOCAB_SIMILAR_S3_DRAFT_PATH = 'content/drafts/key-vocab-similar-s3.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -143,6 +153,12 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validatePart5Questions,
     defaultPath: DEFAULT_PART5_S2_DRAFT_PATH,
   },
+  text_blank_s3: {
+    buildQuestions: () => buildPart5Questions(buildPart5EntriesS3()),
+    buildDrafts: () => buildPart5Drafts(buildPart5EntriesS3()),
+    validate: validatePart5Questions,
+    defaultPath: DEFAULT_PART5_S3_DRAFT_PATH,
+  },
   key_vocab_similar: {
     buildQuestions: buildKeyVocabSimilarQuestions,
     buildDrafts: buildKeyVocabSimilarDrafts,
@@ -161,17 +177,44 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     ],
     defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH,
   },
+  key_vocab_similar_s3: {
+    buildQuestions: () => buildKeyVocabSimilarQuestions(buildKeyVocabSimilarS3Entries()),
+    buildDrafts: () => buildKeyVocabSimilarDrafts(buildKeyVocabSimilarS3Entries()),
+    validate: (questions) => [
+      ...validateKeyVocabSimilarQuestions(questions),
+      ...validateTargetWordCoverage(buildKeyVocabSimilarS3Entries()),
+    ],
+    defaultPath: DEFAULT_KEY_VOCAB_SIMILAR_S3_DRAFT_PATH,
+  },
   audio_set: {
     buildQuestions: buildPart34Questions,
     buildDrafts: buildPart34Drafts,
     validate: validatePart34Questions,
     defaultPath: DEFAULT_PART34_DRAFT_PATH,
   },
+  audio_set_s2: {
+    buildQuestions: () => buildPart34Questions(PART34_ENTRIES_S2),
+    buildDrafts: () => buildPart34Drafts(PART34_ENTRIES_S2),
+    validate: validatePart34Questions,
+    defaultPath: DEFAULT_PART34_S2_DRAFT_PATH,
+  },
+  audio_set_s3: {
+    buildQuestions: () => buildPart34Questions(PART34_ENTRIES_S3),
+    buildDrafts: () => buildPart34Drafts(PART34_ENTRIES_S3),
+    validate: validatePart34Questions,
+    defaultPath: DEFAULT_PART34_S3_DRAFT_PATH,
+  },
   dictation: {
     buildQuestions: buildDictationQuestions,
     buildDrafts: buildDictationDrafts,
     validate: validateDictationQuestions,
     defaultPath: DEFAULT_DICTATION_DRAFT_PATH,
+  },
+  dictation_s2: {
+    buildQuestions: () => buildDictationQuestions(DICTATION_ENTRIES_S2),
+    buildDrafts: () => buildDictationDrafts(DICTATION_ENTRIES_S2),
+    validate: validateDictationQuestions,
+    defaultPath: DEFAULT_DICTATION_S2_DRAFT_PATH,
   },
   shadowing: {
     buildQuestions: buildShadowingQuestions,
@@ -314,15 +357,23 @@ export const commands: CliCommand[] = [
   },
   {
     name: 'tts',
-    description: 'Piperで音声合成しaudioMetaを実測値に更新（vocab_card/audio_qaのみ対象。T-31）',
+    description:
+      'Piperで音声合成しaudioMetaを実測値に更新（vocab_card/audio_qa/audio_set/dictation/shadowing対象。T-31・T-81でlength_scale校正に対応）',
     run: async (ctx) => {
-      const [draftPath, audioRoot, outputDraftPath] = ctx.args
+      const [draftPath, audioRoot, outputDraftPath, lengthScaleArg] = ctx.args
       if (!draftPath || !audioRoot || !outputDraftPath) {
-        ctx.errOut('使い方: beb tts <ドラフト.jsonl> <音声出力ルート> <更新後ドラフト.jsonl>')
+        ctx.errOut(
+          '使い方: beb tts <ドラフト.jsonl> <音声出力ルート> <更新後ドラフト.jsonl> [length_scale]',
+        )
+        return 1
+      }
+      const lengthScale = lengthScaleArg !== undefined ? Number(lengthScaleArg) : undefined
+      if (lengthScaleArg !== undefined && Number.isNaN(lengthScale)) {
+        ctx.errOut(`length_scaleが数値ではない: ${lengthScaleArg}`)
         return 1
       }
       const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
-      const provider = new PiperTtsProvider()
+      const provider = new PiperTtsProvider(lengthScale !== undefined ? { lengthScale } : {})
       const { updatedDrafts, synthesized, skipped } = await synthesizeDraftsAudio(
         drafts,
         provider,
@@ -402,13 +453,18 @@ export const commands: CliCommand[] = [
         ctx.out(`実測補正（${correctionsPath}）を適用しました`)
       }
 
-      const { built, errors } = buildAllPacks(sources, audioFiles)
+      const { built, errors, warnings } = buildAllPacks(sources, audioFiles)
       if (errors.length > 0) {
         for (const e of errors) ctx.errOut(`エラー: ${e}`)
         ctx.errOut(
           `ビルド失敗: ${errors.length}件のエラー（部分取込はしない。何も書き出していない）`,
         )
         return 1
+      }
+      // T-80: contentLintの検出結果はビルドを止めない警告として表示する（修正はT-81/T-82）
+      if (warnings.length > 0) {
+        for (const w of warnings) ctx.out(`警告: ${w}`)
+        ctx.out(`contentLint: ${warnings.length}件の警告（ビルドは継続。docs/STATUS.md参照）`)
       }
 
       const packsDir = join(contentRoot, 'packs')

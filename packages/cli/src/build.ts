@@ -24,6 +24,7 @@ import {
   type QuestionPack,
 } from '@beb-raid/shared-schema'
 import type { CorrectionsFile } from './calibrate.js'
+import { validateContentLint } from './contentLint.js'
 
 /**
  * ビルド対象パックの定義（実データはドラフトJSONLから読み込む。commands.ts から参照）。
@@ -148,10 +149,70 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）= 12パック（docs/13 3.10節・T-64） */
+/** フェーズC・T-83で追加する1パック（key単語類題 追加120問。J-44） */
+const T83_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p5-similar-s-003',
+    title: 'Part5 key単語類題 追加120問（1語1問）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（q1語=類題ゼロの語彙循環解消。AIクロスレビュー対象外）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/key-vocab-similar-s3.jsonl',
+  },
+]
+
+/** フェーズC・T-84で追加する2パック（audio_set+20・dictation+40。J-33） */
+const T84_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p34-s-002',
+    title: 'Part3/4セット 追加20（会話10・トーク10）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-84。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/part34-s2.jsonl',
+  },
+  {
+    id: 'pack-dict-s-002',
+    title: 'ディクテーション追加40本',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-84。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/dictation-s2.jsonl',
+  },
+]
+
+/** フェーズC・T-85で追加する1パック（Part5 d4帯+50問。J-33） */
+const T85_PART5_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p5-s-003',
+    title: 'Part5文法 d4帯 追加50問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）',
+    targetLevel: [730, 860],
+    draftPath: 'drafts/part5-s3.jsonl',
+  },
+]
+
+/** フェーズC・T-85で追加するもう1パック（Part3/4本試験長尺化+10セット。J-33） */
+const T85_PART34_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p34-s-003',
+    title: 'Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）',
+    targetLevel: [730, 860],
+    draftPath: 'drafts/part34-s3.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）= 17パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,
+  ...T83_PACK_DEFINITIONS,
+  ...T84_PACK_DEFINITIONS,
+  ...T85_PART5_PACK_DEFINITIONS,
+  ...T85_PART34_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */
@@ -247,7 +308,7 @@ export function validateExplanationQuality(questions: readonly Question[]): stri
 export function buildPack(
   source: PackSource,
   audioFiles: ReadonlySet<string>,
-): { built: BuiltPack | null; errors: string[] } {
+): { built: BuiltPack | null; errors: string[]; warnings: string[] } {
   const draftPack = {
     schemaVersion: SCHEMA_VERSION,
     pack: {
@@ -260,6 +321,11 @@ export function buildPack(
     questions: source.questions,
   }
 
+  // T-80: 5ルールの機械検証（contentLint.ts）。既存コンテンツに現存する違反を
+  // ビルド失敗に変えると配布が止まってしまうため、warnings（非ブロッキング）として
+  // 扱う（修正はT-81/T-82の担当範囲。docs/STATUS.mdに一括検査結果を記録済み）
+  const contentLintProblems = validateContentLint(source.questions, source.id)
+
   const result = validatePack(draftPack, { audioFiles })
   const explanationProblems = validateExplanationQuality(source.questions)
   if (!result.ok || explanationProblems.length > 0) {
@@ -269,6 +335,7 @@ export function buildPack(
         ...result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
         ...explanationProblems.map((p) => `${source.id} ${p}`),
       ],
+      warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
     }
   }
 
@@ -281,25 +348,31 @@ export function buildPack(
     pack: { ...draftPack.pack, sizeBytes },
   } as QuestionPack
 
-  return { built: { pack, hash }, errors: [] }
+  return {
+    built: { pack, hash },
+    errors: [],
+    warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
+  }
 }
 
 /** 全パック定義を検証・組み立てる。1件でもエラーがあれば built は空（部分取込なし） */
 export function buildAllPacks(
   sources: readonly PackSource[],
   audioFiles: ReadonlySet<string>,
-): { built: BuiltPack[]; errors: string[] } {
+): { built: BuiltPack[]; errors: string[]; warnings: string[] } {
   const errors: string[] = []
+  const warnings: string[] = []
   const built: BuiltPack[] = []
   for (const source of sources) {
     const result = buildPack(source, audioFiles)
+    warnings.push(...result.warnings)
     if (result.built) {
       built.push(result.built)
     } else {
       errors.push(...result.errors)
     }
   }
-  return { built: errors.length === 0 ? built : [], errors }
+  return { built: errors.length === 0 ? built : [], errors, warnings }
 }
 
 /** ビルド済みパック一覧 → manifest.json の中身 */

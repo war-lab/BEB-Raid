@@ -1,7 +1,7 @@
 // Part2（audio_qa）追加100問のデータ本体（M2・T-60。正本: docs/13 3.10節、docs/03 7.1節）。
 // keyVocabWordはS/A/B語彙カード（600語）から選び、単語帳との循環を成立させる
 // （T-27のSランク50問と重複しない語を選定）。
-// tags[0]は音声知覚系タグ必須（疑問詞聞き取り/弱形・連結/数字・時刻/米英豪加アクセント）。
+// tags[0]は音声知覚系タグ必須（疑問詞聞き取り/弱形・連結/数字・時刻/米英アクセント）。
 // 難易度は2〜4に分散し、間接応答問（応答が疑問文の型に素直に対応しない、推論を要する応答）を
 // 2割程度含める（difficulty=4扱い。02の3.1のL2基礎訓練の位置づけは維持しつつ、
 // M1レビューで見送った提案を回収）。
@@ -402,7 +402,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'onboarding',
     tags: ['弱形・連結'],
-    script: 'Wanna sit in on the onboarding session tomorrow? — I’d love to, actually.',
+    script: 'Do you want to sit in on the onboarding session tomorrow? — I’d love to, actually.',
     correctText: 'I’d love to, actually.',
     distractors: ['It lasted two hours.', 'She joined last week.'],
     explanation:
@@ -424,7 +424,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'reconciliation',
     tags: ['弱形・連結'],
-    script: 'Didja finish the reconciliation for March yet? — Almost, just one account left.',
+    script: 'Did you finish the reconciliation for March yet? — Almost, just one account left.',
     correctText: 'Almost, just one account left.',
     distractors: ['The finance team handles that.', 'It was due last Friday.'],
     explanation:
@@ -435,7 +435,8 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'streamline',
     tags: ['弱形・連結'],
-    script: 'Gonna streamline the approval process this quarter? — That’s the plan, yes.',
+    script:
+      'Are you going to streamline the approval process this quarter? — That’s the plan, yes.',
     correctText: 'That’s the plan, yes.',
     distractors: ['It took three weeks last time.', 'The operations team suggested it.'],
     explanation:
@@ -457,7 +458,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'appraisal',
     tags: ['弱形・連結'],
-    script: 'D’you know when my appraisal is scheduled? — I believe it’s next Monday.',
+    script: 'Do you know when my appraisal is scheduled? — I believe it’s next Monday.',
     correctText: 'I believe it’s next Monday.',
     distractors: ['Your manager conducted it.', 'It usually takes an hour.'],
     explanation:
@@ -468,7 +469,8 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'retention',
     tags: ['弱形・連結'],
-    script: 'Wanna review the retention numbers together this afternoon? — Sounds good to me.',
+    script:
+      'Do you want to review the retention numbers together this afternoon? — Sounds good to me.',
     correctText: 'Sounds good to me.',
     distractors: ['They improved last quarter.', 'The HR analyst prepared them.'],
     explanation:
@@ -479,7 +481,8 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   {
     keyVocabWord: 'automate',
     tags: ['弱形・連結'],
-    script: 'Gonna automate the invoicing this year? — We’re still discussing the budget for it.',
+    script:
+      'Are you going to automate the invoicing this year? — We’re still discussing the budget for it.',
     correctText: 'We’re still discussing the budget for it.',
     distractors: ['It saved us a lot of time.', 'The software vendor called yesterday.'],
     explanation:
@@ -501,10 +504,10 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
     difficulty: 3,
   },
 
-  // --- 米英豪加アクセント（発話者の言い回しの違いに注意する想定の対話） ---
+  // --- 米英アクセント（発話者の言い回しの違いに注意する想定の対話） ---
   {
     keyVocabWord: 'amenity',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'What amenity does the office building offer? — A gym and a rooftop terrace.',
     correctText: 'A gym and a rooftop terrace.',
     distractors: ['It opened last spring.', 'The property developer.'],
@@ -515,7 +518,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'concierge',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Who can help me book a restaurant tonight? — Ask the concierge at the front desk.',
     correctText: 'Ask the concierge at the front desk.',
     distractors: ['It opens at six.', 'The hotel has three restaurants.'],
@@ -527,7 +530,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'chartered',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Why did we book a chartered bus for the delegates? — The regular shuttle doesn’t run that late.',
     correctText: 'The regular shuttle doesn’t run that late.',
@@ -540,7 +543,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'punctual',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Is the courier usually punctual? — Yes, almost always right on time.',
     correctText: 'Yes, almost always right on time.',
     distractors: ['They deliver twice a day.', 'The warehouse is downtown.'],
@@ -551,7 +554,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'gateway',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Why is this airport considered a gateway to the region? — It connects to over thirty countries.',
     correctText: 'It connects to over thirty countries.',
@@ -564,7 +567,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'hospitality',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'What did the guests say about the hotel’s hospitality? — They praised the friendly staff.',
     correctText: 'They praised the friendly staff.',
@@ -577,7 +580,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'commute',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'How long is your commute to the new office? — About forty minutes by train.',
     correctText: 'About forty minutes by train.',
     distractors: ['It’s near the harbor.', 'I started last month.'],
@@ -588,7 +591,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'congestion',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Why was there so much congestion this morning? — There was an accident on the highway.',
     correctText: 'There was an accident on the highway.',
@@ -600,7 +603,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'immigration',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'How long was the line at immigration? — Surprisingly short today.',
     correctText: 'Surprisingly short today.',
     distractors: ['Two officers were on duty.', 'It closes at midnight.'],
@@ -611,7 +614,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'stopover',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Why did you choose a flight with a stopover? — It was much cheaper than the direct one.',
     correctText: 'It was much cheaper than the direct one.',
@@ -625,7 +628,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   // --- 間接応答（difficulty4。素直な語り口対応でなく推論を要する応答） ---
   {
     keyVocabWord: 'ratify',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Has the board voted to ratify the merger agreement yet? — They’re meeting again this afternoon.',
     correctText: 'They’re meeting again this afternoon.',
@@ -637,7 +640,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'disclose',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Did the company disclose its full earnings report? — Only a summary was released so far.',
     correctText: 'Only a summary was released so far.',
@@ -650,7 +653,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'reimbursement',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Isn’t the travel expense reimbursement already processed? — I haven’t checked my account yet.',
     correctText: 'I haven’t checked my account yet.',
@@ -665,7 +668,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'troubleshoot',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Wasn’t IT supposed to troubleshoot the printer by now? — The technician just left, actually.',
     correctText: 'The technician just left, actually.',
@@ -677,7 +680,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'overbook',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Did we overbook the conference room again? — Let me check the calendar right now.',
     correctText: 'Let me check the calendar right now.',
     distractors: ['It seats twenty people.', 'The marketing team reserved it.'],
@@ -688,7 +691,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'insolvency',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Is the supplier really facing insolvency? — That’s what the news is reporting, anyway.',
     correctText: 'That’s what the news is reporting, anyway.',
@@ -701,7 +704,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'foreclosure',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Did the bank go through with the foreclosure? — The owner made a payment at the last minute.',
     correctText: 'The owner made a payment at the last minute.',
@@ -725,7 +728,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'litigation',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Has the litigation been settled? — Both sides are still reviewing the latest offer.',
     correctText: 'Both sides are still reviewing the latest offer.',
     distractors: ['It started two years ago.', 'The judge is very experienced.'],
@@ -736,7 +739,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'sustainability',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Doesn’t the new factory meet sustainability standards? — The certification is still pending.',
     correctText: 'The certification is still pending.',
@@ -748,7 +751,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'infringement',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Did the court find any patent infringement? — The ruling won’t come out until next month.',
     correctText: 'The ruling won’t come out until next month.',
@@ -760,7 +763,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'condemnation',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Did the city issue a condemnation order for the old building? — Inspectors are coming back tomorrow to decide.',
     correctText: 'Inspectors are coming back tomorrow to decide.',
@@ -773,7 +776,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'acquittal',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Was the acquittal a surprise to everyone? — Honestly, most of us expected a different outcome.',
     correctText: 'Honestly, most of us expected a different outcome.',
@@ -786,7 +789,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'redundancy',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Is staff redundancy being considered for next quarter? — Management hasn’t made a final decision.',
     correctText: 'Management hasn’t made a final decision.',
@@ -799,7 +802,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'downsizing',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Is the downsizing plan finalized? — We’re still waiting to hear from headquarters.',
     correctText: 'We’re still waiting to hear from headquarters.',
     distractors: ['It affects the sales team.', 'It was announced in May.'],
@@ -810,7 +813,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'nonrefundable',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Is this ticket really nonrefundable? — Let me double-check the terms for you.',
     correctText: 'Let me double-check the terms for you.',
     distractors: ['It costs two hundred dollars.', 'The flight leaves at noon.'],
@@ -821,7 +824,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'variance',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script:
       'Did the city approve the zoning variance? — We won’t know until the next council meeting.',
     correctText: 'We won’t know until the next council meeting.',
@@ -833,7 +836,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'embezzlement',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Has the embezzlement case gone to trial yet? — The investigation is still ongoing.',
     correctText: 'The investigation is still ongoing.',
     distractors: ['It involves a former treasurer.', 'The amount was quite large.'],
@@ -901,7 +904,7 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
   },
   {
     keyVocabWord: 'password',
-    tags: ['米英豪加アクセント'],
+    tags: ['米英アクセント'],
     script: 'Where can employees reset their password? — Right at the IT helpdesk.',
     correctText: 'Right at the IT helpdesk.',
     distractors: ['It was installed last year.', 'The security team manages it.'],

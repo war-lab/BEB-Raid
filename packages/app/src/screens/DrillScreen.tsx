@@ -10,18 +10,16 @@ import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
 import { computeSetResult } from '../engine/audioSet'
 import { buildWordBank, judgeDictation } from '../engine/dictation'
-import { processWrongAnswer } from '../engine/keyVocab'
 import { formatQuickPackReason } from '../engine/reason'
-import { applyRatingUpdate } from '../engine/rating'
+import { shuffle } from '../engine/shuffle'
 import { reviewSrsCard } from '../engine/srs'
-import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
-import type { AiClient, AudioPlayer } from '../platform'
-import { recordAttempt } from '../services/attempts'
+import type { AiClient, AudioPlayer, RaidApi } from '../platform'
+import { recordAnswerPipeline } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
-import { advanceSession, answerCurrentQuestion } from '../services/session'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { advanceSession, resumeSession } from '../services/session'
+import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -39,6 +37,8 @@ interface Props {
   audioPlayer: AudioPlayer
   /** BYOK AIクライアント（M2・T-56。未注入ならExplanationCardの「AIに聞く」は出ない） */
   aiClient?: AiClient
+  /** 共有API（レイド）クライアント（M3・T-101。未注入ならExplanationCardの報告ボタンは出ない） */
+  raidApi?: RaidApi
 }
 
 interface AnswerResult {
@@ -65,6 +65,12 @@ const PRE_READING_SECONDS: Record<PhaseSeason, number> = { P1: 15, P2: 15, P3: 1
 // （イベントハンドラ内の呼び出しも静的解析では判別されない）、別関数越しに呼ぶ
 function now(): number {
   return Date.now()
+}
+
+/** T-78（J-42の対象外＝ハプティクスは演出でなく操作フィードバック）: 正解確定時の軽い振動 */
+function triggerCorrectHaptics(hapticsEnabled: boolean, isCorrect: boolean) {
+  if (!hapticsEnabled || !isCorrect) return
+  navigator.vibrate?.(15)
 }
 
 /**
@@ -94,7 +100,7 @@ function renderBlankedScript(
   return tokens.join(' ')
 }
 
-export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
+export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const snapshot = useSessionStore((s) => s.snapshot)
   const questions = useSessionStore((s) => s.questions)
   const recordAnswer = useSessionStore((s) => s.recordAnswer)
@@ -130,12 +136,22 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   // audio_set 専用（M2・T-49）: セット内で今どの設問か・各設問の正誤（セット正解判定に使う）
   const [subQuestionIndex, setSubQuestionIndex] = useState(0)
   const [subQuestionResults, setSubQuestionResults] = useState<boolean[]>([])
+  // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4）
+  const [audioError, setAudioError] = useState<string | null>(null)
+  // T-71/T-76: 解答保存（recordAnswerPipeline）失敗時のリカバリ用エラーメッセージ（J-35）
+  const [saveError, setSaveError] = useState<string | null>(null)
+  // T-78: ハプティクス設定（既定ON）。正解確定時のnavigator.vibrateに使う
+  const [hapticsEnabled, setHapticsEnabled] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-    void db.settings.get(NO_EARPHONE_MODE_KEY).then((setting) => {
+    void Promise.all([
+      db.settings.get(NO_EARPHONE_MODE_KEY),
+      db.settings.get(HAPTICS_ENABLED_KEY),
+    ]).then(([earphoneSetting, hapticsSetting]) => {
       if (cancelled) return
-      setNoEarphoneMode(setting?.value === true)
+      setNoEarphoneMode(earphoneSetting?.value === true)
+      setHapticsEnabled(hapticsSetting?.value !== false)
       setSettingsLoaded(true)
     })
     return () => {
@@ -183,6 +199,20 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     [isVocabCard, question?.id],
   )
 
+  // T-79（J-36）: 選択肢は問題が変わるたびに1回だけシャッフルする（丸暗記防止。
+  // 正誤判定はchoice.key参照のため順序に依存しない。vocab_cardはbuildVocabQuizChoices側で
+  // 既にシャッフル済みのため対象外）
+  const shuffledChoices = useMemo(
+    () => (question?.choices ? shuffle(question.choices) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [question?.id],
+  )
+  const shuffledSubQuestionChoices = useMemo(
+    () => (currentSubQuestion?.choices ? shuffle(currentSubQuestion.choices) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [question?.id, subQuestionIndex],
+  )
+
   // dictation: ワードバンク（3.4節の6語構成）はカードが変わるたびに1回だけ組み立てる
   const dictationBank = useMemo(
     () =>
@@ -203,7 +233,13 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）
   useEffect(() => {
     if (!settingsLoaded || !isVocabCard || noEarphoneMode || !question?.phraseAudio) return
-    void audioPlayer.unlock().then(() => audioPlayer.play(question.phraseAudio!))
+    void audioPlayer
+      .unlock()
+      .then(() => audioPlayer.play(question.phraseAudio!))
+      .catch((err: unknown) => {
+        // 自動再生は失敗しても学習継続可能（4択は既に表示されている）なので通知はしない
+        console.warn('[DrillScreen] フレーズ音声の自動再生に失敗', err)
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
@@ -249,6 +285,29 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingSec])
 
+  // item はあるが questionId が解決できない場合（未読込パック・データ不整合等で
+  // 発生しうる。発見バグ: 以前はここで navigate('result') も advanceToNext も
+  // 呼ばれず永久に null を返し続け、画面が固まっていた）は記録せずスキップして次へ進める
+  useEffect(() => {
+    if (!snapshot || !item || question) return
+    let cancelled = false
+    console.warn(`[DrillScreen] questionIdが解決できないためスキップ: ${item.questionId}`)
+    void advanceSession(db, snapshot)
+      .then((nextSnapshot) => {
+        if (cancelled) return
+        useSessionStore.setState({ snapshot: nextSnapshot })
+        if (displayIndex + 1 >= snapshot.items.length) {
+          navigate('result')
+        } else {
+          setDisplayIndex((i) => i + 1)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [item, question, snapshot, displayIndex, db, navigate])
+
   if (!snapshot || !item || !question) {
     if (snapshot && !item) navigate('result')
     return null
@@ -256,6 +315,25 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
 
   const total = snapshot.items.length
   const current = displayIndex + 1
+
+  /**
+   * 解答保存（recordAnswerPipeline）失敗時の共通リカバリ（J-35・T-76）。
+   * エラーバナー表示＋正誤表示の取り消し（再解答可能にする）に加え、snapshotベースの
+   * 経路ではDBの実際の状態をresumeSessionで読み直してstateを再同期する
+   * （途中まで書き込みが成立していた場合、answeredCountのずれを解消するため）
+   */
+  async function recoverFromSaveError(err: unknown, options?: { resyncSnapshot?: boolean }) {
+    console.error('[DrillScreen] 解答の保存に失敗', err)
+    setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
+    setResult(null)
+    if (options?.resyncSnapshot ?? true) {
+      const resumed = await resumeSession(db)
+      if (resumed) {
+        useSessionStore.setState({ snapshot: resumed })
+        setDisplayIndex(resumed.answeredCount)
+      }
+    }
+  }
 
   async function finalizeAnswer(
     selectedKey: string | null,
@@ -266,34 +344,31 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const responseMs = now() - startedAt
     setResult({ selectedKey, isCorrect, isTimeout })
     setStreak((s) => (isCorrect ? s + 1 : 0))
+    triggerCorrectHaptics(hapticsEnabled, isCorrect)
 
-    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
-      isCorrect,
-      responseMs,
-      isTimeout,
-    })
+    try {
+      // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
+      // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）
+      const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
+        snapshot,
+        questionId: question.id,
+        question,
+        lookup: questions,
+        isCorrect,
+        responseMs,
+        isTimeout,
+        mode: item.mode,
+        srsCardId: item.srsCardId,
+      })
 
-    if (!isCorrect) {
-      await processWrongAnswer(db, question)
+      recordAnswer(nextSnapshot!, {
+        questionId: question.id,
+        isCorrect,
+        basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+      })
+    } catch (err) {
+      await recoverFromSaveError(err)
     }
-    const lookup: QuestionLookup = questions
-    await updateTagStatsForAnswer(db, question.id, lookup)
-    const ratingUpdate = await applyRatingUpdate(db, {
-      part: question.part,
-      difficulty: question.difficulty,
-      isCorrect,
-      mode: item.mode,
-    })
-    if (item.srsCardId) {
-      // S2は客観正誤のみのUIのため、自己評価3段階への写像は正解→good/誤答→again に固定する
-      await reviewSrsCard(db, item.srsCardId, isCorrect ? 'good' : 'again')
-    }
-
-    recordAnswer(nextSnapshot, {
-      questionId: question.id,
-      isCorrect,
-      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
-    })
   }
 
   function handleSelect(choiceKey: string) {
@@ -312,29 +387,31 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const responseMs = now() - startedAt
     setResult({ selectedKey: choiceKey, isCorrect, isTimeout: false })
     setStreak((s) => (isCorrect ? s + 1 : 0))
+    triggerCorrectHaptics(hapticsEnabled, isCorrect)
 
-    await recordAttempt(db, {
-      questionId: currentSubQuestion.id,
-      mode: item.mode,
-      isCorrect,
-      responseMs,
-    })
-    if (!isCorrect) {
-      await processWrongAnswer(db, question)
+    try {
+      // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
+      // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）
+      const { ratingUpdate } = await recordAnswerPipeline(db, {
+        questionId: currentSubQuestion.id,
+        question,
+        lookup: subQuestionLookup,
+        isCorrect,
+        responseMs,
+        mode: item.mode,
+        skip: { srs: true },
+      })
+      setSubQuestionResults((prev) => [...prev, isCorrect])
+      recordAnswer(snapshot, {
+        questionId: currentSubQuestion.id,
+        isCorrect,
+        basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+      })
+    } catch (err) {
+      // サブ設問はsnapshotのanswerCurrentQuestionを経由しないため、resumeSessionでの
+      // 再同期は対象外（subQuestionIndexはローカルstateのまま据え置き＝同じ設問を再試行できる）
+      await recoverFromSaveError(err, { resyncSnapshot: false })
     }
-    await updateTagStatsForAnswer(db, currentSubQuestion.id, subQuestionLookup)
-    const ratingUpdate = await applyRatingUpdate(db, {
-      part: question.part,
-      difficulty: question.difficulty,
-      isCorrect,
-      mode: item.mode,
-    })
-    setSubQuestionResults((prev) => [...prev, isCorrect])
-    recordAnswer(snapshot, {
-      questionId: currentSubQuestion.id,
-      isCorrect,
-      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
-    })
   }
 
   function handleSelectSubQuestion(choiceKey: string) {
@@ -368,7 +445,15 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
    * unlockはここで済ませ、実際の再生は先読み満了 or 早期開始タップで startAudioSetPlayback が行う
    */
   async function handleStartAudioSet() {
-    await audioPlayer.unlock()
+    setAudioError(null)
+    try {
+      await audioPlayer.unlock()
+    } catch (err) {
+      console.warn('[DrillScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
+    }
     const seconds = PRE_READING_SECONDS[season ?? 'P2']
     setPlayState('prereading')
     setPreReadingSecondsLeft(seconds)
@@ -378,8 +463,15 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   async function startAudioSetPlayback() {
     setPlayState('playing')
     setPreReadingSecondsLeft(null)
-    if (question!.audio) {
-      await audioPlayer.play(question!.audio)
+    try {
+      if (question!.audio) {
+        await audioPlayer.play(question!.audio)
+      }
+    } catch (err) {
+      console.warn('[DrillScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
     }
     setPlayState('played')
   }
@@ -390,19 +482,41 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       return
     }
     setPlayState('playing')
-    await audioPlayer.unlock()
-    const options: { durationMs?: number; rate?: number } = {}
-    if (partialAudioMode) options.durationMs = PARTIAL_AUDIO_DURATION_MS
-    if (isDictation && dictationRate !== 1) options.rate = dictationRate
-    if (question!.audio) {
-      await audioPlayer.play(question!.audio, Object.keys(options).length > 0 ? options : undefined)
+    setAudioError(null)
+    try {
+      await audioPlayer.unlock()
+      const options: { durationMs?: number; rate?: number } = {}
+      if (partialAudioMode) options.durationMs = PARTIAL_AUDIO_DURATION_MS
+      if (isDictation && dictationRate !== 1) options.rate = dictationRate
+      if (question!.audio) {
+        await audioPlayer.play(
+          question!.audio,
+          Object.keys(options).length > 0 ? options : undefined,
+        )
+      }
+    } catch (err) {
+      console.warn('[DrillScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
     }
     setPlayState('played')
     if (isAudioQa) setRemainingSec(ANSWER_TIMER_SECONDS)
   }
 
+  /** audio_qa: 音声再生に失敗した際、音声なしで解答へ進むフォールバック（タイマーは開始しない） */
+  function handlePlayWithoutAudio() {
+    setAudioError(null)
+    setPlayState('played')
+  }
+
   async function handleReplay() {
-    await audioPlayer.replay()
+    try {
+      await audioPlayer.replay()
+    } catch (err) {
+      console.warn('[DrillScreen] 再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
   }
 
   /** dictation: ワードバンクの語を次の未回答の穴に順にタップで埋める（3.4節） */
@@ -428,26 +542,30 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const responseMs = now() - startedAt
     setResult({ selectedKey: null, isCorrect: judgement.isCorrect, isTimeout: false })
     setStreak((s) => (judgement.isCorrect ? s + 1 : 0))
+    triggerCorrectHaptics(hapticsEnabled, judgement.isCorrect)
 
-    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
-      isCorrect: judgement.isCorrect,
-      responseMs,
-      isTimeout: false,
-    })
-    if (!judgement.isCorrect) {
-      await processWrongAnswer(db, question)
+    try {
+      // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
+      const { nextSnapshot } = await recordAnswerPipeline(db, {
+        snapshot,
+        questionId: question.id,
+        question,
+        lookup: questions,
+        isCorrect: judgement.isCorrect,
+        responseMs,
+        isTimeout: false,
+        mode: item.mode,
+        srsCardId: item.srsCardId,
+        skip: { rating: true },
+      })
+      recordAnswer(nextSnapshot!, {
+        questionId: question.id,
+        isCorrect: judgement.isCorrect,
+        basePoints: 0,
+      })
+    } catch (err) {
+      await recoverFromSaveError(err)
     }
-    const lookup: QuestionLookup = questions
-    await updateTagStatsForAnswer(db, question.id, lookup)
-    // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
-    if (item.srsCardId) {
-      await reviewSrsCard(db, item.srsCardId, judgement.isCorrect ? 'good' : 'again')
-    }
-    recordAnswer(nextSnapshot, {
-      questionId: question.id,
-      isCorrect: judgement.isCorrect,
-      basePoints: 0,
-    })
   }
 
   function advanceToNext() {
@@ -466,6 +584,8 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     setSubQuestionIndex(0)
     setSubQuestionResults([])
     setPreReadingSecondsLeft(null)
+    setAudioError(null)
+    setSaveError(null)
     setStartedAt(now())
   }
 
@@ -476,6 +596,10 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
   function handleSelectVocabChoice(key: string) {
     if (selectedChoiceKey !== null) return
     setSelectedChoiceKey(key)
+    triggerCorrectHaptics(
+      hapticsEnabled,
+      quizChoices.find((c) => c.key === key)?.isCorrect ?? false,
+    )
   }
 
   /**
@@ -488,28 +612,32 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
     const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
     const responseMs = now() - startedAt
 
-    const nextSnapshot = await answerCurrentQuestion(db, snapshot, {
-      isCorrect,
-      responseMs,
-      isTimeout: false,
-    })
-    const lookup: QuestionLookup = questions
-    await updateTagStatsForAnswer(db, question.id, lookup) // vocab_cardはtags=[]のため実質no-op
-    const ratingUpdate = await applyRatingUpdate(db, {
-      part: question.part, // part=0のためapplyRatingUpdate内部でno-op
-      difficulty: question.difficulty,
-      isCorrect,
-      mode: item.mode,
-    })
-    if (item.srsCardId) {
-      await reviewSrsCard(db, item.srsCardId, grade)
+    try {
+      // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
+      // tagStats（tags=[]）・レート（part=0）はpipeline内部でno-opになる
+      const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
+        snapshot,
+        questionId: question.id,
+        question,
+        lookup: questions,
+        isCorrect,
+        responseMs,
+        isTimeout: false,
+        mode: item.mode,
+        srsCardId: item.srsCardId,
+        srsGrade: grade,
+        skip: { wrongAnswer: true },
+      })
+      recordAnswer(nextSnapshot!, {
+        questionId: question.id,
+        isCorrect,
+        basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+      })
+      advanceToNext()
+    } catch (err) {
+      // vocab_cardはresultを使わないため、選択済みの4択表示はそのまま残し再試行できるようにする
+      await recoverFromSaveError(err)
     }
-    recordAnswer(nextSnapshot, {
-      questionId: question.id,
-      isCorrect,
-      basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
-    })
-    advanceToNext()
   }
 
   const choicesInteractive = !needsAudioGate || playState === 'played'
@@ -519,6 +647,9 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       status={
         <>
           <SessionProgress current={current} total={total} />
+          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            中断
+          </button>
           {item.reason && <p className="drill-reason">{formatQuickPackReason(item.reason)}</p>}
           {streak > 0 && (
             <p key={streak} className="session-streak display-num">
@@ -532,6 +663,16 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       }
       action={
         <>
+          {saveError && (
+            <p className="drill-error" role="alert">
+              {saveError}
+            </p>
+          )}
+          {audioError && (
+            <p className="drill-error" role="alert">
+              {audioError}
+            </p>
+          )}
           {isVocabCard &&
             quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
@@ -601,15 +742,28 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
             </div>
           )}
           {!isVocabCard && !isAudioSet && needsAudioGate && playState !== 'played' && (
-            <PrimaryButton
-              onClick={() => void handlePlayStart()}
-              disabled={playState === 'playing'}
-            >
-              {playState === 'playing' ? '再生中…' : 'タップして開始'}
-            </PrimaryButton>
+            <>
+              <PrimaryButton
+                onClick={() => void handlePlayStart()}
+                disabled={playState === 'playing'}
+              >
+                {playState === 'playing'
+                  ? '再生中…'
+                  : audioError
+                    ? 'もう一度試す'
+                    : 'タップして開始'}
+              </PrimaryButton>
+              {audioError && isAudioQa && (
+                <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
+                  音声なしで解答する
+                </button>
+              )}
+            </>
           )}
           {isAudioSet && playState === 'idle' && (
-            <PrimaryButton onClick={() => void handlePlayStart()}>タップして開始</PrimaryButton>
+            <PrimaryButton onClick={() => void handlePlayStart()}>
+              {audioError ? 'もう一度試す' : 'タップして開始'}
+            </PrimaryButton>
           )}
           {isAudioSet && playState === 'prereading' && (
             <>
@@ -655,7 +809,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
             !isDictation &&
             !isAudioSet &&
             choicesInteractive &&
-            (question.choices ?? []).map((choice) => {
+            shuffledChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (result) {
                 if (choice.key === question.answer) state = 'correct'
@@ -677,7 +831,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
           {isAudioSet &&
             (playState === 'prereading' || playState === 'played') &&
             currentSubQuestion &&
-            (currentSubQuestion.choices ?? []).map((choice) => {
+            shuffledSubQuestionChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (result) {
                 if (choice.key === currentSubQuestion.answer) state = 'correct'
@@ -710,6 +864,8 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
                 }}
                 isCorrect={result.isCorrect}
                 aiClient={aiClient}
+                raidApi={raidApi}
+                db={db}
               />
               <PrimaryButton onClick={() => void advanceSubQuestion()}>
                 {subQuestionIndex + 1 < (question.subQuestions ?? []).length
@@ -725,6 +881,8 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
                 question={question}
                 isCorrect={result.isCorrect}
                 aiClient={aiClient}
+                raidApi={raidApi}
+                db={db}
               />
               <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
             </>
@@ -783,6 +941,7 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
       ) : (
         <p className="question-text">{question.question}</p>
       )}
+      {settingsLoaded && <span data-testid="drill-settings-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>
   )
 }

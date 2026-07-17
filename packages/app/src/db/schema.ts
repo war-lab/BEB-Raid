@@ -175,3 +175,28 @@ export interface ExamScoreRecord {
   source: ExamScoreSource
   note?: string
 }
+
+/**
+ * raidState: 進行中レイドの端末内キャッシュ（T-88=C-2改訂。M3基盤。
+ * 正本: docs/16_M3タスク分解.md T-88行、docs/04 3節）。
+ * 単一レコード運用（id は固定値 RAID_STATE_ID）。S1のHPバー・S5画面のオフライン表示の受け皿で、
+ * 討伐確定等の正はサーバー（Durable Object）側にあり、ここはその最終同期時点のキャッシュに過ぎない
+ */
+export interface RaidStateRecord {
+  id: string
+  bossId: string
+  /** ボスプロファイル（4.のBossProfile相当）のJSON文字列。表示に必要な最小限を保持 */
+  profileJson: string
+  hp: number
+  maxHp: number
+  /** 自分のダメージ累計（最終同期時点） */
+  myDamage: number
+  joined: boolean
+  startAt: number
+  endAt: number
+  /** 最終同期時刻（epoch ms）。「最終同期: N分前」表示に使う（T-99） */
+  lastSyncedAt: number
+}
+
+/** raidState ストアの固定キー */
+export const RAID_STATE_ID = 'current'

@@ -67,8 +67,8 @@ function pack(questions: QuestionPack['questions']): QuestionPack {
   }
 }
 
-function jsonResponse(body: unknown, ok = true): Response {
-  return { ok, json: async () => body } as unknown as Response
+function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 404): Response {
+  return { ok, status, json: async () => body } as unknown as Response
 }
 
 describe('syncPacks', () => {
@@ -202,6 +202,116 @@ describe('syncPacks', () => {
     const state = await loadPackSyncState(db)
     expect(state.packHashes).toEqual({ 'pack-ok': 'h2' })
   })
+
+  it('T-73: 改版で不要になった旧URLをキャッシュから掃除する（現行manifest未参照分のみ）', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: 'packSyncState',
+      value: {
+        packHashes: { 'pack-a': 'old-hash', 'pack-b': 'unchanged' },
+        totalSizeBytes: 0,
+        lastSyncedAt: 0,
+      },
+    })
+    const cachedPackB = pack([
+      {
+        id: 'b-1',
+        part: 2,
+        format: 'audio_qa',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        audio: 'audio/b.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 100 },
+        script: 's',
+        choices: [{ key: 'A', text: 'x' }],
+        answer: 'A',
+      },
+    ])
+    const packCache = fakePackCache({
+      keys: vi.fn(async () => [
+        '/packs/pack-a.json',
+        '/audio/old.mp3', // pack-a旧版の音声。新版では参照されなくなる
+        '/packs/pack-b.json',
+        '/audio/b.mp3',
+      ]),
+      get: vi.fn(async (url: string) =>
+        url === '/packs/pack-b.json' ? new Blob([JSON.stringify(cachedPackB)]) : null,
+      ),
+    })
+    const m = manifest([
+      { id: 'pack-a', hash: 'new-hash', sizeBytes: 50 },
+      { id: 'pack-b', hash: 'unchanged', sizeBytes: 30 },
+    ])
+    const fetchImpl = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') {
+        return jsonResponse(
+          pack([
+            {
+              id: 'a-1',
+              part: 2,
+              format: 'audio_qa',
+              difficulty: 1,
+              tags: [],
+              keyVocab: [],
+              audio: 'audio/new.mp3',
+              audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 100 },
+              script: 's',
+              choices: [{ key: 'A', text: 'x' }],
+              answer: 'A',
+            },
+          ]),
+        )
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+
+    expect(packCache.delete).toHaveBeenCalledWith(['/audio/old.mp3'])
+  })
+
+  it('T-73: 再同期に失敗したパックの既存URLは掃除で消さない', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: 'packSyncState',
+      value: { packHashes: { 'pack-a': 'old-hash' }, totalSizeBytes: 0, lastSyncedAt: 0 },
+    })
+    const cachedPackA = pack([
+      {
+        id: 'a-1',
+        part: 2,
+        format: 'audio_qa',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        audio: 'audio/old.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 100 },
+        script: 's',
+        choices: [{ key: 'A', text: 'x' }],
+        answer: 'A',
+      },
+    ])
+    const packCache = fakePackCache({
+      keys: vi.fn(async () => ['/packs/pack-a.json', '/audio/old.mp3']),
+      get: vi.fn(async (url: string) =>
+        url === '/packs/pack-a.json' ? new Blob([JSON.stringify(cachedPackA)]) : null,
+      ),
+    })
+    const m = manifest([{ id: 'pack-a', hash: 'new-hash', sizeBytes: 50 }])
+    const fetchImpl = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') throw new Error('network error')
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    expect(result?.synced).toEqual([])
+    expect(packCache.delete).not.toHaveBeenCalled()
+  })
 })
 
 describe('loadPackQuestions', () => {
@@ -223,5 +333,13 @@ describe('loadPackQuestions', () => {
     const questions = await loadPackQuestions(packCache, '/packs/x.json', fetchImpl)
     expect(questions).toEqual([])
     expect(fetchImpl).toHaveBeenCalledWith('/packs/x.json')
+  })
+
+  it('T-73: fetchが404を返した場合、JSONパースエラーではなく明示的なエラーを投げる', async () => {
+    const packCache = fakePackCache()
+    const fetchImpl = vi.fn(async () => jsonResponse('<html>Not Found</html>', false, 404))
+    await expect(loadPackQuestions(packCache, '/packs/missing.json', fetchImpl)).rejects.toThrow(
+      /HTTP 404/,
+    )
   })
 })

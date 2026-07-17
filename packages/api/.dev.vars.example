@@ -1,0 +1,3 @@
+# ローカル開発用の環境変数の例（実際の値は .dev.vars に置く。gitignore対象）。
+# INVITE_CODE はT-92（deviceToken登録フロー）から参照する
+INVITE_CODE=dummy-invite-code

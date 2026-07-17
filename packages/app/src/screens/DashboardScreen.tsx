@@ -4,16 +4,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import type { ExamScoreRecord, ExamScoreSource } from '../db/schema'
-import {
-  localMidnightAfterDays,
-  parseDateString,
-  startOfLocalDay,
-  toDateString,
-} from '../engine/date'
+import { localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { computeForecast, type RatingHistoryPoint } from '../engine/forecast'
+import { buildHeatmapCells } from '../engine/heatmapCells'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { getTagAccuracies, WEAK_MIN_SAMPLE } from '../engine/tagStats'
 import type { ForecastResult, TagAccuracy } from '../engine/types'
+import { useAppStore } from '../store/appStore'
 import { Heatmap, type HeatmapCell } from '../components/charts/Heatmap'
 import { LineChart, type LineChartPoint } from '../components/charts/LineChart'
 import { WeakBars } from '../components/charts/WeakBars'
@@ -37,32 +34,8 @@ function forecastMessage(forecast: ForecastResult): string {
 /** 学習ヒートマップの表示週数（07 8節: 直近15週程度） */
 const HEATMAP_WEEKS = 15
 
-/**
- * 直近 weeks 週間・日曜始まりの日別セル配列を作る（GitHub草式のグリッド整列用）。
- * 範囲外（今日より後 or 表示開始前の曜日合わせ分）は count: -1 の余白セルにする
- */
-export function buildHeatmapCells(
-  countsByDate: ReadonlyMap<string, number>,
-  now: number,
-  weeks: number = HEATMAP_WEEKS,
-): HeatmapCell[] {
-  const totalDays = weeks * 7
-  const todayMidnight = startOfLocalDay(now)
-  const days: HeatmapCell[] = []
-  for (let i = totalDays - 1; i >= 0; i--) {
-    const day = localMidnightAfterDays(todayMidnight, -i)
-    const date = toDateString(day)
-    days.push({ date, count: countsByDate.get(date) ?? 0 })
-  }
-  const firstDow = new Date(parseDateString(days[0]!.date)).getDay() // 0=日曜
-  const padding: HeatmapCell[] = Array.from({ length: firstDow }, (_, i) => ({
-    date: `pad-${i}`,
-    count: -1,
-  }))
-  return [...padding, ...days]
-}
-
 export function DashboardScreen({ db }: Props) {
+  const navigate = useAppStore((s) => s.navigate)
   const [growthPoints, setGrowthPoints] = useState<LineChartPoint[] | null>(null)
   const [weakBars, setWeakBars] = useState<TagAccuracy[] | null>(null)
   const [heatmapCells, setHeatmapCells] = useState<HeatmapCell[] | null>(null)
@@ -95,11 +68,17 @@ export function DashboardScreen({ db }: Props) {
     async function load() {
       // 3チャート用データと予測・実試験スコアを並列取得する（逐次待ちで初期表示が
       // 遅延しないように=既存3チャートの読み込みレイテンシに揃える）
+      // T-74（14の1.7）: ヒートマップは直近HEATMAP_WEEKS週分しか表示しないため、
+      // 全件読みではなくその期間分だけをindex（answeredAt）で絞り込んで読む
+      const heatmapCutoff = localMidnightAfterDays(
+        startOfLocalDay(Date.now()),
+        -(HEATMAP_WEEKS * 7 - 1),
+      )
       const [[history, accuracies, attempts]] = await Promise.all([
         Promise.all([
           db.ratingHistory.where('section').equals('total').sortBy('date'),
           getTagAccuracies(db),
-          db.attempts.toArray(),
+          db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
         ]),
         reloadForecastAndExamScores(),
       ])
@@ -113,7 +92,7 @@ export function DashboardScreen({ db }: Props) {
       if (!cancelled) {
         setGrowthPoints(history.map((h) => ({ date: h.date, value: h.rating })))
         setWeakBars(accuracies.filter((t) => t.windowTotal >= WEAK_MIN_SAMPLE))
-        setHeatmapCells(buildHeatmapCells(countsByDate, Date.now()))
+        setHeatmapCells(buildHeatmapCells(countsByDate, Date.now(), HEATMAP_WEEKS))
       }
     }
     void load()
@@ -147,7 +126,13 @@ export function DashboardScreen({ db }: Props) {
   }
 
   return (
-    <ScreenLayout action={null}>
+    <ScreenLayout
+      action={
+        <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+          ホームへ
+        </button>
+      }
+    >
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>ダッシュボード</h1>
 
       <section className="dashboard-forecast-hero">
@@ -179,7 +164,7 @@ export function DashboardScreen({ db }: Props) {
 
       <section>
         <h2 style={{ fontSize: 'var(--fs-sub)' }}>実試験・IPテストスコア登録</h2>
-        <form onSubmit={(e) => void handleRegisterExamScore(e)}>
+        <form className="settings-list" onSubmit={(e) => void handleRegisterExamScore(e)}>
           <label>
             日付
             <input

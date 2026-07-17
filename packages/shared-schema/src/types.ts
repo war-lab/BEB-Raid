@@ -138,3 +138,111 @@ export interface Manifest {
   schemaVersion: typeof SCHEMA_VERSION
   packs: ManifestPackEntry[]
 }
+
+/**
+ * レイドダメージの共有API送信ペイロード（M3基盤・T-89。正本: docs/14 4.4節、docs/16 T-91行）。
+ * プライバシー境界の強制のため閉じた型として定義する。questionId・isCorrect・レート実値・
+ * responseMs等の個人単位の正誤詳細は**含めない**（04の不変条件: 共有APIに送るのは
+ * 「ダメージ換算値＋表示名」相当のみ）。実際の変換（attempts→payload）は
+ * `buildDamageSyncPayload`（damageSync.ts）に限定し、この型のフィールドのみを生成する
+ */
+export interface DamageSyncPayload {
+  /** 冪等キー（サーバー側でINSERT OR IGNOREに使う） */
+  attemptId: string
+  bossId: string
+  damage: number
+  /** このペイロードが何問分の集約か（バッチ送信時の内訳用） */
+  questionCount: number
+  /**
+   * 解答時刻（epoch ms）。J-49の帰属判定（ボスの[startAt, endAt]区間内かどうか）に使う
+   * サーバー側判定の入力（T-91・docs/17 3.1節）。クライアント時計は信用しないため、
+   * サーバー側で受信時刻との乖離が大きい値はクランプする（docs/17 3.4節）
+   */
+  answeredAt: number
+}
+
+// ---------------------------------------------------------------------------
+// M3共有APIの契約型（正本: docs/17_M3実装計画.md 3.1節・3.6節。T-91）
+// app/apiの双方がこれらの型をimportし、単一正本として扱う（J-45）
+// ---------------------------------------------------------------------------
+
+/** 参加登録時の自己申告区分（J-48。想定消化問題数/日の換算に使う） */
+export type DailyGoal = 'light' | 'normal' | 'heavy'
+
+/** POST /register のリクエストボディ */
+export interface RegisterRequest {
+  inviteCode: string
+  /** 端末が既に発行済みのprofile.deviceTokenをそのまま送る（新規発行はしない） */
+  deviceToken: string
+  displayName: string
+  dailyGoal: DailyGoal
+}
+
+/** 週次ボスの状態（討伐判定はDurable Object側が正） */
+export type RaidStatus = 'active' | 'defeated' | 'closed'
+
+/** レイド貢献の表示行（表示名＋ダメージ換算値のみ。個人単位の正誤詳細は含まない） */
+export interface RaidContribution {
+  displayName: string
+  damage: number
+}
+
+/** GET /raid/current のレスポンス、POST /raid/sync レスポンスの boss フィールド */
+export interface RaidBossState {
+  bossId: string
+  name: string
+  hp: number
+  maxHp: number
+  startAt: number
+  endAt: number
+  status: RaidStatus
+  participantCount: number
+  /** 認証tokenの主のこれまでの合計ダメージ */
+  myDamage: number
+  contributions: RaidContribution[]
+}
+
+/** POST /raid/sync のリクエストボディ */
+export interface RaidSyncRequest {
+  payloads: DamageSyncPayload[]
+}
+
+/** POST /raid/sync のレスポンス */
+export interface RaidSyncResponse {
+  /** 受理済みattemptId（今回新規受理分＋既に受理済みだった重複分の両方を含む） */
+  acceptedIds: string[]
+  boss: RaidBossState
+}
+
+/**
+ * 匿名問題別正誤集計（3.8節）。deviceTokenを持たない閉じた型として定義する
+ * （14の4.4-④: 保存レコード型にdeviceTokenフィールドを持たせない構造的強制）
+ */
+export interface QuestionStatPayload {
+  questionId: string
+  correct: number
+  wrong: number
+  timeout: number
+}
+
+/** POST /stats/questions のリクエストボディ */
+export interface QuestionStatsRequest {
+  stats: QuestionStatPayload[]
+}
+
+/** 「問題がおかしい」報告の理由（3.8節） */
+export type QuestionReportReason = 'wrong_answer' | 'unnatural' | 'bad_explanation'
+
+/** POST /reports のリクエストボディ */
+export interface QuestionReportPayload {
+  questionId: string
+  reason: QuestionReportReason
+}
+
+/** 共有APIのエラーレスポンス形式（3.1節で統一） */
+export interface ApiError {
+  error: {
+    code: string
+    message: string
+  }
+}

@@ -16,6 +16,7 @@ import type {
   PendingSyncRecord,
   PhaseRecord,
   ProfileRecord,
+  RaidStateRecord,
   RatingHistoryRecord,
   RatingRecord,
   SettingRecord,
@@ -42,6 +43,8 @@ export interface BackupStores {
   settings: SettingRecord[]
   /** T-42（C-2改訂）で追加。旧バージョンのバックアップには存在しない（インポート側は空扱いで許容） */
   examScores: ExamScoreRecord[]
+  /** T-88（C-2改訂）で追加。旧バージョンのバックアップには存在しない（インポート側は空扱いで許容） */
+  raidState: RaidStateRecord[]
 }
 
 /**
@@ -69,6 +72,7 @@ const STORE_INTRODUCED_AT: Record<keyof BackupStores, number> = {
   pendingSync: 1,
   settings: 1,
   examScores: 2,
+  raidState: 3,
 }
 
 export interface BackupFile {
@@ -92,6 +96,7 @@ const STORE_NAMES = [
   'pendingSync',
   'settings',
   'examScores',
+  'raidState',
 ] as const satisfies readonly (keyof BackupStores)[]
 
 /**
@@ -190,8 +195,13 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
         const incoming = (rows as SettingRecord[]).filter(
           (r) => !EXPORT_EXCLUDED_KEYS.includes(r.key),
         )
+        // T-72: EXPORT_EXCLUDED_KEYS該当（BYOK APIキー等）は端末内にしかない値のため、
+        // clear前に退避し復元後に書き戻す（以前はclearで消えたまま二度と戻らないバグだった）
+        const preserved = (await db.table(name).toArray()).filter((r: SettingRecord) =>
+          EXPORT_EXCLUDED_KEYS.includes(r.key),
+        )
         await db.table(name).clear()
-        await db.table(name).bulkPut(incoming)
+        await db.table(name).bulkPut([...incoming, ...preserved])
       } else {
         await db.table(name).clear()
         await db.table(name).bulkPut(rows)

@@ -1,0 +1,22 @@
+{
+  "name": "@beb-raid/api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "共有API（Cloudflare Workers + KV/DO）。レイド集計・ゴースト・匿名問題統計のみを扱う「集計板」（正本: docs/05 3節、docs/17 3節）",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "deploy:dev": "wrangler deploy --env dev",
+    "deploy:production": "wrangler deploy --env production"
+  },
+  "dependencies": {
+    "@beb-raid/shared-schema": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.5",
+    "@cloudflare/workers-types": "^5.20260716.1",
+    "wrangler": "^4.111.0"
+  }
+}

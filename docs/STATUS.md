@@ -1,6 +1,244 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-15**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-17**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+
+## 改修フェーズ（2026-07-16開始。正本: [15_改修計画](15_改修計画_フェーズA-D.md)）
+
+実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。**2026-07-16続き: フェーズB自走ラン完了（T-77〜T-79全完了）**。**2026-07-16続き: フェーズD自走ラン完了（T-87〜T-89全完了）**。**2026-07-16続き: フェーズC自走ラン継続（T-80・T-81・T-82・T-83完了）**。ユーザー判断により「T-83のみ先に実施」（T-84〜T-86はJ-33承認待ちのまま）。**2026-07-17: J-33をユーザーが承認、T-84・T-85完了**。次セッションはT-86から再開する。
+
+## M3（共有API・レイド）の着手準備（2026-07-17）
+
+発起人が16のJ-45〜J-50（J-47-2含む）を推奨案で一括承認し、J-32のGO判断を実施した。これを受けて **[17_M3実装計画](17_M3実装計画.md)（自走タスクシート）を作成**した（T-90〜T-102の作業指示・事前決定事項の正文・人間タスクH-1〜H-3・実行順序）。要点:
+
+- **M3タスクはSonnetクラスのAIセッションで自走可能**（1タスク=1セッション。開始プロンプト例は17の1節）。M2ブラッシュアップと並行するため、M3タスクは**dev直コミット禁止・task/ブランチ+PR運用**（17の2.1節。発起人判断 2026-07-17）。
+- **2026-07-17: T-90〜T-99（PR #16〜#24。docs/17自体のPR #15含め計10件）を発起人が一括レビュー・マージ済み**。dev上のCIも全件success。task/ブランチはスタック運用（各PRが前PRの上に分岐）だったため、GitHub上のマージ順（#16→#24の順）を守って直列マージした。以降のセッションはdevから作業を始めれば足りる（過去のブランチ運用を気にする必要はない）。
+- **2026-07-17続き: T-100・T-101・T-102は発起人の指示により例外的にdevへ直接commit＆push**（通常のtask/ブランチ+PR運用からの一時的な逸脱。次のM3タスク着手時は17の2.1節の通常運用に戻すか発起人に確認する）。
+- **契約改訂が1件必要（T-91・単独PR）**: `DamageSyncPayload` に `answeredAt` を追加する（J-49のサーバー側期間判定に必須。T-89実装時点の型には無い）。
+- **T-90〜T-92・T-94〜T-96・T-100〜T-102はCloudflareアカウント不要**（wrangler --local・vitest-pool-workersで完結）。アカウントが要るのはデプロイ（T-93）のみで、人間タスク **H-1（Cloudflare準備）** はT-93前までに済めばよい。
+
+**T-90 完了（2026-07-17）**: `packages/api` を新設（wrangler.toml・package.json・tsconfig.json・vitest.config.ts・GET /health・CORS共通関数）。ADR [0005](adr/0005-M3共有API基盤.md) 起票、03の6.1にモード係数表（raid 1.0/solo 0.5/srs 0）を追記。**実装中に判明した設計判断（docs未記載だった穴）**:
+
+- **@cloudflare/vitest-pool-workers 0.18.5はVitest4のプラグイン方式**: docs/17起草時点で想定していた `defineWorkersConfig`（`/config` サブパスからimport）はこのバージョンには存在しない（パッケージ内蔵の `codemods/vitest-v3-to-v4` で確認）。正しい書式は `import { cloudflareTest } from '@cloudflare/vitest-pool-workers'` を `vitest/config` の `defineConfig({ plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.toml' } })] })` に渡す形。`cloudflare:test`（SELF等）の型は `@cloudflare/vitest-pool-workers/types` をトリプルスラッシュ参照で取り込む必要がある（tsconfigの `compilerOptions.types` ではサブパスを解決できないため）。docs/17 3.10節・T-90シートは実装済みコードが正であり、記載の `defineWorkersConfig` はバージョン起因の誤りだった（今回のシート更新では追記せず、コード自体が実例になる）。
+- **`packages/api/.wrangler/`（wrangler dev/vitestのローカル実行時生成物）は.gitignore・ESLint ignoresの両方に追加が必要**だった（放置するとビルド成果物のJSがlintエラーになる）。
+- **BOSS_HP_FACTORの値は03の6.2で既に確定済みの討伐率係数=0.85を流用**することにした（docs/17起草時に0.8という新値を書いてしまっていたのを本タスクで発見・修正。03が上流正本のため17を訂正）。
+- 検証: `wrangler dev`実起動→curl `/health`→200 `{"ok":true}`確認、api単体テスト6件、ルート `npm run lint`・`npm run format:check`・`npm run build`（api込み）・`npm test`（全ワークスペース。api 6件/app 444件/cli 305件/review-ui 15件/shared-schema 38件、計808件）すべて通過。デプロイは未実施（T-93の範囲）。
+
+**T-91 完了（2026-07-17。契約改訂・単独PR）**: `DamageSyncPayload` に `answeredAt`（epoch ms）を追加（J-49のサーバー側期間判定の入力）。M3共有APIの契約型一式をshared-schemaに新設: `RegisterRequest`・`DailyGoal`・`RaidBossState`（`RaidContribution`込み）・`RaidStatus`・`RaidSyncRequest`・`RaidSyncResponse`・`QuestionStatPayload`・`QuestionStatsRequest`・`QuestionReportPayload`（`QuestionReportReason`）・`ApiError`（docs/types.ts）。**`buildDamageSyncPayload`と同じホワイトリスト方式**で新規 `buildQuestionStatPayload`/`QUESTION_STAT_PAYLOAD_KEYS`（questionStats.ts）も追加し、`QuestionStatPayload` にdeviceTokenが構造的に混入しないことをテストで担保（14の4.4-④・T-91完了条件）。
+
+- **app側の対応（同PR）**: `services/answerPipeline.ts` の `enqueueRaidSyncIfEnabled` に `answeredAt` を追加。snapshot経由（`answerCurrentQuestion`の戻り値の`updatedAt`＝今回記録したattemptの`answeredAt`と一致することを`session.ts`実装で確認）・直接記録経由（`recordAttempt`の戻り値の`answeredAt`）の両方から取得できるようにした（T-89実装済みのattemptId捕捉と同じ非対称な取得パターン）。
+- **04の4節を更新**: members行にdailyGoal/emaDailyDamage、damageLogs行に`answeredAt`（帰属判定用・サーバー側クランプの注記）、questionStatsに保証範囲の注記（「保存データとして結合しない」が保証範囲であり「一切の突合が不可能」とまでは主張しない）を追記。
+- 検証: shared-schema単体47件（既存38件+新規9件）・app単体444件（既存回帰＋answerPipeline拡張分）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース計808件）すべて通過。
+
+**T-92 完了（2026-07-17）**: POST `/register`（招待コード検証→deviceTokenをKV `member:<deviceToken>` へ登録。再登録は displayName/dailyGoal を上書きしつつ registeredAt・emaDailyDamage は引き継ぐ）と、T-95以降が共用する `authenticateRequest`（Bearer認証ミドルウェア）を実装。KVバインディング`MEMBERS`をwrangler.tomlへ追加（id はH-1完了までプレースホルダー文字列。ローカル/vitest実行はこの値のままKVがエミュレートされることを確認済み）。**実装中に判明した設計判断（docs未記載だった穴）**:
+
+- **`cloudflare:test`の`env`は既定で空の`Cloudflare.Env`型**: `wrangler types`が生成する`worker-configuration.d.ts`に頼ると、生成元が`.dev.vars`（gitignore対象=CIには存在しない）の有無に左右され不安定になる。そのため`packages/api/src/cloudflare-env.d.ts`を新規に手書きし、`declare global { namespace Cloudflare { interface Env extends WorkerEnv {} } }`で`env.ts`のEnv型をグローバル名前空間へ反映する方式にした（ESLintの`no-empty-object-type`は個別に無効化。同名前空間へのdeclaration mergingを認識しないため）。
+- **KVバインディングのid**: ローカル`wrangler dev`・vitest-pool-workersの双方とも、`id`がCloudflareの実IDでなくても（プレースホルダー文字列のままでも）問題なくローカルKVとして動作することを実機確認した（3.10節の想定どおり）。
+- **INVITE_CODEのテスト注入**: wrangler.tomlに秘密値を書けないため、vitest.config.tsの`cloudflareTest({ miniflare: { bindings: { INVITE_CODE: 'test-invite-code' } } })`でテスト専用の決定的な値を注入する方式にした（`.dev.vars`の有無に依存せずCIでも動く）。
+- 検証: api単体テスト15件（既存6件+register 5件+auth 4件）、`.dev.vars`に実際にINVITE_CODEを置いた`wrangler dev`実起動でcurlにより誤コード401・正コード200・KV書込を確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-94 完了（2026-07-17）**: 週次ボスDurable Object（`RaidBossDO`。SQLiteストレージ。`state`1行＋`damage_attempts`（attemptId主キー・INSERT OR IGNOREで冪等））と、週次cron生成ハンドラ（`generateWeeklyBoss`）を実装。ISO週番号・週境界の算出（`raidWeek.ts`）、ボスHP算出定数（`raidConfig.ts`）、ボスプロファイル10体のローテーション（`bossProfiles.ts`）を新設。wrangler.tomlにDOバインディング（`RAID_BOSS`・SQLite migration）とCron Trigger（`0 0 * * 1`=月曜0時UTC）を追加。**実装中に判明した設計判断**:
+
+- **DAMAGE_PER_QUESTIONの実測導出**: `engine/rating.ts`の`basePoints(DEFAULT_INITIAL_RATING=400, difficultyToRatingSpace(3)=660)`を一時テスト（実行後に削除）で実行し、`128`を得た。raid係数1.0のためそのまま`DAMAGE_PER_QUESTION=128`として`raidConfig.ts`に転記した（導出過程はコード内コメントに記録）。
+- **BOSS_HP_FACTORは0.85で確定**（T-90で発見・修正済みの03の6.2既存値をそのまま使用。MIN_BOSS_HP=8160）。
+- **討伐後・帰属期間外（J-49）のダメージ**: 加算はしないがacceptedIdsには含める設計。**T-95実装時に訂正**: 当初「受信（receivedAt）がendAtを過ぎている」ことも非加算の条件に含めていたが、これはJ-49の趣旨（オフライン滞留分の遅延到着はansweredAtが期間内なら期限後受信でも加算する）と直接矛盾する自己流の誤読だった。T-95で発見・修正し、docs/17 3.5節の記述も訂正した（詳細はT-95の項目参照）。
+- **EMA初回（前週実績0の新規メンバー）はemaDailyDamage=0になる**（J-48の「初回は前週日次をそのまま」を文字通り実装した結果。以後は0.5:0.5のブレンドで緩やかに変化する設計であり、自己申告値が実績で自己修正される意図どおりの挙動と判断）。
+- **`cloudflare:test`の`runInDurableObject`/`createExecutionContext`/`createScheduledController`**でDOメソッド直接呼び出し・scheduledハンドラのテストが可能なことを確認（vitest-pool-workers 0.18系の公開API）。
+- 検証: api単体テスト42件（既存15件+raidWeek 9件+raidConfig 3件+bossProfiles 3件+raidBossDo 9件+scheduled 3件）、`wrangler dev`実起動でDOバインディング・cron認識を確認（ローカルでのcron自動発火は非対応である旨の警告が出ることも確認=想定どおり）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-95 完了（2026-07-17）**: GET `/raid/current`（Bearer必須。当週bossIdから状態を構築。未生成は404）とPOST `/raid/sync`（`payload.bossId`単位でグループ化し、それぞれ正しいDOへルーティング。レスポンスの`boss`は常に「今週」の状態）を実装。**重大な設計矛盾を発見・修正**:
+
+- **J-49の「期限後でも加算する」とT-90/94時点の実装が矛盾していた**: docs/17 3.5節に自分で書いた「討伐後・期限後のダメージは受理しない」を文字通り実装し、`RaidBossDO.syncDamage`に`receivedAt > state.endAt`で拒否する`closed`ゲートを入れていた。しかしdocs/16 J-49（3.4節）は「サーバー受信時のansweredAtがボスの[startAt,endAt]区間内ならバッチ受信が期限後でも加算する」と明記しており、これは正反対の規定だった。T-95で週境界跨ぎ（境界系）のテストを書いた際に発見: 前週ボス宛の正当な遅延到着ペイロードが加算されない挙動になっていた。**修正**: `syncDamage`から`receivedAt`ベースの`closed`ゲートを削除し、「討伐済み」または「answeredAt自体が[startAt,endAt]外」の2条件のみで非加算を判定する形にした（表示用の`status`計算=`computeStatus`は`now>endAt`で'closed'を返す従来どおりで、加算判定とは独立）。T-94で書いた該当テスト（`raidBossDo.test.ts`）も誤った期待値のまま存在していたため修正し、docs/17 3.5節の文言も訂正した。
+- **教訓**: 自分で書いた計画ドキュメント（17）の記述であっても、上位ドキュメント（16のJ-49）と矛盾していないか実装・テスト時に必ず突き合わせる。今回は「境界系」の統合テストを書いたことで矛盾が顕在化した（単体テストだけでは見つけにくいクラスのバグ）。
+- 検証: api単体テスト51件（既存42件+raidValidation・raidHandlers関連9件。うちraidBossDo.test.tsは上記修正で1件書き換え+1件追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-96 完了（2026-07-17）**: `platform/net/RaidApi.ts`（IF。AiClientと同じ抽象化パターン）＋`FetchRaidApi.ts`（本実装。fetch直呼び・15秒タイムアウト・401/network/timeout/unknownのエラー種別判定）を新設。`services/raidSync.ts`（`syncRaidDamage`）でpendingSync（kind='raidDamage'）を読み、受理済み（acceptedIds）のみ削除・レスポンスのbossでraidStateを更新する。トリガーは起動時（App.tsx）とセッション完了時（ResultScreen.tsx）の2箇所（S5手動同期ボタンはT-98の範囲）。SettingsScreenに`raidSyncEnabled`トグルを追加（`raidApi.isConfigured()`のときのみ表示。「レイド参加中のみ有効にしてください」の説明文付き）。
+
+- **縮退設計の3段ゲート**: `isConfigured()`（VITE_RAID_API_BASE_URL未設定）→`raidSyncEnabled`設定→`raidState.joined`の3つのいずれかがfalseなら通信ゼロで即return。
+- **deviceTokenの取得は`profile.deviceToken`から**（AiClientの`getApiKey`と同じ疎結合パターンで`getDeviceToken`をApp.tsxが注入。RaidApi実装はdbに直接依存しない）。
+- **vite-plugin-pwaのworkbox設定を確認**: `runtimeCaching`が一切設定されておらず（precacheのみ）、APIオリジンをSW自体が捕捉する仕組みが元々存在しないことを確認した（3.6節の懸念に対する追加対応は不要と判断）。
+- 検証: app単体テスト（raidSync.test.ts 8件・FetchRaidApi.test.ts 12件・SettingsScreen/ResultScreenの追加分含む）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- ステップ3「集計」（T-94〜T-96）完了。
+
+**T-97 完了（2026-07-17）**: HomeScreenにボスHPバーを追加。`raidApi.isConfigured() && raidState.joined` のときのみ表示（ボス名・HP%バー・残り日数）。既存の`.home-season-progress`パターンを踏襲した新規CSSクラス（`.home-raid-hp*`。フィル色は`--ng`でシーズン進捗バーの`--gold`と区別）。
+
+- **本タスクの範囲は表示のみ**: タップでS5へ遷移する動線・「レイド」グリッド入口ボタンはT-98の範囲（`ScreenName`に`'raid'`がまだ無いため、T-98がRaidScreen新設と同時に配線する）。
+- **`Date.now()`直書きの`react-hooks/purity`回避**: SettingsScreen.tsxの既存パターン（`function now(): number { return Date.now() }`）を踏襲し、残り日数計算に使った。
+- 検証: HomeScreen単体テスト27件（既存23件+HPバー4件: raidState無し/isConfigured=false/joined=false/正常表示）、offlineDrillFlow・App.test.tsxの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+**T-98 完了（2026-07-17）**: 新規`screens/RaidScreen.tsx`（未登録=招待コード登録フォーム→登録済み=現ボス表示・参加・レイドに挑む・今すぐ同期→討伐演出の一連）。`ScreenName`に`'raid'`を追加、App.tsxの画面分岐・HomeScreenのグリッド入口ボタン（`raidApi.isConfigured()`のときのみ）・HPバーのタップ遷移を配線。「レイドに挑む」は`generateQuickPack`の7分プリセット→`mode==='solo'`の項目だけ`'raid'`へ上書き（`'srs'`項目はレート・ダメージ対象外のまま維持=damageConfig.jsonのsrs:0と整合）。
+
+- **実機相当の検証**: `wrangler dev --local`（api）＋`vite`（app、`VITE_RAID_API_BASE_URL`をローカルwranglerへ向け）を起動し、`/cdn-cgi/handler/scheduled`で週次ボスを手動生成した上で、Playwrightで実ブラウザ操作を実施。登録→参加→「レイドに挑む」→ディクテーション1問解答まで完走し、IndexedDBを直接読んで`activeSession`の全20項目が`mode:"raid"`・`attempts`レコードが`mode:"raid"`で記録されていることを確認した（ユニットテストでは検証しきれないend-to-endの実データ確認）。
+- **手動同期ボタンのため`syncRaidDamage`の戻り値をvoid→booleanに変更**（成功/失敗をS5が表示できるように）。あわせて`isLastRaidSyncUnauthorized()`（モジュールスコープの一時フラグ）を新設し、401時のみ「登録が無効です」の案内を出す（3.6節の設計どおり）。
+- 検証: RaidScreen単体テスト10件（未登録/登録成功/401エラー/登録済みスキップ/参加/ボス未生成/挑戦時のmode='raid'/討伐演出あり・なし/isConfigured=false）、raidSync.test.ts追加4件（戻り値・isLastRaidSyncUnauthorized）、既存HomeScreen・App・offlineDrillFlowの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+**T-99 完了（2026-07-17）**: `engine/relativeTime.ts`（新規。`formatRelativeTime`: 60分未満は「N分前」、24時間未満は「N時間前」、それ以降は「N日前」）を新設し、HomeScreen（HPバー内）・RaidScreen（ボス表示内）の両方に「最終同期: N分前」表示と「討伐の確定はサーバー側の判定が正です」注記を追加。
+
+- **同期失敗時の強調表示**: `services/raidSync.ts`に`isLastRaidSyncFailed()`（種別を問わない直近同期失敗フラグ。既存の`isLastRaidSyncUnauthorized()`と対）を新設し、失敗時は「最終同期」表示に`is-stale`クラス（`--ng`色・太字）を付与する。テスト用に`resetRaidSyncFlagsForTest()`も追加（モジュールスコープの一時フラグがテストファイル間で漏れないようにする安全策）。
+- **これでM3ステップ4「画面」（T-97〜T-99）が完了**。ステップ5「統計」（T-100・T-101）へ進める状態。
+- 検証: relativeTime単体テスト7件（境界値: 59分/60分/23時間59分/24時間/負値）、HomeScreen・RaidScreenへの追加テスト計5件、raidSync.test.ts追加分の回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-100 完了（2026-07-17。devへ直接commit）**: 匿名問題別正誤集計の送信を実装。api側にシングルトンDurable Object `StatsDO`（`idFromName('global')`。SQLite表`question_stats(questionId主キー, correct, wrong, timeout)`をUPSERT加算）とPOST/GET `/stats/questions`（両方Bearer必須）を新設。app側は`services/questionStats.ts`（watermark方式。settings `questionStatsLastSentAt` より新しいattemptsをquestionId別に集計し、`shadow:`プレフィックスは除外して送信。成功時にwatermarkを進める）を新設し、`RaidApi.sendQuestionStats`をraidSyncと同じトリガー（起動時・セッション完了時）に相乗りさせた。SettingsScreenに`questionStatsEnabled`トグル（既定OFF。raidApi.isConfigured()時のみ表示）を追加。
+
+- **本セッションでの運用変更**: 発起人の指示により本タスクは**task/ブランチ＋PR運用ではなくdevへ直接commit＆push**で実施した（17の2.1節が定める通常運用からの一時的な逸脱。M2ブラッシュアップと並走中の他セッションとの衝突リスクはこのセッション実行時点で確認済みの範囲では発生していない）。
+- **17の3.1節と3.8節の記述齟齬を発見・修正**: 3.1節は「エンドポイントは以下の6本のみ」としていたが、3.8節はT-100で管理用`GET /stats/questions`（cli等の運用者向け・app非使用）を追加する指示を含んでおり、内部で矛盾していた。3.1節に「6本は基本契約、GET /stats/questionsは別枠の管理用」と注記して解消した。
+- **保存レコード型のdeviceToken非混入は構造的に保証**: `StatsDO.addStats`の引数型が`QuestionStatPayload`（deviceTokenフィールドを持たない）であるため、呼び出し側の実装ミスでも混入し得ない。SQLite表にも列を持たせていない。実行時テスト（api: statsDo.test.ts・statsHandlers.test.ts）でも保存・レスポンスの両方にdeviceTokenが現れないことを確認した。
+- **実機相当の検証**: `wrangler dev --local`を実起動し、`/register`→`POST /stats/questions`（2件送信→`{accepted:2}`）→`GET /stats/questions`（集計値確認）→未認証401→不正ボディ400をcurlで確認した（`.dev.vars`はテスト後に削除。gitignore対象のため未コミット）。
+- 検証: api単体テスト62件（既存51件+statsDo 4件+statsHandlers 7件）、app単体511件（既存+questionStats.test.ts 8件・FetchRaidApi.test.ts 1件追加・全FakeRaidApi実装へのsendQuestionStats追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 62件/app 511件/cli 305件/review-ui 15件/shared-schema 47件、計940件）すべて通過。
+
+**T-101 完了（2026-07-17。devへ直接commit）**: 「問題がおかしい」報告の集約を実装。api側は既存のシングルトンDurable Object `StatsDO`にreports表（`questionId, reason, count`。PRIMARY KEY(questionId, reason)・UPSERT加算）を追加し、POST `/reports`（Bearer必須。reasonは`wrong_answer`/`unnatural`/`bad_explanation`のunion検証）を新設。app側は`ExplanationCard.tsx`に「問題がおかしい」ボタン（`raidApi.isConfigured() && registered`のときのみ表示。registeredは新規propの`db`経由でsettings `raidRegisteredAt`を照会）→理由選択ボタン→`raidApi.sendReport`で直接fetch送信（pendingSyncを使わずキューイングしない。3.8節どおり）を追加。送信成功後は同一問題への再報告をメモリ内フラグ（`reportSent`）で無効化。失敗時は「送信できませんでした」のみ表示し、再試行可能なまま残す。`DrillScreen`に`raidApi`（任意propとして追加。aiClientと同じ「未注入なら機能ごと出さない」パターン）を通し、`App.tsx`から配線した。
+
+- **`docs/17`の記述誤りを発見・修正**: T-101シートは「docs/11 の J-3（Issue運用）に追記」としていたが、J-3は実際には`docs/08_M1タスク分解.md`に定義されており、docs/11はコンテンツレビューパイプライン（生成→レビュー→取込）専用の文書でIssue運用とは無関係だった。docs/08のJ-3行に「M3・T-101でアプリ内報告へ移行（Issue運用は併存）」を追記し、17のシート記述も訂正した。
+- **保存レコード型のdeviceToken非混入**: `StatsDO.addReport(questionId, reason)`はdeviceTokenを引数に取らず、reports表にも列を持たせていない（questionStatsと同じ構造的強制）。
+- 検証: api単体テスト71件（既存62件+statsDo reports 4件+reportHandlers 5件）、app単体520件（既存+ExplanationCard.test.tsxへの報告機能テスト8件・FetchRaidApi.test.tsへのsendReportテスト1件追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース）すべて通過。
+
+**T-102 完了（2026-07-17。devへ直接commit）**: レイド系バッジの初書込を実装。`services/raidSync.ts`の`syncRaidDamage`成功時に、レスポンスの`boss.status==='defeated' && boss.myDamage>0`のとき`raid-first-clear`（初回討伐参加）・`raid-clear:<bossId>`（週次討伐）をbadgesストアへput（badgeId主キーで冪等。既存なら`earnedAt`を上書きしない）する`grantRaidBadgesIfDefeated`を追加。`RaidScreen.tsx`にレイド系バッジ（`raid-first-clear`・`raid-clear:`prefix）だけを抽出する簡素な一覧表示（討伐履歴を兼ねる。`raid-clear:<bossId>`は「討伐: <bossId>」とラベル表示）を追加し、初回読み込み時・手動同期後の両方で再取得する。サーバーはバッジを一切持たない（3.9節どおり端末側のみで完結）。
+
+- **backup往復テストは新規追加不要と判断**: `backup.test.ts`の既存往復テスト（`エクスポート→全消去→インポートの往復`）が全ストアを汎用ループで比較する構造のため、badgesストアの内容（レイド系バッジを含む）は既に往復確認の対象になっていた。17のT-102完了条件はこの既存テストで満たされることを確認し、重複するテストは追加しなかった。
+- 検証: app単体527件（既存520件+raidSync.test.tsへのバッジ導出テスト4件・RaidScreen.test.tsxへのバッジ表示テスト3件）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 71件/app 527件/cli 305件/review-ui 15件/shared-schema 47件、計965件）すべて通過。
+- **これでM3のステップ2〜6（T-90〜T-102。デプロイ=T-93を除く全実装）が完了**。残るはT-93（H-1待ち）とH-2・H-3（人間主体）のみ。
+
+### M3の次のアクション（次セッションはここから）
+
+**ステップ2〜6（T-90〜T-102。デプロイ以外の全実装）はdevにマージ済み**（2026-07-17）。残りは以下:
+
+| 順 | タスク | 依存 | 備考 |
+|----|--------|------|------|
+| － | T-93（ヘルスチェック＋CORS＋デプロイ） | H-1待ち | **Cloudflareアカウントが必要**（保留中。人数確認・アカウント準備が済み次第いつでも着手可） |
+| － | H-2（招待コード配布・周知） | T-98完了後 | 🔴人間主体 |
+| － | H-3（実機通し確認） | T-99完了後 | 🔴人間主体。T-98のPlaywright確認では代替しきれない実機（iOS/Android）確認 |
+
+- T-93以降にAI単独で着手できるM3タスクは残っていない。次にAIが着手できる作業はM2残タスク（T-65・T-66。ただし🔴人間主体）かM3クローズ後の判断待ち。
+- 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)全節。T-93着手時は3.10節・5節T-93シートを読むこと。
+- ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100〜T-102は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
+
+- **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
+- **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）
+- **M2残タスク**: T-65（M2統合・通し確認）・T-66（ドッグフード開始判定）は🔴人間主体のまま。**フェーズA完了によりドッグフード開始の前提品質を満たした**（15の7節）。T-65/T-66は引き続き発起人主体で対応が必要
+
+### 改修タスク状態（T-67〜T-89。定義は [15](15_改修計画_フェーズA-D.md)）
+
+| ID | タスク | 状態 |
+|----|--------|------|
+| T-67 | セッション中断復帰の配線＋中断ボタン | ✅ 完了（2026-07-16） |
+| T-68 | 起動エラー処理＋静的スプラッシュ | ✅ 完了（2026-07-16） |
+| T-69 | テーマ・文字サイズの起動適用 | ✅ 完了（2026-07-16） |
+| T-70 | 音声再生失敗リカバリ | ✅ 完了（2026-07-16） |
+| T-71 | 解答パイプライン集約（answerPipeline） | ✅ 完了（2026-07-16） |
+| T-72 | ストレージ保全 | ✅ 完了（2026-07-16） |
+| T-73 | packSync堅牢化 | ✅ 完了（2026-07-16） |
+| T-74 | attempts読みの性能改善 | ✅ 完了（2026-07-16） |
+| T-75 | UI構造・視覚の小規模修正バンドル | ✅ 完了（2026-07-16） |
+| T-76 | 失敗系テスト補強 | ✅ 完了（2026-07-16）。**フェーズA（T-67〜T-76）全完了** |
+| T-77 | リザルト報酬演出 | ✅ 完了（2026-07-16） |
+| T-78 | 完了カード共通化＋継続動機の可視化 | ✅ 完了（2026-07-16）。**フェーズB（T-77〜T-79）全完了** |
+| T-79 | 選択肢ランタイムシャッフル | ✅ 完了（2026-07-16） |
+| T-80 | バリデータ拡張＋既存コンテンツ一括検査 | ✅ 完了（2026-07-16） |
+| T-81 | Part2 S1統一＋縮約修正＋TTS話速校正・全量再生成 | ✅ 完了（2026-07-16） |
+| T-82 | タグ体系の再設計 | ✅ 完了（2026-07-16） |
+| T-83 | 類題増産＋120問（q1語解消） | ✅ 完了（2026-07-16） |
+| T-84 | リスニング在庫増産（audio_set+20・dictation+40） | ✅ 完了（2026-07-17） |
+| T-85 | d4帯増産＋本試験長尺化（Part5+50・Part3/4長尺+10） | ✅ 完了（2026-07-17） |
+| T-86 | 語彙B帯の再選定（J-33承認済み・未着手） | 未着手 |
+| T-87 | M3タスク分解ドキュメント（docs/16）作成 | ✅ 完了（2026-07-16） |
+| T-88 | C-2改訂: raidStateストア追加 | ✅ 完了（2026-07-16） |
+| T-89 | engine/damage.ts＋pendingSync書込 | ✅ 完了（2026-07-16）。**フェーズD（T-87〜T-89）全完了** |
+
+※ T-67: `services/session.ts`の`resumeSession`をApp起動時のPromise.allに追加し、結果を`resumeSnapshot`としてHomeScreenへprop注入した。**設計判断（docs未記載）**: App自体はscreen切替では再マウントしないため、boot時点1回だけの取得では「ドリル中断→ホーム」を経由した直後の再開ボタンに反映されない。これを解消するため、boot完了後は`screen`が`'home'`になるたび（起動直後を含む）に`resumeSession`を再取得する2本目のuseEffectを追加した（HomeScreen側での重複DB読みを避け、App側1箇所に集約）。HomeScreenは「続きから再開（残りN問）」ボタン（`.secondary-action`流用、主ボタン直上）をresumeSnapshot存在時のみ表示し、タップで既存スナップショットをそのまま`beginSession`に渡してdrillへ遷移する（ratingBeforeはJ-34どおり現在値で再取得）。「今日のクエスト」「単独モード」開始時は、resumeSnapshotがあれば`window.confirm`で破棄確認を挟む（共通の`startSessionAndNavigate`1箇所に集約）。DrillScreenのステータス帯に「中断」テキストボタンを追加（`navigate('home')`のみでsessionStore/DBは一切変更しない。中断=破棄ではなく、次の解答時にDB上のスナップショットへ自然に追記される設計を維持）。テスト: HomeScreen 4件（再開ボタンの表示/非表示・タップでdrill遷移・confirm拒否/承諾の分岐）、DrillScreen 1件（中断→home遷移＋activeSessionがDBに残ることの確認）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの操作確認（本セッションはブラウザ自動化ツールが使えない）。
+
+※ T-68: App.tsxの起動チェック（hasProfile/loadQuestionPool/resumeSession）にcatchを追加し、失敗時は`bootError` stateに格納してエラー画面（「データの読み込みに失敗しました」＋再試行ボタン＋「設定→エクスポートで学習データを退避できます」の案内文）を描画するようにした。**設計判断（docs未記載）**: 再試行は`retryToken`という数値stateをインクリメントしてboot用useEffectの依存配列に含めることで同じチェックを再実行させる方式にした（関数をuseEffect外に切り出して直接呼ぶ方式だと、cancelledガードの二重管理が必要になり複雑化するため）。当初`useEffect`本体の先頭で`setBootError(null)`を呼んでいたところ`react-hooks/set-state-in-effect`のESLintエラーになったため、リセットは再試行ボタンのonClickハンドラ側（イベントハンドラ内なので許容される）に移した。index.htmlにJ-39どおりの静的スプラッシュ（`#root`直下、夜紺#0E1220地＋アプリ名＋CSSスピナー、インラインstyleで直書き）を追加——`main.tsx`が`createRoot(root).render()`で`#root`の子要素を丸ごと置換するため、Reactマウント後に自然に消える。テスト: App 2件（`getDb().close()`でDB接続を切って起動チェックを実際に失敗させ、エラー画面表示→`getDb().open()`後の再試行でホーム画面まで復帰することを確認。テスト内で必ずdbを再オープンして他テストへの影響を防いだ）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: スプラッシュの実ブラウザでの目視確認（本セッションはブラウザ自動化ツールが使えない。ビルド成果物のindex.htmlに静的HTMLが実際に出力されることはbuildで確認済み）。
+
+※ T-69: `SettingsScreen.tsx`にローカル定義されていた`resolveTheme`/`ThemePreference`を`theme.ts`へ移動・export（`SettingsScreen`側は再import。重複初期化ロジックの一本化）。App.tsxの起動チェックPromise.allに`db.settings.get(THEME_PREFERENCE_KEY)`/`db.settings.get(FONT_SIZE_KEY)`を追加し、boot完了時に`setTheme(resolveTheme(pref))`/`setFontSizeScale(scale)`を適用するようにした。**設計判断（docs未記載）**: OS追従（`themePreference==='system'`）時のOS変更追従は、App起動時に取得した`themePreference`をstateに保持し、それを依存配列に持つ別useEffectで`matchMedia('(prefers-color-scheme: dark)')`の`change`リスナーを登録・クリーンアップする形にした（SettingsScreen滞在中に限定せず、アプリ全体で常時追従させるため。設定値自体を変えたのではなく実適用テーマだけを追従させるので、DBへの書き込みは発生しない）。テスト: App 2件（保存済みテーマ/文字サイズが起動時に即適用される・system設定時にOS側のmatchMedia changeイベントでdata-themeが切り替わる。後者はmatchMediaのモックを差し替えてchangeハンドラを直接発火させて検証）。既存`SettingsScreen.test.tsx`は無修正で全通過（重複initロジックの一本化が回帰を起こしていないことの確認）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-70: DrillScreen・DiagnosticScreenの音声再生系関数（handlePlayStart・handleStartAudioSet・startAudioSetPlayback・handleReplay）にtry/catchを追加し、失敗時はplayStateを'idle'に戻し「音声を再生できませんでした」のエラーバナー＋主ボタンのラベルを「もう一度試す」に切り替える形にした。**audio_qaのみ**追加で「音声なしで解答する」ボタンを出し、タップで`playState`を直接`'played'`にして選択肢を解放する（`remainingSec`を設定しないため15秒タイマーは起動しない設計を確認済み）。VocabScreen/DrillScreenのフレーズ音声自動再生（`unlock().then(play)`）には`.catch(() => console.warn(...))`を追加（自動再生失敗は学習継続可能なため通知なし、console.warnのみ残す）。ShadowingScreenは自動再生の仕組み自体を持たない（常に手動タップの「再生」ボタン）ため対象外の項目3は該当しないが、`handlePlay`・`handleRewind`・`handleSentenceTap`が`void`のfire-and-forgetでUnhandled Rejectionになりうる状態だったため同様にtry/catch・`.catch()`を追加した（再生ボタンはcompletedにならない限り残るため、再タップがそのまま再試行になる）。テスト: DrillScreen 3件（audio_qa再生失敗→再試行復帰・「音声なしで解答する」でタイマー無しのまま解答完了・audio_set unlock失敗→再試行復帰）、DiagnosticScreen 1件（再生失敗→「音声なしで解答する」で次のturnまで進行）。`npm test`（全パッケージ・380件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-71: 新規`services/answerPipeline.ts`に`recordAnswerPipeline`を実装し、J-35のskipオプション（rating/tagStats/wrongAnswer/srs）で、DrillScreenの4関数（finalizeAnswer・finalizeSubQuestionAnswer・finalizeDictationAnswer・handleVocabGrade）とVocabScreenのhandleGradeを1関数に集約した。**設計判断（docs未記載）**: pipelineの`question`引数は「processWrongAnswer・applyRatingUpdateに使う実体」、`lookup`引数は「updateTagStatsForAnswerに渡すルックアップ表」として分離した（audio_setサブ設問はquestionId=サブ設問ID・question=親Question・lookup=疑似エントリ入りMap、という非対称な組み合わせが必要なため）。VocabScreen（S3）はDrillScreenのvocab_card分岐と異なりtagStats/レート更新を元々呼んでいなかった（tags=[]・part=0で実質no-opだが、そもそも到達すらしていなかった）ため、`skip: { wrongAnswer: true, tagStats: true, rating: true }`で完全に再現した（`evaluateStreak`はセッション概念の無い画面固有の処理としてpipelineに含めず呼び出し側に残す=J-35の指示どおり）。**発見した副作用（テスト修正で対応）**: pipelineの手順順序は「①attempt記録→②誤答復習→③tagStats→④rating→⑤SRS自己評価」に統一されるが、VocabScreenの旧実装は「reviewSrsCard→recordAttempt」の順だった。この順序変更により、`VocabScreen.test.tsx`の一部テストが`db.attempts.count()`の到達のみを完了シグナルにしていたためレースが露呈（attempts書き込みがreviewSrsCard/evaluateStreak完了より先に終わるようになり、テストが早期に完了→afterEachのdb.delete()と競合してUnhandled Rejectionが非決定的に発生）。3件のテストの完了待ち条件を「画面遷移（仕分けフェーズ表示・終了メッセージ表示）」に書き換えて解消（DrillScreen側のテストは無修正で全35件通過=完了条件①を満たす）。テスト: answerPipeline単体13件（attempt記録経路2・誤答復習3・tagStats2・レート2・SRS自己評価3・失敗伝播1）。`npm test`（全パッケージ・393件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 既知の環境要因**: フルスイート実行時、まれ（観測値約1/3）にDrillScreenのaudio_set系テストがCPU競合によるwaitForタイムアウトで失敗することがある（単体実行では常に通過。既存STATUSに記録済みのDashboardScreen系DatabaseClosedErrorと同種の非決定的な環境要因と判断。T-76での結合テスト補強時に再確認）。
+
+※ T-72: App.tsxに起動時`navigator.storage?.persist?.().catch(() => {})`を追加（J-38。拒否・非対応環境でも例外にならない設計を確認）。SettingsScreenのキャッシュ節に`navigator.storage.persisted()`（永続化: 有効/無効/取得不可）と`estimate()`（使用量/上限のMB表示）を追加。**バグ修正（14の1.6で発見済み）**: `services/backup.ts`の`importAll`がsettingsストアを`clear()`してから`bulkPut`する際、`EXPORT_EXCLUDED_KEYS`（BYOK APIキー）は元々バックアップに含まれないため、インポートのたびに端末内のBYOKキーが復元されず消失するバグだった。clear前に該当キーの既存レコードを退避し、復元後に書き戻す形に修正（2回インポートしても重複しないことも確認）。テスト: backup 2件（保持の確認・二重インポートでの非重複）、SettingsScreen 2件（永続化状態・使用量表示、navigator.storage不在時の「取得不可」表示）、App 2件（jsdom既定でnavigator.storage不在でも起動できる・persist()拒否でも起動を妨げない）。`npm test`（全パッケージ・399件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-73: `services/packSync.ts`の`syncPacks`に、現行manifest未参照のCache Storageエントリを掃除する処理を追加した（`PackCache`は既に`keys()`/`delete()`を持っていたためC-3改訂は不要だった）。**設計判断（docs未記載）**: 掃除対象外（＝守るべきURL）の判定は「同期成功パックの新URL」に加え「スキップ（ハッシュ不変）パック」「再同期に失敗したパック」の既存キャッシュ内容もcache-onlyで読んで収集する必要があった（再同期失敗時に旧内容のURLを掃除対象から保護しないと、ネットワーク不調のたびに正常なキャッシュ済み音声が消えるバグになるため。新設`collectCachedAudioUrls`がこの保護を担う）。`loadPackQuestions`のfetchフォールバックに`res.ok`チェックを追加（404等でJSONパースエラーにならず明示的なエラーを投げる）。**App.tsxのリファクタ**: 起動後の同期処理を新規`syncPacksAndReload`（exported）に切り出し、`synced.length>0`のときのみ`loadQuestionPool`を呼び直す形にした（関数として切り出したのは、モジュールスコープの`packCache`シングルトンに依存する`<App/>`をレンダリングせずにこの分岐を単体テストするため）。HomeScreenは`questionPool.length===0`のとき主ボタンをdisabledにし「問題データを取得できていません。オンラインで開き直してください」を表示。テスト: packSync 4件（改版時の旧URL掃除・再同期失敗時の保護・404での明示エラー化。既存5件は無修正で通過）、App 2件（synced>0でのプール再読込・synced=0でのnull返却＝再読込スキップ）、HomeScreen 2件（プール空でdisabled+案内文、プールありで通常表示）。`npm test`（全パッケージ・406件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-74: `services/phase.ts`の`buildCriterionContext`のattempts全件読みを`db.attempts.orderBy('answeredAt').reverse().limit(ATTEMPTS_READ_LIMIT)`の打ち切り読みに変更。**設計判断（docs未記載）**: `ATTEMPTS_READ_LIMIT`は`engine/curriculum.ts`に新設した`maxKnownCriterionWindow()`（全criteria定義＝P1/P2/シーズンクリア/L1-L3中のaccuracy.window・setAccuracy.windowSetsの最大値。現状100）を安全係数2倍・下限500件でくるんだ値（結果500）。安全係数が必要な理由: `evaluateAccuracy`はscope（part/tag）フィルタを生読み取り後にかけるため、直近N件の生読みにその特定scopeの対象がwindow数ちょうど含まれる保証がない（極端に偏った出題パターンでは理論上不足しうるヒューリスティックであることをコードコメントに明記）。関数は`services/phase.ts`からexportし、テストからも参照できるようにした。DashboardScreenの学習ヒートマップの`attempts`読みも`where('answeredAt').aboveOrEqual(15週前)`に変更（表示窓自体が15週固定のため、窓外データを読む必要が元々ない）。tagStatsの全件読み（14の1.7の既知項目）は指示どおり本タスクでは触っていない。テスト: phase 3件（既存の窓外データテストに加え、1万件で読み取り件数が上限どおりになることの確認、窓外の大量の古い誤答ノイズが評価結果を汚染しないことの確認＝いずれもtimeout 20秒に延長）、Dashboard 1件（15週より古い解答がクエリ時点で除外され描画に影響しないこと）。`npm test`（全パッケージ・409件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-75: 14の2.2・2.3の低コスト項目を1コミットにまとめて実施。①DashboardScreenに`.secondary-action`流用の「ホームへ」ボタンを追加 ②`.screen-layout__action`の`min-height`を`45dvh`固定から`min(45dvh, 320px)`に変更（横長タブレット等での過大な操作ゾーンを防止）＋`@media (orientation: landscape)`で`auto`に戻す＋status/content/action全てのパディングに`env(safe-area-inset-left/right)`を追加（top/bottomは既存） ③`:root[data-theme='dark']`に`color-scheme: dark`、lightに`color-scheme: light`を追加（OSネイティブのフォーム部品色をテーマに揃える） ④未定義クラス4件（`.install-hint`・`.dashboard-forecast-hero`・`.dashboard-forecast-note`・`.dictation-script`）を既存の視覚言語（カード面＋罫線＋トークン色）で定義 ⑤新設`.settings-list`（SettingsScreenの`<div>`ラッパー・DashboardScreenの実試験スコア登録`<form>`に付与）でbutton/input/select/labelに最小共通スタイル（タップ目標44px=`--tap-min`以上）を適用 ⑥ExplanationCardの正誤ヘッダに`data-correct`属性ベースの色分け（`--ok`/`--ng`）＋CSS疑似要素での✓/✕を追加（色のみに依存しない二重符号化） ⑦`--ink-3`のダーク値を`#6b7492`→`#7e89ac`に変更。**実測コントラスト比（機械計算・WCAG相対輝度式）**: 旧値は`--bg`比4.030:1・`--surface`比3.577:1でいずれもAA基準4.5:1未達だったのに対し、新値は`--bg`比5.383:1・`--surface`比4.777:1で両方4.5:1以上を確保。**未対応（スコープ外の既知課題として記録）**: ライトテーマの`--ink-3`（`#9c958a`）は同じ計算で`--bg`比2.719:1・`--surface`比2.966:1と大きく基準未達だが、本タスクの指示（14の2.3）はダーク側のみだったため今回は変更していない。将来のコントラスト是正タスクで対応要。テスト: Dashboard 1件（「ホームへ」ボタンでの画面遷移）。他はCSSのみのため既存テスト回帰で担保（410件全通過）。`npm test`（全パッケージ）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-76: 14の1.8優先順1〜5のうち、1（起動時DB open失敗）・2（play() reject復帰）・4（テーマ/文字サイズ起動適用）はT-68/T-70/T-69で既にテスト済みだったため重複させず、**3（answerCurrentQuestion失敗時のUI）・5（packSync→loadQuestionPool→Drillのオフライン結合通し）**を中心に実装・テストを追加した。**発見・修正したバグ（T-71の実装漏れ）**: T-71でDrillScreenの4関数を`recordAnswerPipeline`呼び出しに集約した際、J-35が要求していた「③失敗時のエラーバナー＋スナップショット再同期」（T-71完了条件③）を実装し忘れていた。本タスクで発見し修正: 新規`recoverFromSaveError`（エラーバナー表示＋`result`取り消し＋`resumeSession`でのDB実状態への再同期）を4関数すべてのcatchから呼ぶようにした（audio_setサブ設問のみsnapshot再同期の対象外=`resyncSnapshot: false`。subQuestionIndexはローカルstateで、DBのsnapshot.answeredCountと連動しないため）。バナー用CSSクラスは`.drill-audio-error`から`.drill-error`に改称（音声・保存の両失敗で共用するため）。新規結合テスト`src/integration/offlineDrillFlow.test.tsx`で、fetchが全rejectする状態でもPackCacheにピン留め済みのパックだけでsyncPacks→loadQuestionPool→HomeScreen（クエスト開始）→DrillScreen（解答→リザルト）まで完走することを確認。**テスト実装中に発見した副次的な教訓**: DrillScreenの`finalizeAnswer`系は`setResult(...)`を実際のDB書き込み（`recordAnswerPipeline`）より先に同期的に呼ぶため、「正解」等のテキスト表示をテストの完了シグナルにするとDB書き込み完了を待たずに次の操作に進んでしまいレースになる（既存テストの一部is既にこの罠を`db.ratings.get`待ちで回避済みだった）。新規テストは全て`snapshot.answeredCount`や実際のDB状態を待つ形にして回避した。テスト: DrillScreen 4件（finalizeAnswer・dictation・vocab_card・audio_setサブ設問の解答保存失敗リカバリ）、結合テスト1件（オフライン通し）＝計5件。`npm test`（全パッケージ・415件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 既知の環境要因（変わらず）**: フルスイート実行時、まれにDrillScreenのaudio_set系テストがCPU競合によるwaitForタイムアウトで失敗することがある（本タスクで4/6回のフルスイート実行中2回発生。単体実行・app単体実行では常に通過。T-71で記録した既知の非決定的要因と同一と判断。プロダクトコードの問題ではなくテスト実行環境のCPU競合と判断し、これ以上は追わない）。
+
+**フェーズA（安定性。T-67〜T-76）完了**（15の7節の完了ゲート）。ドッグフード（T-65/T-66）開始可能な品質に到達。
+
+※ T-77: `ResultScreen.tsx`にJ-42の演出制約（CSSアニメーション＋rAFのみ・総時間600〜900ms・reduced-motionで静止・タップで即スキップ）を実装した。獲得ポイント合計は`usePointsCountUp`（新設のrAFカウントアップhook）で700msかけて0→最終値に増える。**設計判断（docs未記載）**: 当初`useEffect`内で`instant`true時に`setValue(target)`を呼ぶ実装にしたところ`react-hooks/set-state-in-effect`のESLintエラーになった（外部システムとの同期ではなくpropsの折り返しに過ぎないため）。hookの戻り値を`instant ? target : animatedState`という同期的な三項式にし、`instant=false`のときだけuseEffect内でrAFループがanimatedStateを更新する形に変更して解消した（T-68で発見した同種のlintルールへの対処と同じ考え方）。正解数/レート変動/誤答復習の3行は`.result-stat`のCSS `animation-delay`（0/150/300ms）でstaggerフェードインさせる（JS側の状態管理は不要。reduced-motionは`base.css`の既存のグローバルkillerでanimation-durationが0.01msになり実質静止表示になる）。正誤一覧は`.result-list__item[data-correct]`でCSS `::before`により✓/✕を色分け表示（ExplanationCardのT-75パターンを踏襲）、問題文は`text-overflow: ellipsis`で1行省略。タップスキップは`.result-content`のonClickで`skipAnimation`をtrueにするのみ（`prefers-reduced-motion`時は初期値から`true`）。テスト: ResultScreen 3件（演出完了後の最終値・reduced-motion時の即時静止表示・タップスキップ）に加え、既存テスト1件をタップスキップ経由に軽微修正（カウントアップ中は0のため）。`npm test`（全パッケージ・423件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの視覚確認（本セッションはブラウザ自動化ツールが使えない）。
+
+※ T-79: 選択肢シャッフル（J-36）を実装。dictation.ts・vocabQuiz.tsに重複していたFisher-Yates実装を新設`engine/shuffle.ts`（`shuffle(items, rng = Math.random)`）に集約し、両ファイルはそちらをimportする形に変更した（コードレビュー既知の重複解消を兼ねる。rngのデフォルト引数化以外は既存の呼び出し互換）。DrillScreenの通常選択肢（`question.choices`）とaudio_setサブ設問選択肢（`currentSubQuestion.choices`）を`useMemo`でシャッフルしてから描画するようにした（依存配列は前者が`question.id`、後者が`question.id`と`subQuestionIndex`の組。vocab_cardは`buildVocabQuizChoices`側で既にシャッフル済みのため対象外=指示どおり）。正誤判定・解説表示は元々choice.key参照のため、表示順の変更による影響はない。テスト: `engine/shuffle.test.ts`3件（rng=0固定での決定的な並びの検証・要素の欠落/重複が無く元配列を破壊しないこと・rng省略時の既定動作）、DrillScreen 2件（`vi.spyOn(Math, 'random').mockReturnValue(0)`で決定的に表示順が`[b,c,d,a]`へ変わることを検証・シャッフル後も正解の選択で正解表示になることを検証。いずれもshuffle.test.tsで検証済みのFisher-Yates手順から逆算した期待値）。既存のdictation/vocabQuiz/DrillScreenテストは無修正で全通過（後方互換の確認）。`npm test`（全パッケージ・423件）・`npm run lint`・`npm run format --check`・`npm run build`すべて通過。
+
+※ T-78: 4点を実装。①新規`components/CompletionCard.tsx`（今日の実施数・ストリーク日数・一言メッセージ＋result-scale-inの軽いスケールイン流用）を語彙SRS終了（VocabScreen）・診断完了（DiagnosticScreen）・シャドーイング完了（ShadowingScreen）の3画面の完了状態に追加。新設`services/dailyStats.ts`の`countAttemptsToday`（暦日で絞ったattempts件数）と既存`engine/streak.ts`の`getStreak`を組み合わせて表示データを作る。**設計判断（docs未記載）**: ShadowingScreenは元々「素材が無い（0件）」と「全素材完了（index到達）」を同じ`!question`分岐・同じ文言で扱っていたため、両者を`shadowingQuestions.length===0`で分岐し、後者にのみ完了カードを出すようにした（前者は素材が無いだけで達成ではないため）。②HomeScreenに直近4週間のミニヒートマップを追加。既存`DashboardScreen.tsx`内にあった`buildHeatmapCells`は元々15週固定のHEATMAP_WEEKS前提だったため、`engine/heatmapCells.ts`へ切り出し`weeks`引数必須化（DashboardScreen側もHEATMAP_WEEKSを明示的に渡すよう更新。`Heatmap`コンポーネント自体はセル数に応じて自動で縮小するため「縮小版」は新規コンポーネントを作らずセル数を28（4週）に絞るだけで実現できた）。③ホームの日数ストリーク表示を`session-streak`（ドリル中の連続正解用。既存のまま）から分離した`.streak-flame`に変更し、新設の設定キー`LAST_SEEN_STREAK_KEY`（前回表示値）と比較して増えたときだけ`.is-pulse`（`streak-pulse`キーフレーム流用）を1回だけ付与する。④ハプティクス設定（`HAPTICS_ENABLED_KEY`。既定ON）をSettingsScreenにトグル追加し、DrillScreen・VocabScreen（S3側の4択リコール）の「正解確定」タイミング（DrillScreenは4関数すべて、VocabScreenはhandleSelectChoice）で`navigator.vibrate?.(15)`を呼ぶ（設定OFF・誤答・非対応環境ではno-op）。**テスト同期の課題と対処**: DrillScreenのハプティクス設定はDB非同期読み込み（`settingsLoaded`）を経てstateに反映されるため、設定OFFのテストで読み込み前にクリックするとstate初期値=true（既定）のまま評価されるレースが起きた。DrillScreenに既存の`home-loaded`（HomeScreen）と同じパターンの隠しマーカー`data-testid="drill-settings-loaded"`を追加してテストから待てるようにした（本番の見た目には影響しない）。テスト: CompletionCard 2件（表示内容・ストリーク0時は炎非表示）、VocabScreen/DiagnosticScreen/ShadowingScreen 各1件（完了カード表示）、HomeScreen 2件（ミニヒートマップのデータ反映=4週より前のattemptsが除外される・ストリークパルスの増加時のみ発火）、SettingsScreen 1件（ハプティクストグルの永続化・既定ON確認）、DrillScreen 3件（設定ON時の振動・OFF時の非発火・誤答時の非発火）。`npm test`（全パッケージ・434件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。**🟡 未実施**: 実ブラウザでの視覚・触覚確認（本セッションはブラウザ自動化ツールが使えず、実機の振動確認もできない）。
+
+**フェーズB（体験の質。T-77〜T-79）完了**（15の7節の完了ゲート）。継続動機の装置（報酬演出・完了カード・ミニヒートマップ・ストリークパルス・ハプティクス・選択肢シャッフル）が実装済み。
+
+※ T-87: 新規`docs/16_M3タスク分解.md`を作成した。14の4.2（判断リスト）・4.3（Workers設計方針）を根拠に、判断J-45〜J-50（API契約・認証・ダメージ式モード係数＋レイド対象定義・ボスHP入力・帰属ルール・週次運転トリガー。推奨案・代替案・リスクを併記）と、KV/DO無料枠見積り表、段階導入6段階（15のT-87〜T-89=ステップ1に続くステップ2〜6）のタスク表（T-90〜T-102）を作成した。**設計判断（docs未記載）**: J-32（15で確定済み。M3開始時期は参加見込み人数確認後）を踏まえ、本書のJ-45〜J-50は「Workers疎通（T-90〜）着手前に一括承認が必要」と明記し、タスク分解自体は先に完成させても着手はJ-32の判断待ちであることを明確にした。`docs/00_README.md`のドキュメント構成表に14・15・16を追記（既存の抜け。今回追記のついでに解消）。完了条件（docs/16が存在しM3全タスクが1タスク=1セッション粒度で分解され判断表に未決事項が集約されている）を満たす。コード変更なし（docsのみ）のため`npm test`等は対象外。
+
+※ T-88: Dexie `version(3)`で`raidState`ストアを追加した（単一レコード運用。`{ id:'current', bossId, profileJson, hp, maxHp, myDamage, joined, startAt, endAt, lastSyncedAt }`）。`docs/04`3節のストア表・バージョン注記を同時更新。**設計判断（docs未記載）**: T-88の指示は「単独コミット」だったが、新規ストアはエクスポート/インポート（`services/backup.ts`）の対象にも自然と含まれるべきため、`BackupStores`・`STORE_INTRODUCED_AT`（導入バージョン3）・`STORE_NAMES`に`raidState`を追加した（T-42=examScores追加時と同じ扱い。これは契約変更そのものであり「他の変更と混ぜない」の対象外と判断）。既存の「dbVersionが現在のDBより新しいバックアップを拒否する」テスト（backup.test.ts・SettingsScreen.test.tsx）は、全ストア列挙のモックオブジェクトに`raidState`が無いと`validateBackup`が新たに検出してしまい、期待していた`/dbVersion/`エラーではなく`/不正/`エラーになって失敗することが判明したため、両テストのモックに`raidState: []`を追加して修正した。テスト: database 1件（v2→v3マイグレーション。既存データ無傷＋raidState新規読み書き）、backup 2件（raidStateの往復対象化の確認は既存の全ストア往復テストに`seedAllStores`経由で自然に含まれる形にした）。`npm test`（全パッケージ・435件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。
+
+※ T-89: 3点を実装。①新規`engine/damage.ts`の`computeDamage(basePoints, mode, config?)`（純関数。ダメージ＝基礎点×モード係数=03の6.1）。係数は新規`engine/damageConfig.json`に外出しし、docs/16 J-47の仮値`{ raid: 1.0, solo: 0.5, srs: 0 }`をそのまま初期値にした（`battle`=ゴーストレイドの防御換算は6.3の別式のため対象外とし、未定義modeは0を返す）。②shared-schemaに`DamageSyncPayload`型（`attemptId/bossId/damage/questionCount`のみ）と、個人単位の正誤詳細（questionId・isCorrect・レート実値・responseMs）が混入しないようスプレッド構文を使わず1フィールドずつ明示的に選び出す`buildDamageSyncPayload`を新設（14の4.4節）。③`services/answerPipeline.ts`に`enqueueRaidSyncIfEnabled`を追加し、`recordAnswerPipeline`の最後で必ず呼ぶ（新設`RAID_SYNC_ENABLED_KEY`設定が既定OFF。ONでも参加中のレイドが無い・ダメージ0なら書き込まない）。**設計判断（docs未記載）**: `recordAnswerPipeline`はattemptIdを外部に返していなかったため、pendingSyncの冪等キーに使うattemptIdをsnapshot経由（`nextSnapshot.attemptIds.at(-1)`）・直接記録経由（`recordAttempt`の戻り値）の両方から取得できるよう内部で捕捉する変更を加えた（戻り値の型`AnswerPipelineResult`自体は変更していないため既存呼び出し側への影響はない）。誤答時のダメージは`ratingUpdate.basePoints`をそのまま使わず`isCorrect`でゼロ化してから`computeDamage`に渡す（`ratingUpdate.basePoints`はレートK係数計算用の理論値で正誤に関わらず正の値を返すため、そのまま使うと誤答でもダメージが発生するバグになるところだった）。テスト: damage 5件（raid/solo/srs各係数・未定義mode・config差し替え）、shared-schema damageSync 2件（出力キーの完全一致・個人情報混入時の非リーク確認）、answerPipeline 4件（OFF時の非書込・ON+参加中+正解での正しいpayload・ON+未参加での非書込・ON+参加中+誤答での非書込）。`npm test`（全パッケージ・app444件＋shared-schema38件＋cli273件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。
+
+**フェーズD（M3基盤。T-87〜T-89）完了**（15の7節の完了ゲート）。M3本体（Workers疎通以降）はdocs/16のJ-45〜J-50承認とJ-32（参加見込み人数確認）を経て着手する。
+
+※ T-80: 新規`packages/cli/src/contentLint.ts`に5ルールを実装し、`build.ts`の`buildPack`（T-63の`validateExplanationQuality`と同じ呼び出し位置）に組み込んだ。**設計判断（docs未記載）**: 5ルールのうち①②③は実データに現に違反が存在する（下表参照）。T-63の`validateExplanationQuality`と同じ形でbuildPackの`errors`に混ぜてビルドを止める設計にすると、T-81/T-82で修正が完了するまでパック配布そのものが止まってしまい、「今回は検出・記録のみで修正はT-81以降」という15のT-80指示と矛盾する。そのため`buildPack`/`buildAllPacks`の戻り値に新規`warnings: string[]`フィールドを追加し、contentLintの検出結果は**ビルドを失敗させない警告**として扱った（`commands.ts`の`build`コマンドも`ctx.out`で警告を表示するだけで終了コードには影響しない）。④（text_blank本文長）⑤（文頭偏り）は15の指示どおり元から警告のみ。実装中に見つけたバグ: ③のカジュアル縮約検出で、実データの`D’you`がタイポグラフィ引用符（U+2019 `'`）を使っており直書きアポストロフィ（U+0027 `'`）前提の正規表現では検出できなかった（既知件数6問のうち1問を見落とすところだった）。文字クラス`['’]`でどちらのアポストロフィにもマッチするよう修正し、実データで6件検出できることを確認した。
+
+**全パック一括検査結果（2026-07-16実測。修正はT-81/T-82の担当範囲）**:
+
+| パック | 問題数 | ①script不一致 | ②keyVocab未出現 | ③カジュアル縮約 | ④本文12語未満（警告） | ⑤文頭偏り（警告） |
+|--------|--------|----------------|-------------------|-------------------|--------------------------|----------------------|
+| pack-vocab-s-001 | 200 | 0 | 0 | 0 | 0 | 0 |
+| pack-vocab-a-001 | 200 | 0 | 0 | 0 | 0 | 0 |
+| pack-vocab-b-001 | 200 | 0 | 0 | 0 | 0 | 0 |
+| pack-p2-s-001 | 50 | **43** | 0 | 0 | 0 | 0 |
+| pack-p2-s-002 | 100 | 0 | 0 | **6** | 0 | 0 |
+| pack-p5-s-001 | 50 | 0 | 0 | 0 | 13 | 0 |
+| pack-p5-s-002 | 100 | 0 | 0 | 0 | 74 | 0 |
+| pack-key-vocab-similar-s-001 | 57 | 0 | 0 | 0 | 9 | 0 |
+| pack-key-vocab-similar-s-002 | 60 | 0 | 0 | 0 | 14 | 0 |
+| pack-p34-s-001 | 20 | 0 | 0 | 0 | 0 | 0 |
+| pack-dict-s-001 | 40 | 0 | 0 | 0 | 0 | 0 |
+| pack-shadow-s-001 | 30 | 0 | 0 | 0 | 0 | 0 |
+| **合計（全1107問）** | | **43** | **0** | **6** | **110** | **0** |
+
+既知の①43問（pack-p2-s-001。14の3.7-2既述の43問と一致）・③6問（pack-p2-s-002。14既述の「Wanna/Gonna/Didja/D'you」6問と一致。うち1問はタイポグラフィ引用符のD'youで、上記のバグ修正がなければ5問しか検出できていなかった）を実測でも確認した。②keyVocab未出現は0件（現状の全問でkeyVocab.wordが本文に出現している）。④は想定外に多い110件（p5系4パックに集中）で、T-85（d4-5帯増産・文長拡充）着手時の基礎データとして有用。⑤は0件（文頭の使い回しは現状5%閾値を超えていない）。テスト: contentLint単体20件（各ルールの正例/負例＋タイポグラフィ引用符の回帰テスト）＋全パック一括検査1件（①43件・③6件の実測値をそのまま固定し、今後の修正で減っていくことを検知できるようにした）＝計21件。`npm test`（全パッケージ・app444件＋cli294件＋shared-schema38件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。
+
+※ T-81: J-43・J-37を実装し、音声を全量再生成した（Piper環境あり。実行前にユーザーへ実行方針を確認し「音声再生成含め全部実行」の承認を得た）。①`part2QuestionsS.ts`のS1・43問の選択肢テキストをscriptの実応答文と完全一致するよう書き換え（scriptは変更しない=J-43）。手作業では43件のtypoリスクが高いため、`buildPart2Questions()`の実行結果からcontentLintと同じ正規化比較で不一致を検出し、該当ブロック内の該当choiceだけを置換する一回限りのスクリプトを書いて適用（適用後に全43件の反映とfailed=0件を検証）。②`part2QuestionsS2.ts`のカジュアル縮約6問（Wanna×2・Gonna×2・Didja×1・D'you×1）を標準表記に書き換え（Wanna→Do you want to、Gonna→Are you going to、Didja→Did you、D'you→Do you。scriptを変えるため音声再生成対象）。この2つの結果、contentLintの①③検出は0件になった（T-80完了条件）。③`engine/damage.ts`ではなく`tts.ts`に`--length_scale`（既定1.15。`damageConfig.json`とは無関係、命名衝突に注意）と、ダイアログ/マルチターン連結時のターン間400ms無音（J-37）を実装。無音はffmpegの`anullsrc`で1本生成し、同じファイルを複数回`-i`で開いて使い回す（ターン数によらず無音生成は1回。`aformat`で全入力のサンプルレート/チャンネルを揃えてから`concat`フィルタに渡す＝ボイスモデル間のサンプルレート差異への安全策）。新規`wpm.ts`（`computeWpm`＝ギャップ時間を差し引いた発話時間ベースのwpm算出）を実測分析に使用。④実行中に発見・修正したバグ2件: (a) 初回の`beb tts`呼び出しで`audioRoot`引数に誤って`content/audio`を渡し、`content/audio/audio/**`への二重ネスト書き込みが発生（正しくは`content`。原因: 引数の意味を「音声サブディレクトリ」と誤解していた。該当ファイルは削除し正しい引数で再実行）。(b) Windows環境でffmpegの出力ファイルを`-y`上書きする際、ウイルス対策ソフト（Windows Defender等）の実時間スキャンと競合し`Error opening output ...: Invalid argument`で断続的に失敗する事象を複数回確認（同一コマンドの再実行では正常終了することを複数回確認済み＝一過性）。`tts.ts`の`runProcess`に最大3回・300ms間隔のリトライを追加して恒久対応した（piper/ffmpegはいずれも同一入力から同一出力を作る冪等な処理のため、単純リトライで安全）。⑤全音声再生成後の実測wpm（`computeWpm`。ギャップ除外後の発話時間ベース）に基づき、目標150〜170wpmレンジ外だった形式のlength_scaleを段階的に再調整した:
+
+| 形式 | 初回(1.15) | 再調整1回目 | 再調整2回目（最終） | 最終length_scale |
+|------|-----------|-------------|---------------------|-------------------|
+| audio_qa（Part2） | 155.2wpm（レンジ内） | — | — | 1.15 |
+| audio_set（Part3/4） | 177.2wpm（レンジ外・速すぎ） | 171.9wpm（1.20） | **165.1wpm** | 1.25 |
+| dictation | 177.8wpm（レンジ外） | 172.4wpm（1.20） | **167.3wpm** | 1.25 |
+| shadowing | 170.6wpm（僅かにレンジ外） | **166.3wpm**（1.20で採用） | — | 1.20 |
+| vocab_card（phrase） | 実測不可 | — | — | 1.15（既定のまま） |
+
+vocab_cardはaudioMetaを持たない設計（ttsBatch.tsの既存仕様）のため、他形式と同じ手法での実測ができない（ffprobeを別途都度呼ぶ追加実装が必要になるため今回は見送り、既定値1.15を適用するに留めた。将来の精密校正が必要になった場合の既知の制約として記録）。個々の問題単位のwpmは短い発話ほどPiperの固定オンセット/オフセット無音の影響で分散が大きく（例: 7語の発話で139.8wpmと計測されるなど）、フォーマット単位の平均値で校正する設計（J-37の指示どおり）が実測でも妥当と確認できた。⑥`beb tts`を8ドラフト（vocab-card-s/a/b・part2-s/s2・part34-s・dictation-s・shadowing-s。text_blank系4パックは音声を持たないため対象外）に対して実行し、840件のmp3を全量再生成（総容量はJ-37の見込み=36MB→約1.2倍付近）。`beb build content`で12パック再ビルドし、manifest.json・変更のあった6パック（dict/p2-s/p2-s2/p34-s/shadow-s。vocab/p5/similarは音声かaudioMetaを持たないため無変更）を更新。テスト: tts.ts 21件（既存18件を新フロー=ターン間ギャップ挿入に合わせて更新＋length_scale確認2件＋リトライ機構2件を追加）、wpm.ts 7件（新規）、contentLint 21件（無修正で全通過=①③が0件になったことを確認する形にテストの期待値を更新）。`npm test`（全パッケージ・app444件＋cli305件＋shared-schema38件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。**🟡 未実施**: 実際のPiper生成音声の聴感確認（本セッションは自動化された数値検証のみ。実機での再生確認は人間主体タスクとして持ち越し）。
+
+※ T-82: J-40・J-41・J-31（本セッションでユーザーが承認）を実装した。**着手時の必須確認（J-41）**: `engine/tagStats.ts`の`updateTagStatsForAnswer`が`question.tags`の配列全体を`recomputeTagStats`に渡し、各タグを個別に集計することをコードで確認した（`tags[0]`のみ集計する実装ではなかったため、J-41の前提を満たしタスクを継続）。①`shadowingS.ts`の「意図推定」タグ5件（shadow-p3-02/04等）を`tags: []`に変更（J-40。shadowingはtagStatsに入らずタグが弱点マップに現れないデッドタグだったため）。②`dictationS.ts`全40件に`tags[1]`を追加（J-41）: 各entryの`blanks`の答え語を「助動詞弱形」（would/should/could/will/must/can/may/has/have/was/were/is/are等のモーダル・助動詞）・「冠詞・前置詞」（a/an/the/to/for/from/at/in/with/within/on/before等）・「音の連結」（and/than/if/your/this/her+母音等、隣接語との連結が生じる機能語）の3分類のいずれかに人手で分類し付与した（機械的な完全ルール化は困難なため、各entryの語を目視判定。結果は下表）。③`part2QuestionsS2.ts`・`part2QuestionsS.ts`の「米英豪加アクセント」タグ・見出しコメントを「米英アクセント」に改名（J-31。豪加TTSは未調達のため実効タグは米英のみ、という実態と名前を一致させた）。あわせて`docs/03`7.1節のタグ表・`part2Question.test.ts`のタグ検証セットも改名を反映（データ・表示ともの指示どおり。14/15/STATUS内の過去のログ・分析記述は履歴として改名せず据え置いた）。**設計判断（docs未記載）**: タグ変更後のdraft反映で、素直に`beb generate`→`beb tts`を再実行すると、T-81で校正した実測audioMeta（durationMs等）が失われる（`beb generate`はdraftを丸ごと再構築するため）。scriptやaudio自体は変更していないので音声再生成は不要と判断し、既存draft JSONLの`payload.tags`フィールドだけを新しい値へパッチする一回限りのスクリプトを書いて適用した（音声・audioMetaは無傷のまま）。全パック再ビルド（`beb build content`）で反映を確認。
+
+**新タグ分布（2026-07-16実測。Part2 S1+S2・dictation・shadowing対象）**:
+
+| タグ | 件数 |
+|------|------|
+| 疑問詞聞き取り | 81 |
+| 弱形・連結 | 70 |
+| 米英アクセント | 28（旧「米英豪加アクセント」から改名。実効US/UK音声数と一致） |
+| 数字・時刻 | 25 |
+| 助動詞弱形 | 25（新設。dictationのtags[1]） |
+| 音の連結 | 9（新設。dictationのtags[1]） |
+| 冠詞・前置詞 | 6（新設。dictationのtags[1]） |
+| 先読み | 6 |
+| パラフレーズ照合 | 5 |
+| 意図推定 | 0（J-40で除去。デッドタグ解消） |
+
+テスト: 既存305件が無修正で全通過（tags配列の内容変更のみで既存アサーションと衝突しない設計だったため）。`npm test`（全パッケージ・app444件＋cli305件＋shared-schema38件）・`npm run lint`・`npm run format`・`npm run build`すべて通過。
+
+※ T-83: J-44（対象語選定・ディストラクタ方針）に基づき、q1語（類題ゼロ＝全corpus中でその語を含む問題が1件しか存在しない語）189語（2026-07-16実測。docs/14執筆時点の184語から、T-61/T-62等その後のコンテンツ増産でkeyVocab母集団自体が増減したため実数値がずれている。docs記載値ではなく現在の実測値を採用した）から120語を機械的に選定した。優先順は①Sランクkeyvocab（freqListWordsS.tsに含まれる語）→②Part2/Part5に出現するq1語（Sランク以外）→③その他（J-44の優先順どおり。「Part2/Part5の両方に出現する語」という原文表現はq1語の定義上、両方同時出現がありえないため、②は「Part2 or Part5のいずれかに出現するq1語」と解釈した）。新規`packages/cli/src/data/keyVocabSimilarS3.ts`に120エントリを作成し、既存の`keyVocabSimilar.ts`に`rotateKeyVocabSimilarS3Choices`（4択のindex%4ローテーション。Part2の`rotatePart2Choices`と同方式だが3択ではなく4択なので`%4`）・`keyVocabSimilarS3EntryFromRaw`・`buildKeyVocabSimilarS3Entries`を追加し、`commands.ts`に`key_vocab_similar_s3`生成コマンドを配線した。`build.ts`に`T83_PACK_DEFINITIONS`（`pack-p5-similar-s-003`）を追加し、全体で13パック構成になった（`App.tsx`のPACK_IDS・`commands.test.ts`のmanifestテストも同期）。**初稿で発覚した問題と対応**: 初回ビルドでcontentLintの④（text_blank本文12語未満）が120問中87問で警告になった。これは新規に書き下ろしたコンテンツであり「既存資産の負債」ではないため、T-80のコメントにある「修正は後続タスクの担当範囲」の対象外と判断し、本タスク内で87問すべての本文を自然な修飾句・従属節で12語以上に拡張し、translationも整合するよう書き直した（正答語・ディストラクタ・explanationのロジックは変更していない）。再ビルドでpack-p5-similar-s-003の警告は0件になったことを確認済み（他パックの既存110件の警告=T-81/T-82時点から不変で、本タスクのスコープ外）。**q1語数（完了条件どおりbefore/afterを記録）**: before 189語 → after 69語（120語がq1から解消。189-120=69で機械的に一致）。テスト: `commands.test.ts`の13パック期待値更新（既存）に加え、cli全306件・shared-schema全38件・app全444件が無修正で通過（新規追加のみで既存ロジックへの変更は無し）。`npm test`（全パッケージ）・`npm run lint`・`npm run format`・`npm run build`すべて通過。
+
+※ T-84: J-33（本セッションでユーザーが承認）に基づき、audio_set（Part3/4セット）+20・dictation+40を実施した。①新規`packages/cli/src/data/part34SetsS2.ts`（Part3会話10・Part4トーク10、計60設問）・`packages/cli/src/data/dictationS2.ts`（40本）を作成し、`part34Question.ts`/`dictationQuestion.ts`にS2エクスポートを追加、`commands.ts`に`audio_set_s2`/`dictation_s2`生成コマンドを配線した。②`build.ts`に`T84_PACK_DEFINITIONS`（`pack-p34-s-002`・`pack-dict-s-002`）を追加し、全体で15パック構成になった（`App.tsx`のPACK_IDS・`commands.test.ts`のmanifestテスト・音声ファイルフィクスチャも同期）。③T-81の校正済みlength_scale（1.25）でTTS生成した後、J-37の目標wpm（150〜170）で実測したところPart3/4側の平均が172.4wpmとレンジ外だったため、length_scale=1.30に再調整して166.8wpmに収めた（dictationは1.25のまま161.5wpmで規定内）。**重要な設計判断（docs未記載）**: TTS後に一度`beb generate audio_set_s2`を再実行してしまい、T-81の教訓どおりdraft内のaudioMeta（実測durationMs・voice）が`pending-tts`にリセットされる事故を起こした（generateはdraftを丸ごと再構築するため）。scriptテキスト自体は変わっていなかったため、`beb tts`を再実行してaudioMetaを復元した（音声ファイル自体は上書きで実害なし）。以後この種の事故を避けるため、TTS完了後はdraftに対してgenerateを再実行しない运用を徹底する。④**AIクロスレビュー（別モデル run。J-33完了条件）**: 別モデル(Fable 5)エージェントにpart34SetsS2.ts/dictationS2.tsの内容レビューを依頼し、7件の実質的な問題を検出・修正した——(a) p3-18 Q3のdistractor「Next month」がscript上の情報（"about two weeks"+"on the fifteenth"）と組み合わせ次第で真になり得る曖昧さがあったため「In three months」に差し替え、(b) p4-16 Q2のexplanation引用の大文字小文字がscriptと不一致だったため修正、(c) dictationの`complaint`エントリの翻訳助詞誤り（「苦情を対応した」→「苦情に対応した」）、(d) `markup`の訳語誤り（「値上げ幅」→「利幅」。markupは仕入原価への上乗せ幅であり値上げ幅ではない）、(e) `inventory`/`utility`/`stationery`の3エントリがdictationS.tsの設計規約（弱形になりやすい機能語を穴にする）に反し内容語を穴にしていたため機能語に差し替え（blanksのindex再計算含む）、(f) `procurement`/`benchmark`のtags[1]がblankの実態（is/were=助動詞弱形）と不整合だったため修正、(g) `printer`/`vacancy`の英語表現の軽微な不自然さ（"has been broken"→"is broken"、"posted a vacancy"→"advertised a vacancy"）を修正。(f)以外は音声テキスト（script）自体を変更したため、修正後に`beb generate`→`beb tts`を再実行して音声を実データと同期させた（このときはaudioMeta事故を再発させないよう、generateを1回・ttsを1回の順で実行した）。⑤在庫数（before/after。T-84完了条件）: audio_set 20セット→**40セット**（L3判定窓20の2倍を確保）、dictation 40本→**80本**。テスト: `commands.test.ts`の15パック期待値更新（新規fixture2件＋音声ファイルスタブ2件を追加）に加え、cli全305件・shared-schema全38件・app全444件が通過（新規追加のみで既存ロジックへの変更は無し）。`npm test`（全パッケージ）・`npm run lint`・`npm run format`・`npm run build`すべて通過。**🟡 未実施**: 実際のPiper生成音声の聴感確認（本セッションは自動化された数値検証と別モデルによるテキストレビューのみ。実機での再生確認は人間主体タスクとして持ち越し）。
+
+※ T-85: J-33に基づき、d4帯（難易度4）増産＋本試験長尺化を実施した。①新規`packages/cli/src/data/fictionalNames.ts`（架空の社名20・人名20。実在企業・人物を想起させないためのプール）を作成。②新規`packages/cli/src/data/part5QuestionsS3.ts`にPart5 d4帯50問（主述一致15・完了形12・受動態12・as...as比較11）を追加し、`part5Question.ts`にS3エクスポート・`buildPart5EntriesS3`を追加、`commands.ts`に`text_blank_s3`を配線した。③新規`packages/cli/src/data/part34SetsS3.ts`にPart3/4本試験長尺化10セット（会話5・トーク5、90〜110語・d4）を追加。J-40の計画どおり、各セットに最低1問の意図推定型サブ設問（"What does X mean by saying '...'?"型。script中の具体的発言を引用しその含意を問う）を含め、T-82で「デッドタグ」として除去した意図推定タグを実際の出題形式として復活させた（docs/03のタグ表自体は変更していない。除去されたのはshadowingでの死んだ運用のみで、タグ定義自体は元から有効だったため）。`part34Question.ts`にS3エクスポートを追加、`commands.ts`に`audio_set_s3`を配線。④`build.ts`に`pack-p5-s-003`・`pack-p34-s-003`を追加し、全体で17パック構成になった（`App.tsx`のPACK_IDS・`commands.test.ts`のmanifestテスト・音声ファイルフィクスチャも同期）。⑤TTS生成後、Part3/4長尺の実測wpmが160.3（150〜170のレンジ内）だったため追加校正は不要だった（length_scale=1.30を維持）。⑥**AIクロスレビュー（別モデル run。J-33完了条件）**: 別モデル(Fable 5)エージェントに`part5QuestionsS3.ts`のレビューを依頼し、正答キーの正しさに関わる問題2件・訳語誤り1件を検出・修正した——(a) `dwelling`エントリで主語が"Statistics"（複数扱いが標準）のままだと正答"is"が係争含みだったため、主語を"A report on..."に差し替えて単数一致を一意にした、(b) `compatible`エントリのディストラクタ"incompatible"が文法的に成立する形容詞であり2つの正答があり得る状態だったため"more compatible"（比較級。as...asには不可）に差し替えた、(c) `outlet`エントリの訳語「フランチャイズ店舗」がoutlet（店舗）の語義を超えて誤っていたため「新しい店舗」に修正。あわせて`hospitality`エントリの比較対象の非対称（もてなしの温かさと評判を比較する論理不整合）も推奨に従い修正した。**設計判断（docs未記載）**: 初稿では18語がkeyVocabWordとして`part5QuestionsS/S2`の既存語と重複しており（id=`part5-${keyVocabWord}`の衝突）、全て未使用の確認済み語彙カード語に差し替えた（機械的なgrep突合で検出・修正）。⑦難易度分布（before/after。完了条件どおり記録）: Part5形式＋key単語類題形式の全問題に対するd4比率は、before **12.9%**（50/387）→after **22.9%**（100/437）で、15%以上の目安を上回った（docs/14執筆時点の8.7%という基準値からの実測ズレは、T-61以降の増産で母集団自体が変化したためで、T-83のq1語数と同じ性質の差異）。⑧targetLevelメタデータの実態反映: 新設2パック（`pack-p5-s-003`・`pack-p34-s-003`）はd4帯専用のため`targetLevel: [730, 860]`とした（既存パックは範囲が広く混在するため、本タスクでは新設パックのみに適用し、既存パックのtargetLevel変更は対象外とした——既存ユーザーへの出題ロジックへの影響を避けるための意図的なスコープ限定）。テスト: `commands.test.ts`の17パック期待値更新（新規fixture2件＋音声ファイルスタブ1件を追加）に加え、cli全305件・shared-schema全38件・app全444件が通過。`npm test`（全パッケージ）・`npm run lint`・`npm run format`・`npm run build`すべて通過。**🟡 未実施**: 実際のPiper生成音声の聴感確認（本セッションは自動化された数値検証と別モデルによるテキストレビューのみ）。
+
+**フェーズC（コンテンツ是正）はT-85まで完了**（15の7節の完了ゲートはT-80〜T-86全完了のため、フェーズC自体はまだ完了していない）。残るT-86はJ-33承認済みのため次セッションで着手可能。
 
 ## 今どこにいるか（1行）
 

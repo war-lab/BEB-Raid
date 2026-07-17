@@ -27,7 +27,7 @@ afterEach(async () => {
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
-/** 全11ストアにテストデータを投入する */
+/** 全13ストアにテストデータを投入する */
 async function seedAllStores(db: BebRaidDatabase): Promise<void> {
   await db.profile.put({
     id: PROFILE_ID,
@@ -91,6 +91,18 @@ async function seedAllStores(db: BebRaidDatabase): Promise<void> {
     reading: 400,
     total: 780,
     source: 'IP',
+  })
+  await db.raidState.put({
+    id: 'current',
+    bossId: 'boss-2026-w29',
+    profileJson: '{}',
+    hp: 8000,
+    maxHp: 10000,
+    myDamage: 120,
+    joined: true,
+    startAt: 1000,
+    endAt: 2000,
+    lastSyncedAt: 1500,
   })
 }
 
@@ -239,6 +251,7 @@ describe('validateBackup / importAll: 不正データの拒否', () => {
         pendingSync: [],
         settings: [],
         examScores: [],
+        raidState: [],
       },
     }
     await expect(importAll(target, tooNew)).rejects.toThrow(/dbVersion/)
@@ -272,6 +285,35 @@ describe('BYOKキーのエクスポート除外（T-42=C-2改訂。レビュー�
 
   it('EXPORT_EXCLUDED_KEYS は byokApiKey を含む', () => {
     expect(EXPORT_EXCLUDED_KEYS).toContain(BYOK_API_KEY_KEY)
+  })
+
+  it('T-72: 端末に保存済みのbyokApiKeyは、バックアップ（キー無し）のインポート後も残る', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source) // byokApiKeyを含まないバックアップ
+
+    const target = newDb()
+    await target.settings.put({ key: BYOK_API_KEY_KEY, value: 'sk-ant-local-key' })
+    await importAll(target, exported)
+
+    // 以前はsettingsストアのclear()でこの値が消えたまま復元されないバグだった
+    expect((await target.settings.get(BYOK_API_KEY_KEY))?.value).toBe('sk-ant-local-key')
+    expect(await target.settings.get('noEarphoneMode')).toBeDefined() // 通常設定は復元される
+  })
+
+  it('T-72: byokApiKeyの保持は2回インポートしても重複せず1件のまま', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const target = newDb()
+    await target.settings.put({ key: BYOK_API_KEY_KEY, value: 'sk-ant-local-key' })
+    await importAll(target, exported)
+    await importAll(target, exported)
+
+    const keys = (await target.settings.toArray()).filter((s) => s.key === BYOK_API_KEY_KEY)
+    expect(keys).toHaveLength(1)
+    expect(keys[0]?.value).toBe('sk-ant-local-key')
   })
 })
 

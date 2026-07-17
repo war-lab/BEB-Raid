@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer } from '../platform'
 import { answerCurrentQuestion, startSession, type SessionItem } from '../services/session'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { DrillScreen } from './DrillScreen'
@@ -213,6 +213,19 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     // 2問目（q-2）から再開する
     expect(screen.getByText(/attend/)).toBeTruthy()
   })
+
+  it('「中断」ボタンでホームへ戻る（T-67。スナップショットは破棄しない）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('中断'))
+
+    expect(useAppStore.getState().screen).toBe('home')
+    // 進行中セッションはDB上に残っている（中断=破棄ではない）
+    expect(await db.settings.get('activeSession')).toBeTruthy()
+  })
 })
 
 describe('DrillScreen: Part5ドリル（text_blank。T-18）', () => {
@@ -385,6 +398,87 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
   })
 })
 
+describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
+  it('audio_qa: 再生失敗でボタンが「もう一度試す」に変わり、再試行すると再生が復帰する', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined)
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    expect(screen.getByText('もう一度試す')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('もう一度試す'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    expect(screen.queryByText('音声を再生できませんでした')).toBeNull()
+  })
+
+  it('audio_qa: 「音声なしで解答する」でタイマーを起動せず選択肢が解放され、解答できる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play.mockRejectedValue(new Error('boom'))
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await screen.findByText('音声なしで解答する')
+
+    fireEvent.click(screen.getByText('音声なしで解答する'))
+    expect(screen.getByText('Yesterday.')).toBeTruthy()
+    // 15秒タイマーは開始していない（表示自体が出ない）
+    expect(screen.queryByText('15')).toBeNull()
+
+    await answerAndSettle('Yesterday.', 1)
+    expect(screen.getByText('正解')).toBeTruthy()
+  })
+
+  it('audio_set: unlock失敗でidleへ戻り、再試行できる', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-1')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.unlock.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined)
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('もう一度試す'))
+
+    await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
+  })
+})
+
+describe('DrillScreen: 解答保存失敗リカバリ（T-76。J-35のpipeline失敗伝播＋UI側の再同期）', () => {
+  it('recordAnswerPipeline失敗時にエラーバナーが出て、DBの実状態に再同期し次の解答を継続できる', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const snapshot = await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする（複数タブ・二重解答と同じ状況を模擬）。
+    // answerCurrentQuestion内部の「スナップショットが古い」検知を経由してpipelineが失敗する
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    fireEvent.click(screen.getByText('b')) // q-1（正解はA）に解答を試みる
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+
+    // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    // 誤って重複記録されていない（DB経由の1件のみ）
+    expect(await db.attempts.count()).toBe(1)
+  })
+})
+
 function vocabCardQuestion(word: string, phraseAudio?: string): Question {
   return {
     id: `vocab-${word}`,
@@ -514,6 +608,44 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(card?.stage).toBe(0) // もう一回はstage0へリセット
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
+  })
+
+  it('T-76: 自己評価時の解答保存失敗もエラーバナーが出て、DBの実状態に再同期する', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const q2 = part5Question('q-2', 'A', 'attend')
+    const items: SessionItem[] = [
+      { questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' },
+      { questionId: q2.id, mode: 'solo' },
+    ]
+    const snapshot = await setupSession(db, items, [q, q2])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+    fireEvent.click(screen.getByText('submit の意味'))
+
+    // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    fireEvent.click(screen.getByText('OK'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(1)
   })
 
   it('vocab_cardとドリル問題が混在するセッションを最後まで進行できる', async () => {
@@ -676,6 +808,37 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
     expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, { rate: 0.85 })
   })
+
+  it('T-76: 確定時の解答保存失敗もエラーバナーが出て、DBの実状態に再同期する', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-fail', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    const q2 = part5Question('q-2', 'A', 'attend')
+    const items: SessionItem[] = [
+      { questionId: q.id, mode: 'solo' },
+      { questionId: q2.id, mode: 'solo' },
+    ]
+    const snapshot = await setupSession(db, items, [q, q2])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+    fireEvent.click(screen.getByText('submit'))
+
+    // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    fireEvent.click(screen.getByText('確定'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(1)
+  })
 })
 
 function audioSetQuestion(id: string, subCount = 3): Question {
@@ -805,6 +968,30 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     const rating = await db.ratings.get('L') // part3はLセクション
     expect(rating).toBeDefined()
   })
+
+  it('T-76: サブ設問の解答保存失敗時もエラーバナーが出て、同じ設問のまま再試行できる（snapshot再同期の対象外）', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-fail')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    await startAndSkipPreReading()
+    await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
+
+    db.close() // recordAttempt（DB書き込み）を強制的に失敗させる
+
+    fireEvent.click(screen.getByText('a'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // サブ設問はsnapshot経由でないため進行せず、同じ設問のまま（選択肢もまだ見える）
+    expect(screen.getByText('設問0')).toBeTruthy()
+    expect(screen.getByText('a')).toBeTruthy()
+
+    await db.open() // afterEachのdb.delete()が失敗しないよう復旧する
+  })
 })
 
 describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
@@ -876,5 +1063,99 @@ describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
     await waitFor(() => expect(screen.getAllByText('再生中…').length).toBeGreaterThan(0))
     expect(screen.queryByText('もう一度再生')).toBeNull()
     expect(screen.queryByText('もう再生する')).toBeNull()
+  })
+})
+
+describe('DrillScreen: 選択肢ランタイムシャッフル（T-79。J-36）', () => {
+  it('決定的なrng注入で、選択肢の表示順が元の並び（A/B/C/D）と変わりうる', async () => {
+    const db = newDb()
+    const q = part5Question('q-shuffle', 'A', 'submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+
+    try {
+      const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // .choice-button__label はDOM出現順で並ぶため、そのまま表示順として検証できる
+      const order = [...container.querySelectorAll('.choice-button__label')].map(
+        (el) => el.textContent,
+      )
+      // rngが常に0を返すFisher-Yatesでは [a,b,c,d] → [b,c,d,a] になる（shuffle.test.tsで検証済みの手順）
+      expect(order).toEqual(['b', 'c', 'd', 'a'])
+    } finally {
+      randomSpy.mockRestore()
+    }
+  })
+
+  it('表示順が変わっても正誤判定はchoice.key基準のまま（シャッフル後も正解選択で正解表示になる）', async () => {
+    const db = newDb()
+    const q = part5Question('q-shuffle-2', 'A', 'submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // シャッフル後の表示順は b,c,d,a だが、正解キーAに対応するテキスト'a'を選べば正解になる
+      await answerAndSettle('a', 1)
+      expect(screen.getByText('正解')).toBeTruthy()
+    } finally {
+      randomSpy.mockRestore()
+    }
+  })
+})
+
+describe('DrillScreen: ハプティクス（T-78。正解確定時のnavigator.vibrate）', () => {
+  it('正解確定時、設定ONならnavigator.vibrateが呼ばれる', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // q-1 の正解は A
+      await answerAndSettle('a', 1)
+      expect(vibrate).toHaveBeenCalledWith(15)
+    } finally {
+      Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true })
+    }
+  })
+
+  it('設定OFFなら正解確定時でもnavigator.vibrateが呼ばれない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: HAPTICS_ENABLED_KEY, value: false })
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // DrillScreen起動時のsettings読み込み（非同期）が解決してhapticsEnabled=falseが
+      // stateに反映されるのを待ってからクリックする（先にクリックするとstate初期値=true
+      // のままfinalizeAnswerが評価してしまい、falseとの競合レースになる）
+      await screen.findByTestId('drill-settings-loaded')
+      await answerAndSettle('a', 1)
+      expect(vibrate).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true })
+    }
+  })
+
+  it('誤答時はnavigator.vibrateが呼ばれない', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+
+    try {
+      render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+      // q-1 の正解はA。誤答のbを選ぶ
+      await answerAndSettle('b', 1)
+      expect(vibrate).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true })
+    }
   })
 })

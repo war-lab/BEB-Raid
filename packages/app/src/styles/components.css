@@ -146,6 +146,116 @@
   color: var(--gold);
   font-weight: 700;
   text-align: center;
+  animation: result-scale-in 250ms ease-out;
+}
+@keyframes result-scale-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* --- 完了カード（T-78。語彙SRS終了・診断完了・シャドーイング完了で共用） --- */
+.completion-card {
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  text-align: center;
+  animation: result-scale-in 250ms ease-out;
+}
+.completion-card__count {
+  font-weight: 700;
+  margin: 0 0 var(--sp-half);
+}
+.completion-card__streak {
+  color: var(--gold);
+  margin: 0 0 var(--sp-half);
+}
+.completion-card__message {
+  color: var(--ink-2);
+  margin: 0;
+}
+
+/* --- リザルト報酬演出（T-77。J-42: 総時間600〜900ms・reduced-motionでは静止表示） --- */
+.result-stats {
+  list-style: none;
+  margin: var(--sp-1) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+.result-stat {
+  animation: result-stat-in 300ms ease-out both;
+}
+@keyframes result-stat-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.result-list {
+  list-style: none;
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+.result-list__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.result-list__question {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+.result-list__icon::before {
+  font-weight: 700;
+}
+.result-list__item[data-correct='true'] .result-list__icon::before {
+  content: '✓';
+  color: var(--ok);
+}
+.result-list__item[data-correct='false'] .result-list__icon::before {
+  content: '✕';
+  color: var(--ng);
+}
+
+/* --- 中断ボタン（ステータス帯。T-67: セッションを破棄せずホームへ戻る） --- */
+.drill-abort {
+  display: inline-block;
+  margin-top: var(--sp-half);
+  padding: var(--sp-half) 0;
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  font-size: var(--fs-ui);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.drill-abort:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* --- 汎用エラーメッセージ（音声再生失敗=T-70、解答保存失敗=T-76） --- */
+.drill-error {
+  margin: 0 0 var(--sp-1);
+  color: var(--ng);
+  font-size: var(--fs-sub);
 }
 
 /* --- Part2瞬発の15秒解答タイマー（--listen アクセント） --- */
@@ -213,15 +323,29 @@
 .screen-layout__status {
   padding: var(--sp-1) var(--sp-2);
   padding-top: calc(var(--sp-1) + env(safe-area-inset-top));
+  padding-left: calc(var(--sp-2) + env(safe-area-inset-left));
+  padding-right: calc(var(--sp-2) + env(safe-area-inset-right));
 }
 .screen-layout__content {
   padding: var(--sp-2);
+  padding-left: calc(var(--sp-2) + env(safe-area-inset-left));
+  padding-right: calc(var(--sp-2) + env(safe-area-inset-right));
   overflow-y: auto;
 }
 .screen-layout__action {
-  min-height: 45dvh; /* 操作ゾーンは画面下 約45%（親指リーチ内） */
+  /* 操作ゾーンは画面下 約45%（親指リーチ内）。ただし横長タブレット等では45%が
+     過大になるため320pxで頭打ちにする（T-75） */
+  min-height: min(45dvh, 320px);
   padding: var(--sp-2);
+  padding-left: calc(var(--sp-2) + env(safe-area-inset-left));
+  padding-right: calc(var(--sp-2) + env(safe-area-inset-right));
   padding-bottom: calc(var(--sp-2) + env(safe-area-inset-bottom));
+}
+@media (orientation: landscape) {
+  .screen-layout__action {
+    /* 横向きは縦の可視領域が狭く、45%固定だとコンテンツ帯を圧迫するため自動に戻す */
+    min-height: auto;
+  }
 }
 
 /* --- 解説カード: 正誤確定後に操作ゾーンからせり上がる（07 7節S2） --- */
@@ -236,6 +360,19 @@
 .explanation-card__verdict {
   margin: 0 0 var(--sp-1);
   font-weight: 700;
+}
+/* T-75: 正誤ヘッダの色分け＋アイコン（data-correct属性ベース。色のみに頼らず✓/✕も付ける） */
+.explanation-card[data-correct='true'] .explanation-card__verdict {
+  color: var(--ok);
+}
+.explanation-card[data-correct='true'] .explanation-card__verdict::before {
+  content: '✓ ';
+}
+.explanation-card[data-correct='false'] .explanation-card__verdict {
+  color: var(--ng);
+}
+.explanation-card[data-correct='false'] .explanation-card__verdict::before {
+  content: '✕ ';
 }
 .explanation-card__body,
 .explanation-card__translation {
@@ -450,6 +587,17 @@
   font-size: var(--fs-note);
   font-weight: 700;
 }
+/* --- ホームの日数ストリーク（T-78。session-streakとは別物: 増えた回だけパルスさせる） --- */
+.streak-flame {
+  color: var(--gold);
+}
+.streak-flame.is-pulse {
+  animation: streak-pulse 400ms ease-out;
+}
+/* --- ホームのミニヒートマップ（T-78。直近4週間。DashboardScreenの15週版の縮小版） --- */
+.home-mini-heatmap {
+  margin: var(--sp-1) 0;
+}
 .home-season {
   margin: var(--sp-1) 0;
 }
@@ -472,6 +620,47 @@
   .home-season-progress-bar {
     transition: none;
   }
+}
+/* --- ホームのレイドHPバー（M3・T-97。raidState.joinedのときのみ表示） --- */
+.home-raid-hp {
+  display: block;
+  width: 100%;
+  margin: var(--sp-1) 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.home-raid-hp p {
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.home-raid-hp-bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.home-raid-hp-bar-fill {
+  height: 100%;
+  background: var(--ng);
+  transition: width 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-raid-hp-bar-fill {
+    transition: none;
+  }
+}
+/* --- レイドのオフライン表示規約（M3・T-99。3.7節） --- */
+.home-raid-hp-sync.is-stale,
+.raid-sync-label.is-stale {
+  color: var(--ng);
+  font-weight: 700;
+}
+.home-raid-hp-note {
+  font-size: var(--fs-sub);
+  color: var(--ink-3);
 }
 .home-duration-chips {
   display: flex;
@@ -515,6 +704,11 @@
 .home-part2-options-hint {
   color: var(--ink-2);
   font-size: var(--fs-note);
+}
+/* --- 出題プール空の案内（T-73。主ボタンdisabled時に表示） --- */
+.home-pool-empty-hint {
+  color: var(--ng);
+  font-size: var(--fs-sub);
 }
 .home-grid {
   display: grid;
@@ -614,6 +808,92 @@
   margin-top: var(--sp-1);
   color: var(--ink-3);
   font-size: var(--fs-note);
+}
+
+/* --- T-75: 未定義クラスの定義補完（既存の視覚言語=カード面＋罫線＋トークン色に統一） --- */
+
+/* ホーム画面追加の案内（PWAインストールヒント） */
+.install-hint {
+  margin-top: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+}
+.install-hint button {
+  display: inline-block;
+  min-height: var(--tap-min);
+  margin-top: var(--sp-1);
+  margin-right: var(--sp-1);
+  padding: 0 var(--sp-1);
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+
+/* ダッシュボードの予測スコア帯（ヒーロー数値） */
+.dashboard-forecast-hero {
+  padding: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+.dashboard-forecast-note {
+  margin: var(--sp-half) 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+
+/* ディクテーションのスクリプト表示（question-textと併用。空欄記号を見やすくする） */
+.dictation-script {
+  letter-spacing: 0.01em;
+  word-spacing: 0.15em;
+}
+
+/* --- T-75: 設定・ダッシュボードのフォーム部品共通スタイル（タップ目標44px以上） --- */
+.settings-list section {
+  margin-bottom: var(--sp-2);
+}
+.settings-list label {
+  display: block;
+  margin-bottom: var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.settings-list input,
+.settings-list select {
+  display: block;
+  min-height: var(--tap-min);
+  width: 100%;
+  margin-top: var(--sp-half);
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+}
+.settings-list input[type='checkbox'] {
+  display: inline-block;
+  width: auto;
+  min-height: auto;
+  margin-top: 0;
+  margin-right: var(--sp-1);
+}
+.settings-list button {
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-2);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
 }
 
 /* --- ユーティリティ --- */

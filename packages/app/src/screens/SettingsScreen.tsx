@@ -8,17 +8,19 @@ import { PROFILE_ID } from '../db/schema'
 import type { FontSizeScale } from '../fontSize'
 import { getFontSizeScale, setFontSizeScale } from '../fontSize'
 import { DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
-import type { CacheUsage, PackCache } from '../platform'
+import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import { exportAll, importAll } from '../services/backup'
 import {
   BYOK_API_KEY_KEY,
   BYOK_MODEL_KEY,
   FONT_SIZE_KEY,
+  HAPTICS_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
+  QUESTION_STATS_ENABLED_KEY,
+  RAID_SYNC_ENABLED_KEY,
   THEME_PREFERENCE_KEY,
 } from '../services/settingsKeys'
-import type { Theme } from '../theme'
-import { setTheme } from '../theme'
+import { resolveTheme, setTheme, type ThemePreference } from '../theme'
 import { useAppStore } from '../store/appStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -32,16 +34,8 @@ interface Props {
   db: BebRaidDatabase
   /** platform層のPackCache（App.tsxがモジュールスコープで生成し、audioPlayerと同様に注入する） */
   packCache: PackCache
-}
-
-/** テーマ設定は「OS追従」を含む3値（実際に適用されるのはTheme=dark/light） */
-export type ThemePreference = 'system' | Theme
-
-function resolveTheme(pref: ThemePreference): Theme {
-  if (pref === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
-  return pref
+  /** 共有API（レイド）クライアント（M3・T-96）。isConfigured()=falseならレイド設定欄を出さない */
+  raidApi: RaidApi
 }
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ
@@ -49,14 +43,23 @@ function now(): number {
   return Date.now()
 }
 
-export function SettingsScreen({ db, packCache }: Props) {
+export function SettingsScreen({ db, packCache, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
 
   const [displayName, setDisplayName] = useState('')
   const [noEarphoneMode, setNoEarphoneModeState] = useState(false)
+  // T-78: ハプティクス（正解確定時の振動）。既定ON（14の2.4節）
+  const [hapticsEnabled, setHapticsEnabledState] = useState(true)
+  // T-96: レイドダメージ送信の有効/無効。既定OFF（レイド参加中のみ有効にする想定）
+  const [raidSyncEnabled, setRaidSyncEnabledState] = useState(false)
+  // T-100: questionStats（匿名問題別正誤集計）送信の有効/無効。既定OFF
+  const [questionStatsEnabled, setQuestionStatsEnabledState] = useState(false)
   const [themePref, setThemePrefState] = useState<ThemePreference>('system')
   const [fontSize, setFontSizeState] = useState<FontSizeScale>(getFontSizeScale())
   const [cacheUsage, setCacheUsage] = useState<CacheUsage | null>(null)
+  // T-72: ストレージ永続化状態・端末ストレージ使用量（J-38）
+  const [persisted, setPersisted] = useState<boolean | null>(null)
+  const [storageEstimate, setStorageEstimate] = useState<StorageEstimate | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   // BYOK APIキー（T-55）: 保存済みキーの実値（マスク表示の元。画面外へは出さない）
@@ -76,6 +79,11 @@ export function SettingsScreen({ db, packCache }: Props) {
         usage,
         apiKeySetting,
         modelSetting,
+        persistedResult,
+        estimateResult,
+        hapticsSetting,
+        raidSyncSetting,
+        questionStatsSetting,
       ] = await Promise.all([
         db.profile.get(PROFILE_ID),
         db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -84,10 +92,18 @@ export function SettingsScreen({ db, packCache }: Props) {
         packCache.usage(),
         db.settings.get(BYOK_API_KEY_KEY),
         db.settings.get(BYOK_MODEL_KEY),
+        navigator.storage?.persisted?.() ?? Promise.resolve(null),
+        navigator.storage?.estimate?.() ?? Promise.resolve(null),
+        db.settings.get(HAPTICS_ENABLED_KEY),
+        db.settings.get(RAID_SYNC_ENABLED_KEY),
+        db.settings.get(QUESTION_STATS_ENABLED_KEY),
       ])
       if (cancelled) return
       if (profile) setDisplayName(profile.displayName)
       setNoEarphoneModeState(earphoneSetting?.value === true)
+      setHapticsEnabledState(hapticsSetting?.value !== false)
+      setRaidSyncEnabledState(raidSyncSetting?.value === true)
+      setQuestionStatsEnabledState(questionStatsSetting?.value === true)
       const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
       setThemePrefState(pref)
       setTheme(resolveTheme(pref))
@@ -97,6 +113,8 @@ export function SettingsScreen({ db, packCache }: Props) {
       setCacheUsage(usage)
       setApiKey((apiKeySetting?.value as string | undefined) ?? null)
       setByokModel((modelSetting?.value as string | undefined) ?? DEFAULT_BYOK_MODEL)
+      setPersisted(persistedResult)
+      setStorageEstimate(estimateResult)
       setLoaded(true)
     }
     void load()
@@ -117,6 +135,24 @@ export function SettingsScreen({ db, packCache }: Props) {
     const next = !noEarphoneMode
     setNoEarphoneModeState(next)
     await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: next })
+  }
+
+  async function handleToggleHaptics() {
+    const next = !hapticsEnabled
+    setHapticsEnabledState(next)
+    await db.settings.put({ key: HAPTICS_ENABLED_KEY, value: next })
+  }
+
+  async function handleToggleRaidSync() {
+    const next = !raidSyncEnabled
+    setRaidSyncEnabledState(next)
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: next })
+  }
+
+  async function handleToggleQuestionStats() {
+    const next = !questionStatsEnabled
+    setQuestionStatsEnabledState(next)
+    await db.settings.put({ key: QUESTION_STATS_ENABLED_KEY, value: next })
   }
 
   async function handleThemeChange(pref: ThemePreference) {
@@ -188,133 +224,183 @@ export function SettingsScreen({ db, packCache }: Props) {
     <ScreenLayout action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}>
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>設定</h1>
 
-      <section>
-        <label>
-          表示名
-          <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            onBlur={() => void handleDisplayNameBlur()}
-          />
-        </label>
-      </section>
-
-      <section>
-        <label>
-          <input
-            type="checkbox"
-            checked={noEarphoneMode}
-            onChange={() => void handleToggleEarphone()}
-          />
-          イヤホンなしモード（リスニング問題をリーディング系に差し替える）
-        </label>
-      </section>
-
-      <section>
-        <p>テーマ</p>
-        {(['system', 'dark', 'light'] as const).map((pref) => (
-          <label key={pref}>
+      <div className="settings-list">
+        <section>
+          <label>
+            表示名
             <input
-              type="radio"
-              name="theme"
-              checked={themePref === pref}
-              onChange={() => void handleThemeChange(pref)}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              onBlur={() => void handleDisplayNameBlur()}
             />
-            {pref === 'system' ? 'OS追従' : pref === 'dark' ? 'ダーク' : 'ライト'}
           </label>
-        ))}
-      </section>
+        </section>
 
-      <section>
-        <p>文字サイズ（英文問題文）</p>
-        {(['S', 'M', 'L'] as const).map((scale) => (
-          <label key={scale}>
+        <section>
+          <label>
             <input
-              type="radio"
-              name="fontSize"
-              checked={fontSize === scale}
-              onChange={() => void handleFontSizeChange(scale)}
+              type="checkbox"
+              checked={noEarphoneMode}
+              onChange={() => void handleToggleEarphone()}
             />
-            {scale}
+            イヤホンなしモード（リスニング問題をリーディング系に差し替える）
           </label>
-        ))}
-      </section>
+        </section>
 
-      <section>
-        <p>
-          キャッシュ使用量:{' '}
-          {cacheUsage
-            ? `${(cacheUsage.bytes / 1024 / 1024).toFixed(1)}MB（${cacheUsage.entries}件）`
-            : '取得中…'}
-        </p>
-        <button type="button" onClick={() => void handleClearCache()}>
-          キャッシュを削除
-        </button>
-      </section>
+        <section>
+          <label>
+            <input
+              type="checkbox"
+              checked={hapticsEnabled}
+              onChange={() => void handleToggleHaptics()}
+            />
+            ハプティクス（正解確定時に振動する）
+          </label>
+        </section>
 
-      <section>
-        <p>AIに聞く（BYOK）</p>
-        <p className="settings-byok-note">キーは端末内に平文保存され、端末外には送信されません。</p>
-        <p className="settings-byok-note">支出上限を設定したAPIキーの利用を推奨します。</p>
-        {apiKey !== null && !editingApiKey ? (
-          <>
-            <p>{maskApiKey(apiKey)}</p>
-            <button type="button" onClick={() => setEditingApiKey(true)}>
-              変更
-            </button>
-            <button type="button" onClick={() => void handleDeleteApiKey()}>
-              削除
-            </button>
-          </>
-        ) : (
-          <>
+        {raidApi.isConfigured() && (
+          <section>
             <label>
-              APIキー
               <input
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="sk-..."
+                type="checkbox"
+                checked={raidSyncEnabled}
+                onChange={() => void handleToggleRaidSync()}
               />
+              レイドダメージを送信する
             </label>
-            <button type="button" onClick={() => void handleSaveApiKey()}>
-              保存
-            </button>
-            {apiKey !== null && (
-              <button type="button" onClick={() => setEditingApiKey(false)}>
-                キャンセル
-              </button>
-            )}
-          </>
+            <p>レイド参加中のみ有効にしてください</p>
+          </section>
         )}
-        <label>
-          モデル
-          <input
-            value={byokModel}
-            onChange={(e) => void handleByokModelChange(e.target.value)}
-            placeholder={DEFAULT_BYOK_MODEL}
-          />
-        </label>
-      </section>
 
-      <section>
-        <button type="button" onClick={() => void handleExport()}>
-          エクスポート
-        </button>
-        <label>
-          インポート
-          <input
-            type="file"
-            accept="application/json"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) void handleImportFile(file)
-              e.target.value = ''
-            }}
-          />
-        </label>
-        {message && <p role="status">{message}</p>}
-      </section>
+        {raidApi.isConfigured() && (
+          <section>
+            <label>
+              <input
+                type="checkbox"
+                checked={questionStatsEnabled}
+                onChange={() => void handleToggleQuestionStats()}
+              />
+              問題別の正誤統計を送信する
+            </label>
+            <p>問題の難易度調整のための匿名統計です</p>
+          </section>
+        )}
+
+        <section>
+          <p>テーマ</p>
+          {(['system', 'dark', 'light'] as const).map((pref) => (
+            <label key={pref}>
+              <input
+                type="radio"
+                name="theme"
+                checked={themePref === pref}
+                onChange={() => void handleThemeChange(pref)}
+              />
+              {pref === 'system' ? 'OS追従' : pref === 'dark' ? 'ダーク' : 'ライト'}
+            </label>
+          ))}
+        </section>
+
+        <section>
+          <p>文字サイズ（英文問題文）</p>
+          {(['S', 'M', 'L'] as const).map((scale) => (
+            <label key={scale}>
+              <input
+                type="radio"
+                name="fontSize"
+                checked={fontSize === scale}
+                onChange={() => void handleFontSizeChange(scale)}
+              />
+              {scale}
+            </label>
+          ))}
+        </section>
+
+        <section>
+          <p>
+            キャッシュ使用量:{' '}
+            {cacheUsage
+              ? `${(cacheUsage.bytes / 1024 / 1024).toFixed(1)}MB（${cacheUsage.entries}件）`
+              : '取得中…'}
+          </p>
+          <button type="button" onClick={() => void handleClearCache()}>
+            キャッシュを削除
+          </button>
+          <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
+          {storageEstimate && (
+            <p>
+              端末ストレージ使用量: {((storageEstimate.usage ?? 0) / 1024 / 1024).toFixed(1)}MB /{' '}
+              {((storageEstimate.quota ?? 0) / 1024 / 1024).toFixed(1)}MB
+            </p>
+          )}
+        </section>
+
+        <section>
+          <p>AIに聞く（BYOK）</p>
+          <p className="settings-byok-note">
+            キーは端末内に平文保存され、端末外には送信されません。
+          </p>
+          <p className="settings-byok-note">支出上限を設定したAPIキーの利用を推奨します。</p>
+          {apiKey !== null && !editingApiKey ? (
+            <>
+              <p>{maskApiKey(apiKey)}</p>
+              <button type="button" onClick={() => setEditingApiKey(true)}>
+                変更
+              </button>
+              <button type="button" onClick={() => void handleDeleteApiKey()}>
+                削除
+              </button>
+            </>
+          ) : (
+            <>
+              <label>
+                APIキー
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="sk-..."
+                />
+              </label>
+              <button type="button" onClick={() => void handleSaveApiKey()}>
+                保存
+              </button>
+              {apiKey !== null && (
+                <button type="button" onClick={() => setEditingApiKey(false)}>
+                  キャンセル
+                </button>
+              )}
+            </>
+          )}
+          <label>
+            モデル
+            <input
+              value={byokModel}
+              onChange={(e) => void handleByokModelChange(e.target.value)}
+              placeholder={DEFAULT_BYOK_MODEL}
+            />
+          </label>
+        </section>
+
+        <section>
+          <button type="button" onClick={() => void handleExport()}>
+            エクスポート
+          </button>
+          <label>
+            インポート
+            <input
+              type="file"
+              accept="application/json"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void handleImportFile(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          {message && <p role="status">{message}</p>}
+        </section>
+      </div>
 
       {loaded && <span data-testid="settings-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>

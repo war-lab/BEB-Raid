@@ -1,6 +1,6 @@
 // Part2（audio_qa）50問のデータ本体（T-27。正本: docs/04 2節・docs/03 7.1節）。
 // keyVocabWordはSランク200語（freqList.ts/vocabCardsS.ts）から選び、単語帳との循環を成立させる。
-// tags[0]は音声知覚系タグ必須（03の7.1: 疑問詞聞き取り/弱形・連結/数字・時刻/米英豪加アクセント）。
+// tags[0]は音声知覚系タグ必須（03の7.1: 疑問詞聞き取り/弱形・連結/数字・時刻/米英アクセント）。
 // 正答キーはA〜Cに分散させている（レビュー対応: 常に同じ記号が正答だとテストとして破綻するため）。
 // explanationは選択肢記号でなく実テキストを引用する（並び替えに耐性を持たせるため）。
 
@@ -38,7 +38,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'At two o’clock.' },
       { key: 'B', text: 'In the main conference room.' },
-      { key: 'C', text: 'Because of a scheduling conflict.' },
+      { key: 'C', text: 'The client had a conflict.' },
     ],
     answer: 'C',
     explanation:
@@ -52,7 +52,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'Who prepared this invoice? — Someone from the accounting team.',
     choices: [
       { key: 'A', text: 'Because the client requested it.' },
-      { key: 'B', text: 'Someone in accounting.' },
+      { key: 'B', text: 'Someone from the accounting team.' },
       { key: 'C', text: 'Last Tuesday.' },
     ],
     answer: 'B',
@@ -66,7 +66,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'Where should we store the extra chairs? — In the warehouse next door.',
     choices: [
-      { key: 'A', text: 'In the warehouse.' },
+      { key: 'A', text: 'In the warehouse next door.' },
       { key: 'B', text: 'Around fifty of them.' },
       { key: 'C', text: 'Yes, we ordered more.' },
     ],
@@ -83,7 +83,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'She did a great job.' },
       { key: 'B', text: 'Next Monday afternoon.' },
-      { key: 'C', text: 'About thirty.' },
+      { key: 'C', text: 'About thirty, I believe.' },
     ],
     answer: 'C',
     explanation:
@@ -111,7 +111,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['数字・時刻'],
     script: 'When will the delivery arrive? — Sometime around three o’clock.',
     choices: [
-      { key: 'A', text: 'Around three o’clock.' },
+      { key: 'A', text: 'Sometime around three o’clock.' },
       { key: 'B', text: 'From the main warehouse.' },
       { key: 'C', text: 'Twenty boxes in total.' },
     ],
@@ -128,7 +128,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'It expires next year.' },
       { key: 'B', text: 'At the downtown office.' },
-      { key: 'C', text: 'Our sales director.' },
+      { key: 'C', text: 'Our sales director did.' },
     ],
     answer: 'C',
     explanation:
@@ -142,7 +142,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'Has the inspection been completed yet? — Yes, it finished this morning.',
     choices: [
       { key: 'A', text: 'About two hours.' },
-      { key: 'B', text: 'Yes, this morning.' },
+      { key: 'B', text: 'Yes, it finished this morning.' },
       { key: 'C', text: 'By the quality team.' },
     ],
     answer: 'B',
@@ -156,7 +156,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'Where is the venue for the conference? — At the downtown convention center.',
     choices: [
-      { key: 'A', text: 'At the convention center downtown.' },
+      { key: 'A', text: 'At the downtown convention center.' },
       { key: 'B', text: 'Next Wednesday.' },
       { key: 'C', text: 'About two hundred people.' },
     ],
@@ -173,7 +173,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'Within thirty days.' },
       { key: 'B', text: 'Because it was defective.' },
-      { key: 'C', text: 'Contact customer service.' },
+      { key: 'C', text: 'Please contact the customer service desk.' },
     ],
     answer: 'C',
     explanation:
@@ -187,7 +187,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'When does the new employee training start? — It starts at nine tomorrow morning.',
     choices: [
       { key: 'A', text: 'Around twenty new employees.' },
-      { key: 'B', text: 'At nine tomorrow morning.' },
+      { key: 'B', text: 'It starts at nine tomorrow morning.' },
       { key: 'C', text: 'In the third-floor conference room.' },
     ],
     answer: 'B',
@@ -201,7 +201,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'Why was the shipment rejected? — The quality did not meet our standards.',
     choices: [
-      { key: 'A', text: 'The quality was below standard.' },
+      { key: 'A', text: 'The quality did not meet our standards.' },
       { key: 'B', text: 'Last Thursday.' },
       { key: 'C', text: 'By the logistics team.' },
     ],
@@ -232,7 +232,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'What did the client think of our proposal? — They seemed very impressed.',
     choices: [
       { key: 'A', text: 'About ten pages long.' },
-      { key: 'B', text: 'They were impressed.' },
+      { key: 'B', text: 'They seemed very impressed.' },
       { key: 'C', text: 'Next Monday morning.' },
     ],
     answer: 'B',
@@ -247,7 +247,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'How long is the warranty on this printer? — It comes with a two-year warranty.',
     choices: [
-      { key: 'A', text: 'Two years.' },
+      { key: 'A', text: 'It comes with a two-year warranty.' },
       { key: 'B', text: 'In the electronics department.' },
       { key: 'C', text: 'Because it stopped working.' },
     ],
@@ -265,7 +265,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'By plane and then by train.' },
       { key: 'B', text: 'Because the flight was delayed.' },
-      { key: 'C', text: 'Almost, just one more thing.' },
+      { key: 'C', text: 'Almost, just one more stop to add.' },
     ],
     answer: 'C',
     explanation:
@@ -279,7 +279,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'Where is the company headquarters located? — It’s in downtown Chicago.',
     choices: [
       { key: 'A', text: 'About five hundred employees.' },
-      { key: 'B', text: 'In downtown Chicago.' },
+      { key: 'B', text: 'It’s in downtown Chicago.' },
       { key: 'C', text: 'Since the company was founded.' },
     ],
     answer: 'B',
@@ -293,7 +293,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'When was the merger announced? — Just last week, actually.',
     choices: [
-      { key: 'A', text: 'Just last week.' },
+      { key: 'A', text: 'Just last week, actually.' },
       { key: 'B', text: 'Between two software companies.' },
       { key: 'C', text: 'For a much lower price.' },
     ],
@@ -310,7 +310,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'Starting at seven o’clock.' },
       { key: 'B', text: 'On the top floor.' },
-      { key: 'C', text: 'The events team.' },
+      { key: 'C', text: 'The events team is handling it.' },
     ],
     answer: 'C',
     explanation:
@@ -324,7 +324,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'When can we expect the next shipment? — It should arrive by Thursday.',
     choices: [
       { key: 'A', text: 'Through our regular carrier.' },
-      { key: 'B', text: 'By Thursday.' },
+      { key: 'B', text: 'It should arrive by Thursday.' },
       { key: 'C', text: 'Two hundred units.' },
     ],
     answer: 'B',
@@ -338,7 +338,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'Why did she get the promotion? — Her performance has been outstanding.',
     choices: [
-      { key: 'A', text: 'Her performance was excellent.' },
+      { key: 'A', text: 'Her performance has been outstanding.' },
       { key: 'B', text: 'Starting next quarter.' },
       { key: 'C', text: 'In the finance department.' },
     ],
@@ -356,7 +356,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'The regional inspector.' },
       { key: 'B', text: 'For safety reasons.' },
-      { key: 'C', text: 'Yes, we passed the audit.' },
+      { key: 'C', text: 'Yes, we passed the audit last week.' },
     ],
     answer: 'C',
     explanation:
@@ -370,7 +370,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'How much does the subscription cost per month? — It’s fifteen dollars a month.',
     choices: [
       { key: 'A', text: 'Through the company website.' },
-      { key: 'B', text: 'Fifteen dollars a month.' },
+      { key: 'B', text: 'It’s fifteen dollars a month.' },
       { key: 'C', text: 'It renews automatically.' },
     ],
     answer: 'B',
@@ -384,7 +384,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['数字・時刻'],
     script: 'How often do you check the inventory? — We check it twice a month.',
     choices: [
-      { key: 'A', text: 'Twice a month.' },
+      { key: 'A', text: 'We check it twice a month.' },
       { key: 'B', text: 'In the back storage room.' },
       { key: 'C', text: 'Because stock levels were low.' },
     ],
@@ -401,7 +401,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'The construction crew.' },
       { key: 'B', text: 'Because the lobby was outdated.' },
-      { key: 'C', text: 'By the end of next month.' },
+      { key: 'C', text: 'Probably by the end of next month.' },
     ],
     answer: 'C',
     explanation:
@@ -416,7 +416,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
       'Which vendor supplies our office furniture? — We usually order from Grantline Supplies.',
     choices: [
       { key: 'A', text: 'Because the old vendor closed.' },
-      { key: 'B', text: 'Grantline Supplies.' },
+      { key: 'B', text: 'We usually order from Grantline Supplies.' },
       { key: 'C', text: 'Twice a year.' },
     ],
     answer: 'B',
@@ -431,7 +431,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['弱形・連結'],
     script: 'Did the audit find any problems? — No, everything looked fine.',
     choices: [
-      { key: 'A', text: 'No, everything was fine.' },
+      { key: 'A', text: 'No, everything looked fine.' },
       { key: 'B', text: 'The external accounting firm.' },
       { key: 'C', text: 'It took about three days.' },
     ],
@@ -449,7 +449,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'Two more weeks.' },
       { key: 'B', text: 'The project manager.' },
-      { key: 'C', text: 'We are waiting on feedback.' },
+      { key: 'C', text: 'We are still waiting on client feedback.' },
     ],
     answer: 'C',
     explanation:
@@ -464,7 +464,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'Who is handling the real estate sale? — A local agency is handling it.',
     choices: [
       { key: 'A', text: 'For a reasonable price.' },
-      { key: 'B', text: 'A local agency.' },
+      { key: 'B', text: 'A local agency is handling it.' },
       { key: 'C', text: 'Next spring.' },
     ],
     answer: 'B',
@@ -496,7 +496,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'About one hundred guests.' },
       { key: 'B', text: 'Starting at noon.' },
-      { key: 'C', text: 'Riverside Catering.' },
+      { key: 'C', text: 'Riverside Catering, as usual.' },
     ],
     answer: 'C',
     explanation:
@@ -512,7 +512,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
       'Did the server malfunction again last night? — Yes, but the technician already fixed it.',
     choices: [
       { key: 'A', text: 'The IT department ordered it.' },
-      { key: 'B', text: 'Yes, but it’s already fixed.' },
+      { key: 'B', text: 'Yes, but the technician already fixed it.' },
       { key: 'C', text: 'In the server room.' },
     ],
     answer: 'B',
@@ -526,7 +526,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'How many occupants are currently in the building? — Around two hundred, I think.',
     choices: [
-      { key: 'A', text: 'Around two hundred.' },
+      { key: 'A', text: 'Around two hundred, I think.' },
       { key: 'B', text: 'Since last January.' },
       { key: 'C', text: 'The building manager.' },
     ],
@@ -543,7 +543,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'From the southern port.' },
       { key: 'B', text: 'Because of the weather.' },
-      { key: 'C', text: 'About three weeks.' },
+      { key: 'C', text: 'Usually about three weeks.' },
     ],
     answer: 'C',
     explanation:
@@ -558,7 +558,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
       'Why did the company decide to outsource its customer service? — To reduce operating costs.',
     choices: [
       { key: 'A', text: 'A team in another country.' },
-      { key: 'B', text: 'To cut costs.' },
+      { key: 'B', text: 'To reduce operating costs.' },
       { key: 'C', text: 'Starting next quarter.' },
     ],
     answer: 'B',
@@ -574,7 +574,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script:
       'Has the athlete signed the endorsement deal yet? — Not yet, they’re still negotiating.',
     choices: [
-      { key: 'A', text: 'Not yet, still negotiating.' },
+      { key: 'A', text: 'Not yet, they’re still negotiating.' },
       { key: 'B', text: 'For three years.' },
       { key: 'C', text: 'A well-known sportswear brand.' },
     ],
@@ -592,7 +592,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'Around fifty copies.' },
       { key: 'B', text: 'Next Monday.' },
-      { key: 'C', text: 'At the front desk.' },
+      { key: 'C', text: 'There’s a stack at the front desk.' },
     ],
     answer: 'C',
     explanation:
@@ -607,7 +607,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
       'Who are the key stakeholders in this project? — Mainly the investors and the city council.',
     choices: [
       { key: 'A', text: 'About three million dollars.' },
-      { key: 'B', text: 'The investors and the city council.' },
+      { key: 'B', text: 'Mainly the investors and the city council.' },
       { key: 'C', text: 'It began two years ago.' },
     ],
     answer: 'B',
@@ -622,7 +622,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script:
       'How large is the new manufacturing facility? — It covers about ten thousand square meters.',
     choices: [
-      { key: 'A', text: 'About ten thousand square meters.' },
+      { key: 'A', text: 'It covers about ten thousand square meters.' },
       { key: 'B', text: 'It opened last spring.' },
       { key: 'C', text: 'Around three hundred workers.' },
     ],
@@ -640,7 +640,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'Since the company was founded.' },
       { key: 'B', text: 'A national insurance provider.' },
-      { key: 'C', text: 'Yes, it’s required.' },
+      { key: 'C', text: 'Yes, it’s required for all our contracts.' },
     ],
     answer: 'C',
     explanation:
@@ -655,7 +655,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
       'What do the sales projections look like for next quarter? — Quite optimistic, actually.',
     choices: [
       { key: 'A', text: 'Around March.' },
-      { key: 'B', text: 'Quite optimistic.' },
+      { key: 'B', text: 'Quite optimistic, actually.' },
       { key: 'C', text: 'By the finance team.' },
     ],
     answer: 'B',
@@ -686,7 +686,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'The building owner.' },
       { key: 'B', text: 'About two thousand dollars a month.' },
-      { key: 'C', text: 'At the end of this year.' },
+      { key: 'C', text: 'At the end of this calendar year.' },
     ],
     answer: 'C',
     explanation:
@@ -700,7 +700,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     script: 'Who is your direct supervisor these days? — Ms. Alvarez, since last month.',
     choices: [
       { key: 'A', text: 'Because of the reorganization.' },
-      { key: 'B', text: 'Ms. Alvarez.' },
+      { key: 'B', text: 'Ms. Alvarez, since last month.' },
       { key: 'C', text: 'In the human resources office.' },
     ],
     answer: 'B',
@@ -732,7 +732,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     choices: [
       { key: 'A', text: 'Sometime next year.' },
       { key: 'B', text: 'The regional sales manager.' },
-      { key: 'C', text: 'Partnering with a local distributor.' },
+      { key: 'C', text: 'We plan to partner with a local distributor.' },
     ],
     answer: 'C',
     explanation:
@@ -747,7 +747,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
       'Who will negotiate the price with the supplier? — Our procurement manager will handle it.',
     choices: [
       { key: 'A', text: 'A ten percent discount.' },
-      { key: 'B', text: 'Our procurement manager.' },
+      { key: 'B', text: 'Our procurement manager will handle it.' },
       { key: 'C', text: 'Sometime this Friday.' },
     ],
     answer: 'B',
@@ -761,7 +761,7 @@ export const PART2_ENTRIES_S: Part2Entry[] = [
     tags: ['疑問詞聞き取り'],
     script: 'How many branches does the bank have in this city? — About a dozen, I think.',
     choices: [
-      { key: 'A', text: 'About a dozen.' },
+      { key: 'A', text: 'About a dozen, I think.' },
       { key: 'B', text: 'Since the early nineties.' },
       { key: 'C', text: 'The main branch downtown.' },
     ],

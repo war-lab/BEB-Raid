@@ -65,6 +65,15 @@ function bigPool(): Question[] {
   ]
 }
 
+/**
+ * bigPool に加え、指定した単語（SRSカードのrefId）に対応するvocab_card問題を足したプール。
+ * isServable（実在するQuestionを要求するフィルタ）を通すため、テストのSRSカードには
+ * 対応する語彙カード問題が必要（v-*系の既存drill候補より後ろに足し、drillの抽選結果には影響させない）
+ */
+function poolWithVocabFor(words: string[]): Question[] {
+  return [...bigPool(), ...words.map((w, i) => vocabCard(`due-vc-${i}`, w))]
+}
+
 /** 期限到来済みの導入済み語彙カードを n 枚仕込む */
 async function seedDueCards(db: BebRaidDatabase, n: number): Promise<void> {
   for (let i = 0; i < n; i++) {
@@ -108,7 +117,12 @@ describe('generateQuickPack: 時間帯別の構成（02の2.1）', () => {
     }
     const pack = await generateQuickPack(db, {
       duration: 3,
-      questions: bigPool(),
+      questions: poolWithVocabFor([
+        'due-0',
+        'due-1',
+        'due-2',
+        ...Array.from({ length: 12 }, (_, i) => `new-${i}`),
+      ]),
       now: NOW,
       rng: firstPick,
     })
@@ -122,7 +136,7 @@ describe('generateQuickPack: 時間帯別の構成（02の2.1）', () => {
   it('7分パックは SRS＋弱点ドリル。15分はさらに増量', async () => {
     const db = newDb()
     await seedDueCards(db, 2)
-    const pool = bigPool()
+    const pool = poolWithVocabFor(['due-0', 'due-1'])
     const pack7 = await generateQuickPack(db, {
       duration: 7,
       questions: pool,
@@ -153,7 +167,7 @@ describe('generateQuickPack: 時間帯別の構成（02の2.1）', () => {
     await addSrsCard(db, { refType: 'vocab', refId: 'fresh', now: NOW - 1000 })
     const pack = await generateQuickPack(db, {
       duration: 7,
-      questions: bigPool(),
+      questions: poolWithVocabFor([...Array.from({ length: 16 }, (_, i) => `due-${i}`), 'fresh']),
       now: NOW,
       rng: firstPick,
     })

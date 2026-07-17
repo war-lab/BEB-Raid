@@ -16,12 +16,13 @@ import {
   type Question,
 } from '@beb-raid/shared-schema'
 import { DICTATION_ENTRIES_S, type DictationRawEntry } from './data/dictationS.js'
+import { DICTATION_ENTRIES_S2 } from './data/dictationS2.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
 import type { GeneratedItemDraft } from './review.js'
 
-export { DICTATION_ENTRIES_S }
+export { DICTATION_ENTRIES_S, DICTATION_ENTRIES_S2 }
 
 /** 話者アクセントのローテーション（part2Question.tsと同じ2値。Piperの対応状況に合わせる） */
 const ACCENT_ROTATION: readonly AudioAccent[] = ['US', 'UK']

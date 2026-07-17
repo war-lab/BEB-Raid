@@ -3,15 +3,32 @@
 // 起動時、profile未作成（=P0診断未完了）なら診断画面から始める（T-20）。
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
+import type { BebRaidDatabase } from './db/database'
 import { getDb } from './db/database'
-import { createAiClient, createAudioPlayer, createPackCache, type PackCache } from './platform'
+import { PROFILE_ID } from './db/schema'
+import type { FontSizeScale } from './fontSize'
+import { setFontSizeScale } from './fontSize'
+import {
+  createAiClient,
+  createAudioPlayer,
+  createPackCache,
+  createRaidApi,
+  type PackCache,
+} from './platform'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
-import { BYOK_API_KEY_KEY } from './services/settingsKeys'
+import { sendQuestionStats } from './services/questionStats'
+import { syncRaidDamage } from './services/raidSync'
+import { resumeSession, type SessionSnapshot } from './services/session'
+import { BYOK_API_KEY_KEY, FONT_SIZE_KEY, THEME_PREFERENCE_KEY } from './services/settingsKeys'
+import { resolveTheme, setTheme, type ThemePreference } from './theme'
+import { PrimaryButton } from './components/PrimaryButton'
+import { ScreenLayout } from './components/ScreenLayout'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
 import { HomeScreen } from './screens/HomeScreen'
+import { RaidScreen } from './screens/RaidScreen'
 import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
@@ -19,11 +36,12 @@ import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore } from './store/appStore'
 
 /**
- * 配布パック全12件（M1の4＋M2の8。T-32/T-64のPACK_DEFINITIONSと対応。cli側の定義を
+ * 配布パック全17件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2。T-32/T-64/T-83〜T-85のPACK_DEFINITIONSと対応。cli側の定義を
  * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
- * idはここに複製する）
+ * idはここに複製する）。手動複製のため追加漏れが起きうる——App.test.tsxで
+ * content/manifest.json（build成果物）のパック一覧との一致をテストで検証する
  */
-const PACK_IDS = [
+export const PACK_IDS = [
   'pack-vocab-s-001',
   'pack-p2-s-001',
   'pack-p5-s-001',
@@ -36,6 +54,11 @@ const PACK_IDS = [
   'pack-dict-s-001',
   'pack-shadow-s-001',
   'pack-p5-similar-s-002',
+  'pack-p5-similar-s-003',
+  'pack-p34-s-002',
+  'pack-dict-s-002',
+  'pack-p5-s-003',
+  'pack-p34-s-003',
 ]
 
 /**
@@ -49,10 +72,28 @@ export async function loadQuestionPool(
 ): Promise<Question[]> {
   const results = await Promise.all(
     PACK_IDS.map((id) =>
-      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`).catch(() => [] as Question[]),
+      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`).catch((err: unknown) => {
+        // オフラインが正常系のため描画はブロックしないが、原因追跡のためコンソールには残す
+        console.warn(`[loadQuestionPool] パック取得に失敗: ${id}`, err)
+        return [] as Question[]
+      }),
     ),
   )
   return results.flat()
+}
+
+/**
+ * 起動後のバックグラウンド同期（T-73）。syncPacks成功後、新規/更新パックがあれば
+ * （synced.length>0）questionPoolを再読込して返す。変化が無ければnull
+ * （呼び出し側はsetState不要と判断できる）
+ */
+export async function syncPacksAndReload(
+  db: BebRaidDatabase,
+  packCache: PackCache,
+): Promise<Question[] | null> {
+  const result = await syncPacks({ db, packCache })
+  if (!result || result.synced.length === 0) return null
+  return loadQuestionPool(packCache)
 }
 
 const audioPlayer = createAudioPlayer()
@@ -60,6 +101,15 @@ const packCache = createPackCache()
 /** BYOK AIクライアント（M2・T-56）。APIキーはsettingsストアから都度読み出す（db直依存を避ける疎結合） */
 const aiClient = createAiClient(
   async () => ((await getDb().settings.get(BYOK_API_KEY_KEY))?.value as string | undefined) ?? null,
+)
+/**
+ * 共有API（レイド）クライアント（M3・T-96）。baseUrl未設定なら isConfigured()=false で
+ * 以降のsyncRaidDamage呼び出しは即returnする（縮退設計）。deviceTokenはprofileストアから
+ * 都度読み出す（aiClientと同じ疎結合パターン）
+ */
+const raidApi = createRaidApi(
+  import.meta.env.VITE_RAID_API_BASE_URL as string | undefined,
+  async () => (await getDb().profile.get(PROFILE_ID))?.deviceToken ?? '',
 )
 
 export function App() {
@@ -70,25 +120,120 @@ export function App() {
   // PackCacheヒット時は高速なため、起動3秒要件への影響は軽微な想定）
   const [bootChecked, setBootChecked] = useState(false)
   const [questionPool, setQuestionPool] = useState<Question[]>([])
+  // T-67: 進行中セッションの中断復帰（docs/15 T-67・J-34）
+  const [resumeSnapshot, setResumeSnapshot] = useState<SessionSnapshot | null>(null)
+  // T-68: 起動チェック失敗時の白画面防止（14の1.2）。retryTokenを変えて同じeffectを再実行させる
+  const [bootError, setBootError] = useState<string | null>(null)
+  const [retryToken, setRetryToken] = useState(0)
+  // T-69: テーマ・文字サイズの起動時適用（14の1.3）。themePreferenceはOS追従リスナーの要否判定に使う
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system')
 
   useEffect(() => {
     let cancelled = false
-    void Promise.all([hasProfile(getDb()), loadQuestionPool(packCache)]).then(([exists, pool]) => {
-      if (cancelled) return
-      if (!exists) navigate('diagnostic')
-      setQuestionPool(pool)
-      setBootChecked(true)
+    void Promise.all([
+      hasProfile(getDb()),
+      loadQuestionPool(packCache),
+      resumeSession(getDb()),
+      getDb().settings.get(THEME_PREFERENCE_KEY),
+      getDb().settings.get(FONT_SIZE_KEY),
+    ])
+      .then(([exists, pool, resumed, themeSetting, fontSetting]) => {
+        if (cancelled) return
+        if (!exists) navigate('diagnostic')
+        setQuestionPool(pool)
+        setResumeSnapshot(resumed)
+        const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
+        setThemePreferenceState(pref)
+        setTheme(resolveTheme(pref))
+        setFontSizeScale((fontSetting?.value as FontSizeScale | undefined) ?? 'M')
+        setBootChecked(true)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        console.error('[App] 起動チェックに失敗', err)
+        setBootError('データの読み込みに失敗しました')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [navigate, retryToken])
+
+  // OS追従（themePreference==='system'）のとき、OS側のダーク/ライト切替に追従する
+  useEffect(() => {
+    if (themePreference !== 'system') return
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => setTheme(resolveTheme('system'))
+    mql.addEventListener('change', handleChange)
+    return () => {
+      mql.removeEventListener('change', handleChange)
+    }
+  }, [themePreference])
+
+  // ホームに戻るたび（起動時に加え、ドリルの「中断」ボタンからの復帰時も）に
+  // 中断状態を再取得する。App自体はscreen切替では再マウントしないため、boot時点の
+  // 値のままだと中断直後のセッションが再開ボタンに反映されない
+  useEffect(() => {
+    if (!bootChecked || screen !== 'home') return
+    let cancelled = false
+    void resumeSession(getDb()).then((resumed) => {
+      if (!cancelled) setResumeSnapshot(resumed)
     })
     return () => {
       cancelled = true
     }
-  }, [navigate])
+  }, [bootChecked, screen])
 
   // 起動時のパック配信・キャッシュ同期（T-35）。bootChecked（診断遷移判定）とは
-  // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）
+  // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）。
+  // T-73: 新規/更新パックが同期できたら（synced.length>0）questionPoolを再読込し、
+  // 初回同期直後から新パックが出題対象になるようにする
   useEffect(() => {
-    void syncPacks({ db: getDb(), packCache })
+    let cancelled = false
+    void syncPacksAndReload(getDb(), packCache).then((pool) => {
+      if (!cancelled && pool) setQuestionPool(pool)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
+
+  // 起動時のレイドダメージ送信（M3・T-96）。失敗無視（syncRaidDamage内部で既に
+  // 通信失敗をcatch済みだが、DB例外等の想定外の失敗もこのeffectを壊さないよう握りつぶす）
+  useEffect(() => {
+    void syncRaidDamage(getDb(), raidApi).catch(() => {})
+  }, [])
+
+  // 起動時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗無視
+  useEffect(() => {
+    void sendQuestionStats(getDb(), raidApi).catch(() => {})
+  }, [])
+
+  // T-72: ストレージ保全（J-38）。拒否されても動作は変えない（iOS Safariはインストール済み
+  // PWAで自動許可される仕様）。navigator.storage不在環境（jsdom等）でも例外にならない
+  useEffect(() => {
+    void navigator.storage?.persist?.().catch(() => {})
+  }, [])
+
+  if (bootError) {
+    return (
+      <ScreenLayout
+        status={<p>起動エラー</p>}
+        action={
+          <PrimaryButton
+            onClick={() => {
+              setBootError(null)
+              setRetryToken((n) => n + 1)
+            }}
+          >
+            再試行
+          </PrimaryButton>
+        }
+      >
+        <p>{bootError}</p>
+        <p>設定→エクスポートで学習データを退避できます</p>
+      </ScreenLayout>
+    )
+  }
 
   if (!bootChecked) return null
 
@@ -99,9 +244,11 @@ export function App() {
     return <DiagnosticScreen db={getDb()} audioPlayer={audioPlayer} questionPool={questionPool} />
   }
   if (screen === 'drill') {
-    return <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} />
+    return (
+      <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} raidApi={raidApi} />
+    )
   }
-  if (screen === 'result') return <ResultScreen db={getDb()} />
+  if (screen === 'result') return <ResultScreen db={getDb()} raidApi={raidApi} />
   if (screen === 'vocab') {
     return <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={vocabQuestions} />
   }
@@ -115,8 +262,27 @@ export function App() {
     )
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
-  if (screen === 'settings') return <SettingsScreen db={getDb()} packCache={packCache} />
+  if (screen === 'settings') {
+    return <SettingsScreen db={getDb()} packCache={packCache} raidApi={raidApi} />
+  }
+  if (screen === 'raid') {
+    return (
+      <RaidScreen
+        db={getDb()}
+        raidApi={raidApi}
+        questionPool={questionPool}
+        resumeSnapshot={resumeSnapshot}
+      />
+    )
+  }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする
-  return <HomeScreen db={getDb()} questionPool={questionPool} />
+  return (
+    <HomeScreen
+      db={getDb()}
+      questionPool={questionPool}
+      resumeSnapshot={resumeSnapshot}
+      raidApi={raidApi}
+    />
+  )
 }

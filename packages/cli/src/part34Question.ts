@@ -23,12 +23,14 @@ import {
   type Part34RawEntry,
   type Part34RawSubQuestion,
 } from './data/part34SetsS.js'
+import { PART34_ENTRIES_S2 } from './data/part34SetsS2.js'
+import { PART34_ENTRIES_S3 } from './data/part34SetsS3.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
 import type { GeneratedItemDraft } from './review.js'
 
-export { PART34_ENTRIES_S }
+export { PART34_ENTRIES_S, PART34_ENTRIES_S2, PART34_ENTRIES_S3 }
 
 /** 話者アクセントのローテーション（part2Question.tsと同じ2値。Piperの対応状況に合わせる） */
 const ACCENT_ROTATION: readonly AudioAccent[] = ['US', 'UK']

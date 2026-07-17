@@ -4,16 +4,32 @@
 // BYOK設定済み（AiClient.isConfigured()）のときのみボタンを表示し、未設定なら出さない。
 // オフライン時はボタンを表示したまま disabled＋理由を出す。対話履歴はこのコンポーネントの
 // state のみに持ち、画面遷移（アンマウント）で自然に破棄する（J-14: 永続化しない）。
+// 「問題がおかしい」報告（M3・T-101。正本: docs/17 3.8節）:
+// raidApi.isConfigured() かつ登録済み（settings raidRegisteredAt）のときのみボタンを表示。
+// オフラインはdisabled。キューイングせず直接fetch送信し、成功後は同一問題への再報告を
+// メモリ内フラグで無効化する（永続化しない。画面遷移で自然にリセットされる）
 import { useEffect, useState } from 'react'
-import type { Question } from '@beb-raid/shared-schema'
-import { AiClientError, type AiChatTurn, type AiClient } from '../platform'
+import type { Question, QuestionReportReason } from '@beb-raid/shared-schema'
+import type { BebRaidDatabase } from '../db/database'
+import { AiClientError, type AiChatTurn, type AiClient, type RaidApi } from '../platform'
+import { RAID_REGISTERED_AT_KEY } from '../services/settingsKeys'
 
 interface Props {
   question: Question
   isCorrect: boolean
   /** BYOK AIクライアント（未注入なら「AIに聞く」自体を出さない） */
   aiClient?: AiClient
+  /** 共有API（レイド）クライアント（未注入なら「問題がおかしい」自体を出さない） */
+  raidApi?: RaidApi
+  /** raidRegisteredAt照会用（未注入ならraidApiがあっても報告ボタンは出さない） */
+  db?: BebRaidDatabase
 }
+
+const REPORT_REASONS: { value: QuestionReportReason; label: string }[] = [
+  { value: 'wrong_answer', label: '誤答扱い' },
+  { value: 'unnatural', label: '不自然' },
+  { value: 'bad_explanation', label: '解説が誤り' },
+]
 
 /** questionからAIへの問い合わせコンテキストを組み立てる（audio_qa/dictation/shadowing等は.question空のため.scriptにフォールバック） */
 function toAskContext(question: Question) {
@@ -30,7 +46,7 @@ function errorMessage(error: unknown): string {
   return 'エラーが発生しました。再試行してください'
 }
 
-export function ExplanationCard({ question, isCorrect, aiClient }: Props) {
+export function ExplanationCard({ question, isCorrect, aiClient, raidApi, db }: Props) {
   const [configured, setConfigured] = useState(false)
   const [online, setOnline] = useState(() => navigator.onLine)
   const [expanded, setExpanded] = useState(false)
@@ -38,6 +54,12 @@ export function ExplanationCard({ question, isCorrect, aiClient }: Props) {
   const [pendingQuestion, setPendingQuestion] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [registered, setRegistered] = useState(false)
+  const [reportExpanded, setReportExpanded] = useState(false)
+  const [reportSending, setReportSending] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -49,6 +71,17 @@ export function ExplanationCard({ question, isCorrect, aiClient }: Props) {
       cancelled = true
     }
   }, [aiClient])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!db) return
+    void db.settings.get(RAID_REGISTERED_AT_KEY).then((setting) => {
+      if (!cancelled) setRegistered(setting?.value != null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [db])
 
   useEffect(() => {
     function handleOnline() {
@@ -82,6 +115,20 @@ export function ExplanationCard({ question, isCorrect, aiClient }: Props) {
       setError(errorMessage(e))
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleReport(reason: QuestionReportReason) {
+    if (!raidApi) return
+    setReportSending(true)
+    setReportError(null)
+    try {
+      await raidApi.sendReport({ questionId: question.id, reason })
+      setReportSent(true)
+    } catch {
+      setReportError('送信できませんでした')
+    } finally {
+      setReportSending(false)
     }
   }
 
@@ -143,6 +190,38 @@ export function ExplanationCard({ question, isCorrect, aiClient }: Props) {
               >
                 {loading ? '送信中…' : error ? '再試行' : '送信'}
               </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {raidApi && raidApi.isConfigured() && registered && (
+        <div className="explanation-card__report">
+          {reportSent ? (
+            <p className="explanation-card__report-note">報告しました</p>
+          ) : !reportExpanded ? (
+            <button
+              type="button"
+              className="secondary-action"
+              disabled={!online}
+              onClick={() => setReportExpanded(true)}
+            >
+              問題がおかしい
+            </button>
+          ) : (
+            <>
+              {REPORT_REASONS.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  className="secondary-action"
+                  disabled={!online || reportSending}
+                  onClick={() => void handleReport(r.value)}
+                >
+                  {r.label}
+                </button>
+              ))}
+              {reportError && <p className="explanation-card__report-error">{reportError}</p>}
             </>
           )}
         </div>

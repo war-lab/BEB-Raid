@@ -1,11 +1,13 @@
 // App.tsx は起動時にprofile有無（T-20 P0診断）をチェックし、未診断ならDiagnosticScreen、
 // 診断済みなら'home'画面でHomeScreen（T-21）を描画する。どちらも実際にIndexedDBを読むため
 // fake-indexeddb が必要
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import 'fake-indexeddb/auto'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { QuestionPack } from '@beb-raid/shared-schema'
-import { App, loadQuestionPool } from './App'
+import { App, PACK_IDS, loadQuestionPool, syncPacksAndReload } from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
 import { createProfile } from './services/profile'
@@ -17,6 +19,10 @@ beforeEach(() => {
 
 afterEach(async () => {
   await getDb().profile.clear()
+  await getDb().settings.clear()
+  delete document.documentElement.dataset.theme
+  delete document.documentElement.dataset.fontSize
+  vi.restoreAllMocks()
 })
 
 describe('App（配線確認）', () => {
@@ -30,6 +36,104 @@ describe('App（配線確認）', () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
+  })
+})
+
+describe('App（起動チェック失敗時のエラー表示。T-68）', () => {
+  it('起動チェックが失敗すると白画面ではなくエラー画面と再試行ボタンを表示する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    getDb().close()
+
+    render(<App />)
+
+    expect(await screen.findByText('データの読み込みに失敗しました')).toBeTruthy()
+    expect(screen.getByText('再試行')).toBeTruthy()
+
+    // 他テストへ影響しないようDB接続を戻す
+    await getDb().open()
+  })
+
+  it('再試行に成功すると通常どおりホーム画面まで復帰する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    getDb().close()
+
+    render(<App />)
+    await screen.findByText('データの読み込みに失敗しました')
+
+    await getDb().open()
+    fireEvent.click(screen.getByText('再試行'))
+
+    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+  })
+})
+
+describe('App（テーマ・文字サイズの起動時適用。T-69）', () => {
+  it('保存済みのテーマ・文字サイズ設定が起動時に即適用される', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await getDb().settings.put({ key: 'themePreference', value: 'light' })
+    await getDb().settings.put({ key: 'fontSizeScale', value: 'L' })
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'BEB Raid' })
+
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(document.documentElement.dataset.fontSize).toBe('L')
+  })
+
+  it('テーマ設定がsystemのとき、OS側のダーク/ライト切替に追従する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await getDb().settings.put({ key: 'themePreference', value: 'system' })
+
+    const state = { matches: false }
+    const listeners: (() => void)[] = []
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          get matches() {
+            return state.matches
+          },
+          media: query,
+          addEventListener: (_event: string, handler: () => void) => {
+            listeners.push(handler)
+          },
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList,
+    )
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'BEB Raid' })
+    expect(document.documentElement.dataset.theme).toBe('light')
+
+    state.matches = true
+    listeners.forEach((handler) => handler())
+
+    expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+})
+
+describe('App（ストレージ保全。T-72）', () => {
+  it('navigator.storage が存在しない環境（jsdom既定）でも例外にならず起動できる', async () => {
+    expect(navigator.storage).toBeUndefined() // jsdomの既定確認（前提が崩れていないか）
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+  })
+
+  it('navigator.storage.persist() が拒否されても起動を妨げない', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { persist: async () => Promise.reject(new Error('denied')) },
+    })
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
   })
 })
 
@@ -105,5 +209,126 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     })
     const pool = await loadQuestionPool(packCache, '/')
     expect(pool.map((q) => q.id)).toEqual(['p2-1'])
+  })
+})
+
+describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () => {
+  function pack(id: string, questions: QuestionPack['questions']): QuestionPack {
+    return {
+      schemaVersion: 2,
+      pack: {
+        id,
+        title: id,
+        license: 'internal-original',
+        origin: 'test',
+        targetLevel: [600, 600],
+      },
+      questions,
+    }
+  }
+
+  function fakePackCache(get: PackCache['get']): PackCache {
+    return {
+      has: vi.fn(async () => false),
+      get,
+      addAll: vi.fn(async () => {}),
+      delete: vi.fn(async () => {}),
+      keys: vi.fn(async () => []),
+      usage: vi.fn(async () => ({ bytes: 0, entries: 0 })),
+      clear: vi.fn(async () => {}),
+    }
+  }
+
+  it('synced.length>0のとき、同期後の内容でquestionPoolを再読込して返す', async () => {
+    // PackCache.get は「既にピン留め済みの内容」役（loadQuestionPool側のcache-first読み込み用）。
+    // 1件だけ問題入りにし、再読込後のプールに反映されることを確認する
+    const packCache = fakePackCache(async (url) => {
+      const id = PACK_IDS.find((i) => url === `/packs/${i}.json`)
+      if (!id) throw new Error(`unexpected url: ${url}`)
+      const questions = id === PACK_IDS[0] ? [{ id: 'new-question' } as never] : []
+      return new Blob([JSON.stringify(pack(id, questions))])
+    })
+
+    const manifestBody = {
+      schemaVersion: 2,
+      packs: PACK_IDS.map((id) => ({
+        id,
+        title: id,
+        targetLevel: [600, 600] as [number, number],
+        sizeBytes: 10,
+        hash: `h-${id}`,
+      })),
+    }
+    const originalFetch = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        return { ok: true, json: async () => manifestBody } as Response
+      }
+      const id = PACK_IDS.find((i) => url === `/packs/${i}.json`)
+      if (id) return { ok: true, json: async () => pack(id, []) } as Response
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+
+    try {
+      const pool = await syncPacksAndReload(getDb(), packCache)
+      expect(pool).not.toBeNull()
+      expect(pool?.map((q) => q.id)).toEqual(['new-question'])
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('syncPacksがsynced=0（変化なし）のとき、nullを返しプールを再読込しない', async () => {
+    await getDb().settings.put({
+      key: 'packSyncState',
+      value: {
+        packHashes: Object.fromEntries(PACK_IDS.map((id) => [id, `h-${id}`])),
+        totalSizeBytes: 0,
+        lastSyncedAt: 0,
+      },
+    })
+    const packCache = fakePackCache(async () => null)
+    const manifestBody = {
+      schemaVersion: 2,
+      packs: PACK_IDS.map((id) => ({
+        id,
+        title: id,
+        targetLevel: [600, 600] as [number, number],
+        sizeBytes: 10,
+        hash: `h-${id}`, // 前回と同一ハッシュ=全件skip
+      })),
+    }
+    const originalFetch = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') return { ok: true, json: async () => manifestBody } as Response
+      throw new Error(`unexpected fetch (skip対象のはず): ${url}`)
+    }) as unknown as typeof fetch
+
+    try {
+      const pool = await syncPacksAndReload(getDb(), packCache)
+      expect(pool).toBeNull()
+    } finally {
+      global.fetch = originalFetch
+      await getDb().settings.delete('packSyncState')
+    }
+  })
+})
+
+describe('PACK_IDS（手動複製の追加漏れ検知）', () => {
+  it('content/manifest.json（build成果物）のパック一覧と一致する', () => {
+    // PACK_IDSはcli側のPACK_DEFINITIONSを手動複製したものなので、新パック追加時に
+    // ここへの追記を忘れると出題プールから静かに漏れる（レビューで発見したバグの再発防止）。
+    // content/manifest.jsonが無い（buildコマンド未実行）環境ではスキップする
+    const manifestPath = join(__dirname, '../../../content/manifest.json')
+    let manifest: { packs: { id: string }[] }
+    try {
+      manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+    } catch {
+      return
+    }
+    const manifestIds = new Set(manifest.packs.map((p) => p.id))
+    expect(new Set(PACK_IDS)).toEqual(manifestIds)
   })
 })

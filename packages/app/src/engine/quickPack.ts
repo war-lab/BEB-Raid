@@ -323,6 +323,19 @@ async function buildPhaseDrivenDrillItems(
   return toDrillItems(picked)
 }
 
+/**
+ * SRSカードが今回の出題候補プールで実際に出題可能か（対応するQuestionが実在するか）。
+ * 語彙カードも question と同様に実在確認する（発見バグ: 以前は refType==='vocab' を
+ * 無条件でservable扱いしており、対応する vocab_card が未読込パックにある場合に
+ * questionId:null の出題item が生成されDrillScreenが復帰不能になっていた）
+ */
+function isServable(card: SrsCardRecord, questions: readonly Question[]): boolean {
+  if (card.refType === 'vocab') {
+    return questions.some((q) => q.format === 'vocab_card' && q.front === card.refId)
+  }
+  return questions.some((q) => q.id === card.refId)
+}
+
 /** SRSカード → パック項目 */
 function srsItem(
   card: SrsCardRecord,
@@ -362,9 +375,7 @@ export async function generateQuickPack(
   const items: QuickPackItem[] = []
 
   // ① SRS期限超過（上限 = min(15, パック容量)。溢れは次パックへ）
-  const servableDue = queue.dueReviews.filter(
-    (c) => c.refType === 'vocab' || request.questions.some((q) => q.id === c.refId),
-  )
+  const servableDue = queue.dueReviews.filter((c) => isServable(c, request.questions))
   const srsCap = Math.min(config.srsCapPerPack, durationConfig.totalItems)
   const dueTaken = servableDue.slice(0, srsCap)
   const srsOverflow = servableDue.length - dueTaken.length
@@ -377,9 +388,7 @@ export async function generateQuickPack(
   const newCap = durationConfig.includeDrills
     ? Math.min(remaining, Math.floor(durationConfig.totalItems * config.newCardShare))
     : remaining
-  const servableNew = queue.newCards.filter(
-    (c) => c.refType === 'vocab' || request.questions.some((q) => q.id === c.refId),
-  )
+  const servableNew = queue.newCards.filter((c) => isServable(c, request.questions))
   for (const card of servableNew.slice(0, newCap)) {
     items.push(srsItem(card, request.questions, { type: 'srsNew' }))
   }
