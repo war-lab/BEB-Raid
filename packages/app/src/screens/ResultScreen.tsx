@@ -10,6 +10,7 @@ import { SEASON_LABELS, type PhaseTransitionOutcome } from '../engine/curriculum
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import type { RaidApi } from '../platform'
 import { evaluateAndPersistPhaseTransition } from '../services/phase'
+import { sendQuestionStats } from '../services/questionStats'
 import { syncRaidDamage } from '../services/raidSync'
 import { completeSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
@@ -92,6 +93,11 @@ export function ResultScreen({ db, raidApi }: Props) {
   // セッション完了時のレイドダメージ送信（M3・T-96）。非同期・失敗無視
   useEffect(() => {
     void syncRaidDamage(db, raidApi).catch(() => {})
+  }, [db, raidApi])
+
+  // セッション完了時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。非同期・失敗無視
+  useEffect(() => {
+    void sendQuestionStats(db, raidApi).catch(() => {})
   }, [db, raidApi])
 
   const correctCount = results.filter((r) => r.isCorrect).length

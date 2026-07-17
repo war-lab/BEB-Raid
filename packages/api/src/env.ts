@@ -4,6 +4,7 @@
 import type { DailyGoal } from '@beb-raid/shared-schema'
 
 import type { RaidBossDO } from './raidBossDo'
+import type { StatsDO } from './statsDo'
 
 export interface Env {
   ALLOWED_ORIGINS: string
@@ -11,6 +12,7 @@ export interface Env {
   INVITE_CODE: string
   MEMBERS: KVNamespace
   RAID_BOSS: DurableObjectNamespace<RaidBossDO>
+  STATS: DurableObjectNamespace<StatsDO>
 }
 
 /** KVの `member:<deviceToken>` キーに保存する値（正本: docs/17 3.2節） */

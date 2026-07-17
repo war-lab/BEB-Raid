@@ -1,6 +1,5 @@
 # Cloudflare Workers設定（正本: docs/17_M3実装計画.md 3.10節）。
-# DO(STATS)のバインディングはT-100で追加する
-# （T-94時点でRAID_BOSS DOを追加。ヘルスチェック+CORS+deviceToken登録+週次ボスDO）。
+# （T-94時点でRAID_BOSS DOを追加。T-100でSTATS DO（questionStats集計）を追加）。
 # INVITE_CODE等の秘密値はここに書かず `wrangler secret put` で環境ごとに設定する（H-1）。
 # ローカル開発・vitest実行時はwrangler/miniflareがKVをローカルエミュレートするため、
 # 下記idはCloudflareの実IDである必要がない（H-1完了時に`wrangler kv namespace create`の
@@ -18,9 +17,17 @@ id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID" # H-1完了後に実IDへ差し替え�
 name = "RAID_BOSS"
 class_name = "RaidBossDO"
 
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "StatsDO"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RaidBossDO"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["StatsDO"]
 
 # 週次ボス生成（3.4節）。"1" = 月曜（標準cron表記。日=0〜土=6）
 [triggers]

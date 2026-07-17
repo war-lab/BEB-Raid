@@ -17,6 +17,7 @@ import {
 } from './platform'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
+import { sendQuestionStats } from './services/questionStats'
 import { syncRaidDamage } from './services/raidSync'
 import { resumeSession, type SessionSnapshot } from './services/session'
 import { BYOK_API_KEY_KEY, FONT_SIZE_KEY, THEME_PREFERENCE_KEY } from './services/settingsKeys'
@@ -200,6 +201,11 @@ export function App() {
   // 通信失敗をcatch済みだが、DB例外等の想定外の失敗もこのeffectを壊さないよう握りつぶす）
   useEffect(() => {
     void syncRaidDamage(getDb(), raidApi).catch(() => {})
+  }, [])
+
+  // 起動時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗無視
+  useEffect(() => {
+    void sendQuestionStats(getDb(), raidApi).catch(() => {})
   }, [])
 
   // T-72: ストレージ保全（J-38）。拒否されても動作は変えない（iOS Safariはインストール済み

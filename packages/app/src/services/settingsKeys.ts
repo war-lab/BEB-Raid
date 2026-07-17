@@ -24,3 +24,13 @@ export const RAID_SYNC_ENABLED_KEY = 'raidSyncEnabled'
  * これがあれば「登録済み」とみなし、毎回サーバー照会しない（M3・T-98・3.7節）
  */
 export const RAID_REGISTERED_AT_KEY = 'raidRegisteredAt'
+/**
+ * 匿名問題別正誤集計（questionStats）の共有API送信を有効にするか（M3・T-100・3.8節）。
+ * 既定OFF。OFF時はattempts読み取り・送信とも一切発生しない（縮退設計）
+ */
+export const QUESTION_STATS_ENABLED_KEY = 'questionStatsEnabled'
+/**
+ * questionStats送信のwatermark（epoch ms）。この時刻より新しいattemptsのみを
+ * 次回送信対象とする（3.8節。pendingSyncは使わず集計値の再計算で足りるため）
+ */
+export const QUESTION_STATS_LAST_SENT_AT_KEY = 'questionStatsLastSentAt'

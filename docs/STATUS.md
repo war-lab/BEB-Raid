@@ -74,19 +74,26 @@
 - **これでM3ステップ4「画面」（T-97〜T-99）が完了**。ステップ5「統計」（T-100・T-101）へ進める状態。
 - 検証: relativeTime単体テスト7件（境界値: 59分/60分/23時間59分/24時間/負値）、HomeScreen・RaidScreenへの追加テスト計5件、raidSync.test.ts追加分の回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
 
+**T-100 完了（2026-07-17。devへ直接commit）**: 匿名問題別正誤集計の送信を実装。api側にシングルトンDurable Object `StatsDO`（`idFromName('global')`。SQLite表`question_stats(questionId主キー, correct, wrong, timeout)`をUPSERT加算）とPOST/GET `/stats/questions`（両方Bearer必須）を新設。app側は`services/questionStats.ts`（watermark方式。settings `questionStatsLastSentAt` より新しいattemptsをquestionId別に集計し、`shadow:`プレフィックスは除外して送信。成功時にwatermarkを進める）を新設し、`RaidApi.sendQuestionStats`をraidSyncと同じトリガー（起動時・セッション完了時）に相乗りさせた。SettingsScreenに`questionStatsEnabled`トグル（既定OFF。raidApi.isConfigured()時のみ表示）を追加。
+
+- **本セッションでの運用変更**: 発起人の指示により本タスクは**task/ブランチ＋PR運用ではなくdevへ直接commit＆push**で実施した（17の2.1節が定める通常運用からの一時的な逸脱。M2ブラッシュアップと並走中の他セッションとの衝突リスクはこのセッション実行時点で確認済みの範囲では発生していない）。
+- **17の3.1節と3.8節の記述齟齬を発見・修正**: 3.1節は「エンドポイントは以下の6本のみ」としていたが、3.8節はT-100で管理用`GET /stats/questions`（cli等の運用者向け・app非使用）を追加する指示を含んでおり、内部で矛盾していた。3.1節に「6本は基本契約、GET /stats/questionsは別枠の管理用」と注記して解消した。
+- **保存レコード型のdeviceToken非混入は構造的に保証**: `StatsDO.addStats`の引数型が`QuestionStatPayload`（deviceTokenフィールドを持たない）であるため、呼び出し側の実装ミスでも混入し得ない。SQLite表にも列を持たせていない。実行時テスト（api: statsDo.test.ts・statsHandlers.test.ts）でも保存・レスポンスの両方にdeviceTokenが現れないことを確認した。
+- **実機相当の検証**: `wrangler dev --local`を実起動し、`/register`→`POST /stats/questions`（2件送信→`{accepted:2}`）→`GET /stats/questions`（集計値確認）→未認証401→不正ボディ400をcurlで確認した（`.dev.vars`はテスト後に削除。gitignore対象のため未コミット）。
+- 検証: api単体テスト62件（既存51件+statsDo 4件+statsHandlers 7件）、app単体511件（既存+questionStats.test.ts 8件・FetchRaidApi.test.ts 1件追加・全FakeRaidApi実装へのsendQuestionStats追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 62件/app 511件/cli 305件/review-ui 15件/shared-schema 47件、計940件）すべて通過。
+
 ### M3の次のアクション（次セッションはここから）
 
-**ステップ2「疎通」・ステップ3「集計」・ステップ4「画面」（T-90〜T-99）は全てdevにマージ済み**（2026-07-17）。残りは以下:
+**ステップ2「疎通」・ステップ3「集計」・ステップ4「画面」（T-90〜T-99）に加え、T-100（questionStats送信）もdevにマージ済み**（2026-07-17）。残りは以下:
 
 | 順 | タスク | 依存 | Cloudflareアカウント |
 |----|--------|------|---------------------|
-| 1 | T-100（questionStats送信） | T-94, T-95 | 不要（ローカル完結） |
-| 2 | T-101（「問題がおかしい」報告の集約） | T-100 | 不要 |
-| 3 | T-102（レイド系バッジの初書込） | T-98 | 不要 |
+| 1 | T-101（「問題がおかしい」報告の集約） | T-100 | 不要 |
+| 2 | T-102（レイド系バッジの初書込） | T-98 | 不要 |
 | － | T-93（ヘルスチェック＋CORS＋デプロイ） | H-1待ち | **必要**（保留中。人数確認・アカウント準備が済み次第いつでも着手可） |
 
-- 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)3.8節（questionStats・問題報告）・3.9節（バッジ）、作業指示は同書7〜9節のT-100〜T-102シート。
-- ブランチ運用は引き続き**task/T-10x-説明 ブランチ＋dev向けドラフトPR**（17の2.1節）。
+- 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)3.8節（questionStats・問題報告）・3.9節（バッジ）、作業指示は同書7〜9節のT-101・T-102シート。
+- ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
 - 開始プロンプト例は17の1節どおり: 「docs/17_M3実装計画.md の T-10x を実装してください。着手前に同書の2節・3節と該当シートを必ず読むこと。task/ブランチ＋dev向けドラフトPR作成まで実施し、完了時はSTATUS.mdを同PRで更新してください」。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）

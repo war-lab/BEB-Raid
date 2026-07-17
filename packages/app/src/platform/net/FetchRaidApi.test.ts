@@ -113,6 +113,26 @@ describe('FetchRaidApi.syncDamage', () => {
   })
 })
 
+describe('FetchRaidApi.sendQuestionStats', () => {
+  it('POST /stats/questionsへBearerヘッダ・statsをボディに含めて送り、accepted件数を返す', async () => {
+    const fetchMock = mockFetch(async () => fakeResponse({ accepted: 2 }))
+    const client = new FetchRaidApi('https://api.example.com', async () => 'device-1', fetchMock)
+    const stats = [
+      { questionId: 'q-1', correct: 3, wrong: 1, timeout: 0 },
+      { questionId: 'q-2', correct: 0, wrong: 1, timeout: 1 },
+    ]
+
+    const accepted = await client.sendQuestionStats(stats)
+
+    expect(accepted).toBe(2)
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe('https://api.example.com/stats/questions')
+    expect(init!.method).toBe('POST')
+    expect((init!.headers as Record<string, string>).Authorization).toBe('Bearer device-1')
+    expect(JSON.parse(init!.body as string)).toEqual({ stats })
+  })
+})
+
 describe('FetchRaidApi: エラー種別判定', () => {
   it('未設定（isConfigured=false）ならfetchせずunknownエラー', async () => {
     const fetchMock = vi.fn()

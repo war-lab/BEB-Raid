@@ -16,6 +16,7 @@ import {
   FONT_SIZE_KEY,
   HAPTICS_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
+  QUESTION_STATS_ENABLED_KEY,
   RAID_SYNC_ENABLED_KEY,
   THEME_PREFERENCE_KEY,
 } from '../services/settingsKeys'
@@ -51,6 +52,8 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
   const [hapticsEnabled, setHapticsEnabledState] = useState(true)
   // T-96: レイドダメージ送信の有効/無効。既定OFF（レイド参加中のみ有効にする想定）
   const [raidSyncEnabled, setRaidSyncEnabledState] = useState(false)
+  // T-100: questionStats（匿名問題別正誤集計）送信の有効/無効。既定OFF
+  const [questionStatsEnabled, setQuestionStatsEnabledState] = useState(false)
   const [themePref, setThemePrefState] = useState<ThemePreference>('system')
   const [fontSize, setFontSizeState] = useState<FontSizeScale>(getFontSizeScale())
   const [cacheUsage, setCacheUsage] = useState<CacheUsage | null>(null)
@@ -80,6 +83,7 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
         estimateResult,
         hapticsSetting,
         raidSyncSetting,
+        questionStatsSetting,
       ] = await Promise.all([
         db.profile.get(PROFILE_ID),
         db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -92,12 +96,14 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
         navigator.storage?.estimate?.() ?? Promise.resolve(null),
         db.settings.get(HAPTICS_ENABLED_KEY),
         db.settings.get(RAID_SYNC_ENABLED_KEY),
+        db.settings.get(QUESTION_STATS_ENABLED_KEY),
       ])
       if (cancelled) return
       if (profile) setDisplayName(profile.displayName)
       setNoEarphoneModeState(earphoneSetting?.value === true)
       setHapticsEnabledState(hapticsSetting?.value !== false)
       setRaidSyncEnabledState(raidSyncSetting?.value === true)
+      setQuestionStatsEnabledState(questionStatsSetting?.value === true)
       const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
       setThemePrefState(pref)
       setTheme(resolveTheme(pref))
@@ -141,6 +147,12 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
     const next = !raidSyncEnabled
     setRaidSyncEnabledState(next)
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: next })
+  }
+
+  async function handleToggleQuestionStats() {
+    const next = !questionStatsEnabled
+    setQuestionStatsEnabledState(next)
+    await db.settings.put({ key: QUESTION_STATS_ENABLED_KEY, value: next })
   }
 
   async function handleThemeChange(pref: ThemePreference) {
@@ -257,6 +269,20 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
               レイドダメージを送信する
             </label>
             <p>レイド参加中のみ有効にしてください</p>
+          </section>
+        )}
+
+        {raidApi.isConfigured() && (
+          <section>
+            <label>
+              <input
+                type="checkbox"
+                checked={questionStatsEnabled}
+                onChange={() => void handleToggleQuestionStats()}
+              />
+              問題別の正誤統計を送信する
+            </label>
+            <p>問題の難易度調整のための匿名統計です</p>
           </section>
         )}
 

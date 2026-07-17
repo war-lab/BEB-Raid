@@ -4,6 +4,8 @@
 
 import type {
   DamageSyncPayload,
+  QuestionStatPayload,
+  QuestionStatsRequest,
   RaidBossState,
   RaidSyncRequest,
   RaidSyncResponse,
@@ -61,6 +63,17 @@ export class FetchRaidApi implements RaidApi {
       true,
     )
     return (await res!.json()) as RaidSyncResponse
+  }
+
+  async sendQuestionStats(stats: QuestionStatPayload[]): Promise<number> {
+    const body: QuestionStatsRequest = { stats }
+    const res = await this.request(
+      '/stats/questions',
+      { method: 'POST', body: JSON.stringify(body) },
+      true,
+    )
+    const { accepted } = (await res!.json()) as { accepted: number }
+    return accepted
   }
 
   /**

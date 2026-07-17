@@ -2,10 +2,11 @@
 // UI・サービス層は fetch を直接呼ばず、必ずこのインターフェース経由で使う
 // （platform/index.ts の factory 経由。ESLintの直接WebAPI禁止と同じ運用方針。
 // AiClient/AnthropicAiClientと同じ抽象化パターン）。
-// sendQuestionStats（T-100）・sendReport（T-101）はここに追加していく
+// sendQuestionStats（T-100）を追加済み。sendReport（T-101）はここに追加していく
 
 import type {
   DamageSyncPayload,
+  QuestionStatPayload,
   RaidBossState,
   RaidSyncResponse,
   RegisterRequest,
@@ -18,4 +19,6 @@ export interface RaidApi {
   /** 今週のボスが未生成（404）ならnullを返す */
   fetchCurrentBoss(): Promise<RaidBossState | null>
   syncDamage(payloads: DamageSyncPayload[]): Promise<RaidSyncResponse>
+  /** 匿名問題別正誤集計の送信（M3・T-100）。戻り値はサーバーが受理した件数 */
+  sendQuestionStats(stats: QuestionStatPayload[]): Promise<number>
 }

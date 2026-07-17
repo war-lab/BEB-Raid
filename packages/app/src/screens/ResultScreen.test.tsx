@@ -40,6 +40,7 @@ class FakeRaidApi implements RaidApi {
   register = vi.fn(async () => {})
   fetchCurrentBoss = vi.fn(async () => null)
   syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: FAKE_BOSS }))
+  sendQuestionStats = vi.fn(async () => 0)
 }
 
 beforeEach(() => {
