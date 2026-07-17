@@ -91,8 +91,10 @@ export class RaidBossDO extends DurableObject<Env> {
 
   /**
    * ダメージのバッチ受理（冪等。3.5節）。
-   * 討伐後・期限受信後・帰属期間外（J-49）のpayloadは加算しないが、
-   * クライアント側pendingSyncを掃除できるようattemptIdはacceptedIdsに含める
+   * 討伐後・帰属期間外（answeredAtが[startAt,endAt]外。J-49）のpayloadは加算しないが、
+   * クライアント側pendingSyncを掃除できるようattemptIdはacceptedIdsに含める。
+   * 受信（receivedAt）自体がendAtを過ぎていても、answeredAtが期間内なら加算する
+   * （J-49: オフライン滞留分の正当な遅延到着を減点しない）
    */
   async syncDamage(
     deviceToken: string,
@@ -104,7 +106,6 @@ export class RaidBossDO extends DurableObject<Env> {
 
     const acceptedIds: string[] = []
     let defeated = state.defeatedAt !== null
-    const closed = receivedAt > state.endAt
 
     for (const entry of entries) {
       if (this.hasAttempt(entry.attemptId)) {
@@ -117,7 +118,10 @@ export class RaidBossDO extends DurableObject<Env> {
         entry.answeredAt > receivedAt + FIVE_MINUTES_MS ? receivedAt : entry.answeredAt
       const inPeriod = answeredAt >= state.startAt && answeredAt <= state.endAt
 
-      if (defeated || closed || !inPeriod) {
+      // J-49: 受信(receivedAt)がボスの期限を過ぎていても、answeredAtが期間内なら加算する
+      // （オフライン滞留分の正当な遅延到着を減点しない=01のオフライン正常系の原則）。
+      // 拒否するのは「既に討伐済み」か「answeredAt自体が期間外」のときだけ
+      if (defeated || !inPeriod) {
         acceptedIds.push(entry.attemptId)
         continue
       }

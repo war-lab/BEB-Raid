@@ -130,7 +130,7 @@ describe('RaidBossDO', () => {
     expect(result.boss.hp).toBe(800)
   })
 
-  it('受信時刻が期限後（期限切れ）の場合は加算されない', async () => {
+  it('受信（receivedAt）が期限後でも、answeredAtが期間内なら加算する（J-49）。表示statusはclosed', async () => {
     const stub = freshStub(crypto.randomUUID())
     await initBoss(stub, { maxHp: 1000, startAt: START_AT, endAt: END_AT })
 
@@ -144,8 +144,26 @@ describe('RaidBossDO', () => {
     )
 
     expect(result.acceptedIds).toEqual(['late-1'])
+    expect(result.boss.hp).toBe(800) // オフライン滞留分は期限後の受信でも加算される
+    expect(result.boss.status).toBe('closed') // 表示上は期限切れのまま（討伐はしていない）
+  })
+
+  it('answeredAt自体が期間外（endAtより後）なら加算されない（クランプの影響を受けないよう受信時刻も同時刻にする）', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000, startAt: START_AT, endAt: END_AT })
+
+    // answeredAt=receivedAtにして未来クランプが働かないようにし、純粋にinPeriod判定だけを見る
+    const afterEnd = END_AT + HOUR_MS
+    const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'device-1',
+        [{ attemptId: 'too-late-answer', damage: 200, questionCount: 1, answeredAt: afterEnd }],
+        afterEnd,
+      ),
+    )
+
+    expect(result.acceptedIds).toEqual(['too-late-answer'])
     expect(result.boss.hp).toBe(1000)
-    expect(result.boss.status).toBe('closed')
   })
 
   it('contributionsにKVの表示名が反映される', async () => {
