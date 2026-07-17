@@ -1,13 +1,16 @@
 // Workerバインディングの単一定義（正本: docs/17_M3実装計画.md 3.2節・3.10節）。
-// KV(MEMBERS)・DO(RAID_BOSS/STATS)は追加のたびにここへ足していく（T-94/T-100）
+// DO(STATS)は追加のたびにここへ足していく（T-100）
 
 import type { DailyGoal } from '@beb-raid/shared-schema'
+
+import type { RaidBossDO } from './raidBossDo'
 
 export interface Env {
   ALLOWED_ORIGINS: string
   /** 招待コード（wrangler secret / .dev.vars。リポジトリには実値を置かない） */
   INVITE_CODE: string
   MEMBERS: KVNamespace
+  RAID_BOSS: DurableObjectNamespace<RaidBossDO>
 }
 
 /** KVの `member:<deviceToken>` キーに保存する値（正本: docs/17 3.2節） */
