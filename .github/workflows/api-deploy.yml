@@ -5,11 +5,12 @@
 #   - workflow_dispatch（手動実行）で環境を選択。production は手動実行のみ（誤って本番へ
 #     自動デプロイしないための安全側の設計。docs/17 T-93「本番は手動dispatchのみ」）
 #
-# 【前提=人間タスク H-1 が未了だと失敗する】このワークフローは以下を GitHub Secrets に
-# 要求する: CLOUDFLARE_API_TOKEN（権限=「Edit Cloudflare Workers」）・CLOUDFLARE_ACCOUNT_ID。
+# 【前提=人間タスク H-1】このワークフローは以下を GitHub Secrets に要求する:
+# CLOUDFLARE_API_TOKEN（権限=「Edit Cloudflare Workers」）・CLOUDFLARE_ACCOUNT_ID。
 # さらに packages/api/wrangler.toml の KV namespace id が実IDに差し替わっている必要がある
-# （現状はプレースホルダー REPLACE_WITH_REAL_KV_NAMESPACE_ID*）。H-1 完了までは deploy が
-# 失敗するのが正常（ワークフロー定義の先行整備が本コミットの目的）。
+# （現状はプレースホルダー REPLACE_WITH_REAL_KV_NAMESPACE_ID*）。
+# **H-1 未了（CLOUDFLARE_API_TOKEN 未設定）のときはデプロイstepをスキップする**（下の guard step）。
+# これによりH-1前でもワークフローは緑（成功）で終わり、H-1後は自動でデプロイが有効になる。
 # シークレット値はこのファイルに一切書かない（publicリポジトリのため。docs/17 H-1）。
 name: Deploy API (Cloudflare Workers)
 
@@ -48,7 +49,22 @@ jobs:
           npm run build -w @beb-raid/shared-schema
           npm run build -w @beb-raid/api
           npm test -w @beb-raid/api
+      # H-1（Cloudflare準備）未了だと CLOUDFLARE_API_TOKEN が未設定になる。その場合は
+      # デプロイstepをスキップし、ワークフロー自体は成功（緑）で終える。secretは step-level
+      # の if から直接参照できないため、一旦 env に受けてから run で有無を判定し output に出す。
+      - name: Cloudflareシークレット有無の確認
+        id: guard
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CF_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLOUDFLARE_API_TOKEN が未設定のためデプロイをスキップしました（H-1未了）。"
+          fi
       - name: デプロイ
+        if: steps.guard.outputs.ready == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
