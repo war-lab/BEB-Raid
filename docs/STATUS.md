@@ -101,11 +101,14 @@
 
 | 順 | タスク | 依存 | 備考 |
 |----|--------|------|------|
-| － | T-93（ヘルスチェック＋CORS＋デプロイ） | H-1待ち | **Cloudflareアカウントが必要**（保留中。人数確認・アカウント準備が済み次第いつでも着手可） |
+| － | T-93（ヘルスチェック＋CORS＋デプロイ） | 🟡部分完了。実デプロイはH-1待ち | ワークフロー（`api-deploy.yml`）とwrangler.tomlのenv継承バグ修正はAI実施済み（2026-07-17）。**実デプロイ＋CORS実疎通確認はCloudflareアカウント（H-1）とKV id転記が済み次第** |
+| － | H-1（Cloudflare準備） | なし | 🔴人間主体。アカウント作成・APIトークン発行→GitHub Secrets（`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`）登録・`wrangler secret put INVITE_CODE`（dev/prod）・KV namespace作成とwrangler.tomlのid3箇所転記 |
 | － | H-2（招待コード配布・周知） | T-98完了後 | 🔴人間主体 |
 | － | H-3（実機通し確認） | T-99完了後 | 🔴人間主体。T-98のPlaywright確認では代替しきれない実機（iOS/Android）確認 |
 
-- T-93以降にAI単独で着手できるM3タスクは残っていない。次にAIが着手できる作業はM2残タスク（T-65・T-66。ただし🔴人間主体）かM3クローズ後の判断待ち。
+**T-93 部分完了（2026-07-17。task/T-93-api-deploy-workflow ブランチ）**: H-1（Cloudflareアカウント）未了のため、アカウント不要でAI実施可能な部分を先行整備した。①`.github/workflows/api-deploy.yml` を新設: `main`へのpush（paths: `packages/api/**`）で `wrangler deploy --env dev`、`workflow_dispatch`で環境選択（production は手動実行のみ）。`cloudflare/wrangler-action@v3`（`workingDirectory: packages/api`・`command: deploy --env ...`）を使用し、デプロイ前ゲートとして shared-schemaビルド→api型検査（tsc --noEmit）→apiテストを走らせる。②**wrangler.tomlのenv継承バグを発見・修正（T-93の主要成果）**: `wrangler deploy --env dev --dry-run` で「durable_objects が env.dev に無い」警告を検出。名前付き環境はバインディング（vars・kv_namespaces・durable_objects）をトップレベルから継承しないため、`--env dev`/`--env production`デプロイ（package.jsonのdeploy:dev/production・api-deploy.yml が使う経路）ではRAID_BOSS/STATS DOがバインドされずレイドが丸ごと動かない潜在バグだった。`[[env.dev.durable_objects.bindings]]`・`[[env.production.durable_objects.bindings]]`を追加して解消（dry-runで両環境ともDO2個がバインドされることを確認）。**このバグはvitest（`--env`なしのトップレベル設定を使う）・ローカル`wrangler dev`（同上）では顕在化せず、`--env`デプロイでのみ壊れるため既存テストで検出できなかった**。`migrations`・`triggers`(cron)・`compatibility_date`は継承されるため再定義不要（dry-runで警告が出るのはdurable_objectsのみ＝継承されないものだけ警告される挙動と一致）。③**🟡 H-1後の確認事項**: (a) KV id 3箇所（`REPLACE_WITH_REAL_KV_NAMESPACE_ID*`）を実IDへ転記、(b) 実デプロイで `/health` 200、(c) アプリオリジンからのCORS疎通、(d) cronがデプロイ環境に実際にアタッチされたか（`triggers`継承はドキュメント上は成立するが実デプロイ出力で要確認）。**停止条件（DO無料枠）は未確認**: DOがアカウントのプランで使えるか（有料Workers Paid要否）はH-1着手時に必ず確認する。検証: `wrangler deploy --env dev/production --dry-run` 通過（バンドル26.47KiB）、api build＋テスト71件通過、YAML parse OK、ルート `npm run lint`・`npm run build`・`npm test` 通過。
+
+- T-93の実デプロイ以外は完了。次にAI単独で着手できるM3タスクは無い（実デプロイはH-1、H-2/H-3は人間主体）。M2残タスク（T-65・T-66）も🔴人間主体。
 - 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)全節。T-93着手時は3.10節・5節T-93シートを読むこと。
 - ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100〜T-102は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
 

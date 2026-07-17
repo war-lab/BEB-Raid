@@ -1,0 +1,59 @@
+# 共有API（Cloudflare Workers）デプロイ（T-93。正本: docs/17_M3実装計画.md 3.10節・T-93シート）
+#
+# トリガー:
+#   - main への push で packages/api/** に変更があれば dev 環境へ自動デプロイ
+#   - workflow_dispatch（手動実行）で環境を選択。production は手動実行のみ（誤って本番へ
+#     自動デプロイしないための安全側の設計。docs/17 T-93「本番は手動dispatchのみ」）
+#
+# 【前提=人間タスク H-1 が未了だと失敗する】このワークフローは以下を GitHub Secrets に
+# 要求する: CLOUDFLARE_API_TOKEN（権限=「Edit Cloudflare Workers」）・CLOUDFLARE_ACCOUNT_ID。
+# さらに packages/api/wrangler.toml の KV namespace id が実IDに差し替わっている必要がある
+# （現状はプレースホルダー REPLACE_WITH_REAL_KV_NAMESPACE_ID*）。H-1 完了までは deploy が
+# 失敗するのが正常（ワークフロー定義の先行整備が本コミットの目的）。
+# シークレット値はこのファイルに一切書かない（publicリポジトリのため。docs/17 H-1）。
+name: Deploy API (Cloudflare Workers)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/api/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'デプロイ先環境（production は手動実行時のみ選択可）'
+        type: choice
+        options:
+          - dev
+          - production
+        default: dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 依存インストール
+        run: npm ci
+      # デプロイ前ゲート: wrangler の esbuild バンドルは型検査をしないため、
+      # tsc --noEmit（api の build）とユニット/DOテストを事前に通す。
+      # api は shared-schema の型に依存するため先に shared-schema をビルドする。
+      - name: 型検査・テスト（デプロイ前ゲート）
+        run: |
+          npm run build -w @beb-raid/shared-schema
+          npm run build -w @beb-raid/api
+          npm test -w @beb-raid/api
+      - name: デプロイ
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: packages/api
+          wranglerVersion: '4'
+          # push（main）は常に dev。手動実行時のみ選択環境（dev/production）へ。
+          command: deploy --env ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}

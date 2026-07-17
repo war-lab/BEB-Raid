@@ -4,6 +4,14 @@
 # ローカル開発・vitest実行時はwrangler/miniflareがKVをローカルエミュレートするため、
 # 下記idはCloudflareの実IDである必要がない（H-1完了時に`wrangler kv namespace create`の
 # 実IDへ差し替える。それまでは以下のプレースホルダーのままでよい）。
+#
+# 【T-93で修正】名前付き環境（env.dev/env.production）は「バインディング」をトップレベルから
+# 継承しない（vars・kv_namespaces・durable_objects が該当。migrations・triggers・
+# compatibility_date は継承される）。デプロイは `--env dev`/`--env production` で行うため
+# （package.json の deploy:dev/deploy:production、api-deploy.yml）、durable_objects を各環境に
+# 明示しないとデプロイ後のWorkerにDO（RAID_BOSS/STATS）がバインドされずレイド機能が丸ごと
+# 動かない。`wrangler deploy --env dev --dry-run` の警告で発見した（トップレベルの
+# durable_objects は `--env` なしのデプロイ用に残置。実運用のデプロイは常に --env 経由）。
 
 name = "beb-raid-api"
 main = "src/index.ts"
@@ -47,6 +55,16 @@ ALLOWED_ORIGINS = "http://localhost:5173,https://war-lab.github.io"
 binding = "MEMBERS"
 id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID_DEV" # H-1完了後に実IDへ差し替える
 
+# durable_objects はバインディングのため env ごとに再定義が必要（トップレベルから継承されない）。
+# class_name/migrations はトップレベル定義を共有する（migrations は継承されるため再定義不要）。
+[[env.dev.durable_objects.bindings]]
+name = "RAID_BOSS"
+class_name = "RaidBossDO"
+
+[[env.dev.durable_objects.bindings]]
+name = "STATS"
+class_name = "StatsDO"
+
 [env.production]
 name = "beb-raid-api"
 
@@ -56,3 +74,11 @@ ALLOWED_ORIGINS = "https://war-lab.github.io"
 [[env.production.kv_namespaces]]
 binding = "MEMBERS"
 id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID_PROD" # H-1完了後に実IDへ差し替える
+
+[[env.production.durable_objects.bindings]]
+name = "RAID_BOSS"
+class_name = "RaidBossDO"
+
+[[env.production.durable_objects.bindings]]
+name = "STATS"
+class_name = "StatsDO"
