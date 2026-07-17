@@ -13,7 +13,14 @@
 - **M3タスクはSonnetクラスのAIセッションで自走可能**（1タスク=1セッション。開始プロンプト例は17の1節）。M2ブラッシュアップと並行するため、M3タスクは**dev直コミット禁止・task/ブランチ+PR運用**（17の2.1節。発起人判断 2026-07-17）。
 - **契約改訂が1件必要（T-91・単独PR）**: `DamageSyncPayload` に `answeredAt` を追加する（J-49のサーバー側期間判定に必須。T-89実装時点の型には無い）。
 - **T-90〜T-92・T-94〜T-96・T-100〜T-102はCloudflareアカウント不要**（wrangler --local・vitest-pool-workersで完結）。アカウントが要るのはデプロイ（T-93）のみで、人間タスク **H-1（Cloudflare準備）** はT-93前までに済めばよい。
-- 未完のM3前提はない（T-87〜T-89完了済み）。次のアクション: SonnetセッションでT-90着手／人間はH-1を任意のタイミングで実施。
+
+**T-90 完了（2026-07-17）**: `packages/api` を新設（wrangler.toml・package.json・tsconfig.json・vitest.config.ts・GET /health・CORS共通関数）。ADR [0005](adr/0005-M3共有API基盤.md) 起票、03の6.1にモード係数表（raid 1.0/solo 0.5/srs 0）を追記。**実装中に判明した設計判断（docs未記載だった穴）**:
+
+- **@cloudflare/vitest-pool-workers 0.18.5はVitest4のプラグイン方式**: docs/17起草時点で想定していた `defineWorkersConfig`（`/config` サブパスからimport）はこのバージョンには存在しない（パッケージ内蔵の `codemods/vitest-v3-to-v4` で確認）。正しい書式は `import { cloudflareTest } from '@cloudflare/vitest-pool-workers'` を `vitest/config` の `defineConfig({ plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.toml' } })] })` に渡す形。`cloudflare:test`（SELF等）の型は `@cloudflare/vitest-pool-workers/types` をトリプルスラッシュ参照で取り込む必要がある（tsconfigの `compilerOptions.types` ではサブパスを解決できないため）。docs/17 3.10節・T-90シートは実装済みコードが正であり、記載の `defineWorkersConfig` はバージョン起因の誤りだった（今回のシート更新では追記せず、コード自体が実例になる）。
+- **`packages/api/.wrangler/`（wrangler dev/vitestのローカル実行時生成物）は.gitignore・ESLint ignoresの両方に追加が必要**だった（放置するとビルド成果物のJSがlintエラーになる）。
+- **BOSS_HP_FACTORの値は03の6.2で既に確定済みの討伐率係数=0.85を流用**することにした（docs/17起草時に0.8という新値を書いてしまっていたのを本タスクで発見・修正。03が上流正本のため17を訂正）。
+- 検証: `wrangler dev`実起動→curl `/health`→200 `{"ok":true}`確認、api単体テスト6件、ルート `npm run lint`・`npm run format:check`・`npm run build`（api込み）・`npm test`（全ワークスペース。api 6件/app 444件/cli 305件/review-ui 15件/shared-schema 38件、計808件）すべて通過。デプロイは未実施（T-93の範囲）。
+- 次のアクション: T-91（shared-schema契約改訂・単独PR）へ進む。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）

@@ -1,0 +1,24 @@
+# Cloudflare Workers設定（正本: docs/17_M3実装計画.md 3.10節）。
+# KV(MEMBERS)・DO(RAID_BOSS/STATS)のバインディングはT-92/T-94/T-100で追加する
+# （T-90時点ではヘルスチェック+CORSのみのため未使用）。
+# INVITE_CODE等の秘密値はここに書かず `wrangler secret put` で環境ごとに設定する（H-1）。
+
+name = "beb-raid-api"
+main = "src/index.ts"
+compatibility_date = "2026-07-17"
+
+[vars]
+# ローカル開発既定（vite devサーバのオリジン）
+ALLOWED_ORIGINS = "http://localhost:5173"
+
+[env.dev]
+name = "beb-raid-api-dev"
+
+[env.dev.vars]
+ALLOWED_ORIGINS = "http://localhost:5173,https://war-lab.github.io"
+
+[env.production]
+name = "beb-raid-api"
+
+[env.production.vars]
+ALLOWED_ORIGINS = "https://war-lab.github.io"
