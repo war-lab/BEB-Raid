@@ -55,7 +55,14 @@
 - **deviceTokenの取得は`profile.deviceToken`から**（AiClientの`getApiKey`と同じ疎結合パターンで`getDeviceToken`をApp.tsxが注入。RaidApi実装はdbに直接依存しない）。
 - **vite-plugin-pwaのworkbox設定を確認**: `runtimeCaching`が一切設定されておらず（precacheのみ）、APIオリジンをSW自体が捕捉する仕組みが元々存在しないことを確認した（3.6節の懸念に対する追加対応は不要と判断）。
 - 検証: app単体テスト（raidSync.test.ts 8件・FetchRaidApi.test.ts 12件・SettingsScreen/ResultScreenの追加分含む）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
-- 次のアクション: T-97（S1ホームHPバー）へ進む。ステップ3「集計」（T-94〜T-96）完了。
+- ステップ3「集計」（T-94〜T-96）完了。
+
+**T-97 完了（2026-07-17）**: HomeScreenにボスHPバーを追加。`raidApi.isConfigured() && raidState.joined` のときのみ表示（ボス名・HP%バー・残り日数）。既存の`.home-season-progress`パターンを踏襲した新規CSSクラス（`.home-raid-hp*`。フィル色は`--ng`でシーズン進捗バーの`--gold`と区別）。
+
+- **本タスクの範囲は表示のみ**: タップでS5へ遷移する動線・「レイド」グリッド入口ボタンはT-98の範囲（`ScreenName`に`'raid'`がまだ無いため、T-98がRaidScreen新設と同時に配線する）。
+- **`Date.now()`直書きの`react-hooks/purity`回避**: SettingsScreen.tsxの既存パターン（`function now(): number { return Date.now() }`）を踏襲し、残り日数計算に使った。
+- 検証: HomeScreen単体テスト27件（既存23件+HPバー4件: raidState無し/isConfigured=false/joined=false/正常表示）、offlineDrillFlow・App.test.tsxの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- 次のアクション: T-98（S5レイド専用画面）へ進む。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）

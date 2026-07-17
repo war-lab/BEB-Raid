@@ -258,5 +258,12 @@ export function App() {
   }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする
-  return <HomeScreen db={getDb()} questionPool={questionPool} resumeSnapshot={resumeSnapshot} />
+  return (
+    <HomeScreen
+      db={getDb()}
+      questionPool={questionPool}
+      resumeSnapshot={resumeSnapshot}
+      raidApi={raidApi}
+    />
+  )
 }
