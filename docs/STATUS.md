@@ -38,7 +38,7 @@
 
 - **DAMAGE_PER_QUESTIONの実測導出**: `engine/rating.ts`の`basePoints(DEFAULT_INITIAL_RATING=400, difficultyToRatingSpace(3)=660)`を一時テスト（実行後に削除）で実行し、`128`を得た。raid係数1.0のためそのまま`DAMAGE_PER_QUESTION=128`として`raidConfig.ts`に転記した（導出過程はコード内コメントに記録）。
 - **BOSS_HP_FACTORは0.85で確定**（T-90で発見・修正済みの03の6.2既存値をそのまま使用。MIN_BOSS_HP=8160）。
-- **討伐後・帰属期間外（J-49）のダメージ**: 加算はしないがacceptedIdsには含める設計。**T-95実装時に訂正**: 当初「受信（receivedAt）がendAtを過ぎている」ことも非加算の条件に含めていたが、これはJ-49の趣旨（オフライン滞留分の遅延到着はanswered Atが期間内なら期限後受信でも加算する）と直接矛盾する自己流の誤読だった。T-95で発見・修正し、docs/17 3.5節の記述も訂正した（詳細はT-95の項目参照）。
+- **討伐後・帰属期間外（J-49）のダメージ**: 加算はしないがacceptedIdsには含める設計。**T-95実装時に訂正**: 当初「受信（receivedAt）がendAtを過ぎている」ことも非加算の条件に含めていたが、これはJ-49の趣旨（オフライン滞留分の遅延到着はansweredAtが期間内なら期限後受信でも加算する）と直接矛盾する自己流の誤読だった。T-95で発見・修正し、docs/17 3.5節の記述も訂正した（詳細はT-95の項目参照）。
 - **EMA初回（前週実績0の新規メンバー）はemaDailyDamage=0になる**（J-48の「初回は前週日次をそのまま」を文字通り実装した結果。以後は0.5:0.5のブレンドで緩やかに変化する設計であり、自己申告値が実績で自己修正される意図どおりの挙動と判断）。
 - **`cloudflare:test`の`runInDurableObject`/`createExecutionContext`/`createScheduledController`**でDOメソッド直接呼び出し・scheduledハンドラのテストが可能なことを確認（vitest-pool-workers 0.18系の公開API）。
 - 検証: api単体テスト42件（既存15件+raidWeek 9件+raidConfig 3件+bossProfiles 3件+raidBossDo 9件+scheduled 3件）、`wrangler dev`実起動でDOバインディング・cron認識を確認（ローカルでのcron自動発火は非対応である旨の警告が出ることも確認=想定どおり）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
@@ -48,7 +48,14 @@
 - **J-49の「期限後でも加算する」とT-90/94時点の実装が矛盾していた**: docs/17 3.5節に自分で書いた「討伐後・期限後のダメージは受理しない」を文字通り実装し、`RaidBossDO.syncDamage`に`receivedAt > state.endAt`で拒否する`closed`ゲートを入れていた。しかしdocs/16 J-49（3.4節）は「サーバー受信時のansweredAtがボスの[startAt,endAt]区間内ならバッチ受信が期限後でも加算する」と明記しており、これは正反対の規定だった。T-95で週境界跨ぎ（境界系）のテストを書いた際に発見: 前週ボス宛の正当な遅延到着ペイロードが加算されない挙動になっていた。**修正**: `syncDamage`から`receivedAt`ベースの`closed`ゲートを削除し、「討伐済み」または「answeredAt自体が[startAt,endAt]外」の2条件のみで非加算を判定する形にした（表示用の`status`計算=`computeStatus`は`now>endAt`で'closed'を返す従来どおりで、加算判定とは独立）。T-94で書いた該当テスト（`raidBossDo.test.ts`）も誤った期待値のまま存在していたため修正し、docs/17 3.5節の文言も訂正した。
 - **教訓**: 自分で書いた計画ドキュメント（17）の記述であっても、上位ドキュメント（16のJ-49）と矛盾していないか実装・テスト時に必ず突き合わせる。今回は「境界系」の統合テストを書いたことで矛盾が顕在化した（単体テストだけでは見つけにくいクラスのバグ）。
 - 検証: api単体テスト51件（既存42件+raidValidation・raidHandlers関連9件。うちraidBossDo.test.tsは上記修正で1件書き換え+1件追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
-- 次のアクション: T-96（クライアント側pendingSync送信）へ進む。
+
+**T-96 完了（2026-07-17）**: `platform/net/RaidApi.ts`（IF。AiClientと同じ抽象化パターン）＋`FetchRaidApi.ts`（本実装。fetch直呼び・15秒タイムアウト・401/network/timeout/unknownのエラー種別判定）を新設。`services/raidSync.ts`（`syncRaidDamage`）でpendingSync（kind='raidDamage'）を読み、受理済み（acceptedIds）のみ削除・レスポンスのbossでraidStateを更新する。トリガーは起動時（App.tsx）とセッション完了時（ResultScreen.tsx）の2箇所（S5手動同期ボタンはT-98の範囲）。SettingsScreenに`raidSyncEnabled`トグルを追加（`raidApi.isConfigured()`のときのみ表示。「レイド参加中のみ有効にしてください」の説明文付き）。
+
+- **縮退設計の3段ゲート**: `isConfigured()`（VITE_RAID_API_BASE_URL未設定）→`raidSyncEnabled`設定→`raidState.joined`の3つのいずれかがfalseなら通信ゼロで即return。
+- **deviceTokenの取得は`profile.deviceToken`から**（AiClientの`getApiKey`と同じ疎結合パターンで`getDeviceToken`をApp.tsxが注入。RaidApi実装はdbに直接依存しない）。
+- **vite-plugin-pwaのworkbox設定を確認**: `runtimeCaching`が一切設定されておらず（precacheのみ）、APIオリジンをSW自体が捕捉する仕組みが元々存在しないことを確認した（3.6節の懸念に対する追加対応は不要と判断）。
+- 検証: app単体テスト（raidSync.test.ts 8件・FetchRaidApi.test.ts 12件・SettingsScreen/ResultScreenの追加分含む）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- 次のアクション: T-97（S1ホームHPバー）へ進む。ステップ3「集計」（T-94〜T-96）完了。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）

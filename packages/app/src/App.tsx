@@ -5,11 +5,19 @@ import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from './db/database'
 import { getDb } from './db/database'
+import { PROFILE_ID } from './db/schema'
 import type { FontSizeScale } from './fontSize'
 import { setFontSizeScale } from './fontSize'
-import { createAiClient, createAudioPlayer, createPackCache, type PackCache } from './platform'
+import {
+  createAiClient,
+  createAudioPlayer,
+  createPackCache,
+  createRaidApi,
+  type PackCache,
+} from './platform'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
+import { syncRaidDamage } from './services/raidSync'
 import { resumeSession, type SessionSnapshot } from './services/session'
 import { BYOK_API_KEY_KEY, FONT_SIZE_KEY, THEME_PREFERENCE_KEY } from './services/settingsKeys'
 import { resolveTheme, setTheme, type ThemePreference } from './theme'
@@ -91,6 +99,15 @@ const packCache = createPackCache()
 /** BYOK AIクライアント（M2・T-56）。APIキーはsettingsストアから都度読み出す（db直依存を避ける疎結合） */
 const aiClient = createAiClient(
   async () => ((await getDb().settings.get(BYOK_API_KEY_KEY))?.value as string | undefined) ?? null,
+)
+/**
+ * 共有API（レイド）クライアント（M3・T-96）。baseUrl未設定なら isConfigured()=false で
+ * 以降のsyncRaidDamage呼び出しは即returnする（縮退設計）。deviceTokenはprofileストアから
+ * 都度読み出す（aiClientと同じ疎結合パターン）
+ */
+const raidApi = createRaidApi(
+  import.meta.env.VITE_RAID_API_BASE_URL as string | undefined,
+  async () => (await getDb().profile.get(PROFILE_ID))?.deviceToken ?? '',
 )
 
 export function App() {
@@ -178,6 +195,12 @@ export function App() {
     }
   }, [])
 
+  // 起動時のレイドダメージ送信（M3・T-96）。失敗無視（syncRaidDamage内部で既に
+  // 通信失敗をcatch済みだが、DB例外等の想定外の失敗もこのeffectを壊さないよう握りつぶす）
+  useEffect(() => {
+    void syncRaidDamage(getDb(), raidApi).catch(() => {})
+  }, [])
+
   // T-72: ストレージ保全（J-38）。拒否されても動作は変えない（iOS Safariはインストール済み
   // PWAで自動許可される仕様）。navigator.storage不在環境（jsdom等）でも例外にならない
   useEffect(() => {
@@ -216,7 +239,7 @@ export function App() {
   if (screen === 'drill') {
     return <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} />
   }
-  if (screen === 'result') return <ResultScreen db={getDb()} />
+  if (screen === 'result') return <ResultScreen db={getDb()} raidApi={raidApi} />
   if (screen === 'vocab') {
     return <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={vocabQuestions} />
   }
@@ -230,7 +253,9 @@ export function App() {
     )
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
-  if (screen === 'settings') return <SettingsScreen db={getDb()} packCache={packCache} />
+  if (screen === 'settings') {
+    return <SettingsScreen db={getDb()} packCache={packCache} raidApi={raidApi} />
+  }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする
   return <HomeScreen db={getDb()} questionPool={questionPool} resumeSnapshot={resumeSnapshot} />

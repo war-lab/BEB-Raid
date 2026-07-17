@@ -8,7 +8,9 @@ import { useEffect, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import { SEASON_LABELS, type PhaseTransitionOutcome } from '../engine/curriculum'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
+import type { RaidApi } from '../platform'
 import { evaluateAndPersistPhaseTransition } from '../services/phase'
+import { syncRaidDamage } from '../services/raidSync'
 import { completeSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -17,6 +19,7 @@ import { ScreenLayout } from '../components/ScreenLayout'
 
 interface Props {
   db: BebRaidDatabase
+  raidApi: RaidApi
 }
 
 const POINTS_COUNTUP_MS = 700
@@ -49,7 +52,7 @@ function usePointsCountUp(target: number, instant: boolean): number {
   return instant ? target : animated
 }
 
-export function ResultScreen({ db }: Props) {
+export function ResultScreen({ db, raidApi }: Props) {
   const results = useSessionStore((s) => s.results)
   const questions = useSessionStore((s) => s.questions)
   const ratingBefore = useSessionStore((s) => s.ratingBefore)
@@ -85,6 +88,11 @@ export function ResultScreen({ db }: Props) {
       cancelled = true
     }
   }, [db, questions])
+
+  // セッション完了時のレイドダメージ送信（M3・T-96）。非同期・失敗無視
+  useEffect(() => {
+    void syncRaidDamage(db, raidApi).catch(() => {})
+  }, [db, raidApi])
 
   const correctCount = results.filter((r) => r.isCorrect).length
   const wrongCount = results.length - correctCount
