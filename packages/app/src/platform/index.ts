@@ -11,6 +11,8 @@ import type { AudioPlayer } from './audio/AudioPlayer'
 import { WebAudioPlayer } from './audio/WebAudioPlayer'
 import type { PackCache } from './cache/PackCache'
 import { CacheStoragePackCache } from './cache/CacheStoragePackCache'
+import { type DeviceTokenProvider, FetchRaidApi, RaidApiError } from './net/FetchRaidApi'
+import type { RaidApi } from './net/RaidApi'
 
 export type { AudioPlayer, PlayOptions } from './audio/AudioPlayer'
 export type { PackCache, CacheUsage } from './cache/PackCache'
@@ -18,6 +20,9 @@ export type { Notifier, ScheduledNotification } from './notifications/Notifier'
 export type { AiAskContext, AiChatTurn, AiClient } from './ai/AiClient'
 export type { AiErrorKind, ApiKeyProvider } from './ai/AnthropicAiClient'
 export { AiClientError }
+export type { RaidApi } from './net/RaidApi'
+export type { DeviceTokenProvider, RaidApiErrorKind } from './net/FetchRaidApi'
+export { RaidApiError }
 
 /** 音声再生の実装を返す（現状は Web 実装のみ） */
 export function createAudioPlayer(): AudioPlayer {
@@ -36,4 +41,16 @@ export function createPackCache(): PackCache {
  */
 export function createAiClient(getApiKey: ApiKeyProvider): AiClient {
   return new AnthropicAiClient(getApiKey)
+}
+
+/**
+ * 共有API（レイド）クライアントの実装を返す（M3・T-96）。
+ * baseUrlはビルド時環境変数VITE_RAID_API_BASE_URL（未設定/空文字ならisConfigured()=false）。
+ * getDeviceTokenはgetApiKeyと同じ疎結合パターン（呼び出し元がprofileストアから読み出す）
+ */
+export function createRaidApi(
+  baseUrl: string | undefined,
+  getDeviceToken: DeviceTokenProvider,
+): RaidApi {
+  return new FetchRaidApi(baseUrl, getDeviceToken)
 }

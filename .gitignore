@@ -8,6 +8,8 @@ packages/app/dev-dist/
 # ローカル環境変数（LLM/TTSキーは環境変数のみ。リポジトリに含めない）
 .env
 .env.*
+# .env.exampleは実値を含まない雛形なのでコミット対象にする（T-96）
+!.env.example
 
 # Cloudflare Workers ローカル開発の秘密値（招待コード等。packages/api/.dev.vars.example を参照）
 packages/api/.dev.vars
