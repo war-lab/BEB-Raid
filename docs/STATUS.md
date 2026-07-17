@@ -26,7 +26,14 @@
 - **app側の対応（同PR）**: `services/answerPipeline.ts` の `enqueueRaidSyncIfEnabled` に `answeredAt` を追加。snapshot経由（`answerCurrentQuestion`の戻り値の`updatedAt`＝今回記録したattemptの`answeredAt`と一致することを`session.ts`実装で確認）・直接記録経由（`recordAttempt`の戻り値の`answeredAt`）の両方から取得できるようにした（T-89実装済みのattemptId捕捉と同じ非対称な取得パターン）。
 - **04の4節を更新**: members行にdailyGoal/emaDailyDamage、damageLogs行に`answeredAt`（帰属判定用・サーバー側クランプの注記）、questionStatsに保証範囲の注記（「保存データとして結合しない」が保証範囲であり「一切の突合が不可能」とまでは主張しない）を追記。
 - 検証: shared-schema単体47件（既存38件+新規9件）・app単体444件（既存回帰＋answerPipeline拡張分）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース計808件）すべて通過。
-- 次のアクション: T-92（deviceToken登録フロー）へ進む。
+
+**T-92 完了（2026-07-17）**: POST `/register`（招待コード検証→deviceTokenをKV `member:<deviceToken>` へ登録。再登録は displayName/dailyGoal を上書きしつつ registeredAt・emaDailyDamage は引き継ぐ）と、T-95以降が共用する `authenticateRequest`（Bearer認証ミドルウェア）を実装。KVバインディング`MEMBERS`をwrangler.tomlへ追加（id はH-1完了までプレースホルダー文字列。ローカル/vitest実行はこの値のままKVがエミュレートされることを確認済み）。**実装中に判明した設計判断（docs未記載だった穴）**:
+
+- **`cloudflare:test`の`env`は既定で空の`Cloudflare.Env`型**: `wrangler types`が生成する`worker-configuration.d.ts`に頼ると、生成元が`.dev.vars`（gitignore対象=CIには存在しない）の有無に左右され不安定になる。そのため`packages/api/src/cloudflare-env.d.ts`を新規に手書きし、`declare global { namespace Cloudflare { interface Env extends WorkerEnv {} } }`で`env.ts`のEnv型をグローバル名前空間へ反映する方式にした（ESLintの`no-empty-object-type`は個別に無効化。同名前空間へのdeclaration mergingを認識しないため）。
+- **KVバインディングのid**: ローカル`wrangler dev`・vitest-pool-workersの双方とも、`id`がCloudflareの実IDでなくても（プレースホルダー文字列のままでも）問題なくローカルKVとして動作することを実機確認した（3.10節の想定どおり）。
+- **INVITE_CODEのテスト注入**: wrangler.tomlに秘密値を書けないため、vitest.config.tsの`cloudflareTest({ miniflare: { bindings: { INVITE_CODE: 'test-invite-code' } } })`でテスト専用の決定的な値を注入する方式にした（`.dev.vars`の有無に依存せずCIでも動く）。
+- 検証: api単体テスト15件（既存6件+register 5件+auth 4件）、`.dev.vars`に実際にINVITE_CODEを置いた`wrangler dev`実起動でcurlにより誤コード401・正コード200・KV書込を確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- 次のアクション: T-93（デプロイ。H-1待ち）は保留し、T-94（週次ボスDurable Object）へ進む。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）
