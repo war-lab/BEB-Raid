@@ -62,7 +62,12 @@
 - **本タスクの範囲は表示のみ**: タップでS5へ遷移する動線・「レイド」グリッド入口ボタンはT-98の範囲（`ScreenName`に`'raid'`がまだ無いため、T-98がRaidScreen新設と同時に配線する）。
 - **`Date.now()`直書きの`react-hooks/purity`回避**: SettingsScreen.tsxの既存パターン（`function now(): number { return Date.now() }`）を踏襲し、残り日数計算に使った。
 - 検証: HomeScreen単体テスト27件（既存23件+HPバー4件: raidState無し/isConfigured=false/joined=false/正常表示）、offlineDrillFlow・App.test.tsxの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
-- 次のアクション: T-98（S5レイド専用画面）へ進む。
+**T-98 完了（2026-07-17）**: 新規`screens/RaidScreen.tsx`（未登録=招待コード登録フォーム→登録済み=現ボス表示・参加・レイドに挑む・今すぐ同期→討伐演出の一連）。`ScreenName`に`'raid'`を追加、App.tsxの画面分岐・HomeScreenのグリッド入口ボタン（`raidApi.isConfigured()`のときのみ）・HPバーのタップ遷移を配線。「レイドに挑む」は`generateQuickPack`の7分プリセット→`mode==='solo'`の項目だけ`'raid'`へ上書き（`'srs'`項目はレート・ダメージ対象外のまま維持=damageConfig.jsonのsrs:0と整合）。
+
+- **実機相当の検証**: `wrangler dev --local`（api）＋`vite`（app、`VITE_RAID_API_BASE_URL`をローカルwranglerへ向け）を起動し、`/cdn-cgi/handler/scheduled`で週次ボスを手動生成した上で、Playwrightで実ブラウザ操作を実施。登録→参加→「レイドに挑む」→ディクテーション1問解答まで完走し、IndexedDBを直接読んで`activeSession`の全20項目が`mode:"raid"`・`attempts`レコードが`mode:"raid"`で記録されていることを確認した（ユニットテストでは検証しきれないend-to-endの実データ確認）。
+- **手動同期ボタンのため`syncRaidDamage`の戻り値をvoid→booleanに変更**（成功/失敗をS5が表示できるように）。あわせて`isLastRaidSyncUnauthorized()`（モジュールスコープの一時フラグ）を新設し、401時のみ「登録が無効です」の案内を出す（3.6節の設計どおり）。
+- 検証: RaidScreen単体テスト10件（未登録/登録成功/401エラー/登録済みスキップ/参加/ボス未生成/挑戦時のmode='raid'/討伐演出あり・なし/isConfigured=false）、raidSync.test.ts追加4件（戻り値・isLastRaidSyncUnauthorized）、既存HomeScreen・App・offlineDrillFlowの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- 次のアクション: T-99（オフライン表示規約）へ進む。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）

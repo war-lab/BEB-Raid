@@ -5,7 +5,15 @@
 import { create } from 'zustand'
 
 export type ScreenName =
-  'home' | 'drill' | 'vocab' | 'shadowing' | 'dashboard' | 'settings' | 'diagnostic' | 'result'
+  | 'home'
+  | 'drill'
+  | 'vocab'
+  | 'shadowing'
+  | 'dashboard'
+  | 'settings'
+  | 'diagnostic'
+  | 'result'
+  | 'raid'
 
 interface AppStore {
   screen: ScreenName

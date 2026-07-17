@@ -27,6 +27,7 @@ import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
 import { HomeScreen } from './screens/HomeScreen'
+import { RaidScreen } from './screens/RaidScreen'
 import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
@@ -255,6 +256,16 @@ export function App() {
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
   if (screen === 'settings') {
     return <SettingsScreen db={getDb()} packCache={packCache} raidApi={raidApi} />
+  }
+  if (screen === 'raid') {
+    return (
+      <RaidScreen
+        db={getDb()}
+        raidApi={raidApi}
+        questionPool={questionPool}
+        resumeSnapshot={resumeSnapshot}
+      />
+    )
   }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする
