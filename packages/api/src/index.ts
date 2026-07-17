@@ -5,6 +5,9 @@
 import { handlePreflight, withCors } from './cors'
 import type { Env } from './env'
 import { handleRegister } from './register'
+import { generateWeeklyBoss } from './scheduled'
+
+export { RaidBossDO } from './raidBossDo'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -38,5 +41,8 @@ export default {
 
     const response = await route(request, env)
     return withCors(request, env, response)
+  },
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(generateWeeklyBoss(env, controller.scheduledTime))
   },
 } satisfies ExportedHandler<Env>

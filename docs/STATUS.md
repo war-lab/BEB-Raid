@@ -33,7 +33,16 @@
 - **KVバインディングのid**: ローカル`wrangler dev`・vitest-pool-workersの双方とも、`id`がCloudflareの実IDでなくても（プレースホルダー文字列のままでも）問題なくローカルKVとして動作することを実機確認した（3.10節の想定どおり）。
 - **INVITE_CODEのテスト注入**: wrangler.tomlに秘密値を書けないため、vitest.config.tsの`cloudflareTest({ miniflare: { bindings: { INVITE_CODE: 'test-invite-code' } } })`でテスト専用の決定的な値を注入する方式にした（`.dev.vars`の有無に依存せずCIでも動く）。
 - 検証: api単体テスト15件（既存6件+register 5件+auth 4件）、`.dev.vars`に実際にINVITE_CODEを置いた`wrangler dev`実起動でcurlにより誤コード401・正コード200・KV書込を確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
-- 次のアクション: T-93（デプロイ。H-1待ち）は保留し、T-94（週次ボスDurable Object）へ進む。
+
+**T-94 完了（2026-07-17）**: 週次ボスDurable Object（`RaidBossDO`。SQLiteストレージ。`state`1行＋`damage_attempts`（attemptId主キー・INSERT OR IGNOREで冪等））と、週次cron生成ハンドラ（`generateWeeklyBoss`）を実装。ISO週番号・週境界の算出（`raidWeek.ts`）、ボスHP算出定数（`raidConfig.ts`）、ボスプロファイル10体のローテーション（`bossProfiles.ts`）を新設。wrangler.tomlにDOバインディング（`RAID_BOSS`・SQLite migration）とCron Trigger（`0 0 * * 1`=月曜0時UTC）を追加。**実装中に判明した設計判断**:
+
+- **DAMAGE_PER_QUESTIONの実測導出**: `engine/rating.ts`の`basePoints(DEFAULT_INITIAL_RATING=400, difficultyToRatingSpace(3)=660)`を一時テスト（実行後に削除）で実行し、`128`を得た。raid係数1.0のためそのまま`DAMAGE_PER_QUESTION=128`として`raidConfig.ts`に転記した（導出過程はコード内コメントに記録）。
+- **BOSS_HP_FACTORは0.85で確定**（T-90で発見・修正済みの03の6.2既存値をそのまま使用。MIN_BOSS_HP=8160）。
+- **討伐後・期限後・帰属期間外（J-49）のダメージ**: 加算はしないがacceptedIdsには含める設計（3.5節の明文規定）を、帰属期間外の場合にも同じ扱いで統一した（3.5節に明記が無い部分だが、一貫性のため同一方針を採用。判断根拠をコード内コメントとテストに残した）。
+- **EMA初回（前週実績0の新規メンバー）はemaDailyDamage=0になる**（J-48の「初回は前週日次をそのまま」を文字通り実装した結果。以後は0.5:0.5のブレンドで緩やかに変化する設計であり、自己申告値が実績で自己修正される意図どおりの挙動と判断）。
+- **`cloudflare:test`の`runInDurableObject`/`createExecutionContext`/`createScheduledController`**でDOメソッド直接呼び出し・scheduledハンドラのテストが可能なことを確認（vitest-pool-workers 0.18系の公開API）。
+- 検証: api単体テスト42件（既存15件+raidWeek 9件+raidConfig 3件+bossProfiles 3件+raidBossDo 9件+scheduled 3件）、`wrangler dev`実起動でDOバインディング・cron認識を確認（ローカルでのcron自動発火は非対応である旨の警告が出ることも確認=想定どおり）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- 次のアクション: T-95（バッチダメージ送信API）へ進む。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
 - **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）
