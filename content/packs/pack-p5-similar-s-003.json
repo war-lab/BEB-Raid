@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 129216
+    "sizeBytes": 129158
   },
   "questions": [
     {
@@ -3813,25 +3813,25 @@
       "translation": "その訴訟は、競合の製造会社が提起した特許侵害の主張を含んでいた。"
     },
     {
-      "id": "similar-condemnation-1",
+      "id": "similar-accommodation-1",
       "part": 5,
       "format": "text_blank",
-      "difficulty": 4,
+      "difficulty": 2,
       "tags": [
         "ビジネス名詞"
       ],
       "keyVocab": [
         {
-          "word": "condemnation",
-          "sense": "使用不可宣告",
-          "freqRank": "B"
+          "word": "accommodation",
+          "sense": "宿泊施設",
+          "freqRank": "S"
         }
       ],
-      "question": "The old building received a ___ notice from the city inspector last week.",
+      "question": "The travel agency arranged ___ near the conference venue for all attendees.",
       "choices": [
         {
           "key": "A",
-          "text": "condemnation"
+          "text": "accommodation"
         },
         {
           "key": "B",
@@ -3839,7 +3839,7 @@
         },
         {
           "key": "C",
-          "text": "acquittal"
+          "text": "itinerary"
         },
         {
           "key": "D",
@@ -3847,29 +3847,29 @@
         }
       ],
       "answer": "A",
-      "explanation": "建物等の使用不可を宣告する「使用不可宣告」はcondemnation。infringement（侵害）・acquittal（無罪判決）・regulation（規制）はこの通知の内容を意味しない。",
-      "translation": "その古い建物は、先週市の検査官から使用不可宣告の通知を受けた。"
+      "explanation": "宿泊施設を意味する「宿泊」はaccommodation。infringement（侵害）・itinerary（旅程表）・regulation（規制）はこの文脈に合わない。",
+      "translation": "その旅行代理店は、参加者全員のために会場近くの宿泊施設を手配した。"
     },
     {
-      "id": "similar-acquittal-1",
+      "id": "similar-advertisement-1",
       "part": 5,
       "format": "text_blank",
-      "difficulty": 4,
+      "difficulty": 2,
       "tags": [
         "ビジネス名詞"
       ],
       "keyVocab": [
         {
-          "word": "acquittal",
-          "sense": "無罪判決",
-          "freqRank": "B"
+          "word": "advertisement",
+          "sense": "広告",
+          "freqRank": "S"
         }
       ],
-      "question": "The jury reached an ___ after a surprisingly short deliberation that lasted less than an hour.",
+      "question": "The company placed an ___ in the local paper to promote its weekend sale.",
       "choices": [
         {
           "key": "A",
-          "text": "condemnation"
+          "text": "accommodation"
         },
         {
           "key": "B",
@@ -3881,12 +3881,12 @@
         },
         {
           "key": "D",
-          "text": "acquittal"
+          "text": "advertisement"
         }
       ],
       "answer": "D",
-      "explanation": "裁判での「無罪判決」はacquittal。condemnation（使用不可宣告）・infringement（侵害）・dispute（紛争）は判決の結果を意味しない。",
-      "translation": "陪審は1時間足らずという驚くほど短い協議の後、無罪判決に達した。"
+      "explanation": "新聞等に載せる「広告」はadvertisement。accommodation（宿泊）・infringement（侵害）・dispute（紛争）は広告の意味を持たない。",
+      "translation": "その会社は週末セールを宣伝するため、地元紙に広告を掲載した。"
     },
     {
       "id": "similar-redundancy-1",

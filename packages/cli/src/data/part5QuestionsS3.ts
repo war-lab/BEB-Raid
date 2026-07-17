@@ -194,15 +194,14 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'condemn',
+    keyVocabWord: 'warehouse',
     tags: ['動詞の形'],
     question:
-      'The findings that led inspectors to condemn the old warehouse ___ documented in a lengthy report.',
+      'The findings that led inspectors to close the old warehouse ___ documented in a lengthy report.',
     correctText: 'were',
     distractors: ['was', 'has been', 'is'],
     explanation: '主語はThe findings（複数形）。wereが正しい。',
-    translation:
-      '検査官がその古い倉庫の使用不可を宣告するに至った所見は、長い報告書に文書化されている。',
+    translation: '検査官がその古い倉庫の閉鎖を決めるに至った所見は、長い報告書に文書化されている。',
     difficulty: 4,
   },
 
@@ -355,16 +354,16 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
 
   // --- 受動態（12問） ---
   {
-    keyVocabWord: 'affidavit',
+    keyVocabWord: 'complaint',
     tags: ['動詞の形'],
     question:
-      'The affidavit submitted by Samuel Okafor ___ carefully reviewed by the legal team before the hearing.',
+      'The complaint submitted by Samuel Okafor ___ carefully reviewed by the legal team before the hearing.',
     correctText: 'was',
     distractors: ['did', 'has', 'had'],
     explanation:
-      '空所の後にreviewed（過去分詞）が続き、affidavitは「見直される」対象なので受動態(was reviewed)が正しい。',
+      '空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。',
     translation:
-      'サミュエル・オカフォル氏が提出した宣誓供述書は、公聴会の前に法務チームによって注意深く見直された。',
+      'サミュエル・オカフォル氏が提出した苦情申し立ては、公聴会の前に法務チームによって注意深く見直された。',
     difficulty: 4,
   },
   {
@@ -381,14 +380,14 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'indictment',
+    keyVocabWord: 'dispute',
     tags: ['動詞の形'],
-    question: 'A formal indictment ___ filed against the supplier after months of investigation.',
+    question: 'A formal dispute ___ filed against the supplier after months of investigation.',
     correctText: 'was',
     distractors: ['did', 'has', 'had'],
     explanation:
-      '空所の後にfiled（過去分詞）が続き、indictmentは「提出される」対象なので受動態が正しい。',
-    translation: '数か月にわたる調査の後、その仕入先に対して正式な起訴状が提出された。',
+      '空所の後にfiled（過去分詞）が続き、disputeは「提出される」対象なので受動態が正しい。',
+    translation: '数か月にわたる調査の後、その仕入先に対して正式な異議申し立てが提出された。',
     difficulty: 4,
   },
   {
@@ -429,15 +428,15 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'subpoena',
+    keyVocabWord: 'memo',
     tags: ['動詞の形'],
     question:
-      'A subpoena ___ issued to Renata Silva after the internal audit uncovered irregularities.',
+      'A memo ___ issued to Renata Silva after the internal audit uncovered irregularities.',
     correctText: 'was',
     distractors: ['did', 'has', 'had'],
     explanation:
-      '空所の後にissued（過去分詞）が続き、subpoenaは「発行される」対象なので受動態が正しい。',
-    translation: '内部監査が不正を発見した後、レナータ・シルバ氏に召喚状が発行された。',
+      '空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。',
+    translation: '内部監査が不正を発見した後、レナータ・シルバ氏に社内通知が発行された。',
     difficulty: 4,
   },
   {
@@ -453,42 +452,43 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'injunction',
+    keyVocabWord: 'timeline',
     tags: ['動詞の形'],
-    question:
-      'An injunction ___ granted to prevent the merger from proceeding until the review was complete.',
+    question: 'A revised timeline ___ approved, delaying the merger until the review was complete.',
     correctText: 'was',
     distractors: ['did', 'has', 'had'],
     explanation:
-      '空所の後にgranted（過去分詞）が続き、injunctionは「認められる」対象なので受動態が正しい。',
-    translation: '審査が完了するまで合併を進めることを止めるため、差し止め命令が認められた。',
+      '空所の後にapproved（過去分詞）が続き、timelineは「承認される」対象なので受動態が正しい。',
+    translation: '審査が完了するまで合併を遅らせる、修正後のスケジュールが承認された。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'culpable',
+    keyVocabWord: 'statement',
     tags: ['動詞の形'],
-    question: 'Aisha Karim ___ found culpable for the reporting error after an internal review.',
+    question:
+      'A statement ___ issued naming Aisha Karim in connection with the reporting error after an internal review.',
     correctText: 'was',
     distractors: ['did', 'has', 'had'],
     explanation:
-      '空所の後にfound（過去分詞）が続き、Aisha Karimは「認定される」対象なので受動態が正しい。',
-    translation: 'アイシャ・カリム氏は、内部審査の結果、報告ミスについて責任があると認定された。',
+      '空所の後にissued（過去分詞）が続き、statementは「発行される」対象なので受動態が正しい。',
+    translation: '内部審査の後、報告ミスに関連してアイシャ・カリム氏の名を挙げる声明が発表された。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'redaction',
+    keyVocabWord: 'milestone',
     tags: ['動詞の形'],
     question:
-      'Several sections of the report ___ subjected to redaction before it was released to the public.',
+      "Several sections describing project milestones ___ withheld at the auditor's instruction before the report was released.",
     correctText: 'were',
     distractors: ['did', 'have', 'had'],
     explanation:
-      '空所の後にsubjected（過去分詞）が続き、sections（複数）は「対象とされる」対象なので受動態(were subjected)が正しい。',
-    translation: 'その報告書のいくつかの箇所は、一般公開される前に編集（黒塗り）の対象となった。',
+      '空所の後にwithheld（過去分詞）が続き、sections（複数）は「差し控えられる」対象なので受動態(were withheld)が正しい。',
+    translation:
+      'プロジェクトの節目を記述したいくつかの箇所は、報告書の公開前に監査人の指示により差し控えられた。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'adjudication',
+    keyVocabWord: 'agreement',
     tags: ['動詞の形'],
     question:
       'The dispute ___ referred for adjudication after Liam Bratton and the contractor failed to reach an agreement.',

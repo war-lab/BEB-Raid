@@ -47,24 +47,24 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'The technical drawings are provided in the annex to the contract.',
   },
   {
-    word: 'redact',
-    back: '黒塗りする',
-    phrase: 'Legal staff had to redact confidential figures before releasing the report.',
+    word: 'networking',
+    back: '人脈作り',
+    phrase: 'She attended the conference mainly for networking.',
   },
   {
-    word: 'redaction',
-    back: '黒塗り',
-    phrase: 'The redaction of personal data delayed the public disclosure.',
+    word: 'comprehensive',
+    back: '包括的な',
+    phrase: 'The report offers a comprehensive review of the year.',
   },
   {
-    word: 'codify',
-    back: '成文化する',
-    phrase: 'The committee decided to codify the informal procedures into a manual.',
+    word: 'mentorship',
+    back: '指導・メンター制度',
+    phrase: 'The mentorship program pairs new hires with veterans.',
   },
   {
-    word: 'promulgate',
-    back: '公布する',
-    phrase: 'The government will promulgate the revised trade regulations next month.',
+    word: 'teamwork',
+    back: 'チームワーク',
+    phrase: 'Good teamwork helped the project finish early.',
   },
   {
     word: 'corroborate',
@@ -261,9 +261,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'The city plans to levy a small tax on short-term rentals.',
   },
   {
-    word: 'embezzlement',
-    back: '横領',
-    phrase: 'The former treasurer was charged with embezzlement of club funds.',
+    word: 'licensing',
+    back: 'ライセンス供与',
+    phrase: 'The licensing fee is paid annually.',
   },
 
   // --- 製造・品質管理・物流 ---
@@ -492,9 +492,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'The company built goodwill by donating to local charities.',
   },
   {
-    word: 'conciliatory',
-    back: '和解的な',
-    phrase: 'The CEO took a conciliatory tone during the press conference.',
+    word: 'adjacent',
+    back: '隣接した',
+    phrase: 'The new office is adjacent to the train station.',
   },
   {
     word: 'indemnify',
@@ -522,9 +522,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'Risk mitigation is a key part of the project plan.',
   },
   {
-    word: 'ombudsman',
-    back: '苦情処理担当者',
-    phrase: 'Unresolved complaints can be forwarded to the company ombudsman.',
+    word: 'reimburse',
+    back: '払い戻す',
+    phrase: 'The company will reimburse employees for travel expenses.',
   },
 
   // --- 出張・交通・宿泊 ---
@@ -693,9 +693,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
 
   // --- 不動産・施設・建築 ---
   {
-    word: 'encroachment',
-    back: '境界への侵害',
-    phrase: 'The fence was moved after a survey revealed an encroachment.',
+    word: 'accreditation',
+    back: '認定',
+    phrase: 'The school received accreditation from the national board.',
   },
   {
     word: 'dilapidated',
@@ -713,9 +713,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'Renovations made the old warehouse habitable for staff use.',
   },
   {
-    word: 'gentrification',
-    back: '高級化・再開発',
-    phrase: 'Gentrification has raised rents throughout the old industrial district.',
+    word: 'timeline',
+    back: '予定表・スケジュール',
+    phrase: 'The project timeline was pushed back by two weeks.',
   },
   {
     word: 'leasehold',
@@ -744,9 +744,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'The developer split the land into a residential subdivision.',
   },
   {
-    word: 'rezone',
-    back: '用途地域を変更する',
-    phrase: 'The city voted to rezone the area for mixed commercial use.',
+    word: 'expertise',
+    back: '専門知識',
+    phrase: 'Her expertise in tax law made her the obvious choice.',
   },
   {
     word: 'variance',
@@ -754,24 +754,24 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'The owner applied for a variance to build beyond the height limit.',
   },
   {
-    word: 'condemn',
-    back: '使用不可と宣告する',
-    phrase: 'Inspectors condemned the building after finding structural damage.',
+    word: 'milestone',
+    back: '節目・達成目標',
+    phrase: 'Reaching one million users was a major milestone.',
   },
   {
-    word: 'condemnation',
-    back: '使用不可宣告',
-    phrase: 'The condemnation forced tenants to relocate within a month.',
+    word: 'deliverable',
+    back: '成果物',
+    phrase: 'The first deliverable is due at the end of the month.',
   },
   {
-    word: 'urbanization',
-    back: '都市化',
-    phrase: 'Rapid urbanization increased demand for office space downtown.',
+    word: 'workflow',
+    back: '作業の流れ',
+    phrase: 'The new software simplified the approval workflow.',
   },
   {
-    word: 'sprawl',
-    back: '都市の無秩序な拡大',
-    phrase: 'Urban sprawl has pushed warehouses further from the city center.',
+    word: 'initiative',
+    back: '新規の取り組み',
+    phrase: 'The company launched a new sustainability initiative.',
   },
 
   // --- 店舗・小売・在庫 ---
@@ -858,19 +858,19 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
 
   // --- イベント・式典・エンターテインメント ---
   {
-    word: 'pageantry',
-    back: '華やかな儀式',
-    phrase: 'The opening ceremony was filled with pageantry and music.',
+    word: 'proficiency',
+    back: '習熟度',
+    phrase: 'The job requires proficiency in two languages.',
   },
   {
-    word: 'procession',
-    back: '行列',
-    phrase: 'A procession of executives led the ribbon-cutting event.',
+    word: 'efficiency',
+    back: '効率性',
+    phrase: "The upgrade increased the factory's efficiency.",
   },
   {
-    word: 'dignitary',
-    back: '要人',
-    phrase: 'A foreign dignitary attended the groundbreaking ceremony.',
+    word: 'versatile',
+    back: '多才な・多用途の',
+    phrase: 'The new tool is versatile enough for several departments.',
   },
   {
     word: 'accolade',
@@ -883,9 +883,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'A plaque was installed to mark the building’s completion.',
   },
   {
-    word: 'memorial',
-    back: '追悼の',
-    phrase: "A memorial service was held in honor of the company's late founder.",
+    word: 'innovation',
+    back: '革新',
+    phrase: 'The award recognizes innovation in product design.',
   },
   {
     word: 'tribute',
@@ -898,9 +898,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'Researchers gathered for an international symposium on renewable energy.',
   },
   {
-    word: 'convocation',
-    back: '式典',
-    phrase: 'The university held its annual convocation in the main auditorium.',
+    word: 'collaboration',
+    back: '協力・共同作業',
+    phrase: 'The project required close collaboration between teams.',
   },
   {
     word: 'plenary',
@@ -913,9 +913,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'A sense of festivity filled the office during the holiday season.',
   },
   {
-    word: 'jubilee',
-    back: '記念祝典',
-    phrase: 'The company marked its golden jubilee with a week of events.',
+    word: 'adaptable',
+    back: '適応力のある',
+    phrase: 'The manager praised her adaptable approach to change.',
   },
   {
     word: 'commencement',
@@ -923,9 +923,9 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'The commencement of the new fiscal year was marked with a company address.',
   },
   {
-    word: 'soiree',
-    back: '夜会',
-    phrase: 'The firm hosted a soiree for its top clients after the conference.',
+    word: 'productivity',
+    back: '生産性',
+    phrase: 'The new schedule improved overall productivity.',
   },
   {
     word: 'mixer',
@@ -945,83 +945,83 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
 
   // --- 法務・環境 ---
   {
-    word: 'adjudicate',
-    back: '裁定を下す',
-    phrase: 'An independent panel was appointed to adjudicate the dispute.',
+    word: 'provision',
+    back: '規定条項',
+    phrase: 'The contract includes a provision for early termination.',
   },
   {
-    word: 'adjudication',
-    back: '裁定',
-    phrase: 'The adjudication process is expected to take several months.',
+    word: 'waiver',
+    back: '権利放棄書',
+    phrase: 'Employees must sign a waiver before using the gym.',
   },
   {
-    word: 'tribunal',
-    back: '審判所',
-    phrase: 'The case was referred to an industrial tribunal.',
+    word: 'enforceable',
+    back: '法的強制力のある',
+    phrase: 'The agreement is not enforceable without both signatures.',
   },
   {
-    word: 'subpoena',
-    back: '召喚状',
-    phrase: 'The company received a subpoena requesting internal documents.',
+    word: 'nondisclosure',
+    back: '秘密保持の',
+    phrase: 'All contractors sign a nondisclosure agreement before starting.',
   },
   {
-    word: 'testify',
-    back: '証言する',
-    phrase: 'The manager was asked to testify about the safety inspection.',
+    word: 'confidentiality',
+    back: '機密性',
+    phrase: 'The report is subject to strict confidentiality rules.',
   },
   {
-    word: 'testimony',
-    back: '証言',
-    phrase: 'The witness gave testimony about the accident on the factory floor.',
+    word: 'termination',
+    back: '契約終了',
+    phrase: 'The termination clause allows either party to exit with notice.',
   },
   {
-    word: 'affidavit',
-    back: '宣誓供述書',
-    phrase: 'The employee signed an affidavit confirming the events.',
+    word: 'disclosure',
+    back: '開示',
+    phrase: 'Full disclosure of the fees is required before signing.',
   },
   {
-    word: 'injunction',
-    back: '差止命令',
-    phrase: 'The court issued an injunction to halt the construction project.',
+    word: 'safeguard',
+    back: '保護措置',
+    phrase: 'New safeguards were added to protect customer data.',
   },
   {
-    word: 'indictment',
-    back: '起訴',
-    phrase: 'The former executive faced indictment on fraud charges.',
+    word: 'transparency',
+    back: '透明性',
+    phrase: 'The board promised greater transparency in its decisions.',
   },
   {
-    word: 'prosecute',
-    back: '起訴する',
-    phrase: 'Prosecutors decided to prosecute the case after reviewing the evidence.',
+    word: 'oversight',
+    back: '監督',
+    phrase: 'The committee provides oversight of all major purchases.',
   },
   {
-    word: 'prosecution',
-    back: '起訴・検察側',
-    phrase: 'The prosecution presented financial records as evidence.',
+    word: 'compliant',
+    back: '準拠した',
+    phrase: 'The new building is fully compliant with fire safety codes.',
   },
   {
-    word: 'acquit',
-    back: '無罪とする',
-    phrase: 'The jury voted to acquit the defendant after a short deliberation.',
+    word: 'ratification',
+    back: '批准',
+    phrase: 'The agreement awaits ratification by both governments.',
   },
   {
-    word: 'acquittal',
-    back: '無罪判決',
-    phrase: 'The acquittal ended a two-year legal battle for the company.',
+    word: 'arbitrator',
+    back: '仲裁人',
+    phrase: 'An independent arbitrator will review the dispute.',
   },
   {
-    word: 'culpable',
-    back: '責めを負うべき',
-    phrase: 'The audit found the manager culpable for the accounting error.',
+    word: 'negotiator',
+    back: '交渉担当者',
+    phrase: 'The company sent its top negotiator to the meeting.',
   },
   {
-    word: 'negligence',
-    back: '過失',
-    phrase: 'The lawsuit alleged negligence in the handling of the shipment.',
+    word: 'concession',
+    back: '譲歩',
+    phrase: 'Both sides made a concession to reach an agreement.',
   },
   {
-    word: 'malfeasance',
-    back: '不正行為',
-    phrase: 'The investigation uncovered malfeasance by a senior official.',
+    word: 'proprietary',
+    back: '独自の・専有の',
+    phrase: 'The software uses a proprietary file format.',
   },
 ]

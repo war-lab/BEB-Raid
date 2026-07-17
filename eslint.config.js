@@ -5,12 +5,16 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
+  // .claude/ はセッション用worktree（.claude/worktrees/）が置かれるため除外する
+  // （worktree内のファイルをルートからも二重lintするとtsconfigRootDirが多義になりエラーになる）。
+  // packages/api/.wrangler/ は wrangler dev/vitest のローカル実行時生成物（M3・T-90）
   {
     ignores: [
       '**/dist/',
       '**/dev-dist/',
       '**/node_modules/',
       '.playwright-mcp/',
+      '.claude/',
       'packages/api/.wrangler/',
     ],
   },
