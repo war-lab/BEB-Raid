@@ -9,6 +9,11 @@ packages/app/dev-dist/
 .env
 .env.*
 
+# Cloudflare Workers ローカル開発の秘密値（招待コード等。packages/api/.dev.vars.example を参照）
+packages/api/.dev.vars
+# wrangler ローカル実行時の作業ディレクトリ
+packages/api/.wrangler/
+
 # エディタ・OS
 .DS_Store
 Thumbs.db
