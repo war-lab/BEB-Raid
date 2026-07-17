@@ -15,7 +15,7 @@ import { shuffle } from '../engine/shuffle'
 import { reviewSrsCard } from '../engine/srs'
 import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
-import type { AiClient, AudioPlayer } from '../platform'
+import type { AiClient, AudioPlayer, RaidApi } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
 import { advanceSession, resumeSession } from '../services/session'
@@ -37,6 +37,8 @@ interface Props {
   audioPlayer: AudioPlayer
   /** BYOK AIクライアント（M2・T-56。未注入ならExplanationCardの「AIに聞く」は出ない） */
   aiClient?: AiClient
+  /** 共有API（レイド）クライアント（M3・T-101。未注入ならExplanationCardの報告ボタンは出ない） */
+  raidApi?: RaidApi
 }
 
 interface AnswerResult {
@@ -98,7 +100,7 @@ function renderBlankedScript(
   return tokens.join(' ')
 }
 
-export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
+export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const snapshot = useSessionStore((s) => s.snapshot)
   const questions = useSessionStore((s) => s.questions)
   const recordAnswer = useSessionStore((s) => s.recordAnswer)
@@ -862,6 +864,8 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
                 }}
                 isCorrect={result.isCorrect}
                 aiClient={aiClient}
+                raidApi={raidApi}
+                db={db}
               />
               <PrimaryButton onClick={() => void advanceSubQuestion()}>
                 {subQuestionIndex + 1 < (question.subQuestions ?? []).length
@@ -877,6 +881,8 @@ export function DrillScreen({ db, audioPlayer, aiClient }: Props) {
                 question={question}
                 isCorrect={result.isCorrect}
                 aiClient={aiClient}
+                raidApi={raidApi}
+                db={db}
               />
               <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
             </>

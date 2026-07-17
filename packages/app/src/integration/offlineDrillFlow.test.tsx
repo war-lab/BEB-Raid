@@ -60,6 +60,7 @@ class FakeRaidApi implements RaidApi {
     },
   }))
   sendQuestionStats = vi.fn(async () => 0)
+  sendReport = vi.fn(async () => {})
 }
 
 function pack(id: string, questions: QuestionPack['questions']): QuestionPack {

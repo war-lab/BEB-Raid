@@ -82,18 +82,23 @@
 - **実機相当の検証**: `wrangler dev --local`を実起動し、`/register`→`POST /stats/questions`（2件送信→`{accepted:2}`）→`GET /stats/questions`（集計値確認）→未認証401→不正ボディ400をcurlで確認した（`.dev.vars`はテスト後に削除。gitignore対象のため未コミット）。
 - 検証: api単体テスト62件（既存51件+statsDo 4件+statsHandlers 7件）、app単体511件（既存+questionStats.test.ts 8件・FetchRaidApi.test.ts 1件追加・全FakeRaidApi実装へのsendQuestionStats追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 62件/app 511件/cli 305件/review-ui 15件/shared-schema 47件、計940件）すべて通過。
 
+**T-101 完了（2026-07-17。devへ直接commit）**: 「問題がおかしい」報告の集約を実装。api側は既存のシングルトンDurable Object `StatsDO`にreports表（`questionId, reason, count`。PRIMARY KEY(questionId, reason)・UPSERT加算）を追加し、POST `/reports`（Bearer必須。reasonは`wrong_answer`/`unnatural`/`bad_explanation`のunion検証）を新設。app側は`ExplanationCard.tsx`に「問題がおかしい」ボタン（`raidApi.isConfigured() && registered`のときのみ表示。registeredは新規propの`db`経由でsettings `raidRegisteredAt`を照会）→理由選択ボタン→`raidApi.sendReport`で直接fetch送信（pendingSyncを使わずキューイングしない。3.8節どおり）を追加。送信成功後は同一問題への再報告をメモリ内フラグ（`reportSent`）で無効化。失敗時は「送信できませんでした」のみ表示し、再試行可能なまま残す。`DrillScreen`に`raidApi`（任意propとして追加。aiClientと同じ「未注入なら機能ごと出さない」パターン）を通し、`App.tsx`から配線した。
+
+- **`docs/17`の記述誤りを発見・修正**: T-101シートは「docs/11 の J-3（Issue運用）に追記」としていたが、J-3は実際には`docs/08_M1タスク分解.md`に定義されており、docs/11はコンテンツレビューパイプライン（生成→レビュー→取込）専用の文書でIssue運用とは無関係だった。docs/08のJ-3行に「M3・T-101でアプリ内報告へ移行（Issue運用は併存）」を追記し、17のシート記述も訂正した。
+- **保存レコード型のdeviceToken非混入**: `StatsDO.addReport(questionId, reason)`はdeviceTokenを引数に取らず、reports表にも列を持たせていない（questionStatsと同じ構造的強制）。
+- 検証: api単体テスト71件（既存62件+statsDo reports 4件+reportHandlers 5件）、app単体520件（既存+ExplanationCard.test.tsxへの報告機能テスト8件・FetchRaidApi.test.tsへのsendReportテスト1件追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース）すべて通過。
+
 ### M3の次のアクション（次セッションはここから）
 
-**ステップ2「疎通」・ステップ3「集計」・ステップ4「画面」（T-90〜T-99）に加え、T-100（questionStats送信）もdevにマージ済み**（2026-07-17）。残りは以下:
+**ステップ2「疎通」・ステップ3「集計」（T-90〜T-96）・ステップ4「画面」（T-97〜T-99）・ステップ5「統計」（T-100・T-101）はdevにマージ済み**（2026-07-17）。残りは以下:
 
 | 順 | タスク | 依存 | Cloudflareアカウント |
 |----|--------|------|---------------------|
-| 1 | T-101（「問題がおかしい」報告の集約） | T-100 | 不要 |
-| 2 | T-102（レイド系バッジの初書込） | T-98 | 不要 |
+| 1 | T-102（レイド系バッジの初書込） | T-98 | 不要 |
 | － | T-93（ヘルスチェック＋CORS＋デプロイ） | H-1待ち | **必要**（保留中。人数確認・アカウント準備が済み次第いつでも着手可） |
 
-- 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)3.8節（questionStats・問題報告）・3.9節（バッジ）、作業指示は同書7〜9節のT-101・T-102シート。
-- ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
+- 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)3.9節（バッジ）、作業指示は同書9節のT-102シート。
+- ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100・T-101は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
 - 開始プロンプト例は17の1節どおり: 「docs/17_M3実装計画.md の T-10x を実装してください。着手前に同書の2節・3節と該当シートを必ず読むこと。task/ブランチ＋dev向けドラフトPR作成まで実施し、完了時はSTATUS.mdを同PRで更新してください」。
 
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）

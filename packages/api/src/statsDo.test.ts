@@ -62,3 +62,58 @@ describe('StatsDO.addStats / getAllStats', () => {
     }
   })
 })
+
+describe('StatsDO.addReport / getAllReports（T-101）', () => {
+  it('新規questionId×reasonはcount=1で登録される', async () => {
+    await runInDurableObject(stub(), (instance: StatsDO) => {
+      instance.addReport('q-1', 'unnatural')
+    })
+
+    const reports = await runInDurableObject(stub(), (instance: StatsDO) =>
+      instance.getAllReports(),
+    )
+    expect(reports).toEqual([{ questionId: 'q-1', reason: 'unnatural', count: 1 }])
+  })
+
+  it('同一questionId×reasonの再送はcountが加算される', async () => {
+    await runInDurableObject(stub(), (instance: StatsDO) => {
+      instance.addReport('q-1', 'wrong_answer')
+      instance.addReport('q-1', 'wrong_answer')
+      instance.addReport('q-1', 'wrong_answer')
+    })
+
+    const reports = await runInDurableObject(stub(), (instance: StatsDO) =>
+      instance.getAllReports(),
+    )
+    expect(reports).toEqual([{ questionId: 'q-1', reason: 'wrong_answer', count: 3 }])
+  })
+
+  it('同一questionIdでもreasonが異なれば別集計になる', async () => {
+    await runInDurableObject(stub(), (instance: StatsDO) => {
+      instance.addReport('q-1', 'wrong_answer')
+      instance.addReport('q-1', 'bad_explanation')
+    })
+
+    const reports = await runInDurableObject(stub(), (instance: StatsDO) =>
+      instance.getAllReports(),
+    )
+    expect(reports).toEqual([
+      { questionId: 'q-1', reason: 'bad_explanation', count: 1 },
+      { questionId: 'q-1', reason: 'wrong_answer', count: 1 },
+    ])
+  })
+
+  it('保存レコードにdeviceTokenフィールドが存在しない', async () => {
+    await runInDurableObject(stub(), (instance: StatsDO) => {
+      instance.addReport('q-1', 'unnatural')
+    })
+
+    const reports = await runInDurableObject(stub(), (instance: StatsDO) =>
+      instance.getAllReports(),
+    )
+    for (const row of reports) {
+      expect(Object.keys(row).sort()).toEqual(['count', 'questionId', 'reason'])
+      expect(row).not.toHaveProperty('deviceToken')
+    }
+  })
+})

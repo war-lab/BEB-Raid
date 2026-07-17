@@ -1,8 +1,8 @@
-// POST/GET /stats/questions（正本: docs/17_M3実装計画.md 3.1節・3.8節）。
+// POST/GET /stats/questions・POST /reports（正本: docs/17_M3実装計画.md 3.1節・3.8節）。
 // 認証（Bearer）はindex.tsのroute()側で行う。ここにはdeviceTokenを一切渡さない
 // （14の4.4-④: ハンドラへはペイロードのみを渡し、保存レコード型にdeviceToken列を持たせない）
 
-import { isQuestionStatsRequest } from './statsValidation'
+import { isQuestionReportPayload, isQuestionStatsRequest } from './statsValidation'
 import { STATS_DO_NAME } from './statsDo'
 import type { Env } from './env'
 
@@ -39,4 +39,21 @@ export async function handleGetStats(env: Env): Promise<Response> {
   const stub = env.STATS.get(env.STATS.idFromName(STATS_DO_NAME))
   const stats = await stub.getAllStats()
   return jsonResponse({ stats })
+}
+
+export async function handlePostReport(request: Request, env: Env): Promise<Response> {
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return errorResponse(400, 'invalid_body', 'JSONの解析に失敗しました')
+  }
+
+  if (!isQuestionReportPayload(body)) {
+    return errorResponse(400, 'invalid_body', 'リクエストボディの形式が不正です')
+  }
+
+  const stub = env.STATS.get(env.STATS.idFromName(STATS_DO_NAME))
+  await stub.addReport(body.questionId, body.reason)
+  return jsonResponse({ ok: true })
 }

@@ -50,6 +50,7 @@ class FakeRaidApi implements RaidApi {
     },
   }))
   sendQuestionStats = vi.fn(async () => 0)
+  sendReport = vi.fn(async () => {})
 }
 
 beforeEach(() => {

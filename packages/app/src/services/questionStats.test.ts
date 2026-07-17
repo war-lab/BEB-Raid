@@ -48,6 +48,7 @@ class FakeRaidApi implements RaidApi {
       contributions: [],
     },
   }))
+  sendReport = vi.fn(async () => {})
 
   constructor(configured = true) {
     this.isConfigured = () => configured

@@ -64,6 +64,7 @@ class FakeRaidApi implements RaidApi {
   fetchCurrentBoss = vi.fn(async () => this.currentBoss)
   syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: this.currentBoss ?? ACTIVE_BOSS }))
   sendQuestionStats = vi.fn(async () => 0)
+  sendReport = vi.fn(async () => {})
 }
 
 function textBlankQuestion(id: string): Question {

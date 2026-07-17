@@ -244,7 +244,9 @@ export function App() {
     return <DiagnosticScreen db={getDb()} audioPlayer={audioPlayer} questionPool={questionPool} />
   }
   if (screen === 'drill') {
-    return <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} />
+    return (
+      <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} raidApi={raidApi} />
+    )
   }
   if (screen === 'result') return <ResultScreen db={getDb()} raidApi={raidApi} />
   if (screen === 'vocab') {

@@ -1,6 +1,5 @@
 // 共有API本体（正本: docs/17_M3実装計画.md 3.1節・3.10節、docs/16）。
-// T-90時点は/healthのみだった。/stats/questionsはT-100で追加した。
-// 残りのエンドポイント（T-101の/reports）は以降のタスクで追加する
+// T-90時点は/healthのみだった。/stats/questionsはT-100、/reportsはT-101で追加した
 
 import { authenticateRequest } from './auth'
 import { handlePreflight, withCors } from './cors'
@@ -8,7 +7,7 @@ import type { Env } from './env'
 import { handleRaidCurrent, handleRaidSync } from './raidHandlers'
 import { handleRegister } from './register'
 import { generateWeeklyBoss } from './scheduled'
-import { handleGetStats, handlePostStats } from './statsHandlers'
+import { handleGetStats, handlePostReport, handlePostStats } from './statsHandlers'
 
 export { RaidBossDO } from './raidBossDo'
 export { StatsDO } from './statsDo'
@@ -57,6 +56,12 @@ async function route(request: Request, env: Env): Promise<Response> {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
     return handleGetStats(env)
+  }
+
+  if (request.method === 'POST' && url.pathname === '/reports') {
+    const auth = await authenticateRequest(request, env)
+    if (auth instanceof Response) return auth
+    return handlePostReport(request, env)
   }
 
   return notFound()
