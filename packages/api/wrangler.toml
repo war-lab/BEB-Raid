@@ -1,0 +1,58 @@
+# Cloudflare Workers設定（正本: docs/17_M3実装計画.md 3.10節）。
+# （T-94時点でRAID_BOSS DOを追加。T-100でSTATS DO（questionStats集計）を追加）。
+# INVITE_CODE等の秘密値はここに書かず `wrangler secret put` で環境ごとに設定する（H-1）。
+# ローカル開発・vitest実行時はwrangler/miniflareがKVをローカルエミュレートするため、
+# 下記idはCloudflareの実IDである必要がない（H-1完了時に`wrangler kv namespace create`の
+# 実IDへ差し替える。それまでは以下のプレースホルダーのままでよい）。
+
+name = "beb-raid-api"
+main = "src/index.ts"
+compatibility_date = "2026-07-17"
+
+[[kv_namespaces]]
+binding = "MEMBERS"
+id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID" # H-1完了後に実IDへ差し替える
+
+[[durable_objects.bindings]]
+name = "RAID_BOSS"
+class_name = "RaidBossDO"
+
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "StatsDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RaidBossDO"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["StatsDO"]
+
+# 週次ボス生成（3.4節）。"1" = 月曜（標準cron表記。日=0〜土=6）
+[triggers]
+crons = ["0 0 * * 1"]
+
+[vars]
+# ローカル開発既定（vite devサーバのオリジン）
+ALLOWED_ORIGINS = "http://localhost:5173"
+
+[env.dev]
+name = "beb-raid-api-dev"
+
+[env.dev.vars]
+ALLOWED_ORIGINS = "http://localhost:5173,https://war-lab.github.io"
+
+[[env.dev.kv_namespaces]]
+binding = "MEMBERS"
+id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID_DEV" # H-1完了後に実IDへ差し替える
+
+[env.production]
+name = "beb-raid-api"
+
+[env.production.vars]
+ALLOWED_ORIGINS = "https://war-lab.github.io"
+
+[[env.production.kv_namespaces]]
+binding = "MEMBERS"
+id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID_PROD" # H-1完了後に実IDへ差し替える

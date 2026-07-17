@@ -1,13 +1,116 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-16**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-17**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
 ## 改修フェーズ（2026-07-16開始。正本: [15_改修計画](15_改修計画_フェーズA-D.md)）
 
 実運用で「クイックパック中に問題が出なくなる」不具合が発生し、調査の過程で全量監査（コード品質/UI・ビジュアル/コンテンツ品質/M3基盤準備の4系統）を実施した。分析は [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md)、実行計画は [15_改修計画](15_改修計画_フェーズA-D.md)（T-67〜T-89・判断J-30〜J-44）に記録済み。**2026-07-16: フェーズA自走ラン完了（T-67〜T-76全完了）**。**2026-07-16続き: フェーズB自走ラン完了（T-77〜T-79全完了）**。**2026-07-16続き: フェーズD自走ラン完了（T-87〜T-89全完了）**。**2026-07-16続き: フェーズC自走ラン継続（T-80・T-81・T-82・T-83完了）**。ユーザー判断により「T-83のみ先に実施」（T-84〜T-86はJ-33承認待ちのまま）。**2026-07-17: J-33をユーザーが承認、T-84・T-85・T-86完了。フェーズC（T-80〜T-86）全完了**。改修計画（docs/15）はT-67〜T-89の全タスクが完了した。
 
+## M3（共有API・レイド）の着手準備（2026-07-17）
+
+発起人が16のJ-45〜J-50（J-47-2含む）を推奨案で一括承認し、J-32のGO判断を実施した。これを受けて **[17_M3実装計画](17_M3実装計画.md)（自走タスクシート）を作成**した（T-90〜T-102の作業指示・事前決定事項の正文・人間タスクH-1〜H-3・実行順序）。要点:
+
+- **M3タスクはSonnetクラスのAIセッションで自走可能**（1タスク=1セッション。開始プロンプト例は17の1節）。M2ブラッシュアップと並行するため、M3タスクは**dev直コミット禁止・task/ブランチ+PR運用**（17の2.1節。発起人判断 2026-07-17）。
+- **2026-07-17: T-90〜T-99（PR #16〜#24。docs/17自体のPR #15含め計10件）を発起人が一括レビュー・マージ済み**。dev上のCIも全件success。task/ブランチはスタック運用（各PRが前PRの上に分岐）だったため、GitHub上のマージ順（#16→#24の順）を守って直列マージした。以降のセッションはdevから作業を始めれば足りる（過去のブランチ運用を気にする必要はない）。
+- **2026-07-17続き: T-100・T-101・T-102は発起人の指示により例外的にdevへ直接commit＆push**（通常のtask/ブランチ+PR運用からの一時的な逸脱。次のM3タスク着手時は17の2.1節の通常運用に戻すか発起人に確認する）。
+- **契約改訂が1件必要（T-91・単独PR）**: `DamageSyncPayload` に `answeredAt` を追加する（J-49のサーバー側期間判定に必須。T-89実装時点の型には無い）。
+- **T-90〜T-92・T-94〜T-96・T-100〜T-102はCloudflareアカウント不要**（wrangler --local・vitest-pool-workersで完結）。アカウントが要るのはデプロイ（T-93）のみで、人間タスク **H-1（Cloudflare準備）** はT-93前までに済めばよい。
+
+**T-90 完了（2026-07-17）**: `packages/api` を新設（wrangler.toml・package.json・tsconfig.json・vitest.config.ts・GET /health・CORS共通関数）。ADR [0005](adr/0005-M3共有API基盤.md) 起票、03の6.1にモード係数表（raid 1.0/solo 0.5/srs 0）を追記。**実装中に判明した設計判断（docs未記載だった穴）**:
+
+- **@cloudflare/vitest-pool-workers 0.18.5はVitest4のプラグイン方式**: docs/17起草時点で想定していた `defineWorkersConfig`（`/config` サブパスからimport）はこのバージョンには存在しない（パッケージ内蔵の `codemods/vitest-v3-to-v4` で確認）。正しい書式は `import { cloudflareTest } from '@cloudflare/vitest-pool-workers'` を `vitest/config` の `defineConfig({ plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.toml' } })] })` に渡す形。`cloudflare:test`（SELF等）の型は `@cloudflare/vitest-pool-workers/types` をトリプルスラッシュ参照で取り込む必要がある（tsconfigの `compilerOptions.types` ではサブパスを解決できないため）。docs/17 3.10節・T-90シートは実装済みコードが正であり、記載の `defineWorkersConfig` はバージョン起因の誤りだった（今回のシート更新では追記せず、コード自体が実例になる）。
+- **`packages/api/.wrangler/`（wrangler dev/vitestのローカル実行時生成物）は.gitignore・ESLint ignoresの両方に追加が必要**だった（放置するとビルド成果物のJSがlintエラーになる）。
+- **BOSS_HP_FACTORの値は03の6.2で既に確定済みの討伐率係数=0.85を流用**することにした（docs/17起草時に0.8という新値を書いてしまっていたのを本タスクで発見・修正。03が上流正本のため17を訂正）。
+- 検証: `wrangler dev`実起動→curl `/health`→200 `{"ok":true}`確認、api単体テスト6件、ルート `npm run lint`・`npm run format:check`・`npm run build`（api込み）・`npm test`（全ワークスペース。api 6件/app 444件/cli 305件/review-ui 15件/shared-schema 38件、計808件）すべて通過。デプロイは未実施（T-93の範囲）。
+
+**T-91 完了（2026-07-17。契約改訂・単独PR）**: `DamageSyncPayload` に `answeredAt`（epoch ms）を追加（J-49のサーバー側期間判定の入力）。M3共有APIの契約型一式をshared-schemaに新設: `RegisterRequest`・`DailyGoal`・`RaidBossState`（`RaidContribution`込み）・`RaidStatus`・`RaidSyncRequest`・`RaidSyncResponse`・`QuestionStatPayload`・`QuestionStatsRequest`・`QuestionReportPayload`（`QuestionReportReason`）・`ApiError`（docs/types.ts）。**`buildDamageSyncPayload`と同じホワイトリスト方式**で新規 `buildQuestionStatPayload`/`QUESTION_STAT_PAYLOAD_KEYS`（questionStats.ts）も追加し、`QuestionStatPayload` にdeviceTokenが構造的に混入しないことをテストで担保（14の4.4-④・T-91完了条件）。
+
+- **app側の対応（同PR）**: `services/answerPipeline.ts` の `enqueueRaidSyncIfEnabled` に `answeredAt` を追加。snapshot経由（`answerCurrentQuestion`の戻り値の`updatedAt`＝今回記録したattemptの`answeredAt`と一致することを`session.ts`実装で確認）・直接記録経由（`recordAttempt`の戻り値の`answeredAt`）の両方から取得できるようにした（T-89実装済みのattemptId捕捉と同じ非対称な取得パターン）。
+- **04の4節を更新**: members行にdailyGoal/emaDailyDamage、damageLogs行に`answeredAt`（帰属判定用・サーバー側クランプの注記）、questionStatsに保証範囲の注記（「保存データとして結合しない」が保証範囲であり「一切の突合が不可能」とまでは主張しない）を追記。
+- 検証: shared-schema単体47件（既存38件+新規9件）・app単体444件（既存回帰＋answerPipeline拡張分）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース計808件）すべて通過。
+
+**T-92 完了（2026-07-17）**: POST `/register`（招待コード検証→deviceTokenをKV `member:<deviceToken>` へ登録。再登録は displayName/dailyGoal を上書きしつつ registeredAt・emaDailyDamage は引き継ぐ）と、T-95以降が共用する `authenticateRequest`（Bearer認証ミドルウェア）を実装。KVバインディング`MEMBERS`をwrangler.tomlへ追加（id はH-1完了までプレースホルダー文字列。ローカル/vitest実行はこの値のままKVがエミュレートされることを確認済み）。**実装中に判明した設計判断（docs未記載だった穴）**:
+
+- **`cloudflare:test`の`env`は既定で空の`Cloudflare.Env`型**: `wrangler types`が生成する`worker-configuration.d.ts`に頼ると、生成元が`.dev.vars`（gitignore対象=CIには存在しない）の有無に左右され不安定になる。そのため`packages/api/src/cloudflare-env.d.ts`を新規に手書きし、`declare global { namespace Cloudflare { interface Env extends WorkerEnv {} } }`で`env.ts`のEnv型をグローバル名前空間へ反映する方式にした（ESLintの`no-empty-object-type`は個別に無効化。同名前空間へのdeclaration mergingを認識しないため）。
+- **KVバインディングのid**: ローカル`wrangler dev`・vitest-pool-workersの双方とも、`id`がCloudflareの実IDでなくても（プレースホルダー文字列のままでも）問題なくローカルKVとして動作することを実機確認した（3.10節の想定どおり）。
+- **INVITE_CODEのテスト注入**: wrangler.tomlに秘密値を書けないため、vitest.config.tsの`cloudflareTest({ miniflare: { bindings: { INVITE_CODE: 'test-invite-code' } } })`でテスト専用の決定的な値を注入する方式にした（`.dev.vars`の有無に依存せずCIでも動く）。
+- 検証: api単体テスト15件（既存6件+register 5件+auth 4件）、`.dev.vars`に実際にINVITE_CODEを置いた`wrangler dev`実起動でcurlにより誤コード401・正コード200・KV書込を確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-94 完了（2026-07-17）**: 週次ボスDurable Object（`RaidBossDO`。SQLiteストレージ。`state`1行＋`damage_attempts`（attemptId主キー・INSERT OR IGNOREで冪等））と、週次cron生成ハンドラ（`generateWeeklyBoss`）を実装。ISO週番号・週境界の算出（`raidWeek.ts`）、ボスHP算出定数（`raidConfig.ts`）、ボスプロファイル10体のローテーション（`bossProfiles.ts`）を新設。wrangler.tomlにDOバインディング（`RAID_BOSS`・SQLite migration）とCron Trigger（`0 0 * * 1`=月曜0時UTC）を追加。**実装中に判明した設計判断**:
+
+- **DAMAGE_PER_QUESTIONの実測導出**: `engine/rating.ts`の`basePoints(DEFAULT_INITIAL_RATING=400, difficultyToRatingSpace(3)=660)`を一時テスト（実行後に削除）で実行し、`128`を得た。raid係数1.0のためそのまま`DAMAGE_PER_QUESTION=128`として`raidConfig.ts`に転記した（導出過程はコード内コメントに記録）。
+- **BOSS_HP_FACTORは0.85で確定**（T-90で発見・修正済みの03の6.2既存値をそのまま使用。MIN_BOSS_HP=8160）。
+- **討伐後・帰属期間外（J-49）のダメージ**: 加算はしないがacceptedIdsには含める設計。**T-95実装時に訂正**: 当初「受信（receivedAt）がendAtを過ぎている」ことも非加算の条件に含めていたが、これはJ-49の趣旨（オフライン滞留分の遅延到着はansweredAtが期間内なら期限後受信でも加算する）と直接矛盾する自己流の誤読だった。T-95で発見・修正し、docs/17 3.5節の記述も訂正した（詳細はT-95の項目参照）。
+- **EMA初回（前週実績0の新規メンバー）はemaDailyDamage=0になる**（J-48の「初回は前週日次をそのまま」を文字通り実装した結果。以後は0.5:0.5のブレンドで緩やかに変化する設計であり、自己申告値が実績で自己修正される意図どおりの挙動と判断）。
+- **`cloudflare:test`の`runInDurableObject`/`createExecutionContext`/`createScheduledController`**でDOメソッド直接呼び出し・scheduledハンドラのテストが可能なことを確認（vitest-pool-workers 0.18系の公開API）。
+- 検証: api単体テスト42件（既存15件+raidWeek 9件+raidConfig 3件+bossProfiles 3件+raidBossDo 9件+scheduled 3件）、`wrangler dev`実起動でDOバインディング・cron認識を確認（ローカルでのcron自動発火は非対応である旨の警告が出ることも確認=想定どおり）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-95 完了（2026-07-17）**: GET `/raid/current`（Bearer必須。当週bossIdから状態を構築。未生成は404）とPOST `/raid/sync`（`payload.bossId`単位でグループ化し、それぞれ正しいDOへルーティング。レスポンスの`boss`は常に「今週」の状態）を実装。**重大な設計矛盾を発見・修正**:
+
+- **J-49の「期限後でも加算する」とT-90/94時点の実装が矛盾していた**: docs/17 3.5節に自分で書いた「討伐後・期限後のダメージは受理しない」を文字通り実装し、`RaidBossDO.syncDamage`に`receivedAt > state.endAt`で拒否する`closed`ゲートを入れていた。しかしdocs/16 J-49（3.4節）は「サーバー受信時のansweredAtがボスの[startAt,endAt]区間内ならバッチ受信が期限後でも加算する」と明記しており、これは正反対の規定だった。T-95で週境界跨ぎ（境界系）のテストを書いた際に発見: 前週ボス宛の正当な遅延到着ペイロードが加算されない挙動になっていた。**修正**: `syncDamage`から`receivedAt`ベースの`closed`ゲートを削除し、「討伐済み」または「answeredAt自体が[startAt,endAt]外」の2条件のみで非加算を判定する形にした（表示用の`status`計算=`computeStatus`は`now>endAt`で'closed'を返す従来どおりで、加算判定とは独立）。T-94で書いた該当テスト（`raidBossDo.test.ts`）も誤った期待値のまま存在していたため修正し、docs/17 3.5節の文言も訂正した。
+- **教訓**: 自分で書いた計画ドキュメント（17）の記述であっても、上位ドキュメント（16のJ-49）と矛盾していないか実装・テスト時に必ず突き合わせる。今回は「境界系」の統合テストを書いたことで矛盾が顕在化した（単体テストだけでは見つけにくいクラスのバグ）。
+- 検証: api単体テスト51件（既存42件+raidValidation・raidHandlers関連9件。うちraidBossDo.test.tsは上記修正で1件書き換え+1件追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-96 完了（2026-07-17）**: `platform/net/RaidApi.ts`（IF。AiClientと同じ抽象化パターン）＋`FetchRaidApi.ts`（本実装。fetch直呼び・15秒タイムアウト・401/network/timeout/unknownのエラー種別判定）を新設。`services/raidSync.ts`（`syncRaidDamage`）でpendingSync（kind='raidDamage'）を読み、受理済み（acceptedIds）のみ削除・レスポンスのbossでraidStateを更新する。トリガーは起動時（App.tsx）とセッション完了時（ResultScreen.tsx）の2箇所（S5手動同期ボタンはT-98の範囲）。SettingsScreenに`raidSyncEnabled`トグルを追加（`raidApi.isConfigured()`のときのみ表示。「レイド参加中のみ有効にしてください」の説明文付き）。
+
+- **縮退設計の3段ゲート**: `isConfigured()`（VITE_RAID_API_BASE_URL未設定）→`raidSyncEnabled`設定→`raidState.joined`の3つのいずれかがfalseなら通信ゼロで即return。
+- **deviceTokenの取得は`profile.deviceToken`から**（AiClientの`getApiKey`と同じ疎結合パターンで`getDeviceToken`をApp.tsxが注入。RaidApi実装はdbに直接依存しない）。
+- **vite-plugin-pwaのworkbox設定を確認**: `runtimeCaching`が一切設定されておらず（precacheのみ）、APIオリジンをSW自体が捕捉する仕組みが元々存在しないことを確認した（3.6節の懸念に対する追加対応は不要と判断）。
+- 検証: app単体テスト（raidSync.test.ts 8件・FetchRaidApi.test.ts 12件・SettingsScreen/ResultScreenの追加分含む）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+- ステップ3「集計」（T-94〜T-96）完了。
+
+**T-97 完了（2026-07-17）**: HomeScreenにボスHPバーを追加。`raidApi.isConfigured() && raidState.joined` のときのみ表示（ボス名・HP%バー・残り日数）。既存の`.home-season-progress`パターンを踏襲した新規CSSクラス（`.home-raid-hp*`。フィル色は`--ng`でシーズン進捗バーの`--gold`と区別）。
+
+- **本タスクの範囲は表示のみ**: タップでS5へ遷移する動線・「レイド」グリッド入口ボタンはT-98の範囲（`ScreenName`に`'raid'`がまだ無いため、T-98がRaidScreen新設と同時に配線する）。
+- **`Date.now()`直書きの`react-hooks/purity`回避**: SettingsScreen.tsxの既存パターン（`function now(): number { return Date.now() }`）を踏襲し、残り日数計算に使った。
+- 検証: HomeScreen単体テスト27件（既存23件+HPバー4件: raidState無し/isConfigured=false/joined=false/正常表示）、offlineDrillFlow・App.test.tsxの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+**T-98 完了（2026-07-17）**: 新規`screens/RaidScreen.tsx`（未登録=招待コード登録フォーム→登録済み=現ボス表示・参加・レイドに挑む・今すぐ同期→討伐演出の一連）。`ScreenName`に`'raid'`を追加、App.tsxの画面分岐・HomeScreenのグリッド入口ボタン（`raidApi.isConfigured()`のときのみ）・HPバーのタップ遷移を配線。「レイドに挑む」は`generateQuickPack`の7分プリセット→`mode==='solo'`の項目だけ`'raid'`へ上書き（`'srs'`項目はレート・ダメージ対象外のまま維持=damageConfig.jsonのsrs:0と整合）。
+
+- **実機相当の検証**: `wrangler dev --local`（api）＋`vite`（app、`VITE_RAID_API_BASE_URL`をローカルwranglerへ向け）を起動し、`/cdn-cgi/handler/scheduled`で週次ボスを手動生成した上で、Playwrightで実ブラウザ操作を実施。登録→参加→「レイドに挑む」→ディクテーション1問解答まで完走し、IndexedDBを直接読んで`activeSession`の全20項目が`mode:"raid"`・`attempts`レコードが`mode:"raid"`で記録されていることを確認した（ユニットテストでは検証しきれないend-to-endの実データ確認）。
+- **手動同期ボタンのため`syncRaidDamage`の戻り値をvoid→booleanに変更**（成功/失敗をS5が表示できるように）。あわせて`isLastRaidSyncUnauthorized()`（モジュールスコープの一時フラグ）を新設し、401時のみ「登録が無効です」の案内を出す（3.6節の設計どおり）。
+- 検証: RaidScreen単体テスト10件（未登録/登録成功/401エラー/登録済みスキップ/参加/ボス未生成/挑戦時のmode='raid'/討伐演出あり・なし/isConfigured=false）、raidSync.test.ts追加4件（戻り値・isLastRaidSyncUnauthorized）、既存HomeScreen・App・offlineDrillFlowの回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+**T-99 完了（2026-07-17）**: `engine/relativeTime.ts`（新規。`formatRelativeTime`: 60分未満は「N分前」、24時間未満は「N時間前」、それ以降は「N日前」）を新設し、HomeScreen（HPバー内）・RaidScreen（ボス表示内）の両方に「最終同期: N分前」表示と「討伐の確定はサーバー側の判定が正です」注記を追加。
+
+- **同期失敗時の強調表示**: `services/raidSync.ts`に`isLastRaidSyncFailed()`（種別を問わない直近同期失敗フラグ。既存の`isLastRaidSyncUnauthorized()`と対）を新設し、失敗時は「最終同期」表示に`is-stale`クラス（`--ng`色・太字）を付与する。テスト用に`resetRaidSyncFlagsForTest()`も追加（モジュールスコープの一時フラグがテストファイル間で漏れないようにする安全策）。
+- **これでM3ステップ4「画面」（T-97〜T-99）が完了**。ステップ5「統計」（T-100・T-101）へ進める状態。
+- 検証: relativeTime単体テスト7件（境界値: 59分/60分/23時間59分/24時間/負値）、HomeScreen・RaidScreenへの追加テスト計5件、raidSync.test.ts追加分の回帰確認、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`すべて通過。
+
+**T-100 完了（2026-07-17。devへ直接commit）**: 匿名問題別正誤集計の送信を実装。api側にシングルトンDurable Object `StatsDO`（`idFromName('global')`。SQLite表`question_stats(questionId主キー, correct, wrong, timeout)`をUPSERT加算）とPOST/GET `/stats/questions`（両方Bearer必須）を新設。app側は`services/questionStats.ts`（watermark方式。settings `questionStatsLastSentAt` より新しいattemptsをquestionId別に集計し、`shadow:`プレフィックスは除外して送信。成功時にwatermarkを進める）を新設し、`RaidApi.sendQuestionStats`をraidSyncと同じトリガー（起動時・セッション完了時）に相乗りさせた。SettingsScreenに`questionStatsEnabled`トグル（既定OFF。raidApi.isConfigured()時のみ表示）を追加。
+
+- **本セッションでの運用変更**: 発起人の指示により本タスクは**task/ブランチ＋PR運用ではなくdevへ直接commit＆push**で実施した（17の2.1節が定める通常運用からの一時的な逸脱。M2ブラッシュアップと並走中の他セッションとの衝突リスクはこのセッション実行時点で確認済みの範囲では発生していない）。
+- **17の3.1節と3.8節の記述齟齬を発見・修正**: 3.1節は「エンドポイントは以下の6本のみ」としていたが、3.8節はT-100で管理用`GET /stats/questions`（cli等の運用者向け・app非使用）を追加する指示を含んでおり、内部で矛盾していた。3.1節に「6本は基本契約、GET /stats/questionsは別枠の管理用」と注記して解消した。
+- **保存レコード型のdeviceToken非混入は構造的に保証**: `StatsDO.addStats`の引数型が`QuestionStatPayload`（deviceTokenフィールドを持たない）であるため、呼び出し側の実装ミスでも混入し得ない。SQLite表にも列を持たせていない。実行時テスト（api: statsDo.test.ts・statsHandlers.test.ts）でも保存・レスポンスの両方にdeviceTokenが現れないことを確認した。
+- **実機相当の検証**: `wrangler dev --local`を実起動し、`/register`→`POST /stats/questions`（2件送信→`{accepted:2}`）→`GET /stats/questions`（集計値確認）→未認証401→不正ボディ400をcurlで確認した（`.dev.vars`はテスト後に削除。gitignore対象のため未コミット）。
+- 検証: api単体テスト62件（既存51件+statsDo 4件+statsHandlers 7件）、app単体511件（既存+questionStats.test.ts 8件・FetchRaidApi.test.ts 1件追加・全FakeRaidApi実装へのsendQuestionStats追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 62件/app 511件/cli 305件/review-ui 15件/shared-schema 47件、計940件）すべて通過。
+
+**T-101 完了（2026-07-17。devへ直接commit）**: 「問題がおかしい」報告の集約を実装。api側は既存のシングルトンDurable Object `StatsDO`にreports表（`questionId, reason, count`。PRIMARY KEY(questionId, reason)・UPSERT加算）を追加し、POST `/reports`（Bearer必須。reasonは`wrong_answer`/`unnatural`/`bad_explanation`のunion検証）を新設。app側は`ExplanationCard.tsx`に「問題がおかしい」ボタン（`raidApi.isConfigured() && registered`のときのみ表示。registeredは新規propの`db`経由でsettings `raidRegisteredAt`を照会）→理由選択ボタン→`raidApi.sendReport`で直接fetch送信（pendingSyncを使わずキューイングしない。3.8節どおり）を追加。送信成功後は同一問題への再報告をメモリ内フラグ（`reportSent`）で無効化。失敗時は「送信できませんでした」のみ表示し、再試行可能なまま残す。`DrillScreen`に`raidApi`（任意propとして追加。aiClientと同じ「未注入なら機能ごと出さない」パターン）を通し、`App.tsx`から配線した。
+
+- **`docs/17`の記述誤りを発見・修正**: T-101シートは「docs/11 の J-3（Issue運用）に追記」としていたが、J-3は実際には`docs/08_M1タスク分解.md`に定義されており、docs/11はコンテンツレビューパイプライン（生成→レビュー→取込）専用の文書でIssue運用とは無関係だった。docs/08のJ-3行に「M3・T-101でアプリ内報告へ移行（Issue運用は併存）」を追記し、17のシート記述も訂正した。
+- **保存レコード型のdeviceToken非混入**: `StatsDO.addReport(questionId, reason)`はdeviceTokenを引数に取らず、reports表にも列を持たせていない（questionStatsと同じ構造的強制）。
+- 検証: api単体テスト71件（既存62件+statsDo reports 4件+reportHandlers 5件）、app単体520件（既存+ExplanationCard.test.tsxへの報告機能テスト8件・FetchRaidApi.test.tsへのsendReportテスト1件追加）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース）すべて通過。
+
+**T-102 完了（2026-07-17。devへ直接commit）**: レイド系バッジの初書込を実装。`services/raidSync.ts`の`syncRaidDamage`成功時に、レスポンスの`boss.status==='defeated' && boss.myDamage>0`のとき`raid-first-clear`（初回討伐参加）・`raid-clear:<bossId>`（週次討伐）をbadgesストアへput（badgeId主キーで冪等。既存なら`earnedAt`を上書きしない）する`grantRaidBadgesIfDefeated`を追加。`RaidScreen.tsx`にレイド系バッジ（`raid-first-clear`・`raid-clear:`prefix）だけを抽出する簡素な一覧表示（討伐履歴を兼ねる。`raid-clear:<bossId>`は「討伐: <bossId>」とラベル表示）を追加し、初回読み込み時・手動同期後の両方で再取得する。サーバーはバッジを一切持たない（3.9節どおり端末側のみで完結）。
+
+- **backup往復テストは新規追加不要と判断**: `backup.test.ts`の既存往復テスト（`エクスポート→全消去→インポートの往復`）が全ストアを汎用ループで比較する構造のため、badgesストアの内容（レイド系バッジを含む）は既に往復確認の対象になっていた。17のT-102完了条件はこの既存テストで満たされることを確認し、重複するテストは追加しなかった。
+- 検証: app単体527件（既存520件+raidSync.test.tsへのバッジ導出テスト4件・RaidScreen.test.tsxへのバッジ表示テスト3件）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 71件/app 527件/cli 305件/review-ui 15件/shared-schema 47件、計965件）すべて通過。
+- **これでM3のステップ2〜6（T-90〜T-102。デプロイ=T-93を除く全実装）が完了**。残るはT-93（H-1待ち）とH-2・H-3（人間主体）のみ。
+
+### M3の次のアクション（次セッションはここから）
+
+**ステップ2〜6（T-90〜T-102。デプロイ以外の全実装）はdevにマージ済み**（2026-07-17）。残りは以下:
+
+| 順 | タスク | 依存 | 備考 |
+|----|--------|------|------|
+| － | T-93（ヘルスチェック＋CORS＋デプロイ） | H-1待ち | **Cloudflareアカウントが必要**（保留中。人数確認・アカウント準備が済み次第いつでも着手可） |
+| － | H-2（招待コード配布・周知） | T-98完了後 | 🔴人間主体 |
+| － | H-3（実機通し確認） | T-99完了後 | 🔴人間主体。T-98のPlaywright確認では代替しきれない実機（iOS/Android）確認 |
+
+- T-93以降にAI単独で着手できるM3タスクは残っていない。次にAIが着手できる作業はM2残タスク（T-65・T-66。ただし🔴人間主体）かM3クローズ後の判断待ち。
+- 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)全節。T-93着手時は3.10節・5節T-93シートを読むこと。
+- ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100〜T-102は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
+
 - **修正済み（2026-07-16 コミット 43a14ce）**: ドリル画面フリーズの根本原因（quickPackのservable判定にvocab_card実在確認を追加・DrillScreenにquestionId解決不能itemのスキップフォールバック・パック取得失敗のconsole.warn可視化・PACK_IDSとmanifestの整合テスト）
-- **発起人承認待ちの判断**: J-30（Part2形式）・J-32（M3開始時期）・J-33（増産規模）。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。承認前でも T-87〜T-89・T-82 の大半は着手可（15の1節・2節参照）
+- **発起人承認待ちの判断**: J-30（Part2形式）のみ。**J-31（アクセントタグ改名）は2026-07-16に承認されT-82で反映済み**。**J-32（M3開始時期）は2026-07-17にGO判断済み、J-33（増産規模）も2026-07-17に承認済み**。J-45〜J-50（M3設計判断）も2026-07-17に一括承認済み（下のM3節参照）
 - **M2残タスク**: T-65（M2統合・通し確認）・T-66（ドッグフード開始判定）は🔴人間主体のまま。**フェーズA完了によりドッグフード開始の前提品質を満たした**（15の7節）。T-65/T-66は引き続き発起人主体で対応が必要
 
 ### 改修タスク状態（T-67〜T-89。定義は [15](15_改修計画_フェーズA-D.md)）

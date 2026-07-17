@@ -374,10 +374,11 @@ describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュ�
     expect(queued[0]!.kind).toBe('raidDamage')
     const payload = JSON.parse(queued[0]!.payloadJson) as Record<string, unknown>
     expect(Object.keys(payload).sort()).toEqual(
-      ['attemptId', 'bossId', 'damage', 'questionCount'].sort(),
+      ['answeredAt', 'attemptId', 'bossId', 'damage', 'questionCount'].sort(),
     )
     expect(payload.bossId).toBe('boss-2026-w29')
     expect(payload.damage).toBeGreaterThan(0)
+    expect(typeof payload.answeredAt).toBe('number')
   })
 
   it('raidSyncEnabled=ON でも参加中のレイドが無ければpendingSyncへ書き込まない', async () => {

@@ -1,20 +1,25 @@
 // S1 ホーム画面（T-21。docs/07 7節S1・02の2.1・01の非機能要件=起動3秒）。
-// 上: ストリーク＋SRS期限数。中: なし（レイドHPバーはM3）。下: 「今日のクエスト」
+// 上: ストリーク＋SRS期限数。中: 進行中レイドのHPバー（M3・T-97）。下: 「今日のクエスト」
 // 主ボタン＋3/7/15分チップ→generateQuickPack→セッション開始。下方グリッドは
 // 各モードへの導線（Part2瞬発・Part5・語彙SRS・ダッシュボード・設定）。
 import { useEffect, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
+import type { RaidStateRecord } from '../db/schema'
+import { RAID_STATE_ID } from '../db/schema'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
 import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { buildHeatmapCells } from '../engine/heatmapCells'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { generateQuickPack } from '../engine/quickPack'
+import { formatRelativeTime } from '../engine/relativeTime'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
+import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
+import { isLastRaidSyncFailed } from '../services/raidSync'
 import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
 import { LAST_SEEN_STREAK_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
@@ -30,10 +35,12 @@ interface Props {
   questionPool: Question[]
   /** 進行中セッション（T-67。App起動時＋ホーム復帰時に取得。無ければnull） */
   resumeSnapshot: SessionSnapshot | null
+  /** 共有API（レイド）クライアント（M3・T-97）。isConfigured()=falseならHPバー自体を出さない */
+  raidApi: RaidApi
 }
 
 /** 進行中セッションを破棄して新規開始してよいかの確認（J-34） */
-const CONFIRM_DISCARD_MESSAGE = '進行中のセッションを破棄して新しく始めますか？'
+export const CONFIRM_DISCARD_MESSAGE = '進行中のセッションを破棄して新しく始めますか？'
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
 const DEFAULT_DURATION: QuickPackDuration = 7
@@ -41,6 +48,13 @@ const DEFAULT_DURATION: QuickPackDuration = 7
 const BROKEN_GAP_DAYS = 2
 /** ホームのミニヒートマップの表示週数（T-78。DashboardScreenの15週の縮小版） */
 const MINI_HEATMAP_WEEKS = 4
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ
+// （SettingsScreen.tsxと同じ回避策）
+function now(): number {
+  return Date.now()
+}
 
 /** QuickPackItem → SessionItem（questionId が null の語彙カードは 3.4節の規約で補う） */
 export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
@@ -55,7 +69,7 @@ export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
   })
 }
 
-export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
+export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
 
@@ -78,6 +92,8 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
   > | null>(null)
   // T-78: 前回表示値より日数が増えたときだけストリーク表示を1回パルスさせる
   const [streakPulse, setStreakPulse] = useState(false)
+  // M3・T-97: 進行中レイドの端末内キャッシュ（raidSync=T-96が更新する。無ければ非表示）
+  const [raidState, setRaidState] = useState<RaidStateRecord | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -86,7 +102,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
         startOfLocalDay(Date.now()),
         -(MINI_HEATMAP_WEEKS * 7 - 1),
       )
-      const [status, record, queue, phaseState, lastSeenSetting, recentAttempts] =
+      const [status, record, queue, phaseState, lastSeenSetting, recentAttempts, raidStateRecord] =
         await Promise.all([
           evaluateStreak(db),
           getStreak(db),
@@ -94,8 +110,10 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
           getOrInitPhaseState(db),
           db.settings.get(LAST_SEEN_STREAK_KEY),
           db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
+          db.raidState.get(RAID_STATE_ID),
         ])
       if (cancelled) return
+      setRaidState(raidStateRecord ?? null)
       const today = toDateString(Date.now())
       const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
       const isBroken =
@@ -187,6 +205,16 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
     )
     navigate('drill')
   }
+
+  // M3・T-97: raidApi.isConfigured() && raidState.joined のときのみHPバーを表示する（縮退設計）
+  const showRaidHp = raidApi.isConfigured() && raidState?.joined === true
+  const bossName = raidState ? (JSON.parse(raidState.profileJson) as { name: string }).name : ''
+  const hpPercent =
+    raidState && raidState.maxHp > 0 ? Math.round((raidState.hp / raidState.maxHp) * 100) : 0
+  const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - now()) / DAY_MS)) : 0
+  // M3・T-99: オフライン表示規約（3.7節）
+  const lastSyncedLabel = raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : ''
+  const syncFailed = isLastRaidSyncFailed()
 
   return (
     <ScreenLayout
@@ -283,6 +311,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
             <button type="button" onClick={() => navigate('settings')}>
               設定
             </button>
+            {raidApi.isConfigured() && (
+              <button type="button" onClick={() => navigate('raid')}>
+                レイド
+              </button>
+            )}
           </div>
         </>
       }
@@ -306,6 +339,33 @@ export function HomeScreen({ db, questionPool, resumeSnapshot }: Props) {
             </div>
           )}
         </div>
+      )}
+      {showRaidHp && (
+        <button
+          type="button"
+          className="home-raid-hp"
+          data-testid="home-raid-hp"
+          onClick={() => navigate('raid')}
+        >
+          <p>{bossName}</p>
+          <div
+            className="home-raid-hp-bar"
+            role="progressbar"
+            aria-valuenow={hpPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
+          </div>
+          <p>残り{remainingDays}日</p>
+          <p
+            className={syncFailed ? 'home-raid-hp-sync is-stale' : 'home-raid-hp-sync'}
+            data-testid="home-raid-last-synced"
+          >
+            最終同期: {lastSyncedLabel}
+          </p>
+          <p className="home-raid-hp-note">討伐の確定はサーバー側の判定が正です</p>
+        </button>
       )}
       {miniHeatmapCells && (
         <div className="home-mini-heatmap" data-testid="home-mini-heatmap">

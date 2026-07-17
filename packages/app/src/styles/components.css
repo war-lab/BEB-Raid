@@ -621,6 +621,47 @@
     transition: none;
   }
 }
+/* --- ホームのレイドHPバー（M3・T-97。raidState.joinedのときのみ表示） --- */
+.home-raid-hp {
+  display: block;
+  width: 100%;
+  margin: var(--sp-1) 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.home-raid-hp p {
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.home-raid-hp-bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.home-raid-hp-bar-fill {
+  height: 100%;
+  background: var(--ng);
+  transition: width 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-raid-hp-bar-fill {
+    transition: none;
+  }
+}
+/* --- レイドのオフライン表示規約（M3・T-99。3.7節） --- */
+.home-raid-hp-sync.is-stale,
+.raid-sync-label.is-stale {
+  color: var(--ng);
+  font-weight: 700;
+}
+.home-raid-hp-note {
+  font-size: var(--fs-sub);
+  color: var(--ink-3);
+}
 .home-duration-chips {
   display: flex;
   gap: var(--sp-1);

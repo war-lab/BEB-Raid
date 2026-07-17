@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
-import type { CacheUsage, PackCache } from '../platform'
+import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import { getFontSizeScale } from '../fontSize'
 import { AnthropicAiClient, DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
 import { getTheme } from '../theme'
@@ -39,6 +39,29 @@ class FakePackCache implements PackCache {
   })
 }
 
+const FAKE_BOSS = {
+  bossId: 'boss-test',
+  name: 'テストボス',
+  hp: 100,
+  maxHp: 100,
+  startAt: 0,
+  endAt: 0,
+  status: 'active' as const,
+  participantCount: 0,
+  myDamage: 0,
+  contributions: [],
+}
+
+class FakeRaidApi implements RaidApi {
+  constructor(private readonly configured = false) {}
+  isConfigured = () => this.configured
+  register = vi.fn(async () => {})
+  fetchCurrentBoss = vi.fn(async () => null)
+  syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: FAKE_BOSS }))
+  sendQuestionStats = vi.fn(async () => 0)
+  sendReport = vi.fn(async () => {})
+}
+
 const flushLoad = () => screen.findByTestId('settings-loaded')
 
 afterEach(async () => {
@@ -58,7 +81,7 @@ describe('SettingsScreen: 永続化', () => {
       createdAt: 1000,
       deviceToken: 'token',
     })
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     const nameInput = screen.getByDisplayValue('もとの名前')
@@ -72,7 +95,7 @@ describe('SettingsScreen: 永続化', () => {
 
   it('イヤホンなしモードのトグルがsettingsストアに永続化される', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     fireEvent.click(screen.getByLabelText(/イヤホンなしモード/))
@@ -84,7 +107,7 @@ describe('SettingsScreen: 永続化', () => {
 
   it('ハプティクスのトグルがsettingsストアに永続化される（T-78。既定はON）', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     expect((screen.getByLabelText(/ハプティクス/) as HTMLInputElement).checked).toBe(true)
@@ -97,7 +120,7 @@ describe('SettingsScreen: 永続化', () => {
 
   it('テーマ切替がsettingsストアに永続化され、data-themeが反映される', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     fireEvent.click(screen.getByLabelText('ライト'))
@@ -110,7 +133,7 @@ describe('SettingsScreen: 永続化', () => {
 
   it('文字サイズ切替がsettingsストアに永続化され、data-font-sizeが反映される', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     fireEvent.click(screen.getByLabelText('L'))
@@ -124,7 +147,7 @@ describe('SettingsScreen: 永続化', () => {
   it('キャッシュ使用量が表示され、削除で0件になる', async () => {
     const db = newDb()
     const cache = new FakePackCache()
-    render(<SettingsScreen db={db} packCache={cache} />)
+    render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     expect(screen.getByText(/2件/)).toBeTruthy()
@@ -145,7 +168,7 @@ describe('SettingsScreen: 永続化', () => {
         estimate: async () => ({ usage: 5 * 1024 * 1024, quota: 100 * 1024 * 1024 }),
       },
     })
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     expect(screen.getByText('永続化: 有効')).toBeTruthy()
@@ -157,7 +180,7 @@ describe('SettingsScreen: 永続化', () => {
 
   it('T-72: navigator.storageが無い環境では「取得不可」表示になり破綻しない', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     expect(screen.getByText('永続化: 取得不可')).toBeTruthy()
@@ -180,7 +203,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('エクスポート'))
@@ -227,7 +250,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
       },
     }
 
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
@@ -242,7 +265,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
 describe('SettingsScreen: BYOK設定（T-55）', () => {
   it('APIキーを保存するとマスク表示になり、削除すると入力欄に戻る', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     fireEvent.change(screen.getByPlaceholderText('sk-...'), {
@@ -262,7 +285,7 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
 
   it('注記2点（端末内平文保存・支出上限推奨）が常に表示される', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     expect(screen.getByText('キーは端末内に平文保存され、端末外には送信されません。')).toBeTruthy()
@@ -271,7 +294,7 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
 
   it('モデル欄は既定値がplaceholderに出て、変更するとsettingsに保存される', async () => {
     const db = newDb()
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     const modelInput = screen.getByLabelText('モデル') as HTMLInputElement
@@ -292,7 +315,7 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
     fireEvent.click(screen.getByText('エクスポート'))
@@ -311,7 +334,7 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
     const client = new AnthropicAiClient(getApiKey)
     expect(await client.isConfigured()).toBe(false)
 
-    render(<SettingsScreen db={db} packCache={new FakePackCache()} />)
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
     fireEvent.change(screen.getByPlaceholderText('sk-...'), {
       target: { value: 'sk-ant-abcd1234' },
@@ -319,5 +342,42 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
     fireEvent.click(screen.getByText('保存'))
 
     await vi.waitFor(async () => expect(await client.isConfigured()).toBe(true))
+  })
+})
+
+describe('SettingsScreen: レイドダメージ送信トグル（T-96）', () => {
+  it('raidApi.isConfigured()=falseなら欄自体が表示されない', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(false)} />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText('レイドダメージを送信する')).toBeNull()
+  })
+
+  it('raidApi.isConfigured()=trueなら欄が表示され、既定はOFF', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    const toggle = screen.getByLabelText(/レイドダメージを送信する/) as HTMLInputElement
+    expect(toggle.checked).toBe(false)
+  })
+
+  it('トグルでsettingsストアのraidSyncEnabledが永続化される', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByLabelText(/レイドダメージを送信する/))
+
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('raidSyncEnabled'))?.value).toBe(true)
+    })
   })
 })

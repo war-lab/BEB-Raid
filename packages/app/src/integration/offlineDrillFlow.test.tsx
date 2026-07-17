@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { loadQuestionPool, PACK_IDS, syncPacksAndReload } from '../App'
 import { BebRaidDatabase } from '../db/database'
-import type { AudioPlayer, PackCache } from '../platform'
+import type { AudioPlayer, PackCache, RaidApi } from '../platform'
 import { createProfile } from '../services/profile'
 import { DrillScreen } from '../screens/DrillScreen'
 import { HomeScreen } from '../screens/HomeScreen'
@@ -38,6 +38,29 @@ class FakeAudioPlayer implements AudioPlayer {
   playSequence = vi.fn(async () => {})
   replay = vi.fn(async () => {})
   stop = vi.fn(() => {})
+}
+
+class FakeRaidApi implements RaidApi {
+  isConfigured = () => false
+  register = vi.fn(async () => {})
+  fetchCurrentBoss = vi.fn(async () => null)
+  syncDamage = vi.fn(async () => ({
+    acceptedIds: [],
+    boss: {
+      bossId: 'boss-test',
+      name: 'テストボス',
+      hp: 100,
+      maxHp: 100,
+      startAt: 0,
+      endAt: 0,
+      status: 'active' as const,
+      participantCount: 0,
+      myDamage: 0,
+      contributions: [],
+    },
+  }))
+  sendQuestionStats = vi.fn(async () => 0)
+  sendReport = vi.fn(async () => {})
 }
 
 function pack(id: string, questions: QuestionPack['questions']): QuestionPack {
@@ -107,7 +130,14 @@ describe('オフライン結合通し: packSync→loadQuestionPool→HomeScreen�
       expect(pool.map((q) => q.id)).toContain('p5-1')
 
       // ③ HomeScreen: 単独モード（Part5）でこのプールからセッションを開始できる
-      const homeRender = render(<HomeScreen db={db} questionPool={pool} resumeSnapshot={null} />)
+      const homeRender = render(
+        <HomeScreen
+          db={db}
+          questionPool={pool}
+          resumeSnapshot={null}
+          raidApi={new FakeRaidApi()}
+        />,
+      )
       await screen.findByTestId('home-loaded')
       fireEvent.click(screen.getByText('Part5'))
       await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))

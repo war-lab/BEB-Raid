@@ -10,6 +10,7 @@ export interface DamageSyncPayloadInput {
   bossId: string
   damage: number
   questionCount: number
+  answeredAt: number
 }
 
 /** DamageSyncPayloadのホワイトリスト（このキー以外を持たせない） */
@@ -18,6 +19,7 @@ export const DAMAGE_SYNC_PAYLOAD_KEYS: readonly (keyof DamageSyncPayload)[] = [
   'bossId',
   'damage',
   'questionCount',
+  'answeredAt',
 ]
 
 export function buildDamageSyncPayload(input: DamageSyncPayloadInput): DamageSyncPayload {
@@ -26,5 +28,6 @@ export function buildDamageSyncPayload(input: DamageSyncPayloadInput): DamageSyn
     bossId: input.bossId,
     damage: input.damage,
     questionCount: input.questionCount,
+    answeredAt: input.answeredAt,
   }
 }

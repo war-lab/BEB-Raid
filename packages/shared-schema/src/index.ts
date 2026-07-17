@@ -4,3 +4,4 @@
 export * from './types.js'
 export * from './validate.js'
 export * from './damageSync.js'
+export * from './questionStats.js'
