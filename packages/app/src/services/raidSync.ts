@@ -21,9 +21,24 @@ export const RAID_SYNC_BATCH_LIMIT = 200
  * メモリ保持でよい」）。永続化はせず、S5表示時に「登録が無効です」の案内に使う
  */
 let lastSyncUnauthorized = false
+/**
+ * 直近の同期試行が失敗したか（種別を問わない。T-99のオフライン表示規約で
+ * 「最終同期」表示を強調色にするために使う。永続化しない）
+ */
+let lastSyncFailed = false
 
 export function isLastRaidSyncUnauthorized(): boolean {
   return lastSyncUnauthorized
+}
+
+export function isLastRaidSyncFailed(): boolean {
+  return lastSyncFailed
+}
+
+/** テスト専用: モジュールスコープの一時フラグをリセットする（テスト間の状態漏れ防止） */
+export function resetRaidSyncFlagsForTest(): void {
+  lastSyncUnauthorized = false
+  lastSyncFailed = false
 }
 
 /**
@@ -52,8 +67,10 @@ export async function syncRaidDamage(db: BebRaidDatabase, raidApi: RaidApi): Pro
     acceptedIds = result.acceptedIds
     boss = result.boss
     lastSyncUnauthorized = false
+    lastSyncFailed = false
   } catch (e) {
     if (e instanceof RaidApiError && e.kind === 'unauthorized') lastSyncUnauthorized = true
+    lastSyncFailed = true
     return false
   }
 

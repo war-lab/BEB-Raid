@@ -14,7 +14,8 @@ import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { toDateString } from '../engine/date'
 import type { RaidApi } from '../platform'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { resetRaidSyncFlagsForTest, syncRaidDamage } from '../services/raidSync'
+import { NO_EARPHONE_MODE_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { HomeScreen } from './HomeScreen'
@@ -56,6 +57,7 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  resetRaidSyncFlagsForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -686,7 +688,13 @@ describe('HomeScreen: 出題プール空の案内（T-73）', () => {
 describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
   async function putRaidState(
     db: BebRaidDatabase,
-    overrides: Partial<{ joined: boolean; hp: number; maxHp: number; endAt: number }> = {},
+    overrides: Partial<{
+      joined: boolean
+      hp: number
+      maxHp: number
+      endAt: number
+      lastSyncedAt: number
+    }> = {},
   ) {
     await db.raidState.put({
       id: RAID_STATE_ID,
@@ -698,7 +706,7 @@ describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
       joined: overrides.joined ?? true,
       startAt: Date.now() - 86_400_000,
       endAt: overrides.endAt ?? Date.now() + 2 * 86_400_000,
-      lastSyncedAt: Date.now(),
+      lastSyncedAt: overrides.lastSyncedAt ?? Date.now(),
     })
   }
 
@@ -771,5 +779,79 @@ describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
     expect(hpBar.textContent).toContain('残り3日')
     const bar = hpBar.querySelector('[role="progressbar"]')
     expect(bar?.getAttribute('aria-valuenow')).toBe('50')
+  })
+
+  it('討伐の確定はサーバー側の判定が正です、の注記を表示する', async () => {
+    const db = newDb()
+    await putRaidState(db)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const hpBar = await screen.findByTestId('home-raid-hp')
+    expect(hpBar.textContent).toContain('討伐の確定はサーバー側の判定が正です')
+  })
+})
+
+describe('HomeScreen: オフライン表示規約（M3・T-99）', () => {
+  async function putRaidStateWithSync(db: BebRaidDatabase, lastSyncedAt: number) {
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp: 4200,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt,
+    })
+  }
+
+  it('最終同期をN分前として表示する（強調なし）', async () => {
+    const db = newDb()
+    await putRaidStateWithSync(db, Date.now() - 5 * 60_000)
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const label = await screen.findByTestId('home-raid-last-synced')
+    expect(label.textContent).toContain('最終同期: 5分前')
+    expect(label.className).not.toContain('is-stale')
+  })
+
+  it('直近の同期が失敗していた場合、最終同期表示が強調色（is-stale）になる', async () => {
+    const db = newDb()
+    await putRaidStateWithSync(db, Date.now() - 10 * 60_000)
+    const failingRaidApi = new FakeRaidApi(true)
+    failingRaidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await syncRaidDamage(db, failingRaidApi) // lastSyncFailedフラグを実際の失敗経路で立てる
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const label = await screen.findByTestId('home-raid-last-synced')
+    expect(label.className).toContain('is-stale')
   })
 })

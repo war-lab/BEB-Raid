@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
+import { resetRaidSyncFlagsForTest, syncRaidDamage } from '../services/raidSync'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -27,6 +28,7 @@ function newDb(): BebRaidDatabase {
 afterEach(async () => {
   useAppStore.setState({ screen: 'home' })
   useSessionStore.getState().reset()
+  resetRaidSyncFlagsForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -236,6 +238,70 @@ describe('RaidScreen: レイドに挑む（T-98）', () => {
     expect(snapshot).not.toBeNull()
     expect(snapshot!.items.length).toBeGreaterThan(0)
     expect(snapshot!.items.every((item) => item.mode === 'raid')).toBe(true)
+  })
+})
+
+describe('RaidScreen: オフライン表示規約（M3・T-99）', () => {
+  async function joinedSetupWithSync(lastSyncedAt: number) {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: ACTIVE_BOSS.bossId,
+      profileJson: JSON.stringify({ name: ACTIVE_BOSS.name }),
+      hp: ACTIVE_BOSS.hp,
+      maxHp: ACTIVE_BOSS.maxHp,
+      myDamage: ACTIVE_BOSS.myDamage,
+      joined: true,
+      startAt: ACTIVE_BOSS.startAt,
+      endAt: ACTIVE_BOSS.endAt,
+      lastSyncedAt,
+    })
+    return { db, raidApi: new FakeRaidApi() }
+  }
+
+  it('最終同期をN分前として表示する（強調なし）', async () => {
+    const { db, raidApi } = await joinedSetupWithSync(Date.now() - 5 * 60_000)
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const label = await screen.findByTestId('raid-last-synced')
+    expect(label.textContent).toContain('最終同期: 5分前')
+    expect(label.className).not.toContain('is-stale')
+  })
+
+  it('直近の同期が失敗していた場合、最終同期表示が強調色（is-stale）になる', async () => {
+    const { db, raidApi } = await joinedSetupWithSync(Date.now() - 10 * 60_000)
+    const failingRaidApi = new FakeRaidApi()
+    failingRaidApi.syncDamage = vi.fn(async () => {
+      throw new Error('network error')
+    })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await syncRaidDamage(db, failingRaidApi) // lastSyncFailedフラグを実際の失敗経路で立てる
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const label = await screen.findByTestId('raid-last-synced')
+    expect(label.className).toContain('is-stale')
+  })
+
+  it('参加前（未joined）は最終同期表示を出さない', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.queryByTestId('raid-last-synced')).toBeNull()
   })
 })
 
