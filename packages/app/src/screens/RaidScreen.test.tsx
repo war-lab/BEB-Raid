@@ -68,7 +68,7 @@ class FakeRaidApi implements RaidApi {
       throw new RaidApiError('network', '通信エラー')
     }
     if (this.registerShouldFail === 'badRequest') {
-      throw new RaidApiError('unknown', 'レイドAPIの呼び出しに失敗しました（400）')
+      throw new RaidApiError('unknown', 'レイドAPIの呼び出しに失敗しました（400）', undefined, 400)
     }
   })
   fetchCurrentBoss = vi.fn(async () => {

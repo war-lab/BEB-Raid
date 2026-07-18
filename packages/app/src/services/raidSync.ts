@@ -4,8 +4,9 @@
 // 受理済み（acceptedIds）のレコードのみ削除し、レスポンスのbossでraidStateを更新する。
 // 失敗時（通信断・サーバーエラー等）はpendingSyncを一切変更しない（キュー保持・次回自然再送）。
 //
-// 【縮退設計】isConfigured()=false または raidSyncEnabled=false または未参加（raidState.joined!==true）
-// のいずれかなら、関数冒頭で即returnし通信・追加のDB読み取りを最小化する
+// 【縮退設計】isConfigured()=false・未登録（raidRegisteredAt無し。T-115）・
+// raidSyncEnabled=false・未参加（raidState.joined!==true）のいずれかなら、
+// 関数冒頭で即returnし通信・追加のDB読み取りを最小化する
 //
 // レイド系バッジの導出（M3・T-102。正本: docs/17 3.9節）: サーバーはバッジを持たず、
 // 端末側がこの同期レスポンスから導出する。boss.status==='defeated' && myDamage>0のときのみ
@@ -17,7 +18,7 @@ import type { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { useRaidSyncStore } from '../store/raidSyncStore'
-import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
+import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 /** 初回討伐参加バッジ（週を問わず1回のみ） */
 export const RAID_FIRST_CLEAR_BADGE_ID = 'raid-first-clear'
@@ -59,6 +60,12 @@ export async function syncRaidDamage(
   raidApi: RaidApi,
 ): Promise<RaidSyncResult> {
   if (!raidApi.isConfigured()) return { ok: false }
+
+  // T-115(b): 未登録端末（招待コードでの登録が未了）は認証必須APIを叩かない。
+  // 登録前でもraidSyncEnabled=trueかつraidState.joined=trueになりうる経路は無いはずだが、
+  // 401を毎回コンソールへ出さないための多層防御として先頭でゲートする
+  const registeredSetting = await db.settings.get(RAID_REGISTERED_AT_KEY)
+  if (registeredSetting === undefined) return { ok: false }
 
   const enabledSetting = await db.settings.get(RAID_SYNC_ENABLED_KEY)
   if (enabledSetting?.value !== true) return { ok: false }

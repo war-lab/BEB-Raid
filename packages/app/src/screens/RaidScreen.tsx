@@ -61,14 +61,16 @@ export function raidBadgeLabel(badgeId: string): string {
   return `討伐: ${bossId}`
 }
 
-/** 登録失敗時のエラーメッセージ出し分け（レビューF1(g)）。
- * RaidApiErrorはkindがunauthorized/network/timeout/unknownの4種で、401以外の400系は
- * kind='unknown'にHTTPステータスをメッセージ（`（4xx）`）として持つため、そこから判別する */
+/** 登録失敗時のエラーメッセージ出し分け（レビューF1(g)・T-115）。
+ * RaidApiError.status（実際のHTTPステータス）で判定する。401以外の400系はkind='unknown'に
+ * status=4xxが入る（T-115で文字列の正規表現判定から置き換えた。エラーメッセージの
+ * 文言変更に引きずられない） */
 function registerErrorMessage(e: unknown): string {
   if (e instanceof RaidApiError) {
     if (e.kind === 'unauthorized') return '招待コードが正しくありません'
-    const status = /（(\d{3})）/.exec(e.message)?.[1]
-    if (status?.startsWith('4')) return '入力内容を確認してください'
+    if (e.status !== undefined && e.status >= 400 && e.status < 500) {
+      return '入力内容を確認してください'
+    }
   }
   return '登録に失敗しました。通信を確認してください'
 }

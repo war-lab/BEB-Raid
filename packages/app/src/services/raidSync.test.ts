@@ -11,7 +11,7 @@ import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { resetRaidSyncStoreForTest, useRaidSyncStore } from '../store/raidSyncStore'
 import { syncRaidDamage } from './raidSync'
-import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
+import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -61,6 +61,7 @@ class FakeRaidApi implements RaidApi {
 
 /** 参加中のraidStateを仕込む。bossIdは既定でレスポンス（BOSS）と同一週にする */
 async function seedJoinedRaidState(db: BebRaidDatabase, bossId = BOSS.bossId) {
+  await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
   await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
   await db.raidState.put({
     id: RAID_STATE_ID,
@@ -138,6 +139,32 @@ describe('syncRaidDamage: 縮退設計（OFF時は通信しない）', () => {
     await syncRaidDamage(db, raidApi)
 
     expect(raidApi.syncDamage).not.toHaveBeenCalled()
+  })
+
+  it('未登録（raidRegisteredAt無し）ならsyncDamageが呼ばれない（T-115: 認証必須APIへの誤アクセス防止）', async () => {
+    const db = newDb()
+    // raidRegisteredAtだけ与えず、それ以外（raidSyncEnabled・joined）は満たしておく
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: BOSS.bossId,
+      profileJson: '{}',
+      hp: 4800,
+      maxHp: 5000,
+      myDamage: 200,
+      joined: true,
+      startAt: 0,
+      endAt: 1000,
+      lastSyncedAt: 500,
+    })
+    await addPendingRaidDamage(db, 'a-1')
+    const raidApi = new FakeRaidApi(true)
+
+    const result = await syncRaidDamage(db, raidApi)
+
+    expect(raidApi.syncDamage).not.toHaveBeenCalled()
+    expect(result.ok).toBe(false)
+    expect(await db.pendingSync.count()).toBe(1)
   })
 })
 

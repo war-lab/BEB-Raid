@@ -18,6 +18,7 @@ import { syncRaidDamage } from '../services/raidSync'
 import {
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
+  RAID_REGISTERED_AT_KEY,
   RAID_SYNC_ENABLED_KEY,
 } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
@@ -953,6 +954,7 @@ describe('HomeScreen: オフライン表示規約（M3・T-99）', () => {
     await putRaidStateWithSync(db, Date.now() - 10 * 60_000)
     const failingRaidApi = new FakeRaidApi(true)
     failingRaidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
     await syncRaidDamage(db, failingRaidApi) // lastSyncFailedフラグを実際の失敗経路で立てる
 
@@ -1014,6 +1016,7 @@ describe('HomeScreen: バックグラウンド同期完了への画面追従（T
     expect((await screen.findByTestId('home-raid-last-synced')).textContent).toContain('1時間前')
 
     // 同期成功でDB側のraidStateが更新される
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
     await syncRaidDamage(db, raidApi)
 
@@ -1026,6 +1029,7 @@ describe('HomeScreen: バックグラウンド同期完了への画面追従（T
   it('同期失敗でis-stale強調が付き、次の成功で消える（再マウントなし）', async () => {
     const db = newDb()
     await putRaidState(db, 4200, Date.now())
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
     const raidApi = new FakeRaidApi(true)
     // 同一bossId（週替わりなし）で返し、joinedがリセットされないようにする
