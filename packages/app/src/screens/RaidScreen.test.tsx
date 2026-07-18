@@ -254,6 +254,19 @@ describe('RaidScreen: レイドに挑む（T-98）', () => {
     expect(snapshot!.items.length).toBeGreaterThan(0)
     expect(snapshot!.items.every((item) => item.mode === 'raid')).toBe(true)
   })
+
+  it('生成パックが0問なら案内文を表示し、drillへ遷移しない（T-121・J-60）', async () => {
+    const { db, raidApi } = await joinedSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={[]} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    fireEvent.click(screen.getByText('レイドに挑む'))
+
+    expect(await screen.findByText('今は出題できる問題がありません')).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+    expect(useSessionStore.getState().snapshot).toBeNull()
+  })
 })
 
 describe('RaidScreen: オフライン表示規約（M3・T-99）', () => {

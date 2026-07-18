@@ -1308,3 +1308,95 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     expect(screen.getByText('20問').className).toContain('is-selected')
   })
 })
+
+describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）', () => {
+  it('SRSカードなしで3分クエストを開始するとメッセージが表示され、drillへ遷移しない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('3分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+
+    expect(
+      await screen.findByText(
+        '今は出題できる問題がありません。3分クエストはSRS復習が中心です。復習カードが無いときは7分・15分をお試しください',
+      ),
+    ).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('7分に切り替えて開始成功すると、3分の空パックメッセージは消える', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('3分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await screen.findByText(/今は出題できる問題がありません/)
+
+    fireEvent.click(screen.getByText('7分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(screen.queryByText(/今は出題できる問題がありません/)).toBeNull()
+  })
+
+  it('単独モードでプールに対象formatが無ければメッセージが表示される', async () => {
+    const db = newDb()
+    // Part5(text_blank)を含まないプール
+    const poolWithoutPart5 = QUESTION_POOL.filter((q) => q.format !== 'text_blank')
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={poolWithoutPart5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByText('開始'))
+
+    expect(await screen.findByText('今は出題できる問題がありません')).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('単独モード開始成功時は、残っていた空パックメッセージをクリアする', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('3分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await screen.findByText(/今は出題できる問題がありません/)
+
+    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByText('開始'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(screen.queryByText(/今は出題できる問題がありません/)).toBeNull()
+  })
+})

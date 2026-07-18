@@ -54,6 +54,11 @@ const DEFAULT_DURATION: QuickPackDuration = 7
 const SINGLE_MODE_COUNTS = [10, 20, 50] as const
 type SingleModeCount = (typeof SINGLE_MODE_COUNTS)[number]
 const DEFAULT_SINGLE_MODE_COUNT: SingleModeCount = 20
+/** 空パック時の案内文言（J-60） */
+const EMPTY_PACK_MESSAGE = '今は出題できる問題がありません'
+/** 3分クエスト選択時のみ続ける補足文（J-60。3分=SRS復習中心の構成のため空になりやすい） */
+const EMPTY_PACK_QUEST_3MIN_HINT =
+  '3分クエストはSRS復習が中心です。復習カードが無いときは7分・15分をお試しください'
 /** 途切れ判定の閾値（レビューフォローアップ3.8節: gap≥2） */
 const BROKEN_GAP_DAYS = 2
 /** ホームのミニヒートマップの表示週数（T-78。DashboardScreenの15週の縮小版） */
@@ -99,6 +104,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [showPart5Options, setShowPart5Options] = useState(false)
   // T-118: 単独モード（Part2瞬発・Part5）共通の問数選択値（画面遷移・再起動を跨いで復元）
   const [singleModeCount, setSingleModeCount] = useState<SingleModeCount>(DEFAULT_SINGLE_MODE_COUNT)
+  // T-121(J-60): 生成パックが0問だったときの案内（今日のクエスト・単独モード共通）。
+  // セッション開始成功時・単独モード開始時にクリアする。自動では消さない
+  const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
   // T-54: 現フェーズ（シーズン表示・クイックパックのフェーズ駆動化に使う）
   const [phase, setPhase] = useState<PhaseState | null>(null)
   // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
@@ -231,6 +239,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   }
 
   async function handleStartQuest() {
+    setEmptyPackMessage(null)
     const pack = await generateQuickPack(db, {
       duration,
       questions: questionPool,
@@ -243,6 +252,16 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         ? applyNoEarphoneFilter(pack, new Map(questionPool.map((q) => [q.id, q])))
         : pack
     const items = toSessionItems(filteredPack.items)
+    // J-60: 3分クエストはSRS復習中心の構成のため、SRS期限・新規カードが無い状態
+    // （新規ユーザーの典型）で高確率で空パックになる。従来は黙って何も起きなかった
+    if (items.length === 0) {
+      setEmptyPackMessage(
+        duration === 3
+          ? `${EMPTY_PACK_MESSAGE}。${EMPTY_PACK_QUEST_3MIN_HINT}`
+          : EMPTY_PACK_MESSAGE,
+      )
+      return
+    }
     await startSessionAndNavigate(items)
   }
 
@@ -256,11 +275,17 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     format: 'audio_qa' | 'text_blank',
     options?: { partialAudioMode?: boolean },
   ) {
+    // T-121: 単独モード開始時は「今日のクエスト」の空パック案内が残っていればクリアする
+    setEmptyPackMessage(null)
     const filtered = questionPool.filter((q) => q.format === format)
     // J-57: 毎回シャッフルして先頭N問を取る（プール順固定だと後半に永遠に到達しない問題への対処）。
     // プールがN問未満のときはある分だけで開始する
     const selected = shuffle(filtered).slice(0, singleModeCount)
     const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    if (items.length === 0) {
+      setEmptyPackMessage(EMPTY_PACK_MESSAGE)
+      return
+    }
     await startSessionAndNavigate(items, options)
   }
 
@@ -345,6 +370,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 問題データを取得できていません。オンラインで開き直してください
               </p>
             )}
+            {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
             <p className="home-duration-chips__label">クエストの長さ</p>
             <div className="home-duration-chips">
               {DURATIONS.map((d) => (
