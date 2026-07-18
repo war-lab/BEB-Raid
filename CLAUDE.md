@@ -12,7 +12,9 @@ BEB Raid（ビーブレイド）— 通勤電車での短時間学習を主軸�
 npm workspaces の monorepo。ルートで実行する:
 
 - `npm run build` / `npm test` / `npm run lint` / `npm run format`（Prettier。`docs/` 等の Markdown は整形対象外）
-- `packages/app` — PWA本体（Vite + React）。`packages/cli` — コンテンツパイプラインCLI。`packages/shared-schema` — 問題パックスキーマ型の共有（app/cli 双方から import）
+- `packages/app` — PWA本体（Vite + React）。`packages/cli` — コンテンツパイプラインCLI。`packages/shared-schema` — 問題パックスキーマ型・共有API契約型の共有（app/cli/api から import）
+- `packages/api` — 共有API（Cloudflare Workers + KV + Durable Objects。M3のレイド集計・匿名問題統計）。ローカル実行は `wrangler dev --local`（`npm run dev -w @beb-raid/api`）、秘密値（INVITE_CODE）は `.dev.vars`（gitignore対象。例は `.dev.vars.example`）、テストは `@cloudflare/vitest-pool-workers`（DO・KV含めローカル完結）。設計の正本は `docs/17_M3実装計画.md` 3節
+- `packages/review-ui` — 生成コンテンツの人手レビュー用ローカルUI（ルートの `npm run review-ui` で起動）
 - `packages/app/src/platform/` — 音声再生（AudioPlayer）・パックキャッシュ（PackCache）の抽象化レイヤ。**UI・エンジンから Audio / AudioContext / caches を直接呼ぶと ESLint エラーになる**（必ず platform のインターフェース経由で使う）
 - `packages/app/src/db/` — Dexie スキーマ（04の3節の全11ストア）。**attempts は追記のみ**（削除は Dexie フックで実行時にも遮断。サービス層にも削除APIを作らない）。`packages/app/src/services/` — 解答記録・セッション中断復帰・エクスポート/インポート。IndexedDB を使うテストは fake-indexeddb を import する
 - デザイントークンは `packages/app/src/styles/tokens.css`（07の3節が正本）。色は必ずトークン経由で参照する

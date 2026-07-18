@@ -54,16 +54,60 @@ BEB Raid（ビーブレイド）は、通勤・通学中の短時間学習を主
 
 ## Architecture
 
-Initial architecture target:
-
-- Static PWA frontend
-- Local-first learning data storage
+- Static PWA frontend（GitHub Pages 配信）
+- Local-first learning data storage（端末内 IndexedDB）
 - Offline content cache
-- Static content delivery
-- Minimal shared API for raid state and ghost data
+- Static content delivery（問題パック JSON＋TTS 音声）
+- Minimal shared API for raid state and question stats（Cloudflare Workers + KV + Durable Objects）
 - BYOK AI explanation flow where applicable
 
+詳細は `docs/05_アーキテクチャ設計.md` を参照してください。
+
+## Getting Started
+
+Node.js 22 以上と npm（workspaces 対応）が必要です。
+
+```bash
+npm install
+
+# アプリ（PWA本体）を起動する
+npm run dev -w @beb-raid/app
+```
+
+レイド機能（共有API）もローカルで試す場合は、次の2点を追加で行います。
+
+1. `packages/app/.env.example` を参考に `packages/app/.env.local` を作成し、`VITE_RAID_API_BASE_URL`（ローカルAPIなら `http://127.0.0.1:8787`）を設定する。未設定ならレイド関連のUI・通信は一切無効になります（縮退設計）。
+2. `packages/api/.dev.vars.example` を参考に `packages/api/.dev.vars` を作成し（招待コード `INVITE_CODE` を記載。gitignore 対象）、共有APIをローカル起動する。
+
+```bash
+# 共有API（Cloudflare Workers）をローカルで起動する（wrangler dev --local）
+npm run dev -w @beb-raid/api
+```
+
+開発時の共通コマンド（すべてルートで実行）:
+
+```bash
+npm run build   # 全ワークスペースのビルド
+npm test        # 全ワークスペースのテスト
+npm run lint    # ESLint
+npm run format  # Prettier（docs/ 等の Markdown は対象外）
+```
+
+## Packages
+
+npm workspaces の monorepo 構成です。
+
+| Package | 内容 |
+|---------|------|
+| `packages/app` | PWA本体（Vite + React + Dexie）。学習セッション・SRS・レイド画面 |
+| `packages/cli` | コンテンツパイプラインCLI（問題生成→レビュー取込→TTS→パックビルド） |
+| `packages/shared-schema` | 問題パックスキーマ・共有API契約型の単一正本（app / cli / api が import） |
+| `packages/api` | 共有API（Cloudflare Workers + KV + Durable Objects）。レイド集計・匿名問題統計 |
+| `packages/review-ui` | 生成コンテンツの人手レビュー用ローカルUI |
+
 ## Documentation
+
+設計の正本は `docs/` 配下です。進捗の正本は `docs/STATUS.md` にあります。
 
 | # | File | Content |
 |---|------|---------|
@@ -74,23 +118,24 @@ Initial architecture target:
 | 05 | `05_アーキテクチャ設計.md` | PWA、オフライン設計、最小 API、AI 解説 |
 | 06 | `06_ロードマップ.md` | マイルストーン、見送り事項、着手前確認事項 |
 | 07 | `07_ビジュアルデザイン.md` | デザインコンセプト、カラー、タイポグラフィ、コンポーネント、画面別設計 |
-
-## Current Scope
-
-M1 focuses on a reduced, testable product slice:
-
-- Mobile-first PWA shell
-- Basic drill session
-- Initial vocabulary review loop
-- Minimal local progress tracking
-- Small initial content set
-- Simple raid prototype
-
-Deferred items include the full review UI, expanded content volume, advanced social features, and native app distribution details.
+| 08 | `08_M1タスク分解.md` | M1 の実装タスク分解（ブロッカー、依存関係、完了ゲート） |
+| 09 | `09_開発体制.md` | 並行開発の契約（スキーマ、インターフェースの固定）、ブランチ運用 |
+| 10 | `10_F4-F6実装計画.md` | M1 残タスク（F4〜F6）の自走タスクシート |
+| 11 | `11_レビュー運用手順.md` | コンテンツ生成→レビュー→取込の1サイクル手順 |
+| 12 | `12_M2タスク分解.md` | M1 クローズアウト＋M2 のタスク分解 |
+| 13 | `13_M2実装計画.md` | M2 の自走タスクシート |
+| 14 | `14_改善提案_M2ブラッシュアップとM3基盤.md` | 全量監査の問題分析と改善提案 |
+| 15 | `15_改修計画_フェーズA-D.md` | 14 を実行に落とす自走タスクシート（T-67〜T-89） |
+| 16 | `16_M3タスク分解.md` | M3（共有API・レイド機能）のタスク分解（T-90〜T-102） |
+| 17 | `17_M3実装計画.md` | M3 の自走タスクシート（事前決定事項、作業指示、人間タスク） |
+| — | `STATUS.md` | 現在地（進捗正本）。着手・完了時に必ず更新する |
+| — | `adr/` | ADR。01〜08 に書かれていない技術判断の記録 |
 
 ## Repository Status
 
-This repository is in the early design and prototyping phase.
+M1（電車ソロコアの MVP）と M2（コンテンツ拡充・体験改善）は完了しています。
+M3（共有API・レイド機能）は実装が完了し、Cloudflare へのデプロイ（人間タスク H-1〜H-3）待ちの段階です。
+詳細は `docs/STATUS.md` を参照してください。
 
 ## License
 
