@@ -50,6 +50,28 @@ describe('POST /stats/questions', () => {
     expect(res.status).toBe(400)
   })
 
+  it('負数・非整数のカウントは400になる（UPSERT加算集計の減算破壊を防ぐ）', async () => {
+    const deviceToken = await registerDevice()
+    for (const correct of [-1, 0.5, Number.NaN]) {
+      const res = await SELF.fetch(
+        postStats(deviceToken, [{ questionId: 'q-neg', correct, wrong: 0, timeout: 0 }]),
+      )
+      expect(res.status).toBe(400)
+    }
+  })
+
+  it('stats件数が上限(500)を超えるリクエストは400になる', async () => {
+    const deviceToken = await registerDevice()
+    const stats = Array.from({ length: 501 }, (_, i) => ({
+      questionId: `q-${i}`,
+      correct: 1,
+      wrong: 0,
+      timeout: 0,
+    }))
+    const res = await SELF.fetch(postStats(deviceToken, stats))
+    expect(res.status).toBe(400)
+  })
+
   it('正常系: 受理件数を返し、GETで集計値が取得できる', async () => {
     const deviceToken = await registerDevice()
     const res = await SELF.fetch(

@@ -13,9 +13,17 @@
 # 動かない。`wrangler deploy --env dev --dry-run` の警告で発見した（トップレベルの
 # durable_objects は `--env` なしのデプロイ用に残置。実運用のデプロイは常に --env 経由）。
 
-name = "beb-raid-api"
+# トップレベルのnameは本番（env.production）と別名にする。同名だと `--env` を付け忘れた
+# `wrangler deploy` が本番Workerをlocalhost向けALLOWED_ORIGINS・プレースホルダーKV idで
+# 上書きする事故経路になるため（実デプロイは常に deploy:dev / deploy:production 経由）
+name = "beb-raid-api-local"
 main = "src/index.ts"
 compatibility_date = "2026-07-17"
+
+# Workersダッシュボードにconsole.*ログを残す（既定は無効。無効のままだと本番障害時に
+# route例外・週次ボス生成失敗などの手がかりが一切残らない）
+[observability]
+enabled = true
 
 [[kv_namespaces]]
 binding = "MEMBERS"
@@ -48,6 +56,10 @@ ALLOWED_ORIGINS = "http://localhost:5173"
 [env.dev]
 name = "beb-raid-api-dev"
 
+# observabilityは名前付き環境に継承されないため環境ごとに明示する
+[env.dev.observability]
+enabled = true
+
 [env.dev.vars]
 ALLOWED_ORIGINS = "http://localhost:5173,https://war-lab.github.io"
 
@@ -67,6 +79,9 @@ class_name = "StatsDO"
 
 [env.production]
 name = "beb-raid-api"
+
+[env.production.observability]
+enabled = true
 
 [env.production.vars]
 ALLOWED_ORIGINS = "https://war-lab.github.io"

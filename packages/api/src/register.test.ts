@@ -36,6 +36,33 @@ describe('POST /register', () => {
     expect(typeof record.registeredAt).toBe('number')
   })
 
+  it('表示名は前後空白がtrimされて保存され、空白のみ・上限(32文字)超は400になる', async () => {
+    const deviceToken = `device-${crypto.randomUUID()}`
+    const res = await SELF.fetch(
+      registerRequest({
+        inviteCode: VALID_INVITE_CODE,
+        deviceToken,
+        displayName: '  太郎  ',
+        dailyGoal: 'normal',
+      }),
+    )
+    expect(res.status).toBe(200)
+    const record = JSON.parse((await env.MEMBERS.get(memberKey(deviceToken)))!) as MemberRecord
+    expect(record.displayName).toBe('太郎')
+
+    for (const displayName of ['   ', 'あ'.repeat(33)]) {
+      const bad = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken: `device-${crypto.randomUUID()}`,
+          displayName,
+          dailyGoal: 'normal',
+        }),
+      )
+      expect(bad.status).toBe(400)
+    }
+  })
+
   it('誤った招待コードは401になり、KVに書き込まれない', async () => {
     const deviceToken = `device-${crypto.randomUUID()}`
     const res = await SELF.fetch(

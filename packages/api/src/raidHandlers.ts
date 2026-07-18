@@ -73,9 +73,11 @@ export async function handleRaidSync(
     try {
       const result = await stub.syncDamage(deviceToken, entries, receivedAt)
       acceptedIds.push(...result.acceptedIds)
-    } catch {
-      // 存在しない（未初期化の）bossId宛のpayload。孤立データとして残るが、
-      // 実運用では発生しない想定（クライアントは自身が観測したraidStateのbossIdしか送らない）
+    } catch (e) {
+      // 主に「未初期化のbossId宛」（クライアントは観測済みraidStateのbossIdしか送らない
+      // ため実運用では稀）だが、DO側の想定外エラー（SQLite障害等）もここに落ちる。
+      // acceptedIdsに入らないため該当payloadはクライアントに残り、次回同期で再送される
+      console.warn(`raid/sync: bossId=${bossId} へのDO呼び出しに失敗`, e)
     }
   }
 
