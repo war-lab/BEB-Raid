@@ -97,6 +97,34 @@ export async function syncPacksAndReload(
   return loadQuestionPool(packCache)
 }
 
+/**
+ * オンライン復帰時のパック再同期ハンドラを作る（T-107a。正本: docs/18 T-107シート）。
+ * オフライン起動でパック取得に失敗した後、オンライン復帰しても再同期されず
+ * 「開き直してください」のまま固まる問題への対処。'online'イベントにバインドする想定で、
+ * 内部のinFlightフラグにより多重実行（矢継ぎ早のonline発火の重複）を防ぐ
+ */
+export function createOnlineResyncHandler(
+  db: BebRaidDatabase,
+  packCache: PackCache,
+  onPoolLoaded: (pool: Question[]) => void,
+): () => void {
+  let inFlight = false
+  return () => {
+    if (inFlight) return
+    inFlight = true
+    void syncPacksAndReload(db, packCache)
+      .then((pool) => {
+        if (pool) onPoolLoaded(pool)
+      })
+      .catch((e: unknown) => {
+        console.warn('[App] オンライン復帰時のパック再同期に失敗', e)
+      })
+      .finally(() => {
+        inFlight = false
+      })
+  }
+}
+
 const audioPlayer = createAudioPlayer()
 const packCache = createPackCache()
 /** BYOK AIクライアント（M2・T-56）。APIキーはsettingsストアから都度読み出す（db直依存を避ける疎結合） */
@@ -197,6 +225,20 @@ export function App() {
     })
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  // T-107(a): オフライン起動でパック取得に失敗した後、オンライン復帰しても再同期されず
+  // 「開き直してください」のまま固まる問題への対処。online復帰のたびに再同期を試みる
+  useEffect(() => {
+    let cancelled = false
+    const handleOnline = createOnlineResyncHandler(getDb(), packCache, (pool) => {
+      if (!cancelled) setQuestionPool(pool)
+    })
+    window.addEventListener('online', handleOnline)
+    return () => {
+      cancelled = true
+      window.removeEventListener('online', handleOnline)
     }
   }, [])
 

@@ -7,7 +7,7 @@ import 'fake-indexeddb/auto'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { QuestionPack } from '@beb-raid/shared-schema'
-import { App, PACK_IDS, loadQuestionPool, syncPacksAndReload } from './App'
+import { App, PACK_IDS, createOnlineResyncHandler, loadQuestionPool, syncPacksAndReload } from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
 import { createProfile } from './services/profile'
@@ -341,6 +341,89 @@ describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () =
     } finally {
       global.fetch = originalFetch
       await getDb().settings.delete('packSyncState')
+    }
+  })
+
+  it('createOnlineResyncHandler: 呼ぶとsyncPacksAndReloadが実行され、poolが更新される（T-107a）', async () => {
+    const packCache = fakePackCache(async (url) => {
+      const id = PACK_IDS.find((i) => url === `/packs/${i}.json`)
+      if (!id) throw new Error(`unexpected url: ${url}`)
+      const questions = id === PACK_IDS[0] ? [{ id: 'online-question' } as never] : []
+      return new Blob([JSON.stringify(pack(id, questions))])
+    })
+    const manifestBody = {
+      schemaVersion: 2,
+      packs: PACK_IDS.map((id) => ({
+        id,
+        title: id,
+        targetLevel: [600, 600] as [number, number],
+        sizeBytes: 10,
+        hash: `h-${id}`,
+      })),
+    }
+    const originalFetch = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') return { ok: true, json: async () => manifestBody } as Response
+      const id = PACK_IDS.find((i) => url === `/packs/${i}.json`)
+      if (id) return { ok: true, json: async () => pack(id, []) } as Response
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+
+    try {
+      const onPoolLoaded = vi.fn()
+      const handler = createOnlineResyncHandler(getDb(), packCache, onPoolLoaded)
+      handler()
+
+      await vi.waitFor(() => expect(onPoolLoaded).toHaveBeenCalled())
+      expect(onPoolLoaded.mock.calls[0]![0].map((q: { id: string }) => q.id)).toEqual([
+        'online-question',
+      ])
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('createOnlineResyncHandler: 完了前に重ねて呼んでも多重実行されない（T-107a）', async () => {
+    let manifestFetchCount = 0
+    let resolveManifest: (value: Response) => void = () => {}
+    const manifestPromise = new Promise<Response>((resolve) => {
+      resolveManifest = resolve
+    })
+    const manifestBody = {
+      schemaVersion: 2,
+      packs: PACK_IDS.map((id) => ({
+        id,
+        title: id,
+        targetLevel: [600, 600] as [number, number],
+        sizeBytes: 10,
+        hash: `h-${id}`,
+      })),
+    }
+    const packCache = fakePackCache(async () => null)
+    const originalFetch = global.fetch
+    global.fetch = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        manifestFetchCount++
+        return manifestPromise
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+
+    try {
+      const onPoolLoaded = vi.fn()
+      const handler = createOnlineResyncHandler(getDb(), packCache, onPoolLoaded)
+      handler()
+      handler() // 1回目のsyncPacksAndReload完了前に重ねて呼ぶ
+
+      // 2回目はinFlightガードで即returnされるため、manifest fetchは1回しか走らない
+      expect(manifestFetchCount).toBe(1)
+
+      resolveManifest({ ok: true, json: async () => manifestBody } as Response)
+      await vi.waitFor(() => expect(manifestFetchCount).toBe(1))
+    } finally {
+      global.fetch = originalFetch
     }
   })
 })

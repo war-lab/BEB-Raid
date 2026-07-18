@@ -159,6 +159,22 @@ describe('SettingsScreen: 永続化', () => {
     expect(cache.clear).toHaveBeenCalled()
   })
 
+  it('再計算ボタンでキャッシュ使用量が再取得される（T-107c）', async () => {
+    const db = newDb()
+    const cache = new FakePackCache()
+    render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.getByText(/2件/)).toBeTruthy()
+
+    // 初回起動のパックDL進行中を模擬: バックグラウンドでキャッシュへ1件追加されても表示は自動更新されない
+    ;(cache as unknown as { stored: Set<string> }).stored.add('c.mp3')
+    expect(screen.getByText(/2件/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('再計算'))
+
+    expect(await screen.findByText(/3件/)).toBeTruthy()
+  })
+
   it('T-72: 永続化状態・端末ストレージ使用量が表示される', async () => {
     const db = newDb()
     Object.defineProperty(navigator, 'storage', {

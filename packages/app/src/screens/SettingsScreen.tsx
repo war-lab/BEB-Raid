@@ -200,6 +200,11 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     setCacheUsage(await packCache.usage())
   }
 
+  // T-107(c): 初回起動のパックDL進行中は使用量表示が増えないため、明示的な再計算手段を設ける
+  async function handleRecalculateCache() {
+    setCacheUsage(await packCache.usage())
+  }
+
   async function handleExport() {
     const backup = await exportAll(db)
     const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' })
@@ -364,6 +369,9 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
           </p>
           <button type="button" onClick={() => void handleClearCache()}>
             キャッシュを削除
+          </button>
+          <button type="button" onClick={() => void handleRecalculateCache()}>
+            再計算
           </button>
           <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
           {storageEstimate && (
