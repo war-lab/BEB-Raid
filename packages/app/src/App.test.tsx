@@ -7,7 +7,13 @@ import 'fake-indexeddb/auto'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { QuestionPack } from '@beb-raid/shared-schema'
-import { App, PACK_IDS, createOnlineResyncHandler, loadQuestionPool, syncPacksAndReload } from './App'
+import {
+  App,
+  PACK_IDS,
+  createOnlineResyncHandler,
+  loadQuestionPool,
+  syncPacksAndReload,
+} from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
 import { createProfile } from './services/profile'
@@ -80,9 +86,7 @@ describe('App: History API最小統合（T-114）', () => {
       window.dispatchEvent(new PopStateEvent('popstate', { state: { screen: 'home' } }))
     })
 
-    expect(
-      await screen.findByText(`続きから再開（残り${snapshot.items.length}問）`),
-    ).toBeTruthy()
+    expect(await screen.findByText(`続きから再開（残り${snapshot.items.length}問）`)).toBeTruthy()
   })
 })
 

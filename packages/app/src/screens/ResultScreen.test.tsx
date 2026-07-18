@@ -142,9 +142,7 @@ describe('ResultScreen', () => {
         { questionId: 'q-3', mode: 'solo' },
       ],
     })
-    useSessionStore
-      .getState()
-      .begin(snapshot, [q('q-1'), q('q-2'), q('q-3')], { L: 400, R: 400 })
+    useSessionStore.getState().begin(snapshot, [q('q-1'), q('q-2'), q('q-3')], { L: 400, R: 400 })
     // 中断前に2問解答（本番ではここでアプリを閉じてもDB・snapshotは既に更新済み）
     const afterFirst = await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 80 })
     const afterSecond = await answerAndRecord(db, afterFirst, {
