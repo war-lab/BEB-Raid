@@ -874,6 +874,11 @@
 .shadowing-status {
   color: var(--listen);
 }
+/* T-120: 実施済み素材を表示中の注記 */
+.shadowing-status-done {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
 .shadowing-speed-chips {
   display: flex;
   gap: var(--sp-1);

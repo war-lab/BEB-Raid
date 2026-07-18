@@ -34,11 +34,16 @@ const HIGH_SPEED_MIN_STAGE: ListeningStage = 4
 const COMPLETION_LAPS = 3
 /** 3秒戻し（02の3.4） */
 const REWIND_MS = 3000
+/** 実施ログの questionId プレフィックス（J-13） */
+const SHADOW_ATTEMPT_PREFIX = 'shadow:'
 
 export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) {
   const navigate = useAppStore((s) => s.navigate)
 
   const [index, setIndex] = useState(0)
+  // T-120: 実施済み素材（attemptsの`shadow:`プレフィックス記録から判定）のID集合。
+  // マウント時の開始位置決定と、「実施済み」注記の表示に使う
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [listeningStage, setListeningStage] = useState<ListeningStage>(1)
   const [rate, setRate] = useState<(typeof SPEED_CHIPS)[number]>(1)
   const [scriptMode, setScriptMode] = useState<ScriptDisplayMode>('en')
@@ -60,6 +65,32 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
       cancelled = true
     }
   }, [db])
+
+  // T-120(J-59): マウント時にattemptsから実施済み素材を判定し、未実施の先頭から開始する
+  // （従来はindexが常に0始まりで、実施済みでも毎回同じ素材1が出ていた）。
+  // 全素材実施済みなら素材1から（周回扱い）
+  useEffect(() => {
+    let cancelled = false
+    void db.attempts
+      .where('questionId')
+      .startsWith(SHADOW_ATTEMPT_PREFIX)
+      .toArray()
+      .then((records) => {
+        if (cancelled) return
+        const ids = new Set(records.map((r) => r.questionId.slice(SHADOW_ATTEMPT_PREFIX.length)))
+        setCompletedIds(ids)
+        const firstUnfinished = shadowingQuestions.findIndex((q) => !ids.has(q.id))
+        setIndex(firstUnfinished === -1 ? 0 : firstUnfinished)
+      })
+      .catch((err: unknown) => {
+        // 失敗しても素材1から始まるだけで画面は壊れない
+        console.warn('[ShadowingScreen] 実施済み素材の判定に失敗', err)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- db/shadowingQuestionsは起動時に固定される想定
+  }, [])
 
   // T-78: 完了カード用の「今日の実施数・ストリーク」は全素材完了到達時に1回だけ取得する
   const [completionStats, setCompletionStats] = useState<{
@@ -112,11 +143,12 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     if (nextLaps >= COMPLETION_LAPS && !completed) {
       setCompleted(true)
       await recordAttempt(db, {
-        questionId: `shadow:${question.id}`,
+        questionId: `${SHADOW_ATTEMPT_PREFIX}${question.id}`,
         mode: 'solo',
         isCorrect: true,
         responseMs: 0,
       })
+      setCompletedIds((prev) => new Set(prev).add(question.id))
       await evaluateStreak(db)
     }
   }
@@ -141,8 +173,19 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
       })
   }
 
+  /** 次の素材へ（T-120・J-59: 3周完了前でも常時移動可。移動時は素材固有stateをリセットする） */
   function handleNext() {
     setIndex((i) => i + 1)
+    setLaps(0)
+    setCompleted(false)
+    setPositionMs(0)
+    setAudioError(false)
+  }
+
+  /** 前の素材へ（T-120・J-59。index===0のときは呼ばれない想定=呼び出し側でガードする） */
+  function handlePrev() {
+    if (index === 0) return
+    setIndex((i) => i - 1)
     setLaps(0)
     setCompleted(false)
     setPositionMs(0)
@@ -180,7 +223,11 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     <ScreenLayout
       status={
         <p className="shadowing-status">
-          {index + 1}/{shadowingQuestions.length}（{laps}/{COMPLETION_LAPS}周）
+          素材 {index + 1}/{shadowingQuestions.length}（{laps}/{COMPLETION_LAPS}周）
+          {/* T-120: 実施済み素材を表示中であることの注記（3周未満で「前へ」戻った場合等） */}
+          {completedIds.has(question.id) && (
+            <span className="shadowing-status-done"> 実施済み</span>
+          )}
         </p>
       }
       action={
@@ -204,6 +251,16 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
           )}
           <button type="button" className="secondary-action" onClick={handleRewind}>
             3秒戻し
+          </button>
+          {/* T-120(J-59): 3周完了前でも常時素材を移動できる導線（従来は3周完了後の「次へ」か
+              音声エラー時のスキップでしか移動できず、実質素材1専用画面になっていた） */}
+          {index > 0 && (
+            <button type="button" className="secondary-action" onClick={handlePrev}>
+              前の素材へ
+            </button>
+          )}
+          <button type="button" className="secondary-action" onClick={handleNext}>
+            次の素材へ
           </button>
           {/* 進行中の脱出導線（DrillScreenの中断と同じ思想。従来は素材完了までこの画面から出られなかった） */}
           <button type="button" className="secondary-action" onClick={() => navigate('home')}>
