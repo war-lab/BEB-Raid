@@ -1,5 +1,8 @@
 // T-16 完了条件のテスト: リザルト画面が正誤一覧・獲得ポイント合計・レート変動・
 // 「誤答N問を復習デッキに追加した」を表示し、ホームへ復帰時に completeSession される
+// T-109: 正解数・問題リストは中断・再開を跨いだセッション全体（snapshot.attemptIds経由で
+// db.attemptsから読み直す）で集計される。テストのセットアップは実際のanswerCurrentQuestionを
+// 通すことで、DBのattemptsとsnapshot.attemptIdsを整合させる（本番のDrillScreenと同じ経路）
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -7,7 +10,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { RaidApi } from '../platform'
-import { completeSession, resumeSession, startSession } from '../services/session'
+import {
+  answerCurrentQuestion,
+  completeSession,
+  resumeSession,
+  startSession,
+  type SessionSnapshot,
+} from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ResultScreen } from './ResultScreen'
@@ -72,6 +81,30 @@ function q(id: string): Question {
   }
 }
 
+/**
+ * 現在の問題に解答し、DBのattempts・snapshot.attemptIds・セッションストアのresultsを
+ * すべて整合させる（本番のDrillScreen finalizeAnswer→recordAnswerPipelineと同じ経路）。
+ * T-109の全体集計（snapshot.attemptIds経由）を成立させるため、テストからも
+ * 実際のanswerCurrentQuestionを通す
+ */
+async function answerAndRecord(
+  db: BebRaidDatabase,
+  snapshot: SessionSnapshot,
+  input: { isCorrect: boolean; basePoints: number; responseMs?: number },
+): Promise<SessionSnapshot> {
+  const next = await answerCurrentQuestion(db, snapshot, {
+    isCorrect: input.isCorrect,
+    responseMs: input.responseMs ?? 1000,
+  })
+  const questionId = snapshot.items[snapshot.answeredCount]!.questionId
+  useSessionStore.getState().recordAnswer(next, {
+    questionId,
+    isCorrect: input.isCorrect,
+    basePoints: input.basePoints,
+  })
+  return next
+}
+
 describe('ResultScreen', () => {
   it('正誤一覧・獲得ポイント合計・誤答復習デッキ追加メッセージを表示する', async () => {
     const db = newDb()
@@ -82,16 +115,8 @@ describe('ResultScreen', () => {
       ],
     })
     useSessionStore.getState().begin(snapshot, [q('q-1'), q('q-2')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 80,
-    })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-2',
-      isCorrect: false,
-      basePoints: 0,
-    })
+    const afterFirst = await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 80 })
+    await answerAndRecord(db, afterFirst, { isCorrect: false, basePoints: 0 })
     await db.ratings.put({ section: 'R', rating: 420, updatedAt: Date.now(), answerCount: 2 })
 
     render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
@@ -101,20 +126,52 @@ describe('ResultScreen', () => {
     expect(screen.getByText('+80')).toBeTruthy()
     // レビューF5(c): 巨大な「+N」が何の数値か分かるラベルが付く
     expect(screen.getByText('獲得ポイント')).toBeTruthy()
-    expect(screen.getByText('正解 1 / 2')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('正解 1 / 2')).toBeTruthy())
     expect(screen.getByText('誤答1問を復習デッキに追加した')).toBeTruthy()
     await waitFor(() => expect(screen.getByText(/R: 400 → 420/)).toBeTruthy())
+  })
+
+  it('中断・再開を跨いだセッション全体の正解数・問題リストを表示する（T-109）', async () => {
+    // 「20問中17問解答→中断→再開して3問」のうち簡略化した3問版:
+    // 2問解答済み（中断前）→再開後に1問解答、というシナリオを模擬する
+    const db = newDb()
+    const snapshot = await startSession(db, {
+      items: [
+        { questionId: 'q-1', mode: 'solo' },
+        { questionId: 'q-2', mode: 'solo' },
+        { questionId: 'q-3', mode: 'solo' },
+      ],
+    })
+    useSessionStore
+      .getState()
+      .begin(snapshot, [q('q-1'), q('q-2'), q('q-3')], { L: 400, R: 400 })
+    // 中断前に2問解答（本番ではここでアプリを閉じてもDB・snapshotは既に更新済み）
+    const afterFirst = await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 80 })
+    const afterSecond = await answerAndRecord(db, afterFirst, {
+      isCorrect: true,
+      basePoints: 80,
+    })
+
+    // 「再開」を模擬: beginを呼び直してresultsストアを空にする（HomeScreen.handleResumeと同じ）
+    useSessionStore.getState().begin(afterSecond, [q('q-1'), q('q-2'), q('q-3')], {
+      L: 400,
+      R: 400,
+    })
+    await answerAndRecord(db, afterSecond, { isCorrect: false, basePoints: 0 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    // resultsストア（再開後の1問のみ）に頼ると「正解0/1」になってしまう回帰の再発防止
+    await waitFor(() => expect(screen.getByText('正解 2 / 3')).toBeTruthy())
+    const list = screen.getByText('question q-1').closest('ul')!
+    expect(list.querySelectorAll('li').length).toBe(3)
   })
 
   it('表示できなかった問題（skippedCount）があれば件数を表示する（T-108）', async () => {
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
     useSessionStore.getState().incrementSkipped()
     useSessionStore.getState().incrementSkipped()
 
@@ -129,11 +186,7 @@ describe('ResultScreen', () => {
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
 
     render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
 
@@ -144,11 +197,7 @@ describe('ResultScreen', () => {
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     // スナップショット削除の失敗を注入する（残ったスナップショットは次回startSessionで上書きされる想定）
     vi.mocked(completeSession).mockRejectedValueOnce(new Error('削除失敗'))
@@ -169,11 +218,7 @@ describe('ResultScreen', () => {
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
 
     render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
     fireEvent.click(screen.getByText('ホームへ'))
@@ -252,11 +297,7 @@ describe('ResultScreen: フェーズ移行判定・演出（T-54）', () => {
     useSessionStore
       .getState()
       .begin(snapshot, [q('q-1'), p2Question, ...vocabQuestions], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
 
     render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
 
@@ -268,11 +309,7 @@ describe('ResultScreen: フェーズ移行判定・演出（T-54）', () => {
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
 
     render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
 
@@ -285,11 +322,7 @@ describe('ResultScreen: 報酬演出（T-77）', () => {
   async function setupSession(db: BebRaidDatabase) {
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 80,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 80 })
   }
 
   it('演出終了後は最終値（獲得ポイント）を表示する', async () => {
@@ -343,11 +376,7 @@ describe('ResultScreen: レイドダメージ送信トリガー（T-96）', () =
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
     const raidApi = new FakeRaidApi(true)
 
     render(<ResultScreen db={db} raidApi={raidApi} />)
@@ -362,11 +391,7 @@ describe('ResultScreen: レイドダメージ送信トリガー（T-96）', () =
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
     useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
-    useSessionStore.getState().recordAnswer(snapshot, {
-      questionId: 'q-1',
-      isCorrect: true,
-      basePoints: 60,
-    })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
     const raidApi = new FakeRaidApi(false)
 
     render(<ResultScreen db={db} raidApi={raidApi} />)

@@ -6,6 +6,7 @@
 // prefers-reduced-motionでは静止表示、タップで即スキップ可能にする。
 import { useEffect, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
+import type { AttemptRecord } from '../db/schema'
 import { SEASON_LABELS, type PhaseTransitionOutcome } from '../engine/curriculum'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import type { RaidApi } from '../platform'
@@ -58,6 +59,7 @@ export function ResultScreen({ db, raidApi }: Props) {
   const questions = useSessionStore((s) => s.questions)
   const ratingBefore = useSessionStore((s) => s.ratingBefore)
   const skippedCount = useSessionStore((s) => s.skippedCount)
+  const snapshot = useSessionStore((s) => s.snapshot)
   const reset = useSessionStore((s) => s.reset)
   const navigate = useAppStore((s) => s.navigate)
 
@@ -66,6 +68,25 @@ export function ResultScreen({ db, raidApi }: Props) {
   const [phaseOutcome, setPhaseOutcome] = useState<PhaseTransitionOutcome | null>(null)
   // T-77: reduced-motion環境では最初から静止表示。タップで途中スキップも可能にする
   const [skipAnimation, setSkipAnimation] = useState(prefersReducedMotion)
+  // T-109: 中断・再開を跨いだセッション全体の正解数・問題リスト集計（3.2節J-52）。
+  // snapshot.attemptIdsはstartSessionから完了まで累積するため、resultsストア
+  // （このマウント後に解答した分のみ）よりも正確な全体集計の入力に使える
+  const [sessionAttempts, setSessionAttempts] = useState<AttemptRecord[] | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void db.attempts.bulkGet(snapshot?.attemptIds ?? []).then((rows) => {
+      if (cancelled) return
+      setSessionAttempts(
+        rows
+          .filter((r): r is AttemptRecord => r !== undefined)
+          .sort((a, b) => a.answeredAt - b.answeredAt),
+      )
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [db, snapshot])
 
   useEffect(() => {
     let cancelled = false
@@ -106,8 +127,12 @@ export function ResultScreen({ db, raidApi }: Props) {
     })
   }, [db, raidApi])
 
-  const correctCount = results.filter((r) => r.isCorrect).length
-  const wrongCount = results.length - correctCount
+  // T-109: 正解数・問題リストはセッション全体（sessionAttempts）で表示する。
+  // レート変動・獲得ポイントはattemptsにbasePointsを保持していないため、現行どおり
+  // results（このマウント後＝今回セッション分）を使う（J-52の対象外）
+  const tallyEntries = sessionAttempts ?? []
+  const correctCount = tallyEntries.filter((a) => a.isCorrect).length
+  const wrongCount = tallyEntries.length - correctCount
   const totalPoints = results.reduce((sum, r) => sum + r.basePoints, 0)
   const displayedPoints = usePointsCountUp(totalPoints, skipAnimation)
 
@@ -161,7 +186,7 @@ export function ResultScreen({ db, raidApi }: Props) {
         </p>
         <ul className="result-stats">
           <li className="result-stat" style={{ animationDelay: '0ms' }}>
-            正解 {correctCount} / {results.length}
+            正解 {correctCount} / {tallyEntries.length}
           </li>
           {ratingBefore && ratingAfter && (
             <li className="result-stat" style={{ animationDelay: '150ms' }}>
@@ -186,11 +211,11 @@ export function ResultScreen({ db, raidApi }: Props) {
           )}
         </ul>
         <ul className="result-list">
-          {results.map((r, i) => (
-            <li key={i} className="result-list__item" data-correct={r.isCorrect}>
+          {tallyEntries.map((a, i) => (
+            <li key={i} className="result-list__item" data-correct={a.isCorrect}>
               <span aria-hidden="true" className="result-list__icon" />
               <span className="result-list__question">
-                {questions.get(r.questionId)?.question ?? r.questionId}
+                {questions.get(a.questionId)?.question ?? a.questionId}
               </span>
             </li>
           ))}
