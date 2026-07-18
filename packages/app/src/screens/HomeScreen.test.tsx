@@ -14,9 +14,10 @@ import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { toDateString } from '../engine/date'
 import type { RaidApi } from '../platform'
-import { resetRaidSyncFlagsForTest, syncRaidDamage } from '../services/raidSync'
+import { syncRaidDamage } from '../services/raidSync'
 import { NO_EARPHONE_MODE_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { HomeScreen } from './HomeScreen'
 
@@ -59,7 +60,7 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
-  resetRaidSyncFlagsForTest()
+  resetRaidSyncStoreForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -886,5 +887,101 @@ describe('HomeScreen: オフライン表示規約（M3・T-99）', () => {
 
     const label = await screen.findByTestId('home-raid-last-synced')
     expect(label.className).toContain('is-stale')
+  })
+})
+
+describe('HomeScreen: バックグラウンド同期完了への画面追従（T-103）', () => {
+  async function putRaidState(db: BebRaidDatabase, hp: number, lastSyncedAt: number) {
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt,
+    })
+  }
+
+  it('マウント後の同期完了で、再マウントなしにHPバー・最終同期表示が更新される', async () => {
+    const db = newDb()
+    await putRaidState(db, 4200, Date.now() - 60 * 60_000)
+    const raidApi = new FakeRaidApi(true)
+    // 同一bossId（週替わりなし）で返し、joinedがリセットされないようにする
+    raidApi.syncDamage.mockResolvedValueOnce({
+      acceptedIds: [],
+      boss: {
+        bossId: 'boss-2026-W30',
+        name: 'テストボス',
+        hp: 1000,
+        maxHp: 5000,
+        startAt: Date.now() - 86_400_000,
+        endAt: Date.now() + 2 * 86_400_000,
+        status: 'active',
+        participantCount: 0,
+        myDamage: 0,
+        contributions: [],
+      },
+    })
+    render(
+      <HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} raidApi={raidApi} />,
+    )
+    await flushLoad()
+    expect((await screen.findByTestId('home-raid-last-synced')).textContent).toContain('1時間前')
+
+    // 同期成功でDB側のraidStateが更新される
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await syncRaidDamage(db, raidApi)
+
+    await waitFor(async () => {
+      const label = await screen.findByTestId('home-raid-last-synced')
+      expect(label.textContent).toContain('たった今')
+    })
+  })
+
+  it('同期失敗でis-stale強調が付き、次の成功で消える（再マウントなし）', async () => {
+    const db = newDb()
+    await putRaidState(db, 4200, Date.now())
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    const raidApi = new FakeRaidApi(true)
+    // 同一bossId（週替わりなし）で返し、joinedがリセットされないようにする
+    raidApi.syncDamage.mockResolvedValue({
+      acceptedIds: [],
+      boss: {
+        bossId: 'boss-2026-W30',
+        name: 'テストボス',
+        hp: 4200,
+        maxHp: 5000,
+        startAt: Date.now() - 86_400_000,
+        endAt: Date.now() + 2 * 86_400_000,
+        status: 'active',
+        participantCount: 0,
+        myDamage: 0,
+        contributions: [],
+      },
+    })
+    render(
+      <HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} raidApi={raidApi} />,
+    )
+    await flushLoad()
+    expect((await screen.findByTestId('home-raid-last-synced')).className).not.toContain(
+      'is-stale',
+    )
+
+    raidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+    await syncRaidDamage(db, raidApi)
+    await waitFor(async () => {
+      expect((await screen.findByTestId('home-raid-last-synced')).className).toContain('is-stale')
+    })
+
+    await syncRaidDamage(db, raidApi)
+    await waitFor(async () => {
+      expect((await screen.findByTestId('home-raid-last-synced')).className).not.toContain(
+        'is-stale',
+      )
+    })
   })
 })

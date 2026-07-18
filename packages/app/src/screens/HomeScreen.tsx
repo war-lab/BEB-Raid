@@ -19,11 +19,11 @@ import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
-import { isLastRaidSyncFailed } from '../services/raidSync'
 import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
 import { LAST_SEEN_STREAK_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
+import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { Heatmap } from '../components/charts/Heatmap'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -72,6 +72,9 @@ export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
 export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
+  // T-103: バックグラウンド同期の完了通知（syncCountが変わるたびにraidState再読込）
+  const raidSyncCount = useRaidSyncStore((s) => s.syncCount)
+  const raidSyncFailed = useRaidSyncStore((s) => s.lastFailed)
 
   // ファーストペイントをブロックしないよう、既定値（0件・未読込）で即座に描画する
   const [streakDays, setStreakDays] = useState(0)
@@ -144,11 +147,15 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       setPhaseProgress(result.evaluations.length > 0 ? metCount / result.evaluations.length : null)
       setLoaded(true)
     }
-    void load()
+    void load().catch((e: unknown) => {
+      // 同期完了トリガー（raidSyncCount）での再読込中にDBが閉じた場合等の想定外失敗。
+      // 起動時読込と違い致命的ではないため、ログのみでUIは既存表示を維持する
+      if (!cancelled) console.warn('[HomeScreen] データ再読込に失敗', e)
+    })
     return () => {
       cancelled = true
     }
-  }, [db, questionPool])
+  }, [db, questionPool, raidSyncCount])
 
   /** 続きから再開（T-67）。既存スナップショットをそのまま beginSession に渡す */
   async function handleResume() {
@@ -224,7 +231,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - now()) / DAY_MS)) : 0
   // M3・T-99: オフライン表示規約（3.7節）
   const lastSyncedLabel = raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : ''
-  const syncFailed = isLastRaidSyncFailed()
+  const syncFailed = raidSyncFailed
 
   return (
     <ScreenLayout

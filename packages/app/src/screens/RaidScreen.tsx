@@ -12,15 +12,11 @@ import { formatRelativeTime } from '../engine/relativeTime'
 import type { RaidApi } from '../platform'
 import { RaidApiError } from '../platform'
 import { getOrInitPhaseState } from '../services/phase'
-import {
-  isLastRaidSyncFailed,
-  isLastRaidSyncUnauthorized,
-  RAID_FIRST_CLEAR_BADGE_ID,
-  syncRaidDamage,
-} from '../services/raidSync'
+import { RAID_FIRST_CLEAR_BADGE_ID, syncRaidDamage } from '../services/raidSync'
 import { startSession, type SessionSnapshot } from '../services/session'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -95,6 +91,9 @@ async function loadRaidBadges(db: BebRaidDatabase): Promise<BadgeRecord[]> {
 export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
+  // T-103: バックグラウンド同期の完了通知（syncCountが変わるたびに再読込）
+  const raidSyncCount = useRaidSyncStore((s) => s.syncCount)
+  const raidSyncFailed = useRaidSyncStore((s) => s.lastFailed)
 
   const [loaded, setLoaded] = useState(false)
   const [registered, setRegistered] = useState(false)
@@ -161,6 +160,30 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       cancelled = true
     }
   }, [db, raidApi])
+
+  // T-103: バックグラウンド同期完了時、DBキャッシュ（raidState・獲得バッジ）だけ再読込する。
+  // fetchCurrentBossは呼ばない（T-104: 手動同期はsyncDamageのレスポンスbossで直接更新するため、
+  // ここで再fetchすると二重更新・無駄な通信になる）
+  useEffect(() => {
+    let cancelled = false
+    async function reload() {
+      try {
+        const [raidStateRecord, badges] = await Promise.all([
+          db.raidState.get(RAID_STATE_ID),
+          loadRaidBadges(db),
+        ])
+        if (cancelled) return
+        setRaidState(raidStateRecord ?? null)
+        setRaidBadges(badges)
+      } catch (e) {
+        console.warn('[RaidScreen] 同期完了後の再読込に失敗', e)
+      }
+    }
+    void reload()
+    return () => {
+      cancelled = true
+    }
+  }, [db, raidSyncCount])
 
   async function handleRegister() {
     setRegisterError(null)
@@ -244,9 +267,9 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
 
   async function handleManualSync() {
     setSyncError(null)
-    const ok = await syncRaidDamage(db, raidApi)
-    if (!ok) {
-      const unauthorized = isLastRaidSyncUnauthorized()
+    const result = await syncRaidDamage(db, raidApi)
+    if (!result.ok) {
+      const unauthorized = useRaidSyncStore.getState().lastUnauthorized
       // レビューF1(c): 401なら「再登録する」ボタンを出す（syncUnauthorized経由）
       setSyncUnauthorized(unauthorized)
       setSyncError(
@@ -257,13 +280,13 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       return
     }
     setSyncUnauthorized(false)
-    const [updatedRaidState, updatedBoss, updatedBadges] = await Promise.all([
+    // T-104: レスポンスのbossで直接更新する（追加のfetchCurrentBossは不要。バッジ再取得のみ従来どおり）
+    const [updatedRaidState, updatedBadges] = await Promise.all([
       db.raidState.get(RAID_STATE_ID),
-      raidApi.fetchCurrentBoss().catch(() => null),
       loadRaidBadges(db),
     ])
     setRaidState(updatedRaidState ?? null)
-    if (updatedBoss) setCurrentBoss(updatedBoss)
+    if (result.boss) setCurrentBoss(result.boss)
     setRaidBadges(updatedBadges)
   }
 
@@ -366,7 +389,7 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   // M3・T-99: オフライン表示規約（3.7節）。参加前はlastSyncedAtが無意味なのでjoined時のみ表示
   const lastSyncedLabel =
     joined && raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : null
-  const syncFailed = isLastRaidSyncFailed()
+  const syncFailed = raidSyncFailed
   // レビューF1(d): 討伐済み・期限切れなら参加/挑戦を無効化する（成果ゼロの徒労防止）。
   // 通信失敗でボス最新が取れないときはraidStateキャッシュのendAtで判定する
   const raidEnded = currentBoss

@@ -10,9 +10,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
-import { resetRaidSyncFlagsForTest, syncRaidDamage } from '../services/raidSync'
+import { syncRaidDamage } from '../services/raidSync'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { raidBadgeLabel, RaidScreen } from './RaidScreen'
 
@@ -28,7 +29,7 @@ function newDb(): BebRaidDatabase {
 afterEach(async () => {
   useAppStore.setState({ screen: 'home' })
   useSessionStore.getState().reset()
-  resetRaidSyncFlagsForTest()
+  resetRaidSyncStoreForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -303,6 +304,26 @@ describe('RaidScreen: オフライン表示規約（M3・T-99）', () => {
     expect(label.className).toContain('is-stale')
   })
 
+  it('マウント後の同期完了で、再マウントなしにis-stale表示が追従する（T-103）', async () => {
+    const { db, raidApi } = await joinedSetupWithSync(Date.now())
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+    expect((await screen.findByTestId('raid-last-synced')).className).not.toContain('is-stale')
+
+    raidApi.syncDamage = vi.fn(async () => {
+      throw new Error('network error')
+    })
+    await syncRaidDamage(db, raidApi)
+
+    await waitFor(async () => {
+      expect((await screen.findByTestId('raid-last-synced')).className).toContain('is-stale')
+    })
+  })
+
   it('参加前（未joined）は最終同期表示を出さない', async () => {
     const db = newDb()
     await putProfile(db)
@@ -499,6 +520,44 @@ describe('RaidScreen: 404と通信失敗の区別（レビューF1(b)）', () =>
     expect(await screen.findByText('最新情報を取得できませんでした')).toBeTruthy()
     expect(screen.queryByTestId('raid-boss-cached')).toBeNull()
     expect(screen.queryByText('今週のボスはまだ生成されていません')).toBeNull()
+  })
+})
+
+describe('RaidScreen: 手動同期の表示更新（T-104）', () => {
+  it('同期成功時、追加fetchなしでボス表示が更新される（fetchCurrentBossは再呼びされない）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: ACTIVE_BOSS.bossId,
+      profileJson: JSON.stringify({ name: ACTIVE_BOSS.name }),
+      hp: ACTIVE_BOSS.hp,
+      maxHp: ACTIVE_BOSS.maxHp,
+      myDamage: ACTIVE_BOSS.myDamage,
+      joined: true,
+      startAt: ACTIVE_BOSS.startAt,
+      endAt: ACTIVE_BOSS.endAt,
+      lastSyncedAt: Date.now() - 60_000,
+    })
+    const raidApi = new FakeRaidApi()
+    const SYNCED_BOSS: RaidBossState = { ...ACTIVE_BOSS, hp: 1000, myDamage: 900 }
+    raidApi.syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: SYNCED_BOSS }))
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+    const fetchCallsBeforeSync = raidApi.fetchCurrentBoss.mock.calls.length
+
+    fireEvent.click(screen.getByText('今すぐ同期'))
+
+    await waitFor(() => {
+      const boss = screen.getByTestId('raid-boss')
+      expect(boss.textContent).toContain('HP残り 20%') // 1000/5000
+    })
+    expect(raidApi.fetchCurrentBoss.mock.calls.length).toBe(fetchCallsBeforeSync)
   })
 })
 
