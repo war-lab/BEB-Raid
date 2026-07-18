@@ -4,7 +4,7 @@
 // vocab_card（T-21。クイックパックにkind:'srsVocab'が混在する場合の受け皿）は
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
@@ -132,6 +132,10 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // 'playing'=再生中 / 'played'=再生済み(解答受付可)
   const [playState, setPlayState] = useState<'idle' | 'prereading' | 'playing' | 'played'>('idle')
   const [remainingSec, setRemainingSec] = useState<number | null>(null)
+  // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら、以降の問題は
+  // 自動再生する（毎問「タップして開始」を要求しない）。DrillScreenの再マウント＝新規セッション
+  // でリセットされればよいためrefでよい（stateにすると再生成功のたびに無駄な再レンダーが増える）
+  const hasPlayedOnceRef = useRef(false)
   // audio_set 専用（M2・T-50）: 先読みフェーズの残り秒数
   const [preReadingSecondsLeft, setPreReadingSecondsLeft] = useState<number | null>(null)
   // 先読み秒数の決定に使う現フェーズ（省略時=取得前はP2扱いの15秒でフォールバック）
@@ -198,7 +202,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const isAudioQa = question?.format === 'audio_qa'
   const isDictation = question?.format === 'dictation'
   const isAudioSet = question?.format === 'audio_set'
-  // dictation・audio_set も audio_qa と同じ「タップして開始」ゲートを使う（音声前提のformat）。
+  // dictation・audio_set も audio_qa と同じ「音声を再生」ゲートを使う（音声前提のformat）。
   // 15秒タイマー（isCountingDown）はaudio_qa固有のため対象外
   const needsAudioGate = isAudioQa || isDictation || isAudioSet
   const isVocabCard = question?.format === 'vocab_card'
@@ -262,6 +266,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
+  // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら（hasPlayedOnceRef）、
+  // 以降の音声ゲート付き問題（audio_qa/dictation/audio_set）は自動再生する。
+  // handlePlayStart は関数宣言（hoisted）のため、この時点で呼び出して問題ない。
+  // 自動再生が拒否された場合はhandlePlayStart内のcatchが従来のタップ開始UIへ戻す
+  useEffect(() => {
+    if (!needsAudioGate || playState !== 'idle' || !hasPlayedOnceRef.current) return
+    // eslint-disable-next-line react-hooks/immutability
+    void handlePlayStart()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question?.id])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
   // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）。
   // 15秒タイマーは audio_qa 固有（dictation は未タイマー=03の8節）
@@ -526,6 +540,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       setAudioError('音声を再生できませんでした')
       return
     }
+    hasPlayedOnceRef.current = true
     setPlayState('played')
   }
 
@@ -553,6 +568,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       setAudioError('音声を再生できませんでした')
       return
     }
+    hasPlayedOnceRef.current = true
     setPlayState('played')
     if (isAudioQa) setRemainingSec(ANSWER_TIMER_SECONDS)
   }
@@ -828,7 +844,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   ? '再生中…'
                   : audioError
                     ? 'もう一度試す'
-                    : 'タップして開始'}
+                    : '音声を再生'}
               </PrimaryButton>
               {audioError && isAudioQa && (
                 <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
@@ -849,7 +865,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           {isAudioSet && playState === 'idle' && (
             <>
               <PrimaryButton onClick={() => void handlePlayStart()}>
-                {audioError ? 'もう一度試す' : 'タップして開始'}
+                {audioError ? 'もう一度試す' : '音声を再生'}
               </PrimaryButton>
               {audioError && (
                 <button
