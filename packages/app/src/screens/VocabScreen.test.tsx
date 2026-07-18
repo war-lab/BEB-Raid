@@ -80,7 +80,7 @@ async function seedDueCard(db: BebRaidDatabase, word: string, now = Date.now()) 
 }
 
 describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け）', () => {
-  it('スワイプ「知らない」で srsCards に追加され、「知ってる」（ボタン）では追加されない', async () => {
+  it('スワイプ「知らない」で未卒業カードが追加され、「知ってる」（ボタン）では卒業済みカードが追加される（T-119）', async () => {
     const db = newDb()
     const questions = [vocabQuestion('alpha'), vocabQuestion('beta')]
     const audioPlayer = new FakeAudioPlayer()
@@ -96,13 +96,17 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
     fireEvent.pointerUp(card, { clientX: 80, clientY: 105 })
 
     await waitFor(async () => expect(await db.srsCards.get('vocab:alpha')).toBeDefined())
+    expect((await db.srsCards.get('vocab:alpha'))?.graduatedAt).toBeNull()
 
     // 2件目（beta）は「知ってる」ボタンで仕分ける
     await waitFor(() => expect(screen.getByText(phraseMatcher('I will beta it.'))).toBeTruthy())
     fireEvent.click(screen.getByText('知ってる'))
 
     await waitFor(() => expect(screen.getByText('語彙SRSが終了しました')).toBeTruthy())
-    expect(await db.srsCards.get('vocab:beta')).toBeUndefined()
+    // J-58: 「知ってる」は卒業済みカードとして永続化する（次回入店時に仕分けキューへ再度出さないため）
+    const betaCard = await db.srsCards.get('vocab:beta')
+    expect(betaCard).toBeDefined()
+    expect(betaCard?.graduatedAt).not.toBeNull()
   })
 
   it('「知らない」ボタンでも同様に srsCards に追加される', async () => {
@@ -134,7 +138,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
 
     // handleGrade（attempt記録→reviewSrsCard→evaluateStreak→setReviewIndex）の完了を、
     // その最後のsetState由来である仕分けフェーズへの画面遷移で待つ（T-71注記参照）
-    await screen.findByText(/仕分/)
+    await screen.findByText(/仕分け \d/)
     const card = await db.srsCards.get('vocab:delta')
     expect(card?.stage).toBe(3) // stage2→OK(+1)=3
 
@@ -155,7 +159,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     fireEvent.click(screen.getByText('decoy の意味')) // わざと不正解を選ぶ
     fireEvent.click(screen.getByText('もう一回'))
 
-    await screen.findByText(/仕分/)
+    await screen.findByText(/仕分け \d/)
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
     const card = await db.srsCards.get('vocab:epsilon')
@@ -179,7 +183,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     // reviewSrsCard/evaluateStreak完了前にテストが進み、DB切断後の書き込みで
     // Unhandled Rejectionになりうる。仕分けフェーズへの画面遷移は一連の最後の
     // setState由来のため、これを待てば全書き込みの完了を保証できる
-    await screen.findByText(/仕分/)
+    await screen.findByText(/仕分け \d/)
     expect(await db.attempts.count()).toBe(1)
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(true) // 最初の正解選択のまま
@@ -319,6 +323,68 @@ describe('VocabScreen: 出題不能なSRSカードの除外と脱出導線（レ
 
     fireEvent.click(screen.getByText('中断'))
     expect(useAppStore.getState().screen).toBe('home')
+  })
+})
+
+describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）', () => {
+  it('「知ってる」で仕分けた語は、再マウント後の仕分け候補にも復習キューにも出ない', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    const first = render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
+    )
+    await waitFor(() => expect(screen.getByText('仕分け 1/1')).toBeTruthy())
+    fireEvent.click(screen.getByText('知ってる'))
+    await screen.findByText('語彙SRSが終了しました')
+    first.unmount()
+
+    // 再マウント: 卒業済みカードのため仕分け候補（未登録語のみ）にも復習キュー
+    // （active=未卒業カードのみ）にも出ず、即座に終了画面になる
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await screen.findByText('語彙SRSが終了しました')
+    expect((await db.srsCards.get('vocab:alpha'))?.graduatedAt).not.toBeNull()
+  })
+
+  it('20語仕分けるごとに中間画面が出て、「続けて仕分ける」で再開できる', async () => {
+    const db = newDb()
+    const words = Array.from({ length: 21 }, (_, i) => `word${i}`)
+    const questions = words.map((w) => vocabQuestion(w))
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    for (let i = 0; i < 20; i++) {
+      await waitFor(() => expect(screen.getByText(`仕分け ${i + 1}/21`)).toBeTruthy())
+      fireEvent.click(screen.getByText('知ってる'))
+    }
+
+    expect(await screen.findByText('仕分けを20語終えました')).toBeTruthy()
+    expect(screen.getByText('続けて仕分ける（残り1語）')).toBeTruthy()
+    // 21件目はまだ未着手のまま（中間画面の間は消化されない）
+    expect(await db.srsCards.count()).toBe(20)
+
+    fireEvent.click(screen.getByText('続けて仕分ける（残り1語）'))
+    await waitFor(() => expect(screen.getByText('仕分け 21/21')).toBeTruthy())
+  })
+
+  it('復習画面の「仕分けへ」で、復習キューを消化せず仕分けフェーズへ直行できる', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('beta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('仕分けへ'))
+
+    await waitFor(() => expect(screen.getByText('仕分け 1/1')).toBeTruthy())
+    // 仕分け候補はbetaのみ（alphaは既にSRS登録済みのため候補から除外される）
+    expect(screen.getByText(phraseMatcher('I will beta it.'))).toBeTruthy()
+    // 復習キューはDB上未消化のまま（次回入店時にまた復習から始まる）
+    expect((await db.srsCards.get('vocab:alpha'))?.stage).toBe(2)
   })
 })
 

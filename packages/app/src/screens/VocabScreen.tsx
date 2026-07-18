@@ -14,7 +14,7 @@ import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
 import { isServable } from '../engine/quickPack'
 import { evaluateStreak, getStreak } from '../engine/streak'
-import { addSrsCard, getSrsQueue, srsCardId } from '../engine/srs'
+import { addSrsCard, getSrsQueue, markVocabKnown, srsCardId } from '../engine/srs'
 import type { SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
@@ -38,6 +38,9 @@ interface Props {
 
 /** 頻出度ランクの説明（bare文字だけでは何のSかわからないため。S3画面表示用） */
 const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→Sの順に上がる）'
+
+/** 仕分けの区切り単位（T-119・J-58）。600語を前に「終わりが見えない」圧を緩和する */
+const TRIAGE_BATCH_SIZE = 20
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 function now(): number {
@@ -65,6 +68,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [autoPlay, setAutoPlay] = useState(true)
   const [reviewIndex, setReviewIndex] = useState(0)
   const [triageIndex, setTriageIndex] = useState(0)
+  // T-119: 20語仕分けるごとに立てる中断フラグ（「続けて仕分ける」タップでfalseに戻す）
+  const [triagePaused, setTriagePaused] = useState(false)
   // 復習モード専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
   const [startedAt, setStartedAt] = useState(() => now())
@@ -225,14 +230,27 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     setStartedAt(now())
   }
 
-  function handleKnown() {
-    setTriageIndex((i) => i + 1)
+  /** 仕分け1件の消化後、20語区切りに達していたら中断フラグを立てる（T-119） */
+  function advanceTriage() {
+    const next = triageIndex + 1
+    setTriageIndex(next)
+    if (triageQueue && next < triageQueue.length && next % TRIAGE_BATCH_SIZE === 0) {
+      setTriagePaused(true)
+    }
+  }
+
+  async function handleKnown() {
+    if (!triageQuestion?.front) return
+    // J-58: 卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ出ないようにする
+    // （既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ編入される=意図した相互作用）
+    await markVocabKnown(db, triageQuestion.front)
+    advanceTriage()
   }
 
   async function handleUnknown() {
     if (!triageQuestion?.front) return
     await addSrsCard(db, { refType: 'vocab', refId: triageQuestion.front })
-    setTriageIndex((i) => i + 1)
+    advanceTriage()
   }
 
   if (reviewIndex < reviewQueue.length && reviewCard) {
@@ -247,6 +265,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
             <p>
               復習 {reviewIndex + 1}/{reviewQueue.length}
             </p>
+            {/* T-119(J-58): 復習が溜まった日でも仕分けに到達できるよう、消化せず仕分けへ直行する導線。
+                DB上の復習キューは未消化のまま=次回入店時にまた復習から始まる */}
+            {triageQueue.length > 0 && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => setReviewIndex(reviewQueue.length)}
+              >
+                仕分けへ
+              </button>
+            )}
             {/* 進行中の脱出導線（DrillScreenの中断ボタンと同じパターン。進捗はSRS上更新済みのため失われない） */}
             <button type="button" className="drill-abort" onClick={() => navigate('home')}>
               中断
@@ -325,6 +354,26 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     )
   }
 
+  // T-119(J-58): 20語区切りの中間画面。600語を前に「終わりが見えない」圧を緩和する
+  if (triagePaused && triageIndex < triageQueue.length) {
+    return (
+      <ScreenLayout
+        action={
+          <>
+            <PrimaryButton onClick={() => setTriagePaused(false)}>
+              続けて仕分ける（残り{triageQueue.length - triageIndex}語）
+            </PrimaryButton>
+            <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+              ホームへ
+            </button>
+          </>
+        }
+      >
+        <p>仕分けを{TRIAGE_BATCH_SIZE}語終えました</p>
+      </ScreenLayout>
+    )
+  }
+
   if (triageIndex < triageQueue.length && triageQuestion) {
     return (
       <ScreenLayout
@@ -348,13 +397,13 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
             >
               知らない
             </button>
-            <button type="button" className="vocab-grade-button" onClick={handleKnown}>
+            <button type="button" className="vocab-grade-button" onClick={() => void handleKnown()}>
               知ってる
             </button>
           </>
         }
       >
-        <SwipeCard onSwipeRight={handleKnown} onSwipeLeft={() => void handleUnknown()}>
+        <SwipeCard onSwipeRight={() => void handleKnown()} onSwipeLeft={() => void handleUnknown()}>
           <div className="vocab-card">
             {triageQuestion.freqRank && (
               <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
