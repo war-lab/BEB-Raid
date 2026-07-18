@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import type { AudioPlayer } from '../platform'
+import { DIAGNOSTIC_PROGRESS_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { DiagnosticScreen } from './DiagnosticScreen'
 
@@ -79,7 +80,8 @@ function buildPool(): Question[] {
 }
 
 async function startDiagnostic(toeicInput: string) {
-  const nameInput = screen.getByPlaceholderText('表示名')
+  // T-113: 途中経過確認（settingsの非同期読み込み）が完了するまでintroフォームは出ない
+  const nameInput = await screen.findByPlaceholderText('表示名')
   fireEvent.change(nameInput, { target: { value: 'てすと' } })
   if (toeicInput !== '') {
     const toeicField = screen.getByPlaceholderText('例: 650')
@@ -159,19 +161,21 @@ describe('DiagnosticScreen: 自己申告あり', () => {
 })
 
 describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機能追加）', () => {
-  it('自己申告スコア未入力ではスキップボタンが出ない', () => {
+  it('自己申告スコア未入力ではスキップボタンが出ない', async () => {
     const db = newDb()
     render(
       <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
     )
+    await screen.findByPlaceholderText('表示名')
     expect(screen.queryByText('自己申告スコアで診断をスキップ')).toBeNull()
   })
 
-  it('表示名未入力の間はスキップボタンが無効', () => {
+  it('表示名未入力の間はスキップボタンが無効', async () => {
     const db = newDb()
     render(
       <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
     )
+    await screen.findByPlaceholderText('表示名')
     fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
     const skipButton = screen.getByText('自己申告スコアで診断をスキップ') as HTMLButtonElement
     expect(skipButton.disabled).toBe(true)
@@ -182,7 +186,7 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
     render(
       <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
     )
-    fireEvent.change(screen.getByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
     fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
     fireEvent.click(screen.getByText('自己申告スコアで診断をスキップ'))
 
@@ -209,7 +213,7 @@ describe('DiagnosticScreen: 完了カード（T-78）', () => {
     render(
       <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
     )
-    fireEvent.change(screen.getByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
     fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
     fireEvent.click(screen.getByText('自己申告スコアで診断をスキップ'))
 
@@ -238,5 +242,91 @@ describe('DiagnosticScreen: 音声再生失敗リカバリ（T-70）', () => {
     const choiceA = await screen.findByText('a')
     fireEvent.click(choiceA)
     await screen.findByText('2/30')
+  })
+})
+
+describe('DiagnosticScreen: 途中保存・離脱確認（T-113）', () => {
+  it('途中保存→再マウントで再開できる', async () => {
+    const db = newDb()
+    const pool = buildPool()
+    const first = render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={pool} />,
+    )
+    await startDiagnostic('')
+    await answerOneTurn(1)
+    await answerOneTurn(2)
+    first.unmount()
+
+    render(<DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={pool} />)
+
+    expect(await screen.findByText('続きから再開（3問目から）')).toBeTruthy()
+    fireEvent.click(screen.getByText('続きから再開（3問目から）'))
+
+    await screen.findByText('3/30')
+    for (let i = 3; i <= 30; i++) {
+      await answerOneTurn(i)
+    }
+    expect(screen.getByText('診断完了')).toBeTruthy()
+    // 中断前2問＋再開後28問=30問。再開ボタンで振り出しに戻っていない
+    expect(await db.attempts.count()).toBe(30)
+  }, 20000)
+
+  it('完了時に途中経過（settingsの一時キー）が消える', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    for (let i = 1; i <= 30; i++) {
+      await answerOneTurn(i)
+    }
+    expect(await db.settings.get(DIAGNOSTIC_PROGRESS_KEY)).toBeUndefined()
+  }, 20000)
+
+  it('スキップ時に途中経過が消える', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
+    fireEvent.click(screen.getByText('自己申告スコアで診断をスキップ'))
+
+    await screen.findByText('診断完了')
+    expect(await db.settings.get(DIAGNOSTIC_PROGRESS_KEY)).toBeUndefined()
+  })
+
+  it('「最初からやり直す」で途中経過が消え、通常のintroフォームに戻る', async () => {
+    const db = newDb()
+    const pool = buildPool()
+    const first = render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={pool} />,
+    )
+    await startDiagnostic('')
+    await answerOneTurn(1)
+    first.unmount()
+
+    render(<DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={pool} />)
+    await screen.findByRole('button', { name: /続きから再開/ })
+    fireEvent.click(screen.getByText('最初からやり直す'))
+
+    expect(await screen.findByPlaceholderText('表示名')).toBeTruthy()
+    await vi.waitFor(async () => {
+      expect(await db.settings.get(DIAGNOSTIC_PROGRESS_KEY)).toBeUndefined()
+    })
+  })
+
+  it('「中断」でホームへ戻れる（プロフィール未作成のままでよい）', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    fireEvent.click(screen.getByText('中断'))
+
+    expect(useAppStore.getState().screen).toBe('home')
+    expect(await db.profile.get(PROFILE_ID)).toBeUndefined()
   })
 })

@@ -40,3 +40,8 @@ export const QUESTION_STATS_LAST_SENT_AT_KEY = 'questionStatsLastSentAt'
  * 維持するため、コンポーネントstateではなくここに永続化する
  */
 export const QUEST_DURATION_KEY = 'questDuration'
+/**
+ * 初期診断（P0）の途中経過の一時保存キー（T-113。docs/18 3節）。診断完了・スキップ時に削除する。
+ * db/database.tsのストア定義は変更せず、既存のsettings（key-value）に間借りする
+ */
+export const DIAGNOSTIC_PROGRESS_KEY = 'diagnosticProgress'
