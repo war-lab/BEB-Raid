@@ -139,7 +139,9 @@ describe('オフライン結合通し: packSync→loadQuestionPool→HomeScreen�
         />,
       )
       await screen.findByTestId('home-loaded')
+      // T-118: Part5は問数選択モーダル経由になった（既定20問のまま「開始」でよい）
       fireEvent.click(screen.getByText('Part5'))
+      fireEvent.click(screen.getByText('開始'))
       await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
       homeRender.unmount()
       cleanup()
