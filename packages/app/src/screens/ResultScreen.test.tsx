@@ -7,10 +7,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { RaidApi } from '../platform'
-import { resumeSession, startSession } from '../services/session'
+import { completeSession, resumeSession, startSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ResultScreen } from './ResultScreen'
+
+// completeSessionの失敗経路（レビューF5(a)）をテストで注入するための部分モック。
+// 既定は実装そのまま（他テストの挙動を変えない）
+vi.mock('../services/session', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/session')>()
+  return { ...actual, completeSession: vi.fn(actual.completeSession) }
+})
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -92,9 +99,36 @@ describe('ResultScreen', () => {
     fireEvent.click(screen.getByTestId('result-content'))
 
     expect(screen.getByText('+80')).toBeTruthy()
+    // レビューF5(c): 巨大な「+N」が何の数値か分かるラベルが付く
+    expect(screen.getByText('獲得ポイント')).toBeTruthy()
     expect(screen.getByText('正解 1 / 2')).toBeTruthy()
     expect(screen.getByText('誤答1問を復習デッキに追加した')).toBeTruthy()
     await waitFor(() => expect(screen.getByText(/R: 400 → 420/)).toBeTruthy())
+  })
+
+  it('completeSessionが失敗しても「ホームへ」で必ずホームへ遷移する（レビューF5(a)）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 60,
+    })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // スナップショット削除の失敗を注入する（残ったスナップショットは次回startSessionで上書きされる想定）
+    vi.mocked(completeSession).mockRejectedValueOnce(new Error('削除失敗'))
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+    fireEvent.click(screen.getByTestId('result-content')) // カウントアップ演出をスキップ
+    expect(screen.getByText('+60')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('ホームへ'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('home'))
+    expect(useSessionStore.getState().snapshot).toBeNull()
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 
   it('「ホームへ」でセッションが完了しストアがリセットされ、ホーム画面へ遷移する', async () => {

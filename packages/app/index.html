@@ -12,6 +12,7 @@
     <!-- J-39: 静的スプラッシュ。React マウントで#root の中身ごと自然に置換される -->
     <div id="root">
       <div
+        id="boot-splash"
         style="
           position: fixed;
           inset: 0;
@@ -20,8 +21,6 @@
           align-items: center;
           justify-content: center;
           gap: 16px;
-          background: #0e1220;
-          color: #eaedf6;
           font-family:
             system-ui,
             -apple-system,
@@ -33,11 +32,12 @@
       >
         <p style="margin: 0; font-size: 22px; font-weight: 700">BEB Raid</p>
         <div
+          id="boot-spinner"
           style="
             width: 32px;
             height: 32px;
-            border: 3px solid #2c3552;
-            border-top-color: #f5b83d;
+            border-width: 3px;
+            border-style: solid;
             border-radius: 50%;
             animation: boot-spin 0.8s linear infinite;
           "
@@ -45,6 +45,28 @@
       </div>
     </div>
     <style>
+      /* スプラッシュ配色（レビューF8(f)）。既定はダーク（J-8）だが、OSがライト設定の
+         端末でCSS読込前の一瞬ダークが光らないよう、prefers-color-scheme: light では
+         tokens.css のライト側 --bg/--ink/--line/--gold 相当値を併記する
+         （tokens.css読込前のため変数は使えず、値を複製している） */
+      #boot-splash {
+        background: #0e1220;
+        color: #eaedf6;
+      }
+      #boot-spinner {
+        border-color: #2c3552;
+        border-top-color: #f5b83d;
+      }
+      @media (prefers-color-scheme: light) {
+        #boot-splash {
+          background: #f6f5f1;
+          color: #211e18;
+        }
+        #boot-spinner {
+          border-color: #ddd9ce;
+          border-top-color: #996600;
+        }
+      }
       @keyframes boot-spin {
         to {
           transform: rotate(360deg);

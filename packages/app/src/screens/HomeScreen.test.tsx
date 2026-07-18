@@ -779,11 +779,42 @@ describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
     const hpBar = await screen.findByTestId('home-raid-hp')
     expect(hpBar.textContent).toContain('テストボス')
     expect(hpBar.textContent).toContain('残り3日')
-    const bar = hpBar.querySelector('[role="progressbar"]')
-    expect(bar?.getAttribute('aria-valuenow')).toBe('50')
+    // レビューF2(b): button内はspan構成にし、button全体の意味はaria-labelで伝える
+    expect(hpBar.getAttribute('aria-label')).toBe('ボスHP 50%、残り3日。タップでレイド画面へ')
+    // button内容モデル違反（<p>）が残っていない
+    expect(hpBar.querySelector('p')).toBeNull()
   })
 
-  it('討伐の確定はサーバー側の判定が正です、の注記を表示する', async () => {
+  it('profileJsonが破損していてもホームは白画面にならず、HPバーだけ非表示になる（レビューF2(a)）', async () => {
+    const db = newDb()
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: '{broken json',
+      hp: 4200,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt: Date.now(),
+    })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByTestId('home-raid-hp')).toBeNull()
+    expect(screen.getByText('今日のクエスト')).toBeTruthy() // 学習動線は無傷
+  })
+
+  it('討伐の成立はサーバーで確定する旨の注記を表示する', async () => {
     const db = newDb()
     await putRaidState(db)
     render(
@@ -797,7 +828,7 @@ describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
     await flushLoad()
 
     const hpBar = await screen.findByTestId('home-raid-hp')
-    expect(hpBar.textContent).toContain('討伐の確定はサーバー側の判定が正です')
+    expect(hpBar.textContent).toContain('討伐の成立は同期時にサーバーで確定します')
   })
 })
 

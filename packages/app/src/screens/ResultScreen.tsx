@@ -90,14 +90,19 @@ export function ResultScreen({ db, raidApi }: Props) {
     }
   }, [db, questions])
 
-  // セッション完了時のレイドダメージ送信（M3・T-96）。非同期・失敗無視
+  // セッション完了時のレイドダメージ送信（M3・T-96）。非同期・失敗してもリザルト表示は壊さないが、
+  // 原因追跡のためログは残す（レビューF5）
   useEffect(() => {
-    void syncRaidDamage(db, raidApi).catch(() => {})
+    void syncRaidDamage(db, raidApi).catch((e: unknown) => {
+      console.warn('[raidSync] セッション完了時同期に失敗', e)
+    })
   }, [db, raidApi])
 
-  // セッション完了時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。非同期・失敗無視
+  // セッション完了時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗はログのみ
   useEffect(() => {
-    void sendQuestionStats(db, raidApi).catch(() => {})
+    void sendQuestionStats(db, raidApi).catch((e: unknown) => {
+      console.warn('[questionStats] セッション完了時送信に失敗', e)
+    })
   }, [db, raidApi])
 
   const correctCount = results.filter((r) => r.isCorrect).length
@@ -106,10 +111,17 @@ export function ResultScreen({ db, raidApi }: Props) {
   const displayedPoints = usePointsCountUp(totalPoints, skipAnimation)
 
   function handleHome() {
-    void completeSession(db).then(() => {
-      reset()
-      navigate('home')
-    })
+    // レビューF5: スナップショット削除の失敗で「ホームへ」が無反応にならないようにする。
+    // 削除に失敗して残ったスナップショットは次回startSessionで上書きされるため、
+    // ログだけ残してホーム遷移は必ず実行する
+    void completeSession(db)
+      .catch((e: unknown) => {
+        console.warn('[ResultScreen] セッション完了処理に失敗', e)
+      })
+      .then(() => {
+        reset()
+        navigate('home')
+      })
   }
 
   function handleSkip() {
@@ -137,6 +149,10 @@ export function ResultScreen({ db, raidApi }: Props) {
             リスニング段階L{phaseOutcome.listeningStage}に進みました
           </p>
         )}
+        {/* レビューF5(c): 何の数値か分かるようラベルを付ける。表示実体はbasePointsの合計
+            （冒頭コメントの「獲得ポイント合計」）のため、レビュー指示の「レート変動」ではなく
+            実体に合わせて「獲得ポイント」と表記する（レート変動は下のL/R行に既出） */}
+        <p className="result-points-label">獲得ポイント</p>
         <p>
           <span className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
             +{displayedPoints}

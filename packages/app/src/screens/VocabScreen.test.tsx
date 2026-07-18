@@ -241,6 +241,87 @@ describe('VocabScreen: ストリーク成立（02の7節）', () => {
   })
 })
 
+describe('VocabScreen: 出題不能なSRSカードの除外と脱出導線（レビュー修正E5）', () => {
+  // 何を防ぐか: processWrongAnswerが作るrefType='question'カードや、パック撤去・別端末復元で
+  // 語が引けないカードが復習キュー先頭に居座ると、4択も自己評価ボタンも出ずactionゾーンが空、
+  // リロードしても同カードに再到達して語彙SRSが恒久的に使用不能になる
+  it('refType=questionのカードや対応するvocab_card問題が無いカードは復習対象から除外され、詰まらない', async () => {
+    const db = newDb()
+    // processWrongAnswer相当のrefType='question'カード（VocabScreenでは出題不能）
+    await db.srsCards.put({
+      id: 'question:q-1',
+      refType: 'question',
+      refId: 'q-1',
+      stage: 0,
+      dueAt: Date.now() - 2000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    // パック撤去等で対応するvocab_card問題が無い語彙カード
+    await seedDueCard(db, 'ghost', Date.now() - 1000)
+    // 正常に出題可能な語彙カード
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    // 出題可能なalphaだけが復習対象になる（1/1）＝出題不能カードで先頭が詰まらない
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+    expect(screen.getByText('alpha の意味')).toBeTruthy()
+
+    // 除外したカードは削除されず残る（パック再取得で対応問題が復活しうるため）
+    expect(await db.srsCards.get('question:q-1')).toBeDefined()
+    expect(await db.srsCards.get('vocab:ghost')).toBeDefined()
+  })
+
+  // 何を防ぐか: 初回ロード失敗時にreviewQueue/triageQueueがnullのまま永久にreturn nullが続き、
+  // 何も描画されない白画面で固まる
+  it('初回ロード失敗時はエラーメッセージと「ホームへ」導線を表示する', async () => {
+    const db = newDb()
+    db.close() // getSrsQueue（DBアクセス）を失敗させる
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={[vocabQuestion('alpha')]} />,
+    )
+
+    expect(await screen.findByText('語彙データを読み込めませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ'))
+    expect(useAppStore.getState().screen).toBe('home')
+
+    await db.open() // afterEachのdelete()が失敗しないよう復旧する
+  })
+
+  it('復習の進行中に「中断」でホームへ戻れる', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('中断'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('仕分けの進行中にも「中断」でホームへ戻れる', async () => {
+    const db = newDb()
+    // SRSカードなし→復習キュー空→仕分けモードから始まる
+    const questions = [vocabQuestion('alpha')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/1')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('中断'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+})
+
 describe('VocabScreen: 完了カード（T-78）', () => {
   it('全復習・仕分けが終わると今日の実施数・ストリークを含む完了カードを表示する', async () => {
     const db = newDb()

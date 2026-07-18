@@ -27,10 +27,13 @@ function newDb(): BebRaidDatabase {
 class FakeAudioPlayer implements AudioPlayer {
   unlock = vi.fn(async () => {})
   playCalls: Array<{ src: string; options: PlayOptions | undefined }> = []
+  /** trueならplay()が拒否される（音声404・自動再生制限等の失敗の模擬） */
+  playShouldFail = false
   private pendingResolves: Array<() => void> = []
 
   play = vi.fn((src: string, options?: PlayOptions) => {
     this.playCalls.push({ src, options })
+    if (this.playShouldFail) return Promise.reject(new Error('音声の取得に失敗（模擬）'))
     return new Promise<void>((resolve) => {
       this.pendingResolves.push(resolve)
     })
@@ -227,6 +230,42 @@ describe('ShadowingScreen: 速度チップのL4ゲート（3.5節）', () => {
 
     await waitFor(() => expect(screen.getByText('1.15x')).toBeTruthy())
     expect(screen.getByText('1.3x')).toBeTruthy()
+  })
+})
+
+describe('ShadowingScreen: 音声失敗時のスキップと脱出導線（レビュー修正E6）', () => {
+  // 何を防ぐか: 「次へ」は素材完了（3周 or 最後まで再生）時のみ表示され、音声404だと
+  // lapsが増えず永久にこの画面から出られない（リロードするしかない）
+  it('音声再生に失敗すると「この素材をスキップ」が出て、実施ログを記録せず次の素材へ進める', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.playShouldFail = true
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2', script: 'Second one.', timing: [0, 500] })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    fireEvent.click(screen.getByText('再生'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('この素材をスキップ'))
+
+    // 2素材目へ進み、エラー表示はリセットされる
+    await waitFor(() => expect(screen.getByText(/2\/2/)).toBeTruthy())
+    expect(screen.queryByText('音声を再生できませんでした')).toBeNull()
+    // 再生完了していないため実施ログは記録されない
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('進行中（素材未完了）でも「中断してホームへ」でこの画面から出られる', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const question = shadowingQuestion()
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[question]} />)
+
+    await waitFor(() => expect(screen.getByText('中断してホームへ')).toBeTruthy())
+    fireEvent.click(screen.getByText('中断してホームへ'))
+
+    expect(useAppStore.getState().screen).toBe('home')
   })
 })
 

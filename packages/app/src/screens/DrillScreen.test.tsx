@@ -15,7 +15,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer } from '../platform'
-import { answerCurrentQuestion, startSession, type SessionItem } from '../services/session'
+import {
+  advanceSession,
+  answerCurrentQuestion,
+  startSession,
+  type SessionItem,
+} from '../services/session'
 import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -1100,6 +1105,107 @@ describe('DrillScreen: 選択肢ランタイムシャッフル（T-79。J-36）'
     } finally {
       randomSpy.mockRestore()
     }
+  })
+})
+
+function shadowingFormatQuestion(id: string): Question {
+  return {
+    id,
+    part: 3,
+    format: 'shadowing',
+    difficulty: 2,
+    tags: [],
+    keyVocab: [],
+    audio: `/audio/${id}.mp3`,
+    audioMeta: { accent: 'US', tts: true, voice: 'dev', durationMs: 2000 },
+    script: 'Stop now. Go please.',
+    timing: [0, 300, 700, 1100],
+  }
+}
+
+describe('DrillScreen: 描画分岐の無いformatのスキップと脱出導線（レビュー修正E1/E2/E3）', () => {
+  // 何を防ぐか: shadowing形式（描画分岐なし）がセッションに混入すると問題文もボタンも出ない
+  // 空白になり、中断→再開しても同位置で詰まる（実機のデイリークエストで再現済み）
+  it('E1: shadowing形式のitemはattemptを記録せずスキップされ、次の問題が表示される', async () => {
+    const db = newDb()
+    const shadowQ = shadowingFormatQuestion('shadow-p3-02')
+    const items: SessionItem[] = [
+      { questionId: shadowQ.id, mode: 'solo' },
+      { questionId: 'q-2', mode: 'solo' },
+    ]
+    await setupSession(db, items, [shadowQ, QUESTIONS[1]!])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 空白で固まらず、2問目（attend）へ自動的に進む
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1)
+    expect(await db.attempts.count()).toBe(0) // スキップはattemptを記録しない
+  })
+
+  // 何を防ぐか: スキップのadvanceSession失敗が握りつぶされると、renderがnullのまま固定され
+  // 「中断ボタンすら無い白画面」で固まる（effect依存が変わらず再試行もされない）
+  it('E2: スキップ処理が失敗した場合はエラーと「ホームへ戻る」を表示し、白画面で固まらない', async () => {
+    const db = newDb()
+    const items: SessionItem[] = [
+      { questionId: 'missing-q', mode: 'solo' }, // questionsに無いID→スキップ経路に入る
+      { questionId: 'q-2', mode: 'solo' },
+    ]
+    const snapshot = await setupSession(db, items, [QUESTIONS[1]!])
+    // 裏でDB上のスナップショットだけ進めてstaleにし、スキップのadvanceSessionを失敗させる
+    await advanceSession(db, snapshot)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    expect(await screen.findByText('セッションを進められませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ戻る'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  // 何を防ぐか: dictationは音声なしでは解答が成立せず、音声404等が続くとそのitemを突破できず
+  // セッション完了不能（中断→新規セッションで進捗破棄しか無い）になる
+  it('E3: dictationで音声再生に失敗し続けても「この問題をスキップ」で次へ進める（attemptは記録しない）', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-skip', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    const items: SessionItem[] = [
+      { questionId: q.id, mode: 'solo' },
+      { questionId: 'q-2', mode: 'solo' },
+    ]
+    await setupSession(db, items, [q, QUESTIONS[1]!])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play.mockRejectedValue(new Error('404'))
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('この問題をスキップ'))
+
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('E3: audio_setでも音声準備（unlock）に失敗したら「この問題をスキップ」で次へ進める', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-skip')
+    const items: SessionItem[] = [
+      { questionId: q.id, mode: 'solo' },
+      { questionId: 'q-2', mode: 'solo' },
+    ]
+    await setupSession(db, items, [q, QUESTIONS[1]!])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.unlock.mockRejectedValue(new Error('boom'))
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('この問題をスキップ'))
+
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(0)
   })
 })
 

@@ -25,10 +25,11 @@ interface Props {
   db?: BebRaidDatabase
 }
 
+// 理由ラベルは「何を報告するのか」が一目で分かる文にする（レビューF4(b)）
 const REPORT_REASONS: { value: QuestionReportReason; label: string }[] = [
-  { value: 'wrong_answer', label: '誤答扱い' },
-  { value: 'unnatural', label: '不自然' },
-  { value: 'bad_explanation', label: '解説が誤り' },
+  { value: 'wrong_answer', label: '正解が間違っている' },
+  { value: 'unnatural', label: '英文が不自然' },
+  { value: 'bad_explanation', label: '解説が間違っている' },
 ]
 
 /** questionからAIへの問い合わせコンテキストを組み立てる（audio_qa/dictation/shadowing等は.question空のため.scriptにフォールバック） */
@@ -126,7 +127,7 @@ export function ExplanationCard({ question, isCorrect, aiClient, raidApi, db }: 
       await raidApi.sendReport({ questionId: question.id, reason })
       setReportSent(true)
     } catch {
-      setReportError('送信できませんでした')
+      setReportError('送信できませんでした。通信環境を確認して再度お試しください')
     } finally {
       setReportSending(false)
     }
@@ -170,7 +171,7 @@ export function ExplanationCard({ question, isCorrect, aiClient, raidApi, db }: 
               ))}
               {history.length > 0 && (
                 <p className="explanation-card__ai-note">
-                  AI回答は未レビュー。事前生成解説と矛盾したら悪問メモへ
+                  AI回答は未レビュー。矛盾に気づいたら「問題がおかしい」から報告してください
                 </p>
               )}
               <label>
@@ -210,6 +211,7 @@ export function ExplanationCard({ question, isCorrect, aiClient, raidApi, db }: 
             </button>
           ) : (
             <>
+              <p className="explanation-card__report-note">どこがおかしいですか？</p>
               {REPORT_REASONS.map((r) => (
                 <button
                   key={r.value}
