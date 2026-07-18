@@ -368,9 +368,11 @@ describe('generateQuickPack: M2フェーズ配分（P1/P2/P3で配分が変わ�
     expect(pack.items).toHaveLength(40)
     expect(countByFormat(pack, lookup, 'vocab_card')).toBe(20) // 40*0.5
     expect(countByFormat(pack, lookup, 'text_blank')).toBe(10) // 40*0.25
-    // リスニング枠10（40*0.25）をL1内訳（dict40/shadow30/part2 30）で分割
-    expect(countByFormat(pack, lookup, 'dictation')).toBe(4)
-    expect(countByFormat(pack, lookup, 'shadowing')).toBe(3)
+    // リスニング枠10（40*0.25）をL1内訳（dict40/shadow30/part2 30）で分割。
+    // shadowingはドリル割当対象外（専用画面ShadowingScreenの担当）のため、
+    // その枠3は在庫不足補填としてリスニング枠内の他形式（firstPickでは残余先頭のdictation）へ流れる
+    expect(countByFormat(pack, lookup, 'dictation')).toBe(7)
+    expect(countByFormat(pack, lookup, 'shadowing')).toBe(0)
     expect(countByFormat(pack, lookup, 'audio_qa')).toBe(3)
   })
 
@@ -415,7 +417,7 @@ describe('generateQuickPack: M2フェーズ配分（P1/P2/P3で配分が変わ�
     expect(countByFormat(pack, lookup, 'dictation')).toBe(0) // L3内訳にdictationは無い
   })
 
-  it('L1ではdictation/shadowingが出題され、L3ではaudio_setが出題される（対比）', async () => {
+  it('L1ではdictationが出題され（shadowingは割当対象外）、L3ではaudio_setが出題される（対比）', async () => {
     const { questions, lookup } = m2Pool()
     const l1Pack = await generateQuickPack(newDb(), {
       duration: 15,
@@ -434,7 +436,8 @@ describe('generateQuickPack: M2フェーズ配分（P1/P2/P3で配分が変わ�
       rng: firstPick,
     })
     expect(countByFormat(l1Pack, lookup, 'dictation')).toBeGreaterThan(0)
-    expect(countByFormat(l1Pack, lookup, 'shadowing')).toBeGreaterThan(0)
+    // shadowingはDrillScreenに描画分岐が無く進行不能になるため割り当てない（専用画面の担当）
+    expect(countByFormat(l1Pack, lookup, 'shadowing')).toBe(0)
     expect(countByFormat(l3Pack, lookup, 'audio_set')).toBeGreaterThan(0)
   })
 
@@ -448,6 +451,48 @@ describe('generateQuickPack: M2フェーズ配分（P1/P2/P3で配分が変わ�
     })
     // M1の固定配分（語彙50/Part2 25/Part5 25）どおりの件数になる
     expect(pack.items).toHaveLength(40)
+  })
+
+  // 何を防ぐか: shadowing形式がドリルセッションに混入すると、DrillScreenに描画分岐が無く
+  // 「問題文もボタンも出ない空白＋中断→再開しても同位置で詰む」進行不能バグになる（実機再現済み）
+  it('shadowing形式はドリルに割り当てられず、リスニング枠は目減りせず他形式へ再配分される', async () => {
+    const db = newDb()
+    const { questions, lookup } = m2Pool()
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 1, // L1内訳はshadowing 30%を含む定義（13の3.2節）だが割当されない
+      now: NOW,
+      rng: firstPick,
+    })
+    expect(countByFormat(pack, lookup, 'shadowing')).toBe(0)
+    // リスニング枠10（40*0.25）は目減りせず、枠内の他形式で埋まる（配分は目標値・在庫優先の方針）
+    const listeningTotal =
+      countByFormat(pack, lookup, 'dictation') +
+      countByFormat(pack, lookup, 'audio_qa') +
+      countByFormat(pack, lookup, 'audio_set')
+    expect(listeningTotal).toBe(10)
+    expect(pack.items).toHaveLength(40) // パック全体も目減りしない
+  })
+
+  it('P3で弱点タグを持つshadowingもweaknessバケットに入らない（除外はweakness判定より優先）', async () => {
+    const db = newDb()
+    const { questions } = m2Pool()
+    const tagged = questions.map((q) =>
+      q.format === 'shadowing' ? { ...q, tags: ['weak-tag'] } : q,
+    )
+    await db.tagStats.put({ tag: 'weak-tag', windowCorrect: 1, windowTotal: 10 }) // 正答率10%<閾値
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions: tagged,
+      phase: 'P3',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    const taggedLookup = new Map(tagged.map((q) => [q.id, q]))
+    expect(countByFormat(pack, taggedLookup, 'shadowing')).toBe(0)
   })
 
   it('P3: 弱点タグを持つ問題がweaknessバケットとして優先的に出題される', async () => {

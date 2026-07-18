@@ -186,6 +186,45 @@ describe('FetchRaidApi: エラー種別判定', () => {
     expect((error as RaidApiError).kind).toBe('network')
   })
 
+  it('networkエラーは元例外をcauseへ残す（診断情報の握りつぶし防止）', async () => {
+    const original = new TypeError('Failed to fetch')
+    const fetchMock = vi.fn(async () => {
+      throw original
+    })
+    const client = new FetchRaidApi('https://api.example.com', async () => 'device-1', fetchMock)
+
+    const error = await client.syncDamage([]).catch((e: unknown) => e)
+    expect((error as RaidApiError).cause).toBe(original)
+  })
+
+  it('非OKレスポンスはサーバーのerror.codeをメッセージへ含める（例: 400 invalid_body）', async () => {
+    const fetchMock = mockFetch(async () =>
+      fakeResponse({ error: { code: 'invalid_body', message: '形式が不正です' } }, false, 400),
+    )
+    const client = new FetchRaidApi('https://api.example.com', async () => 'device-1', fetchMock)
+
+    const error = await client.syncDamage([]).catch((e: unknown) => e)
+    expect((error as RaidApiError).kind).toBe('unknown')
+    expect((error as RaidApiError).message).toContain('400 invalid_body')
+  })
+
+  it('非OKレスポンスの本文が読めない場合はHTTPステータスのみの従来文言へフォールバックする', async () => {
+    const fetchMock = mockFetch(async () => {
+      return {
+        ok: false,
+        status: 500,
+        json: async () => {
+          throw new SyntaxError('not json')
+        },
+      } as unknown as Response
+    })
+    const client = new FetchRaidApi('https://api.example.com', async () => 'device-1', fetchMock)
+
+    const error = await client.syncDamage([]).catch((e: unknown) => e)
+    expect((error as RaidApiError).kind).toBe('unknown')
+    expect((error as RaidApiError).message).toContain('500')
+  })
+
   it('AbortSignal.timeout由来のTimeoutErrorはtimeoutとして分類される', async () => {
     const fetchMock = vi.fn(async () => {
       throw new DOMException('signal timed out', 'TimeoutError')

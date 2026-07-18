@@ -24,6 +24,7 @@ import type {
   StreakRecord,
   TagStatRecord,
 } from '../db/schema'
+import { PACK_SYNC_STATE_KEY } from './packSync'
 import { BYOK_API_KEY_KEY } from './settingsKeys'
 
 /** バックアップファイル自体のフォーマット世代（DBスキーマ変更時に上げる） */
@@ -49,10 +50,13 @@ export interface BackupStores {
 
 /**
  * settings のうちエクスポートJSONに含めないキー（T-42=C-2改訂。レビューフォローアップ必須項目）。
- * BYOK APIキーは端末外に出さない不変条件（05の5節）のため、エクスポート・インポートの
- * 両方でこのキーを除外する
+ * - BYOK APIキー: 端末外に出さない不変条件（05の5節）のため、エクスポート・インポートの
+ *   両方でこのキーを除外する
+ * - packSyncState: 端末ローカルのCache Storageと対になる状態のため、他端末へ持ち込むと
+ *   「packHashesは同期済みなのにキャッシュは空」となり、パックが永久にピン留めされない。
+ *   復元先端末は自前のpackSyncState（無ければ空=初回同期扱い）を使うのが正しい
  */
-export const EXPORT_EXCLUDED_KEYS: readonly string[] = [BYOK_API_KEY_KEY]
+export const EXPORT_EXCLUDED_KEYS: readonly string[] = [BYOK_API_KEY_KEY, PACK_SYNC_STATE_KEY]
 
 /**
  * 各ストアが導入されたDexieスキーマバージョン（database.ts の version() と対応）。

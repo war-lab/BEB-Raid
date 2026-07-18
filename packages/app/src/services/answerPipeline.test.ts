@@ -315,8 +315,12 @@ describe('recordAnswerPipeline: 失敗伝播', () => {
 })
 
 describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュー（T-89。既定OFFの縮退設計）', () => {
-  it('raidSyncEnabled未設定（既定OFF）では、レイド参加中でもpendingSyncへ一切書き込まない', async () => {
-    const db = newDb()
+  /**
+   * 参加中のraidStateを仕込む。endAtは既定で未来（今週のボスが開催中）にする
+   * （answeredAtはDate.now()で記録されるため、過去のendAtだと期間外ガードの方で
+   * 弾かれてしまい、各テストが本来検証したいゲートを通らなくなる）
+   */
+  async function seedJoinedRaidState(db: BebRaidDatabase, endAt: number = Date.now() + 86_400_000) {
     await db.raidState.put({
       id: RAID_STATE_ID,
       bossId: 'boss-2026-w29',
@@ -326,9 +330,14 @@ describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュ�
       myDamage: 0,
       joined: true,
       startAt: 1000,
-      endAt: 2000,
+      endAt,
       lastSyncedAt: 1000,
     })
+  }
+
+  it('raidSyncEnabled未設定（既定OFF）では、レイド参加中でもpendingSyncへ一切書き込まない', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
     const q = question('q-1')
 
     await recordAnswerPipeline(db, {
@@ -346,18 +355,7 @@ describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュ�
   it('raidSyncEnabled=ON かつ 参加中 かつ 正解（ダメージ>0）のとき、個人情報を含まないpayloadでpendingSyncへ1件エンキューされる', async () => {
     const db = newDb()
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
-    await db.raidState.put({
-      id: RAID_STATE_ID,
-      bossId: 'boss-2026-w29',
-      profileJson: '{}',
-      hp: 8000,
-      maxHp: 10000,
-      myDamage: 0,
-      joined: true,
-      startAt: 1000,
-      endAt: 2000,
-      lastSyncedAt: 1000,
-    })
+    await seedJoinedRaidState(db)
     const q = question('q-1')
 
     await recordAnswerPipeline(db, {
@@ -401,18 +399,7 @@ describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュ�
   it('raidSyncEnabled=ON かつ参加中でも、誤答（ダメージ0）ならpendingSyncへ書き込まない', async () => {
     const db = newDb()
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
-    await db.raidState.put({
-      id: RAID_STATE_ID,
-      bossId: 'boss-2026-w29',
-      profileJson: '{}',
-      hp: 8000,
-      maxHp: 10000,
-      myDamage: 0,
-      joined: true,
-      startAt: 1000,
-      endAt: 2000,
-      lastSyncedAt: 1000,
-    })
+    await seedJoinedRaidState(db)
     const q = question('q-1')
 
     await recordAnswerPipeline(db, {
@@ -425,5 +412,43 @@ describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュ�
     })
 
     expect(await db.pendingSync.count()).toBe(0)
+  })
+
+  it('端末キャッシュのボス期間（endAt）を過ぎた解答はエンキューしない（週替わり後のオフラインセッション）', async () => {
+    // 旧bossId宛の期間外payloadを積むと、サーバー（J-49）が非加算のままacceptedIds扱いに
+    // するためキューから消え、再送機会を失って無言でダメージが消失するバグの回帰テスト
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await seedJoinedRaidState(db, Date.now() - 1000) // 先週のボス（endAtが過去）
+    const q = question('q-1')
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(await db.pendingSync.count()).toBe(0)
+  })
+
+  it('ボス期間内（endAt前）の解答は従来どおりエンキューされる', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await seedJoinedRaidState(db, Date.now() + 86_400_000)
+    const q = question('q-1')
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(await db.pendingSync.count()).toBe(1)
   })
 })

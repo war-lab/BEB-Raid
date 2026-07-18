@@ -86,6 +86,12 @@ async function enqueueRaidSyncIfEnabled(
   const raidState = await db.raidState.get(RAID_STATE_ID)
   if (!raidState?.joined) return
 
+  // 端末キャッシュのボス期間（endAt）を過ぎた解答はエンキューしない。
+  // 端末は今週のボス情報を持っていない状態であり、旧bossId宛の期間外payloadを積んでも
+  // サーバー（J-49: answeredAtが[startAt, endAt]区間内のみ加算=docs/16）は非加算のまま
+  // acceptedIds扱いにするため、キューから消えて再送機会を失うだけになる
+  if (params.answeredAt > raidState.endAt) return
+
   const points = params.isCorrect ? params.basePoints : 0
   const damage = computeDamage(points, params.mode)
   if (damage <= 0) return

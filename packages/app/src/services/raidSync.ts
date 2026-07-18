@@ -43,12 +43,15 @@ export const RAID_SYNC_BATCH_LIMIT = 200
 
 /**
  * 直近の同期が401（未登録/失効deviceToken）だったか（3.6節: 「判定は同期時のエラー種別を
- * メモリ保持でよい」）。永続化はせず、S5表示時に「登録が無効です」の案内に使う
+ * メモリ保持でよい」）。永続化はせず、S5表示時に「登録が無効です」の案内に使う。
+ * 【注意】モジュールスコープの変数のためReactの再レンダーを誘発しない。表示に反映するには
+ * 同期呼び出し後に明示的にstate更新（再読込）が必要
  */
 let lastSyncUnauthorized = false
 /**
  * 直近の同期試行が失敗したか（種別を問わない。T-99のオフライン表示規約で
- * 「最終同期」表示を強調色にするために使う。永続化しない）
+ * 「最終同期」表示を強調色にするために使う。永続化しない）。
+ * 【注意】lastSyncUnauthorizedと同じくReactの再レンダーを誘発しない
  */
 let lastSyncFailed = false
 
@@ -80,10 +83,26 @@ export async function syncRaidDamage(db: BebRaidDatabase, raidApi: RaidApi): Pro
   const raidState = await db.raidState.get(RAID_STATE_ID)
   if (!raidState?.joined) return false
 
-  const pending = (await db.pendingSync.toArray())
+  const candidates = (await db.pendingSync.toArray())
     .filter((record) => record.kind === 'raidDamage')
     .slice(0, RAID_SYNC_BATCH_LIMIT)
-  const payloads = pending.map((record) => JSON.parse(record.payloadJson) as DamageSyncPayload)
+
+  // payloadJsonが破損したレコード（外部編集されたバックアップのインポート等）は、
+  // 残すと毎回の同期でJSON.parseが例外になりキュー全体が恒久的に詰まるため、
+  // 警告して削除し、残りの送信を続行する
+  const pending: typeof candidates = []
+  const payloads: DamageSyncPayload[] = []
+  const corruptedIds: number[] = []
+  for (const record of candidates) {
+    try {
+      payloads.push(JSON.parse(record.payloadJson) as DamageSyncPayload)
+      pending.push(record)
+    } catch {
+      console.warn(`raidSync: payloadJsonが破損したpendingSyncレコードを削除する (id=${record.id})`)
+      corruptedIds.push(record.id!)
+    }
+  }
+  if (corruptedIds.length > 0) await db.pendingSync.bulkDelete(corruptedIds)
 
   let acceptedIds: string[]
   let boss: Awaited<ReturnType<RaidApi['syncDamage']>>['boss']
@@ -116,7 +135,10 @@ export async function syncRaidDamage(db: BebRaidDatabase, raidApi: RaidApi): Pro
     hp: boss.hp,
     maxHp: boss.maxHp,
     myDamage: boss.myDamage,
-    joined: raidState.joined,
+    // 週替わり（レスポンスのbossが端末の知るbossIdと別）ならjoinedを引き継がずfalseへ
+    // リセットする。「参加」はS5の参加ボタンによるraidState書込と定義されており（docs/17）、
+    // 引き継ぐと参加操作を経ないまま新ボスへ自動参加してしまう
+    joined: boss.bossId === raidState.bossId ? raidState.joined : false,
     startAt: boss.startAt,
     endAt: boss.endAt,
     lastSyncedAt: Date.now(),

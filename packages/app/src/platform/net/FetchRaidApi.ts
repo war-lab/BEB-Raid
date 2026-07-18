@@ -29,8 +29,10 @@ export class RaidApiError extends Error {
   constructor(
     public readonly kind: RaidApiErrorKind,
     message: string,
+    // 元例外を診断用にcauseへ残せるようにする（ES2022のErrorOptions）
+    options?: ErrorOptions,
   ) {
-    super(message)
+    super(message, options)
     this.name = 'RaidApiError'
   }
 }
@@ -111,7 +113,8 @@ export class FetchRaidApi implements RaidApi {
       if (e instanceof DOMException && e.name === 'TimeoutError') {
         throw new RaidApiError('timeout', '応答がタイムアウトしました')
       }
-      throw new RaidApiError('network', '通信エラーが発生しました')
+      // 元例外（CORS・DNS失敗等の詳細）を診断用にcauseへ残す（握りつぶさない）
+      throw new RaidApiError('network', '通信エラーが発生しました', { cause: e })
     }
 
     if (allowNotFound && res.status === 404) return null
@@ -119,7 +122,17 @@ export class FetchRaidApi implements RaidApi {
       if (res.status === 401) {
         throw new RaidApiError('unauthorized', '認証エラーです（401）')
       }
-      throw new RaidApiError('unknown', `レイドAPIの呼び出しに失敗しました（${res.status}）`)
+      // サーバー（packages/api）はエラー詳細を { error: { code } } で返すため、読めれば
+      // メッセージへ含める（例:「400 invalid_body」）。本文がJSONでない・形式が違う場合は
+      // HTTPステータスのみの従来文言へフォールバックする
+      let detail = String(res.status)
+      try {
+        const body = (await res.json()) as { error?: { code?: string } }
+        if (typeof body?.error?.code === 'string') detail = `${res.status} ${body.error.code}`
+      } catch {
+        // 本文読取失敗はステータスのみで続行
+      }
+      throw new RaidApiError('unknown', `レイドAPIの呼び出しに失敗しました（${detail}）`)
     }
     return res
   }

@@ -317,6 +317,53 @@ describe('BYOKキーのエクスポート除外（T-42=C-2改訂。レビュー�
   })
 })
 
+describe('packSyncState のエクスポート除外（端末ローカルのキャッシュ状態を他端末へ持ち込まない）', () => {
+  const PACK_SYNC_STATE_KEY = 'packSyncState'
+
+  it('exportAll の出力に packSyncState が含まれない', async () => {
+    // 含めてしまうと、復元先（キャッシュ空の端末）でpackHashesが現行manifestと一致し
+    // 全パックがskip判定→キャッシュ空のままパックが永久にピン留めされないバグになる
+    const source = newDb()
+    await seedAllStores(source)
+    await source.settings.put({
+      key: PACK_SYNC_STATE_KEY,
+      value: { packHashes: { 'pack-a': 'h1' }, totalSizeBytes: 100, lastSyncedAt: 1000 },
+    })
+
+    const exported = await exportAll(source)
+    const keys = exported.stores.settings.map((s) => s.key)
+    expect(keys).not.toContain(PACK_SYNC_STATE_KEY)
+    expect(keys).toContain('noEarphoneMode') // 他のsettingsは除外されない
+  })
+
+  it('importAll は外部編集でpackSyncStateが混入したバックアップでも復元しない（多層防御）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+    exported.stores.settings.push({
+      key: PACK_SYNC_STATE_KEY,
+      value: { packHashes: { 'pack-a': 'h1' }, totalSizeBytes: 100, lastSyncedAt: 1000 },
+    })
+
+    const target = newDb()
+    await importAll(target, exported)
+    expect(await target.settings.get(PACK_SYNC_STATE_KEY)).toBeUndefined()
+  })
+
+  it('復元先端末が自前で持つpackSyncStateはインポート後も残る（T-72の退避・書き戻し対象）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const target = newDb()
+    const localState = { packHashes: { local: 'h9' }, totalSizeBytes: 50, lastSyncedAt: 900 }
+    await target.settings.put({ key: PACK_SYNC_STATE_KEY, value: localState })
+    await importAll(target, exported)
+
+    expect((await target.settings.get(PACK_SYNC_STATE_KEY))?.value).toEqual(localState)
+  })
+})
+
 describe('examScores ストア（T-42=C-2改訂。M2新設）', () => {
   it('examScores もエクスポート/インポートの往復対象になる', async () => {
     const source = newDb()

@@ -193,7 +193,9 @@ export interface RaidBossState {
   name: string
   hp: number
   maxHp: number
+  /** epoch ms */
   startAt: number
+  /** epoch ms */
   endAt: number
   status: RaidStatus
   participantCount: number
@@ -209,7 +211,12 @@ export interface RaidSyncRequest {
 
 /** POST /raid/sync のレスポンス */
 export interface RaidSyncResponse {
-  /** 受理済みattemptId（今回新規受理分＋既に受理済みだった重複分の両方を含む） */
+  /**
+   * クライアントがpendingSyncから削除してよいattemptId一覧。
+   * 今回新規加算分・受理済み重複分に加え、討伐後・期間外で加算されなかった分も含む
+   * （「加算されたID」ではなく「再送不要なID」の集合であることに注意。
+   * クライアントは期間外になりうるpayloadをそもそもエンキューしない責務を持つ）
+   */
   acceptedIds: string[]
   boss: RaidBossState
 }
