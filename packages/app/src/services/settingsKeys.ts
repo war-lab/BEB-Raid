@@ -45,3 +45,8 @@ export const QUEST_DURATION_KEY = 'questDuration'
  * db/database.tsのストア定義は変更せず、既存のsettings（key-value）に間借りする
  */
 export const DIAGNOSTIC_PROGRESS_KEY = 'diagnosticProgress'
+/**
+ * 単独モード（Part2瞬発・Part5）の問数選択値（T-118。docs/19 3.1節）。
+ * 「今日のクエスト」には作用しない。Part2/Part5で共通の1キーでよい（同節）
+ */
+export const SINGLE_MODE_COUNT_KEY = 'singleModeCount'
