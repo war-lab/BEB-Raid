@@ -15,7 +15,11 @@ import { RAID_STATE_ID } from '../db/schema'
 import { toDateString } from '../engine/date'
 import type { RaidApi } from '../platform'
 import { syncRaidDamage } from '../services/raidSync'
-import { NO_EARPHONE_MODE_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
+import {
+  NO_EARPHONE_MODE_KEY,
+  QUEST_DURATION_KEY,
+  RAID_SYNC_ENABLED_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -421,6 +425,82 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     expect(screen.getByText(/シャドーイング L1/)).toBeTruthy()
     fireEvent.click(screen.getByText(/シャドーイング/))
     expect(useAppStore.getState().screen).toBe('shadowing')
+  })
+})
+
+describe('HomeScreen: 時間チップの明確化と保存（T-112）', () => {
+  it('「クエストの長さ」ラベルがチップ群に付き、今日のクエストボタンとグループ化される', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const label = screen.getByText('クエストの長さ')
+    const group = label.closest('.home-quest-group')
+    expect(group).toBeTruthy()
+    expect(group?.textContent).toContain('今日のクエスト')
+    expect(group?.querySelector('.home-duration-chips')).toBeTruthy()
+  })
+
+  it('時間チップの選択がsettingsへ保存され、値がそのまま渡って開始できる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('15分'))
+
+    await waitFor(async () => {
+      expect((await db.settings.get(QUEST_DURATION_KEY))?.value).toBe(15)
+    })
+    expect(screen.getByText('15分').className).toContain('is-selected')
+  })
+
+  it('選択値が再マウント後も復元される（画面遷移・再起動を跨いだ維持）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUEST_DURATION_KEY, value: 15 })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('15分').className).toContain('is-selected')
+    expect(screen.getByText('7分').className).not.toContain('is-selected')
+  })
+
+  it('不正な保存値（3/7/15以外）は無視して既定7分のまま表示する', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUEST_DURATION_KEY, value: 999 })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('7分').className).toContain('is-selected')
   })
 })
 

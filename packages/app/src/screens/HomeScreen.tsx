@@ -20,7 +20,11 @@ import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/typ
 import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
 import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
-import { LAST_SEEN_STREAK_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import {
+  LAST_SEEN_STREAK_KEY,
+  NO_EARPHONE_MODE_KEY,
+  QUEST_DURATION_KEY,
+} from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
@@ -111,18 +115,32 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         startOfLocalDay(Date.now()),
         -(MINI_HEATMAP_WEEKS * 7 - 1),
       )
-      const [status, record, queue, phaseState, lastSeenSetting, recentAttempts, raidStateRecord] =
-        await Promise.all([
-          evaluateStreak(db),
-          getStreak(db),
-          getSrsQueue(db),
-          getOrInitPhaseState(db),
-          db.settings.get(LAST_SEEN_STREAK_KEY),
-          db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
-          db.raidState.get(RAID_STATE_ID),
-        ])
+      const [
+        status,
+        record,
+        queue,
+        phaseState,
+        lastSeenSetting,
+        recentAttempts,
+        raidStateRecord,
+        questDurationSetting,
+      ] = await Promise.all([
+        evaluateStreak(db),
+        getStreak(db),
+        getSrsQueue(db),
+        getOrInitPhaseState(db),
+        db.settings.get(LAST_SEEN_STREAK_KEY),
+        db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
+        db.raidState.get(RAID_STATE_ID),
+        db.settings.get(QUEST_DURATION_KEY),
+      ])
       if (cancelled) return
       setRaidState(raidStateRecord ?? null)
+      // T-112: 「今日のクエスト」の時間チップ選択を画面遷移・再起動を跨いで復元する
+      const savedDuration = questDurationSetting?.value as QuickPackDuration | undefined
+      if (savedDuration !== undefined && DURATIONS.includes(savedDuration)) {
+        setDuration(savedDuration)
+      }
       const today = toDateString(Date.now())
       const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
       const isBroken =
@@ -286,28 +304,36 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               続きから再開（残り{resumeSnapshot.items.length - resumeSnapshot.answeredCount}問）
             </button>
           )}
-          <PrimaryButton
-            onClick={() => void handleStartQuest()}
-            disabled={questionPool.length === 0}
-          >
-            今日のクエスト
-          </PrimaryButton>
-          {questionPool.length === 0 && (
-            <p className="home-pool-empty-hint">
-              問題データを取得できていません。オンラインで開き直してください
-            </p>
-          )}
-          <div className="home-duration-chips">
-            {DURATIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`home-chip${d === duration ? ' is-selected' : ''}`}
-                onClick={() => setDuration(d)}
-              >
-                {d}分
-              </button>
-            ))}
+          {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
+              ボタン・チップをひとつのグループにまとめラベルを付ける（Part2瞬発等には作用しない） */}
+          <div className="home-quest-group">
+            <PrimaryButton
+              onClick={() => void handleStartQuest()}
+              disabled={questionPool.length === 0}
+            >
+              今日のクエスト
+            </PrimaryButton>
+            {questionPool.length === 0 && (
+              <p className="home-pool-empty-hint">
+                問題データを取得できていません。オンラインで開き直してください
+              </p>
+            )}
+            <p className="home-duration-chips__label">クエストの長さ</p>
+            <div className="home-duration-chips">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={`home-chip${d === duration ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setDuration(d)
+                    void db.settings.put({ key: QUEST_DURATION_KEY, value: d })
+                  }}
+                >
+                  {d}分
+                </button>
+              ))}
+            </div>
           </div>
           {showPart2Options && (
             <div className="home-part2-options">
