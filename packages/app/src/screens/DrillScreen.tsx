@@ -160,6 +160,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [sessionError, setSessionError] = useState<string | null>(null)
   // T-78: ハプティクス設定（既定ON）。正解確定時のnavigator.vibrateに使う
   const [hapticsEnabled, setHapticsEnabled] = useState(true)
+  // T-108: 表示不能スキップの非モーダル通知（数秒で自動的に消える）
+  const [skipNotice, setSkipNotice] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -315,10 +317,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         ? `[DrillScreen] 描画分岐の無いformatのためスキップ: ${item.questionId} (${question.format})`
         : `[DrillScreen] questionIdが解決できないためスキップ: ${item.questionId}`,
     )
+    useSessionStore.getState().incrementSkipped()
     void advanceSession(db, snapshot)
       .then((nextSnapshot) => {
         if (cancelled) return
         useSessionStore.setState({ snapshot: nextSnapshot })
+        setSkipNotice(true)
         if (displayIndex + 1 >= snapshot.items.length) {
           navigate('result')
         } else {
@@ -336,6 +340,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       cancelled = true
     }
   }, [item, question, snapshot, displayIndex, db, navigate])
+
+  // T-108: スキップ通知は数秒で自動的に消える（非モーダル。累計件数はResultScreen側で表示する）
+  useEffect(() => {
+    if (!skipNotice) return
+    const timeout = setTimeout(() => setSkipNotice(false), 4000)
+    return () => clearTimeout(timeout)
+  }, [skipNotice])
 
   // セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を必ず出す
   if (sessionError) {
@@ -711,6 +722,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           <button type="button" className="drill-abort" onClick={() => navigate('home')}>
             中断
           </button>
+          {skipNotice && (
+            <p className="drill-skip-notice" role="status" data-testid="drill-skip-notice">
+              表示できない問題を1件スキップしました
+            </p>
+          )}
           {item.reason && <p className="drill-reason">{formatQuickPackReason(item.reason)}</p>}
           {streak > 0 && (
             <p key={streak} className="session-streak display-num">

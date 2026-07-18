@@ -27,6 +27,12 @@ interface SessionStore {
    * オプションとしてのみ true になりうる（3.7節: 単独モード起動時のオプション）
    */
   partialAudioMode: boolean
+  /**
+   * 表示できずスキップした問題数（T-108。docs/18 3.6節）。questionId未解決・描画分岐の無い
+   * formatが混入した際にDrillScreenがカウントし、ResultScreenの「表示できなかった問題: N件」
+   * 行に使う。スナップショットのスキーマは変えない（アプリ再起動を跨ぐ持続は不要）
+   */
+  skippedCount: number
 
   begin: (
     snapshot: SessionSnapshot,
@@ -36,6 +42,8 @@ interface SessionStore {
   ) => void
   /** 1問の解答結果を記録し、スナップショットを進める（DB書き込み後に呼ぶ） */
   recordAnswer: (snapshot: SessionSnapshot, entry: SessionResultEntry) => void
+  /** 表示できない問題をスキップした際にDrillScreenが呼ぶ（T-108） */
+  incrementSkipped: () => void
   reset: () => void
 }
 
@@ -45,6 +53,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   results: [],
   ratingBefore: null,
   partialAudioMode: false,
+  skippedCount: 0,
 
   begin: (snapshot, questions, ratingBefore, options) =>
     set({
@@ -53,10 +62,13 @@ export const useSessionStore = create<SessionStore>((set) => ({
       results: [],
       ratingBefore,
       partialAudioMode: options?.partialAudioMode ?? false,
+      skippedCount: 0,
     }),
 
   recordAnswer: (snapshot, entry) =>
     set((state) => ({ snapshot, results: [...state.results, entry] })),
+
+  incrementSkipped: () => set((state) => ({ skippedCount: state.skippedCount + 1 })),
 
   reset: () =>
     set({
@@ -65,5 +77,6 @@ export const useSessionStore = create<SessionStore>((set) => ({
       results: [],
       ratingBefore: null,
       partialAudioMode: false,
+      skippedCount: 0,
     }),
 }))

@@ -57,6 +57,7 @@ export function ResultScreen({ db, raidApi }: Props) {
   const results = useSessionStore((s) => s.results)
   const questions = useSessionStore((s) => s.questions)
   const ratingBefore = useSessionStore((s) => s.ratingBefore)
+  const skippedCount = useSessionStore((s) => s.skippedCount)
   const reset = useSessionStore((s) => s.reset)
   const navigate = useAppStore((s) => s.navigate)
 
@@ -172,6 +173,15 @@ export function ResultScreen({ db, raidApi }: Props) {
           {wrongCount > 0 && (
             <li className="result-stat" style={{ animationDelay: '300ms' }}>
               誤答{wrongCount}問を復習デッキに追加した
+            </li>
+          )}
+          {skippedCount > 0 && (
+            <li
+              className="result-stat"
+              style={{ animationDelay: '450ms' }}
+              data-testid="result-skipped-count"
+            >
+              表示できなかった問題: {skippedCount}件（パックの再取得で直ることがあります）
             </li>
           )}
         </ul>

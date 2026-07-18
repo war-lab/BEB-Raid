@@ -122,6 +122,13 @@
   color: var(--ink-2);
 }
 
+/* --- 表示不能スキップの非モーダル通知（T-108。数秒で自動的に消える） --- */
+.drill-skip-notice {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
 /* --- 出題理由ラベル（03の3.2「なぜこの問題が出たか」を明示） --- */
 .drill-reason {
   margin: var(--sp-half) 0 0;

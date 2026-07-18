@@ -106,6 +106,40 @@ describe('ResultScreen', () => {
     await waitFor(() => expect(screen.getByText(/R: 400 → 420/)).toBeTruthy())
   })
 
+  it('表示できなかった問題（skippedCount）があれば件数を表示する（T-108）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 60,
+    })
+    useSessionStore.getState().incrementSkipped()
+    useSessionStore.getState().incrementSkipped()
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    expect(screen.getByTestId('result-skipped-count').textContent).toBe(
+      '表示できなかった問題: 2件（パックの再取得で直ることがあります）',
+    )
+  })
+
+  it('スキップが0件なら「表示できなかった問題」行自体を出さない（T-108）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    useSessionStore.getState().recordAnswer(snapshot, {
+      questionId: 'q-1',
+      isCorrect: true,
+      basePoints: 60,
+    })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    expect(screen.queryByTestId('result-skipped-count')).toBeNull()
+  })
+
   it('completeSessionが失敗しても「ホームへ」で必ずホームへ遷移する（レビューF5(a)）', async () => {
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })

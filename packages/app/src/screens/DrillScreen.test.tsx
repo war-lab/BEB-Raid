@@ -1141,6 +1141,10 @@ describe('DrillScreen: 描画分岐の無いformatのスキップと脱出導線
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
     expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1)
     expect(await db.attempts.count()).toBe(0) // スキップはattemptを記録しない
+    // T-108: 非モーダル通知が出て、セッションストアのskippedCountが増える
+    expect(screen.getByTestId('drill-skip-notice')).toBeTruthy()
+    expect(screen.getByText('表示できない問題を1件スキップしました')).toBeTruthy()
+    expect(useSessionStore.getState().skippedCount).toBe(1)
   })
 
   // 何を防ぐか: スキップのadvanceSession失敗が握りつぶされると、renderがnullのまま固定され
