@@ -19,7 +19,7 @@ import {
 } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
-import { ResultScreen } from './ResultScreen'
+import { resultQuestionLabel, ResultScreen } from './ResultScreen'
 
 // completeSessionの失敗経路（レビューF5(a)）をテストで注入するための部分モック。
 // 既定は実装そのまま（他テストの挙動を変えない）
@@ -398,5 +398,87 @@ describe('ResultScreen: レイドダメージ送信トリガー（T-96）', () =
 
     await waitFor(() => expect(screen.getByText('+60')).toBeTruthy())
     expect(raidApi.syncDamage).not.toHaveBeenCalled()
+  })
+})
+
+describe('ResultScreen: 問題リストの表記（T-111）', () => {
+  function vocabQuestion(id: string, word: string): Question {
+    return {
+      id,
+      part: 0,
+      format: 'vocab_card',
+      difficulty: 1,
+      tags: [],
+      keyVocab: [],
+      front: word,
+      phrase: `Please ${word} it.`,
+      back: `${word}の意味`,
+      freqRank: 'S',
+      levelBand: 730,
+    }
+  }
+
+  function audioQaQuestion(id: string, script: string): Question {
+    return {
+      id,
+      part: 2,
+      format: 'audio_qa',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [],
+      audio: `/audio/${id}.mp3`,
+      audioMeta: { accent: 'US', tts: false, voice: 'dev', durationMs: 3000 },
+      script,
+      choices: [
+        { key: 'A', text: 'a' },
+        { key: 'B', text: 'b' },
+      ],
+      answer: 'A',
+    }
+  }
+
+  it('vocab_cardは対象語（front）を表示する', () => {
+    expect(resultQuestionLabel('vocab-1', vocabQuestion('vocab-1', 'submit'))).toBe('submit')
+  })
+
+  it('audio_qa/dictation/audio_setは英文冒頭を約20字+「…」に短縮する', () => {
+    const script = 'When did you submit the report to the manager?'
+    const label = resultQuestionLabel('p2-1', audioQaQuestion('p2-1', script))
+    expect(label).toBe(`${script.slice(0, 20)}…`)
+    expect(label.length).toBeLessThan(script.length)
+  })
+
+  it('scriptが短ければ省略記号を付けずそのまま表示する', () => {
+    const script = 'Short script.'
+    expect(resultQuestionLabel('p2-2', audioQaQuestion('p2-2', script))).toBe(script)
+  })
+
+  it('text_blank等はquestion文をそのまま表示する（既存挙動の回帰）', () => {
+    expect(resultQuestionLabel('q-1', q('q-1'))).toBe('question q-1')
+  })
+
+  it('問題が引けない場合（questionPool未読込・sub-question ID等）はquestionIdへフォールバックする', () => {
+    expect(resultQuestionLabel('unknown-q', undefined)).toBe('unknown-q')
+  })
+
+  it('画面上でも形式別の表記が反映される', async () => {
+    const db = newDb()
+    const vocab = vocabQuestion('vocab-1', 'submit')
+    const script = 'When did you submit the report to the manager?'
+    const audioQa = audioQaQuestion('p2-1', script)
+    const snapshot = await startSession(db, {
+      items: [
+        { questionId: vocab.id, mode: 'solo' },
+        { questionId: audioQa.id, mode: 'solo' },
+      ],
+    })
+    useSessionStore.getState().begin(snapshot, [vocab, audioQa], { L: 400, R: 400 })
+    const afterFirst = await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 0 })
+    await answerAndRecord(db, afterFirst, { isCorrect: true, basePoints: 60 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+    expect(screen.getByText(`${script.slice(0, 20)}…`)).toBeTruthy()
   })
 })

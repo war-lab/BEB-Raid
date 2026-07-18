@@ -5,6 +5,7 @@
 // T-77: 報酬演出（J-42）。CSSアニメーション＋rAFのみ、総時間600〜900ms、
 // prefers-reduced-motionでは静止表示、タップで即スキップ可能にする。
 import { useEffect, useState } from 'react'
+import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
 import { SEASON_LABELS, type PhaseTransitionOutcome } from '../engine/curriculum'
@@ -25,6 +26,34 @@ interface Props {
 }
 
 const POINTS_COUNTUP_MS = 700
+/** T-111: 音声系（audio_qa/dictation/audio_set）の問題リスト表記を短縮する長さ */
+const RESULT_QUESTION_TRUNCATE_LENGTH = 20
+
+/**
+ * リザルト画面の問題リスト表記（T-111。docs/18 T-111シート）。内部ID（`dictation-discount`等）の
+ * ままではどの問題だったか分からないため、形式別の短い表記に変換する。
+ * - vocab_card: 対象語（front）
+ * - audio_qa/dictation/audio_set: 英文冒頭を約20字+「…」に短縮（scriptが無ければIDへ）
+ * - それ以外（text_blank/text_passage等）: 設問文（question）
+ * 問題が引けない場合（questionPool未読込・audio_setのsub-question ID等）はquestionIdへ
+ * フォールバックする（`.result-list__question`の既存ellipsis表示を活かす）
+ */
+export function resultQuestionLabel(questionId: string, question: Question | undefined): string {
+  if (!question) return questionId
+  if (question.format === 'vocab_card') return question.front ?? questionId
+  if (
+    question.format === 'audio_qa' ||
+    question.format === 'dictation' ||
+    question.format === 'audio_set'
+  ) {
+    const text = question.script
+    if (!text) return questionId
+    return text.length > RESULT_QUESTION_TRUNCATE_LENGTH
+      ? `${text.slice(0, RESULT_QUESTION_TRUNCATE_LENGTH)}…`
+      : text
+  }
+  return question.question ?? questionId
+}
 
 function prefersReducedMotion(): boolean {
   return (
@@ -215,7 +244,7 @@ export function ResultScreen({ db, raidApi }: Props) {
             <li key={i} className="result-list__item" data-correct={a.isCorrect}>
               <span aria-hidden="true" className="result-list__icon" />
               <span className="result-list__question">
-                {questions.get(a.questionId)?.question ?? a.questionId}
+                {resultQuestionLabel(a.questionId, questions.get(a.questionId))}
               </span>
             </li>
           ))}
