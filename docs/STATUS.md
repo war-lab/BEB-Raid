@@ -95,9 +95,9 @@
 - 検証: app単体527件（既存520件+raidSync.test.tsへのバッジ導出テスト4件・RaidScreen.test.tsxへのバッジ表示テスト3件）、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 71件/app 527件/cli 305件/review-ui 15件/shared-schema 47件、計965件）すべて通過。
 - **これでM3のステップ2〜6（T-90〜T-102。デプロイ=T-93を除く全実装）が完了**。残るはT-93（H-1待ち）とH-2・H-3（人間主体）のみ。
 
-### 2026-07-18: 全量レビューに基づく改修（task/review-fixes ブランチ・PR予定）
+### 2026-07-18: 全量レビューに基づく改修（task/review-fixes ブランチ・**PR #26**）
 
-M3実装完了を受けて、4観点（コード品質/API設計/UI/ドキュメント整合）のレビューと進行不能バグの調査を実施し、検出したP0級を `task/review-fixes` ブランチで一括修正中。主な対象:
+M3実装完了を受けて、7観点（バグ/可読性/実機UX/ビジュアル/進行不能3系統）のレビューと調査を実施し、検出したP0級を `task/review-fixes` ブランチで一括修正した（**PR #26。ドラフト・レビュー待ち**。全1036テスト・lint・build通過、Playwright実機確認済み）。主な対象:
 
 - shadowingドリル混入によるセッション完走不能
 - packSyncのキャッシュ全消失
@@ -107,6 +107,8 @@ M3実装完了を受けて、4観点（コード品質/API設計/UI/ドキュメ
 - radio崩れ・VocabScreen詰み・WebAudioPlayer固着 等のUI/platform不具合
 
 あわせてdocsと実装のドリフト（17の3.4/3.5/3.7/3.8節・16の2節・04の4節・README・CLAUDE.md）を同ブランチで解消した。
+
+**PR #26で未対応のレビュー残課題（表示更新のリアクティビティ欠如・ドリルUX・History API等）は [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md) にT-103〜T-117・判断J-51〜J-56として自走タスクシート化済み**（発起人が2026-07-18に「修正案を全部やる」と決定。J-51〜J-56は18の3節の記載をもって確定）。**着手前提はPR #26のdevマージ**。次にAIが着手できる作業は、PR #26マージ後の18のT-103以降（実行順序は18の4節）。
 
 ### M3の次のアクション（次セッションはここから）
 
@@ -121,7 +123,7 @@ M3実装完了を受けて、4観点（コード品質/API設計/UI/ドキュメ
 
 **T-93 部分完了（2026-07-17。task/T-93-api-deploy-workflow ブランチ）**: H-1（Cloudflareアカウント）未了のため、アカウント不要でAI実施可能な部分を先行整備した。①`.github/workflows/api-deploy.yml` を新設: `main`へのpush（paths: `packages/api/**`）で `wrangler deploy --env dev`、`workflow_dispatch`で環境選択（production は手動実行のみ）。`cloudflare/wrangler-action@v3`（`workingDirectory: packages/api`・`command: deploy --env ...`）を使用し、デプロイ前ゲートとして shared-schemaビルド→api型検査（tsc --noEmit）→apiテストを走らせる。**H-1未了（`CLOUDFLARE_API_TOKEN`未設定）時はデプロイstepをスキップするguard step付き**（発起人判断でmainへ先行マージするため、H-1前はワークフローが緑で終わりmainに赤バッジを出さない。H-1後にトークンを設定すれば自動でデプロイ有効化）。②**wrangler.tomlのenv継承バグを発見・修正（T-93の主要成果）**: `wrangler deploy --env dev --dry-run` で「durable_objects が env.dev に無い」警告を検出。名前付き環境はバインディング（vars・kv_namespaces・durable_objects）をトップレベルから継承しないため、`--env dev`/`--env production`デプロイ（package.jsonのdeploy:dev/production・api-deploy.yml が使う経路）ではRAID_BOSS/STATS DOがバインドされずレイドが丸ごと動かない潜在バグだった。`[[env.dev.durable_objects.bindings]]`・`[[env.production.durable_objects.bindings]]`を追加して解消（dry-runで両環境ともDO2個がバインドされることを確認）。**このバグはvitest（`--env`なしのトップレベル設定を使う）・ローカル`wrangler dev`（同上）では顕在化せず、`--env`デプロイでのみ壊れるため既存テストで検出できなかった**。`migrations`・`triggers`(cron)・`compatibility_date`は継承されるため再定義不要（dry-runで警告が出るのはdurable_objectsのみ＝継承されないものだけ警告される挙動と一致）。③**🟡 H-1後の確認事項**: (a) KV id 3箇所（`REPLACE_WITH_REAL_KV_NAMESPACE_ID*`）を実IDへ転記、(b) 実デプロイで `/health` 200、(c) アプリオリジンからのCORS疎通、(d) cronがデプロイ環境に実際にアタッチされたか（`triggers`継承はドキュメント上は成立するが実デプロイ出力で要確認）。**停止条件（DO無料枠）は未確認**: DOがアカウントのプランで使えるか（有料Workers Paid要否）はH-1着手時に必ず確認する。検証: `wrangler deploy --env dev/production --dry-run` 通過（バンドル26.47KiB）、api build＋テスト71件通過、YAML parse OK、ルート `npm run lint`・`npm run build`・`npm test` 通過。
 
-- T-93の実デプロイ以外は完了。次にAI単独で着手できるM3タスクは無い（実デプロイはH-1、H-2/H-3は人間主体）。M2残タスク（T-65・T-66）も🔴人間主体。
+- T-93の実デプロイ以外は完了。次にAI単独で着手できるM3タスクは無い（実デプロイはH-1、H-2/H-3は人間主体）。M2残タスク（T-65・T-66）も🔴人間主体。**AI単独で着手できる次の作業は18のT-103以降（PR #26マージ後）**。
 - 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)全節。T-93着手時は3.10節・5節T-93シートを読むこと。
 - ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100〜T-102は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
 
