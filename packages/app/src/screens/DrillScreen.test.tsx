@@ -848,6 +848,23 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     expect(screen.queryByText('確定')).toBeNull()
   })
 
+  it('「やり直す」ボタンがタップ領域44px以上を確保するクラスを持つ（T-116(5)）', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-tapzone', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+
+    // .dictation-reset は --tap-min(48px)のmin-heightを持つクラス（jsdomは実レイアウトを
+    // 計算しないため、タップ目標を保証するクラスの付与を構造面で確認する）
+    expect(screen.getByText('やり直す').className).toContain('dictation-reset')
+  })
+
   it('0.85x/等倍の速度チップを選んでから開始できる（再生自体はT-45まで等倍のまま=予約のみ）', async () => {
     const db = newDb()
     const q = dictationQuestion('dict-5', 'Please submit the report today', [
@@ -1260,6 +1277,33 @@ describe('DrillScreen: 描画分岐の無いformatのスキップと脱出導線
 
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
     expect(await db.attempts.count()).toBe(0)
+  })
+})
+
+describe('DrillScreen: レイド挑戦セッションのヘッダ（T-116(10)）', () => {
+  it('item.mode="raid"のとき、出題理由の代わりに「レイド」ヘッダが表示される', async () => {
+    const db = newDb()
+    const items: SessionItem[] = [{ questionId: 'q-1', mode: 'raid' }]
+    await setupSession(db, items, [QUESTIONS[0]!])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    expect(await screen.findByTestId('drill-raid-header')).toBeTruthy()
+    expect(screen.getByTestId('drill-raid-header').textContent).toBe('レイド')
+    expect(screen.queryByText('今日のドリル')).toBeNull()
+  })
+
+  it('item.mode="solo"（通常ドリル）では従来どおり出題理由が表示される（回帰確認）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = [
+      { questionId: 'q-1', mode: 'solo', reason: { type: 'allocation' } },
+    ]
+    await setupSession(db, items, [QUESTIONS[0]!])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    expect(await screen.findByText('今日のドリル')).toBeTruthy()
+    expect(screen.queryByTestId('drill-raid-header')).toBeNull()
   })
 })
 

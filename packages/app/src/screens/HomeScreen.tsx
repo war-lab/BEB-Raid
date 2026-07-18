@@ -289,6 +289,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               <p
                 key={streakDays}
                 className={`streak-flame display-num${streakPulse ? ' is-pulse' : ''}`}
+                title="学習ストリーク: 連続で学習した日数"
               >
                 🔥{streakDays}
               </p>
@@ -336,30 +337,39 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             </div>
           </div>
           {showPart2Options && (
-            <div className="home-part2-options">
-              <p>音声の再生方法を選んでください</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPart2Options(false)
-                  void startSingleMode('audio_qa')
-                }}
-              >
-                通常
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPart2Options(false)
-                  void startSingleMode('audio_qa', { partialAudioMode: true })
-                }}
-              >
-                冒頭だけ再生（特訓）
-              </button>
-              <p className="home-part2-options-hint">音声の冒頭だけで答える特訓モードです</p>
-              <button type="button" onClick={() => setShowPart2Options(false)}>
-                キャンセル
-              </button>
+            // T-116(8): ホーム下部へのインライン挿入だとスクロールしないと見えなかったため、
+            // 画面中央固定のオーバーレイに変更する（スクロール位置に依存せず必ず見える）
+            <div
+              className="home-part2-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="音声の再生方法を選択"
+            >
+              <div className="home-part2-options">
+                <p>音声の再生方法を選んでください</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPart2Options(false)
+                    void startSingleMode('audio_qa')
+                  }}
+                >
+                  通常
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPart2Options(false)
+                    void startSingleMode('audio_qa', { partialAudioMode: true })
+                  }}
+                >
+                  冒頭だけ再生（特訓）
+                </button>
+                <p className="home-part2-options-hint">音声の冒頭だけで答える特訓モードです</p>
+                <button type="button" onClick={() => setShowPart2Options(false)}>
+                  キャンセル
+                </button>
+              </div>
             </div>
           )}
           <div className="home-grid">
@@ -442,6 +452,8 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       )}
       {miniHeatmapCells && (
         <div className="home-mini-heatmap" data-testid="home-mini-heatmap">
+          {/* T-116(3): ホームのミニヒートマップにタイトルが無く、何の表かわからない指摘への対処 */}
+          <p className="home-mini-heatmap-title">直近4週間の学習ヒートマップ</p>
           <Heatmap cells={miniHeatmapCells} />
         </div>
       )}

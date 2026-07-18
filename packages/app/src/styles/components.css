@@ -579,6 +579,16 @@
   opacity: 0.4;
   cursor: default;
 }
+/* T-116(5): 「やり直す」ボタンにタップ目標のクラスが無く未達だった */
+.dictation-reset {
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
 
 /* --- チャート共通（08節: グリッド・軸は退行色、数表併設、タップで値表示） --- */
 .chart-empty {
@@ -607,6 +617,17 @@
 .chart-tooltip {
   margin: var(--sp-half) 0;
   font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+/* --- T-116(3): ヒートマップの凡例（薄い=少・濃い=多）とホームのミニヒートマップ見出し --- */
+.chart-heatmap-legend {
+  margin: 0 0 var(--sp-half);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+.home-mini-heatmap-title {
+  margin: 0 0 var(--sp-half);
+  font-size: var(--fs-sub);
   color: var(--ink-2);
 }
 .chart-table {
@@ -774,12 +795,25 @@
   border-color: var(--gold);
   color: var(--ink);
 }
+/* T-116(8): スクロール位置に依存せず必ず見える画面中央固定のオーバーレイにする */
+.home-part2-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-2);
+  background: color-mix(in srgb, var(--bg), transparent 30%);
+}
 .home-part2-options {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
+  width: 100%;
+  max-width: 360px;
   margin: var(--sp-1) 0;
-  padding: var(--sp-1);
+  padding: var(--sp-2);
   background: var(--surface);
   border: 2px solid var(--line);
   border-radius: var(--radius-button);

@@ -521,6 +521,8 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
     fireEvent.click(screen.getByText('Part2瞬発'))
     expect(screen.getByText('通常')).toBeTruthy()
     expect(screen.getByText('冒頭だけ再生（特訓）')).toBeTruthy()
+    // T-116(8): スクロールしないと見えない問題への対処。画面中央固定のダイアログとして出す
+    expect(screen.getByRole('dialog', { name: '音声の再生方法を選択' })).toBeTruthy()
 
     fireEvent.click(screen.getByText('通常'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
@@ -1052,9 +1054,7 @@ describe('HomeScreen: バックグラウンド同期完了への画面追従（T
       <HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} raidApi={raidApi} />,
     )
     await flushLoad()
-    expect((await screen.findByTestId('home-raid-last-synced')).className).not.toContain(
-      'is-stale',
-    )
+    expect((await screen.findByTestId('home-raid-last-synced')).className).not.toContain('is-stale')
 
     raidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
     await syncRaidDamage(db, raidApi)

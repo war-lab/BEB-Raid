@@ -374,6 +374,11 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
             再計算
           </button>
           <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
+          {persisted === false && (
+            <p className="settings-note">
+              端末の空き容量逼迫時にデータが削除される可能性があります。アプリをホーム画面に追加すると有効になりやすくなります
+            </p>
+          )}
           {storageEstimate && (
             <p>
               端末ストレージ使用量: {((storageEstimate.usage ?? 0) / 1024 / 1024).toFixed(1)}MB /{' '}
@@ -384,6 +389,9 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
 
         <section>
           <p>AIに聞く（BYOK）</p>
+          <p className="settings-byok-note">
+            BYOK（Bring Your Own Key）: ご自身のAIサービスAPIキーを使って解説を生成する仕組みです。
+          </p>
           <p className="settings-byok-note">
             キーは端末内に平文保存され、端末外には送信されません。
           </p>

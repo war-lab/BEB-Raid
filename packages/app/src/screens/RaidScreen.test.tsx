@@ -774,6 +774,40 @@ describe('RaidScreen: 登録フォームの入力チェック・エラー出し�
       ),
     ).toBeTruthy()
   })
+
+  it('登録フォーム冒頭に機能説明が表示される（T-116(9)）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-register-form')
+
+    expect(
+      screen.getByText(
+        'チームで週次ボスのHPを削る協力イベントです。招待コードは主催者から受け取ってください。',
+      ),
+    ).toBeTruthy()
+  })
+})
+
+describe('RaidScreen: 貢献者ラベル（T-116(9)）', () => {
+  it('「参加者 N人」ではなく「貢献者 N人」と表示される', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    const boss = await screen.findByTestId('raid-boss')
+
+    expect(boss.textContent).toContain(`貢献者 ${ACTIVE_BOSS.participantCount}人`)
+    expect(screen.queryByText(`参加者 ${ACTIVE_BOSS.participantCount}人`)).toBeNull()
+  })
 })
 
 describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）', () => {

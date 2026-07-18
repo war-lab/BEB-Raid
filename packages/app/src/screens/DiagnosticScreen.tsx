@@ -189,11 +189,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
               <PrimaryButton onClick={handleResumeProgress}>
                 続きから再開（{savedProgress.turn + 1}問目から）
               </PrimaryButton>
-              <button
-                type="button"
-                className="secondary-action"
-                onClick={handleRestartProgress}
-              >
+              <button type="button" className="secondary-action" onClick={handleRestartProgress}>
                 最初からやり直す
               </button>
             </>
@@ -233,23 +229,27 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
         <h1 style={{ fontSize: 'var(--fs-heading)' }}>ようこそ</h1>
         <p>30問（リスニング15問・リーディング15問）に答えると、あなたの今のレートを推定します。</p>
         <p>自己申告TOEICスコアを入力すると、診断をスキップしてすぐ始めることもできます。</p>
-        <label>
-          表示名
-          <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="表示名"
-          />
-        </label>
-        <label>
-          自己申告TOEICスコア（任意）
-          <input
-            value={toeicInput}
-            onChange={(e) => setToeicInput(e.target.value)}
-            inputMode="numeric"
-            placeholder="例: 650"
-          />
-        </label>
+        {/* T-116(1): 375px幅でラベルと入力欄が同一行に詰まり折返しが乱れる問題への対処。
+            settings-listの既存スタイル（label display:block）をブロック配置に流用する */}
+        <div className="settings-list">
+          <label>
+            表示名
+            <input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="表示名"
+            />
+          </label>
+          <label>
+            自己申告TOEICスコア（任意）
+            <input
+              value={toeicInput}
+              onChange={(e) => setToeicInput(e.target.value)}
+              inputMode="numeric"
+              placeholder="例: 650"
+            />
+          </label>
+        </div>
       </ScreenLayout>
     )
   }

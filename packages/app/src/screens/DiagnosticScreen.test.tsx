@@ -160,6 +160,22 @@ describe('DiagnosticScreen: 自己申告あり', () => {
   }, 20000)
 })
 
+describe('DiagnosticScreen: オンボーディングのラベルレイアウト（T-116(1)）', () => {
+  it('「表示名」ラベルがブロック配置のコンテナ（settings-list）内にあり、入力欄と同一行に詰まらない', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    const nameInput = await screen.findByPlaceholderText('表示名')
+
+    // settings-list（label { display: block }）に入っていることを構造面で確認する
+    // （jsdomは実レイアウトを計算しないため、崩れの直接検証の代わりにブロック配置を
+    // 保証するコンテナへの所属を見る）
+    const label = nameInput.closest('label')
+    expect(label?.closest('.settings-list')).toBeTruthy()
+  })
+})
+
 describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機能追加）', () => {
   it('自己申告スコア未入力ではスキップボタンが出ない', async () => {
     const db = newDb()

@@ -349,6 +349,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
         }
       >
         <div className="settings-list" data-testid="raid-register-form">
+          {/* T-116(9): レイドが何をする機能か分からないという指摘への対処 */}
+          <p className="settings-note">
+            チームで週次ボスのHPを削る協力イベントです。招待コードは主催者から受け取ってください。
+          </p>
           <section>
             <label>
               招待コード
@@ -510,7 +514,9 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
             HP残り <span className="display-num">{hpPercent}</span>%
           </p>
           {!raidEnded && <p data-testid="raid-remaining-days">残り{remainingDays}日</p>}
-          <p>参加者 {currentBoss.participantCount}人</p>
+          {/* T-116(9): 参加ボタンを押しただけではカウントされない実態（貢献ダメージの
+              送信者数）に合わせたラベルへ変更 */}
+          <p>貢献者 {currentBoss.participantCount}人</p>
           {joined && (
             <p>
               自分の貢献ダメージ: <span className="display-num">{currentBoss.myDamage}</span>

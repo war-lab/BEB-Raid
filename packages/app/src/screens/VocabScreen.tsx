@@ -284,6 +284,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 <button
                   type="button"
                   className="vocab-grade-button"
+                  title="間隔を短くしてすぐに復習します"
                   onClick={() => void handleGrade('again')}
                 >
                   もう一回
@@ -291,6 +292,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 <button
                   type="button"
                   className="vocab-grade-button"
+                  title="通常の間隔で復習します"
                   onClick={() => void handleGrade('good')}
                 >
                   OK
@@ -298,6 +300,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 <button
                   type="button"
                   className="vocab-grade-button"
+                  title="間隔を大きく広げて復習します"
                   onClick={() => void handleGrade('easy')}
                 >
                   余裕

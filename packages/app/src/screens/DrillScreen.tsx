@@ -743,9 +743,17 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               表示できない問題を1件スキップしました
             </p>
           )}
-          {item.reason && <p className="drill-reason">{formatQuickPackReason(item.reason)}</p>}
+          {/* T-116(10): レイド挑戦セッション中もヘッダが「今日のドリル」のままでレイド感が
+              無い問題への対処。item.mode='raid'なら出題理由の代わりに「レイド」を出す */}
+          {item.mode === 'raid' ? (
+            <p className="drill-reason" data-testid="drill-raid-header">
+              レイド
+            </p>
+          ) : (
+            item.reason && <p className="drill-reason">{formatQuickPackReason(item.reason)}</p>
+          )}
           {streak > 0 && (
-            <p key={streak} className="session-streak display-num">
+            <p key={streak} className="session-streak display-num" title="セッション内の連続正解数">
               🔥{streak}
             </p>
           )}
@@ -796,6 +804,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                title="間隔を短くしてすぐに復習します"
                 onClick={() => void handleVocabGrade('again')}
               >
                 もう一回
@@ -803,6 +812,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                title="通常の間隔で復習します"
                 onClick={() => void handleVocabGrade('good')}
               >
                 OK
@@ -810,6 +820,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                title="間隔を大きく広げて復習します"
                 onClick={() => void handleVocabGrade('easy')}
               >
                 余裕
@@ -840,11 +851,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 onClick={() => void handlePlayStart()}
                 disabled={playState === 'playing'}
               >
-                {playState === 'playing'
-                  ? '再生中…'
-                  : audioError
-                    ? 'もう一度試す'
-                    : '音声を再生'}
+                {playState === 'playing' ? '再生中…' : audioError ? 'もう一度試す' : '音声を再生'}
               </PrimaryButton>
               {audioError && isAudioQa && (
                 <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
@@ -910,7 +917,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={handleDictationReset}>
+              <button type="button" className="dictation-reset" onClick={handleDictationReset}>
                 やり直す
               </button>
               {allBlanksFilled && (
