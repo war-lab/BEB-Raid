@@ -20,7 +20,7 @@ import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
-import { CONFIRM_DISCARD_MESSAGE, toSessionItems } from './HomeScreen'
+import { confirmDiscardMessage, toSessionItems } from './HomeScreen'
 
 interface Props {
   db: BebRaidDatabase
@@ -257,7 +257,13 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   }
 
   async function handleChallenge() {
-    if (resumeSnapshot && !window.confirm(CONFIRM_DISCARD_MESSAGE)) return
+    if (
+      resumeSnapshot &&
+      !window.confirm(
+        confirmDiscardMessage(resumeSnapshot.items.length - resumeSnapshot.answeredCount),
+      )
+    )
+      return
     setEmptyPackMessage(null)
     const phase = await getOrInitPhaseState(db)
     const pack = await generateQuickPack(db, {

@@ -45,8 +45,13 @@ interface Props {
   raidApi: RaidApi
 }
 
-/** 進行中セッションを破棄して新規開始してよいかの確認（J-34） */
-export const CONFIRM_DISCARD_MESSAGE = '進行中のセッションを破棄して新しく始めますか？'
+/**
+ * 進行中セッションを破棄して新規開始してよいかの確認（J-34）。
+ * T-122(J-61): 何を破棄するのか分からない不安を減らすため、残り問数を含める
+ */
+export function confirmDiscardMessage(remaining: number): string {
+  return `進行中のセッション（残り${remaining}問）を破棄して新しく始めますか？`
+}
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
 const DEFAULT_DURATION: QuickPackDuration = 7
@@ -294,7 +299,13 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     options?: { partialAudioMode?: boolean },
   ) {
     if (items.length === 0) return
-    if (resumeSnapshot && !window.confirm(CONFIRM_DISCARD_MESSAGE)) return
+    if (
+      resumeSnapshot &&
+      !window.confirm(
+        confirmDiscardMessage(resumeSnapshot.items.length - resumeSnapshot.answeredCount),
+      )
+    )
+      return
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
     beginSession(

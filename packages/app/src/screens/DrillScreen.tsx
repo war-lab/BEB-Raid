@@ -1005,6 +1005,19 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 db={db}
               />
               <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
+              {/* T-122(J-61): 途中で電車を降りるとき等、全問完走以外でリザルトへ到達する手段が
+                  無かったための副次導線。確認なしで遷移する（ResultScreenはT-109でattemptIds基準の
+                  全体集計のため解答済み分がそのまま正しく表示される）。最終問では「次へ」自体が
+                  リザルトへ進むため出さない */}
+              {current < total && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => navigate('result')}
+                >
+                  ここで終了して結果を見る
+                </button>
+              )}
             </>
           )}
         </>

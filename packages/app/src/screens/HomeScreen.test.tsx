@@ -715,6 +715,8 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
 
     fireEvent.click(screen.getByText('今日のクエスト'))
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
+    // T-122(J-61): 何を破棄するのか分かるよう、確認メッセージに残り問数を含める
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('残り1問'))
 
     expect(useAppStore.getState().screen).toBe('home')
     confirmSpy.mockRestore()
