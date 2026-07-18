@@ -251,6 +251,14 @@ function resolveM2Category(
   weakTags: ReadonlySet<string>,
   template: CurriculumTemplate,
 ): string | null {
+  // shadowing はドリルセッションの割当対象から除外する（実機再現バグ対応）。
+  // シャドーイングは「再生して口頭で復唱する」専用画面（ShadowingScreen）で扱う機能であり、
+  // DrillScreen の解答フロー（選択肢・穴埋め）に合わない＝混入すると解答手段の無い item に
+  // なり進行不能になるため。13の3.2節のL1内訳（shadowing 30%）の枠は、既存の在庫不足補填
+  // （buildPhaseDrivenDrillItems の subShortage 再配分）によりリスニング枠内の他形式へ流れる
+  // （配分は目標値であり在庫が優先、というM1からの方針どおり）。
+  // weakness 判定より先に除外する（P3で弱点タグ付きshadowingがweaknessバケットに入るのも同罪のため）
+  if (question.format === 'shadowing') return null
   if (question.format === 'vocab_card') {
     return 'vocab' in template.allocation ? 'vocab' : null
   }
@@ -327,9 +335,10 @@ async function buildPhaseDrivenDrillItems(
  * SRSカードが今回の出題候補プールで実際に出題可能か（対応するQuestionが実在するか）。
  * 語彙カードも question と同様に実在確認する（発見バグ: 以前は refType==='vocab' を
  * 無条件でservable扱いしており、対応する vocab_card が未読込パックにある場合に
- * questionId:null の出題item が生成されDrillScreenが復帰不能になっていた）
+ * questionId:null の出題item が生成されDrillScreenが復帰不能になっていた）。
+ * VocabScreen の復習キュー構築も同じ理由（語が引けないカードで詰む）でこれを使うため export する
  */
-function isServable(card: SrsCardRecord, questions: readonly Question[]): boolean {
+export function isServable(card: SrsCardRecord, questions: readonly Question[]): boolean {
   if (card.refType === 'vocab') {
     return questions.some((q) => q.format === 'vocab_card' && q.front === card.refId)
   }

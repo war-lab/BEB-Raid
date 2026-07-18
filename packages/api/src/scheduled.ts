@@ -24,7 +24,9 @@ function estimatedDailyDamage(member: MemberRecord): number {
 export async function generateWeeklyBoss(env: Env, now: number): Promise<void> {
   const current = isoWeekInfo(now)
   const bossId = bossIdFor(current)
-  const startAt = now
+  // startAtはcron発火時刻ではなくISO週の開始時刻とする。発火が遅延・再実行された場合でも
+  // 「月曜0:00 UTC〜発火時刻」のansweredAtを持つattemptが期間外として無言で捨てられないようにする
+  const startAt = current.weekStartAt
   const endAt = weekEndAt(current.weekStartAt)
 
   const previous = previousWeekInfo(current)
@@ -40,6 +42,11 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<void> {
     if (!raw) continue
     const deviceToken = key.name.slice(MEMBER_KEY_PREFIX.length)
     const member = JSON.parse(raw) as MemberRecord
+    // 前週実績もEMAも無いメンバー（登録直後で一度も週を跨いでいない）はemaを書き込まない。
+    // ここで0を確定させると、以後estimatedDailyDamage()のdailyGoalフォールバック（J-48の
+    // 「emaが無ければ申告問題数から換算」）に二度と入らなくなるため、undefinedのまま温存する
+    const hasPreviousRecord = deviceToken in previousDamageByToken
+    if (!hasPreviousRecord && member.emaDailyDamage === undefined) continue
     const previousDamage = previousDamageByToken[deviceToken] ?? 0
     const previousDaily = previousDamage / RAID_DAYS
     const updatedEma =
@@ -71,4 +78,7 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<void> {
     startAt,
     endAt,
   })
+
+  // 週1回しか走らないジョブのため、成功時も生成結果を必ずログに残す（失敗時の切り分け材料）
+  console.log(`週次ボス生成完了: bossId=${bossId} maxHp=${maxHp} members=${memberKeys.keys.length}`)
 }

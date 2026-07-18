@@ -42,6 +42,13 @@ export class WebAudioPlayer implements AudioPlayer {
   private stopped = false
   /** 再生中の startSequence を stop() から即時解決するためのハンドル */
   private pendingResolve: (() => void) | null = null
+  /**
+   * startSequence の呼び出し世代。バッファ/Blob 読込 await 中に次の startSequence が
+   * 始まると、stopped=false のリセットにより両方が再生をスケジュールして二重再生になり、
+   * さらに pendingResolve の上書きで片方の Promise が永遠に未解決になる（呼び出し側が
+   * 「再生中…」のまま固まる）。await 復帰時に世代が古ければ何もせず正常終了させる
+   */
+  private playGeneration = 0
 
   constructor(
     private readonly packCache: PackCache,
@@ -54,7 +61,10 @@ export class WebAudioPlayer implements AudioPlayer {
     if (!this.ctx) {
       this.ctx = this.createContext()
     }
-    if (this.ctx.state === 'suspended') {
+    // iOS では通話・Siri 等の割り込みで非標準の 'interrupted' 状態になることがあるため、
+    // 'suspended' 限定ではなく「running 以外」なら resume を試みる（効果は環境依存。
+    // resume で復帰できない環境では従来どおり startSequence 側の running ガードで検出される）
+    if (this.ctx.state !== 'running') {
       await this.ctx.resume()
     }
     // 無音バッファを1発再生し、iOS Safari の自動再生制限を解除する
@@ -93,6 +103,7 @@ export class WebAudioPlayer implements AudioPlayer {
       audio.onended = null
       audio.ontimeupdate = null
       audio.onloadedmetadata = null
+      audio.onerror = null
       try {
         audio.pause()
       } catch {
@@ -138,15 +149,18 @@ export class WebAudioPlayer implements AudioPlayer {
       this.lastOptions = options
     }
     this.stopped = false
+    // 呼び出しごとに世代を進める（並行 startSequence 競合対策。playGeneration のコメント参照）
+    const generation = ++this.playGeneration
 
     // rate!==1.0 指定時のみ HTMLAudioElement 経路（J-27: playbackRate + preservesPitch）
     if (options?.rate !== undefined && options.rate !== 1) {
-      return this.startRateSequence(srcs, options)
+      return this.startRateSequence(srcs, options, generation)
     }
 
     const buffers = await Promise.all(srcs.map((src) => this.loadBuffer(src)))
-    // 読み込み待ちの間に stop() された場合、残りは再生しない
-    if (this.stopped) return
+    // 読み込み待ちの間に stop() された場合、または後続の startSequence に追い越された場合は
+    // 再生しない（後続呼び出しが再生を引き継いでいるため、ここは正常終了でよい）
+    if (this.stopped || generation !== this.playGeneration) return
 
     return new Promise((resolve) => {
       this.pendingResolve = resolve
@@ -195,13 +209,18 @@ export class WebAudioPlayer implements AudioPlayer {
    * ピッチが変わるため使わず（J-27）、PackCache の Blob を ObjectURL 化して再生する。
    * 複数srcは前の要素の再生完了（onended）を待って順に再生する。
    */
-  private async startRateSequence(srcs: string[], options: PlayOptions): Promise<void> {
+  private async startRateSequence(
+    srcs: string[],
+    options: PlayOptions,
+    generation: number,
+  ): Promise<void> {
     const rate = options.rate!
     const blobs = await Promise.all(srcs.map((src) => this.loadBlob(src)))
-    // 読み込み待ちの間に stop() された場合、残りは再生しない
-    if (this.stopped) return
+    // 読み込み待ちの間に stop() された場合、または後続の startSequence に追い越された場合は
+    // 再生しない（AudioBuffer経路と同じ世代チェック）
+    if (this.stopped || generation !== this.playGeneration) return
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.pendingResolve = resolve
       let remaining = blobs.length
       let index = 0
@@ -225,6 +244,7 @@ export class WebAudioPlayer implements AudioPlayer {
         const cleanupAndAdvance = () => {
           audio.onended = null
           audio.ontimeupdate = null
+          audio.onerror = null
           URL.revokeObjectURL(url)
           this.clearPositionTimer()
           remaining -= 1
@@ -235,6 +255,21 @@ export class WebAudioPlayer implements AudioPlayer {
             playNext()
           }
         }
+
+        // play() の拒否（iOS Safariの自動再生制限等）・メディアエラーを握りつぶすと
+        // Promise が永遠に未解決になり、呼び出し側が「再生中…」のまま固まる。
+        // reject して呼び出し側の既存 audioError 表示（リトライ導線）に乗せる
+        const fail = (err: unknown) => {
+          audio.onended = null
+          audio.ontimeupdate = null
+          audio.onloadedmetadata = null
+          audio.onerror = null
+          this.revokeObjectUrls()
+          this.clearPositionTimer()
+          this.pendingResolve = null
+          reject(err instanceof Error ? err : new Error(`音声の再生に失敗: ${audio.src}`))
+        }
+        audio.onerror = () => fail(new Error(`音声の再生に失敗: ${audio.src}`))
 
         if (options.onPosition) {
           const onPosition = options.onPosition
@@ -255,7 +290,7 @@ export class WebAudioPlayer implements AudioPlayer {
 
         const start = () => {
           audio.currentTime = startSec
-          void audio.play()
+          void audio.play().catch(fail)
         }
         if (audio.readyState >= 1) {
           start()

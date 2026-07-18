@@ -206,9 +206,19 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     navigate('drill')
   }
 
-  // M3・T-97: raidApi.isConfigured() && raidState.joined のときのみHPバーを表示する（縮退設計）
-  const showRaidHp = raidApi.isConfigured() && raidState?.joined === true
-  const bossName = raidState ? (JSON.parse(raidState.profileJson) as { name: string }).name : ''
+  // M3・T-97: raidApi.isConfigured() && raidState.joined のときのみHPバーを表示する（縮退設計）。
+  // レビューF2(a): profileJsonが破損しているとJSON.parseの例外でホーム全体が白画面になるため、
+  // 表示するときだけtry/catch付きでparseし、失敗時はHPバー自体を出さない（学習動線は無傷）
+  let bossName: string | null = null
+  if (raidApi.isConfigured() && raidState?.joined === true) {
+    try {
+      bossName = (JSON.parse(raidState.profileJson) as { name: string }).name
+    } catch {
+      // 破損キャッシュはraidSync成功時に上書きされるため、ここでは黙って非表示にするだけでよい
+      bossName = null
+    }
+  }
+  const showRaidHp = bossName !== null
   const hpPercent =
     raidState && raidState.maxHp > 0 ? Math.round((raidState.hp / raidState.maxHp) * 100) : 0
   const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - now()) / DAY_MS)) : 0
@@ -341,30 +351,33 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         </div>
       )}
       {showRaidHp && (
+        /* レビューF2(b): button内の<p>は内容モデル違反でSRに正しく伝わらないためspan化し、
+           全体の意味はaria-labelで伝える（バー本体は装飾としてaria-hidden） */
         <button
           type="button"
           className="home-raid-hp"
           data-testid="home-raid-hp"
+          aria-label={`ボスHP ${hpPercent}%、残り${remainingDays}日。タップでレイド画面へ`}
           onClick={() => navigate('raid')}
         >
-          <p>{bossName}</p>
-          <div
-            className="home-raid-hp-bar"
-            role="progressbar"
-            aria-valuenow={hpPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
-          </div>
-          <p>残り{remainingDays}日</p>
-          <p
-            className={syncFailed ? 'home-raid-hp-sync is-stale' : 'home-raid-hp-sync'}
+          <span className="home-raid-hp-line">{bossName}</span>
+          <span className="home-raid-hp-bar" aria-hidden="true">
+            <span className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
+          </span>
+          <span className="home-raid-hp-line">残り{remainingDays}日</span>
+          <span
+            className={
+              syncFailed
+                ? 'home-raid-hp-line home-raid-hp-sync is-stale'
+                : 'home-raid-hp-line home-raid-hp-sync'
+            }
             data-testid="home-raid-last-synced"
           >
             最終同期: {lastSyncedLabel}
-          </p>
-          <p className="home-raid-hp-note">討伐の確定はサーバー側の判定が正です</p>
+          </span>
+          <span className="home-raid-hp-line home-raid-hp-note">
+            討伐の成立は同期時にサーバーで確定します
+          </span>
         </button>
       )}
       {miniHeatmapCells && (

@@ -45,6 +45,9 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   const [positionMs, setPositionMs] = useState(0)
   const [laps, setLaps] = useState(0)
   const [completed, setCompleted] = useState(false)
+  // 音声再生（メインの「再生」ボタン）失敗フラグ。音声404等ではlapsが増えず素材完了に
+  // 到達できないため、trueならスキップ導線を出す（この画面から出られなくなるのを防ぐ）
+  const [audioError, setAudioError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -87,13 +90,16 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
 
   async function handlePlay() {
     if (!question?.audio) return
+    setAudioError(false)
     try {
       await audioPlayer.unlock()
       setPositionMs(0)
       await audioPlayer.play(question.audio, playOptions())
     } catch (err) {
-      // 失敗しても再生ボタンはそのまま残るため、タップし直せば再試行できる
+      // 失敗しても再生ボタンはそのまま残るため、タップし直せば再試行できる。
+      // あわせてエラー表示＋スキップ導線を出す（恒久404等でこの画面に閉じ込められるのを防ぐ）
       console.warn('[ShadowingScreen] 音声再生に失敗', err)
+      setAudioError(true)
       return
     }
     await handlePlaybackEnded()
@@ -140,6 +146,7 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     setLaps(0)
     setCompleted(false)
     setPositionMs(0)
+    setAudioError(false)
   }
 
   if (!question) {
@@ -178,6 +185,18 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
       }
       action={
         <>
+          {audioError && (
+            <>
+              <p className="drill-error" role="alert">
+                音声を再生できませんでした
+              </p>
+              {/* 音声が恒久的に取得できない素材はlapsが増えず完了に到達しないため、
+                  実施ログを記録せずに次の素材へ進める脱出導線を出す */}
+              <button type="button" className="secondary-action" onClick={handleNext}>
+                この素材をスキップ
+              </button>
+            </>
+          )}
           {completed ? (
             <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
           ) : (
@@ -185,6 +204,10 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
           )}
           <button type="button" className="secondary-action" onClick={handleRewind}>
             3秒戻し
+          </button>
+          {/* 進行中の脱出導線（DrillScreenの中断と同じ思想。従来は素材完了までこの画面から出られなかった） */}
+          <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+            中断してホームへ
           </button>
           <div className="shadowing-speed-chips">
             {availableSpeeds.map((s) => (

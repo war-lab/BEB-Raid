@@ -65,6 +65,35 @@ describe('App（起動チェック失敗時のエラー表示。T-68）', () => 
 
     expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
   })
+
+  it('エラー画面から直接エクスポートでき、DBが開けない間はエラーメッセージを出す（レビューF6(b)）', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    getDb().close()
+
+    const createObjectURL = vi.fn((blob: Blob) => `blob:mock:${blob.size}`)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    render(<App />)
+    await screen.findByText('データの読み込みに失敗しました')
+
+    // DBが開けない間は縮退（エラーメッセージ表示）
+    fireEvent.click(screen.getByText('学習データをエクスポート'))
+    expect(
+      await screen.findByText('エクスポートに失敗しました（データベースを開けません）'),
+    ).toBeTruthy()
+    expect(createObjectURL).not.toHaveBeenCalled()
+
+    // DBが開ければエラー画面のままでもダウンロードが動く
+    await getDb().open()
+    fireEvent.click(screen.getByText('学習データをエクスポート'))
+    await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalled())
+    expect(clickSpy).toHaveBeenCalled()
+
+    errorSpy.mockRestore()
+  })
 })
 
 describe('App（テーマ・文字サイズの起動時適用。T-69）', () => {

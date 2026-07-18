@@ -380,4 +380,82 @@ describe('SettingsScreen: レイドダメージ送信トグル（T-96）', () =>
       expect((await db.settings.get('raidSyncEnabled'))?.value).toBe(true)
     })
   })
+
+  it('プライバシー境界を説明する文言が表示される（レビューF3(a)）', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    expect(
+      screen.getByText(
+        'レイド参加中、ダメージ換算値と表示名のみをサーバーへ送信します（解答内容や正誤は送信されません）',
+      ),
+    ).toBeTruthy()
+    // joinedゲートで未参加時は送信されないため、旧文言の注意は不要
+    expect(screen.queryByText('レイド参加中のみ有効にしてください')).toBeNull()
+  })
+})
+
+describe('SettingsScreen: 問題別正誤統計トグル（レビューF3(b)）', () => {
+  it('レイド未登録の間はトグルがdisabledで、登録条件の説明が出る', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    const toggle = screen.getByLabelText(/問題別の正誤統計を送信する/) as HTMLInputElement
+    expect(toggle.disabled).toBe(true)
+    expect(
+      screen.getByText(
+        '問題の難易度調整のための匿名統計です（レイド登録済みの場合のみ送信されます）',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('レイド登録済み（raidRegisteredAtあり）ならトグルが有効で永続化できる', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'raidRegisteredAt', value: 1000 })
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    const toggle = screen.getByLabelText(/問題別の正誤統計を送信する/) as HTMLInputElement
+    expect(toggle.disabled).toBe(false)
+    fireEvent.click(toggle)
+
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('questionStatsEnabled'))?.value).toBe(true)
+    })
+  })
+})
+
+describe('SettingsScreen: 表示名とレイド表示名の関係の注記（レビューF3(c)）', () => {
+  it('レイド登録済みなら「レイドの表示名には反映されません」の注記が出る', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'raidRegisteredAt', value: 1000 })
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    expect(
+      screen.getByText(
+        'レイドの表示名には反映されません（レイド画面から再登録すると反映されます）',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('レイド未登録なら注記は出ない', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/レイドの表示名には反映されません/)).toBeNull()
+  })
 })

@@ -61,6 +61,21 @@ const PARTIAL_AUDIO_DURATION_MS = 2500
  */
 const PRE_READING_SECONDS: Record<PhaseSeason, number> = { P1: 15, P2: 15, P3: 10 }
 
+/**
+ * DrillScreen が描画分岐を持つ format の一覧（進行不能防止の防御）。
+ * ここに無い format（shadowing 等。専用画面の担当）の item が混入すると
+ * 問題文もボタンも描画されず画面が空白のまま固まるため、questionId 未解決と
+ * 同じ経路でスキップする（将来パックに未知 format が入っても詰まらないための防御）
+ */
+const RENDERABLE_FORMATS = new Set<string>([
+  'text_blank',
+  'text_passage',
+  'audio_qa',
+  'vocab_card',
+  'dictation',
+  'audio_set',
+])
+
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 // （イベントハンドラ内の呼び出しも静的解析では判別されない）、別関数越しに呼ぶ
 function now(): number {
@@ -140,6 +155,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [audioError, setAudioError] = useState<string | null>(null)
   // T-71/T-76: 解答保存（recordAnswerPipeline）失敗時のリカバリ用エラーメッセージ（J-35）
   const [saveError, setSaveError] = useState<string | null>(null)
+  // セッション進行（advanceSessionによるスキップ）失敗時のエラー。null以外なら
+  // 通常描画をやめてエラー画面＋ホーム導線を出す（永久 return null による白画面を防ぐ）
+  const [sessionError, setSessionError] = useState<string | null>(null)
   // T-78: ハプティクス設定（既定ON）。正解確定時のnavigator.vibrateに使う
   const [hapticsEnabled, setHapticsEnabled] = useState(true)
 
@@ -287,11 +305,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
   // item はあるが questionId が解決できない場合（未読込パック・データ不整合等で
   // 発生しうる。発見バグ: 以前はここで navigate('result') も advanceToNext も
-  // 呼ばれず永久に null を返し続け、画面が固まっていた）は記録せずスキップして次へ進める
+  // 呼ばれず永久に null を返し続け、画面が固まっていた）と、描画分岐が存在しない
+  // format の場合（shadowing 混入等。同様に空白で固まる）は、記録せずスキップして次へ進める
   useEffect(() => {
-    if (!snapshot || !item || question) return
+    if (!snapshot || !item || (question && RENDERABLE_FORMATS.has(question.format))) return
     let cancelled = false
-    console.warn(`[DrillScreen] questionIdが解決できないためスキップ: ${item.questionId}`)
+    console.warn(
+      question
+        ? `[DrillScreen] 描画分岐の無いformatのためスキップ: ${item.questionId} (${question.format})`
+        : `[DrillScreen] questionIdが解決できないためスキップ: ${item.questionId}`,
+    )
     void advanceSession(db, snapshot)
       .then((nextSnapshot) => {
         if (cancelled) return
@@ -302,13 +325,32 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           setDisplayIndex((i) => i + 1)
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        if (cancelled) return
+        // スキップ失敗を握りつぶすと「中断ボタンすら無い白画面」で固まる
+        // （effect依存が変わらず再試行もされない）ため、エラー画面へ切り替える
+        console.warn('[DrillScreen] セッションを進められませんでした', err)
+        setSessionError('セッションを進められませんでした')
+      })
     return () => {
       cancelled = true
     }
   }, [item, question, snapshot, displayIndex, db, navigate])
 
-  if (!snapshot || !item || !question) {
+  // セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を必ず出す
+  if (sessionError) {
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+      >
+        <p className="drill-error" role="alert">
+          {sessionError}
+        </p>
+      </ScreenLayout>
+    )
+  }
+
+  if (!snapshot || !item || !question || !RENDERABLE_FORMATS.has(question.format)) {
     if (snapshot && !item) navigate('result')
     return null
   }
@@ -508,6 +550,25 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   function handlePlayWithoutAudio() {
     setAudioError(null)
     setPlayState('played')
+  }
+
+  /**
+   * dictation/audio_set: 音声が再生できない問題を解答なしでスキップする。
+   * これらのformatは音声なしでは解答が成立しない（audio_qaの「音声なしで解答する」に相当する
+   * 手段が無い）ため、音声404等が続くとセッション完了不能になる。attemptは記録せず
+   * （スキップであり正誤が存在しないため）、questionId未解決スキップと同じ
+   * advanceSession経路で次のitemへ進める
+   */
+  async function handleSkipUnplayable() {
+    if (!snapshot) return
+    try {
+      const nextSnapshot = await advanceSession(db, snapshot)
+      useSessionStore.setState({ snapshot: nextSnapshot })
+      advanceToNext()
+    } catch (err) {
+      console.warn('[DrillScreen] セッションを進められませんでした', err)
+      setSessionError('セッションを進められませんでした')
+    }
   }
 
   async function handleReplay() {
@@ -758,12 +819,32 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   音声なしで解答する
                 </button>
               )}
+              {audioError && isDictation && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => void handleSkipUnplayable()}
+                >
+                  この問題をスキップ
+                </button>
+              )}
             </>
           )}
           {isAudioSet && playState === 'idle' && (
-            <PrimaryButton onClick={() => void handlePlayStart()}>
-              {audioError ? 'もう一度試す' : 'タップして開始'}
-            </PrimaryButton>
+            <>
+              <PrimaryButton onClick={() => void handlePlayStart()}>
+                {audioError ? 'もう一度試す' : 'タップして開始'}
+              </PrimaryButton>
+              {audioError && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => void handleSkipUnplayable()}
+                >
+                  この問題をスキップ
+                </button>
+              )}
+            </>
           )}
           {isAudioSet && playState === 'prereading' && (
             <>

@@ -119,6 +119,24 @@ describe('getOrInitPhaseState: 初期割当（J-18）', () => {
     expect(state.season).toBe('P3')
   })
 
+  it('criteriaJsonが破損したレコードはthrowせず、初期割当パスで作り直す（フェーズ機能の無反応化を防ぐ）', async () => {
+    // 不正なバックアップのインポート等でcriteriaJsonが壊れた状況を模擬
+    const db = newDb()
+    await db.phase.put({ season: 'P2', criteriaJson: '{broken json', achievedAt: 123 })
+
+    const state = await getOrInitPhaseState(db)
+    // ratings不在なので初期割当はP1（破損したP2レコードを引きずらない）
+    expect(state.season).toBe('P1')
+    expect(state.listeningStage).toBe(1)
+
+    // レコードは正常な形で作り直され、次回以降は通常経路で読める
+    const records = await db.phase.toArray()
+    expect(records).toHaveLength(1)
+    expect(() => JSON.parse(records[0]!.criteriaJson)).not.toThrow()
+    const reloaded = await getOrInitPhaseState(db)
+    expect(reloaded.season).toBe('P1')
+  })
+
   it('既存のphaseレコードがあればそれを返す（再割当しない）', async () => {
     const db = newDb()
     await db.ratings.bulkPut([

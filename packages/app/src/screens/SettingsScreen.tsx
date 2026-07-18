@@ -17,6 +17,7 @@ import {
   HAPTICS_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
   QUESTION_STATS_ENABLED_KEY,
+  RAID_REGISTERED_AT_KEY,
   RAID_SYNC_ENABLED_KEY,
   THEME_PREFERENCE_KEY,
 } from '../services/settingsKeys'
@@ -54,6 +55,9 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
   const [raidSyncEnabled, setRaidSyncEnabledState] = useState(false)
   // T-100: questionStats（匿名問題別正誤集計）送信の有効/無効。既定OFF
   const [questionStatsEnabled, setQuestionStatsEnabledState] = useState(false)
+  // レビューF3: レイド登録済みか（questionStatsはBearer必須のため未登録だと送信されない。
+  // ExplanationCard/T-101と同じくraidRegisteredAtの有無で判定する）
+  const [raidRegistered, setRaidRegistered] = useState(false)
   const [themePref, setThemePrefState] = useState<ThemePreference>('system')
   const [fontSize, setFontSizeState] = useState<FontSizeScale>(getFontSizeScale())
   const [cacheUsage, setCacheUsage] = useState<CacheUsage | null>(null)
@@ -84,6 +88,7 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
         hapticsSetting,
         raidSyncSetting,
         questionStatsSetting,
+        raidRegisteredSetting,
       ] = await Promise.all([
         db.profile.get(PROFILE_ID),
         db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -97,6 +102,7 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
         db.settings.get(HAPTICS_ENABLED_KEY),
         db.settings.get(RAID_SYNC_ENABLED_KEY),
         db.settings.get(QUESTION_STATS_ENABLED_KEY),
+        db.settings.get(RAID_REGISTERED_AT_KEY),
       ])
       if (cancelled) return
       if (profile) setDisplayName(profile.displayName)
@@ -104,6 +110,7 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
       setHapticsEnabledState(hapticsSetting?.value !== false)
       setRaidSyncEnabledState(raidSyncSetting?.value === true)
       setQuestionStatsEnabledState(questionStatsSetting?.value === true)
+      setRaidRegistered(raidRegisteredSetting?.value != null)
       const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
       setThemePrefState(pref)
       setTheme(resolveTheme(pref))
@@ -234,6 +241,11 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
               onBlur={() => void handleDisplayNameBlur()}
             />
           </label>
+          {raidRegistered && (
+            <p className="settings-note">
+              レイドの表示名には反映されません（レイド画面から再登録すると反映されます）
+            </p>
+          )}
         </section>
 
         <section>
@@ -268,21 +280,27 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
               />
               レイドダメージを送信する
             </label>
-            <p>レイド参加中のみ有効にしてください</p>
+            <p className="settings-note">
+              レイド参加中、ダメージ換算値と表示名のみをサーバーへ送信します（解答内容や正誤は送信されません）
+            </p>
           </section>
         )}
 
         {raidApi.isConfigured() && (
           <section>
             <label>
+              {/* 未登録だとBearer必須のAPIに送信できないため、トグル自体を無効化する（レビューF3(b)） */}
               <input
                 type="checkbox"
                 checked={questionStatsEnabled}
+                disabled={!raidRegistered}
                 onChange={() => void handleToggleQuestionStats()}
               />
               問題別の正誤統計を送信する
             </label>
-            <p>問題の難易度調整のための匿名統計です</p>
+            <p className="settings-note">
+              問題の難易度調整のための匿名統計です（レイド登録済みの場合のみ送信されます）
+            </p>
           </section>
         )}
 

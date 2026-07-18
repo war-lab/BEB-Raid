@@ -24,9 +24,13 @@ async function registerDevice(displayName = '太郎'): Promise<string> {
   return deviceToken
 }
 
-async function initCurrentBoss(maxHp: number) {
+// endAtは既定でISO週の実スケジュール（金曜終了）を使うため、テストを土日に実行すると
+// 「今週のボス」が既にclosedになる。statusを検証するテストはendAtOverrideで期限を
+// 未来に置き、実行曜日に依存しない期待値にすること
+async function initCurrentBoss(maxHp: number, endAtOverride?: number) {
   const current = isoWeekInfo(Date.now())
   const bossId = bossIdFor(current)
+  const endAt = endAtOverride ?? weekEndAt(current.weekStartAt)
   const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
   await runInDurableObject(stub, (instance: RaidBossDO) => {
     instance.init({
@@ -34,10 +38,10 @@ async function initCurrentBoss(maxHp: number) {
       profile: bossProfileForWeek(current.isoWeek),
       maxHp,
       startAt: current.weekStartAt,
-      endAt: weekEndAt(current.weekStartAt),
+      endAt,
     })
   })
-  return { bossId, startAt: current.weekStartAt, endAt: weekEndAt(current.weekStartAt) }
+  return { bossId, startAt: current.weekStartAt, endAt }
 }
 
 function syncRequest(deviceToken: string, payloads: unknown[]): Request {
@@ -74,7 +78,7 @@ describe('GET /raid/current', () => {
 
   it('ボス生成済みなら現在の状態を返す', async () => {
     const deviceToken = await registerDevice()
-    await initCurrentBoss(5000)
+    await initCurrentBoss(5000, Date.now() + HOUR_MS) // status='active'の検証のため期限を未来に置く
 
     const res = await SELF.fetch('https://example.com/raid/current', {
       headers: { Authorization: `Bearer ${deviceToken}` },
@@ -102,6 +106,34 @@ describe('POST /raid/sync', () => {
         body: JSON.stringify({ payloads: [{ attemptId: 'a-1' }] }), // 必須フィールド欠落
       }),
     )
+    expect(res.status).toBe(400)
+  })
+
+  it('負数・非整数のdamageは400になる（HP回復・討伐判定の逆行を防ぐ）', async () => {
+    const deviceToken = await registerDevice()
+    const { bossId, startAt } = await initCurrentBoss(1000)
+    const base = { bossId, questionCount: 1, answeredAt: startAt + HOUR_MS }
+
+    for (const damage of [-100, 1.5, Number.NaN, 1_000_000]) {
+      const res = await SELF.fetch(
+        syncRequest(deviceToken, [{ attemptId: 'bad-1', damage, ...base }]),
+      )
+      expect(res.status).toBe(400)
+    }
+  })
+
+  it('payload件数が上限(500)を超えるリクエストは400になる', async () => {
+    const deviceToken = await registerDevice()
+    const { bossId, startAt } = await initCurrentBoss(1000)
+    const payloads = Array.from({ length: 501 }, (_, i) => ({
+      attemptId: `bulk-${i}`,
+      bossId,
+      damage: 1,
+      questionCount: 1,
+      answeredAt: startAt + HOUR_MS,
+    }))
+
+    const res = await SELF.fetch(syncRequest(deviceToken, payloads))
     expect(res.status).toBe(400)
   })
 

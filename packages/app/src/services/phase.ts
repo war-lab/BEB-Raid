@@ -35,8 +35,18 @@ export const ATTEMPTS_READ_LIMIT = Math.max(
   maxKnownCriterionWindow() * ATTEMPTS_READ_SAFETY_FACTOR,
 )
 
-function recordToState(record: PhaseRecord): PhaseState {
-  const criteria = JSON.parse(record.criteriaJson) as PhaseCriteria
+/**
+ * レコード→状態の変換。criteriaJsonが破損している（不正なバックアップのインポート等）
+ * 場合はnullを返す（throwすると呼び出し元で握りつぶされ、フェーズ依存機能が
+ * 復帰不能に無反応化するため。nullを受けた側は初期割当パスでレコードを作り直す）
+ */
+function recordToState(record: PhaseRecord): PhaseState | null {
+  let criteria: PhaseCriteria
+  try {
+    criteria = JSON.parse(record.criteriaJson) as PhaseCriteria
+  } catch {
+    return null
+  }
   return {
     season: record.season,
     listeningStage: record.listeningStage ?? 1,
@@ -68,7 +78,11 @@ export async function savePhaseState(db: BebRaidDatabase, state: PhaseState): Pr
  */
 export async function getOrInitPhaseState(db: BebRaidDatabase): Promise<PhaseState> {
   const existing = await db.phase.toArray()
-  if (existing[0]) return recordToState(existing[0])
+  if (existing[0]) {
+    const state = recordToState(existing[0])
+    // 破損レコードはnull（recordToState参照）。既存レコードを捨てて初期割当パスへ倒す
+    if (state) return state
+  }
 
   const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
   const lRating = l?.rating ?? DEFAULT_INITIAL_RATING

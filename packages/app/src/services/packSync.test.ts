@@ -273,6 +273,74 @@ describe('syncPacks', () => {
     expect(packCache.delete).toHaveBeenCalledWith(['/audio/old.mp3'])
   })
 
+  it('掃除の回帰: keys()が実ブラウザ同様の絶対URLを返しても、現行分を全削除しない（相対/絶対の表記差を吸収）', async () => {
+    // 実ブラウザのCacheStoragePackCache.keys()はRequest.url=絶対URLを返す。
+    // 本ファイルの既存フェイク（相対キーを返す）ではこの表記差のバグ
+    // （validUrlsとの単純比較で全エントリがstale判定され毎回全削除）を検出できなかったため、
+    // このテストは絶対URLを返すフェイクで検証する
+    const db = newDb()
+    await db.settings.put({
+      key: 'packSyncState',
+      value: { packHashes: {}, totalSizeBytes: 0, lastSyncedAt: 0 },
+    })
+    const abs = (path: string) => new URL(path, location.href).href
+    const packCache = fakePackCache({
+      keys: vi.fn(async () => [abs('/packs/pack-a.json'), abs('/audio/part2/a.mp3')]),
+    })
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 100 }])
+    const fetchImpl = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') {
+        return jsonResponse(
+          pack([
+            {
+              id: 'q1',
+              part: 2,
+              format: 'audio_qa',
+              difficulty: 1,
+              tags: [],
+              keyVocab: [],
+              audio: 'audio/part2/a.mp3',
+              audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 100 },
+              script: 's',
+              choices: [{ key: 'A', text: 'x' }],
+              answer: 'A',
+            },
+          ]),
+        )
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+
+    // 直前にaddAllした現行分（絶対URL表記でキャッシュ済み）が誤ってstale判定・削除されない
+    expect(packCache.delete).not.toHaveBeenCalled()
+  })
+
+  it('掃除の回帰: keys()が絶対URLを返す場合でも、真に不要なURLだけを元の文字列のまま削除する', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: 'packSyncState',
+      value: { packHashes: { 'pack-a': 'h1' }, totalSizeBytes: 100, lastSyncedAt: 0 },
+    })
+    const abs = (path: string) => new URL(path, location.href).href
+    const packCache = fakePackCache({
+      keys: vi.fn(async () => [abs('/packs/pack-a.json'), abs('/audio/removed.mp3')]),
+      get: vi.fn(async (url: string) =>
+        url === '/packs/pack-a.json' ? new Blob([JSON.stringify(pack([]))]) : null,
+      ),
+    })
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 100 }])
+    const fetchImpl = vi.fn(async () => jsonResponse(m))
+
+    await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+
+    // deleteへ渡すのはkeys()が返した元の文字列（正規化後の文字列に置き換えない）
+    expect(packCache.delete).toHaveBeenCalledWith([abs('/audio/removed.mp3')])
+  })
+
   it('T-73: 再同期に失敗したパックの既存URLは掃除で消さない', async () => {
     const db = newDb()
     await db.settings.put({

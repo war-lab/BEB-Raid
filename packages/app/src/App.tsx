@@ -15,6 +15,7 @@ import {
   createRaidApi,
   type PackCache,
 } from './platform'
+import { exportAll } from './services/backup'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
 import { sendQuestionStats } from './services/questionStats'
@@ -127,6 +128,8 @@ export function App() {
   const [retryToken, setRetryToken] = useState(0)
   // T-69: テーマ・文字サイズの起動時適用（14の1.3）。themePreferenceはOS追従リスナーの要否判定に使う
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system')
+  // レビューF6: 起動エラー画面からの緊急エクスポートが失敗したときの表示
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -197,15 +200,19 @@ export function App() {
     }
   }, [])
 
-  // 起動時のレイドダメージ送信（M3・T-96）。失敗無視（syncRaidDamage内部で既に
-  // 通信失敗をcatch済みだが、DB例外等の想定外の失敗もこのeffectを壊さないよう握りつぶす）
+  // 起動時のレイドダメージ送信（M3・T-96）。失敗しても起動は妨げない（syncRaidDamage内部で
+  // 通信失敗はcatch済み。ここに来るのはDB例外等の想定外だけなので、原因追跡用にログは残す）
   useEffect(() => {
-    void syncRaidDamage(getDb(), raidApi).catch(() => {})
+    void syncRaidDamage(getDb(), raidApi).catch((e: unknown) => {
+      console.warn('[raidSync] 起動時同期に失敗', e)
+    })
   }, [])
 
-  // 起動時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗無視
+  // 起動時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗してもログのみ
   useEffect(() => {
-    void sendQuestionStats(getDb(), raidApi).catch(() => {})
+    void sendQuestionStats(getDb(), raidApi).catch((e: unknown) => {
+      console.warn('[questionStats] 起動時送信に失敗', e)
+    })
   }, [])
 
   // T-72: ストレージ保全（J-38）。拒否されても動作は変えない（iOS Safariはインストール済み
@@ -214,23 +221,53 @@ export function App() {
     void navigator.storage?.persist?.().catch(() => {})
   }, [])
 
+  // レビューF6: 起動エラー時の緊急エクスポート。設定画面へ遷移できない状況のため、
+  // このボタンから直接ダウンロードさせる。DBが開けない失敗ではエラーメッセージを出す縮退でよい
+  async function handleEmergencyExport() {
+    setExportError(null)
+    try {
+      const backup = await exportAll(getDb())
+      const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      const date = new Date().toISOString().slice(0, 10)
+      anchor.href = url
+      anchor.download = `beb-raid-backup-${date}.json`
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('[App] 緊急エクスポートに失敗', e)
+      setExportError('エクスポートに失敗しました（データベースを開けません）')
+    }
+  }
+
   if (bootError) {
     return (
       <ScreenLayout
         status={<p>起動エラー</p>}
         action={
-          <PrimaryButton
-            onClick={() => {
-              setBootError(null)
-              setRetryToken((n) => n + 1)
-            }}
-          >
-            再試行
-          </PrimaryButton>
+          <>
+            <PrimaryButton
+              onClick={() => {
+                setBootError(null)
+                setRetryToken((n) => n + 1)
+              }}
+            >
+              再試行
+            </PrimaryButton>
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={() => void handleEmergencyExport()}
+            >
+              学習データをエクスポート
+            </button>
+            {exportError && <p className="drill-error">{exportError}</p>}
+          </>
         }
       >
         <p>{bootError}</p>
-        <p>設定→エクスポートで学習データを退避できます</p>
+        <p>学習データはエクスポートで退避できます</p>
       </ScreenLayout>
     )
   }

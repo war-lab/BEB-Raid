@@ -58,11 +58,12 @@ class FakeRaidApi implements RaidApi {
   }
 }
 
-async function seedJoinedRaidState(db: BebRaidDatabase) {
+/** 参加中のraidStateを仕込む。bossIdは既定でレスポンス（BOSS）と同一週にする */
+async function seedJoinedRaidState(db: BebRaidDatabase, bossId = BOSS.bossId) {
   await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
   await db.raidState.put({
     id: RAID_STATE_ID,
-    bossId: 'boss-2026-W29',
+    bossId,
     profileJson: '{}',
     hp: 4800,
     maxHp: 5000,
@@ -189,6 +190,56 @@ describe('syncRaidDamage: 正常系', () => {
     expect(raidApi.syncDamage).toHaveBeenCalledWith([])
     const raidState = await db.raidState.get(RAID_STATE_ID)
     expect(raidState?.hp).toBe(BOSS.hp)
+  })
+
+  it('週替わり（レスポンスのbossIdが端末の知るbossIdと別）ならjoinedをfalseへリセットする', async () => {
+    // joinedを引き継ぐと、S5の参加ボタン（=参加の定義。docs/17）を経ないまま
+    // 新ボスへ自動参加してしまうバグの回帰テスト
+    const db = newDb()
+    await seedJoinedRaidState(db, 'boss-2026-W29') // 先週のボスに参加中
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: [], boss: BOSS }) // W30が返る
+
+    await syncRaidDamage(db, raidApi)
+
+    const raidState = await db.raidState.get(RAID_STATE_ID)
+    expect(raidState?.bossId).toBe(BOSS.bossId)
+    expect(raidState?.joined).toBe(false)
+  })
+
+  it('同一bossIdの同期ではjoined=trueが維持される', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db) // BOSSと同一bossId
+    const raidApi = new FakeRaidApi(true)
+
+    await syncRaidDamage(db, raidApi)
+
+    expect((await db.raidState.get(RAID_STATE_ID))?.joined).toBe(true)
+  })
+
+  it('payloadJsonが破損したレコードは警告して削除し、残りの送信を続行する（キューの恒久的な詰まりを防ぐ）', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const corruptedId = await db.pendingSync.add({
+      kind: 'raidDamage',
+      payloadJson: '{broken json',
+      createdAt: 1000,
+    })
+    const validId = await addPendingRaidDamage(db, 'a-1')
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: ['a-1'], boss: BOSS })
+
+    const ok = await syncRaidDamage(db, raidApi)
+
+    expect(ok).toBe(true)
+    // 破損レコードは削除され、正常レコードは送信されて受理・削除される
+    expect(await db.pendingSync.get(corruptedId)).toBeUndefined()
+    expect(await db.pendingSync.get(validId!)).toBeUndefined()
+    const sentPayloads = raidApi.syncDamage.mock.calls[0]![0]
+    expect(sentPayloads.map((p) => p.attemptId)).toEqual(['a-1'])
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 
   it('raidDamage以外のkindのpendingSyncには触れない', async () => {

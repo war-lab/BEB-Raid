@@ -65,11 +65,15 @@ class FakeAudioElement {
   onended: (() => void) | null = null
   ontimeupdate: (() => void) | null = null
   onloadedmetadata: (() => void) | null = null
+  onerror: (() => void) | null = null
   playCalls = 0
   pauseCalls = 0
+  /** trueならplay()が拒否される（iOS Safariの自動再生制限の模擬。E4a） */
+  playRejects = false
 
   async play(): Promise<void> {
     this.playCalls += 1
+    if (this.playRejects) throw new Error('NotAllowedError: 自動再生が拒否された（模擬）')
   }
   pause(): void {
     this.pauseCalls += 1
@@ -77,6 +81,10 @@ class FakeAudioElement {
   /** テストから再生完了を模擬する */
   end(): void {
     this.onended?.()
+  }
+  /** テストからメディアエラーを模擬する */
+  fireError(): void {
+    this.onerror?.()
   }
   /** テストから timeupdate を模擬する（currentTime を進めてイベント発火） */
   tick(currentTime: number): void {
@@ -113,7 +121,10 @@ class FakePackCache implements PackCache {
   }
 }
 
-function createPlayer(durations: Record<string, number> = {}, { seedCache = true } = {}) {
+function createPlayer(
+  durations: Record<string, number> = {},
+  { seedCache = true, playRejects = false } = {},
+) {
   const ctx = new FakeAudioContext()
   const packCache = new FakePackCache()
   for (const [src, duration] of Object.entries(durations)) {
@@ -124,6 +135,7 @@ function createPlayer(durations: Record<string, number> = {}, { seedCache = true
   const audioElements: FakeAudioElement[] = []
   const createAudioElement = () => {
     const el = new FakeAudioElement()
+    el.playRejects = playRejects
     audioElements.push(el)
     return el as unknown as HTMLAudioElement
   }
@@ -370,6 +382,26 @@ describe('WebAudioPlayer: rate（T-45・J-27・3.7節）', () => {
     await second
   })
 
+  // 何を防ぐか: play()拒否（iOS Safariの自動再生制限等）を握りつぶすとPromiseが永遠に
+  // 未解決になり、await している呼び出し側（DrillScreen等）が「再生中…」のまま固まる
+  it('rate経路: audio.play() の拒否で play の Promise が reject する', async () => {
+    const { player } = createPlayer({ 'a.mp3': 5 }, { playRejects: true })
+    await player.unlock()
+
+    await expect(player.play('a.mp3', { rate: 0.85 })).rejects.toThrow()
+  })
+
+  it('rate経路: メディアエラー（onerror）でも play の Promise が reject する', async () => {
+    const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+
+    const done = player.play('a.mp3', { rate: 0.85 })
+    await tick()
+    audioElements[0]!.fireError()
+
+    await expect(done).rejects.toThrow()
+  })
+
   it('rate経路でも onPosition が通知される（シャドーイングのカラオケハイライト用途）', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
@@ -390,5 +422,54 @@ describe('WebAudioPlayer: rate（T-45・J-27・3.7節）', () => {
     audio.end()
     await done
     vi.useRealTimers()
+  })
+})
+
+describe('WebAudioPlayer: 並行startSequenceの競合とAudioContext状態（レビュー修正E4）', () => {
+  // 何を防ぐか: バッファ読込await中に2回目のstartSequenceが入ると（自動再生effectと
+  // 手動タップの重なり・シャドーイングの連打）、stopped=falseリセットで両方が再生
+  // スケジュールされ二重再生になり、pendingResolve上書きで片方のPromiseが永遠に未解決になる
+  it('バッファ読込await中に後続のstartSequenceが入っても、先行Promiseは解決し二重再生されない', async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 2, 'b.mp3': 3 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const first = player.play('a.mp3')
+    const second = player.play('b.mp3') // 読込await中の割り込み（tickを挟まず即時）
+    await tick()
+
+    // 先行呼び出しは再生せず正常終了する（永遠に未解決にならない）
+    await expect(first).resolves.toBeUndefined()
+    // 後続のb.mp3のみがスケジュールされる（二重再生しない）
+    expect(ctx.createdSources.length).toBe(1)
+
+    ctx.createdSources[0]!.end()
+    await second
+  })
+
+  it('rate経路でも読込await中の後続呼び出しが優先され、先行Promiseは解決する', async () => {
+    const { player, audioElements } = createPlayer({ 'a.mp3': 2, 'b.mp3': 3 })
+    await player.unlock()
+
+    const first = player.play('a.mp3', { rate: 0.85 })
+    const second = player.play('b.mp3', { rate: 0.85 })
+    await tick()
+
+    await expect(first).resolves.toBeUndefined()
+    expect(audioElements.length).toBe(1) // 後続分のHTMLAudioElementだけが生成される
+
+    audioElements[0]!.end()
+    await second
+  })
+
+  // 何を防ぐか: iOSでは通話・Siri等の割り込みで非標準の'interrupted'状態になることがあり、
+  // 'suspended'限定のresumeでは復帰できず再生不能のままになる（効果は環境依存）
+  it("unlock は 'suspended' 以外の非running状態（'interrupted'等）でも resume を試みる", async () => {
+    const { player, ctx } = createPlayer()
+    ;(ctx as unknown as { state: string }).state = 'interrupted'
+
+    await player.unlock()
+
+    expect(ctx.state).toBe('running')
   })
 })

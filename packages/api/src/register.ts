@@ -13,6 +13,12 @@ function isDailyGoal(value: unknown): value is DailyGoal {
   return value === 'light' || value === 'normal' || value === 'heavy'
 }
 
+/**
+ * 表示名の上限。displayNameは貢献一覧として全メンバーへ配信される値のため、
+ * 無制限だとKV肥大と他メンバーの画面崩れの両方に波及する
+ */
+export const MAX_DISPLAY_NAME_LENGTH = 32
+
 function isRegisterRequest(body: unknown): body is RegisterRequest {
   if (typeof body !== 'object' || body === null) return false
   const b = body as Record<string, unknown>
@@ -20,8 +26,10 @@ function isRegisterRequest(body: unknown): body is RegisterRequest {
     typeof b.inviteCode === 'string' &&
     typeof b.deviceToken === 'string' &&
     b.deviceToken.length > 0 &&
+    b.deviceToken.length <= 200 &&
     typeof b.displayName === 'string' &&
-    b.displayName.length > 0 &&
+    b.displayName.trim().length > 0 &&
+    b.displayName.trim().length <= MAX_DISPLAY_NAME_LENGTH &&
     isDailyGoal(b.dailyGoal)
   )
 }
@@ -53,7 +61,7 @@ export async function handleRegister(request: Request, env: Env): Promise<Respon
   const existing = existingRaw ? (JSON.parse(existingRaw) as MemberRecord) : undefined
 
   const record: MemberRecord = {
-    displayName: body.displayName,
+    displayName: body.displayName.trim(),
     dailyGoal: body.dailyGoal,
     registeredAt: existing?.registeredAt ?? Date.now(),
     emaDailyDamage: existing?.emaDailyDamage,
