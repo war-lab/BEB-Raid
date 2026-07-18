@@ -38,6 +38,17 @@ export function InstallHint() {
     return () => window.removeEventListener('beforeinstallprompt', onPrompt)
   }, [])
 
+  // T-107(b): ホーム画面追加が受諾されたら、standalone判定を待たずに即座にヒントを閉じる
+  // （appinstalled発火後もstandalone表示への切替が反映されるまでヒントが残っていた）
+  useEffect(() => {
+    const onInstalled = () => {
+      localStorage.setItem(DISMISS_KEY, '1')
+      setDismissed(true)
+    }
+    window.addEventListener('appinstalled', onInstalled)
+    return () => window.removeEventListener('appinstalled', onInstalled)
+  }, [])
+
   if (dismissed || isStandalone()) return null
 
   const dismiss = () => {

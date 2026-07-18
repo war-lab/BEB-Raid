@@ -7,8 +7,16 @@ const HOUR_MS = 60 * MINUTE_MS
 const DAY_MS = 24 * HOUR_MS
 
 describe('formatRelativeTime', () => {
-  it('0分前を返す（0ms経過）', () => {
-    expect(formatRelativeTime(0)).toBe('0分前')
+  it('0ms経過は「0分前」ではなく「たった今」を返す', () => {
+    expect(formatRelativeTime(0)).toBe('たった今')
+  })
+
+  it('59秒（60秒未満の境界）は「たった今」のまま', () => {
+    expect(formatRelativeTime(59 * 1000)).toBe('たった今')
+  })
+
+  it('ちょうど60秒で分単位に切り替わる', () => {
+    expect(formatRelativeTime(MINUTE_MS)).toBe('1分前')
   })
 
   it('59分は分単位のまま', () => {
@@ -32,6 +40,6 @@ describe('formatRelativeTime', () => {
   })
 
   it('負値は0扱いにする（未来時刻の誤差を吸収）', () => {
-    expect(formatRelativeTime(-500)).toBe('0分前')
+    expect(formatRelativeTime(-500)).toBe('たった今')
   })
 })

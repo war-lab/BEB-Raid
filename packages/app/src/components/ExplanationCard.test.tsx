@@ -131,7 +131,12 @@ describe('ExplanationCard: 質問→回答→追加質問', () => {
     fireEvent.click(screen.getByText('送信'))
 
     expect(await screen.findByText('回答: なぜBは違う?')).toBeTruthy()
-    expect(screen.getByText('AI回答は未レビュー。事前生成解説と矛盾したら悪問メモへ')).toBeTruthy()
+    // レビューF4(c): 存在しない「悪問メモ」ではなく、実在する報告導線へ案内する
+    expect(
+      screen.getByText(
+        'AI回答は未レビュー。矛盾に気づいたら「問題がおかしい」から報告してください',
+      ),
+    ).toBeTruthy()
     expect(client.askCalls[0]?.question).toBe('なぜBは違う?')
     expect(client.askCalls[0]?.history).toEqual([])
     expect(client.askCalls[0]?.context.answer).toBe('A')
@@ -272,24 +277,43 @@ describe('ExplanationCard: 「問題がおかしい」報告の送信（T-101）
     )
 
     fireEvent.click(await screen.findByText('問題がおかしい'))
-    fireEvent.click(screen.getByText('不自然'))
+    // レビューF4(b): 理由ボタン群の上に問いかけの1行が出る
+    expect(screen.getByText('どこがおかしいですか？')).toBeTruthy()
+    fireEvent.click(screen.getByText('英文が不自然'))
 
     await screen.findByText('報告しました')
     expect(raidApi.sendReport).toHaveBeenCalledWith({ questionId: 'q-42', reason: 'unnatural' })
-    expect(screen.queryByText('不自然')).toBeNull()
+    expect(screen.queryByText('英文が不自然')).toBeNull()
   })
 
-  it('送信失敗時は「送信できませんでした」を表示し、再報告ボタンは無効化されない', async () => {
+  it('理由ラベルは「正解が間違っている/英文が不自然/解説が間違っている」の3種（レビューF4(b)）', async () => {
+    const db = await registeredDb()
+    const raidApi = new FakeRaidApi(true)
+    render(<ExplanationCard question={question()} isCorrect={false} raidApi={raidApi} db={db} />)
+
+    fireEvent.click(await screen.findByText('問題がおかしい'))
+
+    expect(screen.getByText('正解が間違っている')).toBeTruthy()
+    expect(screen.getByText('英文が不自然')).toBeTruthy()
+    expect(screen.getByText('解説が間違っている')).toBeTruthy()
+    // 曖昧だった旧ラベルが残っていない
+    expect(screen.queryByText('誤答扱い')).toBeNull()
+  })
+
+  it('送信失敗時はエラーメッセージを表示し、再報告ボタンは無効化されない', async () => {
     const db = await registeredDb()
     const raidApi = new FakeRaidApi(true)
     raidApi.sendReport.mockRejectedValueOnce(new Error('network error'))
     render(<ExplanationCard question={question()} isCorrect={false} raidApi={raidApi} db={db} />)
 
     fireEvent.click(await screen.findByText('問題がおかしい'))
-    fireEvent.click(screen.getByText('誤答扱い'))
+    fireEvent.click(screen.getByText('正解が間違っている'))
 
-    expect(await screen.findByText('送信できませんでした')).toBeTruthy()
+    // レビューF4(d): 対処（通信環境の確認）まで含めた文言にする
+    expect(
+      await screen.findByText('送信できませんでした。通信環境を確認して再度お試しください'),
+    ).toBeTruthy()
     expect(screen.queryByText('報告しました')).toBeNull()
-    expect(screen.getByText('誤答扱い')).toBeTruthy()
+    expect(screen.getByText('正解が間違っている')).toBeTruthy()
   })
 })

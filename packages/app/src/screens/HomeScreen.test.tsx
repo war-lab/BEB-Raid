@@ -14,9 +14,15 @@ import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { toDateString } from '../engine/date'
 import type { RaidApi } from '../platform'
-import { resetRaidSyncFlagsForTest, syncRaidDamage } from '../services/raidSync'
-import { NO_EARPHONE_MODE_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
+import { syncRaidDamage } from '../services/raidSync'
+import {
+  NO_EARPHONE_MODE_KEY,
+  QUEST_DURATION_KEY,
+  RAID_REGISTERED_AT_KEY,
+  RAID_SYNC_ENABLED_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { HomeScreen } from './HomeScreen'
 
@@ -59,7 +65,8 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
-  resetRaidSyncFlagsForTest()
+  resetRaidSyncStoreForTest()
+  vi.useRealTimers()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -422,6 +429,82 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
   })
 })
 
+describe('HomeScreen: 時間チップの明確化と保存（T-112）', () => {
+  it('「クエストの長さ」ラベルがチップ群に付き、今日のクエストボタンとグループ化される', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const label = screen.getByText('クエストの長さ')
+    const group = label.closest('.home-quest-group')
+    expect(group).toBeTruthy()
+    expect(group?.textContent).toContain('今日のクエスト')
+    expect(group?.querySelector('.home-duration-chips')).toBeTruthy()
+  })
+
+  it('時間チップの選択がsettingsへ保存され、値がそのまま渡って開始できる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('15分'))
+
+    await waitFor(async () => {
+      expect((await db.settings.get(QUEST_DURATION_KEY))?.value).toBe(15)
+    })
+    expect(screen.getByText('15分').className).toContain('is-selected')
+  })
+
+  it('選択値が再マウント後も復元される（画面遷移・再起動を跨いだ維持）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUEST_DURATION_KEY, value: 15 })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('15分').className).toContain('is-selected')
+    expect(screen.getByText('7分').className).not.toContain('is-selected')
+  })
+
+  it('不正な保存値（3/7/15以外）は無視して既定7分のまま表示する', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUEST_DURATION_KEY, value: 999 })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('7分').className).toContain('is-selected')
+  })
+})
+
 describe('HomeScreen: Part2単独モードの再生バリエーション選択（T-39）', () => {
   it('Part2瞬発タップで選択肢が出て、「通常」選択では partialAudioMode が false のまま開始する', async () => {
     const db = newDb()
@@ -438,6 +521,8 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
     fireEvent.click(screen.getByText('Part2瞬発'))
     expect(screen.getByText('通常')).toBeTruthy()
     expect(screen.getByText('冒頭だけ再生（特訓）')).toBeTruthy()
+    // T-116(8): スクロールしないと見えない問題への対処。画面中央固定のダイアログとして出す
+    expect(screen.getByRole('dialog', { name: '音声の再生方法を選択' })).toBeTruthy()
 
     fireEvent.click(screen.getByText('通常'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
@@ -779,11 +864,42 @@ describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
     const hpBar = await screen.findByTestId('home-raid-hp')
     expect(hpBar.textContent).toContain('テストボス')
     expect(hpBar.textContent).toContain('残り3日')
-    const bar = hpBar.querySelector('[role="progressbar"]')
-    expect(bar?.getAttribute('aria-valuenow')).toBe('50')
+    // レビューF2(b): button内はspan構成にし、button全体の意味はaria-labelで伝える
+    expect(hpBar.getAttribute('aria-label')).toBe('ボスHP 50%、残り3日。タップでレイド画面へ')
+    // button内容モデル違反（<p>）が残っていない
+    expect(hpBar.querySelector('p')).toBeNull()
   })
 
-  it('討伐の確定はサーバー側の判定が正です、の注記を表示する', async () => {
+  it('profileJsonが破損していてもホームは白画面にならず、HPバーだけ非表示になる（レビューF2(a)）', async () => {
+    const db = newDb()
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: '{broken json',
+      hp: 4200,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt: Date.now(),
+    })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByTestId('home-raid-hp')).toBeNull()
+    expect(screen.getByText('今日のクエスト')).toBeTruthy() // 学習動線は無傷
+  })
+
+  it('討伐の成立はサーバーで確定する旨の注記を表示する', async () => {
     const db = newDb()
     await putRaidState(db)
     render(
@@ -797,7 +913,7 @@ describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
     await flushLoad()
 
     const hpBar = await screen.findByTestId('home-raid-hp')
-    expect(hpBar.textContent).toContain('討伐の確定はサーバー側の判定が正です')
+    expect(hpBar.textContent).toContain('討伐の成立は同期時にサーバーで確定します')
   })
 })
 
@@ -840,6 +956,7 @@ describe('HomeScreen: オフライン表示規約（M3・T-99）', () => {
     await putRaidStateWithSync(db, Date.now() - 10 * 60_000)
     const failingRaidApi = new FakeRaidApi(true)
     failingRaidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
     await syncRaidDamage(db, failingRaidApi) // lastSyncFailedフラグを実際の失敗経路で立てる
 
@@ -855,5 +972,190 @@ describe('HomeScreen: オフライン表示規約（M3・T-99）', () => {
 
     const label = await screen.findByTestId('home-raid-last-synced')
     expect(label.className).toContain('is-stale')
+  })
+})
+
+describe('HomeScreen: バックグラウンド同期完了への画面追従（T-103）', () => {
+  async function putRaidState(db: BebRaidDatabase, hp: number, lastSyncedAt: number) {
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt,
+    })
+  }
+
+  it('マウント後の同期完了で、再マウントなしにHPバー・最終同期表示が更新される', async () => {
+    const db = newDb()
+    await putRaidState(db, 4200, Date.now() - 60 * 60_000)
+    const raidApi = new FakeRaidApi(true)
+    // 同一bossId（週替わりなし）で返し、joinedがリセットされないようにする
+    raidApi.syncDamage.mockResolvedValueOnce({
+      acceptedIds: [],
+      boss: {
+        bossId: 'boss-2026-W30',
+        name: 'テストボス',
+        hp: 1000,
+        maxHp: 5000,
+        startAt: Date.now() - 86_400_000,
+        endAt: Date.now() + 2 * 86_400_000,
+        status: 'active',
+        participantCount: 0,
+        myDamage: 0,
+        contributions: [],
+      },
+    })
+    render(
+      <HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} raidApi={raidApi} />,
+    )
+    await flushLoad()
+    expect((await screen.findByTestId('home-raid-last-synced')).textContent).toContain('1時間前')
+
+    // 同期成功でDB側のraidStateが更新される
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await syncRaidDamage(db, raidApi)
+
+    await waitFor(async () => {
+      const label = await screen.findByTestId('home-raid-last-synced')
+      expect(label.textContent).toContain('たった今')
+    })
+  })
+
+  it('同期失敗でis-stale強調が付き、次の成功で消える（再マウントなし）', async () => {
+    const db = newDb()
+    await putRaidState(db, 4200, Date.now())
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    const raidApi = new FakeRaidApi(true)
+    // 同一bossId（週替わりなし）で返し、joinedがリセットされないようにする
+    raidApi.syncDamage.mockResolvedValue({
+      acceptedIds: [],
+      boss: {
+        bossId: 'boss-2026-W30',
+        name: 'テストボス',
+        hp: 4200,
+        maxHp: 5000,
+        startAt: Date.now() - 86_400_000,
+        endAt: Date.now() + 2 * 86_400_000,
+        status: 'active',
+        participantCount: 0,
+        myDamage: 0,
+        contributions: [],
+      },
+    })
+    render(
+      <HomeScreen db={db} questionPool={QUESTION_POOL} resumeSnapshot={null} raidApi={raidApi} />,
+    )
+    await flushLoad()
+    expect((await screen.findByTestId('home-raid-last-synced')).className).not.toContain('is-stale')
+
+    raidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+    await syncRaidDamage(db, raidApi)
+    await waitFor(async () => {
+      expect((await screen.findByTestId('home-raid-last-synced')).className).toContain('is-stale')
+    })
+
+    await syncRaidDamage(db, raidApi)
+    await waitFor(async () => {
+      expect((await screen.findByTestId('home-raid-last-synced')).className).not.toContain(
+        'is-stale',
+      )
+    })
+  })
+})
+
+describe('HomeScreen: 時刻追従（T-105）', () => {
+  it('60秒tickで「最終同期」の相対表示が更新される', async () => {
+    const db = newDb()
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp: 4200,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt: Date.now(),
+    })
+    // setInterval/clearInterval・Dateのみフェイク化する（setTimeout・Promiseはリアルタイムのまま
+    // 動かし、findByTestId等のRTLの待機処理とのデッドロックを避ける）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+    expect((await screen.findByTestId('home-raid-last-synced')).textContent).toContain('たった今')
+
+    await vi.advanceTimersByTimeAsync(90 * 60_000) // 90分進める
+
+    await waitFor(async () => {
+      expect((await screen.findByTestId('home-raid-last-synced')).textContent).toContain('1時間前')
+    })
+  })
+
+  it('raidStateが無ければtickは起動しない（例外も出ない）', async () => {
+    const db = newDb()
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(false)}
+      />,
+    )
+    await flushLoad()
+
+    expect(() => vi.advanceTimersByTime(5 * 60_000)).not.toThrow()
+    expect(screen.queryByTestId('home-raid-hp')).toBeNull()
+  })
+
+  it('visibilitychangeで日付が変わっていたら再読込される（SRS期限バッジの追従で確認）', async () => {
+    const db = newDb()
+    const realNow = Date.now()
+    // マウント時点ではまだ期限が来ていないSRSカード（1日後にdueAt）
+    await db.srsCards.put({
+      id: 'vocab:tomorrow-due',
+      refType: 'vocab',
+      refId: 'tomorrow-due',
+      stage: 1,
+      dueAt: realNow + 20 * 60 * 60_000, // 20時間後
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    expect(screen.queryByText(/SRS期限/)).toBeNull()
+
+    // 日付を跨いで（visibleへの復帰想定）Date.nowを1日進める
+    const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => realNow + 86_400_000)
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    await waitFor(() => expect(screen.getByText('SRS期限 1')).toBeTruthy())
+    dateNowSpy.mockRestore()
   })
 })

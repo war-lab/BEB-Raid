@@ -13,7 +13,8 @@ import type { Manifest, Question, QuestionPack } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PackCache } from '../platform'
 
-const PACK_SYNC_STATE_KEY = 'packSyncState'
+/** settingsストア上の同期状態キー（backup.tsのEXPORT_EXCLUDED_KEYSからも参照する） */
+export const PACK_SYNC_STATE_KEY = 'packSyncState'
 
 export interface PackSyncState {
   /** パックID → 最後に同期成功したmanifestのhash */
@@ -49,6 +50,17 @@ export interface SyncPacksResult {
   synced: string[]
   skipped: string[]
   totalSizeBytes: number
+}
+
+/**
+ * 掃除処理の比較専用にURLを絶対URLへ正規化する。
+ * validUrlsはBASE_URL相対（例: `/packs/a.json`）で組み立てられる一方、実ブラウザの
+ * CacheStoragePackCache.keys()はRequest.url=絶対URL（例: `http://host/packs/a.json`）を
+ * 返すため、表記のまま比較すると全エントリがstale判定され毎回全削除される。
+ * location未定義環境（テスト等）ではダミーのベースで解決する（相対同士の比較には十分）
+ */
+function toAbsoluteUrl(url: string): string {
+  return new URL(url, globalThis.location?.href ?? 'http://localhost/').href
 }
 
 /** パック内のQuestionが参照する音声URL一覧（重複除去） */
@@ -145,7 +157,10 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   // 掃除自体が失敗しても同期の成立には影響しないため無視する（次回同期時に再試行される）
   try {
     const cachedKeys = await packCache.keys()
-    const staleUrls = cachedKeys.filter((url) => !validUrls.has(url))
+    // keys()は絶対URLを返しうるため、双方を絶対URLへ正規化してから比較する
+    // （deleteに渡すのはkeys()が返した元の文字列。正規化はあくまで比較専用）
+    const validAbsoluteUrls = new Set([...validUrls].map(toAbsoluteUrl))
+    const staleUrls = cachedKeys.filter((url) => !validAbsoluteUrls.has(toAbsoluteUrl(url)))
     if (staleUrls.length > 0) {
       await packCache.delete(staleUrls)
     }

@@ -40,7 +40,8 @@ export function WeakBars({ bars }: Props) {
           const color = bar.isWeak ? 'var(--chart-crimson)' : 'var(--chart-teal)'
           return (
             <g key={bar.tag} onClick={() => setActiveIndex(i)} style={{ cursor: 'pointer' }}>
-              <text x={0} y={y + ROW_HEIGHT / 2 + 4} fontSize={11} fill="var(--ink-2)">
+              {/* T-116(4): SVGは描画幅次第で縮小されうるため、実効12px以上を確保できる値にする */}
+              <text x={0} y={y + ROW_HEIGHT / 2 + 4} fontSize={13} fill="var(--ink-2)">
                 {bar.tag}
               </text>
               <rect
@@ -54,7 +55,7 @@ export function WeakBars({ bars }: Props) {
               <text
                 x={LABEL_WIDTH + barWidth + 4}
                 y={y + ROW_HEIGHT / 2 + 4}
-                fontSize={10}
+                fontSize={13}
                 fill="var(--ink-2)"
               >
                 {Math.round(bar.accuracy * 100)}%

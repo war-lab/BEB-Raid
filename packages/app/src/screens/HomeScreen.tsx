@@ -2,7 +2,7 @@
 // 上: ストリーク＋SRS期限数。中: 進行中レイドのHPバー（M3・T-97）。下: 「今日のクエスト」
 // 主ボタン＋3/7/15分チップ→generateQuickPack→セッション開始。下方グリッドは
 // 各モードへの導線（Part2瞬発・Part5・語彙SRS・ダッシュボード・設定）。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { RaidStateRecord } from '../db/schema'
@@ -19,11 +19,15 @@ import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
-import { isLastRaidSyncFailed } from '../services/raidSync'
 import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
-import { LAST_SEEN_STREAK_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import {
+  LAST_SEEN_STREAK_KEY,
+  NO_EARPHONE_MODE_KEY,
+  QUEST_DURATION_KEY,
+} from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
+import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { Heatmap } from '../components/charts/Heatmap'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -72,6 +76,9 @@ export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
 export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
+  // T-103: バックグラウンド同期の完了通知（syncCountが変わるたびにraidState再読込）
+  const raidSyncCount = useRaidSyncStore((s) => s.syncCount)
+  const raidSyncFailed = useRaidSyncStore((s) => s.lastFailed)
 
   // ファーストペイントをブロックしないよう、既定値（0件・未読込）で即座に描画する
   const [streakDays, setStreakDays] = useState(0)
@@ -94,6 +101,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [streakPulse, setStreakPulse] = useState(false)
   // M3・T-97: 進行中レイドの端末内キャッシュ（raidSync=T-96が更新する。無ければ非表示）
   const [raidState, setRaidState] = useState<RaidStateRecord | null>(null)
+  // T-105: 60秒tickで相対時刻・raidEnded判定を更新するための現在時刻state
+  const [nowMs, setNowMs] = useState(now())
+  // T-105: 日付跨ぎ検出用。読込完了時点の日付を覚えておき、visibilitychange時に比較する
+  const loadedDateRef = useRef(toDateString(now()))
+  // T-105: visibilitychangeで日付跨ぎを検出したときに再読込をトリガーするカウンタ
+  const [dateReloadToken, setDateReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -102,18 +115,32 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         startOfLocalDay(Date.now()),
         -(MINI_HEATMAP_WEEKS * 7 - 1),
       )
-      const [status, record, queue, phaseState, lastSeenSetting, recentAttempts, raidStateRecord] =
-        await Promise.all([
-          evaluateStreak(db),
-          getStreak(db),
-          getSrsQueue(db),
-          getOrInitPhaseState(db),
-          db.settings.get(LAST_SEEN_STREAK_KEY),
-          db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
-          db.raidState.get(RAID_STATE_ID),
-        ])
+      const [
+        status,
+        record,
+        queue,
+        phaseState,
+        lastSeenSetting,
+        recentAttempts,
+        raidStateRecord,
+        questDurationSetting,
+      ] = await Promise.all([
+        evaluateStreak(db),
+        getStreak(db),
+        getSrsQueue(db),
+        getOrInitPhaseState(db),
+        db.settings.get(LAST_SEEN_STREAK_KEY),
+        db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
+        db.raidState.get(RAID_STATE_ID),
+        db.settings.get(QUEST_DURATION_KEY),
+      ])
       if (cancelled) return
       setRaidState(raidStateRecord ?? null)
+      // T-112: 「今日のクエスト」の時間チップ選択を画面遷移・再起動を跨いで復元する
+      const savedDuration = questDurationSetting?.value as QuickPackDuration | undefined
+      if (savedDuration !== undefined && DURATIONS.includes(savedDuration)) {
+        setDuration(savedDuration)
+      }
       const today = toDateString(Date.now())
       const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
       const isBroken =
@@ -142,13 +169,38 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       const result = evaluatePhaseCriteria(phaseState.criteria, ctx)
       const metCount = result.evaluations.filter((e) => e.met && !e.insufficientData).length
       setPhaseProgress(result.evaluations.length > 0 ? metCount / result.evaluations.length : null)
+      loadedDateRef.current = toDateString(Date.now())
       setLoaded(true)
     }
-    void load()
+    void load().catch((e: unknown) => {
+      // 同期完了トリガー（raidSyncCount）での再読込中にDBが閉じた場合等の想定外失敗。
+      // 起動時読込と違い致命的ではないため、ログのみでUIは既存表示を維持する
+      if (!cancelled) console.warn('[HomeScreen] データ再読込に失敗', e)
+    })
     return () => {
       cancelled = true
     }
-  }, [db, questionPool])
+  }, [db, questionPool, raidSyncCount, dateReloadToken])
+
+  // T-105(a): 相対時刻・レイド終了判定のtick更新。レイド表示要素があるときのみ起動する
+  useEffect(() => {
+    if (!raidState) return
+    const id = setInterval(() => setNowMs(now()), 60_000)
+    return () => clearInterval(id)
+  }, [raidState])
+
+  // T-105(c): PWAをバックグラウンドから復帰した際、読込時と日付が変わっていたら再読込する
+  // （ストリーク・SRS期限バッジ・ヒートマップが前日値のまま固まる問題への対応）
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      if (toDateString(Date.now()) !== loadedDateRef.current) {
+        setDateReloadToken((n) => n + 1)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   /** 続きから再開（T-67）。既存スナップショットをそのまま beginSession に渡す */
   async function handleResume() {
@@ -206,15 +258,25 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     navigate('drill')
   }
 
-  // M3・T-97: raidApi.isConfigured() && raidState.joined のときのみHPバーを表示する（縮退設計）
-  const showRaidHp = raidApi.isConfigured() && raidState?.joined === true
-  const bossName = raidState ? (JSON.parse(raidState.profileJson) as { name: string }).name : ''
+  // M3・T-97: raidApi.isConfigured() && raidState.joined のときのみHPバーを表示する（縮退設計）。
+  // レビューF2(a): profileJsonが破損しているとJSON.parseの例外でホーム全体が白画面になるため、
+  // 表示するときだけtry/catch付きでparseし、失敗時はHPバー自体を出さない（学習動線は無傷）
+  let bossName: string | null = null
+  if (raidApi.isConfigured() && raidState?.joined === true) {
+    try {
+      bossName = (JSON.parse(raidState.profileJson) as { name: string }).name
+    } catch {
+      // 破損キャッシュはraidSync成功時に上書きされるため、ここでは黙って非表示にするだけでよい
+      bossName = null
+    }
+  }
+  const showRaidHp = bossName !== null
   const hpPercent =
     raidState && raidState.maxHp > 0 ? Math.round((raidState.hp / raidState.maxHp) * 100) : 0
-  const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - now()) / DAY_MS)) : 0
-  // M3・T-99: オフライン表示規約（3.7節）
-  const lastSyncedLabel = raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : ''
-  const syncFailed = isLastRaidSyncFailed()
+  const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - nowMs) / DAY_MS)) : 0
+  // M3・T-99: オフライン表示規約（3.7節）。T-105: nowMsは60秒tickで更新される
+  const lastSyncedLabel = raidState ? formatRelativeTime(nowMs - raidState.lastSyncedAt) : ''
+  const syncFailed = raidSyncFailed
 
   return (
     <ScreenLayout
@@ -227,6 +289,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               <p
                 key={streakDays}
                 className={`streak-flame display-num${streakPulse ? ' is-pulse' : ''}`}
+                title="学習ストリーク: 連続で学習した日数"
               >
                 🔥{streakDays}
               </p>
@@ -242,54 +305,71 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               続きから再開（残り{resumeSnapshot.items.length - resumeSnapshot.answeredCount}問）
             </button>
           )}
-          <PrimaryButton
-            onClick={() => void handleStartQuest()}
-            disabled={questionPool.length === 0}
-          >
-            今日のクエスト
-          </PrimaryButton>
-          {questionPool.length === 0 && (
-            <p className="home-pool-empty-hint">
-              問題データを取得できていません。オンラインで開き直してください
-            </p>
-          )}
-          <div className="home-duration-chips">
-            {DURATIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`home-chip${d === duration ? ' is-selected' : ''}`}
-                onClick={() => setDuration(d)}
-              >
-                {d}分
-              </button>
-            ))}
+          {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
+              ボタン・チップをひとつのグループにまとめラベルを付ける（Part2瞬発等には作用しない） */}
+          <div className="home-quest-group">
+            <PrimaryButton
+              onClick={() => void handleStartQuest()}
+              disabled={questionPool.length === 0}
+            >
+              今日のクエスト
+            </PrimaryButton>
+            {questionPool.length === 0 && (
+              <p className="home-pool-empty-hint">
+                問題データを取得できていません。オンラインで開き直してください
+              </p>
+            )}
+            <p className="home-duration-chips__label">クエストの長さ</p>
+            <div className="home-duration-chips">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={`home-chip${d === duration ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setDuration(d)
+                    void db.settings.put({ key: QUEST_DURATION_KEY, value: d })
+                  }}
+                >
+                  {d}分
+                </button>
+              ))}
+            </div>
           </div>
           {showPart2Options && (
-            <div className="home-part2-options">
-              <p>音声の再生方法を選んでください</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPart2Options(false)
-                  void startSingleMode('audio_qa')
-                }}
-              >
-                通常
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPart2Options(false)
-                  void startSingleMode('audio_qa', { partialAudioMode: true })
-                }}
-              >
-                冒頭だけ再生（特訓）
-              </button>
-              <p className="home-part2-options-hint">音声の冒頭だけで答える特訓モードです</p>
-              <button type="button" onClick={() => setShowPart2Options(false)}>
-                キャンセル
-              </button>
+            // T-116(8): ホーム下部へのインライン挿入だとスクロールしないと見えなかったため、
+            // 画面中央固定のオーバーレイに変更する（スクロール位置に依存せず必ず見える）
+            <div
+              className="home-part2-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="音声の再生方法を選択"
+            >
+              <div className="home-part2-options">
+                <p>音声の再生方法を選んでください</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPart2Options(false)
+                    void startSingleMode('audio_qa')
+                  }}
+                >
+                  通常
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPart2Options(false)
+                    void startSingleMode('audio_qa', { partialAudioMode: true })
+                  }}
+                >
+                  冒頭だけ再生（特訓）
+                </button>
+                <p className="home-part2-options-hint">音声の冒頭だけで答える特訓モードです</p>
+                <button type="button" onClick={() => setShowPart2Options(false)}>
+                  キャンセル
+                </button>
+              </div>
             </div>
           )}
           <div className="home-grid">
@@ -341,34 +421,39 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         </div>
       )}
       {showRaidHp && (
+        /* レビューF2(b): button内の<p>は内容モデル違反でSRに正しく伝わらないためspan化し、
+           全体の意味はaria-labelで伝える（バー本体は装飾としてaria-hidden） */
         <button
           type="button"
           className="home-raid-hp"
           data-testid="home-raid-hp"
+          aria-label={`ボスHP ${hpPercent}%、残り${remainingDays}日。タップでレイド画面へ`}
           onClick={() => navigate('raid')}
         >
-          <p>{bossName}</p>
-          <div
-            className="home-raid-hp-bar"
-            role="progressbar"
-            aria-valuenow={hpPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
-          </div>
-          <p>残り{remainingDays}日</p>
-          <p
-            className={syncFailed ? 'home-raid-hp-sync is-stale' : 'home-raid-hp-sync'}
+          <span className="home-raid-hp-line">{bossName}</span>
+          <span className="home-raid-hp-bar" aria-hidden="true">
+            <span className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
+          </span>
+          <span className="home-raid-hp-line">残り{remainingDays}日</span>
+          <span
+            className={
+              syncFailed
+                ? 'home-raid-hp-line home-raid-hp-sync is-stale'
+                : 'home-raid-hp-line home-raid-hp-sync'
+            }
             data-testid="home-raid-last-synced"
           >
             最終同期: {lastSyncedLabel}
-          </p>
-          <p className="home-raid-hp-note">討伐の確定はサーバー側の判定が正です</p>
+          </span>
+          <span className="home-raid-hp-line home-raid-hp-note">
+            討伐の成立は同期時にサーバーで確定します
+          </span>
         </button>
       )}
       {miniHeatmapCells && (
         <div className="home-mini-heatmap" data-testid="home-mini-heatmap">
+          {/* T-116(3): ホームのミニヒートマップにタイトルが無く、何の表かわからない指摘への対処 */}
+          <p className="home-mini-heatmap-title">直近4週間の学習ヒートマップ</p>
           <Heatmap cells={miniHeatmapCells} />
         </div>
       )}

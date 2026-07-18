@@ -53,6 +53,8 @@ export function Heatmap({ cells }: Props) {
 
   return (
     <div className="chart-heatmap">
+      {/* T-116(3): 濃淡が何を表すか不明という指摘への対処。常時1行で凡例を出す */}
+      <p className="chart-heatmap-legend">薄い=少、濃い=多</p>
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="学習ヒートマップ: 日別解答数">
         {cells.map((cell, i) => {
           if (cell.count < 0) return null // 曜日整列用の余白セルは描画しない

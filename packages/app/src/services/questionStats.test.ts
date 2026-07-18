@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
 import type { RaidApi } from '../platform'
-import { sendQuestionStats } from './questionStats'
+import { resetQuestionStatsFlagsForTest, sendQuestionStats } from './questionStats'
 import { QUESTION_STATS_ENABLED_KEY, QUESTION_STATS_LAST_SENT_AT_KEY } from './settingsKeys'
 
 let seq = 0
@@ -22,6 +22,7 @@ function newDb(): BebRaidDatabase {
 }
 
 afterEach(async () => {
+  resetQuestionStatsFlagsForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -169,6 +170,48 @@ describe('sendQuestionStats: watermark集計', () => {
 
     expect(raidApi.sendQuestionStats).not.toHaveBeenCalled()
     expect(await db.settings.get(QUESTION_STATS_LAST_SENT_AT_KEY)).toBeUndefined()
+  })
+})
+
+describe('sendQuestionStats: 並行実行の抑止（in-flightフラグ）', () => {
+  it('送信中の再入（StrictModeの二重effect等）では2回目が即returnし、同一範囲を二重送信しない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUESTION_STATS_ENABLED_KEY, value: true })
+    await db.attempts.add(attempt({ id: 'a-1', questionId: 'q-1', answeredAt: 100 }))
+    const raidApi = new FakeRaidApi(true)
+    // 1回目の送信を保留にして、その間に2回目を走らせる
+    let releaseSend!: () => void
+    raidApi.sendQuestionStats.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          releaseSend = () => resolve(1)
+        }),
+    )
+
+    const first = sendQuestionStats(db, raidApi)
+    // 1回目がAPI呼び出しに到達する（=フラグが立つ）まで待ってから2回目を開始する
+    await vi.waitFor(() => expect(raidApi.sendQuestionStats).toHaveBeenCalledTimes(1))
+    const second = sendQuestionStats(db, raidApi)
+
+    releaseSend()
+    await Promise.all([first, second])
+
+    expect(raidApi.sendQuestionStats).toHaveBeenCalledTimes(1)
+    expect((await db.settings.get(QUESTION_STATS_LAST_SENT_AT_KEY))?.value).toBe(100)
+  })
+
+  it('送信完了後の次回呼び出しは通常どおり実行される（フラグが解放される）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUESTION_STATS_ENABLED_KEY, value: true })
+    await db.attempts.add(attempt({ id: 'a-1', questionId: 'q-1', answeredAt: 100 }))
+    const raidApi = new FakeRaidApi(true)
+
+    await sendQuestionStats(db, raidApi)
+    await db.attempts.add(attempt({ id: 'a-2', questionId: 'q-1', answeredAt: 200 }))
+    await sendQuestionStats(db, raidApi)
+
+    expect(raidApi.sendQuestionStats).toHaveBeenCalledTimes(2)
+    expect((await db.settings.get(QUESTION_STATS_LAST_SENT_AT_KEY))?.value).toBe(200)
   })
 })
 

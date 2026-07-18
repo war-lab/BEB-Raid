@@ -200,9 +200,10 @@ export class RaidBossDO extends DurableObject<Env> {
     const hp = Math.max(0, state.maxHp - this.totalDamage())
     const status = this.computeStatus(state, now)
 
+    // 貢献一覧はランキングとして表示されるため、並び順（ダメージ降順）をサーバー側で保証する
     const grouped = this.ctx.storage.sql
       .exec<{ deviceToken: string; damage: number }>(
-        'SELECT deviceToken, SUM(damage) as damage FROM damage_attempts GROUP BY deviceToken',
+        'SELECT deviceToken, SUM(damage) as damage FROM damage_attempts GROUP BY deviceToken ORDER BY damage DESC',
       )
       .toArray()
 
@@ -213,6 +214,8 @@ export class RaidBossDO extends DurableObject<Env> {
       const raw = await this.env.MEMBERS.get(memberKey(row.deviceToken))
       const member = raw ? (JSON.parse(raw) as MemberRecord) : undefined
       contributions.push({
+        // フォールバックはKVのmemberレコード欠損時（手動削除・KV障害）のみ通る。
+        // そのままエンドユーザーの貢献一覧に表示される文字列である点に注意
         displayName: member?.displayName ?? '(不明なメンバー)',
         damage: row.damage,
       })

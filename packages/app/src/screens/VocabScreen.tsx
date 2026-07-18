@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
+import { isServable } from '../engine/quickPack'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import { addSrsCard, getSrsQueue, srsCardId } from '../engine/srs'
 import type { SrsGrade } from '../engine/types'
@@ -69,13 +70,22 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [startedAt, setStartedAt] = useState(() => now())
   // T-78: ハプティクス設定（既定ON）
   const [hapticsEnabled, setHapticsEnabled] = useState(true)
+  // 初回ロード失敗時のフラグ。trueならエラー表示＋ホーム導線を出す（永久 return null を防ぐ）
+  const [loadError, setLoadError] = useState(false)
 
   // 初回ロード: 復習キュー（期限到来＋新規導入。4節）と仕分け候補（未SRS化の語彙）を用意する
   useEffect(() => {
     let cancelled = false
     async function load() {
       const queue = await getSrsQueue(db)
-      const reviewCards = [...queue.dueReviews, ...queue.newCards]
+      // 復習対象は「refType==='vocab' かつ対応する vocab_card 問題が実在する」カードに限る
+      // （quickPack.ts の isServable と同種の発見バグ対策）。processWrongAnswer が作る
+      // refType==='question' カードや、パック撤去・別端末復元で語が引けないカードが
+      // キュー先頭に居座ると、4択も自己評価ボタンも組めず操作不能のまま恒久的に詰むため。
+      // 除外したカードは削除しない（パック再取得で対応問題が復活しうるため、次回ロードで再評価される）
+      const reviewCards = [...queue.dueReviews, ...queue.newCards].filter(
+        (card) => card.refType === 'vocab' && isServable(card, vocabQuestions),
+      )
       const existingIds = new Set(await db.srsCards.toCollection().primaryKeys())
       const candidates = vocabQuestions.filter(
         (q) =>
@@ -92,7 +102,12 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         setHapticsEnabled(hapticsSetting?.value !== false)
       }
     }
-    void load()
+    // 失敗（DB切断・破損等）を握りつぶすと reviewQueue/triageQueue が null のまま
+    // 永久に何も描画されなくなるため、エラー表示へ切り替える
+    void load().catch((err: unknown) => {
+      console.error('[VocabScreen] 語彙データの読み込みに失敗', err)
+      if (!cancelled) setLoadError(true)
+    })
     return () => {
       cancelled = true
     }
@@ -152,6 +167,18 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
       cancelled = true
     }
   }, [isDone, db])
+
+  if (loadError) {
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}
+      >
+        <p className="drill-error" role="alert">
+          語彙データを読み込めませんでした
+        </p>
+      </ScreenLayout>
+    )
+  }
 
   if (reviewQueue === null || triageQueue === null) return null
 
@@ -216,9 +243,15 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     return (
       <ScreenLayout
         status={
-          <p>
-            復習 {reviewIndex + 1}/{reviewQueue.length}
-          </p>
+          <>
+            <p>
+              復習 {reviewIndex + 1}/{reviewQueue.length}
+            </p>
+            {/* 進行中の脱出導線（DrillScreenの中断ボタンと同じパターン。進捗はSRS上更新済みのため失われない） */}
+            <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+              中断
+            </button>
+          </>
         }
         action={
           <>
@@ -251,6 +284,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 <button
                   type="button"
                   className="vocab-grade-button"
+                  title="間隔を短くしてすぐに復習します"
                   onClick={() => void handleGrade('again')}
                 >
                   もう一回
@@ -258,6 +292,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 <button
                   type="button"
                   className="vocab-grade-button"
+                  title="通常の間隔で復習します"
                   onClick={() => void handleGrade('good')}
                 >
                   OK
@@ -265,6 +300,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 <button
                   type="button"
                   className="vocab-grade-button"
+                  title="間隔を大きく広げて復習します"
                   onClick={() => void handleGrade('easy')}
                 >
                   余裕
@@ -293,9 +329,15 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     return (
       <ScreenLayout
         status={
-          <p>
-            仕分け {triageIndex + 1}/{triageQueue.length}
-          </p>
+          <>
+            <p>
+              仕分け {triageIndex + 1}/{triageQueue.length}
+            </p>
+            {/* 進行中の脱出導線（復習モードと同様） */}
+            <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+              中断
+            </button>
+          </>
         }
         action={
           <>

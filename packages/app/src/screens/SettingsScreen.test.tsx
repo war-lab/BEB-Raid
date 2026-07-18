@@ -159,6 +159,22 @@ describe('SettingsScreen: 永続化', () => {
     expect(cache.clear).toHaveBeenCalled()
   })
 
+  it('再計算ボタンでキャッシュ使用量が再取得される（T-107c）', async () => {
+    const db = newDb()
+    const cache = new FakePackCache()
+    render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.getByText(/2件/)).toBeTruthy()
+
+    // 初回起動のパックDL進行中を模擬: バックグラウンドでキャッシュへ1件追加されても表示は自動更新されない
+    ;(cache as unknown as { stored: Set<string> }).stored.add('c.mp3')
+    expect(screen.getByText(/2件/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('再計算'))
+
+    expect(await screen.findByText(/3件/)).toBeTruthy()
+  })
+
   it('T-72: 永続化状態・端末ストレージ使用量が表示される', async () => {
     const db = newDb()
     Object.defineProperty(navigator, 'storage', {
@@ -259,6 +275,117 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     fireEvent.change(fileInput)
 
     expect(await screen.findByText(/dbVersion/)).toBeTruthy()
+  })
+
+  function emptyBackup(dbVersion: number, overrides: Record<string, unknown[]> = {}) {
+    return {
+      formatVersion: 1,
+      dbVersion,
+      exportedAt: 0,
+      stores: {
+        profile: [],
+        attempts: [],
+        srsCards: [],
+        ratings: [],
+        ratingHistory: [],
+        tagStats: [],
+        phase: [],
+        streak: [],
+        badges: [],
+        pendingSync: [],
+        settings: [],
+        examScores: [],
+        raidState: [],
+        ...overrides,
+      },
+    }
+  }
+
+  it('インポート後、トグル・表示名・テーマ選択がインポートした値で表示される（T-106）', async () => {
+    const db = newDb()
+    await db.profile.put({
+      id: PROFILE_ID,
+      displayName: 'インポート前',
+      initialToeic: null,
+      createdAt: 0,
+      deviceToken: 'token',
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.getByDisplayValue('インポート前')).toBeTruthy()
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(false)
+    expect((screen.getByLabelText('OS追従') as HTMLInputElement).checked).toBe(true)
+
+    const backup = emptyBackup(db.verno, {
+      profile: [
+        {
+          id: PROFILE_ID,
+          displayName: 'インポート後',
+          initialToeic: null,
+          createdAt: 0,
+          deviceToken: 'token',
+        },
+      ],
+      settings: [
+        { key: 'noEarphoneMode', value: true },
+        { key: 'themePreference', value: 'light' },
+      ],
+    })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    await screen.findByText('復元しました。')
+    expect(screen.getByDisplayValue('インポート後')).toBeTruthy()
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByLabelText('ライト') as HTMLInputElement).checked).toBe(true)
+    expect(getTheme()).toBe('light')
+  })
+
+  it('インポート後にApp側へテーマ変更が通知される（T-106: onThemePreferenceChange）', async () => {
+    const db = newDb()
+    const onThemePreferenceChange = vi.fn()
+    render(
+      <SettingsScreen
+        db={db}
+        packCache={new FakePackCache()}
+        raidApi={new FakeRaidApi()}
+        onThemePreferenceChange={onThemePreferenceChange}
+      />,
+    )
+    await flushLoad()
+    onThemePreferenceChange.mockClear() // マウント時の初回通知は対象外にする
+
+    const backup = emptyBackup(db.verno, { settings: [{ key: 'themePreference', value: 'dark' }] })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    await screen.findByText('復元しました。')
+    expect(onThemePreferenceChange).toHaveBeenCalledWith('dark')
+  })
+
+  it('インポート直後のトグル操作が新値基準で書き込まれる（T-106）', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(false)
+
+    const backup = emptyBackup(db.verno, { settings: [{ key: 'noEarphoneMode', value: true }] })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+    await screen.findByText('復元しました。')
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(true)
+
+    // インポート後の初回トグル操作は新しいベースライン(true)からの反転でfalseへ書き込まれる
+    fireEvent.click(screen.getByLabelText(/イヤホンなしモード/))
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('noEarphoneMode'))?.value).toBe(false)
+    })
   })
 })
 
@@ -379,5 +506,83 @@ describe('SettingsScreen: レイドダメージ送信トグル（T-96）', () =>
     await vi.waitFor(async () => {
       expect((await db.settings.get('raidSyncEnabled'))?.value).toBe(true)
     })
+  })
+
+  it('プライバシー境界を説明する文言が表示される（レビューF3(a)）', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    expect(
+      screen.getByText(
+        'レイド参加中、ダメージ換算値と表示名のみをサーバーへ送信します（解答内容や正誤は送信されません）',
+      ),
+    ).toBeTruthy()
+    // joinedゲートで未参加時は送信されないため、旧文言の注意は不要
+    expect(screen.queryByText('レイド参加中のみ有効にしてください')).toBeNull()
+  })
+})
+
+describe('SettingsScreen: 問題別正誤統計トグル（レビューF3(b)）', () => {
+  it('レイド未登録の間はトグルがdisabledで、登録条件の説明が出る', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    const toggle = screen.getByLabelText(/問題別の正誤統計を送信する/) as HTMLInputElement
+    expect(toggle.disabled).toBe(true)
+    expect(
+      screen.getByText(
+        '問題の難易度調整のための匿名統計です（レイド登録済みの場合のみ送信されます）',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('レイド登録済み（raidRegisteredAtあり）ならトグルが有効で永続化できる', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'raidRegisteredAt', value: 1000 })
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    const toggle = screen.getByLabelText(/問題別の正誤統計を送信する/) as HTMLInputElement
+    expect(toggle.disabled).toBe(false)
+    fireEvent.click(toggle)
+
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('questionStatsEnabled'))?.value).toBe(true)
+    })
+  })
+})
+
+describe('SettingsScreen: 表示名とレイド表示名の関係の注記（レビューF3(c)）', () => {
+  it('レイド登録済みなら「レイドの表示名には反映されません」の注記が出る', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'raidRegisteredAt', value: 1000 })
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    expect(
+      screen.getByText(
+        'レイドの表示名には反映されません（レイド画面から再登録すると反映されます）',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('レイド未登録なら注記は出ない', async () => {
+    const db = newDb()
+    render(
+      <SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi(true)} />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/レイドの表示名には反映されません/)).toBeNull()
   })
 })

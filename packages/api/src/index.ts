@@ -72,10 +72,28 @@ export default {
     const preflight = handlePreflight(request, env)
     if (preflight) return preflight
 
-    const response = await route(request, env)
+    // route()内の想定外例外（DO/KV障害等）もCORS付きの500に変換する。
+    // ここで包まないとエラーレスポンスにCORSヘッダが付かず、ブラウザからは
+    // サーバー障害が「CORSエラー」に見えて原因究明を誤誘導する
+    let response: Response
+    try {
+      response = await route(request, env)
+    } catch (e) {
+      console.error(`${request.method} ${new URL(request.url).pathname} で想定外のエラー`, e)
+      response = jsonResponse(
+        { error: { code: 'internal', message: 'サーバー内部でエラーが発生しました' } },
+        500,
+      )
+    }
     return withCors(request, env, response)
   },
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(generateWeeklyBoss(env, controller.scheduledTime))
+    // waitUntil経由の失敗は既定では完全に無音になるため、必ずログに残す
+    // （週1回しか走らないボス生成の失敗は致命的で、無音だと発見が翌週になる）
+    ctx.waitUntil(
+      generateWeeklyBoss(env, controller.scheduledTime).catch((e) => {
+        console.error('週次ボス生成に失敗しました', e)
+      }),
+    )
   },
 } satisfies ExportedHandler<Env>

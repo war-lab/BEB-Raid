@@ -15,6 +15,7 @@ import {
   createRaidApi,
   type PackCache,
 } from './platform'
+import { exportAll } from './services/backup'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
 import { sendQuestionStats } from './services/questionStats'
@@ -33,7 +34,7 @@ import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
 import { VocabScreen } from './screens/VocabScreen'
-import { useAppStore } from './store/appStore'
+import { useAppStore, type ScreenName } from './store/appStore'
 
 /**
  * 配布パック全17件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2。T-32/T-64/T-83〜T-85のPACK_DEFINITIONSと対応。cli側の定義を
@@ -96,6 +97,34 @@ export async function syncPacksAndReload(
   return loadQuestionPool(packCache)
 }
 
+/**
+ * オンライン復帰時のパック再同期ハンドラを作る（T-107a。正本: docs/18 T-107シート）。
+ * オフライン起動でパック取得に失敗した後、オンライン復帰しても再同期されず
+ * 「開き直してください」のまま固まる問題への対処。'online'イベントにバインドする想定で、
+ * 内部のinFlightフラグにより多重実行（矢継ぎ早のonline発火の重複）を防ぐ
+ */
+export function createOnlineResyncHandler(
+  db: BebRaidDatabase,
+  packCache: PackCache,
+  onPoolLoaded: (pool: Question[]) => void,
+): () => void {
+  let inFlight = false
+  return () => {
+    if (inFlight) return
+    inFlight = true
+    void syncPacksAndReload(db, packCache)
+      .then((pool) => {
+        if (pool) onPoolLoaded(pool)
+      })
+      .catch((e: unknown) => {
+        console.warn('[App] オンライン復帰時のパック再同期に失敗', e)
+      })
+      .finally(() => {
+        inFlight = false
+      })
+  }
+}
+
 const audioPlayer = createAudioPlayer()
 const packCache = createPackCache()
 /** BYOK AIクライアント（M2・T-56）。APIキーはsettingsストアから都度読み出す（db直依存を避ける疎結合） */
@@ -127,6 +156,8 @@ export function App() {
   const [retryToken, setRetryToken] = useState(0)
   // T-69: テーマ・文字サイズの起動時適用（14の1.3）。themePreferenceはOS追従リスナーの要否判定に使う
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system')
+  // レビューF6: 起動エラー画面からの緊急エクスポートが失敗したときの表示
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -169,6 +200,21 @@ export function App() {
     }
   }, [themePreference])
 
+  // T-114（docs/18 3.5節・J-55）: ブラウザバック・Androidの戻るジェスチャーへの最小対応。
+  // popstateではnavigate()を呼ばずnavigateFromPopStateを直接呼ぶ（history.pushStateを
+  // 積まないことで、pushState→popstate→pushStateの無限ループを防ぐ）。
+  // ドリル進行中のpopも確認なしで中断扱いにする（activeSessionは保存済みのため
+  // 「続きから再開」で復帰できる。データは失われない）。home表示中の戻るはリスナーが
+  // 拾わないため、ブラウザ既定（アプリ終了）に任せる
+  useEffect(() => {
+    function handlePopState(event: PopStateEvent) {
+      const state = event.state as { screen?: ScreenName } | null
+      useAppStore.getState().navigateFromPopState(state?.screen ?? 'home')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   // ホームに戻るたび（起動時に加え、ドリルの「中断」ボタンからの復帰時も）に
   // 中断状態を再取得する。App自体はscreen切替では再マウントしないため、boot時点の
   // 値のままだと中断直後のセッションが再開ボタンに反映されない
@@ -197,15 +243,33 @@ export function App() {
     }
   }, [])
 
-  // 起動時のレイドダメージ送信（M3・T-96）。失敗無視（syncRaidDamage内部で既に
-  // 通信失敗をcatch済みだが、DB例外等の想定外の失敗もこのeffectを壊さないよう握りつぶす）
+  // T-107(a): オフライン起動でパック取得に失敗した後、オンライン復帰しても再同期されず
+  // 「開き直してください」のまま固まる問題への対処。online復帰のたびに再同期を試みる
   useEffect(() => {
-    void syncRaidDamage(getDb(), raidApi).catch(() => {})
+    let cancelled = false
+    const handleOnline = createOnlineResyncHandler(getDb(), packCache, (pool) => {
+      if (!cancelled) setQuestionPool(pool)
+    })
+    window.addEventListener('online', handleOnline)
+    return () => {
+      cancelled = true
+      window.removeEventListener('online', handleOnline)
+    }
   }, [])
 
-  // 起動時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗無視
+  // 起動時のレイドダメージ送信（M3・T-96）。失敗しても起動は妨げない（syncRaidDamage内部で
+  // 通信失敗はcatch済み。ここに来るのはDB例外等の想定外だけなので、原因追跡用にログは残す）
   useEffect(() => {
-    void sendQuestionStats(getDb(), raidApi).catch(() => {})
+    void syncRaidDamage(getDb(), raidApi).catch((e: unknown) => {
+      console.warn('[raidSync] 起動時同期に失敗', e)
+    })
+  }, [])
+
+  // 起動時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗してもログのみ
+  useEffect(() => {
+    void sendQuestionStats(getDb(), raidApi).catch((e: unknown) => {
+      console.warn('[questionStats] 起動時送信に失敗', e)
+    })
   }, [])
 
   // T-72: ストレージ保全（J-38）。拒否されても動作は変えない（iOS Safariはインストール済み
@@ -214,23 +278,53 @@ export function App() {
     void navigator.storage?.persist?.().catch(() => {})
   }, [])
 
+  // レビューF6: 起動エラー時の緊急エクスポート。設定画面へ遷移できない状況のため、
+  // このボタンから直接ダウンロードさせる。DBが開けない失敗ではエラーメッセージを出す縮退でよい
+  async function handleEmergencyExport() {
+    setExportError(null)
+    try {
+      const backup = await exportAll(getDb())
+      const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      const date = new Date().toISOString().slice(0, 10)
+      anchor.href = url
+      anchor.download = `beb-raid-backup-${date}.json`
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('[App] 緊急エクスポートに失敗', e)
+      setExportError('エクスポートに失敗しました（データベースを開けません）')
+    }
+  }
+
   if (bootError) {
     return (
       <ScreenLayout
         status={<p>起動エラー</p>}
         action={
-          <PrimaryButton
-            onClick={() => {
-              setBootError(null)
-              setRetryToken((n) => n + 1)
-            }}
-          >
-            再試行
-          </PrimaryButton>
+          <>
+            <PrimaryButton
+              onClick={() => {
+                setBootError(null)
+                setRetryToken((n) => n + 1)
+              }}
+            >
+              再試行
+            </PrimaryButton>
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={() => void handleEmergencyExport()}
+            >
+              学習データをエクスポート
+            </button>
+            {exportError && <p className="drill-error">{exportError}</p>}
+          </>
         }
       >
         <p>{bootError}</p>
-        <p>設定→エクスポートで学習データを退避できます</p>
+        <p>学習データはエクスポートで退避できます</p>
       </ScreenLayout>
     )
   }
@@ -263,7 +357,14 @@ export function App() {
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
   if (screen === 'settings') {
-    return <SettingsScreen db={getDb()} packCache={packCache} raidApi={raidApi} />
+    return (
+      <SettingsScreen
+        db={getDb()}
+        packCache={packCache}
+        raidApi={raidApi}
+        onThemePreferenceChange={setThemePreferenceState}
+      />
+    )
   }
   if (screen === 'raid') {
     return (

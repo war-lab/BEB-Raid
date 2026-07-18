@@ -34,3 +34,14 @@ export const QUESTION_STATS_ENABLED_KEY = 'questionStatsEnabled'
  * 次回送信対象とする（3.8節。pendingSyncは使わず集計値の再計算で足りるため）
  */
 export const QUESTION_STATS_LAST_SENT_AT_KEY = 'questionStatsLastSentAt'
+/**
+ * ホームの「今日のクエスト」時間チップ（3/7/15分）の選択値（T-112。docs/18 3.4節）。
+ * 「今日のクエスト」専用でPart2瞬発等の他モードには作用しない。画面遷移・再起動を跨いで
+ * 維持するため、コンポーネントstateではなくここに永続化する
+ */
+export const QUEST_DURATION_KEY = 'questDuration'
+/**
+ * 初期診断（P0）の途中経過の一時保存キー（T-113。docs/18 3節）。診断完了・スキップ時に削除する。
+ * db/database.tsのストア定義は変更せず、既存のsettings（key-value）に間借りする
+ */
+export const DIAGNOSTIC_PROGRESS_KEY = 'diagnosticProgress'

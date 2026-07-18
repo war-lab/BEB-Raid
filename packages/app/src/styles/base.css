@@ -21,6 +21,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* フォーム部品はUA既定（約13.3px Arial等）を継承に置き換える（レビューF8。
+   components.css側の個別font-size指定は詳細度で本ルールを上書きするため共存できる） */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 /* 数字ディスプレイ（ダメージ・HP・タイマー・スコア・ストリーク数） */
 .display-num {
   font-family: var(--font-display);

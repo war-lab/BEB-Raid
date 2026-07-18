@@ -4,6 +4,7 @@ node_modules/
 # ビルド成果物
 dist/
 packages/app/dev-dist/
+*.tsbuildinfo
 
 # ローカル環境変数（LLM/TTSキーは環境変数のみ。リポジトリに含めない）
 .env
