@@ -4,13 +4,14 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import 'fake-indexeddb/auto'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { QuestionPack } from '@beb-raid/shared-schema'
 import { App, PACK_IDS, createOnlineResyncHandler, loadQuestionPool, syncPacksAndReload } from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
 import { createProfile } from './services/profile'
+import { startSession } from './services/session'
 import { useAppStore } from './store/appStore'
 
 beforeEach(() => {
@@ -36,6 +37,52 @@ describe('App（配線確認）', () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
+  })
+})
+
+describe('App: History API最小統合（T-114）', () => {
+  it('navigateで履歴が積まれ、popstateで前画面へ戻る', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    render(<App />)
+    await screen.findByRole('heading', { name: 'BEB Raid' })
+
+    // ダッシュボードへ遷移する（設定画面は実PackCache.usage()がjsdomのcaches未実装で
+    // 例外になるため、このテストでは避ける）
+    const pushStateSpy = vi.spyOn(window.history, 'pushState')
+    fireEvent.click(screen.getByText('ダッシュボード'))
+    await screen.findByText('ダッシュボード', { selector: 'h1' })
+    expect(pushStateSpy).toHaveBeenCalledWith({ screen: 'dashboard' }, '')
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { screen: 'home' } }))
+    })
+
+    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+  })
+
+  it('ドリル中のpopは確認なしで中断扱いになり、ホームで「続きから再開」できる', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    const snapshot = await startSession(getDb(), {
+      items: [
+        { questionId: 'q-1', mode: 'solo' },
+        { questionId: 'q-2', mode: 'solo' },
+      ],
+    })
+    render(<App />)
+    await screen.findByRole('heading', { name: 'BEB Raid' })
+
+    act(() => {
+      useAppStore.getState().navigate('drill')
+    })
+
+    // 確認ダイアログを一切経由せずpopstateだけでホームへ戻る
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { screen: 'home' } }))
+    })
+
+    expect(
+      await screen.findByText(`続きから再開（残り${snapshot.items.length}問）`),
+    ).toBeTruthy()
   })
 })
 

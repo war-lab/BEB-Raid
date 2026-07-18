@@ -34,7 +34,7 @@ import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
 import { VocabScreen } from './screens/VocabScreen'
-import { useAppStore } from './store/appStore'
+import { useAppStore, type ScreenName } from './store/appStore'
 
 /**
  * 配布パック全17件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2。T-32/T-64/T-83〜T-85のPACK_DEFINITIONSと対応。cli側の定義を
@@ -199,6 +199,21 @@ export function App() {
       mql.removeEventListener('change', handleChange)
     }
   }, [themePreference])
+
+  // T-114（docs/18 3.5節・J-55）: ブラウザバック・Androidの戻るジェスチャーへの最小対応。
+  // popstateではnavigate()を呼ばずnavigateFromPopStateを直接呼ぶ（history.pushStateを
+  // 積まないことで、pushState→popstate→pushStateの無限ループを防ぐ）。
+  // ドリル進行中のpopも確認なしで中断扱いにする（activeSessionは保存済みのため
+  // 「続きから再開」で復帰できる。データは失われない）。home表示中の戻るはリスナーが
+  // 拾わないため、ブラウザ既定（アプリ終了）に任せる
+  useEffect(() => {
+    function handlePopState(event: PopStateEvent) {
+      const state = event.state as { screen?: ScreenName } | null
+      useAppStore.getState().navigateFromPopState(state?.screen ?? 'home')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   // ホームに戻るたび（起動時に加え、ドリルの「中断」ボタンからの復帰時も）に
   // 中断状態を再取得する。App自体はscreen切替では再マウントしないため、boot時点の
