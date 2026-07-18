@@ -300,7 +300,14 @@ export function App() {
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
   if (screen === 'settings') {
-    return <SettingsScreen db={getDb()} packCache={packCache} raidApi={raidApi} />
+    return (
+      <SettingsScreen
+        db={getDb()}
+        packCache={packCache}
+        raidApi={raidApi}
+        onThemePreferenceChange={setThemePreferenceState}
+      />
+    )
   }
   if (screen === 'raid') {
     return (

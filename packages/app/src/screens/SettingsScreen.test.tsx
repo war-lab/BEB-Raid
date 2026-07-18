@@ -260,6 +260,117 @@ describe('SettingsScreen: エクスポート/インポート', () => {
 
     expect(await screen.findByText(/dbVersion/)).toBeTruthy()
   })
+
+  function emptyBackup(dbVersion: number, overrides: Record<string, unknown[]> = {}) {
+    return {
+      formatVersion: 1,
+      dbVersion,
+      exportedAt: 0,
+      stores: {
+        profile: [],
+        attempts: [],
+        srsCards: [],
+        ratings: [],
+        ratingHistory: [],
+        tagStats: [],
+        phase: [],
+        streak: [],
+        badges: [],
+        pendingSync: [],
+        settings: [],
+        examScores: [],
+        raidState: [],
+        ...overrides,
+      },
+    }
+  }
+
+  it('インポート後、トグル・表示名・テーマ選択がインポートした値で表示される（T-106）', async () => {
+    const db = newDb()
+    await db.profile.put({
+      id: PROFILE_ID,
+      displayName: 'インポート前',
+      initialToeic: null,
+      createdAt: 0,
+      deviceToken: 'token',
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.getByDisplayValue('インポート前')).toBeTruthy()
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(false)
+    expect((screen.getByLabelText('OS追従') as HTMLInputElement).checked).toBe(true)
+
+    const backup = emptyBackup(db.verno, {
+      profile: [
+        {
+          id: PROFILE_ID,
+          displayName: 'インポート後',
+          initialToeic: null,
+          createdAt: 0,
+          deviceToken: 'token',
+        },
+      ],
+      settings: [
+        { key: 'noEarphoneMode', value: true },
+        { key: 'themePreference', value: 'light' },
+      ],
+    })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    await screen.findByText('復元しました。')
+    expect(screen.getByDisplayValue('インポート後')).toBeTruthy()
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByLabelText('ライト') as HTMLInputElement).checked).toBe(true)
+    expect(getTheme()).toBe('light')
+  })
+
+  it('インポート後にApp側へテーマ変更が通知される（T-106: onThemePreferenceChange）', async () => {
+    const db = newDb()
+    const onThemePreferenceChange = vi.fn()
+    render(
+      <SettingsScreen
+        db={db}
+        packCache={new FakePackCache()}
+        raidApi={new FakeRaidApi()}
+        onThemePreferenceChange={onThemePreferenceChange}
+      />,
+    )
+    await flushLoad()
+    onThemePreferenceChange.mockClear() // マウント時の初回通知は対象外にする
+
+    const backup = emptyBackup(db.verno, { settings: [{ key: 'themePreference', value: 'dark' }] })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    await screen.findByText('復元しました。')
+    expect(onThemePreferenceChange).toHaveBeenCalledWith('dark')
+  })
+
+  it('インポート直後のトグル操作が新値基準で書き込まれる（T-106）', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(false)
+
+    const backup = emptyBackup(db.verno, { settings: [{ key: 'noEarphoneMode', value: true }] })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+    await screen.findByText('復元しました。')
+    expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(true)
+
+    // インポート後の初回トグル操作は新しいベースライン(true)からの反転でfalseへ書き込まれる
+    fireEvent.click(screen.getByLabelText(/イヤホンなしモード/))
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('noEarphoneMode'))?.value).toBe(false)
+    })
+  })
 })
 
 describe('SettingsScreen: BYOK設定（T-55）', () => {
