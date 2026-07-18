@@ -2,7 +2,7 @@
 // 上: ストリーク＋SRS期限数。中: 進行中レイドのHPバー（M3・T-97）。下: 「今日のクエスト」
 // 主ボタン＋3/7/15分チップ→generateQuickPack→セッション開始。下方グリッドは
 // 各モードへの導線（Part2瞬発・Part5・語彙SRS・ダッシュボード・設定）。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { RaidStateRecord } from '../db/schema'
@@ -97,6 +97,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [streakPulse, setStreakPulse] = useState(false)
   // M3・T-97: 進行中レイドの端末内キャッシュ（raidSync=T-96が更新する。無ければ非表示）
   const [raidState, setRaidState] = useState<RaidStateRecord | null>(null)
+  // T-105: 60秒tickで相対時刻・raidEnded判定を更新するための現在時刻state
+  const [nowMs, setNowMs] = useState(now())
+  // T-105: 日付跨ぎ検出用。読込完了時点の日付を覚えておき、visibilitychange時に比較する
+  const loadedDateRef = useRef(toDateString(now()))
+  // T-105: visibilitychangeで日付跨ぎを検出したときに再読込をトリガーするカウンタ
+  const [dateReloadToken, setDateReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -145,6 +151,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       const result = evaluatePhaseCriteria(phaseState.criteria, ctx)
       const metCount = result.evaluations.filter((e) => e.met && !e.insufficientData).length
       setPhaseProgress(result.evaluations.length > 0 ? metCount / result.evaluations.length : null)
+      loadedDateRef.current = toDateString(Date.now())
       setLoaded(true)
     }
     void load().catch((e: unknown) => {
@@ -155,7 +162,27 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     return () => {
       cancelled = true
     }
-  }, [db, questionPool, raidSyncCount])
+  }, [db, questionPool, raidSyncCount, dateReloadToken])
+
+  // T-105(a): 相対時刻・レイド終了判定のtick更新。レイド表示要素があるときのみ起動する
+  useEffect(() => {
+    if (!raidState) return
+    const id = setInterval(() => setNowMs(now()), 60_000)
+    return () => clearInterval(id)
+  }, [raidState])
+
+  // T-105(c): PWAをバックグラウンドから復帰した際、読込時と日付が変わっていたら再読込する
+  // （ストリーク・SRS期限バッジ・ヒートマップが前日値のまま固まる問題への対応）
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      if (toDateString(Date.now()) !== loadedDateRef.current) {
+        setDateReloadToken((n) => n + 1)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   /** 続きから再開（T-67）。既存スナップショットをそのまま beginSession に渡す */
   async function handleResume() {
@@ -228,9 +255,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const showRaidHp = bossName !== null
   const hpPercent =
     raidState && raidState.maxHp > 0 ? Math.round((raidState.hp / raidState.maxHp) * 100) : 0
-  const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - now()) / DAY_MS)) : 0
-  // M3・T-99: オフライン表示規約（3.7節）
-  const lastSyncedLabel = raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : ''
+  const remainingDays = raidState ? Math.max(0, Math.ceil((raidState.endAt - nowMs) / DAY_MS)) : 0
+  // M3・T-99: オフライン表示規約（3.7節）。T-105: nowMsは60秒tickで更新される
+  const lastSyncedLabel = raidState ? formatRelativeTime(nowMs - raidState.lastSyncedAt) : ''
   const syncFailed = raidSyncFailed
 
   return (

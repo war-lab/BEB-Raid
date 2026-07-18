@@ -30,6 +30,7 @@ afterEach(async () => {
   useAppStore.setState({ screen: 'home' })
   useSessionStore.getState().reset()
   resetRaidSyncStoreForTest()
+  vi.useRealTimers()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -808,5 +809,43 @@ describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）',
       screen.getByText('討伐の成立は同期時にサーバーで確定します（表示は最終同期時点のものです）'),
     ).toBeTruthy()
     expect(screen.queryByText('討伐の確定はサーバー側の判定が正です')).toBeNull()
+  })
+})
+
+describe('RaidScreen: 時刻追従（T-105）', () => {
+  it('60秒tickでraidEnded判定・残り日数・最終同期表示が更新される', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    // endAtを70分後に設定し、tickで現在時刻が進むとraidEndedがtrueへ切り替わるようにする
+    raidApi.currentBoss = { ...ACTIVE_BOSS, endAt: Date.now() + 70 * 60_000 }
+
+    // setInterval/clearInterval・Dateのみフェイク化する（setTimeout・Promiseはリアルタイムのまま
+    // 動かし、findByTestId等のRTLの待機処理とのデッドロックを避ける）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+    expect(screen.queryByTestId('raid-ended')).toBeNull()
+
+    await vi.advanceTimersByTimeAsync(80 * 60_000) // 80分進める（endAtを超える）
+
+    await waitFor(() => expect(screen.getByTestId('raid-ended')).toBeTruthy())
+  })
+
+  it('isConfigured=falseならtickは起動しない（例外も出ない）', async () => {
+    const db = newDb()
+    const raidApi = new FakeRaidApi()
+    raidApi.configured = false
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByText('レイド機能は現在利用できません')
+
+    expect(() => vi.advanceTimersByTime(5 * 60_000)).not.toThrow()
   })
 })

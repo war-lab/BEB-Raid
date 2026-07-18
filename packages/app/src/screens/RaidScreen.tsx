@@ -114,6 +114,15 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   // レビューF1(b): 404（今週のボス未生成）と通信失敗を区別する。
   // fetchCurrentBoss()は404をnullで返し、通信失敗はthrowするため、catch側でこのフラグを立てる
   const [bossFetchFailed, setBossFetchFailed] = useState(false)
+  // T-105(b): 相対時刻・raidEnded判定のtick更新用の現在時刻state
+  const [nowMs, setNowMs] = useState(now())
+
+  // レイド機能が利用可能な間だけ60秒tickで現在時刻を進める（raidEnded・残り日数・最終同期表示に使う）
+  useEffect(() => {
+    if (!raidApi.isConfigured()) return
+    const id = setInterval(() => setNowMs(now()), 60_000)
+    return () => clearInterval(id)
+  }, [raidApi])
 
   useEffect(() => {
     let cancelled = false
@@ -386,18 +395,19 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       ? Math.round((currentBoss.hp / currentBoss.maxHp) * 100)
       : 0
   const joined = raidState?.joined === true
-  // M3・T-99: オフライン表示規約（3.7節）。参加前はlastSyncedAtが無意味なのでjoined時のみ表示
+  // M3・T-99: オフライン表示規約（3.7節）。参加前はlastSyncedAtが無意味なのでjoined時のみ表示。
+  // T-105: nowMsは60秒tickで更新される
   const lastSyncedLabel =
-    joined && raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : null
+    joined && raidState ? formatRelativeTime(nowMs - raidState.lastSyncedAt) : null
   const syncFailed = raidSyncFailed
   // レビューF1(d): 討伐済み・期限切れなら参加/挑戦を無効化する（成果ゼロの徒労防止）。
   // 通信失敗でボス最新が取れないときはraidStateキャッシュのendAtで判定する
   const raidEnded = currentBoss
-    ? currentBoss.status !== 'active' || now() > currentBoss.endAt
-    : raidState !== null && now() > raidState.endAt
+    ? currentBoss.status !== 'active' || nowMs > currentBoss.endAt
+    : raidState !== null && nowMs > raidState.endAt
   // レビューF1(f): 残り日数（HomeScreenのremainingDays計算と同じパターン）
   const remainingDays = currentBoss
-    ? Math.max(0, Math.ceil((currentBoss.endAt - now()) / DAY_MS))
+    ? Math.max(0, Math.ceil((currentBoss.endAt - nowMs) / DAY_MS))
     : 0
   // レビューF1(b): 通信失敗時のキャッシュ表示用
   const cachedBossName = parseCachedBossName(raidState)

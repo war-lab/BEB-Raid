@@ -61,6 +61,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   resetRaidSyncStoreForTest()
+  vi.useRealTimers()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -983,5 +984,94 @@ describe('HomeScreen: バックグラウンド同期完了への画面追従（T
         'is-stale',
       )
     })
+  })
+})
+
+describe('HomeScreen: 時刻追従（T-105）', () => {
+  it('60秒tickで「最終同期」の相対表示が更新される', async () => {
+    const db = newDb()
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-W30',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp: 4200,
+      maxHp: 5000,
+      myDamage: 300,
+      joined: true,
+      startAt: Date.now() - 86_400_000,
+      endAt: Date.now() + 2 * 86_400_000,
+      lastSyncedAt: Date.now(),
+    })
+    // setInterval/clearInterval・Dateのみフェイク化する（setTimeout・Promiseはリアルタイムのまま
+    // 動かし、findByTestId等のRTLの待機処理とのデッドロックを避ける）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+    expect((await screen.findByTestId('home-raid-last-synced')).textContent).toContain('たった今')
+
+    await vi.advanceTimersByTimeAsync(90 * 60_000) // 90分進める
+
+    await waitFor(async () => {
+      expect((await screen.findByTestId('home-raid-last-synced')).textContent).toContain('1時間前')
+    })
+  })
+
+  it('raidStateが無ければtickは起動しない（例外も出ない）', async () => {
+    const db = newDb()
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(false)}
+      />,
+    )
+    await flushLoad()
+
+    expect(() => vi.advanceTimersByTime(5 * 60_000)).not.toThrow()
+    expect(screen.queryByTestId('home-raid-hp')).toBeNull()
+  })
+
+  it('visibilitychangeで日付が変わっていたら再読込される（SRS期限バッジの追従で確認）', async () => {
+    const db = newDb()
+    const realNow = Date.now()
+    // マウント時点ではまだ期限が来ていないSRSカード（1日後にdueAt）
+    await db.srsCards.put({
+      id: 'vocab:tomorrow-due',
+      refType: 'vocab',
+      refId: 'tomorrow-due',
+      stage: 1,
+      dueAt: realNow + 20 * 60 * 60_000, // 20時間後
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    expect(screen.queryByText(/SRS期限/)).toBeNull()
+
+    // 日付を跨いで（visibleへの復帰想定）Date.nowを1日進める
+    const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => realNow + 86_400_000)
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    await waitFor(() => expect(screen.getByText('SRS期限 1')).toBeTruthy())
+    dateNowSpy.mockRestore()
   })
 })
