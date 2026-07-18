@@ -4,7 +4,7 @@
 // vocab_card（T-21。クイックパックにkind:'srsVocab'が混在する場合の受け皿）は
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
@@ -132,6 +132,10 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // 'playing'=再生中 / 'played'=再生済み(解答受付可)
   const [playState, setPlayState] = useState<'idle' | 'prereading' | 'playing' | 'played'>('idle')
   const [remainingSec, setRemainingSec] = useState<number | null>(null)
+  // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら、以降の問題は
+  // 自動再生する（毎問「タップして開始」を要求しない）。DrillScreenの再マウント＝新規セッション
+  // でリセットされればよいためrefでよい（stateにすると再生成功のたびに無駄な再レンダーが増える）
+  const hasPlayedOnceRef = useRef(false)
   // audio_set 専用（M2・T-50）: 先読みフェーズの残り秒数
   const [preReadingSecondsLeft, setPreReadingSecondsLeft] = useState<number | null>(null)
   // 先読み秒数の決定に使う現フェーズ（省略時=取得前はP2扱いの15秒でフォールバック）
@@ -160,6 +164,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [sessionError, setSessionError] = useState<string | null>(null)
   // T-78: ハプティクス設定（既定ON）。正解確定時のnavigator.vibrateに使う
   const [hapticsEnabled, setHapticsEnabled] = useState(true)
+  // T-108: 表示不能スキップの非モーダル通知（数秒で自動的に消える）
+  const [skipNotice, setSkipNotice] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -196,7 +202,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const isAudioQa = question?.format === 'audio_qa'
   const isDictation = question?.format === 'dictation'
   const isAudioSet = question?.format === 'audio_set'
-  // dictation・audio_set も audio_qa と同じ「タップして開始」ゲートを使う（音声前提のformat）。
+  // dictation・audio_set も audio_qa と同じ「音声を再生」ゲートを使う（音声前提のformat）。
   // 15秒タイマー（isCountingDown）はaudio_qa固有のため対象外
   const needsAudioGate = isAudioQa || isDictation || isAudioSet
   const isVocabCard = question?.format === 'vocab_card'
@@ -260,6 +266,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
+  // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら（hasPlayedOnceRef）、
+  // 以降の音声ゲート付き問題（audio_qa/dictation/audio_set）は自動再生する。
+  // handlePlayStart は関数宣言（hoisted）のため、この時点で呼び出して問題ない。
+  // 自動再生が拒否された場合はhandlePlayStart内のcatchが従来のタップ開始UIへ戻す
+  useEffect(() => {
+    if (!needsAudioGate || playState !== 'idle' || !hasPlayedOnceRef.current) return
+    // eslint-disable-next-line react-hooks/immutability
+    void handlePlayStart()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question?.id])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
   // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）。
   // 15秒タイマーは audio_qa 固有（dictation は未タイマー=03の8節）
@@ -315,10 +331,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         ? `[DrillScreen] 描画分岐の無いformatのためスキップ: ${item.questionId} (${question.format})`
         : `[DrillScreen] questionIdが解決できないためスキップ: ${item.questionId}`,
     )
+    useSessionStore.getState().incrementSkipped()
     void advanceSession(db, snapshot)
       .then((nextSnapshot) => {
         if (cancelled) return
         useSessionStore.setState({ snapshot: nextSnapshot })
+        setSkipNotice(true)
         if (displayIndex + 1 >= snapshot.items.length) {
           navigate('result')
         } else {
@@ -336,6 +354,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       cancelled = true
     }
   }, [item, question, snapshot, displayIndex, db, navigate])
+
+  // T-108: スキップ通知は数秒で自動的に消える（非モーダル。累計件数はResultScreen側で表示する）
+  useEffect(() => {
+    if (!skipNotice) return
+    const timeout = setTimeout(() => setSkipNotice(false), 4000)
+    return () => clearTimeout(timeout)
+  }, [skipNotice])
 
   // セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を必ず出す
   if (sessionError) {
@@ -515,6 +540,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       setAudioError('音声を再生できませんでした')
       return
     }
+    hasPlayedOnceRef.current = true
     setPlayState('played')
   }
 
@@ -542,6 +568,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       setAudioError('音声を再生できませんでした')
       return
     }
+    hasPlayedOnceRef.current = true
     setPlayState('played')
     if (isAudioQa) setRemainingSec(ANSWER_TIMER_SECONDS)
   }
@@ -711,9 +738,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           <button type="button" className="drill-abort" onClick={() => navigate('home')}>
             中断
           </button>
-          {item.reason && <p className="drill-reason">{formatQuickPackReason(item.reason)}</p>}
+          {skipNotice && (
+            <p className="drill-skip-notice" role="status" data-testid="drill-skip-notice">
+              表示できない問題を1件スキップしました
+            </p>
+          )}
+          {/* T-116(10): レイド挑戦セッション中もヘッダが「今日のドリル」のままでレイド感が
+              無い問題への対処。item.mode='raid'なら出題理由の代わりに「レイド」を出す */}
+          {item.mode === 'raid' ? (
+            <p className="drill-reason" data-testid="drill-raid-header">
+              レイド
+            </p>
+          ) : (
+            item.reason && <p className="drill-reason">{formatQuickPackReason(item.reason)}</p>
+          )}
           {streak > 0 && (
-            <p key={streak} className="session-streak display-num">
+            <p key={streak} className="session-streak display-num" title="セッション内の連続正解数">
               🔥{streak}
             </p>
           )}
@@ -764,6 +804,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                title="間隔を短くしてすぐに復習します"
                 onClick={() => void handleVocabGrade('again')}
               >
                 もう一回
@@ -771,6 +812,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                title="通常の間隔で復習します"
                 onClick={() => void handleVocabGrade('good')}
               >
                 OK
@@ -778,6 +820,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                title="間隔を大きく広げて復習します"
                 onClick={() => void handleVocabGrade('easy')}
               >
                 余裕
@@ -808,11 +851,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 onClick={() => void handlePlayStart()}
                 disabled={playState === 'playing'}
               >
-                {playState === 'playing'
-                  ? '再生中…'
-                  : audioError
-                    ? 'もう一度試す'
-                    : 'タップして開始'}
+                {playState === 'playing' ? '再生中…' : audioError ? 'もう一度試す' : '音声を再生'}
               </PrimaryButton>
               {audioError && isAudioQa && (
                 <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
@@ -833,7 +872,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           {isAudioSet && playState === 'idle' && (
             <>
               <PrimaryButton onClick={() => void handlePlayStart()}>
-                {audioError ? 'もう一度試す' : 'タップして開始'}
+                {audioError ? 'もう一度試す' : '音声を再生'}
               </PrimaryButton>
               {audioError && (
                 <button
@@ -878,7 +917,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={handleDictationReset}>
+              <button type="button" className="dictation-reset" onClick={handleDictationReset}>
                 やり直す
               </button>
               {allBlanksFilled && (

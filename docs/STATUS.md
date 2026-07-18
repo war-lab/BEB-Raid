@@ -108,7 +108,30 @@ M3実装完了を受けて、7観点（バグ/可読性/実機UX/ビジュアル
 
 あわせてdocsと実装のドリフト（17の3.4/3.5/3.7/3.8節・16の2節・04の4節・README・CLAUDE.md）を同ブランチで解消した。
 
-**PR #26で未対応のレビュー残課題（表示更新のリアクティビティ欠如・ドリルUX・History API等）は [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md) にT-103〜T-117・判断J-51〜J-56として自走タスクシート化済み**（発起人が2026-07-18に「修正案を全部やる」と決定。J-51〜J-56は18の3節の記載をもって確定）。**着手前提はPR #26のdevマージ**。次にAIが着手できる作業は、PR #26マージ後の18のT-103以降（実行順序は18の4節）。
+**PR #26で未対応のレビュー残課題（表示更新のリアクティビティ欠如・ドリルUX・History API等）は [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md) にT-103〜T-117・判断J-51〜J-56として自走タスクシート化済み**（発起人が2026-07-18に「修正案を全部やる」と決定。J-51〜J-56は18の3節の記載をもって確定）。
+
+### 2026-07-18: docs/18（T-103〜T-117）を単一ブランチで一括実施・全完了
+
+発起人の「1タスク=1セッション運用をこのセッションに限り上書きし、全タスクを一括実施する」判断（18の1節への例外）に基づき、`task/T-103-117-docs18-batch`ブランチ（origin/devから分岐）でT-103〜T-117の全15タスクを実施し、**保留・未完タスクなし**で完了した。タスクごとに独立コミット（T-103/T-104は密結合のため1コミットに統合。理由はコミットメッセージに記載）。
+
+- **T-103/T-104（レイド同期状態のストア化・手動同期の表示矛盾解消）**: `store/raidSyncStore.ts`新設（syncCount/lastFailed/lastUnauthorized）。旧モジュールスコープフラグ（`isLastRaidSyncFailed`等）を廃止しコードベースから完全に削除。Home/RaidScreenのraidState読込effectがsyncCountの変化に追従。`syncRaidDamage`の戻り値を`{ok, boss}`化し、RaidScreenの「今すぐ同期」が追加fetchなしに表示更新。
+- **T-105（時刻追従）**: Home/RaidScreenに60秒tick（`nowMs` state）を追加し、最終同期・残り日数・raidEnded判定が固まらないようにした。HomeScreenに`visibilitychange`で日付跨ぎ検出→再読込を追加。
+- **T-106（インポート後の設定画面再読込）**: SettingsScreenの初期読込を`load()`関数に切り出し、`importAll`成功後に再実行。テーマ変更をApp.tsxへ通知する`onThemePreferenceChange`コールバックを追加（OS追従リスナーのズレも解消）。
+- **T-107（低優先リアクティビティ一括）**: App.tsxに`createOnlineResyncHandler`（online復帰時のパック再同期。inFlightガード付き）、InstallHintに`appinstalled`購読、SettingsScreenに使用量「再計算」ボタンを追加。
+- **T-108（表示不能スキップの可視化）**: sessionStoreに`skippedCount`を追加。DrillScreenのスキップ時に非モーダル通知を数秒表示し、ResultScreenに件数>0のときのみ行を追加。
+- **T-109（リザルト集計をセッション全体に。🟡人間チェックポイント）**: `snapshot.attemptIds`（startSessionから完了まで累積）経由でdb.attemptsを読み直し、正解数・問題リストを中断・再開を跨いだセッション全体で集計するようにした（従来は再開後の解答分のみで「正解2/3」に見えるバグだった）。レート変動・獲得ポイントはattemptsにbasePointsを保持しないため現行どおり（今回セッション分）。**要目視確認**: 前後の画面差分（正解数の変化）。
+- **T-110（リスニングの自動再生）**: セッション内で一度再生成功したら以降は自動再生。拒否時はタップ開始UIへフォールバック。ボタンラベルを「タップして開始」→「音声を再生」に変更。
+- **T-111（リザルト問題リストの表記改善。🟡人間チェックポイント）**: `resultQuestionLabel`関数を追加。vocab_card=対象語、audio_qa/dictation/audio_set=英文冒頭20字+「…」、その他=設問文、引けない場合はID。**要目視確認**: 表記フォーマットのスクリーンショット。
+- **T-112（時間チップの明確化と保存）**: チップを「今日のクエスト」とグループ化し「クエストの長さ」ラベルを付与。`QUEST_DURATION_KEY`でsettingsへ保存・復元（不正値は既定7分にフォールバック）。
+- **T-113（診断の途中保存・離脱確認。🟡人間チェックポイント）**: 進捗を`diagnosticProgress`（settings一時キー）へ1問ごとに保存。マウント時に残っていれば「続きから再開（N問目から）/最初からやり直す」を提示。完了・スキップで削除。「中断」ボタン追加（プロフィール未作成のままホームへ戻れる）。**要目視確認**: 再開UIの文言。
+- **T-114（History API最小統合。🟡人間チェックポイント）**: `navigate()`が`history.pushState`を積み、popstate専用の`navigateFromPopState()`（history操作なし）を追加（無限ループ防止）。App.tsxにpopstateリスナーを追加。ドリル中のpopは確認なしで中断扱い（activeSession保存済みのため復帰可）。**要確認**: 実機（Android実機/エミュレータ）でのジェスチャー確認は未実施（🔴人間主体）。
+- **T-115（RaidApiErrorのstatus化と401抑止。共有面のため単独PR規則の例外を適用）**: `RaidApiError`に`status?: number`を追加し文字列正規表現判定から置換。`syncRaidDamage`に「未登録（raidRegisteredAt無し）なら即return」のゲートを追加（既存3段ゲートに1段追加）。
+- **T-116（細部UI・用語説明の一括改修。10項目）**: オンボーディングのラベルブロック配置化・favicon 404解消・ヒートマップの凡例＋タイトル・WeakBarsの文字サイズ引き上げ（実効12px以上）・ディクテーション「やり直す」のタップ領域確保・設定画面の用語説明追加（永続化無効時の説明・BYOK補足）・SRS自己評価ボタン/コンボのツールチップ・Part2瞬発の選択UIをモーダル化（スクロール不要）・レイド「参加者」→「貢献者」表記＋登録フォーム冒頭の機能説明・レイド挑戦セッションのヘッダを「レイド」に切替。**要目視確認**: favicon表示・ヒートマップ凡例・WeakBars文字サイズ・用語説明・ツールチップ（項目2/3/4/6/7は表示のみのため）。
+- **T-117（ADR追記・docs整合）**: ADR 0005に「2026-07-18 Amendment」節を追加（冪等性実装=SELECT→INSERT 2段・attemptId表は破棄しない・startAt=ISO週開始時刻・入力値検証・observability有効化）。adr/README.mdの一覧表に抜けていた0003〜0005を追加。
+
+**最終検証（全タスク完了後。同一ブランチ内）**: ルートで`npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 78件/app 642件/cli 305件/review-ui 15件/shared-schema 47件、計1147件）すべて通過。Playwright実機相当確認（vite起動・375×812）: クエスト開始→2問解答（T-110の2問目以降自動再生を確認）・T-112のチップ選択が再読込を跨いで保持されることを確認・ブラウザバックで前画面（ドリル→ホーム）に確認なしで戻り「続きから再開」が表示されること（T-114）を確認・設定画面のインポート後に表示名/テーマ/トグルが再読込なしで反映されること（T-106）を確認。**スキップ通知（T-108）は自然発生させられなかった**（既存コンテンツパックにquestionId不明・未対応format混入が無いため。ユニットテストでのみ検証済み）。コンソールエラー・警告は0件。検証後にdevサーバー停止・一時ファイル（スクリーンショット・エクスポートしたバックアップJSON）は削除済み。
+
+- 保留・未完タスクは**なし**。次のAI着手可能タスクは無し（T-93実デプロイ=H-1待ち、M2残タスクT-65/T-66・T-114の実機ジェスチャー確認=H-3扱い、は人間主体）。
 
 ### M3の次のアクション（次セッションはここから）
 
@@ -123,7 +146,7 @@ M3実装完了を受けて、7観点（バグ/可読性/実機UX/ビジュアル
 
 **T-93 部分完了（2026-07-17。task/T-93-api-deploy-workflow ブランチ）**: H-1（Cloudflareアカウント）未了のため、アカウント不要でAI実施可能な部分を先行整備した。①`.github/workflows/api-deploy.yml` を新設: `main`へのpush（paths: `packages/api/**`）で `wrangler deploy --env dev`、`workflow_dispatch`で環境選択（production は手動実行のみ）。`cloudflare/wrangler-action@v3`（`workingDirectory: packages/api`・`command: deploy --env ...`）を使用し、デプロイ前ゲートとして shared-schemaビルド→api型検査（tsc --noEmit）→apiテストを走らせる。**H-1未了（`CLOUDFLARE_API_TOKEN`未設定）時はデプロイstepをスキップするguard step付き**（発起人判断でmainへ先行マージするため、H-1前はワークフローが緑で終わりmainに赤バッジを出さない。H-1後にトークンを設定すれば自動でデプロイ有効化）。②**wrangler.tomlのenv継承バグを発見・修正（T-93の主要成果）**: `wrangler deploy --env dev --dry-run` で「durable_objects が env.dev に無い」警告を検出。名前付き環境はバインディング（vars・kv_namespaces・durable_objects）をトップレベルから継承しないため、`--env dev`/`--env production`デプロイ（package.jsonのdeploy:dev/production・api-deploy.yml が使う経路）ではRAID_BOSS/STATS DOがバインドされずレイドが丸ごと動かない潜在バグだった。`[[env.dev.durable_objects.bindings]]`・`[[env.production.durable_objects.bindings]]`を追加して解消（dry-runで両環境ともDO2個がバインドされることを確認）。**このバグはvitest（`--env`なしのトップレベル設定を使う）・ローカル`wrangler dev`（同上）では顕在化せず、`--env`デプロイでのみ壊れるため既存テストで検出できなかった**。`migrations`・`triggers`(cron)・`compatibility_date`は継承されるため再定義不要（dry-runで警告が出るのはdurable_objectsのみ＝継承されないものだけ警告される挙動と一致）。③**🟡 H-1後の確認事項**: (a) KV id 3箇所（`REPLACE_WITH_REAL_KV_NAMESPACE_ID*`）を実IDへ転記、(b) 実デプロイで `/health` 200、(c) アプリオリジンからのCORS疎通、(d) cronがデプロイ環境に実際にアタッチされたか（`triggers`継承はドキュメント上は成立するが実デプロイ出力で要確認）。**停止条件（DO無料枠）は未確認**: DOがアカウントのプランで使えるか（有料Workers Paid要否）はH-1着手時に必ず確認する。検証: `wrangler deploy --env dev/production --dry-run` 通過（バンドル26.47KiB）、api build＋テスト71件通過、YAML parse OK、ルート `npm run lint`・`npm run build`・`npm test` 通過。
 
-- T-93の実デプロイ以外は完了。次にAI単独で着手できるM3タスクは無い（実デプロイはH-1、H-2/H-3は人間主体）。M2残タスク（T-65・T-66）も🔴人間主体。**AI単独で着手できる次の作業は18のT-103以降（PR #26マージ後）**。
+- T-93の実デプロイ以外は完了。次にAI単独で着手できるM3タスクは無い（実デプロイはH-1、H-2/H-3は人間主体）。M2残タスク（T-65・T-66）も🔴人間主体。**docs/18（T-103〜T-117）は2026-07-18に全完了**（詳細は上記の該当節）。現時点でAI単独で着手できる次の作業は無い（残るのは人間主体タスクのみ）。
 - 事前決定事項の正文は[17_M3実装計画](17_M3実装計画.md)全節。T-93着手時は3.10節・5節T-93シートを読むこと。
 - ブランチ運用は**17の2.1節（task/T-10x-説明 ブランチ＋dev向けドラフトPR）が正本**。T-100〜T-102は発起人の指示で例外的にdev直接commitとしたが、通常はこの運用に戻る（次タスク着手前に発起人へ確認すること）。
 

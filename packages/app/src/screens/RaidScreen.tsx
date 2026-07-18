@@ -12,15 +12,11 @@ import { formatRelativeTime } from '../engine/relativeTime'
 import type { RaidApi } from '../platform'
 import { RaidApiError } from '../platform'
 import { getOrInitPhaseState } from '../services/phase'
-import {
-  isLastRaidSyncFailed,
-  isLastRaidSyncUnauthorized,
-  RAID_FIRST_CLEAR_BADGE_ID,
-  syncRaidDamage,
-} from '../services/raidSync'
+import { RAID_FIRST_CLEAR_BADGE_ID, syncRaidDamage } from '../services/raidSync'
 import { startSession, type SessionSnapshot } from '../services/session'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -65,14 +61,16 @@ export function raidBadgeLabel(badgeId: string): string {
   return `討伐: ${bossId}`
 }
 
-/** 登録失敗時のエラーメッセージ出し分け（レビューF1(g)）。
- * RaidApiErrorはkindがunauthorized/network/timeout/unknownの4種で、401以外の400系は
- * kind='unknown'にHTTPステータスをメッセージ（`（4xx）`）として持つため、そこから判別する */
+/** 登録失敗時のエラーメッセージ出し分け（レビューF1(g)・T-115）。
+ * RaidApiError.status（実際のHTTPステータス）で判定する。401以外の400系はkind='unknown'に
+ * status=4xxが入る（T-115で文字列の正規表現判定から置き換えた。エラーメッセージの
+ * 文言変更に引きずられない） */
 function registerErrorMessage(e: unknown): string {
   if (e instanceof RaidApiError) {
     if (e.kind === 'unauthorized') return '招待コードが正しくありません'
-    const status = /（(\d{3})）/.exec(e.message)?.[1]
-    if (status?.startsWith('4')) return '入力内容を確認してください'
+    if (e.status !== undefined && e.status >= 400 && e.status < 500) {
+      return '入力内容を確認してください'
+    }
   }
   return '登録に失敗しました。通信を確認してください'
 }
@@ -95,6 +93,9 @@ async function loadRaidBadges(db: BebRaidDatabase): Promise<BadgeRecord[]> {
 export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
+  // T-103: バックグラウンド同期の完了通知（syncCountが変わるたびに再読込）
+  const raidSyncCount = useRaidSyncStore((s) => s.syncCount)
+  const raidSyncFailed = useRaidSyncStore((s) => s.lastFailed)
 
   const [loaded, setLoaded] = useState(false)
   const [registered, setRegistered] = useState(false)
@@ -115,6 +116,15 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   // レビューF1(b): 404（今週のボス未生成）と通信失敗を区別する。
   // fetchCurrentBoss()は404をnullで返し、通信失敗はthrowするため、catch側でこのフラグを立てる
   const [bossFetchFailed, setBossFetchFailed] = useState(false)
+  // T-105(b): 相対時刻・raidEnded判定のtick更新用の現在時刻state
+  const [nowMs, setNowMs] = useState(now())
+
+  // レイド機能が利用可能な間だけ60秒tickで現在時刻を進める（raidEnded・残り日数・最終同期表示に使う）
+  useEffect(() => {
+    if (!raidApi.isConfigured()) return
+    const id = setInterval(() => setNowMs(now()), 60_000)
+    return () => clearInterval(id)
+  }, [raidApi])
 
   useEffect(() => {
     let cancelled = false
@@ -161,6 +171,30 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       cancelled = true
     }
   }, [db, raidApi])
+
+  // T-103: バックグラウンド同期完了時、DBキャッシュ（raidState・獲得バッジ）だけ再読込する。
+  // fetchCurrentBossは呼ばない（T-104: 手動同期はsyncDamageのレスポンスbossで直接更新するため、
+  // ここで再fetchすると二重更新・無駄な通信になる）
+  useEffect(() => {
+    let cancelled = false
+    async function reload() {
+      try {
+        const [raidStateRecord, badges] = await Promise.all([
+          db.raidState.get(RAID_STATE_ID),
+          loadRaidBadges(db),
+        ])
+        if (cancelled) return
+        setRaidState(raidStateRecord ?? null)
+        setRaidBadges(badges)
+      } catch (e) {
+        console.warn('[RaidScreen] 同期完了後の再読込に失敗', e)
+      }
+    }
+    void reload()
+    return () => {
+      cancelled = true
+    }
+  }, [db, raidSyncCount])
 
   async function handleRegister() {
     setRegisterError(null)
@@ -244,9 +278,9 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
 
   async function handleManualSync() {
     setSyncError(null)
-    const ok = await syncRaidDamage(db, raidApi)
-    if (!ok) {
-      const unauthorized = isLastRaidSyncUnauthorized()
+    const result = await syncRaidDamage(db, raidApi)
+    if (!result.ok) {
+      const unauthorized = useRaidSyncStore.getState().lastUnauthorized
       // レビューF1(c): 401なら「再登録する」ボタンを出す（syncUnauthorized経由）
       setSyncUnauthorized(unauthorized)
       setSyncError(
@@ -257,13 +291,13 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       return
     }
     setSyncUnauthorized(false)
-    const [updatedRaidState, updatedBoss, updatedBadges] = await Promise.all([
+    // T-104: レスポンスのbossで直接更新する（追加のfetchCurrentBossは不要。バッジ再取得のみ従来どおり）
+    const [updatedRaidState, updatedBadges] = await Promise.all([
       db.raidState.get(RAID_STATE_ID),
-      raidApi.fetchCurrentBoss().catch(() => null),
       loadRaidBadges(db),
     ])
     setRaidState(updatedRaidState ?? null)
-    if (updatedBoss) setCurrentBoss(updatedBoss)
+    if (result.boss) setCurrentBoss(result.boss)
     setRaidBadges(updatedBadges)
   }
 
@@ -315,6 +349,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
         }
       >
         <div className="settings-list" data-testid="raid-register-form">
+          {/* T-116(9): レイドが何をする機能か分からないという指摘への対処 */}
+          <p className="settings-note">
+            チームで週次ボスのHPを削る協力イベントです。招待コードは主催者から受け取ってください。
+          </p>
           <section>
             <label>
               招待コード
@@ -363,18 +401,19 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       ? Math.round((currentBoss.hp / currentBoss.maxHp) * 100)
       : 0
   const joined = raidState?.joined === true
-  // M3・T-99: オフライン表示規約（3.7節）。参加前はlastSyncedAtが無意味なのでjoined時のみ表示
+  // M3・T-99: オフライン表示規約（3.7節）。参加前はlastSyncedAtが無意味なのでjoined時のみ表示。
+  // T-105: nowMsは60秒tickで更新される
   const lastSyncedLabel =
-    joined && raidState ? formatRelativeTime(now() - raidState.lastSyncedAt) : null
-  const syncFailed = isLastRaidSyncFailed()
+    joined && raidState ? formatRelativeTime(nowMs - raidState.lastSyncedAt) : null
+  const syncFailed = raidSyncFailed
   // レビューF1(d): 討伐済み・期限切れなら参加/挑戦を無効化する（成果ゼロの徒労防止）。
   // 通信失敗でボス最新が取れないときはraidStateキャッシュのendAtで判定する
   const raidEnded = currentBoss
-    ? currentBoss.status !== 'active' || now() > currentBoss.endAt
-    : raidState !== null && now() > raidState.endAt
+    ? currentBoss.status !== 'active' || nowMs > currentBoss.endAt
+    : raidState !== null && nowMs > raidState.endAt
   // レビューF1(f): 残り日数（HomeScreenのremainingDays計算と同じパターン）
   const remainingDays = currentBoss
-    ? Math.max(0, Math.ceil((currentBoss.endAt - now()) / DAY_MS))
+    ? Math.max(0, Math.ceil((currentBoss.endAt - nowMs) / DAY_MS))
     : 0
   // レビューF1(b): 通信失敗時のキャッシュ表示用
   const cachedBossName = parseCachedBossName(raidState)
@@ -475,7 +514,9 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
             HP残り <span className="display-num">{hpPercent}</span>%
           </p>
           {!raidEnded && <p data-testid="raid-remaining-days">残り{remainingDays}日</p>}
-          <p>参加者 {currentBoss.participantCount}人</p>
+          {/* T-116(9): 参加ボタンを押しただけではカウントされない実態（貢献ダメージの
+              送信者数）に合わせたラベルへ変更 */}
+          <p>貢献者 {currentBoss.participantCount}人</p>
           {joined && (
             <p>
               自分の貢献ダメージ: <span className="display-num">{currentBoss.myDamage}</span>

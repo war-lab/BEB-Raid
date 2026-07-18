@@ -31,6 +31,12 @@ export class RaidApiError extends Error {
     message: string,
     // 元例外を診断用にcauseへ残せるようにする（ES2022のErrorOptions）
     options?: ErrorOptions,
+    /**
+     * HTTPステータス（T-115。docs/18 T-115シート）。レスポンスを受け取れた場合のみ設定する
+     * （network/timeoutはHTTP応答自体が無いためundefinedのまま）。呼び出し側（RaidScreen等）は
+     * エラーメッセージ文字列の正規表現判定ではなく、この数値で出し分ける
+     */
+    public readonly status?: number,
   ) {
     super(message, options)
     this.name = 'RaidApiError'
@@ -120,7 +126,7 @@ export class FetchRaidApi implements RaidApi {
     if (allowNotFound && res.status === 404) return null
     if (!res.ok) {
       if (res.status === 401) {
-        throw new RaidApiError('unauthorized', '認証エラーです（401）')
+        throw new RaidApiError('unauthorized', '認証エラーです（401）', undefined, res.status)
       }
       // サーバー（packages/api）はエラー詳細を { error: { code } } で返すため、読めれば
       // メッセージへ含める（例:「400 invalid_body」）。本文がJSONでない・形式が違う場合は
@@ -132,7 +138,12 @@ export class FetchRaidApi implements RaidApi {
       } catch {
         // 本文読取失敗はステータスのみで続行
       }
-      throw new RaidApiError('unknown', `レイドAPIの呼び出しに失敗しました（${detail}）`)
+      throw new RaidApiError(
+        'unknown',
+        `レイドAPIの呼び出しに失敗しました（${detail}）`,
+        undefined,
+        res.status,
+      )
     }
     return res
   }

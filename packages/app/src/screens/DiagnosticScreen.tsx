@@ -19,6 +19,7 @@ import type { AudioPlayer } from '../platform'
 import { recordAttempt } from '../services/attempts'
 import { countAttemptsToday } from '../services/dailyStats'
 import { createProfile } from '../services/profile'
+import { DIAGNOSTIC_PROGRESS_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
@@ -34,6 +35,17 @@ interface Props {
 }
 
 type Step = 'intro' | 'quiz' | 'complete'
+
+/** 診断の途中経過（T-113）。settingsのDIAGNOSTIC_PROGRESS_KEYに保存する一時データ */
+interface DiagnosticProgress {
+  displayName: string
+  toeicInput: string
+  turn: number
+  ratingL: number
+  ratingR: number
+  askedL: string[]
+  askedR: string[]
+}
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ
 function now(): number {
@@ -64,6 +76,22 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     count: number
     streakDays: number
   } | null>(null)
+  // T-113: 診断途中経過の永続化。マウント時に残っていれば再開/やり直しを提示する
+  const [progressChecked, setProgressChecked] = useState(false)
+  const [savedProgress, setSavedProgress] = useState<DiagnosticProgress | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void db.settings.get(DIAGNOSTIC_PROGRESS_KEY).then((setting) => {
+      if (cancelled) return
+      setSavedProgress((setting?.value as DiagnosticProgress | undefined) ?? null)
+      setProgressChecked(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [db])
+
   useEffect(() => {
     if (step !== 'complete') return
     let cancelled = false
@@ -83,14 +111,50 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     if (trimmed === '') return
     const toeic = toeicInput.trim() === '' ? null : Number(toeicInput)
     const fallback = DEFAULT_INITIAL_RATING
-    setRatingL(initialRatingFromToeic(toeic, fallback))
-    setRatingR(initialRatingFromToeic(toeic, fallback))
+    const initialL = initialRatingFromToeic(toeic, fallback)
+    const initialR = initialRatingFromToeic(toeic, fallback)
+    setRatingL(initialL)
+    setRatingR(initialR)
     setAskedL(new Set())
     setAskedR(new Set())
     setTurn(0)
     setStartedAt(now())
     setPlayState('idle')
     setStep('quiz')
+    void db.settings.put({
+      key: DIAGNOSTIC_PROGRESS_KEY,
+      value: {
+        displayName: trimmed,
+        toeicInput,
+        turn: 0,
+        ratingL: initialL,
+        ratingR: initialR,
+        askedL: [],
+        askedR: [],
+      } satisfies DiagnosticProgress,
+    })
+  }
+
+  /** T-113: 途中経過から再開する（保存済みstateを復元してquizへ進む） */
+  function handleResumeProgress() {
+    if (!savedProgress) return
+    setDisplayName(savedProgress.displayName)
+    setToeicInput(savedProgress.toeicInput)
+    setRatingL(savedProgress.ratingL)
+    setRatingR(savedProgress.ratingR)
+    setAskedL(new Set(savedProgress.askedL))
+    setAskedR(new Set(savedProgress.askedR))
+    setTurn(savedProgress.turn)
+    setStartedAt(now())
+    setPlayState('idle')
+    setSavedProgress(null)
+    setStep('quiz')
+  }
+
+  /** T-113: 途中経過を破棄して最初からやり直す */
+  function handleRestartProgress() {
+    void db.settings.delete(DIAGNOSTIC_PROGRESS_KEY)
+    setSavedProgress(null)
   }
 
   /**
@@ -106,12 +170,37 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     const rating = initialRatingFromToeic(toeic, DEFAULT_INITIAL_RATING)
     await initializeRatings(db, { listening: rating, reading: rating })
     await createProfile(db, { displayName: trimmed, initialToeic: toeic })
+    // T-113: スキップ時も途中経過を消す（残っていた別セッションの途中経過を含む）
+    await db.settings.delete(DIAGNOSTIC_PROGRESS_KEY)
     setResultL(rating)
     setResultR(rating)
     setStep('complete')
   }
 
   if (step === 'intro') {
+    // T-113: 途中経過の有無を確認するまでは何も出さない（settingsの1回読み込みのみで即完了する）
+    if (!progressChecked) return null
+
+    if (savedProgress) {
+      return (
+        <ScreenLayout
+          action={
+            <>
+              <PrimaryButton onClick={handleResumeProgress}>
+                続きから再開（{savedProgress.turn + 1}問目から）
+              </PrimaryButton>
+              <button type="button" className="secondary-action" onClick={handleRestartProgress}>
+                最初からやり直す
+              </button>
+            </>
+          }
+        >
+          <h1 style={{ fontSize: 'var(--fs-heading)' }}>診断を再開しますか？</h1>
+          <p>前回の診断が途中で終わっています。続きから再開できます。</p>
+        </ScreenLayout>
+      )
+    }
+
     const toeicValid = toeicInput.trim() === '' || !Number.isNaN(Number(toeicInput))
     const canSkip = toeicInput.trim() !== '' && toeicValid && displayName.trim() !== ''
     return (
@@ -140,23 +229,27 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
         <h1 style={{ fontSize: 'var(--fs-heading)' }}>ようこそ</h1>
         <p>30問（リスニング15問・リーディング15問）に答えると、あなたの今のレートを推定します。</p>
         <p>自己申告TOEICスコアを入力すると、診断をスキップしてすぐ始めることもできます。</p>
-        <label>
-          表示名
-          <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="表示名"
-          />
-        </label>
-        <label>
-          自己申告TOEICスコア（任意）
-          <input
-            value={toeicInput}
-            onChange={(e) => setToeicInput(e.target.value)}
-            inputMode="numeric"
-            placeholder="例: 650"
-          />
-        </label>
+        {/* T-116(1): 375px幅でラベルと入力欄が同一行に詰まり折返しが乱れる問題への対処。
+            settings-listの既存スタイル（label display:block）をブロック配置に流用する */}
+        <div className="settings-list">
+          <label>
+            表示名
+            <input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="表示名"
+            />
+          </label>
+          <label>
+            自己申告TOEICスコア（任意）
+            <input
+              value={toeicInput}
+              onChange={(e) => setToeicInput(e.target.value)}
+              inputMode="numeric"
+              placeholder="例: 650"
+            />
+          </label>
+        </div>
       </ScreenLayout>
     )
   }
@@ -256,14 +349,16 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     }
 
     const nextTurn = turn + 1
+    const finalListening = section === 'L' ? newRating : ratingL
+    const finalReading = section === 'R' ? newRating : ratingR
     if (nextTurn >= DIAGNOSTIC_TOTAL_ITEMS) {
-      const finalListening = section === 'L' ? newRating : ratingL
-      const finalReading = section === 'R' ? newRating : ratingR
       await initializeRatings(db, { listening: finalListening, reading: finalReading })
       await createProfile(db, {
         displayName: displayName.trim(),
         initialToeic: toeicInput.trim() === '' ? null : Number(toeicInput),
       })
+      // T-113: 完了時に途中経過を消す
+      await db.settings.delete(DIAGNOSTIC_PROGRESS_KEY)
       setResultL(finalListening)
       setResultR(finalReading)
       setStep('complete')
@@ -273,6 +368,19 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     setStartedAt(now())
     setPlayState('idle')
     setAudioError(null)
+    // T-113: 1問ごとに途中経過を保存する（中断→再開で1問目からやり直しにならないように）
+    void db.settings.put({
+      key: DIAGNOSTIC_PROGRESS_KEY,
+      value: {
+        displayName: displayName.trim(),
+        toeicInput,
+        turn: nextTurn,
+        ratingL: finalListening,
+        ratingR: finalReading,
+        askedL: [...(section === 'L' ? nextAsked : askedL)],
+        askedR: [...(section === 'R' ? nextAsked : askedR)],
+      } satisfies DiagnosticProgress,
+    })
   }
 
   return (
@@ -280,6 +388,9 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       status={
         <>
           <SessionProgress current={turn + 1} total={DIAGNOSTIC_TOTAL_ITEMS} />
+          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            中断
+          </button>
           <p>{section === 'L' ? 'リスニング' : 'リーディング'}</p>
         </>
       }

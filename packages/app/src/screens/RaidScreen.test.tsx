@@ -10,9 +10,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
-import { resetRaidSyncFlagsForTest, syncRaidDamage } from '../services/raidSync'
+import { syncRaidDamage } from '../services/raidSync'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { raidBadgeLabel, RaidScreen } from './RaidScreen'
 
@@ -28,7 +29,8 @@ function newDb(): BebRaidDatabase {
 afterEach(async () => {
   useAppStore.setState({ screen: 'home' })
   useSessionStore.getState().reset()
-  resetRaidSyncFlagsForTest()
+  resetRaidSyncStoreForTest()
+  vi.useRealTimers()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -66,7 +68,7 @@ class FakeRaidApi implements RaidApi {
       throw new RaidApiError('network', '通信エラー')
     }
     if (this.registerShouldFail === 'badRequest') {
-      throw new RaidApiError('unknown', 'レイドAPIの呼び出しに失敗しました（400）')
+      throw new RaidApiError('unknown', 'レイドAPIの呼び出しに失敗しました（400）', undefined, 400)
     }
   })
   fetchCurrentBoss = vi.fn(async () => {
@@ -303,6 +305,26 @@ describe('RaidScreen: オフライン表示規約（M3・T-99）', () => {
     expect(label.className).toContain('is-stale')
   })
 
+  it('マウント後の同期完了で、再マウントなしにis-stale表示が追従する（T-103）', async () => {
+    const { db, raidApi } = await joinedSetupWithSync(Date.now())
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+    expect((await screen.findByTestId('raid-last-synced')).className).not.toContain('is-stale')
+
+    raidApi.syncDamage = vi.fn(async () => {
+      throw new Error('network error')
+    })
+    await syncRaidDamage(db, raidApi)
+
+    await waitFor(async () => {
+      expect((await screen.findByTestId('raid-last-synced')).className).toContain('is-stale')
+    })
+  })
+
   it('参加前（未joined）は最終同期表示を出さない', async () => {
     const db = newDb()
     await putProfile(db)
@@ -499,6 +521,44 @@ describe('RaidScreen: 404と通信失敗の区別（レビューF1(b)）', () =>
     expect(await screen.findByText('最新情報を取得できませんでした')).toBeTruthy()
     expect(screen.queryByTestId('raid-boss-cached')).toBeNull()
     expect(screen.queryByText('今週のボスはまだ生成されていません')).toBeNull()
+  })
+})
+
+describe('RaidScreen: 手動同期の表示更新（T-104）', () => {
+  it('同期成功時、追加fetchなしでボス表示が更新される（fetchCurrentBossは再呼びされない）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: ACTIVE_BOSS.bossId,
+      profileJson: JSON.stringify({ name: ACTIVE_BOSS.name }),
+      hp: ACTIVE_BOSS.hp,
+      maxHp: ACTIVE_BOSS.maxHp,
+      myDamage: ACTIVE_BOSS.myDamage,
+      joined: true,
+      startAt: ACTIVE_BOSS.startAt,
+      endAt: ACTIVE_BOSS.endAt,
+      lastSyncedAt: Date.now() - 60_000,
+    })
+    const raidApi = new FakeRaidApi()
+    const SYNCED_BOSS: RaidBossState = { ...ACTIVE_BOSS, hp: 1000, myDamage: 900 }
+    raidApi.syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: SYNCED_BOSS }))
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+    const fetchCallsBeforeSync = raidApi.fetchCurrentBoss.mock.calls.length
+
+    fireEvent.click(screen.getByText('今すぐ同期'))
+
+    await waitFor(() => {
+      const boss = screen.getByTestId('raid-boss')
+      expect(boss.textContent).toContain('HP残り 20%') // 1000/5000
+    })
+    expect(raidApi.fetchCurrentBoss.mock.calls.length).toBe(fetchCallsBeforeSync)
   })
 })
 
@@ -714,6 +774,40 @@ describe('RaidScreen: 登録フォームの入力チェック・エラー出し�
       ),
     ).toBeTruthy()
   })
+
+  it('登録フォーム冒頭に機能説明が表示される（T-116(9)）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-register-form')
+
+    expect(
+      screen.getByText(
+        'チームで週次ボスのHPを削る協力イベントです。招待コードは主催者から受け取ってください。',
+      ),
+    ).toBeTruthy()
+  })
+})
+
+describe('RaidScreen: 貢献者ラベル（T-116(9)）', () => {
+  it('「参加者 N人」ではなく「貢献者 N人」と表示される', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    const boss = await screen.findByTestId('raid-boss')
+
+    expect(boss.textContent).toContain(`貢献者 ${ACTIVE_BOSS.participantCount}人`)
+    expect(screen.queryByText(`参加者 ${ACTIVE_BOSS.participantCount}人`)).toBeNull()
+  })
 })
 
 describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）', () => {
@@ -749,5 +843,43 @@ describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）',
       screen.getByText('討伐の成立は同期時にサーバーで確定します（表示は最終同期時点のものです）'),
     ).toBeTruthy()
     expect(screen.queryByText('討伐の確定はサーバー側の判定が正です')).toBeNull()
+  })
+})
+
+describe('RaidScreen: 時刻追従（T-105）', () => {
+  it('60秒tickでraidEnded判定・残り日数・最終同期表示が更新される', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    // endAtを70分後に設定し、tickで現在時刻が進むとraidEndedがtrueへ切り替わるようにする
+    raidApi.currentBoss = { ...ACTIVE_BOSS, endAt: Date.now() + 70 * 60_000 }
+
+    // setInterval/clearInterval・Dateのみフェイク化する（setTimeout・Promiseはリアルタイムのまま
+    // 動かし、findByTestId等のRTLの待機処理とのデッドロックを避ける）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+    expect(screen.queryByTestId('raid-ended')).toBeNull()
+
+    await vi.advanceTimersByTimeAsync(80 * 60_000) // 80分進める（endAtを超える）
+
+    await waitFor(() => expect(screen.getByTestId('raid-ended')).toBeTruthy())
+  })
+
+  it('isConfigured=falseならtickは起動しない（例外も出ない）', async () => {
+    const db = newDb()
+    const raidApi = new FakeRaidApi()
+    raidApi.configured = false
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByText('レイド機能は現在利用できません')
+
+    expect(() => vi.advanceTimersByTime(5 * 60_000)).not.toThrow()
   })
 })

@@ -9,8 +9,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
-import { isLastRaidSyncUnauthorized, resetRaidSyncFlagsForTest, syncRaidDamage } from './raidSync'
-import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
+import { resetRaidSyncStoreForTest, useRaidSyncStore } from '../store/raidSyncStore'
+import { syncRaidDamage } from './raidSync'
+import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -22,7 +23,7 @@ function newDb(): BebRaidDatabase {
 }
 
 afterEach(async () => {
-  resetRaidSyncFlagsForTest()
+  resetRaidSyncStoreForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -60,6 +61,7 @@ class FakeRaidApi implements RaidApi {
 
 /** 参加中のraidStateを仕込む。bossIdは既定でレスポンス（BOSS）と同一週にする */
 async function seedJoinedRaidState(db: BebRaidDatabase, bossId = BOSS.bossId) {
+  await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
   await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
   await db.raidState.put({
     id: RAID_STATE_ID,
@@ -137,6 +139,32 @@ describe('syncRaidDamage: 縮退設計（OFF時は通信しない）', () => {
     await syncRaidDamage(db, raidApi)
 
     expect(raidApi.syncDamage).not.toHaveBeenCalled()
+  })
+
+  it('未登録（raidRegisteredAt無し）ならsyncDamageが呼ばれない（T-115: 認証必須APIへの誤アクセス防止）', async () => {
+    const db = newDb()
+    // raidRegisteredAtだけ与えず、それ以外（raidSyncEnabled・joined）は満たしておく
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: BOSS.bossId,
+      profileJson: '{}',
+      hp: 4800,
+      maxHp: 5000,
+      myDamage: 200,
+      joined: true,
+      startAt: 0,
+      endAt: 1000,
+      lastSyncedAt: 500,
+    })
+    await addPendingRaidDamage(db, 'a-1')
+    const raidApi = new FakeRaidApi(true)
+
+    const result = await syncRaidDamage(db, raidApi)
+
+    expect(raidApi.syncDamage).not.toHaveBeenCalled()
+    expect(result.ok).toBe(false)
+    expect(await db.pendingSync.count()).toBe(1)
   })
 })
 
@@ -230,9 +258,9 @@ describe('syncRaidDamage: 正常系', () => {
     const raidApi = new FakeRaidApi(true)
     raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: ['a-1'], boss: BOSS })
 
-    const ok = await syncRaidDamage(db, raidApi)
+    const result = await syncRaidDamage(db, raidApi)
 
-    expect(ok).toBe(true)
+    expect(result.ok).toBe(true)
     // 破損レコードは削除され、正常レコードは送信されて受理・削除される
     expect(await db.pendingSync.get(corruptedId)).toBeUndefined()
     expect(await db.pendingSync.get(validId!)).toBeUndefined()
@@ -275,50 +303,59 @@ describe('syncRaidDamage: 失敗時はpendingSyncを失わない', () => {
   })
 })
 
-describe('syncRaidDamage: 戻り値とisLastRaidSyncUnauthorized（M3・T-98の手動同期ボタンが使う）', () => {
-  it('成功時はtrueを返す', async () => {
+describe('syncRaidDamage: 戻り値とraidSyncStore（M3・T-98の手動同期ボタン・T-103の画面追従が使う）', () => {
+  it('成功時は{ok: true, boss}を返す（T-104: RaidScreenが追加fetchなしに使う）', async () => {
     const db = newDb()
     await seedJoinedRaidState(db)
     const raidApi = new FakeRaidApi(true)
 
-    const ok = await syncRaidDamage(db, raidApi)
+    const result = await syncRaidDamage(db, raidApi)
 
-    expect(ok).toBe(true)
+    expect(result.ok).toBe(true)
+    expect(result.boss).toEqual(BOSS)
   })
 
-  it('isConfigured=falseで即returnした場合はfalseを返す', async () => {
+  it('isConfigured=falseで即returnした場合は{ok: false}を返し、ストアも更新されない（未試行）', async () => {
     const db = newDb()
     await seedJoinedRaidState(db)
     const raidApi = new FakeRaidApi(false)
 
-    expect(await syncRaidDamage(db, raidApi)).toBe(false)
+    const result = await syncRaidDamage(db, raidApi)
+    expect(result.ok).toBe(false)
+    expect(result.boss).toBeUndefined()
+    expect(useRaidSyncStore.getState().syncCount).toBe(0)
   })
 
-  it('通信失敗（network）はfalseを返すが、isLastRaidSyncUnauthorizedはtrueにしない', async () => {
+  it('通信失敗（network）は{ok: false}を返すが、lastUnauthorizedはtrueにしない。syncCountは+1される', async () => {
     const db = newDb()
     await seedJoinedRaidState(db)
     const raidApi = new FakeRaidApi(true)
     raidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
 
-    const ok = await syncRaidDamage(db, raidApi)
+    const result = await syncRaidDamage(db, raidApi)
 
-    expect(ok).toBe(false)
-    expect(isLastRaidSyncUnauthorized()).toBe(false)
+    expect(result.ok).toBe(false)
+    expect(useRaidSyncStore.getState().lastUnauthorized).toBe(false)
+    expect(useRaidSyncStore.getState().lastFailed).toBe(true)
+    expect(useRaidSyncStore.getState().syncCount).toBe(1)
   })
 
-  it('401（RaidApiError kind=unauthorized）はisLastRaidSyncUnauthorizedをtrueにし、次回成功時にfalseへ戻る', async () => {
+  it('401（RaidApiError kind=unauthorized）はlastUnauthorizedをtrueにし、次回成功時にfalseへ戻る', async () => {
     const db = newDb()
     await seedJoinedRaidState(db)
     const raidApi = new FakeRaidApi(true)
     raidApi.syncDamage.mockRejectedValueOnce(new RaidApiError('unauthorized', '401'))
 
     const failed = await syncRaidDamage(db, raidApi)
-    expect(failed).toBe(false)
-    expect(isLastRaidSyncUnauthorized()).toBe(true)
+    expect(failed.ok).toBe(false)
+    expect(useRaidSyncStore.getState().lastUnauthorized).toBe(true)
+    expect(useRaidSyncStore.getState().syncCount).toBe(1)
 
     const succeeded = await syncRaidDamage(db, raidApi)
-    expect(succeeded).toBe(true)
-    expect(isLastRaidSyncUnauthorized()).toBe(false)
+    expect(succeeded.ok).toBe(true)
+    expect(useRaidSyncStore.getState().lastUnauthorized).toBe(false)
+    expect(useRaidSyncStore.getState().lastFailed).toBe(false)
+    expect(useRaidSyncStore.getState().syncCount).toBe(2)
   })
 })
 

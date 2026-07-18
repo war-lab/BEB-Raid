@@ -294,7 +294,7 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     // 再生前は選択肢が出ない
     expect(screen.queryByText('Yesterday.')).toBeNull()
 
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     expect(audioPlayer.unlock).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
@@ -309,7 +309,7 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
 
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
     expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, { durationMs: 2500 })
@@ -322,7 +322,7 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('もう一度再生')).toBeTruthy())
 
     fireEvent.click(screen.getByText('もう一度再生'))
@@ -340,13 +340,13 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     const audioPlayer = new FakeAudioPlayer()
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
 
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
     await answerAndSettle('Yesterday.', 1) // 正解
     expect(screen.getByText('🔥1')).toBeTruthy()
 
     fireEvent.click(screen.getByText('次へ'))
-    fireEvent.click(screen.getByText('タップして開始'))
+    // T-110: 1問目で再生済み（unlock成功）のため、2問目は自動再生されタップ不要になる
     await waitFor(() => expect(screen.getByText('In the meeting room.')).toBeTruthy())
     await answerAndSettle('In the meeting room.', 2) // 誤答（正解はA）
     expect(screen.queryByText('🔥1')).toBeNull() // ストリークがリセットされる
@@ -363,7 +363,7 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     // handlePlayStart 内の await audioPlayer.unlock()/play()（リアルタイムのマイクロタスク）を解決させる
     await vi.waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
 
@@ -388,7 +388,7 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await vi.waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(3000) // タイマーはまだ残っている状態
@@ -403,6 +403,56 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
   })
 })
 
+describe('DrillScreen: リスニングの自動再生（T-110）', () => {
+  it('2問目以降は自動再生される（「音声を再生」の再タップ不要）', async () => {
+    const db = newDb()
+    const questions = [audioQaQuestion('p2-1', 'A'), audioQaQuestion('p2-2', 'A')]
+    await setupSession(
+      db,
+      questions.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      questions,
+    )
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    await answerAndSettle('Yesterday.', 1)
+
+    fireEvent.click(screen.getByText('次へ'))
+
+    // 2問目は自動再生され、「音声を再生」ボタンをタップしなくても選択肢が表示される
+    await waitFor(() => expect(screen.getByText('In the meeting room.')).toBeTruthy())
+    expect(audioPlayer.play).toHaveBeenCalledTimes(2)
+  })
+
+  it('自動再生が拒否された場合は、その問題からタップ開始UIへフォールバックする', async () => {
+    const db = newDb()
+    const questions = [audioQaQuestion('p2-1', 'A'), audioQaQuestion('p2-2', 'A')]
+    await setupSession(
+      db,
+      questions.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      questions,
+    )
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    await answerAndSettle('Yesterday.', 1)
+
+    // 2問目の自動再生だけ失敗させる
+    audioPlayer.play.mockRejectedValueOnce(new Error('boom'))
+    fireEvent.click(screen.getByText('次へ'))
+
+    expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
+    expect(screen.getByText('もう一度試す')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('もう一度試す'))
+    await waitFor(() => expect(screen.getByText('In the meeting room.')).toBeTruthy())
+  })
+})
+
 describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
   it('audio_qa: 再生失敗でボタンが「もう一度試す」に変わり、再試行すると再生が復帰する', async () => {
     const db = newDb()
@@ -412,7 +462,7 @@ describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
     audioPlayer.play.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined)
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
 
     expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
     expect(screen.getByText('もう一度試す')).toBeTruthy()
@@ -430,7 +480,7 @@ describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
     audioPlayer.play.mockRejectedValue(new Error('boom'))
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await screen.findByText('音声なしで解答する')
 
     fireEvent.click(screen.getByText('音声なしで解答する'))
@@ -450,7 +500,7 @@ describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
     audioPlayer.unlock.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined)
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
 
     expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
     fireEvent.click(screen.getByText('もう一度試す'))
@@ -710,7 +760,7 @@ function dictationQuestion(
 }
 
 describe('DrillScreen: dictation（M2・T-47）', () => {
-  it('タップして開始→再生→ワードバンクで穴埋め→確定→正誤・解説表示の一連が通る', async () => {
+  it('音声を再生→再生→ワードバンクで穴埋め→確定→正誤・解説表示の一連が通る', async () => {
     const db = newDb()
     const q = dictationQuestion('dict-1', 'Please submit the report today', [
       { index: 1, answer: 'submit' },
@@ -720,7 +770,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
 
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     expect(audioPlayer.unlock).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
 
@@ -742,7 +792,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('やり直す')).toBeTruthy())
 
     // ワードバンクの中から不正解の語（submit以外）をタップする
@@ -766,7 +816,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
     fireEvent.click(screen.getByText('submit'))
     fireEvent.click(screen.getByText('確定'))
@@ -788,7 +838,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
 
     fireEvent.click(screen.getByText('submit'))
@@ -796,6 +846,23 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
 
     fireEvent.click(screen.getByText('やり直す'))
     expect(screen.queryByText('確定')).toBeNull()
+  })
+
+  it('「やり直す」ボタンがタップ領域44px以上を確保するクラスを持つ（T-116(5)）', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-tapzone', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+
+    // .dictation-reset は --tap-min(48px)のmin-heightを持つクラス（jsdomは実レイアウトを
+    // 計算しないため、タップ目標を保証するクラスの付与を構造面で確認する）
+    expect(screen.getByText('やり直す').className).toContain('dictation-reset')
   })
 
   it('0.85x/等倍の速度チップを選んでから開始できる（再生自体はT-45まで等倍のまま=予約のみ）', async () => {
@@ -808,7 +875,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('0.85x'))
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
 
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
     expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, { rate: 0.85 })
@@ -828,7 +895,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
     fireEvent.click(screen.getByText('submit'))
 
@@ -872,9 +939,9 @@ function audioSetQuestion(id: string, subCount = 3): Question {
 }
 
 describe('DrillScreen: audio_set（M2・T-49）', () => {
-  /** タップして開始→先読みフェーズ→「もう再生する」で早期に再生フェーズへ進める共通操作 */
+  /** 音声を再生→先読みフェーズ→「もう再生する」で早期に再生フェーズへ進める共通操作 */
   async function startAndSkipPreReading() {
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
     fireEvent.click(screen.getByText('もう再生する'))
     await waitFor(() => expect(screen.queryByText('もう再生する')).toBeNull())
@@ -1000,14 +1067,14 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
 })
 
 describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
-  it('タップして開始後は先読みフェーズになり、選択肢は選べない', async () => {
+  it('音声を再生後は先読みフェーズになり、選択肢は選べない', async () => {
     const db = newDb()
     const q = audioSetQuestion('set-5', 1)
     await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
 
     await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
     expect(screen.getByText('もう再生する')).toBeTruthy()
@@ -1023,7 +1090,7 @@ describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
 
     fireEvent.click(screen.getByText('もう再生する'))
@@ -1042,7 +1109,7 @@ describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
 
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await vi.waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(15_000)
@@ -1061,7 +1128,7 @@ describe('DrillScreen: 先読みトレーナー（M2・T-50）', () => {
     audioPlayer.play = vi.fn(() => new Promise(() => {}))
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('もう再生する')).toBeTruthy())
     fireEvent.click(screen.getByText('もう再生する'))
 
@@ -1141,6 +1208,10 @@ describe('DrillScreen: 描画分岐の無いformatのスキップと脱出導線
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
     expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1)
     expect(await db.attempts.count()).toBe(0) // スキップはattemptを記録しない
+    // T-108: 非モーダル通知が出て、セッションストアのskippedCountが増える
+    expect(screen.getByTestId('drill-skip-notice')).toBeTruthy()
+    expect(screen.getByText('表示できない問題を1件スキップしました')).toBeTruthy()
+    expect(useSessionStore.getState().skippedCount).toBe(1)
   })
 
   // 何を防ぐか: スキップのadvanceSession失敗が握りつぶされると、renderがnullのまま固定され
@@ -1178,7 +1249,7 @@ describe('DrillScreen: 描画分岐の無いformatのスキップと脱出導線
     audioPlayer.play.mockRejectedValue(new Error('404'))
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
 
     expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
     fireEvent.click(screen.getByText('この問題をスキップ'))
@@ -1199,13 +1270,40 @@ describe('DrillScreen: 描画分岐の無いformatのスキップと脱出導線
     audioPlayer.unlock.mockRejectedValue(new Error('boom'))
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
-    fireEvent.click(screen.getByText('タップして開始'))
+    fireEvent.click(screen.getByText('音声を再生'))
 
     expect(await screen.findByText('音声を再生できませんでした')).toBeTruthy()
     fireEvent.click(screen.getByText('この問題をスキップ'))
 
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
     expect(await db.attempts.count()).toBe(0)
+  })
+})
+
+describe('DrillScreen: レイド挑戦セッションのヘッダ（T-116(10)）', () => {
+  it('item.mode="raid"のとき、出題理由の代わりに「レイド」ヘッダが表示される', async () => {
+    const db = newDb()
+    const items: SessionItem[] = [{ questionId: 'q-1', mode: 'raid' }]
+    await setupSession(db, items, [QUESTIONS[0]!])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    expect(await screen.findByTestId('drill-raid-header')).toBeTruthy()
+    expect(screen.getByTestId('drill-raid-header').textContent).toBe('レイド')
+    expect(screen.queryByText('今日のドリル')).toBeNull()
+  })
+
+  it('item.mode="solo"（通常ドリル）では従来どおり出題理由が表示される（回帰確認）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = [
+      { questionId: 'q-1', mode: 'solo', reason: { type: 'allocation' } },
+    ]
+    await setupSession(db, items, [QUESTIONS[0]!])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    expect(await screen.findByText('今日のドリル')).toBeTruthy()
+    expect(screen.queryByTestId('drill-raid-header')).toBeNull()
   })
 })
 

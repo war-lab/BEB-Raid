@@ -2,7 +2,7 @@
 // 表示名・イヤホンなしモード・テーマ切替・文字サイズ・キャッシュ使用量・
 // エクスポート/インポートの「標準的なリスト」画面（07: デザイン投資は最小でよい）。
 // BYOKのAPIキー欄・モデル欄はM2・T-55で追加（05の5節: 平文端末内保存・支出上限推奨の注記必須）。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import type { FontSizeScale } from '../fontSize'
@@ -37,6 +37,13 @@ interface Props {
   packCache: PackCache
   /** 共有API（レイド）クライアント（M3・T-96）。isConfigured()=falseならレイド設定欄を出さない */
   raidApi: RaidApi
+  /**
+   * テーマ設定の変更をApp.tsxへ通知する（T-106）。App.tsxはOS追従リスナーの要否判定に
+   * themePreference stateを持っており、ここで通知しないとインポート復元やテーマ切替後も
+   * 古いpreferenceのままOS追従が誤動作する（例: 手動でdark固定にした後にOS側テーマが変わると
+   * 上書きされてしまう）
+   */
+  onThemePreferenceChange?: (pref: ThemePreference) => void
 }
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ
@@ -44,7 +51,7 @@ function now(): number {
   return Date.now()
 }
 
-export function SettingsScreen({ db, packCache, raidApi }: Props) {
+export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange }: Props) {
   const navigate = useAppStore((s) => s.navigate)
 
   const [displayName, setDisplayName] = useState('')
@@ -71,63 +78,72 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
   const [editingApiKey, setEditingApiKey] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [byokModel, setByokModel] = useState('')
+  // T-106: マウント時の初回読込とインポート後の再読込を同じ関数で行う。アンマウント後の
+  // setState回避には、コールバック間で共有できるrefで判定する（effect内ローカル変数だと
+  // handleImportFile側から参照できない）
+  const cancelledRef = useRef(false)
+
+  async function load() {
+    const [
+      profile,
+      earphoneSetting,
+      themeSetting,
+      fontSetting,
+      usage,
+      apiKeySetting,
+      modelSetting,
+      persistedResult,
+      estimateResult,
+      hapticsSetting,
+      raidSyncSetting,
+      questionStatsSetting,
+      raidRegisteredSetting,
+    ] = await Promise.all([
+      db.profile.get(PROFILE_ID),
+      db.settings.get(NO_EARPHONE_MODE_KEY),
+      db.settings.get(THEME_PREFERENCE_KEY),
+      db.settings.get(FONT_SIZE_KEY),
+      packCache.usage(),
+      db.settings.get(BYOK_API_KEY_KEY),
+      db.settings.get(BYOK_MODEL_KEY),
+      navigator.storage?.persisted?.() ?? Promise.resolve(null),
+      navigator.storage?.estimate?.() ?? Promise.resolve(null),
+      db.settings.get(HAPTICS_ENABLED_KEY),
+      db.settings.get(RAID_SYNC_ENABLED_KEY),
+      db.settings.get(QUESTION_STATS_ENABLED_KEY),
+      db.settings.get(RAID_REGISTERED_AT_KEY),
+    ])
+    if (cancelledRef.current) return
+    setDisplayName(profile ? profile.displayName : '')
+    setNoEarphoneModeState(earphoneSetting?.value === true)
+    setHapticsEnabledState(hapticsSetting?.value !== false)
+    setRaidSyncEnabledState(raidSyncSetting?.value === true)
+    setQuestionStatsEnabledState(questionStatsSetting?.value === true)
+    setRaidRegistered(raidRegisteredSetting?.value != null)
+    const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
+    setThemePrefState(pref)
+    setTheme(resolveTheme(pref))
+    onThemePreferenceChange?.(pref)
+    const font = (fontSetting?.value as FontSizeScale | undefined) ?? 'M'
+    setFontSizeState(font)
+    setFontSizeScale(font)
+    setCacheUsage(usage)
+    setApiKey((apiKeySetting?.value as string | undefined) ?? null)
+    setByokModel((modelSetting?.value as string | undefined) ?? DEFAULT_BYOK_MODEL)
+    setPersisted(persistedResult)
+    setStorageEstimate(estimateResult)
+    setLoaded(true)
+  }
 
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      const [
-        profile,
-        earphoneSetting,
-        themeSetting,
-        fontSetting,
-        usage,
-        apiKeySetting,
-        modelSetting,
-        persistedResult,
-        estimateResult,
-        hapticsSetting,
-        raidSyncSetting,
-        questionStatsSetting,
-        raidRegisteredSetting,
-      ] = await Promise.all([
-        db.profile.get(PROFILE_ID),
-        db.settings.get(NO_EARPHONE_MODE_KEY),
-        db.settings.get(THEME_PREFERENCE_KEY),
-        db.settings.get(FONT_SIZE_KEY),
-        packCache.usage(),
-        db.settings.get(BYOK_API_KEY_KEY),
-        db.settings.get(BYOK_MODEL_KEY),
-        navigator.storage?.persisted?.() ?? Promise.resolve(null),
-        navigator.storage?.estimate?.() ?? Promise.resolve(null),
-        db.settings.get(HAPTICS_ENABLED_KEY),
-        db.settings.get(RAID_SYNC_ENABLED_KEY),
-        db.settings.get(QUESTION_STATS_ENABLED_KEY),
-        db.settings.get(RAID_REGISTERED_AT_KEY),
-      ])
-      if (cancelled) return
-      if (profile) setDisplayName(profile.displayName)
-      setNoEarphoneModeState(earphoneSetting?.value === true)
-      setHapticsEnabledState(hapticsSetting?.value !== false)
-      setRaidSyncEnabledState(raidSyncSetting?.value === true)
-      setQuestionStatsEnabledState(questionStatsSetting?.value === true)
-      setRaidRegistered(raidRegisteredSetting?.value != null)
-      const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
-      setThemePrefState(pref)
-      setTheme(resolveTheme(pref))
-      const font = (fontSetting?.value as FontSizeScale | undefined) ?? 'M'
-      setFontSizeState(font)
-      setFontSizeScale(font)
-      setCacheUsage(usage)
-      setApiKey((apiKeySetting?.value as string | undefined) ?? null)
-      setByokModel((modelSetting?.value as string | undefined) ?? DEFAULT_BYOK_MODEL)
-      setPersisted(persistedResult)
-      setStorageEstimate(estimateResult)
-      setLoaded(true)
-    }
+    cancelledRef.current = false
     void load()
     return () => {
-      cancelled = true
+      cancelledRef.current = true
     }
+    // loadはprops(db/packCache)のみに依存し、インポート後の再読込はhandleImportFileから
+    // 直接呼ぶ（このeffectの再実行対象ではない）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db, packCache])
 
   async function handleDisplayNameBlur() {
@@ -165,6 +181,7 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
   async function handleThemeChange(pref: ThemePreference) {
     setThemePrefState(pref)
     setTheme(resolveTheme(pref))
+    onThemePreferenceChange?.(pref)
     await db.settings.put({ key: THEME_PREFERENCE_KEY, value: pref })
   }
 
@@ -180,6 +197,11 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
     )
     if (!confirmed) return
     await packCache.clear()
+    setCacheUsage(await packCache.usage())
+  }
+
+  // T-107(c): 初回起動のパックDL進行中は使用量表示が増えないため、明示的な再計算手段を設ける
+  async function handleRecalculateCache() {
     setCacheUsage(await packCache.usage())
   }
 
@@ -221,6 +243,10 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
       const text = await file.text()
       const data: unknown = JSON.parse(text)
       await importAll(db, data)
+      // T-106: インポート成功後にこの画面のstateを再読込しないと、全トグル・表示名・
+      // テーマ/文字サイズが復元前の値のまま表示され、以降のトグル操作が古い値の反転で
+      // DBを上書きしてしまう（表示バグではなくデータ破壊経路）
+      await load()
       setMessage('復元しました。')
     } catch (e) {
       setMessage(e instanceof Error ? e.message : '復元に失敗しました。')
@@ -344,7 +370,15 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
           <button type="button" onClick={() => void handleClearCache()}>
             キャッシュを削除
           </button>
+          <button type="button" onClick={() => void handleRecalculateCache()}>
+            再計算
+          </button>
           <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
+          {persisted === false && (
+            <p className="settings-note">
+              端末の空き容量逼迫時にデータが削除される可能性があります。アプリをホーム画面に追加すると有効になりやすくなります
+            </p>
+          )}
           {storageEstimate && (
             <p>
               端末ストレージ使用量: {((storageEstimate.usage ?? 0) / 1024 / 1024).toFixed(1)}MB /{' '}
@@ -355,6 +389,9 @@ export function SettingsScreen({ db, packCache, raidApi }: Props) {
 
         <section>
           <p>AIに聞く（BYOK）</p>
+          <p className="settings-byok-note">
+            BYOK（Bring Your Own Key）: ご自身のAIサービスAPIキーを使って解説を生成する仕組みです。
+          </p>
           <p className="settings-byok-note">
             キーは端末内に平文保存され、端末外には送信されません。
           </p>

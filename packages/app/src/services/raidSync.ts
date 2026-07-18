@@ -4,8 +4,9 @@
 // 受理済み（acceptedIds）のレコードのみ削除し、レスポンスのbossでraidStateを更新する。
 // 失敗時（通信断・サーバーエラー等）はpendingSyncを一切変更しない（キュー保持・次回自然再送）。
 //
-// 【縮退設計】isConfigured()=false または raidSyncEnabled=false または未参加（raidState.joined!==true）
-// のいずれかなら、関数冒頭で即returnし通信・追加のDB読み取りを最小化する
+// 【縮退設計】isConfigured()=false・未登録（raidRegisteredAt無し。T-115）・
+// raidSyncEnabled=false・未参加（raidState.joined!==true）のいずれかなら、
+// 関数冒頭で即returnし通信・追加のDB読み取りを最小化する
 //
 // レイド系バッジの導出（M3・T-102。正本: docs/17 3.9節）: サーバーはバッジを持たず、
 // 端末側がこの同期レスポンスから導出する。boss.status==='defeated' && myDamage>0のときのみ
@@ -16,7 +17,8 @@ import type { DamageSyncPayload, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
-import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
+import { useRaidSyncStore } from '../store/raidSyncStore'
+import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 /** 初回討伐参加バッジ（週を問わず1回のみ） */
 export const RAID_FIRST_CLEAR_BADGE_ID = 'raid-first-clear'
@@ -41,47 +43,35 @@ async function grantRaidBadgesIfDefeated(db: BebRaidDatabase, boss: RaidBossStat
 /** 1リクエストで送る上限（3.6節。超過分は次回のトリガーに回る） */
 export const RAID_SYNC_BATCH_LIMIT = 200
 
-/**
- * 直近の同期が401（未登録/失効deviceToken）だったか（3.6節: 「判定は同期時のエラー種別を
- * メモリ保持でよい」）。永続化はせず、S5表示時に「登録が無効です」の案内に使う。
- * 【注意】モジュールスコープの変数のためReactの再レンダーを誘発しない。表示に反映するには
- * 同期呼び出し後に明示的にstate更新（再読込）が必要
- */
-let lastSyncUnauthorized = false
-/**
- * 直近の同期試行が失敗したか（種別を問わない。T-99のオフライン表示規約で
- * 「最終同期」表示を強調色にするために使う。永続化しない）。
- * 【注意】lastSyncUnauthorizedと同じくReactの再レンダーを誘発しない
- */
-let lastSyncFailed = false
-
-export function isLastRaidSyncUnauthorized(): boolean {
-  return lastSyncUnauthorized
-}
-
-export function isLastRaidSyncFailed(): boolean {
-  return lastSyncFailed
-}
-
-/** テスト専用: モジュールスコープの一時フラグをリセットする（テスト間の状態漏れ防止） */
-export function resetRaidSyncFlagsForTest(): void {
-  lastSyncUnauthorized = false
-  lastSyncFailed = false
+/** syncRaidDamageの戻り値。okは同期成否、bossは成功時のみ（T-104: 呼び出し側が追加fetchなしに画面を更新できるようにする） */
+export interface RaidSyncResult {
+  ok: boolean
+  boss?: RaidBossState
 }
 
 /**
- * 戻り値は「サーバーとの同期が成功したか」（3.6節の手動同期ボタンがエラー表示するために使う）。
- * 縮退ゲート（未設定/OFF/未参加）はfalseを返すが、これらは通常UIから到達しない経路のため
- * 呼び出し側でエラー表示に使う想定はしていない
+ * 戻り値のokは「サーバーとの同期が成功したか」（3.6節の手動同期ボタンがエラー表示するために使う）。
+ * 縮退ゲート（未設定/OFF/未参加）はok:falseを返すが、これらは通常UIから到達しない経路のため
+ * 呼び出し側でエラー表示に使う想定はしていない。成功時のbossはRaidScreenの手動同期が
+ * 追加のfetchCurrentBossなしに画面を更新するために使う（T-104）
  */
-export async function syncRaidDamage(db: BebRaidDatabase, raidApi: RaidApi): Promise<boolean> {
-  if (!raidApi.isConfigured()) return false
+export async function syncRaidDamage(
+  db: BebRaidDatabase,
+  raidApi: RaidApi,
+): Promise<RaidSyncResult> {
+  if (!raidApi.isConfigured()) return { ok: false }
+
+  // T-115(b): 未登録端末（招待コードでの登録が未了）は認証必須APIを叩かない。
+  // 登録前でもraidSyncEnabled=trueかつraidState.joined=trueになりうる経路は無いはずだが、
+  // 401を毎回コンソールへ出さないための多層防御として先頭でゲートする
+  const registeredSetting = await db.settings.get(RAID_REGISTERED_AT_KEY)
+  if (registeredSetting === undefined) return { ok: false }
 
   const enabledSetting = await db.settings.get(RAID_SYNC_ENABLED_KEY)
-  if (enabledSetting?.value !== true) return false
+  if (enabledSetting?.value !== true) return { ok: false }
 
   const raidState = await db.raidState.get(RAID_STATE_ID)
-  if (!raidState?.joined) return false
+  if (!raidState?.joined) return { ok: false }
 
   const candidates = (await db.pendingSync.toArray())
     .filter((record) => record.kind === 'raidDamage')
@@ -110,12 +100,11 @@ export async function syncRaidDamage(db: BebRaidDatabase, raidApi: RaidApi): Pro
     const result = await raidApi.syncDamage(payloads)
     acceptedIds = result.acceptedIds
     boss = result.boss
-    lastSyncUnauthorized = false
-    lastSyncFailed = false
+    useRaidSyncStore.getState().recordSuccess()
   } catch (e) {
-    if (e instanceof RaidApiError && e.kind === 'unauthorized') lastSyncUnauthorized = true
-    lastSyncFailed = true
-    return false
+    const unauthorized = e instanceof RaidApiError && e.kind === 'unauthorized'
+    useRaidSyncStore.getState().recordFailure(unauthorized)
+    return { ok: false }
   }
 
   if (pending.length > 0) {
@@ -146,5 +135,5 @@ export async function syncRaidDamage(db: BebRaidDatabase, raidApi: RaidApi): Pro
 
   await grantRaidBadgesIfDefeated(db, boss)
 
-  return true
+  return { ok: true, boss }
 }
