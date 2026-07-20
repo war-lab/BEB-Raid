@@ -1,6 +1,19 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-18**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-20**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+
+## 2026-07-20: T-84リスニング在庫の追加クロスレビューと修正（task/T-84-crossreview-fixes）
+
+発起人依頼で、既にdev/mainへマージ済みのT-84コンテンツ（audio_set 20セット60設問＝`part34SetsS2.ts`・dictation 40本＝`dictationS2.ts`）に対し追加のクロスレビューを実施した。独立モデル（Fable）3並列（dictation/Part3/Part4）＋機械検証。T-84実施時の自前クロスレビュー（7件修正済み）とは重複しない**新規指摘**を検出し、`task/T-84-crossreview-fixes`ブランチ（devから）で2コミットに分けて修正した。
+
+- **機械検証（全件通過）**: 語数8–14・blank index/answer整合・keyVocab実在・新旧80本で重複ゼロ・選択肢4つ一意・Part3/4話者ラベル・訳の日本語性。サブタグ（tags[1]）の「不整合」フラグは既存`dictationS.ts`の確立済み慣行（混在項目は代表カテゴリ1つで付与。tags[1]はコード上未使用の情報ラベル）どおりで偽陽性。
+- **コミット1（音声不要＝表示テキスト・穴メタデータのみ。scriptは不変で音声・durationMsは変えていない）**:
+  - must-fix（正答一意性の破綻＝正答より緩い上限を含意し第2正答化する「上限スーパーセット型distractor」）: p4-16 q3 `Within one month`→`Within two business days`、p4-20 q3 `Within one year`→`On the first of the month`、p4-12 q3 `By midnight`→`At eight in the morning`。
+  - minor: p4-14 q3 メタ選択肢 `It is not mentioned`→`About two months`、p3-12 q2 設問文に registration を補い比較対象を明示、dictation pension は弱形を持たない `they`(idx7) を弱形 /ðər/ の `their`(idx4) へ穴を付け替え。
+- **コミット2（script変更＝該当6本のみ音声再生成）**: subsidy `may`→`can`・liability `might`→`could`（may/might は弱形を持たない助動詞のため弱形課題として弱かった）、markup/tenant の「must+…+before」反復緩和（before→to / before→at）、p3-16 `a replacement box`→`the right size box`（在庫切れという原因と整合）、p4-16 の一斉メール文体→録音メッセージ体裁。
+  - **⚠️ 非決定性の既知事項**: voice model（`.piper-voices`。gitignore・T-64時の実体は消失）を本セッションで再取得したところ、T-84生成時（committed）とリビジョンが異なり同一scriptでもバイト非一致になることを実測で確認（未変更 agenda.mp3 が 31652B→29824B）。そのため**未変更54本の音声はcommittedからgit復元し、churnを変更6本に限定**した。結果としてこの6本のみ他ライブラリよりわずかに新しいvoiceリビジョンになる（medium音声・同一話者モデルで差は軽微）。durationMsも変更6本のみ更新。
+- 検証: ルートで `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 78/app 667/cli 305/review-ui 15/shared-schema 47＝計1112件）すべて通過。
+- **🟡 未実施**: 再生成6本の聴感確認（人間主体。T-84同様、自動化された数値検証＋別モデルテキストレビューまで）。**ブランチはdev未pushの状態**（発起人の指示待ち）。
 
 ## 改修フェーズ（2026-07-16開始。正本: [15_改修計画](15_改修計画_フェーズA-D.md)）
 
