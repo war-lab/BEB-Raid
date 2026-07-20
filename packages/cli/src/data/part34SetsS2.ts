@@ -232,8 +232,10 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
     part: 3,
     tags: ['先読み'],
     keyVocabWords: ['courier', 'dispatch'],
+    // クロスレビュー: 原因が「適切なサイズの箱の在庫切れ」なので "replacement box"(代替) より
+    // "the right size box" が状況に整合。scriptを変えるため要音声再生成
     script:
-      "A: The courier just called — the package for the client wasn't dispatched this morning as planned. B: Why not? A: Apparently the warehouse ran out of the right size box. B: Can we get a replacement box sent over so it can still go out today?",
+      "A: The courier just called — the package for the client wasn't dispatched this morning as planned. B: Why not? A: Apparently the warehouse ran out of the right size box. B: Can we get the right size box sent over so it can still go out today?",
     subQuestions: [
       {
         question: 'What problem is being discussed?',
@@ -259,14 +261,14 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       },
       {
         question: 'What does B want to do?',
-        correctText: 'Send a replacement box so it can still ship today',
+        correctText: 'Send the right size box so it can still ship today',
         distractors: [
           'Cancel the shipment entirely',
           'Wait until tomorrow to ship it',
           'Ask the client to pick it up',
         ],
         explanation:
-          'Bは"Can we get a replacement box sent over so it can still go out today?"と述べている。',
+          'Bは"Can we get the right size box sent over so it can still go out today?"と述べている。',
         translation: 'Bは何をしたいと考えていますか。',
       },
     ],
@@ -643,8 +645,9 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
     part: 4,
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['transcript', 'applicant'],
+    // クロスレビュー: 一斉メール文体でPart4トークとして不自然だったため録音メッセージ体裁へ。要音声再生成
     script:
-      "To all applicants who completed an interview last week: thank you for your patience. We are currently waiting on an official transcript from each candidate's university before making a final decision. Once all transcripts are received, the hiring committee will meet, and we expect to notify candidates within ten business days.",
+      "This is a recorded message from the recruiting office for all applicants who completed an interview last week. Thank you for your patience. We are currently waiting on an official transcript from each candidate's university before making a final decision. Once all transcripts are received, the hiring committee will meet, and we expect to notify candidates within ten business days.",
     subQuestions: [
       {
         question: 'Who is this message intended for?',
@@ -654,7 +657,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'University professors',
           'Vendors submitting bids',
         ],
-        explanation: '"To all applicants who completed an interview last week"と述べている。',
+        explanation:
+          '"a recorded message from the recruiting office for all applicants who completed an interview last week"と述べている。',
         translation: 'このメッセージは誰を対象にしていますか。',
       },
       {

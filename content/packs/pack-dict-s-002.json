@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 38473
+    "sizeBytes": 38433
   },
   "questions": [
     {
@@ -477,15 +477,15 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3579
+        "durationMs": 3422
       },
-      "script": "Small businesses may qualify for a government subsidy.",
+      "script": "Small businesses can qualify for a government subsidy.",
       "translation": "中小企業は政府の補助金を受ける資格があるかもしれない。",
-      "explanation": "弱形になりやすいmay/forを穴にしている。",
+      "explanation": "弱形になりやすいcan/forを穴にしている。",
       "blanks": [
         {
           "index": 2,
-          "answer": "may"
+          "answer": "can"
         },
         {
           "index": 4,
@@ -588,15 +588,15 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3736
+        "durationMs": 3213
       },
-      "script": "The company might face liability if the claim is proven.",
+      "script": "The company could face liability if the claim is proven.",
       "translation": "その申し立てが立証されれば、その会社は法的責任を負うかもしれない。",
-      "explanation": "弱形になりやすいmight/isを穴にしている。",
+      "explanation": "弱形になりやすいcould/isを穴にしている。",
       "blanks": [
         {
           "index": 2,
-          "answer": "might"
+          "answer": "could"
         },
         {
           "index": 8,
@@ -1254,11 +1254,11 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 4127
+        "durationMs": 3318
       },
-      "script": "The retailer must disclose its markup before the sale begins.",
-      "translation": "その小売業者はセール開始前に利幅を開示しなければならない。",
-      "explanation": "弱形になりやすいmust/beforeを穴にしている。",
+      "script": "The retailer must reveal its markup to the customer.",
+      "translation": "その小売業者は顧客に利幅を明かさなければならない。",
+      "explanation": "弱形になりやすいmust/toを穴にしている。",
       "blanks": [
         {
           "index": 2,
@@ -1266,7 +1266,7 @@
         },
         {
           "index": 6,
-          "answer": "before"
+          "answer": "to"
         }
       ]
     },
@@ -1328,11 +1328,11 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2586
+        "durationMs": 2482
       },
-      "script": "Each tenant must sign the lease before moving in.",
-      "translation": "各入居者は入居前に賃貸契約書に署名しなければならない。",
-      "explanation": "弱形になりやすいmust/beforeを穴にしている。",
+      "script": "Each tenant must sign the lease at the office.",
+      "translation": "各入居者は事務所で賃貸契約書に署名しなければならない。",
+      "explanation": "弱形になりやすいmust/atを穴にしている。",
       "blanks": [
         {
           "index": 2,
@@ -1340,7 +1340,7 @@
         },
         {
           "index": 6,
-          "answer": "before"
+          "answer": "at"
         }
       ]
     },

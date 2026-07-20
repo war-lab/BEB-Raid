@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 66924
+    "sizeBytes": 67029
   },
   "questions": [
     {
@@ -567,9 +567,9 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 16718
+        "durationMs": 16875
       },
-      "script": "A: The courier just called — the package for the client wasn't dispatched this morning as planned. B: Why not? A: Apparently the warehouse ran out of the right size box. B: Can we get a replacement box sent over so it can still go out today?",
+      "script": "A: The courier just called — the package for the client wasn't dispatched this morning as planned. B: Why not? A: Apparently the warehouse ran out of the right size box. B: Can we get the right size box sent over so it can still go out today?",
       "subQuestions": [
         {
           "id": "p34-p3-16-q1",
@@ -639,11 +639,11 @@
             },
             {
               "key": "D",
-              "text": "Send a replacement box so it can still ship today"
+              "text": "Send the right size box so it can still ship today"
             }
           ],
           "answer": "D",
-          "explanation": "Bは\"Can we get a replacement box sent over so it can still go out today?\"と述べている。",
+          "explanation": "Bは\"Can we get the right size box sent over so it can still go out today?\"と述べている。",
           "translation": "Bは何をしたいと考えていますか。"
         }
       ]
@@ -1622,9 +1622,9 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 22648
+        "durationMs": 26984
       },
-      "script": "To all applicants who completed an interview last week: thank you for your patience. We are currently waiting on an official transcript from each candidate's university before making a final decision. Once all transcripts are received, the hiring committee will meet, and we expect to notify candidates within ten business days.",
+      "script": "This is a recorded message from the recruiting office for all applicants who completed an interview last week. Thank you for your patience. We are currently waiting on an official transcript from each candidate's university before making a final decision. Once all transcripts are received, the hiring committee will meet, and we expect to notify candidates within ten business days.",
       "subQuestions": [
         {
           "id": "p34-p4-16-q1",
@@ -1648,7 +1648,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"To all applicants who completed an interview last week\"と述べている。",
+          "explanation": "\"a recorded message from the recruiting office for all applicants who completed an interview last week\"と述べている。",
           "translation": "このメッセージは誰を対象にしていますか。"
         },
         {
