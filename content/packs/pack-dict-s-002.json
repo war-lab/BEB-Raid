@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 38471
+    "sizeBytes": 38473
   },
   "questions": [
     {
@@ -925,15 +925,15 @@
       },
       "script": "Retired staff can access their pension after they turn sixty.",
       "translation": "退職した職員は60歳になった後、年金を受け取れる。",
-      "explanation": "弱形になりやすいcan/theyを穴にしている。",
+      "explanation": "弱形になりやすいcan/theirを穴にしている。",
       "blanks": [
         {
           "index": 2,
           "answer": "can"
         },
         {
-          "index": 7,
-          "answer": "they"
+          "index": 4,
+          "answer": "their"
         }
       ]
     },

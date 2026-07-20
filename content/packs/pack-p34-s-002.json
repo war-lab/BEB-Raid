@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 66865
+    "sizeBytes": 66924
   },
   "questions": [
     {
@@ -174,7 +174,7 @@
         },
         {
           "id": "p34-p3-12-q2",
-          "question": "How does this year compare to last year?",
+          "question": "How does this year's registration compare to last year's?",
           "choices": [
             {
               "key": "A",
@@ -195,7 +195,7 @@
           ],
           "answer": "A",
           "explanation": "Aは\"That's more than last year already\"と述べている。",
-          "translation": "今年は去年と比べてどうですか。"
+          "translation": "今年の登録者数は去年と比べてどうですか。"
         },
         {
           "id": "p34-p3-12-q3",
@@ -1271,7 +1271,7 @@
             },
             {
               "key": "C",
-              "text": "By midnight"
+              "text": "At eight in the morning"
             },
             {
               "key": "D",
@@ -1478,7 +1478,7 @@
             },
             {
               "key": "C",
-              "text": "It is not mentioned"
+              "text": "About two months"
             },
             {
               "key": "D",
@@ -1694,7 +1694,7 @@
             },
             {
               "key": "D",
-              "text": "Within one month"
+              "text": "Within two business days"
             }
           ],
           "answer": "B",
@@ -2113,7 +2113,7 @@
             },
             {
               "key": "D",
-              "text": "Within one year"
+              "text": "On the first of the month"
             }
           ],
           "answer": "B",

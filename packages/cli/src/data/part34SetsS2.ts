@@ -90,7 +90,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         translation: '話者たちは何について話していますか。',
       },
       {
-        question: 'How does this year compare to last year?',
+        // クロスレビュー: 比較対象(登録者数)を設問文で明示（正答一意性は元から保たれているが設問が不完全だった）
+        question: "How does this year's registration compare to last year's?",
         correctText: 'More people have registered already',
         distractors: [
           'Fewer people have registered',
@@ -98,7 +99,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'No one has registered yet',
         ],
         explanation: 'Aは"That\'s more than last year already"と述べている。',
-        translation: '今年は去年と比べてどうですか。',
+        translation: '今年の登録者数は去年と比べてどうですか。',
       },
       {
         question: 'What will B most likely do next?',
@@ -508,7 +509,9 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'When is the count expected to finish?',
         correctText: 'By early afternoon',
-        distractors: ['By midnight', 'The following Monday', 'It has no set end time'],
+        // クロスレビュー: "By midnight" は「早afternoonまでに終わる」を論理的に包含し第2正答化するため、
+        // 開始時刻(scriptの "starting at eight in the morning")との混同を狙う誤答へ差し替え
+        distractors: ['At eight in the morning', 'The following Monday', 'It has no set end time'],
         explanation: '"We expect the count to finish by early afternoon"と述べている。',
         translation: 'その棚卸しはいつ終わる見込みですか。',
       },
@@ -586,7 +589,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'How long will the renovation last?',
         correctText: 'Approximately two weeks',
-        distractors: ['One day', 'Six months', 'It is not mentioned'],
+        // クロスレビュー: メタ選択肢 "It is not mentioned" は本番形式に不自然なため具体的な期間の誤答へ
+        distractors: ['One day', 'Six months', 'About two months'],
         explanation: '"continuing for approximately two weeks"と述べている。',
         translation: 'その改装はどれくらい続きますか。',
       },
@@ -668,7 +672,9 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'When will candidates be notified?',
         correctText: 'Within ten business days',
-        distractors: ['Immediately', 'Within one month', 'They have already been notified'],
+        // クロスレビュー: "Within one month" は "within ten business days" を包含し第2正答化するため、
+        // 包含関係にならない短い期間（scriptから保証されない）へ差し替え
+        distractors: ['Immediately', 'Within two business days', 'They have already been notified'],
         explanation: '"we expect to notify candidates within ten business days"と述べている。',
         translation: '候補者はいつ連絡を受けますか。',
       },
@@ -832,7 +838,13 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'How long will applications take to review?',
         correctText: 'Within thirty days',
-        distractors: ['Within one week', 'Within one year', 'Reviews have already started'],
+        // クロスレビュー: "Within one year" は "within thirty days" を包含し第2正答化するため、
+        // 申請開始日(scriptの "open on the first of the month")との混同を狙う誤答へ差し替え
+        distractors: [
+          'Within one week',
+          'On the first of the month',
+          'Reviews have already started',
+        ],
         explanation: '"will be reviewed within thirty days of submission"と述べている。',
         translation: '申請の審査にはどのくらいかかりますか。',
       },

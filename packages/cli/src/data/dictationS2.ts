@@ -309,11 +309,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
     keyVocabWord: 'pension',
     tags: ['弱形・連結', '助動詞弱形'],
     script: 'Retired staff can access their pension after they turn sixty.',
+    // クロスレビュー: they は弱形を持たないため、弱形 /ðər/ を持つ their(index 4) へ穴を付け替える
+    // （script自体は不変＝音声再生成は不要）
     blanks: [
       { index: 2, answer: 'can' },
-      { index: 7, answer: 'they' },
+      { index: 4, answer: 'their' },
     ],
-    explanation: '弱形になりやすいcan/theyを穴にしている。',
+    explanation: '弱形になりやすいcan/theirを穴にしている。',
     translation: '退職した職員は60歳になった後、年金を受け取れる。',
     difficulty: 3,
   },
