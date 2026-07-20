@@ -254,6 +254,52 @@ describe('RaidScreen: レイドに挑む（T-98）', () => {
     expect(snapshot!.items.length).toBeGreaterThan(0)
     expect(snapshot!.items.every((item) => item.mode === 'raid')).toBe(true)
   })
+
+  it('進行中セッションがあるとき、確認メッセージに残り問数が含まれる（T-122・J-61）', async () => {
+    const { db, raidApi } = await joinedSetup()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    render(
+      <RaidScreen
+        db={db}
+        raidApi={raidApi}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={{
+          sessionId: 'resume-1',
+          items: [
+            { questionId: 'q-0', mode: 'solo' },
+            { questionId: 'q-1', mode: 'solo' },
+            { questionId: 'q-2', mode: 'solo' },
+          ],
+          answeredCount: 1,
+          attemptIds: ['a-1'],
+          startedAt: 0,
+          updatedAt: 0,
+        }}
+      />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    fireEvent.click(screen.getByText('レイドに挑む'))
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('残り2問'))
+    expect(useAppStore.getState().screen).not.toBe('drill')
+
+    confirmSpy.mockRestore()
+  })
+
+  it('生成パックが0問なら案内文を表示し、drillへ遷移しない（T-121・J-60）', async () => {
+    const { db, raidApi } = await joinedSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={[]} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    fireEvent.click(screen.getByText('レイドに挑む'))
+
+    expect(await screen.findByText('今は出題できる問題がありません')).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+    expect(useSessionStore.getState().snapshot).toBeNull()
+  })
 })
 
 describe('RaidScreen: オフライン表示規約（M3・T-99）', () => {

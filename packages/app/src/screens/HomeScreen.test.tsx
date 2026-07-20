@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { toDateString } from '../engine/date'
+import * as shuffleModule from '../engine/shuffle'
 import type { RaidApi } from '../platform'
 import { syncRaidDamage } from '../services/raidSync'
 import {
@@ -20,6 +21,7 @@ import {
   QUEST_DURATION_KEY,
   RAID_REGISTERED_AT_KEY,
   RAID_SYNC_ENABLED_KEY,
+  SINGLE_MODE_COUNT_KEY,
 } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
@@ -713,6 +715,8 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
 
     fireEvent.click(screen.getByText('今日のクエスト'))
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
+    // T-122(J-61): 何を破棄するのか分かるよう、確認メッセージに残り問数を含める
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('残り1問'))
 
     expect(useAppStore.getState().screen).toBe('home')
     confirmSpy.mockRestore()
@@ -1157,5 +1161,244 @@ describe('HomeScreen: 時刻追従（T-105）', () => {
 
     await waitFor(() => expect(screen.getByText('SRS期限 1')).toBeTruthy())
     dateNowSpy.mockRestore()
+  })
+})
+
+describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118）', () => {
+  // Part5プールを問数選択肢（10/20/50）を跨いで検証できるだけの件数に増やす
+  const MANY_PART5: Question[] = Array.from({ length: 30 }, (_, i) => part5Question(`p5-many-${i}`))
+  const POOL_WITH_MANY_PART5: Question[] = [...QUESTION_POOL, ...MANY_PART5]
+
+  it('Part5タップで問数選択モーダルが開き、既定20問が選択されている', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={POOL_WITH_MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    expect(screen.getByRole('dialog', { name: 'Part5の問題数を選択' })).toBeTruthy()
+    expect(screen.getByText('20問').className).toContain('is-selected')
+  })
+
+  it('選択した問数でPart5セッションが始まる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={POOL_WITH_MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByText('10問'))
+    fireEvent.click(screen.getByText('開始'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot!.items.length).toBe(10)
+  })
+
+  it('プールが選択問数未満のときはある分だけで開始する', async () => {
+    const db = newDb()
+    // QUESTION_POOLのPart5（text_blank）は p5-1・p5-2 の2問のみ
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByText('開始')) // 既定20問だがプールは2問のみ
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot!.items.length).toBe(2)
+  })
+
+  it('出題はプール順固定ではなくシャッフルされた結果から抽選される', async () => {
+    const db = newDb()
+    // shuffleを「反転」に固定し、プール順そのままでは起こり得ない並びが実際に使われることを検証する
+    const shuffleSpy = vi
+      .spyOn(shuffleModule, 'shuffle')
+      .mockImplementation((items: readonly unknown[]) => [...items].reverse())
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={POOL_WITH_MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByText('10問'))
+    fireEvent.click(screen.getByText('開始'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    const part5Pool = POOL_WITH_MANY_PART5.filter((q) => q.format === 'text_blank')
+    const expectedIds = [...part5Pool]
+      .reverse()
+      .slice(0, 10)
+      .map((q) => q.id)
+    const actualIds = useSessionStore.getState().snapshot!.items.map((i) => i.questionId)
+    expect(actualIds).toEqual(expectedIds)
+    shuffleSpy.mockRestore()
+  })
+
+  it('選択した問数が保存され、再マウント後も復元される', async () => {
+    const db = newDb()
+    const first = render(
+      <HomeScreen
+        db={db}
+        questionPool={POOL_WITH_MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part2瞬発'))
+    fireEvent.click(screen.getByText('50問'))
+    fireEvent.click(screen.getByText('通常'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+
+    expect((await db.settings.get(SINGLE_MODE_COUNT_KEY))?.value).toBe(50)
+    first.unmount()
+
+    useAppStore.setState({ screen: 'home' })
+    useSessionStore.getState().reset()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={POOL_WITH_MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    expect(screen.getByText('50問').className).toContain('is-selected')
+  })
+
+  it('不正な保存値は既定20問へフォールバックする', async () => {
+    const db = newDb()
+    await db.settings.put({ key: SINGLE_MODE_COUNT_KEY, value: 999 })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={POOL_WITH_MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    expect(screen.getByText('20問').className).toContain('is-selected')
+  })
+})
+
+describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）', () => {
+  it('SRSカードなしで3分クエストを開始するとメッセージが表示され、drillへ遷移しない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('3分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+
+    expect(
+      await screen.findByText(
+        '今は出題できる問題がありません。3分クエストはSRS復習が中心です。復習カードが無いときは7分・15分をお試しください',
+      ),
+    ).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('7分に切り替えて開始成功すると、3分の空パックメッセージは消える', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('3分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await screen.findByText(/今は出題できる問題がありません/)
+
+    fireEvent.click(screen.getByText('7分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(screen.queryByText(/今は出題できる問題がありません/)).toBeNull()
+  })
+
+  it('単独モードでプールに対象formatが無ければメッセージが表示される', async () => {
+    const db = newDb()
+    // Part5(text_blank)を含まないプール
+    const poolWithoutPart5 = QUESTION_POOL.filter((q) => q.format !== 'text_blank')
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={poolWithoutPart5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByText('開始'))
+
+    expect(await screen.findByText('今は出題できる問題がありません')).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('単独モード開始成功時は、残っていた空パックメッセージをクリアする', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('3分'))
+    fireEvent.click(screen.getByText('今日のクエスト'))
+    await screen.findByText(/今は出題できる問題がありません/)
+
+    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByText('開始'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(screen.queryByText(/今は出題できる問題がありません/)).toBeNull()
   })
 })

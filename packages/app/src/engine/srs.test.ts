@@ -11,6 +11,7 @@ import {
   applyGrade,
   DEFAULT_SRS_OPTIONS,
   getSrsQueue,
+  markVocabKnown,
   reviewSrsCard,
   SRS_INTERVAL_DAYS,
   srsCardId,
@@ -227,5 +228,68 @@ describe('getSrsQueue: 期限抽出と新規制御', () => {
 describe('間隔テーブル', () => {
   it('1→3→7→14→30→60日の6段階', () => {
     expect(SRS_INTERVAL_DAYS).toEqual([1, 3, 7, 14, 30, 60])
+  })
+})
+
+describe('markVocabKnown（T-119・J-58: 語彙仕分けの既知永続化）', () => {
+  it('卒業済みSRSカードを作成する（stage0・dueAt=now・graduatedAt=now・sourceQuestionId=null）', async () => {
+    const db = newDb()
+    const now = at(2026, 7, 9)
+    await markVocabKnown(db, 'submit', now)
+
+    const saved = await db.srsCards.get('vocab:submit')
+    expect(saved).toEqual({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: now,
+      lapses: 0,
+      introducedDate: toDateString(now),
+      graduatedAt: now,
+      sourceQuestionId: null,
+    })
+  })
+
+  it('作成したカードはgetSrsQueueのdueReviews・newCardsどちらにも出ない', async () => {
+    const db = newDb()
+    const now = at(2026, 7, 9)
+    await markVocabKnown(db, 'submit', now)
+
+    const queue = await getSrsQueue(db, now)
+    expect(queue.dueReviews).toHaveLength(0)
+    expect(queue.newCards).toHaveLength(0)
+  })
+
+  it('既存の未卒業（active）カードがある語には何もしない（多層防御）', async () => {
+    const db = newDb()
+    const now = at(2026, 7, 9)
+    await db.srsCards.put(card({ id: 'vocab:submit', refId: 'submit', dueAt: now - 1000 }))
+
+    await markVocabKnown(db, 'submit', now + 1000)
+
+    const saved = await db.srsCards.get('vocab:submit')
+    expect(saved?.graduatedAt).toBeNull() // 上書きされず、活動中カードのまま
+  })
+
+  it('既知語が後の学習で誤答されると、addSrsCardの既存仕様によりstage0の学習カードへ戻る', async () => {
+    const db = newDb()
+    const knownAt = at(2026, 7, 9)
+    await markVocabKnown(db, 'submit', knownAt)
+
+    const relearnAt = at(2026, 7, 15)
+    const relearned = await addSrsCard(db, {
+      refType: 'vocab',
+      refId: 'submit',
+      now: relearnAt,
+    })
+
+    expect(relearned.stage).toBe(0)
+    expect(relearned.introducedDate).toBeNull() // 未導入へリセット（通常の新規カードと同じ扱い）
+    expect(relearned.graduatedAt).toBeNull()
+
+    // getSrsQueueの新規枠にも通常どおり乗る（既知語が自動的にSRS学習へ編入される）
+    const queue = await getSrsQueue(db, relearnAt)
+    expect(queue.newCards.map((c) => c.refId)).toEqual(['submit'])
   })
 })

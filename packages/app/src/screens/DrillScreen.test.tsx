@@ -1363,3 +1363,38 @@ describe('DrillScreen: ハプティクス（T-78。正解確定時のnavigator.v
     }
   })
 })
+
+describe('DrillScreen: セッション途中終了導線（T-122・J-61）', () => {
+  it('解説表示中（残り1問以上）に「ここで終了して結果を見る」が出て、タップでリザルトへ遷移し解答済み分が集計される', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const snapshot = await setupSession(db, items, QUESTIONS)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await answerAndSettle('a', 1) // q-1に正解（残りq-2の1問）
+
+    const exitButton = screen.getByText('ここで終了して結果を見る')
+    expect(exitButton).toBeTruthy()
+    fireEvent.click(exitButton)
+
+    expect(useAppStore.getState().screen).toBe('result')
+    // セッションは破棄されず、解答済み1件分のattemptIdsがそのまま残る（ResultScreenの
+    // attemptIds基準集計=T-109で正しく反映されるための前提）
+    expect(useSessionStore.getState().snapshot?.attemptIds).toHaveLength(1)
+    expect(useSessionStore.getState().snapshot?.sessionId).toBe(snapshot.sessionId)
+  })
+
+  it('最終問の解説では「ここで終了して結果を見る」は出ない（「次へ」自体がリザルトへ進むため）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await answerAndSettle('a', 1)
+    fireEvent.click(screen.getByText('次へ'))
+    expect(screen.getByText(/attend/)).toBeTruthy() // q-2（最終問）が表示される
+
+    await answerAndSettle('b', 2) // q-2に正解
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+  })
+})

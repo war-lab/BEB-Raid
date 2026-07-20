@@ -20,7 +20,7 @@ import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
-import { CONFIRM_DISCARD_MESSAGE, toSessionItems } from './HomeScreen'
+import { confirmDiscardMessage, toSessionItems } from './HomeScreen'
 
 interface Props {
   db: BebRaidDatabase
@@ -31,6 +31,9 @@ interface Props {
 
 /** レイド挑戦セッションの長さ（3.3節: 7分プリセットをそのまま流用） */
 const RAID_QUEST_DURATION = 7
+
+/** 空パック時の案内文言（T-121・J-60。HomeScreenと同文言・補足文なし） */
+const EMPTY_PACK_MESSAGE = '今は出題できる問題がありません'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -118,6 +121,8 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   const [bossFetchFailed, setBossFetchFailed] = useState(false)
   // T-105(b): 相対時刻・raidEnded判定のtick更新用の現在時刻state
   const [nowMs, setNowMs] = useState(now())
+  // T-121(J-60): 生成パックが0問だったときの案内。自動では消さず、セッション開始成功でクリアする
+  const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
 
   // レイド機能が利用可能な間だけ60秒tickで現在時刻を進める（raidEnded・残り日数・最終同期表示に使う）
   useEffect(() => {
@@ -252,7 +257,14 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   }
 
   async function handleChallenge() {
-    if (resumeSnapshot && !window.confirm(CONFIRM_DISCARD_MESSAGE)) return
+    if (
+      resumeSnapshot &&
+      !window.confirm(
+        confirmDiscardMessage(resumeSnapshot.items.length - resumeSnapshot.answeredCount),
+      )
+    )
+      return
+    setEmptyPackMessage(null)
     const phase = await getOrInitPhaseState(db)
     const pack = await generateQuickPack(db, {
       duration: RAID_QUEST_DURATION,
@@ -265,7 +277,12 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     const items = toSessionItems(pack.items).map((item) =>
       item.mode === 'solo' ? { ...item, mode: 'raid' as const } : item,
     )
-    if (items.length === 0) return
+    // J-60: HomeScreenの「今日のクエスト」と同様、生成パックが0問なら黙って何も起きない
+    // 従来挙動をやめ、案内を表示する
+    if (items.length === 0) {
+      setEmptyPackMessage(EMPTY_PACK_MESSAGE)
+      return
+    }
 
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
@@ -435,6 +452,7 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               レイドに挑む
             </PrimaryButton>
           )}
+          {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
           {joined && (
             <button
               type="button"

@@ -277,3 +277,92 @@ describe('ShadowingScreen: 素材が無い場合', () => {
     expect(screen.getByText('シャドーイング素材がありません')).toBeTruthy()
   })
 })
+
+describe('ShadowingScreen: 開始位置と素材間移動（T-120・J-59）', () => {
+  it('実施済み素材を飛ばして未実施の先頭から始まる', async () => {
+    const db = newDb()
+    await db.attempts.add({
+      id: 'a-1',
+      questionId: 'shadow:shadow-1',
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 0,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: Date.now(),
+    })
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2', script: 'Second one.', timing: [0, 500] })
+    const q3 = shadowingQuestion({ id: 'shadow-3', script: 'Third one.', timing: [0, 500] })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2, q3]} />)
+
+    // shadow-1は実施済みのため、未実施の先頭（2/3）から始まる
+    await waitFor(() => expect(screen.getByText(/2\/3/)).toBeTruthy())
+  })
+
+  it('全素材が実施済みなら素材1から始まる（周回扱い）', async () => {
+    const db = newDb()
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2', script: 'Second one.', timing: [0, 500] })
+    await db.attempts.bulkAdd([
+      {
+        id: 'a-1',
+        questionId: 'shadow:shadow-1',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 0,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: Date.now(),
+      },
+      {
+        id: 'a-2',
+        questionId: 'shadow:shadow-2',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 0,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: Date.now(),
+      },
+    ])
+    const audioPlayer = new FakeAudioPlayer()
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    await waitFor(() => expect(screen.getByText(/1\/2/)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/実施済み/)).toBeTruthy())
+  })
+
+  it('3周完了前でも「次の素材へ」で移動できる（attemptは記録されない）', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2', script: 'Second one.', timing: [0, 500] })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    await waitFor(() => expect(screen.getByText(/1\/2/)).toBeTruthy())
+    fireEvent.click(screen.getByText('次の素材へ'))
+
+    await waitFor(() => expect(screen.getByText(/2\/2/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('「前の素材へ」で戻れる（index>0のときのみ表示）', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2', script: 'Second one.', timing: [0, 500] })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    await waitFor(() => expect(screen.getByText(/1\/2/)).toBeTruthy())
+    expect(screen.queryByText('前の素材へ')).toBeNull()
+
+    fireEvent.click(screen.getByText('次の素材へ'))
+    await waitFor(() => expect(screen.getByText(/2\/2/)).toBeTruthy())
+    expect(screen.getByText('前の素材へ')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('前の素材へ'))
+    await waitFor(() => expect(screen.getByText(/1\/2/)).toBeTruthy())
+  })
+})

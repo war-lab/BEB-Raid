@@ -14,6 +14,7 @@ import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { generateQuickPack } from '../engine/quickPack'
 import { formatRelativeTime } from '../engine/relativeTime'
+import { shuffle } from '../engine/shuffle'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
@@ -24,6 +25,7 @@ import {
   LAST_SEEN_STREAK_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
+  SINGLE_MODE_COUNT_KEY,
 } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
@@ -43,11 +45,25 @@ interface Props {
   raidApi: RaidApi
 }
 
-/** 進行中セッションを破棄して新規開始してよいかの確認（J-34） */
-export const CONFIRM_DISCARD_MESSAGE = '進行中のセッションを破棄して新しく始めますか？'
+/**
+ * 進行中セッションを破棄して新規開始してよいかの確認（J-34）。
+ * T-122(J-61): 何を破棄するのか分からない不安を減らすため、残り問数を含める
+ */
+export function confirmDiscardMessage(remaining: number): string {
+  return `進行中のセッション（残り${remaining}問）を破棄して新しく始めますか？`
+}
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
 const DEFAULT_DURATION: QuickPackDuration = 7
+/** 単独モード（Part2瞬発・Part5）の問数選択肢（J-57）。「全問」は完走不能セッションの再発防止で置かない */
+const SINGLE_MODE_COUNTS = [10, 20, 50] as const
+type SingleModeCount = (typeof SINGLE_MODE_COUNTS)[number]
+const DEFAULT_SINGLE_MODE_COUNT: SingleModeCount = 20
+/** 空パック時の案内文言（J-60） */
+const EMPTY_PACK_MESSAGE = '今は出題できる問題がありません'
+/** 3分クエスト選択時のみ続ける補足文（J-60。3分=SRS復習中心の構成のため空になりやすい） */
+const EMPTY_PACK_QUEST_3MIN_HINT =
+  '3分クエストはSRS復習が中心です。復習カードが無いときは7分・15分をお試しください'
 /** 途切れ判定の閾値（レビューフォローアップ3.8節: gap≥2） */
 const BROKEN_GAP_DAYS = 2
 /** ホームのミニヒートマップの表示週数（T-78。DashboardScreenの15週の縮小版） */
@@ -89,6 +105,13 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [loaded, setLoaded] = useState(false)
   // T-39: Part2単独モード起動時の再生バリエーション選択（永続化しない。セッション単位の選択=13の3.11節）
   const [showPart2Options, setShowPart2Options] = useState(false)
+  // T-118: Part5単独モード起動時の問数選択モーダル（Part2と同型。新設）
+  const [showPart5Options, setShowPart5Options] = useState(false)
+  // T-118: 単独モード（Part2瞬発・Part5）共通の問数選択値（画面遷移・再起動を跨いで復元）
+  const [singleModeCount, setSingleModeCount] = useState<SingleModeCount>(DEFAULT_SINGLE_MODE_COUNT)
+  // T-121(J-60): 生成パックが0問だったときの案内（今日のクエスト・単独モード共通）。
+  // セッション開始成功時・単独モード開始時にクリアする。自動では消さない
+  const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
   // T-54: 現フェーズ（シーズン表示・クイックパックのフェーズ駆動化に使う）
   const [phase, setPhase] = useState<PhaseState | null>(null)
   // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
@@ -124,6 +147,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         recentAttempts,
         raidStateRecord,
         questDurationSetting,
+        singleModeCountSetting,
       ] = await Promise.all([
         evaluateStreak(db),
         getStreak(db),
@@ -133,6 +157,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
         db.raidState.get(RAID_STATE_ID),
         db.settings.get(QUEST_DURATION_KEY),
+        db.settings.get(SINGLE_MODE_COUNT_KEY),
       ])
       if (cancelled) return
       setRaidState(raidStateRecord ?? null)
@@ -140,6 +165,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       const savedDuration = questDurationSetting?.value as QuickPackDuration | undefined
       if (savedDuration !== undefined && DURATIONS.includes(savedDuration)) {
         setDuration(savedDuration)
+      }
+      // T-118: 単独モードの問数選択を画面遷移・再起動を跨いで復元する（不正値は既定へフォールバック）
+      const savedSingleModeCount = singleModeCountSetting?.value as SingleModeCount | undefined
+      if (savedSingleModeCount !== undefined && SINGLE_MODE_COUNTS.includes(savedSingleModeCount)) {
+        setSingleModeCount(savedSingleModeCount)
       }
       const today = toDateString(Date.now())
       const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
@@ -214,6 +244,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   }
 
   async function handleStartQuest() {
+    setEmptyPackMessage(null)
     const pack = await generateQuickPack(db, {
       duration,
       questions: questionPool,
@@ -226,15 +257,40 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         ? applyNoEarphoneFilter(pack, new Map(questionPool.map((q) => [q.id, q])))
         : pack
     const items = toSessionItems(filteredPack.items)
+    // J-60: 3分クエストはSRS復習中心の構成のため、SRS期限・新規カードが無い状態
+    // （新規ユーザーの典型）で高確率で空パックになる。従来は黙って何も起きなかった
+    if (items.length === 0) {
+      setEmptyPackMessage(
+        duration === 3
+          ? `${EMPTY_PACK_MESSAGE}。${EMPTY_PACK_QUEST_3MIN_HINT}`
+          : EMPTY_PACK_MESSAGE,
+      )
+      return
+    }
     await startSessionAndNavigate(items)
+  }
+
+  /** T-118: 問数選択チップの選択（保存＋画面遷移・再起動を跨いで復元） */
+  function handleSelectSingleModeCount(count: SingleModeCount) {
+    setSingleModeCount(count)
+    void db.settings.put({ key: SINGLE_MODE_COUNT_KEY, value: count })
   }
 
   async function startSingleMode(
     format: 'audio_qa' | 'text_blank',
     options?: { partialAudioMode?: boolean },
   ) {
+    // T-121: 単独モード開始時は「今日のクエスト」の空パック案内が残っていればクリアする
+    setEmptyPackMessage(null)
     const filtered = questionPool.filter((q) => q.format === format)
-    const items: SessionItem[] = filtered.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    // J-57: 毎回シャッフルして先頭N問を取る（プール順固定だと後半に永遠に到達しない問題への対処）。
+    // プールがN問未満のときはある分だけで開始する
+    const selected = shuffle(filtered).slice(0, singleModeCount)
+    const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    if (items.length === 0) {
+      setEmptyPackMessage(EMPTY_PACK_MESSAGE)
+      return
+    }
     await startSessionAndNavigate(items, options)
   }
 
@@ -243,7 +299,13 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     options?: { partialAudioMode?: boolean },
   ) {
     if (items.length === 0) return
-    if (resumeSnapshot && !window.confirm(CONFIRM_DISCARD_MESSAGE)) return
+    if (
+      resumeSnapshot &&
+      !window.confirm(
+        confirmDiscardMessage(resumeSnapshot.items.length - resumeSnapshot.answeredCount),
+      )
+    )
+      return
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
     beginSession(
@@ -319,6 +381,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 問題データを取得できていません。オンラインで開き直してください
               </p>
             )}
+            {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
             <p className="home-duration-chips__label">クエストの長さ</p>
             <div className="home-duration-chips">
               {DURATIONS.map((d) => (
@@ -347,6 +410,20 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             >
               <div className="home-part2-options">
                 <p>音声の再生方法を選んでください</p>
+                {/* T-118: 問数チップ（J-57。既定20問。プールが問数未満ならある分だけで開始する） */}
+                <p className="home-duration-chips__label">問題数</p>
+                <div className="home-duration-chips">
+                  {SINGLE_MODE_COUNTS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`home-chip${c === singleModeCount ? ' is-selected' : ''}`}
+                      onClick={() => handleSelectSingleModeCount(c)}
+                    >
+                      {c}問
+                    </button>
+                  ))}
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -372,11 +449,49 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               </div>
             </div>
           )}
+          {showPart5Options && (
+            // T-118: Part5は従来即時開始だったが、問数選択を挟む同型モーダルを新設する
+            <div
+              className="home-part2-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Part5の問題数を選択"
+            >
+              <div className="home-part2-options">
+                <p>Part5の問題数を選んでください</p>
+                <p className="home-duration-chips__label">問題数</p>
+                <div className="home-duration-chips">
+                  {SINGLE_MODE_COUNTS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`home-chip${c === singleModeCount ? ' is-selected' : ''}`}
+                      onClick={() => handleSelectSingleModeCount(c)}
+                    >
+                      {c}問
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPart5Options(false)
+                    void startSingleMode('text_blank')
+                  }}
+                >
+                  開始
+                </button>
+                <button type="button" onClick={() => setShowPart5Options(false)}>
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          )}
           <div className="home-grid">
             <button type="button" onClick={() => setShowPart2Options(true)}>
               Part2瞬発
             </button>
-            <button type="button" onClick={() => void startSingleMode('text_blank')}>
+            <button type="button" onClick={() => setShowPart5Options(true)}>
               Part5
             </button>
             <button type="button" onClick={() => navigate('vocab')}>

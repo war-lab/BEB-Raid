@@ -109,6 +109,42 @@ export async function addSrsCard(
 }
 
 /**
+ * 語彙仕分けの「知ってる」を永続化する（T-119・docs/19 3.2節=J-58）。
+ * 卒業済みSRSカード（graduatedAt=now）を作成し、次回入店時にまた仕分けキューへ
+ * 出てしまう問題（従来は仕分けインデックスを進めるだけで何も記録しなかった）に対処する。
+ * 卒業済みカード方式にする理由:
+ * - getSrsQueueのactiveフィルタ（graduatedAt!==nullを除外）により復習キューへ出ない
+ * - 仕分け候補フィルタ（srsCards登録済みを除外）により再出題されない
+ * - 既知語が後の学習で誤答された場合、addSrsCardの既存仕様（卒業済みカードへの
+ *   再追加=stage0から学習し直す）により、自動的にSRS学習へ編入される（意図した相互作用）
+ * 既存の未卒業（active）カードがある語には何もしない（多層防御。通常は仕分け候補フィルタで
+ * 除外済みのため到達しない）
+ */
+export async function markVocabKnown(
+  db: BebRaidDatabase,
+  word: string,
+  now: number = Date.now(),
+): Promise<void> {
+  const id = srsCardId('vocab', word)
+  return db.transaction('rw', db.srsCards, async () => {
+    const existing = await db.srsCards.get(id)
+    if (existing && (existing.graduatedAt ?? null) === null) return
+    const card: SrsCardRecord = {
+      id,
+      refType: 'vocab',
+      refId: word,
+      stage: 0,
+      dueAt: now,
+      lapses: 0,
+      introducedDate: toDateString(now),
+      graduatedAt: now,
+      sourceQuestionId: null,
+    }
+    await db.srsCards.put(card)
+  })
+}
+
+/**
  * カードに自己評価を反映して保存する。
  * key語彙カードが卒業した場合、発生元の問題を問題SRSカードとして再投入する
  * （03の3.2「定着後、元問題タイプを再出題して定着確認」= T-11）
