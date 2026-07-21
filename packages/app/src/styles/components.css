@@ -286,6 +286,48 @@
   color: var(--listen);
 }
 
+/* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/18 3.5節） --- */
+.passage-kind {
+  margin: 0 0 var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-note);
+  text-transform: uppercase;
+}
+.passage-text {
+  font-size: var(--fs-question);
+  line-height: 1.65;
+  max-width: 34em;
+  white-space: pre-wrap;
+}
+/* Part6の空所（未解答=___(n)___・解答済み=選択結果を反映。タップで該当設問へジャンプ） */
+.passage-blank {
+  display: inline;
+  padding: 0 var(--sp-half);
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.passage-blank.is-active {
+  border-bottom-color: var(--gold);
+}
+.passage-blank.is-correct {
+  border-bottom-color: var(--ok);
+  color: var(--ok);
+}
+.passage-blank.is-wrong {
+  border-bottom-color: var(--ng);
+  color: var(--ng);
+}
+/* --- 読解のペース目安（15秒タイマーとは違い速答を煽らない柔らかい表示。3.5節） --- */
+.reading-pace {
+  margin: var(--sp-half) 0 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sub);
+}
+
 /* --- 音声リプレイボタン（操作ゾーン内。07の6節） --- */
 .drill-replay {
   display: block;

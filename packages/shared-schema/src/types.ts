@@ -54,7 +54,7 @@ export interface DictationBlank {
   answer: string
 }
 
-/** audio_set（Part3/4）の設問。1音声に3問程度ぶら下がる */
+/** audio_set（Part3/4）・text_passage（Part6/7）の設問。1刺激に複数ぶら下がる */
 export interface SubQuestion {
   id: string
   question: string
@@ -62,6 +62,20 @@ export interface SubQuestion {
   answer: string
   explanation?: string | null
   translation?: string | null
+  /** 設問単位の解法タグ（例: text_passage の 'cross-reference'）。弱点集計の粒度を上げる用（docs/18 3.4節） */
+  tags?: string[] | null
+}
+
+/**
+ * text_passage（Part6/7）の刺激文書（正本: docs/18 3.1節・ADR 0006 判断3）。
+ * Part6・Part7単一は1件、Part7複数パッセージは2〜3件。
+ * Part6は text に空所マーカー [[1]]…[[4]] を埋め込み、subQuestions の n 番目が [[n]] に対応する。
+ */
+export interface Passage {
+  id: string
+  /** email | notice | article | chat | form | advertisement 等。表示ラベルと出題文脈 */
+  kind: string
+  text: string
 }
 
 /**
@@ -91,8 +105,10 @@ export interface Question {
   explanation?: string | null
   /** dictation 用 */
   blanks?: DictationBlank[] | null
-  /** audio_set 用 */
+  /** audio_set（Part3/4）・text_passage（Part6/7）用。1刺激にぶら下がる設問 */
   subQuestions?: SubQuestion[] | null
+  /** text_passage（Part6/7）用。刺激文書。Part7複数パッセージは2〜3件（docs/18 3.1節） */
+  passages?: Passage[] | null
 
   // --- vocab_card 用（02の4節: 1語1フレーズ・フレーズ音声必須） ---
   front?: string | null

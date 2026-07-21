@@ -1,8 +1,10 @@
 // 問題パックのバリデータ（T-05。正本: docs/04_データ設計.md 2節）。
 //
 // 検査内容: スキーマ検証 / license・origin 必須 / answer整合 / keyVocab存在チェック
-// （検査対象フィールドは format 毎に定義: audio系=script、text系=question＋choices、
-// vocab_card=phrase）/ 音声存在チェック（audioFiles オプション指定時のみ）。
+// （検査対象フィールドは format 毎に定義: audio系=script、text_blank=question＋choices、
+// text_passage=passages本文＋subQuestions、vocab_card=phrase）/ 音声存在チェック
+// （audioFiles オプション指定時のみ）。text_passage（Part6/7）は audio_set と同じ
+// 「1刺激＋subQuestions」構造で、刺激は音声でなく passages（本文）になる（ADR 0006・docs/18 3.1節）。
 //
 // エラーはパック単位で全件レポートし、部分取込はしない（1件でもエラーがあれば ok=false）。
 // ファイルシステムには触れない設計: 実ファイルの列挙はビルド側（T-32）が行い、
@@ -64,14 +66,14 @@ const AUDIO_FORMATS: readonly QuestionFormat[] = [
   'dictation',
   'shadowing',
 ]
-const TEXT_FORMATS: readonly QuestionFormat[] = ['text_blank', 'text_passage']
-/** 単独の choices + answer を持つ format（audio_set は subQuestions 側で持つ） */
-const CHOICE_FORMATS: readonly QuestionFormat[] = [
-  'audio_qa',
-  'audio_photo',
-  'text_blank',
-  'text_passage',
-]
+/** トップレベルに question を持つ text 系 format（text_passage は passages+subQuestions 側で持つ） */
+const TEXT_FORMATS: readonly QuestionFormat[] = ['text_blank']
+/** 単独の choices + answer を持つ format（audio_set / text_passage は subQuestions 側で持つ） */
+const CHOICE_FORMATS: readonly QuestionFormat[] = ['audio_qa', 'audio_photo', 'text_blank']
+/** text_passage の subQuestions 件数上限（Part7複数パッセージ=5問。docs/18 3.1節） */
+const MAX_SUB_QUESTIONS = 5
+/** Part6 の空所マーカー（本文中の [[1]]…[[4]]）。数字を1グループで捕捉する */
+const PASSAGE_MARKER_RE = /\[\[(\d+)\]\]/g
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -205,6 +207,8 @@ function validateQuestion(
     err(`${path}.part`, 'invalid_value', 'vocab_card の part は 0')
   } else if (format !== 'vocab_card' && q.part === 0) {
     err(`${path}.part`, 'invalid_value', 'part 0 は vocab_card 専用')
+  } else if (format === 'text_passage' && q.part !== 6 && q.part !== 7) {
+    err(`${path}.part`, 'invalid_value', 'text_passage の part は 6（Part6）または 7（Part7）')
   }
 
   if (!isInt(q.difficulty) || q.difficulty < 1 || q.difficulty > 5) {
@@ -308,30 +312,13 @@ function validateQuestion(
   }
 
   if (format === 'audio_set') {
-    if (!Array.isArray(q.subQuestions) || q.subQuestions.length === 0) {
-      err(`${path}.subQuestions`, 'missing_field', 'audio_set には subQuestions が必要')
-    } else if (q.subQuestions.length > 5) {
-      err(`${path}.subQuestions`, 'invalid_value', 'subQuestions は5件以下')
-    } else {
-      q.subQuestions.forEach((sq, i) => {
-        const sqPath = `${path}.subQuestions[${i}]`
-        if (!isRecord(sq)) {
-          err(sqPath, 'invalid_structure', 'subQuestion がオブジェクトではない')
-          return
-        }
-        if (!isNonEmptyString(sq.id)) {
-          err(`${sqPath}.id`, 'missing_field', 'id が必要')
-        } else if (seenSubQuestionIds.has(sq.id)) {
-          err(`${sqPath}.id`, 'invalid_value', `subQuestion id がパック内で重複: ${sq.id}`)
-        } else {
-          seenSubQuestionIds.add(sq.id)
-        }
-        if (!isNonEmptyString(sq.question)) {
-          err(`${sqPath}.question`, 'missing_field', 'question が必要')
-        }
-        validateChoicesAndAnswer(sq.choices, sq.answer, sqPath, err)
-      })
-    }
+    validateSubQuestions(q.subQuestions, format, path, seenSubQuestionIds, err)
+  }
+
+  if (format === 'text_passage') {
+    validatePassages(q.passages, q.part, path, err)
+    validateSubQuestions(q.subQuestions, format, path, seenSubQuestionIds, err)
+    validatePart6Markers(q, path, err)
   }
 
   if (format === 'vocab_card') {
@@ -431,11 +418,152 @@ function validateChoicesAndAnswer(
 }
 
 /**
+ * audio_set / text_passage の subQuestions（1刺激にぶら下がる設問）を検証する。
+ * 件数は 1〜MAX_SUB_QUESTIONS。各要素は { id（パック内一意）, question, choices+answer }。
+ */
+function validateSubQuestions(
+  subQuestions: unknown,
+  format: QuestionFormat,
+  path: string,
+  seenSubQuestionIds: Set<string>,
+  err: (path: string, code: ValidationErrorCode, message: string) => void,
+): void {
+  if (!Array.isArray(subQuestions) || subQuestions.length === 0) {
+    err(`${path}.subQuestions`, 'missing_field', `${format} には subQuestions が必要`)
+    return
+  }
+  if (subQuestions.length > MAX_SUB_QUESTIONS) {
+    err(`${path}.subQuestions`, 'invalid_value', `subQuestions は${MAX_SUB_QUESTIONS}件以下`)
+    return
+  }
+  subQuestions.forEach((sq, i) => {
+    const sqPath = `${path}.subQuestions[${i}]`
+    if (!isRecord(sq)) {
+      err(sqPath, 'invalid_structure', 'subQuestion がオブジェクトではない')
+      return
+    }
+    if (!isNonEmptyString(sq.id)) {
+      err(`${sqPath}.id`, 'missing_field', 'id が必要')
+    } else if (seenSubQuestionIds.has(sq.id)) {
+      err(`${sqPath}.id`, 'invalid_value', `subQuestion id がパック内で重複: ${sq.id}`)
+    } else {
+      seenSubQuestionIds.add(sq.id)
+    }
+    if (!isNonEmptyString(sq.question)) {
+      err(`${sqPath}.question`, 'missing_field', 'question が必要')
+    }
+    // tags は任意。指定されている場合は文字列配列であること
+    if (sq.tags !== undefined && sq.tags !== null) {
+      if (!Array.isArray(sq.tags) || !sq.tags.every(isNonEmptyString)) {
+        err(`${sqPath}.tags`, 'invalid_value', 'tags は文字列配列')
+      }
+    }
+    validateChoicesAndAnswer(sq.choices, sq.answer, sqPath, err)
+  })
+}
+
+/**
+ * text_passage の passages（刺激文書）を検証する。
+ * Part6=1件、Part7=1〜3件（複数パッセージは最大3件）。各要素は { id（問題内一意）, kind, text }。
+ */
+function validatePassages(
+  passages: unknown,
+  part: unknown,
+  path: string,
+  err: (path: string, code: ValidationErrorCode, message: string) => void,
+): void {
+  if (!Array.isArray(passages) || passages.length === 0) {
+    err(`${path}.passages`, 'missing_field', 'text_passage には passages が必要')
+    return
+  }
+  if (part === 6 && passages.length !== 1) {
+    err(`${path}.passages`, 'invalid_value', 'Part6 の passages は1件')
+  }
+  if (part === 7 && passages.length > 3) {
+    err(
+      `${path}.passages`,
+      'invalid_value',
+      'Part7 の passages は1〜3件（複数パッセージは最大3件）',
+    )
+  }
+  const ids = new Set<string>()
+  passages.forEach((p, i) => {
+    const pPath = `${path}.passages[${i}]`
+    if (!isRecord(p)) {
+      err(pPath, 'invalid_structure', 'passage がオブジェクトではない')
+      return
+    }
+    if (!isNonEmptyString(p.id)) {
+      err(`${pPath}.id`, 'missing_field', 'id が必要')
+    } else if (ids.has(p.id)) {
+      err(`${pPath}.id`, 'invalid_value', `passage id が問題内で重複: ${p.id}`)
+    } else {
+      ids.add(p.id)
+    }
+    if (!isNonEmptyString(p.kind)) {
+      err(`${pPath}.kind`, 'missing_field', 'kind が必要')
+    }
+    if (!isNonEmptyString(p.text)) {
+      err(`${pPath}.text`, 'missing_field', 'text が必要')
+    }
+  })
+}
+
+/** 本文中の空所マーカー [[n]] の番号を出現順に取り出す（Part6整合チェック用） */
+function extractMarkerIndices(text: string): number[] {
+  const out: number[] = []
+  for (const m of text.matchAll(PASSAGE_MARKER_RE)) {
+    out.push(Number(m[1]))
+  }
+  return out
+}
+
+/**
+ * Part6（text_passage）の空所マーカー整合を検証する。
+ * 本文の [[1]]…[[n]] が 1 から連番・重複なしで、subQuestions 件数と一致すること。
+ * Part7 はマーカー不要のため検査しない。passages 件数不正時は passages 側で別途エラー済みなので打ち切る。
+ */
+function validatePart6Markers(
+  q: Record<string, unknown>,
+  path: string,
+  err: (path: string, code: ValidationErrorCode, message: string) => void,
+): void {
+  if (q.part !== 6) return
+  if (!Array.isArray(q.passages) || q.passages.length !== 1) return
+  const passage = q.passages[0]
+  if (!isRecord(passage) || !isNonEmptyString(passage.text)) return
+
+  const markers = extractMarkerIndices(passage.text)
+  const distinct = new Set(markers)
+  const contiguous =
+    markers.length > 0 &&
+    distinct.size === markers.length &&
+    markers.every((m) => m >= 1 && m <= markers.length)
+  if (!contiguous) {
+    err(
+      `${path}.passages[0].text`,
+      'invalid_value',
+      `Part6 の空所マーカーは [[1]] から連番・重複なしで埋め込む（実際: ${markers.join(', ') || 'なし'}）`,
+    )
+    return
+  }
+  const subCount = Array.isArray(q.subQuestions) ? q.subQuestions.length : 0
+  if (subCount > 0 && markers.length !== subCount) {
+    err(
+      `${path}.subQuestions`,
+      'invalid_value',
+      `Part6 は空所マーカー数(${markers.length})と subQuestions 件数(${subCount})が一致すること`,
+    )
+  }
+}
+
+/**
  * keyVocab の検査。
  * - vocab_card 以外の format: 1件以上必須（key単語システム=03の3節 の入力になるため）
  * - vocab_card: 任意（カード自体が語彙。keyVocab は持たなくてよい）
  * - 存在チェックの検査対象フィールド（04の2節）:
- *   audio系=script / text系=question＋choices / vocab_card=phrase
+ *   audio系=script / text_blank=question＋choices /
+ *   text_passage=passages本文＋subQuestions（question＋choices）/ vocab_card=phrase
  * - 照合は小文字化した部分一致（活用形の揺れを許容する簡易判定）
  */
 function validateKeyVocab(
@@ -458,6 +586,26 @@ function validateKeyVocab(
   let target: string
   if (AUDIO_FORMATS.includes(format)) {
     target = isNonEmptyString(q.script) ? q.script : ''
+  } else if (format === 'text_passage') {
+    // 本文＋各設問の question・選択肢を検査対象にする（Part6は正解語が選択肢側に来るため）
+    const parts: string[] = []
+    if (Array.isArray(q.passages)) {
+      for (const p of q.passages) {
+        if (isRecord(p) && isNonEmptyString(p.text)) parts.push(p.text)
+      }
+    }
+    if (Array.isArray(q.subQuestions)) {
+      for (const sq of q.subQuestions) {
+        if (!isRecord(sq)) continue
+        if (isNonEmptyString(sq.question)) parts.push(sq.question)
+        if (Array.isArray(sq.choices)) {
+          for (const c of sq.choices) {
+            if (isRecord(c) && isNonEmptyString(c.text)) parts.push(c.text)
+          }
+        }
+      }
+    }
+    target = parts.join(' ')
   } else if (TEXT_FORMATS.includes(format)) {
     const parts: string[] = []
     if (isNonEmptyString(q.question)) parts.push(q.question)

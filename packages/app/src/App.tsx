@@ -30,6 +30,7 @@ import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RaidScreen } from './screens/RaidScreen'
+import { ReadingScreen } from './screens/ReadingScreen'
 import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
@@ -375,6 +376,9 @@ export function App() {
         resumeSnapshot={resumeSnapshot}
       />
     )
+  }
+  if (screen === 'reading') {
+    return <ReadingScreen db={getDb()} aiClient={aiClient} raidApi={raidApi} />
   }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする

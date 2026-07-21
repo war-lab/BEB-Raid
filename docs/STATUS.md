@@ -1,6 +1,40 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-20**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-21**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+
+## 読解パート（Part6/7）完成の計画（2026-07-21）
+
+全量レビューで、TOEIC対策としての実装に穴があることが判明した。`text_passage`（Part6/7）はスキーマに予約済みだがUIコンポーネント・配信コンテンツともに存在せず、**ユーザーは読解問題を一切解けない**。TOEIC ReadingはPart5〜7で100問（Part7だけで54問と最多）で、当初目的（380→760、Rはスコアの半分）に対し読解欠落は致命的。一方で「通勤・片手・短時間」コンセプトはPart7複数パッセージと衝突する。
+
+この対立を「読解をセッション長で階層化する」折衷案で解く方針を発起人が承認した（2026-07-21）。Part6・Part7単一は通常セッション（7分/15分）に組み込み、Part7複数パッセージだけを新規「じっくり読解」モード（着席・自宅想定）に隔離する。判断は [ADR 0006](adr/0006-読解パートの完成方針.md)、自走タスクシートは [18_読解パート実装計画](18_読解パート実装計画.md)（T-103〜T-110・判断J-51〜J-53・人間タスクH-R1/H-R2）に記録した。
+
+- **フェーズR-1（T-103〜T-107）**: Part6・Part7単一。完了で通勤セッション内の読解が可能になりRレートに反映される。
+- **フェーズR-2（T-108〜T-110）**: Part7複数パッセージ。完了でTOEIC L&R全パート（Part1除く）が練習可能になる。
+- 判断J-51〜J-53は発起人が推奨値で一括承認（2026-07-21）。docs/18の該当節を「承認済み」に更新済み。
+- 読解コンテンツは人手レビュー必須ゲートを最初から有効化する（AIクロスレビューのみでの配信を認めない）。
+
+**T-103 完了（2026-07-21。基盤=共有面スキーマ）**: 全タスクがimportする単一正本を先に固めるため、スキーマ・バリデータ・テストをOpusが実装した（Sonnetに任せると事故りやすい共有面の確定）。
+
+- **型（shared-schema/types.ts）**: `Passage`（id/kind/text）を新設。`Question` に `passages?: Passage[] | null` を追加。`SubQuestion` に `tags?: string[] | null` を追加（Part7複数パッセージの相互参照設問を設問単位でタグ付けし、弱点集計の粒度を上げる用途。docs/18 3.4節と整合）。`SCHEMA_VERSION` は後方互換の追加のため2据え置き。
+- **バリデータ（validate.ts）**: `text_passage` を「トップレベル question+choices の単一問題」から「audio_set と同じ passages（刺激）+ subQuestions 構造」へ再定義。TEXT_FORMATS/CHOICE_FORMATS から text_passage を除外し、専用検証を追加: part は6/7限定、passages は Part6=1件・Part7=1〜3件、subQuestions は1〜5件（既存 audio_set と共通ヘルパ `validateSubQuestions` に集約）、**Part6は空所マーカー [[n]] が1から連番・重複なしで subQuestions 件数と一致**すること、keyVocab の存在検査対象を「passages本文＋subQuestionsのquestion/choices」に拡張。
+- **実装判断**: 変更前は text_passage コンテンツ・UIとも存在せず（参照は validate/types/noEarphoneFilter のみ）、既存 text_passage テストも無かったため、単一問題→passages+subQuestions への構造変更は安全と判断した。
+- 検証: shared-schema単体61件（既存47＋新規14: Part6/Part7単一/複数の正常系、passages/subQuestions欠落、part不正、Part6マーカー不整合3種、passages4件超、answer不整合、keyVocab不在、tags不正、id重複）、ルート `npm run lint`・`npm run build`（app+api tsc含む）・`npm test` すべて通過。`npm run format:check` は変更ファイルを整形済み（既存の `.claude/worktrees/` 配下の未整形ファイル=本変更と無関係のstale worktree成果物は残存）。
+
+**T-104 完了（2026-07-21。ReadingScreen新設。devへ直接commit）**: 新規`screens/ReadingScreen.tsx`（Part6・Part7単一を解く専用画面。DrillScreenに分岐追加ではなく別画面=3.5節）を実装。`ScreenName`に`'reading'`追加、App.tsxに画面分岐を配線。
+
+- **本セッションでの運用変更**: 発起人の指示により本タスクは**task/ブランチ＋PR運用ではなくdevへ直接commit＆push**で実施した（18の2.1節が定める通常運用からの一時的な逸脱）。
+- **採点方針（ADR 0006 判断4・18の3.2節）を実装**: audio_setの2/3セット正解ルールは使わず、各subQuestionを独立採点対象とする。`recordAnswerPipeline`を`skip:{srs:true}`のみで呼ぶ（rating・tagStats・誤答→keyVocab循環はスキップしない）ため、question.part（6/7）経由でRセクションレートへ1問ごとに反映される。SRSレビューは本文まるごと再出題しないため（3.4節）、audio_setと違いセット完了時の`reviewSrsCard`呼び出しは無い。
+- **Part6の空所UIは非線形ジャンプで実装**: 本文中の`[[n]]`マーカーを`___(n)___`として表示し、未解答の空所は好きな順にタップして該当設問へジャンプできる（線形進行を強制しない）。解答済みの空所は選択結果（選んだ選択肢の文言＋正誤色）を本文へ反映する。Part7単一（マーカー無し）は「次へ」で順に進む。
+- **ペース表示**: リスニングの15秒自動タイムアウトは付けず、経過秒数のみを柔らかく提示（「目安1問/分（経過n秒）」）。自動確定・色による煽りはしない。
+- **共通化リファクタ**: `withSubQuestionLookup`（DrillScreenのaudio_set専用ヘルパだった）を`engine/subQuestionLookup.ts`へ抽出し、DrillScreen・ReadingScreen双方から共有。
+- **HomeScreenへの導線は意図的に未着手**: T-104の変更範囲はシート記載どおり画面本体・ScreenName・App.tsx分岐のみとし、通常セッションからreading画面へどう遷移するか（7分/15分パックへの読解混在時の画面切替方式含む）はT-105（セッション配分への組込）が決める設計判断のため、先回りして実装しない。現時点では`useAppStore.getState().navigate('reading')`等の直接遷移でのみ到達可能（単体テストはこの経路で検証）。
+- **未検証事項（正直な申告）**: 本セッションでは実ブラウザでの目視確認を行っていない（Playwright等のブラウザ自動化ツールが本環境に未設定のため）。単体テストはjsdom＋testing-library＋fake-indexeddbで実DOM描画・実Dexie書込を検証済みだが、実機・実ブラウザでのレイアウト確認はH-R2相当の範囲として持ち越し。次回T-105着手時、または人間による動作確認時に実施を推奨する。
+- 検証: ReadingScreen単体テスト5件（Part6表示・空所反映＋ジャンプ・Part7単一の順次解答＋Rレート反映・誤答時keyVocab登録・中断復帰）、DrillScreen単体44件（リファクタ後の回帰確認）、ルート `npm run lint`・`npm run build`・`npm test`（全ワークスペース。api 71件/app 532件/cli 305件/review-ui 15件/shared-schema 61件）すべて通過。
+
+**次のアクション**: T-105（セッション配分への組込。quickPack.ts/curriculum.ts）はT-104完了により着手可能。T-106（学習ロジック接続）はT-105完了後。T-107（CLI生成＋初期パック）はT-103完了時点で並行着手可能（H-R1の人手レビュー体制が前提）。
+
+- 着手前に確認が要る運用: T-107・T-109の人手レビュー体制（H-R1）。J-53（ロードマップ06への紐づけ）はドキュメント更新のみで実装非ブロッキング。
+- **⚠️ タスクID衝突（2026-07-21のdev合流時に発覚）**: 本セッションの間にdevへ別系統の [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md)（T-103〜T-117・PR #27）がマージされていた。両文書とも「T-103」「T-104」を独立に採番しており、以後この番号だけでは文書を一意に特定できない。要リナンバリング（別途対応。docs/18_読解パート実装計画.mdの改番を検討）。
 
 ## 2026-07-20: T-84リスニング在庫の追加クロスレビューと修正（task/T-84-crossreview-fixes）
 
