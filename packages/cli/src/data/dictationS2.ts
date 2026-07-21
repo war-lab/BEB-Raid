@@ -164,12 +164,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'subsidy',
     tags: ['弱形・連結', '助動詞弱形'],
-    script: 'Small businesses may qualify for a government subsidy.',
+    // クロスレビュー: may は弱形を持たない助動詞のため、弱形 /kən/ を持つ can へ差し替え（要音声再生成）
+    script: 'Small businesses can qualify for a government subsidy.',
     blanks: [
-      { index: 2, answer: 'may' },
+      { index: 2, answer: 'can' },
       { index: 4, answer: 'for' },
     ],
-    explanation: '弱形になりやすいmay/forを穴にしている。',
+    explanation: '弱形になりやすいcan/forを穴にしている。',
     translation: '中小企業は政府の補助金を受ける資格があるかもしれない。',
     difficulty: 4,
   },
@@ -200,12 +201,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'liability',
     tags: ['弱形・連結', '助動詞弱形'],
-    script: 'The company might face liability if the claim is proven.',
+    // クロスレビュー: might は弱形を持たない助動詞のため、弱形 /kəd/ を持つ could へ差し替え（要音声再生成）
+    script: 'The company could face liability if the claim is proven.',
     blanks: [
-      { index: 2, answer: 'might' },
+      { index: 2, answer: 'could' },
       { index: 8, answer: 'is' },
     ],
-    explanation: '弱形になりやすいmight/isを穴にしている。',
+    explanation: '弱形になりやすいcould/isを穴にしている。',
     translation: 'その申し立てが立証されれば、その会社は法的責任を負うかもしれない。',
     difficulty: 4,
   },
@@ -309,11 +311,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
     keyVocabWord: 'pension',
     tags: ['弱形・連結', '助動詞弱形'],
     script: 'Retired staff can access their pension after they turn sixty.',
+    // クロスレビュー: they は弱形を持たないため、弱形 /ðər/ を持つ their(index 4) へ穴を付け替える
+    // （script自体は不変＝音声再生成は不要）
     blanks: [
       { index: 2, answer: 'can' },
-      { index: 7, answer: 'they' },
+      { index: 4, answer: 'their' },
     ],
-    explanation: '弱形になりやすいcan/theyを穴にしている。',
+    explanation: '弱形になりやすいcan/theirを穴にしている。',
     translation: '退職した職員は60歳になった後、年金を受け取れる。',
     difficulty: 3,
   },
@@ -416,13 +420,15 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'markup',
     tags: ['弱形・連結', '助動詞弱形'],
-    script: 'The retailer must disclose its markup before the sale begins.',
+    // クロスレビュー: 「主語+must+…+before」型の反復（40本中before穴6件）を緩和するため
+    // 第2穴を before→to（別前置詞）へ。scriptを書き換えるため要音声再生成
+    script: 'The retailer must reveal its markup to the customer.',
     blanks: [
       { index: 2, answer: 'must' },
-      { index: 6, answer: 'before' },
+      { index: 6, answer: 'to' },
     ],
-    explanation: '弱形になりやすいmust/beforeを穴にしている。',
-    translation: 'その小売業者はセール開始前に利幅を開示しなければならない。',
+    explanation: '弱形になりやすいmust/toを穴にしている。',
+    translation: 'その小売業者は顧客に利幅を明かさなければならない。',
     difficulty: 4,
   },
   {
@@ -440,13 +446,14 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'tenant',
     tags: ['弱形・連結', '助動詞弱形'],
-    script: 'Each tenant must sign the lease before moving in.',
+    // クロスレビュー: must+before 反復の緩和のため第2穴を before→at（別前置詞）へ。要音声再生成
+    script: 'Each tenant must sign the lease at the office.',
     blanks: [
       { index: 2, answer: 'must' },
-      { index: 6, answer: 'before' },
+      { index: 6, answer: 'at' },
     ],
-    explanation: '弱形になりやすいmust/beforeを穴にしている。',
-    translation: '各入居者は入居前に賃貸契約書に署名しなければならない。',
+    explanation: '弱形になりやすいmust/atを穴にしている。',
+    translation: '各入居者は事務所で賃貸契約書に署名しなければならない。',
     difficulty: 3,
   },
   {

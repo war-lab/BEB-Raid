@@ -90,7 +90,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         translation: '話者たちは何について話していますか。',
       },
       {
-        question: 'How does this year compare to last year?',
+        // クロスレビュー: 比較対象(登録者数)を設問文で明示（正答一意性は元から保たれているが設問が不完全だった）
+        question: "How does this year's registration compare to last year's?",
         correctText: 'More people have registered already',
         distractors: [
           'Fewer people have registered',
@@ -98,7 +99,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'No one has registered yet',
         ],
         explanation: 'Aは"That\'s more than last year already"と述べている。',
-        translation: '今年は去年と比べてどうですか。',
+        translation: '今年の登録者数は去年と比べてどうですか。',
       },
       {
         question: 'What will B most likely do next?',
@@ -231,8 +232,10 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
     part: 3,
     tags: ['先読み'],
     keyVocabWords: ['courier', 'dispatch'],
+    // クロスレビュー: 原因が「適切なサイズの箱の在庫切れ」なので "replacement box"(代替) より
+    // "the right size box" が状況に整合。scriptを変えるため要音声再生成
     script:
-      "A: The courier just called — the package for the client wasn't dispatched this morning as planned. B: Why not? A: Apparently the warehouse ran out of the right size box. B: Can we get a replacement box sent over so it can still go out today?",
+      "A: The courier just called — the package for the client wasn't dispatched this morning as planned. B: Why not? A: Apparently the warehouse ran out of the right size box. B: Can we get the right size box sent over so it can still go out today?",
     subQuestions: [
       {
         question: 'What problem is being discussed?',
@@ -258,14 +261,14 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       },
       {
         question: 'What does B want to do?',
-        correctText: 'Send a replacement box so it can still ship today',
+        correctText: 'Send the right size box so it can still ship today',
         distractors: [
           'Cancel the shipment entirely',
           'Wait until tomorrow to ship it',
           'Ask the client to pick it up',
         ],
         explanation:
-          'Bは"Can we get a replacement box sent over so it can still go out today?"と述べている。',
+          'Bは"Can we get the right size box sent over so it can still go out today?"と述べている。',
         translation: 'Bは何をしたいと考えていますか。',
       },
     ],
@@ -508,7 +511,9 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'When is the count expected to finish?',
         correctText: 'By early afternoon',
-        distractors: ['By midnight', 'The following Monday', 'It has no set end time'],
+        // クロスレビュー: "By midnight" は「早afternoonまでに終わる」を論理的に包含し第2正答化するため、
+        // 開始時刻(scriptの "starting at eight in the morning")との混同を狙う誤答へ差し替え
+        distractors: ['At eight in the morning', 'The following Monday', 'It has no set end time'],
         explanation: '"We expect the count to finish by early afternoon"と述べている。',
         translation: 'その棚卸しはいつ終わる見込みですか。',
       },
@@ -586,7 +591,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'How long will the renovation last?',
         correctText: 'Approximately two weeks',
-        distractors: ['One day', 'Six months', 'It is not mentioned'],
+        // クロスレビュー: メタ選択肢 "It is not mentioned" は本番形式に不自然なため具体的な期間の誤答へ
+        distractors: ['One day', 'Six months', 'About two months'],
         explanation: '"continuing for approximately two weeks"と述べている。',
         translation: 'その改装はどれくらい続きますか。',
       },
@@ -639,8 +645,9 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
     part: 4,
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['transcript', 'applicant'],
+    // クロスレビュー: 一斉メール文体でPart4トークとして不自然だったため録音メッセージ体裁へ。要音声再生成
     script:
-      "To all applicants who completed an interview last week: thank you for your patience. We are currently waiting on an official transcript from each candidate's university before making a final decision. Once all transcripts are received, the hiring committee will meet, and we expect to notify candidates within ten business days.",
+      "This is a recorded message from the recruiting office for all applicants who completed an interview last week. Thank you for your patience. We are currently waiting on an official transcript from each candidate's university before making a final decision. Once all transcripts are received, the hiring committee will meet, and we expect to notify candidates within ten business days.",
     subQuestions: [
       {
         question: 'Who is this message intended for?',
@@ -650,7 +657,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'University professors',
           'Vendors submitting bids',
         ],
-        explanation: '"To all applicants who completed an interview last week"と述べている。',
+        explanation:
+          '"a recorded message from the recruiting office for all applicants who completed an interview last week"と述べている。',
         translation: 'このメッセージは誰を対象にしていますか。',
       },
       {
@@ -668,7 +676,9 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'When will candidates be notified?',
         correctText: 'Within ten business days',
-        distractors: ['Immediately', 'Within one month', 'They have already been notified'],
+        // クロスレビュー: "Within one month" は "within ten business days" を包含し第2正答化するため、
+        // 包含関係にならない短い期間（scriptから保証されない）へ差し替え
+        distractors: ['Immediately', 'Within two business days', 'They have already been notified'],
         explanation: '"we expect to notify candidates within ten business days"と述べている。',
         translation: '候補者はいつ連絡を受けますか。',
       },
@@ -832,7 +842,13 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
       {
         question: 'How long will applications take to review?',
         correctText: 'Within thirty days',
-        distractors: ['Within one week', 'Within one year', 'Reviews have already started'],
+        // クロスレビュー: "Within one year" は "within thirty days" を包含し第2正答化するため、
+        // 申請開始日(scriptの "open on the first of the month")との混同を狙う誤答へ差し替え
+        distractors: [
+          'Within one week',
+          'On the first of the month',
+          'Reviews have already started',
+        ],
         explanation: '"will be reviewed within thirty days of submission"と述べている。',
         translation: '申請の審査にはどのくらいかかりますか。',
       },
