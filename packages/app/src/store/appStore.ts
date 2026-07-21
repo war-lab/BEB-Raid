@@ -20,6 +20,7 @@ export type ScreenName =
   | 'diagnostic'
   | 'result'
   | 'raid'
+  | 'reading'
 
 interface AppStore {
   screen: ScreenName

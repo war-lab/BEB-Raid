@@ -525,3 +525,310 @@ describe('validatePack: M2 format検証強化（T-41=C-1改訂）', () => {
     )
   })
 })
+
+describe('validatePack: text_passage（Part6/7・T-103）', () => {
+  /** Part6（1パッセージ・4空所）。本文の [[1]]…[[4]] が subQuestions と対応する */
+  function part6Question(): Question {
+    return {
+      id: 'tp6-0001',
+      part: 6,
+      format: 'text_passage',
+      difficulty: 3,
+      tags: ['文法', '接続語'],
+      keyVocab: [{ word: 'renew', sense: '更新する', freqRank: 'A' }],
+      passages: [
+        {
+          id: 'tp6-0001-p1',
+          kind: 'email',
+          text: 'Your subscription is about to expire. Please [[1]] your plan this week. [[2]], you will lose access. We now [[3]] a discount for early renewal. Thank you for your continued [[4]].',
+        },
+      ],
+      subQuestions: [
+        {
+          id: 'tp6-0001-1',
+          question: '(1)',
+          choices: [
+            { key: 'A', text: 'renew' },
+            { key: 'B', text: 'renewal' },
+            { key: 'C', text: 'renewed' },
+            { key: 'D', text: 'renewing' },
+          ],
+          answer: 'A',
+        },
+        {
+          id: 'tp6-0001-2',
+          question: '(2)',
+          choices: [
+            { key: 'A', text: 'Otherwise' },
+            { key: 'B', text: 'Moreover' },
+            { key: 'C', text: 'For example' },
+            { key: 'D', text: 'Similarly' },
+          ],
+          answer: 'A',
+        },
+        {
+          id: 'tp6-0001-3',
+          question: '(3)',
+          choices: [
+            { key: 'A', text: 'offer' },
+            { key: 'B', text: 'offers' },
+            { key: 'C', text: 'offering' },
+            { key: 'D', text: 'offered' },
+          ],
+          answer: 'A',
+        },
+        {
+          id: 'tp6-0001-4',
+          question: '(4)',
+          choices: [
+            { key: 'A', text: 'support' },
+            { key: 'B', text: 'supports' },
+            { key: 'C', text: 'supporting' },
+            { key: 'D', text: 'supported' },
+          ],
+          answer: 'A',
+        },
+      ],
+    }
+  }
+
+  /** Part7単一（1パッセージ・複数設問） */
+  function part7SingleQuestion(): Question {
+    return {
+      id: 'tp7-0001',
+      part: 7,
+      format: 'text_passage',
+      difficulty: 3,
+      tags: ['読解', '目的把握'],
+      keyVocab: [{ word: 'venue', sense: '会場', freqRank: 'A' }],
+      passages: [
+        {
+          id: 'tp7-0001-p1',
+          kind: 'notice',
+          text: 'The annual staff meeting has been moved to a larger venue to accommodate all departments. It will be held on Friday at 2 P.M.',
+        },
+      ],
+      subQuestions: [
+        {
+          id: 'tp7-0001-1',
+          question: 'Why was the location changed?',
+          choices: [
+            { key: 'A', text: 'To fit more people' },
+            { key: 'B', text: 'To reduce costs' },
+            { key: 'C', text: 'To improve parking' },
+          ],
+          answer: 'A',
+        },
+        {
+          id: 'tp7-0001-2',
+          question: 'When will the meeting take place?',
+          choices: [
+            { key: 'A', text: 'Friday afternoon' },
+            { key: 'B', text: 'Monday morning' },
+            { key: 'C', text: 'Thursday evening' },
+          ],
+          answer: 'A',
+        },
+      ],
+    }
+  }
+
+  /** Part7複数パッセージ（2文書・相互参照設問に tags 付き） */
+  function part7MultiQuestion(): Question {
+    return {
+      id: 'tp7m-0001',
+      part: 7,
+      format: 'text_passage',
+      difficulty: 4,
+      tags: ['読解', '相互参照'],
+      keyVocab: [{ word: 'invoice', sense: '請求書', freqRank: 'A' }],
+      passages: [
+        {
+          id: 'tp7m-0001-p1',
+          kind: 'email',
+          text: 'Please find attached the invoice for last month. Payment is due within 30 days.',
+        },
+        {
+          id: 'tp7m-0001-p2',
+          kind: 'email',
+          text: 'I noticed the invoice lists 12 units, but we received only 10. Could you adjust it?',
+        },
+      ],
+      subQuestions: [
+        {
+          id: 'tp7m-0001-1',
+          question: 'What problem does the second writer mention?',
+          choices: [
+            { key: 'A', text: 'A quantity mismatch' },
+            { key: 'B', text: 'A late payment' },
+            { key: 'C', text: 'A wrong address' },
+          ],
+          answer: 'A',
+          tags: ['cross-reference'],
+        },
+        {
+          id: 'tp7m-0001-2',
+          question: 'When is payment due?',
+          choices: [
+            { key: 'A', text: 'Within 30 days' },
+            { key: 'B', text: 'Within a week' },
+            { key: 'C', text: 'Immediately' },
+          ],
+          answer: 'A',
+        },
+      ],
+    }
+  }
+
+  it('Part6（1パッセージ・空所数と設問数が一致）が通る', () => {
+    const pack = docsSamplePack()
+    pack.questions = [part6Question()]
+    const result = validatePack(pack)
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+  })
+
+  it('Part7単一が通る', () => {
+    const pack = docsSamplePack()
+    pack.questions = [part7SingleQuestion()]
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('Part7複数パッセージ（相互参照タグ付き）が通る', () => {
+    const pack = docsSamplePack()
+    pack.questions = [part7MultiQuestion()]
+    const result = validatePack(pack)
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+  })
+
+  it('passages 欠落を拒否する', () => {
+    const pack = docsSamplePack()
+    pack.questions = [{ ...part7SingleQuestion(), passages: null }]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].passages', code: 'missing_field' }),
+    )
+  })
+
+  it('subQuestions 欠落を拒否する', () => {
+    const pack = docsSamplePack()
+    pack.questions = [{ ...part7SingleQuestion(), subQuestions: null }]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].subQuestions', code: 'missing_field' }),
+    )
+  })
+
+  it('part が 6/7 以外の text_passage を拒否する', () => {
+    const pack = docsSamplePack()
+    pack.questions = [{ ...part7SingleQuestion(), part: 5 }]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].part', code: 'invalid_value' }),
+    )
+  })
+
+  it('Part6 で空所マーカー数と設問数が一致しなければ拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part6Question()
+    q.subQuestions = q.subQuestions!.slice(0, 3) // マーカーは4個だが設問は3件
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].subQuestions', code: 'invalid_value' }),
+    )
+  })
+
+  it('Part6 で空所マーカーが連番でなければ拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part6Question()
+    q.passages = [{ id: 'p', kind: 'email', text: 'Please [[1]] and [[3]] the renew form.' }]
+    q.subQuestions = q.subQuestions!.slice(0, 2)
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].passages[0].text', code: 'invalid_value' }),
+    )
+  })
+
+  it('Part6 で空所マーカーが無ければ拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part6Question()
+    q.passages = [{ id: 'p', kind: 'email', text: 'Please renew your plan today.' }]
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].passages[0].text', code: 'invalid_value' }),
+    )
+  })
+
+  it('Part7 複数パッセージが4件以上なら拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part7MultiQuestion()
+    q.passages = [
+      { id: 'p1', kind: 'email', text: 'invoice one' },
+      { id: 'p2', kind: 'email', text: 'invoice two' },
+      { id: 'p3', kind: 'email', text: 'invoice three' },
+      { id: 'p4', kind: 'email', text: 'invoice four' },
+    ]
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].passages', code: 'invalid_value' }),
+    )
+  })
+
+  it('subQuestion の answer 不整合を拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part7SingleQuestion()
+    q.subQuestions![0]!.answer = 'Z'
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        path: 'questions[0].subQuestions[0].answer',
+        code: 'answer_mismatch',
+      }),
+    )
+  })
+
+  it('keyVocab の word が本文にも設問にも無ければ拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part7SingleQuestion()
+    q.keyVocab = [{ word: 'negotiate', sense: '交渉する', freqRank: 'A' }]
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        path: 'questions[0].keyVocab[0].word',
+        code: 'key_vocab_not_found',
+      }),
+    )
+  })
+
+  it('subQuestion の tags が文字列配列でなければ拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part7MultiQuestion()
+    ;(q.subQuestions![0] as unknown as { tags: unknown }).tags = [1, 2]
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].subQuestions[0].tags', code: 'invalid_value' }),
+    )
+  })
+
+  it('Part7単一で passages/subQuestions の id 重複を拒否する', () => {
+    const pack = docsSamplePack()
+    const q = part7SingleQuestion()
+    q.passages = [
+      { id: 'dup', kind: 'notice', text: 'venue A' },
+      { id: 'dup', kind: 'notice', text: 'venue B' },
+    ]
+    pack.questions = [q]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].passages[1].id', code: 'invalid_value' }),
+    )
+  })
+})

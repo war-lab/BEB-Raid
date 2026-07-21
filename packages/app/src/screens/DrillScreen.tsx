@@ -5,7 +5,6 @@
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
 import { computeSetResult } from '../engine/audioSet'
@@ -13,7 +12,8 @@ import { buildWordBank, judgeDictation } from '../engine/dictation'
 import { formatQuickPackReason } from '../engine/reason'
 import { shuffle } from '../engine/shuffle'
 import { reviewSrsCard } from '../engine/srs'
-import type { DictationAnswer, QuestionLookup, SrsGrade } from '../engine/types'
+import { withSubQuestionLookup } from '../engine/subQuestionLookup'
+import type { DictationAnswer, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AiClient, AudioPlayer, RaidApi } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
@@ -86,18 +86,6 @@ function now(): number {
 function triggerCorrectHaptics(hapticsEnabled: boolean, isCorrect: boolean) {
   if (!hapticsEnabled || !isCorrect) return
   navigator.vibrate?.(15)
-}
-
-/**
- * audio_set: サブ設問のtagStats集計用に、subQuestion.id→（親のtags等を持つ疑似Question）を
- * 補った解決表を作る（SubQuestion型はtags/keyVocabを持たないため。3.6節）
- */
-function withSubQuestionLookup(parent: Question, base: QuestionLookup): QuestionLookup {
-  const map = new Map(base)
-  for (const sq of parent.subQuestions ?? []) {
-    map.set(sq.id, { ...parent, id: sq.id })
-  }
-  return map
 }
 
 /** dictation: script を空白区切りでトークン化し、穴の位置を埋めた語 or `___` に差し替えて表示する */

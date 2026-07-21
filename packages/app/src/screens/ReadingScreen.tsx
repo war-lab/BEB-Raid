@@ -1,0 +1,277 @@
+// 読解（Part6/7単一）専用画面（T-104。正本: docs/18 3.5節・02の2.2節）。
+// DrillScreenに分岐追加ではなく専用画面にする理由: 本文＋設問の2ペインが
+// 既存4択UI（1問1画面）と別レイアウトのため（3.5節）。
+// Part7複数パッセージ（タブ切替・相互参照）はT-108のスコープでここでは扱わない
+// （passages[0]のみを描画する）。
+//
+// 採点方針（ADR 0006 判断4・docs/18 3.2節）: audio_setの2/3セット正解ルールは使わず、
+// 各subQuestionを独立採点対象とする。レートはRセクションへ1問ごとに反映
+// （question.part=6/7→engine/rating.tsのsectionForPartが自動でRへ振る）。
+// SRSレビューは本文まるごと再出題しない（3.4節）ため、audio_setと違いセット完了時の
+// reviewSrsCard呼び出しは行わない。
+//
+// Part6は本文に空所マーカー [[1]]…[[n]] を持つ（subQuestions[i]がマーカー[[i+1]]に対応。
+// docs/18 3.1節）。空所は非線形にタップして該当設問へジャンプできる（3.5節）。
+// Part7単一はマーカーを持たず、設問は「次へ」で順番に進める。
+import { useEffect, useMemo, useState } from 'react'
+import type { BebRaidDatabase } from '../db/database'
+import { withSubQuestionLookup } from '../engine/subQuestionLookup'
+import { shuffle } from '../engine/shuffle'
+import type { AiClient, RaidApi } from '../platform'
+import { recordAnswerPipeline } from '../services/answerPipeline'
+import { advanceSession } from '../services/session'
+import { useAppStore } from '../store/appStore'
+import { useSessionStore } from '../store/sessionStore'
+import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
+import { ExplanationCard } from '../components/ExplanationCard'
+import { PassageText, type PassageAnswer } from '../components/PassageText'
+import { PrimaryButton } from '../components/PrimaryButton'
+import { ScreenLayout } from '../components/ScreenLayout'
+import { SessionProgress } from '../components/SessionProgress'
+
+interface Props {
+  db: BebRaidDatabase
+  /** BYOK AIクライアント（M2・T-56。未注入ならExplanationCardの「AIに聞く」は出ない） */
+  aiClient?: AiClient
+  /** 共有API（レイド）クライアント（M3・T-101。未注入ならExplanationCardの報告ボタンは出ない） */
+  raidApi?: RaidApi
+}
+
+// Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
+// （DrillScreenと同じ回避策）、別関数越しに呼ぶ
+function now(): number {
+  return Date.now()
+}
+
+export function ReadingScreen({ db, aiClient, raidApi }: Props) {
+  const snapshot = useSessionStore((s) => s.snapshot)
+  const questions = useSessionStore((s) => s.questions)
+  const recordAnswer = useSessionStore((s) => s.recordAnswer)
+  const navigate = useAppStore((s) => s.navigate)
+
+  // 表示中の item インデックス（DrillScreenと同じ理由でsnapshot.answeredCountと独立に持つ）
+  const [displayIndex, setDisplayIndex] = useState(() => snapshot?.answeredCount ?? 0)
+  // サブ設問インデックス（0始まり）→ 解答済みの結果。Part6は非線形にタップされうるためMapで持つ
+  const [answers, setAnswers] = useState<Map<number, PassageAnswer>>(new Map())
+  // 現在選択肢を表示しているサブ設問（空所タップ・「次へ」で切り替わる）
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [startedAt, setStartedAt] = useState(() => now())
+  // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
+  const [elapsedSec, setElapsedSec] = useState(0)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const item = snapshot?.items[displayIndex]
+  const question = item ? questions.get(item.questionId) : undefined
+  const subQuestions = question?.subQuestions ?? []
+  const passage = question?.passages?.[0]
+  const activeSub = subQuestions[activeIndex]
+  const activeAnswer = answers.get(activeIndex) ?? null
+
+  const subQuestionLookup = useMemo(
+    () => (question ? withSubQuestionLookup(question, questions) : questions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [question?.id],
+  )
+
+  // T-79と同じ理由: 選択肢は設問が変わるたびに1回だけシャッフルする（丸暗記防止）
+  const shuffledChoices = useMemo(
+    () => (activeSub?.choices ? shuffle(activeSub.choices) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [question?.id, activeIndex],
+  )
+
+  // ペース表示の秒針を進める。解答済みなら止める（速答を煽らないため自動確定はしない）
+  useEffect(() => {
+    if (activeAnswer) return
+    const interval = setInterval(() => {
+      setElapsedSec(Math.floor((now() - startedAt) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [activeAnswer, startedAt])
+
+  // item はあるが questionId が解決できない場合（DrillScreenと同じ理由のリカバリ）
+  useEffect(() => {
+    if (!snapshot || !item || question) return
+    let cancelled = false
+    console.warn(`[ReadingScreen] questionIdが解決できないためスキップ: ${item.questionId}`)
+    void advanceSession(db, snapshot)
+      .then((nextSnapshot) => {
+        if (cancelled) return
+        useSessionStore.setState({ snapshot: nextSnapshot })
+        if (displayIndex + 1 >= snapshot.items.length) {
+          navigate('result')
+        } else {
+          setDisplayIndex((i) => i + 1)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [item, question, snapshot, displayIndex, db, navigate])
+
+  if (!snapshot || !item || !question) {
+    if (snapshot && !item) navigate('result')
+    return null
+  }
+
+  const total = snapshot.items.length
+  const current = displayIndex + 1
+
+  /** 空所タップ・設問切替（該当設問へジャンプ。3.5節）。解答済み設問も閲覧のため切替可 */
+  function handleSelectBlank(index: number) {
+    setActiveIndex(index)
+  }
+
+  async function finalizeSubQuestionAnswer(index: number, choiceKey: string) {
+    const sub = subQuestions[index]
+    if (!question || !item || !sub || answers.has(index)) return
+    const isCorrect = choiceKey === sub.answer
+    const responseMs = now() - startedAt
+    setAnswers((prev) => new Map(prev).set(index, { selectedKey: choiceKey, isCorrect }))
+    setSaveError(null)
+
+    try {
+      // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
+      // 本文まるごと再出題しないため呼ばない（skip.srs）。レート・tagStats・
+      // keyVocab循環は通常どおり（skipしない）
+      const { ratingUpdate } = await recordAnswerPipeline(db, {
+        questionId: sub.id,
+        question,
+        lookup: subQuestionLookup,
+        isCorrect,
+        responseMs,
+        mode: item.mode,
+        skip: { srs: true },
+      })
+      recordAnswer(snapshot, {
+        questionId: sub.id,
+        isCorrect,
+        basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
+      })
+    } catch (err) {
+      console.error('[ReadingScreen] 解答の保存に失敗', err)
+      setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
+      setAnswers((prev) => {
+        const next = new Map(prev)
+        next.delete(index)
+        return next
+      })
+    }
+  }
+
+  function handleSelectChoice(choiceKey: string) {
+    if (activeAnswer) return
+    void finalizeSubQuestionAnswer(activeIndex, choiceKey)
+  }
+
+  /** 次の未解答設問へ（無ければ次の未解答へ巡回）。全問解答済みならitemを進める */
+  function findNextUnanswered(from: number, answered: ReadonlyMap<number, PassageAnswer>) {
+    for (let step = 1; step <= subQuestions.length; step++) {
+      const idx = (from + step) % subQuestions.length
+      if (!answered.has(idx)) return idx
+    }
+    return null
+  }
+
+  async function handleNext() {
+    if (answers.size >= subQuestions.length) {
+      const nextSnapshot = await advanceSession(db, snapshot!)
+      useSessionStore.setState({ snapshot: nextSnapshot })
+      if (displayIndex + 1 >= total) {
+        navigate('result')
+        return
+      }
+      setDisplayIndex((i) => i + 1)
+      setAnswers(new Map())
+      setActiveIndex(0)
+      setStartedAt(now())
+      return
+    }
+    const next = findNextUnanswered(activeIndex, answers)
+    if (next !== null) {
+      setActiveIndex(next)
+      setStartedAt(now())
+    }
+  }
+
+  return (
+    <ScreenLayout
+      status={
+        <>
+          <SessionProgress current={current} total={total} />
+          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            中断
+          </button>
+          {!activeAnswer && <p className="reading-pace">目安1問/分（経過{elapsedSec}秒）</p>}
+        </>
+      }
+      action={
+        <>
+          {saveError && (
+            <p className="drill-error" role="alert">
+              {saveError}
+            </p>
+          )}
+          {activeSub &&
+            shuffledChoices.map((choice) => {
+              let state: ChoiceState = 'idle'
+              if (activeAnswer) {
+                if (choice.key === activeSub.answer) state = 'correct'
+                else if (choice.key === activeAnswer.selectedKey) state = 'wrong'
+                else state = 'dimmed'
+              }
+              return (
+                <ChoiceButton
+                  key={choice.key}
+                  marker={choice.key}
+                  state={state}
+                  disabled={activeAnswer !== null}
+                  onClick={() => handleSelectChoice(choice.key)}
+                >
+                  {choice.text}
+                </ChoiceButton>
+              )
+            })}
+          {activeAnswer && activeSub && (
+            <>
+              <ExplanationCard
+                question={{
+                  ...question,
+                  question: activeSub.question,
+                  choices: activeSub.choices,
+                  answer: activeSub.answer,
+                  explanation: activeSub.explanation,
+                  translation: activeSub.translation,
+                }}
+                isCorrect={activeAnswer.isCorrect}
+                aiClient={aiClient}
+                raidApi={raidApi}
+                db={db}
+              />
+              <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>
+            </>
+          )}
+        </>
+      }
+    >
+      {passage && (
+        <>
+          <p className="passage-kind">{passage.kind}</p>
+          <PassageText
+            text={passage.text}
+            subQuestions={subQuestions}
+            answers={answers}
+            activeIndex={activeIndex}
+            onSelectBlank={handleSelectBlank}
+          />
+        </>
+      )}
+      {activeSub && (
+        <p className="question-text" data-testid="reading-question">
+          設問{activeIndex + 1}/{subQuestions.length}: {activeSub.question}
+        </p>
+      )}
+    </ScreenLayout>
+  )
+}
