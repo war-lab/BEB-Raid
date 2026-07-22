@@ -3,6 +3,8 @@
 // エクスポート/インポートの「標準的なリスト」画面（07: デザイン投資は最小でよい）。
 // BYOKのAPIキー欄・モデル欄はM2・T-55で追加（05の5節: 平文端末内保存・支出上限推奨の注記必須）。
 import { useEffect, useRef, useState } from 'react'
+// docs/20 V-6: Aboutブロックのバージョン表示用（package.jsonが正本。二重管理を避ける）
+import { version as appVersion } from '../../package.json'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import type { FontSizeScale } from '../fontSize'
@@ -454,6 +456,23 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
             />
           </label>
           {message && <p role="status">{message}</p>}
+        </section>
+
+        {/* docs/20 V-6: Aboutブロック（logo.png小・アプリ名・バージョン）。既存生成済みの
+            アプリアイコン（--bgタイル合成済みで理論と同じ見た目のためテーマ非依存）を流用し、
+            新規バイナリは追加しない */}
+        <section className="settings-about">
+          <img
+            src={`${import.meta.env.BASE_URL}icons/icon-192.png`}
+            alt=""
+            width={40}
+            height={40}
+            className="settings-about__logo"
+          />
+          <div className="settings-about__text">
+            <p className="settings-about__name">BEB Raid</p>
+            <p className="settings-about__version">v{appVersion}</p>
+          </div>
         </section>
       </div>
 

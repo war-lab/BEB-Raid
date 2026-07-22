@@ -505,11 +505,11 @@
   color: var(--ng);
 }
 
-/* --- スワイプカード（語彙SRS。07の6節） --- */
+/* --- スワイプカード（語彙SRS。07の6節。docs/20 V-6: カード面を--surface-gradに更新） --- */
 .swipe-card {
   position: relative;
   padding: var(--sp-3);
-  background: var(--surface);
+  background: var(--surface-grad);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   touch-action: pan-y; /* 横方向のスワイプ操作を優先し、縦スクロールは通す */
@@ -1084,6 +1084,68 @@
   margin-top: 0;
   margin-right: var(--sp-1);
 }
+/* docs/20 V-6: OS既定のラジオ・チェックボックスをトークン準拠のカスタム部品に置換。
+   appearance: none＋擬似要素で見た目だけ差し替え、input自体はネイティブのまま
+   （タブ移動・スペース/矢印キー操作・スクリーンリーダー対応を一切変えない）。
+   フォーカスリングは--ev-blue（3.2節。機械計算値: dark 5.834:1/light 6.009:1でAA適合） */
+.settings-list input[type='checkbox'],
+.settings-list input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  cursor: pointer;
+}
+.settings-list input[type='checkbox'] {
+  border-radius: 6px;
+}
+.settings-list input[type='radio'] {
+  border-radius: 50%;
+}
+.settings-list input[type='checkbox']:checked {
+  background: var(--ev-blue);
+  border-color: var(--ev-blue);
+}
+.settings-list input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.settings-list input[type='radio']:checked {
+  border-color: var(--ev-blue);
+}
+.settings-list input[type='radio']:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ev-blue);
+  transform: translate(-50%, -50%);
+}
+.settings-list input[type='checkbox']:disabled,
+.settings-list input[type='radio']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* キーボード操作時のみ表示（マウスクリックでは出さない。既存の他フォーカスリングと同じ方針） */
+.settings-list input[type='checkbox']:focus-visible,
+.settings-list input[type='radio']:focus-visible {
+  outline: 2px solid var(--ev-blue);
+  outline-offset: 2px;
+}
 .settings-list button {
   min-height: var(--tap-min);
   padding: 0 var(--sp-2);
@@ -1108,6 +1170,129 @@
 }
 .error-boundary .primary-button {
   max-width: 320px;
+}
+
+/* --- S9 Aboutブロック（docs/20 V-6: logo.png小・アプリ名・バージョン） --- */
+.settings-about {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.settings-about__logo {
+  flex: none;
+  border-radius: var(--radius-button);
+}
+.settings-about__text {
+  min-width: 0;
+}
+.settings-about__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.settings-about__version {
+  margin: 0;
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+}
+
+/* --- 診断ウェルカム（docs/20 V-6: ワードマーク＋--hero-sky帯＋フォームを--surface-gradカードに）
+   --hero-skyは両テーマ共通の夜空色固定（tokens.css）のため、その上のテキストもテーマの
+   var(--ink*)に追従させず固定のダーク基準値にする（ライトテーマの--ink-2をそのまま使うと
+   暗色地に暗色文字が乗りAA未達になるため。機械計算値: 固定#eaedf6は--hero-sky最明部
+   #16204a比13.394:1、固定#a6aec6は7.085:1でAA適合）。ワードマークはhero外（画面地=
+   テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で両テーマ追従させる */
+.diagnostic-wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-2);
+}
+.diagnostic-wordmark__mark {
+  font-family: var(--font-display);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--wordmark-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgba(77, 141, 255, 0.35));
+}
+:root[data-theme='light'] .diagnostic-wordmark__mark {
+  filter: none;
+}
+.diagnostic-wordmark__sub {
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+}
+.diagnostic-hero {
+  padding: var(--sp-3) var(--sp-2) var(--sp-2);
+  margin-bottom: var(--sp-2);
+  background: var(--hero-sky);
+  border: 1px solid var(--hero-line);
+  border-radius: var(--radius-card);
+  color: #eaedf6;
+}
+.diagnostic-hero h1 {
+  margin: 0 0 var(--sp-1);
+}
+.diagnostic-hero p {
+  margin: 0 0 var(--sp-1);
+  color: #a6aec6;
+}
+.diagnostic-hero p:last-child {
+  margin-bottom: 0;
+}
+.diagnostic-form-card {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+/* --- S3 語彙カード面（docs/20 V-6: カード面に--surface-grad。ランクチップをランク色トークンで
+   着色。ランク文字自体（S/A/B/C）が既に二重符号化を担保しているため色のみの追加でよい） --- */
+.vocab-card {
+  padding: var(--sp-3) var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+/* 仕分けモードはSwipeCard（.swipe-card）が既にカード面を持つため、入れ子で二重の箱に
+   ならないよう内側のvocab-cardは面を持たせずフラットにする */
+.swipe-card .vocab-card {
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+.vocab-card__rank[data-rank='S'] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.vocab-card__rank[data-rank='A'] {
+  border-color: var(--rank-silver);
+  color: var(--rank-silver);
+}
+.vocab-card__rank[data-rank='B'] {
+  border-color: var(--rank-bronze);
+  color: var(--rank-bronze);
+}
+/* Cランクのみ--ink-3ではなく--ink-2を使う（レビュー: --surface-gradのカード面上端
+   #1c2339に対し--ink-3(#7e89ac)は4.493:1でAA=4.5:1をわずかに下回るため。--ink-2は
+   7.641:1でAA適合。C=最も控えめな階層という意図は他ランクより低彩度なink-2で維持できる） */
+.vocab-card__rank[data-rank='C'] {
+  border-color: var(--ink-2);
+  color: var(--ink-2);
 }
 
 /* --- ユーティリティ --- */
