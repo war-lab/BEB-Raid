@@ -3,7 +3,7 @@
 // 未参加時はシーズン表示に縮退=docs/20 JV-2）。下: 「今日のクエスト」
 // 主ボタン＋3/7/15分チップ→generateQuickPack→セッション開始。下方グリッドは
 // 各モードへの導線（Part2瞬発・Part5・語彙SRS・ダッシュボード・設定）。
-// docs/20 3.4節(V-3): ヒーローのボス紋章はプレースホルダーdiv（BossSigil本実装はV-4で差し替え）。
+// docs/20 3.4節(V-3/V-4統合): ヒーローのボス紋章はBossSigil（S5レイド画面と同じseed=bossId）。
 import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
@@ -33,6 +33,7 @@ import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
+import { BossSigil } from '../components/BossSigil'
 import { Heatmap } from '../components/charts/Heatmap'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -626,13 +627,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       }
     >
       <Wordmark />
-      {/* docs/20 3.4節(S1): ヒーローカード。レイド参加中はボス紋章(V-4までプレースホルダー)＋
+      {/* docs/20 3.4節(S1): ヒーローカード。レイド参加中はBossSigil＋
           HPバー、未参加時はシーズン表示に縮退する（JV-2） */}
       {showRaidHp ? (
         <div className="home-hero">
           <div className="home-hero-top">
-            {/* V-4(BossSigil)実装までの仮置き。差し替え時はこのdivをBossSigilに置換する */}
-            <div className="home-hero-sigil-placeholder" aria-hidden="true" />
+            {raidState && <BossSigil seed={raidState.bossId} size={56} />}
             {/* レビューF2(b): button内の<p>は内容モデル違反でSRに正しく伝わらないためspan化し、
                全体の意味はaria-labelで伝える（バー本体は装飾としてaria-hidden） */}
             <button

@@ -31,7 +31,7 @@
   - `--hero-sky`は両テーマ共通の固定ダーク背景のため、カード内文字色もテーマ追従の`--ink`系ではなく固定値（`--home-hero-ink`等。ダーク値をそのまま採用）を新設して使用。コントラスト機械計算値（`--hero-sky`最明部#16204aとの比）: ink=13.394:1・ink-2=7.085:1・ink-3=4.525:1・ev-blue=4.904:1・ng=5.083:1（いずれもAA=4.5:1適合）。
   - HomeScreen.test.tsx: モードタイル・CTAがアイコン/サブテキストを持つ構造になったため、該当ボタンの取得を`getByText(完全一致)`から`getByRole('button', { name: /正規表現/ })`へ機械的に置換（DOM構造変更に伴う追従。挙動は変更なし）。App.test.tsx: 見出し文言が「BEB Raid」→ワードマーク「BEB RAID ビーブレイド」に変わったため`findByRole('heading', ...)`の期待値も同様に追従。
   - lint・format:check・build・test（全workspace）全通過。screenshot-tourでlight/dark両テーマのホーム画面を目視確認: ヒーローカードは両テーマとも`--hero-sky`の固定ダーク地に読めるコントラストで表示され、ワードマークの光暈はダークのみ・ライトは無し（意図どおり）。他画面（診断ウェルカム・ドリル・ダッシュボード）のCTAは無変化（スコープ限定のセレクタが効いている）を確認。
-  - **統合残タスク**: V-4（BossSigil）は本タスクと並行して別途完了・マージ済み。HomeScreenの`.home-hero-sigil-placeholder`を`<BossSigil>`へ差し替える統合作業は本PRの範囲外で、別タスクとして残っている。
+  - **V-3/V-4統合完了（2026-07-22）**: HomeScreenの`.home-hero-sigil-placeholder`を`<BossSigil seed={raidState.bossId} size={56} />`へ差し替え済み（S5レイド画面=`RaidScreen.tsx`と同じseed運用）。プレースホルダー専用だった`.home-hero-sigil-placeholder`のCSSは不要になったため削除。
 - **V-8ほぼ完了（2026-07-22）**: 発起人が生成した2枚（メイン・スプラッシュ）を採用。`generate-keyvisual.mjs` で最適化し、起動スプラッシュ背景（precache込み・オフライン表示可）・OGP meta（JPEG=クローラー互換）・README冒頭へ組込済み。詳細はdocs/20の5節「V-8の実装記録」。**残: 生成サービス名の記録**（`docs/design/keyvisual/README.md` の要記入欄を発起人が埋める）。
 
 ## 読解パート（Part6/7）完成の計画（2026-07-21）
