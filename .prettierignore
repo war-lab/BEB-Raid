@@ -6,6 +6,9 @@ package-lock.json
 # 設計ドキュメント（正本）と既存Markdownは整形対象にしない（差分ノイズ防止）
 *.md
 
+# ビジュアル刷新の方向性モックアップ（docs/20の参照物。凍結された参考資料のため整形しない）
+docs/design/
+
 # Playwright MCP の作業ファイル
 .playwright-mcp/
 *.png

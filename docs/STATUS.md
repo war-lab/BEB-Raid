@@ -2,6 +2,45 @@
 
 **最終更新: 2026-07-22**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## ビジュアル刷新（2026-07-22。正本: [20_ビジュアル刷新計画](20_ビジュアル刷新計画.md)）
+
+発起人から「全体的にビジュアルが発展途上でやる気が出ない」との指摘を受け、dev環境の実ブラウザスクリーンショット（全主要画面）で現状を診断した。結論: **07の規定のうちトークン色値だけが実装され、絵作りに関わる規定（ボス紋章・ディスプレイ書体の適用・深度表現・ロゴのアプリ内使用）が未実装**のため、全画面がワイヤーフレームに見える。診断・方針・タスク分解（V-1〜V-8）はdocs/20に記録した。
+
+- **判断JV-1〜JV-3は発起人が一括承認**（2026-07-22）。JV-1（ブランド表層=鋼＋電光青の①案）は07の3.2節・決定済み事項へ反映済み。
+- **基盤タスクV-1・V-2完了（2026-07-22。同日の基盤整備セッションで実施）**:
+  - V-1: tokens.cssへブランド表層（`--ev-blue`・鋼グラデ・`--wordmark-grad`）・深度システム（`--surface-grad`・`--bg-grad`・`--cta-grad`・`--glow-gold/-raid`・`--hero-sky/-line`）を両テーマで追加。全ての文字使用色はコントラスト機械計算でAA適合を確認し、計算値をコメントに記録（既存慣行）。
+  - V-2: Chakra Petchサブセットを数字のみ→ASCII可視文字＋×へ拡張（`ChakraPetchBold-latin.woff2` 5,816B。旧`-digits.woff2`は削除、`--font-display`のfamily名を`Chakra Petch Display`へ変更。旧名の残参照なしをgrepで確認）。`scripts/subset-font.mjs`も拡張版に更新。
+  - 検証ツール導入: `packages/app/scripts/screenshot-tour.mjs`（主要画面スクショ一括採取。playwright-coreをapp devDependenciesに追加）、視覚正本 `docs/design/visual-refresh-mockup.html`（Prettier対象外に設定）。
+- **V-3〜V-6はSonnetクラスの自走対象**（1タスク=1セッション。開始プロンプト例はdocs/20の1節。V-3〜V-6は並行可）。V-7（総点検）はV-3〜V-6後。
+- **V-4（BossSigil）完了（2026-07-22）**: `packages/app/src/components/BossSigil.tsx` を新設（props: `seed`・`size` のみ。20の3.3節どおり）。djb2ハッシュ＋salt文字列でseedごとに多角形の辺数(5〜8)・回転角・軌道環の数(1〜2)・破線パターン・核の半径を決定的に導出。色は `var(--raid)`/`var(--ev-blue)`/`var(--bg)` のCSS変数参照のみ、`aria-hidden="true"` の純装飾。同一シード同一出力・5シードでの辺数/環数分布をBossSigil.test.tsxで属性値ベースに検証（スナップショット不使用）。適用先: S5レイド画面（現在ボス表示・通信失敗時のキャッシュ表示の両方。`RaidScreen.tsx`）、S6ダッシュボード空状態（`LineChart`・`WeakBars`の`chart-empty`にシルエット表示＋不足量の率直な文言を追加。`Heatmap`は`buildHeatmapCells`が常に15週分のセルを返すため空状態が実質到達不能だが、防御的に同じ表示を追加）。
+  - **モックアップからの意図的な逸脱**: モックアップの`.sigil`にある`drop-shadow`光暈は付与しなかった（20の2.3節(6)「光暈は金CTA・ボスHPバー・ダメージトースト・リザルト数字の4箇所限定」に紋章は含まれないため）。
+  - **検証**: lint/format:check/build/test全通過（`npm test`はapi 78・app 676・cli 305・review-ui 15・shared-schema 61件が全緑。並行実行中の他ワークツリーとのCPU競合でvitestのforksワーカーが一時的にタイムアウトし非0終了になる事象を観測したが、単体・全体の再実行でいずれも解消し実装起因ではないことを確認済み）。`.dev.vars`（INVITE_CODE=dummy-invite-code）と`.env.local`（VITE_RAID_API_BASE_URL）を一時的に用意し`wrangler dev --local --test-scheduled`＋`vite dev`を起動、招待コード登録→週次ボス生成（`/__scheduled`起動）→実データでのS5表示、および新規IndexedDBでのS6空状態表示をPlaywrightでdark/light両テーマ目視確認済み（作業後に一時ファイルは削除）。screenshot-tourのdark/light一巡（他6画面）でも崩れ・console errorなし。
+- **V-6完了（2026-07-22）**: 診断ウェルカム・設定・語彙の3画面を刷新。
+  - 診断ウェルカム: ワードマーク（`--wordmark-grad`。画面地はテーマ追従）＋`--hero-sky`帯の案内カード＋`--surface-grad`の入力フォームカード。文言は変更なし。`--hero-sky`は両テーマ共通の固定夜空色のため、帯内の文字色もテーマ追従の`var(--ink*)`ではなく固定ダーク基準値にした（ライトの`--ink-2`をそのまま使うと暗色地に暗色文字でAA未達になるため。機械計算値をcomponents.cssにコメント記録）。
+  - S9設定: ラジオ・チェックボックスを`appearance: none`＋擬似要素のカスタム部品に置換（input自体はネイティブのままでキーボード操作・スクリーンリーダー対応は不変。フォーカスリングは`--ev-blue`）。末尾にAboutブロック（既存生成済みのPWAアイコン`icons/icon-192.png`を流用。新規バイナリ追加なし＋アプリ名＋`package.json`のバージョン）を追加。
+  - S3語彙: カード面に`--surface-grad`（仕分けモードは`SwipeCard`側の面に統一し二重箱を回避）。ランクチップをランク色トークンで着色（S/A/B/C）。**レビューで発見した既存tokens.cssの不備2件を修正**: (1) `--rank-silver`/`--rank-bronze`にライト値が無く白背景でAA未達（機械計算値2.038:1/3.451:1）だったため追加。(2) カード面（`--surface-grad`上端）でCランクに`--ink-3`を使うとAA=4.5:1をわずかに下回る（4.493:1）ため`--ink-2`に変更（docs/20の記載「C=--ink-3」からの計算に基づく最小限の逸脱）。
+  - 検証: lint・build・テスト672件（全パッケージ計1090件）通過。screenshot-tourで両テーマの3画面を目視確認、console errorsなし。Playwrightで実際にTab/Space/矢印キー操作を行い、キーボードのみでチェックボックス・ラジオが操作できること、`:focus-visible`時に`--ev-blue`のフォーカスリングが可視であることを確認。
+- **V-5完了（2026-07-22。ドリル・リザルト表層）**: `task/V-5-drill-result`ブランチで実施。
+  - S2ドリル: 進捗バー2px→4px＋fill先端に極小の微光（`.session-progress__fill::after`。4x4pxの単一shadowで2.3節6の性能配慮を満たす）。パート名の英字タグ（`Part {n}` / 語彙カードは`VOCAB`。`question.part`から導出、`--font-display`＋`--gold`の淡い枠）を出題理由表示の上に追加表示。`choice-button`・`explanation-card`に`--surface-grad`。
+  - リザルト: 「TOTAL DAMAGE」英字ラベル（`--ev-blue`）を既存の「獲得ポイント」ラベルの上に追加（既存文言は削らず併記）。ディスプレイ数字に`--glow-gold`のtext-shadow版。統計3タイル（正解=`--ok`・最大ストリーク=`--gold`・学習時間=`--listen`。「正解 X / Y」は既存文言のまま）。ボスHPバー（レイド同期成功時のみ表示。`syncRaidDamage`の戻り値をそのまま使用、追加fetchなし）。誤答ふりかえりリストをカード化。
+  - 「ダメージトースト」相当の要素がアプリに無いため、`--glow-gold`の適用先はS2の唯一の即時報酬フィードバックである連続正解ストリーク表示（`.session-streak`）と判断（解釈上の逸脱として記録）。
+  - 不変条件確認: 正誤表示のレイアウト不動（choice-buttonの境界線幅は idle/correct/wrong で常に2px。Playwright実機で座標・border-widthを比較して確認）、演出時間（`POINTS_COUNTUP_MS`・`ANSWER_TIMER_SECONDS`等は無変更。新規タイルは既存`result-stat-in`のdelayを0〜500msへ詰め直し、合計900ms以内=J-42の600〜900ms範囲を維持）、reduced-motion（base.cssのグローバル`@media (prefers-reduced-motion: reduce)`ルールは無変更のまま新規要素にも適用されることをブラウザで確認）。lint・format:check・build・test（全workspace、680+78+305+15+61件）は全通過。screenshot-tourで両テーマの全画面を確認し、V-5対象外画面（ホーム等）に崩れが無いことも確認。
+  - 逸脱: `SessionProgress`（進捗バー）はDrillScreen以外にReadingScreen・DiagnosticScreenとも共有しているコンポーネントのため、2px→4px・fill微光の変更はこの2画面にも波及する（両画面ともdocs/20は個別に規定していないが、視覚的な悪化はない）。
+- **V-3完了（2026-07-22。ワードマーク＋ホーム再構成）**: `components/Wordmark.tsx`新設（--wordmark-gradの鋼グラデ文字＋ダークのみ電光青の淡い光暈。role="heading" aria-level=1）。HomeScreenへ適用し、`--hero-sky`地のヒーローカードを新設（レイド参加中はボス紋章プレースホルダーdiv＋ボス名＋HPバー（`--glow-raid`）、未参加時はシーズン表示に縮退=JV-2）。ボス紋章は**実装時点でV-4が未完了だったためプレースホルダーdivのまま**（V-4は本PR作成後の2026-07-22中にマージ済み。`BossSigil`への差し替えは別タスクとして残る＝未実施）。モードタイル（Part2瞬発・Part5・語彙SRS・シャドーイング）をインラインSVGアイコン＋一言補足の2列グリッドに刷新（モード色: --listen/--gold/--violet/--listen）。ダッシュボード・設定・レイドは既存のナビゲーション行のまま維持（モックアップ・3.4節の規定外のため構造変更なし）。金CTAへ`--cta-grad`/`--glow-gold`とサブテキスト（時間＋SRS復習件数）を追加。ステータスピル（ストリーク・SRS期限）を罫線＋半透明面のピル形に統一。
+  - 共有セレクタ（`.primary-button`・`.home-raid-hp`系）は本体を変更せず、`.home-quest-group .primary-button`等のホーム限定スコープ付きセレクタで上書き（2.1節のガードレール順守。V-4/V-5のRaidScreen・リザルト作業との衝突回避）。
+  - `--hero-sky`は両テーマ共通の固定ダーク背景のため、カード内文字色もテーマ追従の`--ink`系ではなく固定値（`--home-hero-ink`等。ダーク値をそのまま採用）を新設して使用。コントラスト機械計算値（`--hero-sky`最明部#16204aとの比）: ink=13.394:1・ink-2=7.085:1・ink-3=4.525:1・ev-blue=4.904:1・ng=5.083:1（いずれもAA=4.5:1適合）。
+  - HomeScreen.test.tsx: モードタイル・CTAがアイコン/サブテキストを持つ構造になったため、該当ボタンの取得を`getByText(完全一致)`から`getByRole('button', { name: /正規表現/ })`へ機械的に置換（DOM構造変更に伴う追従。挙動は変更なし）。App.test.tsx: 見出し文言が「BEB Raid」→ワードマーク「BEB RAID ビーブレイド」に変わったため`findByRole('heading', ...)`の期待値も同様に追従。
+  - lint・format:check・build・test（全workspace）全通過。screenshot-tourでlight/dark両テーマのホーム画面を目視確認: ヒーローカードは両テーマとも`--hero-sky`の固定ダーク地に読めるコントラストで表示され、ワードマークの光暈はダークのみ・ライトは無し（意図どおり）。他画面（診断ウェルカム・ドリル・ダッシュボード）のCTAは無変化（スコープ限定のセレクタが効いている）を確認。
+  - **V-3/V-4統合完了（2026-07-22）**: HomeScreenの`.home-hero-sigil-placeholder`を`<BossSigil seed={raidState.bossId} size={56} />`へ差し替え済み（S5レイド画面=`RaidScreen.tsx`と同じseed運用）。プレースホルダー専用だった`.home-hero-sigil-placeholder`のCSSは不要になったため削除。
+- **V-7完了（2026-07-22。両テーマ全画面の総点検）**:
+  - 確認者: AIコーディングエージェント（Claude Opus 4.8）。**発起人の実機確認は本タスクの後に別途行う**（docs/20 5節・6節「V-7の点検結果」の完了条件どおり。実機では下記の未撮影3状態を優先確認することを推奨）。
+  - 日付: 2026-07-22。方法: `screenshot-tour.mjs` を dark・light で各1回実行し、モバイル実寸（390×844・DPR2）の全画像を目視。新規配色の組合せは docs/20 2.3節の式で独立に再計算し tokens.css・components.css のコメント値と突合。
+  - 目視した画面（tour到達範囲 dark/light 各1枚）: 診断ウェルカム・ホーム（未参加時シーズン縮退=JV-2）・語彙仕分け・ダッシュボード（空状態BossSigil）・シャドーイング・設定（カスタムフォーム部品）・ドリル（進捗バー4px＋英字タグ）。**全画面でレイアウト崩れ・意図と異なる見た目・console error 無し**。ライトでもヒーロー／診断帯が夜空色を維持する意匠が両テーマで正しく効くことを確認。
+  - AA再検証: V-1〜V-6・V-8の新規配色の組合せ26通りを全件再計算し**全てAA適合**（本文4.5:1／大文字・UI 3:1）。詳細表は docs/20 6節「V-7の点検結果」に追記した。
+  - **指摘事項1件（コメント値のみ・コード修正は別タスク判断）**: `components.css` の語彙ランクC注記が `--ink-2` on `#1c2339` を「7.641:1」と記載するが実測**7.036:1**。AAには十分適合（≫4.5）するため表示上の問題は無く、点検が主目的の本タスクでは修正せず指摘のみ残した。
+  - **再撮影しなかった画面（発起人承認のうえ見送り）**: リザルト（V-5）・S5レイド（V-4）・ホームのレイド参加中状態は tour 巡回範囲外（セッション完走／共有APIシーズンデータが必要）。ヘッドレスのクエスト完走ドライブは音声ゲート＋混在フォーマットで安定せず、点検主目的の本タスクに過剰と判断。レイアウトは V-4・V-5 完了時の dark/light 目視記録があり、新規配色は上記AA表でトークン単位に適合確認済み。
+- **V-8完了（2026-07-22）**: 発起人が生成した2枚（メイン・スプラッシュ）を採用。`generate-keyvisual.mjs` で最適化し、起動スプラッシュ背景（precache込み・オフライン表示可）・OGP meta（JPEG=クローラー互換）・README冒頭へ組込済み。詳細はdocs/20の5節「V-8の実装記録」。生成サービスはChatGPT（GPT Image 2）で`docs/design/keyvisual/README.md`に記録済み。
+
 ## 読解パート（Part6/7）完成の計画（2026-07-21）
 
 全量レビューで、TOEIC対策としての実装に穴があることが判明した。`text_passage`（Part6/7）はスキーマに予約済みだがUIコンポーネント・配信コンテンツともに存在せず、**ユーザーは読解問題を一切解けない**。TOEIC ReadingはPart5〜7で100問（Part7だけで54問と最多）で、当初目的（380→760、Rはスコアの半分）に対し読解欠落は致命的。一方で「通勤・片手・短時間」コンセプトはPart7複数パッセージと衝突する。

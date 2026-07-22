@@ -2,7 +2,9 @@
 // isWeak のタグは --chart-crimson で強調、それ以外は --chart-teal。
 // 最小標本未満のタグは表示しない（呼び出し側で渡す配列は事前に絞り込み済みの前提）。
 import { useState } from 'react'
+import { WEAK_MIN_SAMPLE } from '../../engine/tagStats'
 import type { TagAccuracy } from '../../engine/types'
+import { BossSigil } from '../BossSigil'
 
 interface Props {
   bars: TagAccuracy[]
@@ -19,7 +21,11 @@ export function WeakBars({ bars }: Props) {
   if (bars.length === 0) {
     return (
       <div className="chart-empty">
-        <p>弱点マップ: 対象タグがまだない</p>
+        <div className="chart-empty-sigil">
+          <BossSigil seed="dashboard-empty-weakbars" size={64} />
+        </div>
+        {/* 不足量の率直な表示（20の3.4節S6）: 表示対象になる最小標本数をそのまま出す */}
+        <p>弱点マップ: 対象タグがまだない（各タグ{WEAK_MIN_SAMPLE}問以上の解答が必要）</p>
       </div>
     )
   }

@@ -5,7 +5,7 @@
 // T-77: 報酬演出（J-42）。CSSアニメーション＋rAFのみ、総時間600〜900ms、
 // prefers-reduced-motionでは静止表示、タップで即スキップ可能にする。
 import { useEffect, useState } from 'react'
-import type { Question } from '@beb-raid/shared-schema'
+import type { Question, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
 import { SEASON_LABELS, type PhaseTransitionOutcome } from '../engine/curriculum'
@@ -55,6 +55,32 @@ export function resultQuestionLabel(questionId: string, question: Question | und
   return question.question ?? questionId
 }
 
+/**
+ * 3.4節「最大ストリーク」タイルの入力。回答順（answeredAt昇順）に並んだ正誤配列から
+ * 最長連続正解数を求める（セッション途中の中断・再開を跨いでも sessionAttempts は
+ * 通しでソート済みのため、跨いだままの連続正解も数える=正解数集計と同じ考え方）
+ */
+export function computeMaxStreak(attempts: readonly { isCorrect: boolean }[]): number {
+  let max = 0
+  let current = 0
+  for (const a of attempts) {
+    current = a.isCorrect ? current + 1 : 0
+    if (current > max) max = current
+  }
+  return max
+}
+
+/**
+ * 3.4節「学習時間」タイルの表示（m:ss）。各attemptのresponseMs合計を丸めて使う
+ * （画面を開いていた壁時計時間ではなく、実際に解答に要した時間の合計という近似値）
+ */
+export function formatStudyDuration(totalResponseMs: number): string {
+  const totalSeconds = Math.round(totalResponseMs / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -101,6 +127,9 @@ export function ResultScreen({ db, raidApi }: Props) {
   // snapshot.attemptIdsはstartSessionから完了まで累積するため、resultsストア
   // （このマウント後に解答した分のみ）よりも正確な全体集計の入力に使える
   const [sessionAttempts, setSessionAttempts] = useState<AttemptRecord[] | null>(null)
+  // docs/20 3.4節リザルト行「ボスHPバー削れ」: レイド同期が成功し参加中の場合のみセットされる
+  // （syncRaidDamageの戻り値=RaidSyncResultをそのまま使う。追加のfetchは行わない）
+  const [raidBoss, setRaidBoss] = useState<RaidBossState | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -144,9 +173,14 @@ export function ResultScreen({ db, raidApi }: Props) {
   // セッション完了時のレイドダメージ送信（M3・T-96）。非同期・失敗してもリザルト表示は壊さないが、
   // 原因追跡のためログは残す（レビューF5）
   useEffect(() => {
-    void syncRaidDamage(db, raidApi).catch((e: unknown) => {
-      console.warn('[raidSync] セッション完了時同期に失敗', e)
-    })
+    void syncRaidDamage(db, raidApi)
+      .then((result) => {
+        // ok:falseの経路（未設定/OFF/未参加等）ではbossは無いため、既定のnull（非表示）のまま
+        if (result.ok && result.boss) setRaidBoss(result.boss)
+      })
+      .catch((e: unknown) => {
+        console.warn('[raidSync] セッション完了時同期に失敗', e)
+      })
   }, [db, raidApi])
 
   // セッション完了時のquestionStats送信（M3・T-100）。raidSyncと同じトリガーに相乗り。失敗はログのみ
@@ -164,6 +198,13 @@ export function ResultScreen({ db, raidApi }: Props) {
   const wrongCount = tallyEntries.length - correctCount
   const totalPoints = results.reduce((sum, r) => sum + r.basePoints, 0)
   const displayedPoints = usePointsCountUp(totalPoints, skipAnimation)
+  // docs/20 3.4節リザルト行の統計3タイル用（正解数タイルは既存のcorrectCountを流用）
+  const maxStreak = computeMaxStreak(tallyEntries)
+  const totalResponseMs = tallyEntries.reduce((sum, a) => sum + a.responseMs, 0)
+  const bossHpPercent =
+    raidBoss && raidBoss.maxHp > 0
+      ? Math.min(100, Math.max(0, (raidBoss.hp / raidBoss.maxHp) * 100))
+      : 0
 
   function handleHome() {
     // レビューF5: スナップショット削除の失敗で「ホームへ」が無反応にならないようにする。
@@ -204,35 +245,73 @@ export function ResultScreen({ db, raidApi }: Props) {
             リスニング段階L{phaseOutcome.listeningStage}に進みました
           </p>
         )}
+        {/* docs/20 3.4節リザルト行「TOTAL DAMAGE」英字ラベル。レビューF5(c)で追加した
+            「何の数値か分かる」日本語ラベル（獲得ポイント）は削らずそのまま残す */}
+        <p className="result-eyebrow">Total Damage</p>
         {/* レビューF5(c): 何の数値か分かるようラベルを付ける。表示実体はbasePointsの合計
             （冒頭コメントの「獲得ポイント合計」）のため、レビュー指示の「レート変動」ではなく
             実体に合わせて「獲得ポイント」と表記する（レート変動は下のL/R行に既出） */}
         <p className="result-points-label">獲得ポイント</p>
         <p>
-          <span className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
-            +{displayedPoints}
-          </span>
+          <span className="display-num result-points-value">+{displayedPoints}</span>
         </p>
-        <ul className="result-stats">
-          <li className="result-stat" style={{ animationDelay: '0ms' }}>
+        {/* docs/20 3.4節リザルト行「ボスHPバー削れ」。未参加・同期未成功時（raidBoss===null）は
+            非表示（ホームのレイドHPバーと同じ「参加中のみ出す」縮退設計に揃える） */}
+        {raidBoss && (
+          <div className="result-boss-hp" data-testid="result-boss-hp">
+            <div className="result-boss-hp-labels">
+              <span>BOSS HP</span>
+              <span className="display-num">
+                {raidBoss.hp.toLocaleString()} / {raidBoss.maxHp.toLocaleString()}
+              </span>
+            </div>
+            <div className="result-boss-hp-bar">
+              <div className="result-boss-hp-fill" style={{ width: `${bossHpPercent}%` }} />
+            </div>
+            <p className="result-boss-hp-name">{raidBoss.name} に与えたダメージ</p>
+          </div>
+        )}
+        {/* docs/20 3.4節リザルト行「統計3枚タイル」。「正解 X / Y」の文言は既存のまま
+            （既存テスト・レビューF5(c)相当の文言を変えない）タイル化のみ行う */}
+        <ul className="result-highlight-tiles">
+          <li
+            className="result-highlight-tile result-highlight-tile--ok"
+            style={{ animationDelay: '0ms' }}
+          >
             正解 {correctCount} / {tallyEntries.length}
           </li>
+          <li
+            className="result-highlight-tile result-highlight-tile--gold"
+            style={{ animationDelay: '100ms' }}
+            data-testid="result-max-streak"
+          >
+            最大ストリーク {maxStreak}
+          </li>
+          <li
+            className="result-highlight-tile result-highlight-tile--listen"
+            style={{ animationDelay: '200ms' }}
+            data-testid="result-study-duration"
+          >
+            学習時間 {formatStudyDuration(totalResponseMs)}
+          </li>
+        </ul>
+        <ul className="result-stats">
           {ratingBefore && ratingAfter && (
-            <li className="result-stat" style={{ animationDelay: '150ms' }}>
+            <li className="result-stat" style={{ animationDelay: '300ms' }}>
               L: {Math.round(ratingBefore.L)} → {Math.round(ratingAfter.L)}
               <br />
               R: {Math.round(ratingBefore.R)} → {Math.round(ratingAfter.R)}
             </li>
           )}
           {wrongCount > 0 && (
-            <li className="result-stat" style={{ animationDelay: '300ms' }}>
+            <li className="result-stat" style={{ animationDelay: '400ms' }}>
               誤答{wrongCount}問を復習デッキに追加した
             </li>
           )}
           {skippedCount > 0 && (
             <li
               className="result-stat"
-              style={{ animationDelay: '450ms' }}
+              style={{ animationDelay: '500ms' }}
               data-testid="result-skipped-count"
             >
               表示できなかった問題: {skippedCount}件（パックの再取得で直ることがあります）

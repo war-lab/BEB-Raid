@@ -341,7 +341,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
       >
         <div className="vocab-card">
           {reviewQuestion?.freqRank && (
-            <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
+            <span
+              className="vocab-card__rank"
+              data-rank={reviewQuestion.freqRank}
+              title={FREQ_RANK_TITLE}
+            >
               {reviewQuestion.freqRank}
             </span>
           )}
@@ -406,7 +410,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         <SwipeCard onSwipeRight={() => void handleKnown()} onSwipeLeft={() => void handleUnknown()}>
           <div className="vocab-card">
             {triageQuestion.freqRank && (
-              <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
+              <span
+                className="vocab-card__rank"
+                data-rank={triageQuestion.freqRank}
+                title={FREQ_RANK_TITLE}
+              >
                 {triageQuestion.freqRank}
               </span>
             )}

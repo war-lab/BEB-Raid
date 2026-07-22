@@ -9,6 +9,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import { RAID_STATE_ID } from '../db/schema'
 import type { RaidApi } from '../platform'
 import {
   answerCurrentQuestion,
@@ -17,9 +18,15 @@ import {
   startSession,
   type SessionSnapshot,
 } from '../services/session'
+import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
-import { resultQuestionLabel, ResultScreen } from './ResultScreen'
+import {
+  computeMaxStreak,
+  formatStudyDuration,
+  resultQuestionLabel,
+  ResultScreen,
+} from './ResultScreen'
 
 // completeSessionの失敗経路（レビューF5(a)）をテストで注入するための部分モック。
 // 既定は実装そのまま（他テストの挙動を変えない）
@@ -478,5 +485,117 @@ describe('ResultScreen: 問題リストの表記（T-111）', () => {
 
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
     expect(screen.getByText(`${script.slice(0, 20)}…`)).toBeTruthy()
+  })
+})
+
+describe('computeMaxStreak（docs/20 3.4節リザルト行「最大ストリーク」タイルの導出）', () => {
+  it('正誤配列から最長連続正解数を求める（末尾が途切れても直前の最大値を保つ）', () => {
+    expect(
+      computeMaxStreak([
+        { isCorrect: true },
+        { isCorrect: true },
+        { isCorrect: false },
+        { isCorrect: true },
+      ]),
+    ).toBe(2)
+  })
+
+  it('全問正解なら配列長そのものが最大ストリーク', () => {
+    expect(computeMaxStreak([{ isCorrect: true }, { isCorrect: true }])).toBe(2)
+  })
+
+  it('空配列は0', () => {
+    expect(computeMaxStreak([])).toBe(0)
+  })
+})
+
+describe('formatStudyDuration（docs/20 3.4節リザルト行「学習時間」タイルの導出）', () => {
+  it('合計responseMsをm:ss形式にする', () => {
+    expect(formatStudyDuration(6500)).toBe('0:07') // 6.5秒→四捨五入で7秒
+    expect(formatStudyDuration(75_000)).toBe('1:15')
+  })
+})
+
+describe('ResultScreen: 統計3タイル（docs/20 3.4節リザルト行）', () => {
+  it('正解数・最大ストリーク・学習時間を表示する', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, {
+      items: [
+        { questionId: 'q-1', mode: 'solo' },
+        { questionId: 'q-2', mode: 'solo' },
+        { questionId: 'q-3', mode: 'solo' },
+      ],
+    })
+    useSessionStore.getState().begin(snapshot, [q('q-1'), q('q-2'), q('q-3')], { L: 400, R: 400 })
+    const afterFirst = await answerAndRecord(db, snapshot, {
+      isCorrect: true,
+      basePoints: 80,
+      responseMs: 2000,
+    })
+    const afterSecond = await answerAndRecord(db, afterFirst, {
+      isCorrect: true,
+      basePoints: 80,
+      responseMs: 3000,
+    })
+    await answerAndRecord(db, afterSecond, {
+      isCorrect: false,
+      basePoints: 0,
+      responseMs: 1500,
+    })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('result-max-streak').textContent).toBe('最大ストリーク 2'),
+    )
+    expect(screen.getByTestId('result-study-duration').textContent).toBe('学習時間 0:07')
+    // 「正解 X / Y」はタイル化してもレビューF5(c)相当の既存文言のまま
+    expect(screen.getByText('正解 2 / 3')).toBeTruthy()
+  })
+})
+
+describe('ResultScreen: ボスHPバー（docs/20 3.4節リザルト行「ボスHPバー削れ」）', () => {
+  it('レイド同期が成功し参加中ならボスHPバーを表示する', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'raid' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-test',
+      profileJson: JSON.stringify({ name: 'テストボス' }),
+      hp: 500,
+      maxHp: 1000,
+      myDamage: 60,
+      joined: true,
+      startAt: 0,
+      endAt: Date.now() + 100_000,
+      lastSyncedAt: 0,
+    })
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage = vi.fn(async () => ({
+      acceptedIds: [],
+      boss: { ...FAKE_BOSS, bossId: 'boss-test', hp: 400, maxHp: 1000, name: 'テストボス' },
+    }))
+
+    render(<ResultScreen db={db} raidApi={raidApi} />)
+
+    const bar = await screen.findByTestId('result-boss-hp')
+    expect(bar.textContent).toContain('400 / 1,000')
+    expect(bar.textContent).toContain('テストボス に与えたダメージ')
+  })
+
+  it('レイド未参加（raidSync縮退経路）ならボスHPバーを表示しない', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    await waitFor(() => expect(screen.getByText('+60')).toBeTruthy())
+    expect(screen.queryByTestId('result-boss-hp')).toBeNull()
   })
 })

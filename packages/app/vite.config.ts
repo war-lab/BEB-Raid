@@ -45,8 +45,10 @@ export default defineConfig({
       },
       workbox: {
         // アプリシェルのみ precache する。問題パック・音声のキャッシュは
-        // SW から分離した PackCache 層（T-04/T-35）が担う（05の7節: ネイティブ化時の差し替え点）
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // SW から分離した PackCache 層（T-04/T-35）が担う（05の7節: ネイティブ化時の差し替え点）。
+        // splash.webp は起動スプラッシュ背景（docs/20 V-8）で、オフライン起動でも表示する
+        // ため明示的に precache に含める（25KB。og-image.jpg は precache 対象外のまま）
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}', 'splash.webp'],
       },
     }),
   ],

@@ -1,0 +1,527 @@
+<title>BEB Raid ビジュアル刷新モックアップ</title>
+<style>
+  /* ============ ピッチボード基盤（アプリのダーク既定に合わせ単一テーマで提示） ============ */
+  :root {
+    --board-bg: #070a14;
+    --board-ink: #eaedf6;
+    --board-ink-2: #a6aec6;
+    --board-line: #232b45;
+
+    /* アプリ側トークン（tokens.css準拠＋刷新追加分） */
+    --bg: #0e1220;
+    --bg-deep: #090c17;
+    --surface: #181e31;
+    --surface-2: #222a44;
+    --line: #2c3552;
+    --ink: #eaedf6;
+    --ink-2: #a6aec6;
+    --ink-3: #7e89ac;
+    --gold: #f5b83d;
+    --gold-deep: #b87f15;
+    --on-gold: #1a1405;
+    --raid: #e8506b;
+    --listen: #4ec3e0;
+    --violet: #8b79e8;
+    --ok: #3dc97e;
+    --ng: #f0647a;
+    /* 刷新追加: ロゴ由来のブランド表層（鋼＋電光青） */
+    --ev-blue: #4d8dff;
+    --ev-blue-deep: #1e3fa8;
+    --steel-hi: #e8ecf4;
+    --steel-mid: #9aa6bc;
+    --steel-lo: #5b667e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--board-bg);
+    color: var(--board-ink);
+    font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
+    line-height: 1.6;
+  }
+  .board {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+  .board-head { max-width: 68ch; margin-bottom: 12px; }
+  .board-head .eyebrow {
+    font-size: 12px; letter-spacing: 0.18em; color: var(--ev-blue);
+    text-transform: uppercase; margin: 0 0 8px;
+  }
+  .board-head h1 { font-size: 26px; margin: 0 0 12px; text-wrap: balance; }
+  .board-head p { color: var(--board-ink-2); margin: 0 0 8px; font-size: 14.5px; }
+  .board-head strong { color: var(--board-ink); }
+
+  .phones {
+    display: flex; flex-wrap: wrap; gap: 40px;
+    align-items: flex-start; justify-content: center;
+    margin-top: 36px;
+  }
+  .phone-slot { display: flex; flex-direction: column; gap: 14px; }
+  .phone-caption { max-width: 390px; }
+  .phone-caption h2 { font-size: 15px; margin: 0 0 4px; }
+  .phone-caption p { font-size: 13px; color: var(--board-ink-2); margin: 0; }
+
+  /* ============ 端末フレーム ============ */
+  .phone {
+    width: 390px; height: 844px;
+    border-radius: 44px;
+    border: 1px solid #2a3350;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 0 0 8px #05070d;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg);
+    flex: none;
+  }
+  .screen {
+    position: absolute; inset: 8px;
+    border-radius: 36px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--bg-deep) 0%, var(--bg) 28%);
+    display: flex; flex-direction: column;
+  }
+
+  /* ============ アプリ内共通 ============ */
+  .app-status {
+    display: flex; align-items: center; gap: 10px;
+    padding: 22px 20px 0;
+  }
+  .num { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 13px; border: 1px solid var(--line);
+    background: rgba(24,30,49,.7);
+  }
+  .pill--streak { color: var(--gold); border-color: rgba(245,184,61,.35); }
+  .pill--due { color: var(--ink-2); }
+  .pill--due b { color: var(--ink); font-weight: 700; }
+
+  /* ワードマーク: 実装では logo.png 横長版 or Chakra Petch Latin サブセット */
+  .wordmark {
+    padding: 18px 20px 0;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .wordmark .mark {
+    font-size: 24px; font-weight: 800; font-style: italic;
+    letter-spacing: 0.04em;
+    background: linear-gradient(175deg, var(--steel-hi) 15%, var(--steel-mid) 48%, var(--steel-lo) 60%, var(--steel-hi) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,.7)) drop-shadow(0 0 14px rgba(77,141,255,.35));
+  }
+  .wordmark .sub { font-size: 11px; color: var(--ink-3); letter-spacing: 0.14em; }
+
+  /* ============ S1 ホーム ============ */
+  .hero {
+    margin: 14px 16px 0;
+    border-radius: 20px;
+    border: 1px solid rgba(77,141,255,.25);
+    background:
+      radial-gradient(1.2px 1.2px at 12% 18%, rgba(234,237,246,.9) 50%, transparent 51%),
+      radial-gradient(1px 1px at 34% 8%, rgba(234,237,246,.7) 50%, transparent 51%),
+      radial-gradient(1.4px 1.4px at 58% 22%, rgba(234,237,246,.8) 50%, transparent 51%),
+      radial-gradient(1px 1px at 76% 12%, rgba(234,237,246,.6) 50%, transparent 51%),
+      radial-gradient(1px 1px at 90% 30%, rgba(234,237,246,.75) 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 22% 38%, rgba(234,237,246,.5) 50%, transparent 51%),
+      radial-gradient(140% 90% at 50% 118%, rgba(30,63,168,.55) 0%, rgba(30,63,168,.15) 45%, transparent 70%),
+      linear-gradient(180deg, #0a0f21 0%, #101832 62%, #16204a 100%);
+    padding: 16px 16px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after { /* 車窓の地平線 */
+    content: ''; position: absolute; left: 0; right: 0; bottom: 42px;
+    height: 1px; background: linear-gradient(90deg, transparent, rgba(77,141,255,.5), transparent);
+  }
+  .hero-top { display: flex; gap: 14px; align-items: center; position: relative; }
+  .sigil { flex: none; filter: drop-shadow(0 0 12px rgba(232,80,107,.35)); }
+  .hero-info { min-width: 0; }
+  .hero-eyebrow {
+    margin: 0 0 2px; font-size: 11px; letter-spacing: 0.16em;
+    color: var(--ev-blue); text-transform: uppercase;
+  }
+  .hero-boss { margin: 0; font-size: 17px; font-weight: 700; color: var(--ink); }
+  .hero-days { margin: 2px 0 0; font-size: 12px; color: var(--ink-2); }
+  .hp-wrap { margin-top: 12px; position: relative; }
+  .hp-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; }
+  .hp-labels .num { color: var(--raid); font-size: 13px; }
+  .hp-bar {
+    height: 10px; border-radius: 999px; background: rgba(9,12,23,.8);
+    border: 1px solid rgba(232,80,107,.25); overflow: hidden;
+  }
+  .hp-fill {
+    height: 100%; width: 62%;
+    background: linear-gradient(90deg, #a12744, var(--raid));
+    box-shadow: 0 0 12px rgba(232,80,107,.7);
+    border-radius: 999px;
+    position: relative;
+  }
+  .hp-fill::after { /* 直近の自分の寄与分ハイライト（07 6節） */
+    content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 14%;
+    background: linear-gradient(90deg, transparent, rgba(245,184,61,.85));
+  }
+  .hero-sync { margin: 8px 0 0; font-size: 11px; color: var(--ink-3); }
+
+  .home-body { flex: 1; overflow: hidden; padding: 4px 16px 0; }
+  .season-line {
+    display: flex; align-items: center; gap: 10px;
+    margin: 14px 2px 0; font-size: 12.5px; color: var(--ink-2);
+  }
+  .season-line .bar {
+    flex: 1; height: 4px; border-radius: 999px; background: var(--surface-2); overflow: hidden;
+  }
+  .season-line .bar i {
+    display: block; height: 100%; width: 56%;
+    background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+  }
+  .mini-heat { margin: 18px 2px 0; }
+  .mini-heat p { margin: 0 0 8px; font-size: 12px; color: var(--ink-3); }
+  .mini-heat .cells { display: grid; grid-template-columns: repeat(14, 14px); gap: 4px; }
+  .mini-heat .cells i {
+    width: 14px; height: 14px; border-radius: 4px;
+    background: var(--surface-2); display: block;
+  }
+  .mini-heat .cells i.l1 { background: #6b4a10; }
+  .mini-heat .cells i.l2 { background: var(--gold-deep); }
+  .mini-heat .cells i.l3 { background: var(--gold); box-shadow: 0 0 6px rgba(245,184,61,.4); }
+
+  .home-action { padding: 10px 16px 22px; }
+  .cta {
+    width: 100%; border: none; cursor: pointer;
+    min-height: 60px; border-radius: 14px;
+    background: linear-gradient(180deg, #ffd067 0%, var(--gold) 55%, #dd9c22 100%);
+    color: var(--on-gold);
+    font-size: 17px; font-weight: 800; font-family: inherit;
+    box-shadow: 0 6px 22px rgba(245,184,61,.35), inset 0 1px 0 rgba(255,255,255,.5);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  }
+  .cta small { font-size: 11.5px; font-weight: 600; opacity: .75; }
+  .chips { display: flex; gap: 8px; margin: 10px 0 4px; }
+  .chip {
+    flex: 1; min-height: 40px; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(24,30,49,.6);
+    color: var(--ink-2); font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+  .chip.on {
+    border-color: var(--gold); color: var(--gold);
+    background: rgba(245,184,61,.08); font-weight: 700;
+  }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .mode {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 52px; padding: 0 14px;
+    border-radius: 13px; border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(34,42,68,.5), rgba(24,30,49,.8));
+    color: var(--ink); font-size: 13.5px; font-family: inherit; cursor: pointer;
+    text-align: left;
+  }
+  .mode svg { flex: none; }
+  .mode small { display: block; font-size: 10.5px; color: var(--ink-3); }
+
+  /* ============ S2 ドリル ============ */
+  .drill-progress { display: flex; align-items: center; gap: 10px; padding: 20px 20px 0; }
+  .drill-progress .track {
+    flex: 1; height: 4px; border-radius: 999px; background: var(--surface-2); overflow: hidden;
+  }
+  .drill-progress .fill {
+    display: block; height: 100%; width: 58%;
+    background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+    box-shadow: 0 0 8px rgba(245,184,61,.7);
+  }
+  .drill-progress .count { font-size: 14px; color: var(--ink-2); }
+  .drill-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px 0;
+  }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--gold); border: 1px solid rgba(245,184,61,.3);
+    border-radius: 999px; padding: 3px 10px; background: rgba(245,184,61,.06);
+  }
+  .abort { font-size: 13px; color: var(--ink-3); text-decoration: underline; background: none; border: none; font-family: inherit; }
+  .toast {
+    text-align: right; margin: 0 0 10px;
+    font-size: 22px; font-weight: 800; color: var(--gold);
+    text-shadow: 0 0 18px rgba(245,184,61,.6);
+    font-variant-numeric: tabular-nums;
+  }
+  .drill-body { flex: 1; padding: 14px 20px 0; overflow: hidden; }
+  .qtext { font-size: 18px; line-height: 1.65; max-width: 34em; color: var(--ink); margin: 0; }
+  .qtext .blank { color: var(--ink-3); letter-spacing: 0.06em; }
+  .drill-reason { font-size: 12px; color: var(--ink-3); margin: 14px 0 0; }
+  .drill-action { padding: 0 16px 22px; }
+  .choice {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; min-height: 56px; margin-bottom: 8px; padding: 8px 14px;
+    background: linear-gradient(180deg, rgba(34,42,68,.35), rgba(24,30,49,.75));
+    color: var(--ink); border: 2px solid var(--line); border-radius: 13px;
+    font-size: 15.5px; text-align: left; font-family: inherit; cursor: pointer;
+  }
+  .choice .marker {
+    flex: none; width: 28px; height: 28px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); font-size: 13px; color: var(--ink-2);
+    background: rgba(9,12,23,.5);
+  }
+  .choice .icon { flex: none; width: 24px; text-align: center; font-weight: 700; font-size: 16px; }
+  .choice.correct { border-color: var(--ok); box-shadow: 0 0 16px rgba(61,201,126,.25); }
+  .choice.correct .marker { border-color: var(--ok); color: var(--ok); }
+  .choice.correct .icon { color: var(--ok); }
+  .choice.dim { opacity: .4; }
+
+  /* ============ リザルト ============ */
+  .result-body {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 40px 24px 0; text-align: center; position: relative; overflow: hidden;
+  }
+  .result-body::before { /* 討伐級の一撃だけ光らせる（学習中は静か・報酬は騒がしい） */
+    content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+    width: 420px; height: 320px;
+    background: radial-gradient(closest-side, rgba(245,184,61,.18), transparent 75%);
+    pointer-events: none;
+  }
+  .result-label { font-size: 12px; letter-spacing: 0.2em; color: var(--ink-3); text-transform: uppercase; margin: 0; }
+  .result-num {
+    font-size: 64px; font-weight: 800; color: var(--gold);
+    text-shadow: 0 0 30px rgba(245,184,61,.45);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+    margin: 4px 0 0; line-height: 1.1;
+  }
+  .result-sub { font-size: 13px; color: var(--ink-2); margin: 6px 0 0; }
+  .result-hp { width: 100%; margin-top: 26px; text-align: left; }
+  .result-stats {
+    width: 100%; margin-top: 22px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  }
+  .stat {
+    border: 1px solid var(--line); border-radius: 13px; padding: 10px 6px;
+    background: linear-gradient(180deg, rgba(34,42,68,.4), rgba(24,30,49,.7));
+  }
+  .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--ink-3); }
+  .stat .ok { color: var(--ok); }
+  .stat .gold { color: var(--gold); }
+  .stat .listen { color: var(--listen); }
+  .review-list { width: 100%; margin-top: 20px; text-align: left; }
+  .review-list p { margin: 0 0 8px; font-size: 12px; color: var(--ink-3); letter-spacing: 0.08em; }
+  .review-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; margin-bottom: 6px;
+    border: 1px solid var(--line); border-radius: 11px;
+    background: rgba(24,30,49,.55); font-size: 13px; color: var(--ink-2);
+  }
+  .review-item b { flex: none; font-size: 14px; }
+  .review-item b.ng { color: var(--ng); }
+  .review-item b.okc { color: var(--ok); }
+  .review-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result-action { padding: 0 16px 22px; }
+  .ghost-btn {
+    width: 100%; min-height: 48px; margin-top: 8px;
+    background: transparent; color: var(--ink-2);
+    border: 1px solid var(--line); border-radius: 13px;
+    font-size: 14px; font-family: inherit; cursor: pointer;
+  }
+
+  /* ============ 下部: 意図の説明 ============ */
+  .notes {
+    margin: 64px auto 0; max-width: 1180px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;
+  }
+  .note {
+    border: 1px solid var(--board-line); border-radius: 14px;
+    padding: 18px 20px; background: #0b101f;
+  }
+  .note h3 { margin: 0 0 8px; font-size: 14.5px; }
+  .note h3 span { color: var(--ev-blue); margin-right: 8px; }
+  .note p { margin: 0; font-size: 13px; color: var(--board-ink-2); }
+  .swatches { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .swatch { display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; color: var(--board-ink-2); }
+  .swatch i { display: block; width: 64px; height: 34px; border-radius: 8px; border: 1px solid rgba(255,255,255,.12); }
+</style>
+
+<div class="board">
+  <header class="board-head">
+    <p class="eyebrow">BEB Raid — Visual Refresh Proposal</p>
+    <h1>「夜行列車の車窓」を実際に絵にする</h1>
+    <p>現状の実装は docs/07 のトークンを使ってはいるが、<strong>全要素が同じ視覚言語（面＋1px罫線）で階層がなく、ロゴ・紋章・世界観の絵作りが一切ない</strong>。これがワイヤーフレーム感（＝AI臭さ）の正体。</p>
+    <p>方針は07の未決事項1の①を採用: <strong>ブランド表層はロゴの鋼＋電光青、金は報酬とCTAに集約</strong>。構造は既存のまま、表層のトークンとコンポーネントCSSだけで実現する。</p>
+  </header>
+
+  <div class="phones">
+
+    <!-- ============ ホーム ============ -->
+    <div class="phone-slot">
+      <div class="phone"><div class="screen">
+        <div class="app-status">
+          <span class="pill pill--streak">🔥 <span class="num">12</span></span>
+          <span class="pill pill--due">SRS期限 <b class="num">23</b></span>
+        </div>
+        <div class="wordmark">
+          <span class="mark">BEB RAID</span>
+          <span class="sub">ビーブレイド</span>
+        </div>
+
+        <div class="hero">
+          <div class="hero-top">
+            <svg class="sigil" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+              <circle cx="36" cy="36" r="33" fill="none" stroke="#e8506b" stroke-width="1" opacity="0.5" stroke-dasharray="4 6"/>
+              <circle cx="36" cy="36" r="26" fill="none" stroke="#4d8dff" stroke-width="0.8" opacity="0.6"/>
+              <polygon points="36,10 58,23 58,49 36,62 14,49 14,23" fill="none" stroke="#e8506b" stroke-width="1.6"/>
+              <polygon points="36,20 50,28 50,44 36,52 22,44 22,28" fill="rgba(232,80,107,0.12)" stroke="#e8506b" stroke-width="1"/>
+              <circle cx="36" cy="36" r="6" fill="#e8506b"/>
+              <circle cx="36" cy="36" r="2.4" fill="#0e1220"/>
+            </svg>
+            <div class="hero-info">
+              <p class="hero-eyebrow">Weekly Boss</p>
+              <p class="hero-boss">Nocturne Courier</p>
+              <p class="hero-days">残り3日 ・ 参加 6人</p>
+            </div>
+          </div>
+          <div class="hp-wrap">
+            <div class="hp-labels"><span>BOSS HP</span><span class="num">186,400 / 300,000</span></div>
+            <div class="hp-bar"><div class="hp-fill"></div></div>
+            <p class="hero-sync">最終同期: 4分前</p>
+          </div>
+        </div>
+
+        <div class="home-body">
+          <div class="season-line">
+            <span>シーズン3「実戦」</span>
+            <span class="bar"><i></i></span>
+            <span class="num">56%</span>
+          </div>
+          <div class="mini-heat">
+            <p>直近2週間</p>
+            <div class="cells">
+              <i class="l1"></i><i class="l2"></i><i></i><i class="l1"></i><i class="l3"></i><i class="l2"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l1"></i><i></i><i class="l2"></i><i class="l3"></i><i class="l3"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-action">
+          <button class="cta">今日のクエスト<small>7分 ・ SRS復習8問＋新規4問</small></button>
+          <div class="chips">
+            <button class="chip">3分</button>
+            <button class="chip on">7分</button>
+            <button class="chip">15分</button>
+          </div>
+          <div class="mode-grid">
+            <button class="mode">
+              <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 8v4h3l4 4V4L7 8H4z" fill="#4ec3e0"/><path d="M14 7c1 .8 1 5.2 0 6" stroke="#4ec3e0" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+              <span>Part2瞬発<small>音声即答 ・ ストリーク</small></span>
+            </button>
+            <button class="mode">
+              <svg width="20" height="20" viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="2.2" rx="1" fill="#f5b83d"/><rect x="3" y="9" width="9" height="2.2" rx="1" fill="#f5b83d" opacity=".55"/><rect x="3" y="14" width="12" height="2.2" rx="1" fill="#f5b83d" opacity=".3"/></svg>
+              <span>Part5<small>文法 ・ 語彙穴埋め</small></span>
+            </button>
+            <button class="mode">
+              <svg width="20" height="20" viewBox="0 0 20 20"><rect x="3" y="3" width="11" height="14" rx="2" fill="none" stroke="#8b79e8" stroke-width="1.5"/><rect x="6" y="1.5" width="11" height="14" rx="2" fill="#0e1220" stroke="#8b79e8" stroke-width="1.5"/></svg>
+              <span>語彙SRS<small>期限 23枚</small></span>
+            </button>
+            <button class="mode">
+              <svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 10h2l2-5 3 10 2.5-7 1.5 2h3" stroke="#4ec3e0" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>シャドーイング<small>L1 ・ 素材 1/30</small></span>
+            </button>
+          </div>
+        </div>
+      </div></div>
+      <div class="phone-caption">
+        <h2>S1 ホーム — ヒーローはレイド</h2>
+        <p>ワードマーク（鋼グラデ）＋夜空と車窓のヒーローカードにボス紋章（シードSVG）とHPバーを集約。空ヒートマップは格下げし、モードタイルはアイコン＋補足で「押すと何が起きるか」を語る。</p>
+      </div>
+    </div>
+
+    <!-- ============ ドリル（正誤確定） ============ -->
+    <div class="phone-slot">
+      <div class="phone"><div class="screen">
+        <div class="drill-progress">
+          <span class="track"><span class="fill"></span></span>
+          <span class="count num">7/12</span>
+        </div>
+        <div class="drill-meta">
+          <span class="tag">Part 5 ・ 今日のクエスト</span>
+          <button class="abort">中断</button>
+        </div>
+        <div class="drill-body">
+          <p class="toast num">+124</p>
+          <p class="qtext">The marketing team will <span class="blank">______</span> the new campaign proposal by the end of this week.</p>
+          <p class="drill-reason">SRS復習: 3日前に誤答した問題</p>
+        </div>
+        <div class="drill-action">
+          <button class="choice dim"><span class="marker">A</span><span>submit</span><span class="icon"></span></button>
+          <button class="choice correct"><span class="marker">B</span><span>finalize</span><span class="icon">✓</span></button>
+          <button class="choice dim"><span class="marker">C</span><span>finalizing</span><span class="icon"></span></button>
+          <button class="choice dim"><span class="marker">D</span><span>finalized</span><span class="icon"></span></button>
+        </div>
+      </div></div>
+      <div class="phone-caption">
+        <h2>S2 ドリル — 学習中は静かなまま質を上げる</h2>
+        <p>構造は現行どおり（枠色＋✓のみで正誤、レイアウト不動）。面に微グラデーション、進捗バーとダメージトーストにだけ光を足す。演出を増やさず「安っぽさ」だけを消す。</p>
+      </div>
+    </div>
+
+    <!-- ============ リザルト ============ -->
+    <div class="phone-slot">
+      <div class="phone"><div class="screen">
+        <div class="app-status">
+          <span class="pill pill--streak">🔥 <span class="num">12</span></span>
+        </div>
+        <div class="result-body">
+          <p class="result-label">Total Damage</p>
+          <p class="result-num">+1,240</p>
+          <p class="result-sub">Nocturne Courier に与えたダメージ</p>
+          <div class="result-hp">
+            <div class="hp-labels"><span>BOSS HP</span><span class="num">185,160 / 300,000</span></div>
+            <div class="hp-bar"><div class="hp-fill"></div></div>
+          </div>
+          <div class="result-stats">
+            <div class="stat"><b class="ok num">10/12</b><span>正解</span></div>
+            <div class="stat"><b class="gold num">6</b><span>最大ストリーク</span></div>
+            <div class="stat"><b class="listen num">7:12</b><span>学習時間</span></div>
+          </div>
+          <div class="review-list">
+            <p>誤答 2問</p>
+            <div class="review-item"><b class="ng">✕</b><span>The shipment was delayed ______ the storm.</span></div>
+            <div class="review-item"><b class="ng">✕</b><span>Could you tell me where the conference room is?</span></div>
+          </div>
+        </div>
+        <div class="result-action">
+          <button class="cta">ホームへ</button>
+          <button class="ghost-btn">誤答2問をふりかえる</button>
+        </div>
+      </div></div>
+      <div class="phone-caption">
+        <h2>リザルト — 「騒がしい報酬」はここに集約</h2>
+        <p>ダメージ加算・HP削れ・光暈はリザルトだけの特権にする（07の原則3そのまま）。数字はディスプレイ書体（Chakra Petch）で組む。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note">
+      <h3><span>01</span>ブランド表層 = ロゴの鋼＋電光青</h3>
+      <p>07の未決事項1を①で確定。ワードマーク・ヒーロー・フォーカス色に電光青（--ev-blue）を導入し、ロゴがアプリ内に初めて登場する。金はCTA・XP・ダメージ専用に格上げされ、役割が明確になる。</p>
+      <div class="swatches">
+        <div class="swatch"><i style="background:linear-gradient(175deg,#e8ecf4,#9aa6bc,#5b667e)"></i>steel</div>
+        <div class="swatch"><i style="background:#4d8dff"></i>--ev-blue</div>
+        <div class="swatch"><i style="background:#1e3fa8"></i>--ev-blue-deep</div>
+        <div class="swatch"><i style="background:#f5b83d"></i>--gold（既存）</div>
+        <div class="swatch"><i style="background:#e8506b"></i>--raid（既存）</div>
+      </div>
+    </div>
+    <div class="note">
+      <h3><span>02</span>深度システム: 罫線一本槍からの脱却</h3>
+      <p>面は「上が僅かに明るい」微グラデーション、地は上下グラデーション、アクセント（CTA・HPバー・トースト）にのみ光暈。罫線階層は維持しつつ、フラット線画のワイヤーフレーム感を消す。常時アニメーションは増やさない（バッテリー原則維持）。</p>
+    </div>
+    <div class="note">
+      <h3><span>03</span>ボス紋章（シードSVG）を実装する</h3>
+      <p>07 6節で規定済み・未実装。多角形＋軌道環＋目状の核をシードから合成し、ホームのヒーロー・レイド画面・リザルトで使い回す。イラスト外注ゼロで世界観の「顔」ができる。</p>
+    </div>
+    <div class="note">
+      <h3><span>04</span>ディスプレイ書体の適用拡大</h3>
+      <p>Chakra Petch サブセットを数字のみ→英大文字ラテンへ拡張（WOFF2で十数KB）。ワードマーク・「TOTAL DAMAGE」等の英字ラベル・ボス名に適用し、見出しのシステムフォント感を消す。和文はシステムフォントのまま（容量原則維持）。</p>
+    </div>
+  </div>
+</div>

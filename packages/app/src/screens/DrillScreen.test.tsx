@@ -1307,6 +1307,22 @@ describe('DrillScreen: レイド挑戦セッションのヘッダ（T-116(10)）
   })
 })
 
+describe('DrillScreen: パート名の英字タグ（docs/20 3.4節S2）', () => {
+  it('question.partからPART Nタグを表示する（出題理由の表示内容は変えない）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = [
+      { questionId: 'q-1', mode: 'solo', reason: { type: 'allocation' } },
+    ]
+    await setupSession(db, items, [QUESTIONS[0]!]) // part5Question → part: 5
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    expect(await screen.findByText('PART 5')).toBeTruthy()
+    // 出題理由の表示は従来どおり残る（表示追加であり置き換えではないことの確認）
+    expect(screen.getByText('今日のドリル')).toBeTruthy()
+  })
+})
+
 describe('DrillScreen: ハプティクス（T-78。正解確定時のnavigator.vibrate）', () => {
   it('正解確定時、設定ONならnavigator.vibrateが呼ばれる', async () => {
     const db = newDb()

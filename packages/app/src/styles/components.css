@@ -38,7 +38,9 @@
   min-height: var(--answer-height);
   margin-bottom: var(--sp-1); /* ボタン間8px以上 */
   padding: var(--sp-1) var(--sp-2);
-  background: var(--surface);
+  /* docs/20 3.4節S2: 深度システム（面の微グラデーション）。状態変化（枠色のみ）は
+     .choice-button.is-* 側で従来どおり担保するため、レイアウト不動には影響しない */
+  background: var(--surface-grad);
   color: var(--ink);
   /* 枠は常に2px。状態では色のみ変える（太さを変えるとレイアウトが動く） */
   border: 2px solid var(--line);
@@ -97,16 +99,18 @@
   opacity: 0.45;
 }
 
-/* --- セッション進捗: 最上部の2pxバー＋残数 --- */
+/* --- セッション進捗: 最上部のバー＋残数 --- */
 .session-progress {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
   width: 100%;
 }
+/* docs/20 3.4節S2: 2px→4px。overflow:hiddenのままなのでfill::afterの微光は
+   バー幅を超えてはみ出さない */
 .session-progress__bar {
   flex: 1;
-  height: 2px;
+  height: 4px;
   background: var(--surface-2);
   border-radius: var(--radius-pill);
   overflow: hidden;
@@ -115,11 +119,41 @@
   height: 100%;
   background: var(--gold);
   transition: width 150ms;
+  position: relative; /* ::after（fill先端の微光）の基準位置 */
+}
+/* docs/20 3.4節S2「fill先端に微光」。2.3節6「光暈は限定4箇所のみ」の対象は
+   --glow-gold/--glow-raidトークンの大きめの光暈で、これは進捗バー専用に
+   別途仕様化された極小範囲（4x4px・単一shadow）の微光のため、性能配慮
+   （大面積box-shadow多重掛け回避）の趣旨には抵触しない */
+.session-progress__fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 4px var(--gold);
 }
 .session-progress__count {
   flex: none;
   font-size: var(--fs-sub);
   color: var(--ink-2);
+}
+
+/* --- パート名の英字タグ（docs/20 3.4節S2）。表示専用（aria-hidden不要=情報性なし文字装飾） --- */
+.drill-part-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--sp-half);
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
 }
 
 /* --- 表示不能スキップの非モーダル通知（T-108。数秒で自動的に消える） --- */
@@ -136,11 +170,16 @@
   color: var(--ink-2);
 }
 
-/* --- セッション内連続正解ストリーク（02の3.1: Part2瞬発の看板演出） --- */
+/* --- セッション内連続正解ストリーク（02の3.1: Part2瞬発の看板演出） ---
+   docs/20 3.4節S2「ダメージトーストに--glow-gold」: このアプリにドリル中の
+   即時「+N」トースト表示は無く、ストリーク数がS2で唯一の即時報酬フィードバックの
+   ため、その適用先として--glow-goldのtext-shadow版を当てる（アニメーション時間・
+   reduced-motion挙動は既存のstreak-pulseのまま変更しない） */
 .session-streak {
   margin: var(--sp-half) 0 0;
   font-size: var(--fs-stat);
   color: var(--gold);
+  text-shadow: var(--glow-gold);
   animation: streak-pulse 200ms ease-out;
 }
 @keyframes streak-pulse {
@@ -194,6 +233,90 @@
 }
 
 /* --- リザルト報酬演出（T-77。J-42: 総時間600〜900ms・reduced-motionでは静止表示） --- */
+/* docs/20 3.4節リザルト行「TOTAL DAMAGE」英字ラベル。既存の日本語ラベル
+   （.result-points-label＝レビューF5(c)で追加した「何の数値か」の説明）は
+   削らず併記する（情報を減らさない） */
+.result-eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+/* ディスプレイ数字特大（docs/20 3.4節リザルト行）。共有トークン--fs-displayは
+   他画面（タイマー等）でも使うため変更せず、リザルト専用に大きいサイズを指定する */
+.result-points-value {
+  font-size: 56px;
+  text-shadow: var(--glow-gold);
+}
+/* --- リザルトのボスHPバー（docs/20 3.4節リザルト行「ボスHPバー削れ」）。
+   レイド参加中かつ同期成功時のみ表示（raidBoss!==null）。ホーム/レイド画面の
+   .home-raid-hp-bar系クラスとは意図的に独立させる（2.1節: 共有セレクタの変更は
+   他タスク(V-3/V-4)と衝突するため、リザルト専用の新規クラスにする） --- */
+.result-boss-hp {
+  width: 100%;
+  margin-top: var(--sp-2);
+  text-align: left;
+}
+.result-boss-hp-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+  margin-bottom: var(--sp-half);
+}
+.result-boss-hp-bar {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--raid) 25%, transparent);
+  overflow: hidden;
+}
+.result-boss-hp-fill {
+  height: 100%;
+  background: var(--raid);
+  box-shadow: var(--glow-raid);
+  border-radius: var(--radius-pill);
+}
+.result-boss-hp-name {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* --- 統計3タイル（docs/20 3.4節リザルト行: 正解数=--ok・ストリーク=--gold・時間=--listen）。
+   「正解 X / Y」は既存テキストのまま（既存テスト・レビューF5(c)相当の文言を変えない）
+   タイル化のみで、残りの詳細行（レート変動・復習デッキ追加・スキップ件数）は
+   従来どおり.result-statsに残す（情報を減らさない） --- */
+.result-highlight-tiles {
+  list-style: none;
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-1);
+}
+.result-highlight-tile {
+  padding: var(--sp-1) 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: var(--surface-grad);
+  text-align: center;
+  font-size: var(--fs-sub);
+  font-weight: 700;
+  animation: result-stat-in 300ms ease-out both;
+}
+.result-highlight-tile--ok {
+  color: var(--ok);
+}
+.result-highlight-tile--gold {
+  color: var(--gold);
+}
+.result-highlight-tile--listen {
+  color: var(--listen);
+}
 .result-stats {
   list-style: none;
   margin: var(--sp-1) 0;
@@ -229,10 +352,16 @@
   flex-direction: column;
   gap: var(--sp-half);
 }
+/* docs/20 3.4節リザルト行「誤答ふりかえりリスト」: 面＋罫線のカード化（深度システム。
+   内容・並び順（全件表示・✓/✕の二重符号化）は既存のまま変えない） */
 .result-list__item {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-half);
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: var(--surface-grad);
 }
 .result-list__question {
   overflow: hidden;
@@ -415,7 +544,8 @@
 .explanation-card {
   margin-top: var(--sp-2);
   padding: var(--sp-2);
-  background: var(--surface);
+  /* docs/20 3.4節S2「カード面に--surface-grad」 */
+  background: var(--surface-grad);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   animation: explanation-slide-up 200ms ease-out;
@@ -505,11 +635,11 @@
   color: var(--ng);
 }
 
-/* --- スワイプカード（語彙SRS。07の6節） --- */
+/* --- スワイプカード（語彙SRS。07の6節。docs/20 V-6: カード面を--surface-gradに更新） --- */
 .swipe-card {
   position: relative;
   padding: var(--sp-3);
-  background: var(--surface);
+  background: var(--surface-grad);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   touch-action: pan-y; /* 横方向のスワイプ操作を優先し、縦スクロールは通す */
@@ -689,19 +819,28 @@
 }
 
 /* --- S1ホーム: SRS期限バッジ・時間チップ・モード導線グリッド --- */
+/* docs/20 3.4節(V-3): 既存バッジを罫線＋半透明面のピル形に統一（従来は塗りつぶし地） */
 .home-due-badge {
   display: inline-flex;
   align-items: center;
   margin-left: var(--sp-1);
-  padding: 2px var(--sp-1);
+  padding: 2px var(--sp-2);
   border-radius: var(--radius-pill);
-  background: var(--warn);
-  color: var(--on-gold);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface), transparent 30%);
+  color: var(--ink-2);
   font-size: var(--fs-note);
   font-weight: 700;
 }
 /* --- ホームの日数ストリーク（T-78。session-streakとは別物: 増えた回だけパルスさせる） --- */
+/* docs/20 3.4節(V-3): 他のステータスピルと同じ面＋罫線の形に統一する */
 .streak-flame {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--gold), transparent 65%);
+  background: color-mix(in srgb, var(--surface), transparent 30%);
   color: var(--gold);
 }
 .streak-flame.is-pulse {
@@ -717,11 +856,101 @@
 .home-mini-heatmap svg {
   width: 90px;
 }
+
+/* --- ワードマーク（docs/07 3.2節・docs/20 3.2節・V-3新設） ---
+   画像でなくテキスト。--wordmark-gradの鋼グラデ文字＋ダークのみ電光青の淡い光暈 */
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+}
+.wordmark-mark {
+  font-family: var(--font-display);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--wordmark-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* ダーク既定は光暈あり。ライトは下の data-theme='light' で無効化（過剰演出を避ける） */
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ev-blue) 35%, transparent));
+}
+:root[data-theme='light'] .wordmark-mark {
+  filter: none;
+}
+.wordmark-sub {
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+}
+
+/* --- S1ホームのヒーローカード（docs/20 3.1・3.4節・V-3新設）
+   --hero-sky/--hero-line は両テーマ共通（夜の車窓を維持する意匠判断=07決定済み）。
+   レイド参加中はボス紋章(V-4までプレースホルダー)＋HPバー、未参加時はシーズン表示に縮退(JV-2) --- */
+.home-hero {
+  position: relative;
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--hero-line);
+  overflow: hidden;
+  /* --hero-skyと同じ理由（両テーマ共通の夜空を維持）で、カード内文字色もテーマに
+     追従させず常にダーク値へ固定する（ライト基調の--ink等をそのまま使うと、常に暗い
+     hero-sky上でほぼ読めなくなるため）。コントラスト機械計算値（--hero-skyの最明部
+     #16204aとの比。テーマ切替時に最も厳しくなる箇所を採用）:
+       #eaedf6(ink) = 13.394:1 / #a6aec6(ink-2) = 7.085:1 / #7e89ac(ink-3) = 4.525:1
+       #4d8dff(ev-blue) = 4.904:1 / #f0647a(ng) = 5.083:1 いずれもAA(4.5:1)適合 */
+  --home-hero-ink: #eaedf6;
+  --home-hero-ink-2: #a6aec6;
+  --home-hero-ink-3: #7e89ac;
+  --home-hero-accent: #4d8dff;
+  --home-hero-danger: #f0647a;
+  /* 車窓の星（微小radial-gradientの点描）＋下端の電光青ハイライト＋--hero-skyの3段グラデ */
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, rgba(234, 237, 246, 0.9) 50%, transparent 51%),
+    radial-gradient(1px 1px at 34% 10%, rgba(234, 237, 246, 0.7) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 58% 24%, rgba(234, 237, 246, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 14%, rgba(234, 237, 246, 0.6) 50%, transparent 51%),
+    radial-gradient(
+      140% 90% at 50% 118%,
+      color-mix(in srgb, var(--ev-blue-deep) 55%, transparent) 0%,
+      color-mix(in srgb, var(--ev-blue-deep) 15%, transparent) 45%,
+      transparent 70%
+    ),
+    var(--hero-sky);
+}
+/* 車窓の地平線（07 6節の世界観を1本の水平線で表現） */
+.home-hero::after {
+  content: '';
+  position: absolute;
+  left: var(--sp-2);
+  right: var(--sp-2);
+  bottom: var(--sp-2);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hero-line), transparent);
+}
+.home-hero-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  position: relative;
+}
+.home-hero-eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--home-hero-accent);
+}
 .home-season {
   margin: var(--sp-1) 0;
 }
+/* home-seasonは常に.home-hero配下（hero-sky地）でのみ使うため、
+   固定のhome-hero-ink-2で色を出す（テーマ追従の--ink-2は使わない） */
 .home-season p {
-  color: var(--ink-2);
+  color: var(--home-hero-ink-2);
   font-size: var(--fs-sub);
 }
 .home-season-progress {
@@ -793,10 +1022,52 @@
   font-size: var(--fs-sub);
   color: var(--ink-3);
 }
+/* docs/20 3.4節(V-3): ヒーローカード内に置く場合の調整（.home-raid-hp等はS5とも共有するため
+   ここでは.home-hero配下に限定したスコープ付きセレクタで上書きし、共有ルール本体は変更しない）。
+   文字色は上のコントラスト計算どおり固定のhome-hero-*系トークンを使う（テーマ追従させない） */
+.home-hero-top .home-raid-hp {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.home-hero .home-raid-hp-bar-fill {
+  box-shadow: var(--glow-raid);
+}
+.home-hero .home-raid-hp-line {
+  color: var(--home-hero-ink-2);
+}
+.home-hero .home-raid-hp-note {
+  color: var(--home-hero-ink-3);
+}
+.home-hero .home-raid-hp-sync.is-stale {
+  color: var(--home-hero-danger);
+}
+.home-raid-hp-boss {
+  font-weight: 700;
+  color: var(--home-hero-ink);
+  font-size: var(--fs-ui);
+}
 
 /* --- S5レイド画面（レビューF1）: ボス名のはみ出し防止・貢献一覧 --- */
 .raid-boss-name {
   overflow-wrap: anywhere;
+}
+/* --- BossSigilコンポーネント（V-4・20の3.3節）。
+   紋章そのものへの光暈(drop-shadow)はモックアップに存在するが、2節2.3(6)の
+   「光暈は金CTA・ボスHPバー・ダメージトースト・リザルト数字の4箇所限定」ルールにより
+   紋章は対象外のため付与しない --- */
+.boss-sigil {
+  flex: none;
+}
+.raid-boss-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+/* S6ダッシュボード空状態のシルエット表示（低透明度の装飾のみ。3.4節S6） */
+.chart-empty-sigil {
+  opacity: 0.18;
+  margin-bottom: var(--sp-1);
 }
 .raid-list {
   list-style: none;
@@ -878,6 +1149,67 @@
   color: var(--ng);
   font-size: var(--fs-sub);
 }
+/* docs/20 3.4節(V-3): 金CTAに--cta-grad/--glow-goldを適用する。
+   .primary-button自体は他画面共有のため変更せず、ホーム専用の子孫セレクタで上書きする */
+.home-quest-group .primary-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: var(--cta-grad);
+  box-shadow: var(--glow-gold);
+}
+.home-cta-label {
+  font-size: var(--fs-ui);
+  font-weight: 800;
+}
+.home-cta-sub {
+  font-size: var(--fs-note);
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+/* --- S1ホーム: モードタイル（docs/20 3.4節・V-3新設。インラインSVGアイコン＋一言補足） --- */
+.home-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+}
+.home-mode-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface-grad);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.home-mode-tile__icon {
+  flex: none;
+}
+.home-mode-tile__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.home-mode-tile__label {
+  font-size: var(--fs-sub);
+}
+.home-mode-tile__hint {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1067,6 +1399,68 @@
   margin-top: 0;
   margin-right: var(--sp-1);
 }
+/* docs/20 V-6: OS既定のラジオ・チェックボックスをトークン準拠のカスタム部品に置換。
+   appearance: none＋擬似要素で見た目だけ差し替え、input自体はネイティブのまま
+   （タブ移動・スペース/矢印キー操作・スクリーンリーダー対応を一切変えない）。
+   フォーカスリングは--ev-blue（3.2節。機械計算値: dark 5.834:1/light 6.009:1でAA適合） */
+.settings-list input[type='checkbox'],
+.settings-list input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  cursor: pointer;
+}
+.settings-list input[type='checkbox'] {
+  border-radius: 6px;
+}
+.settings-list input[type='radio'] {
+  border-radius: 50%;
+}
+.settings-list input[type='checkbox']:checked {
+  background: var(--ev-blue);
+  border-color: var(--ev-blue);
+}
+.settings-list input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.settings-list input[type='radio']:checked {
+  border-color: var(--ev-blue);
+}
+.settings-list input[type='radio']:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ev-blue);
+  transform: translate(-50%, -50%);
+}
+.settings-list input[type='checkbox']:disabled,
+.settings-list input[type='radio']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* キーボード操作時のみ表示（マウスクリックでは出さない。既存の他フォーカスリングと同じ方針） */
+.settings-list input[type='checkbox']:focus-visible,
+.settings-list input[type='radio']:focus-visible {
+  outline: 2px solid var(--ev-blue);
+  outline-offset: 2px;
+}
 .settings-list button {
   min-height: var(--tap-min);
   padding: 0 var(--sp-2);
@@ -1091,6 +1485,129 @@
 }
 .error-boundary .primary-button {
   max-width: 320px;
+}
+
+/* --- S9 Aboutブロック（docs/20 V-6: logo.png小・アプリ名・バージョン） --- */
+.settings-about {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.settings-about__logo {
+  flex: none;
+  border-radius: var(--radius-button);
+}
+.settings-about__text {
+  min-width: 0;
+}
+.settings-about__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.settings-about__version {
+  margin: 0;
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+}
+
+/* --- 診断ウェルカム（docs/20 V-6: ワードマーク＋--hero-sky帯＋フォームを--surface-gradカードに）
+   --hero-skyは両テーマ共通の夜空色固定（tokens.css）のため、その上のテキストもテーマの
+   var(--ink*)に追従させず固定のダーク基準値にする（ライトテーマの--ink-2をそのまま使うと
+   暗色地に暗色文字が乗りAA未達になるため。機械計算値: 固定#eaedf6は--hero-sky最明部
+   #16204a比13.394:1、固定#a6aec6は7.085:1でAA適合）。ワードマークはhero外（画面地=
+   テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で両テーマ追従させる */
+.diagnostic-wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-2);
+}
+.diagnostic-wordmark__mark {
+  font-family: var(--font-display);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--wordmark-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgba(77, 141, 255, 0.35));
+}
+:root[data-theme='light'] .diagnostic-wordmark__mark {
+  filter: none;
+}
+.diagnostic-wordmark__sub {
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+}
+.diagnostic-hero {
+  padding: var(--sp-3) var(--sp-2) var(--sp-2);
+  margin-bottom: var(--sp-2);
+  background: var(--hero-sky);
+  border: 1px solid var(--hero-line);
+  border-radius: var(--radius-card);
+  color: #eaedf6;
+}
+.diagnostic-hero h1 {
+  margin: 0 0 var(--sp-1);
+}
+.diagnostic-hero p {
+  margin: 0 0 var(--sp-1);
+  color: #a6aec6;
+}
+.diagnostic-hero p:last-child {
+  margin-bottom: 0;
+}
+.diagnostic-form-card {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+/* --- S3 語彙カード面（docs/20 V-6: カード面に--surface-grad。ランクチップをランク色トークンで
+   着色。ランク文字自体（S/A/B/C）が既に二重符号化を担保しているため色のみの追加でよい） --- */
+.vocab-card {
+  padding: var(--sp-3) var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+/* 仕分けモードはSwipeCard（.swipe-card）が既にカード面を持つため、入れ子で二重の箱に
+   ならないよう内側のvocab-cardは面を持たせずフラットにする */
+.swipe-card .vocab-card {
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+.vocab-card__rank[data-rank='S'] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.vocab-card__rank[data-rank='A'] {
+  border-color: var(--rank-silver);
+  color: var(--rank-silver);
+}
+.vocab-card__rank[data-rank='B'] {
+  border-color: var(--rank-bronze);
+  color: var(--rank-bronze);
+}
+/* Cランクのみ--ink-3ではなく--ink-2を使う（レビュー: --surface-gradのカード面上端
+   #1c2339に対し--ink-3(#7e89ac)は4.493:1でAA=4.5:1をわずかに下回るため。--ink-2は
+   7.036:1でAA適合。C=最も控えめな階層という意図は他ランクより低彩度なink-2で維持できる） */
+.vocab-card__rank[data-rank='C'] {
+  border-color: var(--ink-2);
+  color: var(--ink-2);
 }
 
 /* --- ユーティリティ --- */
