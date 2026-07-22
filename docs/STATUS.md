@@ -1,6 +1,6 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-21**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-22**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
 ## 読解パート（Part6/7）完成の計画（2026-07-21）
 
@@ -231,14 +231,24 @@ docs/18完了後、発起人依頼で「モードによっては全部やり切�
 
 ### M3の次のアクション（次セッションはここから）
 
-**ステップ2〜6（T-90〜T-102。デプロイ以外の全実装）はdevにマージ済み**（2026-07-17）。残りは以下:
+**ステップ2〜6（T-90〜T-102。デプロイ以外の全実装）はdevにマージ済み**（2026-07-17）。**T-93実デプロイ＋H-1完了（2026-07-22）**。残りは以下:
 
 | 順 | タスク | 依存 | 備考 |
 |----|--------|------|------|
-| － | T-93（ヘルスチェック＋CORS＋デプロイ） | 🟡部分完了。実デプロイはH-1待ち | ワークフロー（`api-deploy.yml`。H-1未了時はデプロイstepをスキップし緑で終わるガード付き）とwrangler.tomlのenv継承バグ修正はAI実施済み（2026-07-17）。**実デプロイ＋CORS実疎通確認はCloudflareアカウント（H-1）とKV id転記が済み次第** |
-| － | H-1（Cloudflare準備） | なし | 🔴人間主体。アカウント作成・APIトークン発行→GitHub Secrets（`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`）登録・`wrangler secret put INVITE_CODE`（dev/prod）・KV namespace作成とwrangler.tomlのid3箇所転記 |
-| － | H-2（招待コード配布・周知） | T-98完了後 | 🔴人間主体 |
+| － | T-93（ヘルスチェック＋CORS＋デプロイ） | ✅完了（2026-07-22） | dev/production両環境デプロイ・`/health`200確認済み。詳細は下記H-1完了ログ参照 |
+| － | H-1（Cloudflare準備） | ✅完了（2026-07-22） | アカウント準備・GitHub Secrets登録・KV namespace作成・INVITE_CODE設定まで発起人が実施。詳細は下記H-1完了ログ参照 |
+| － | H-2（招待コード配布・周知） | T-98完了後 | 🔴人間主体。**招待コードは`runwithtakaya`（2026-07-22設定）** |
 | － | H-3（実機通し確認） | T-99完了後 | 🔴人間主体。T-98のPlaywright確認では代替しきれない実機（iOS/Android）確認 |
+
+**H-1完了（2026-07-22。devへ直接commit）**: 発起人がCloudflareアカウント・APIトークン・GitHub Secrets（`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`）・KV namespace作成（`MEMBERS_DEV`＝`4381d217d1ee406ead9f79f1b8f79209`・`MEMBERS_PROD`＝`1e67abf93aee4b55832d3d4468eccc6b`）まで実施。以降はAIが対応:
+
+- `wrangler.toml`のプレースホルダー3箇所（トップレベル・env.dev・env.production）を実IDへ差し替え（トップレベルは`--env`なしデプロイ用で実運用では使わないためdev用IDを流用）。
+- ローカルの認証済みwrangler CLI（発起人のOAuthログイン）から`wrangler secret put INVITE_CODE --env dev`・`--env production`を実行（値は`runwithtakaya`）。GitHub Secrets経由のCI認証とは別経路だが、シークレットはCloudflare側に永続化されるためCI後続デプロイと矛盾しない。
+- `wrangler deploy --env dev/production --dry-run`でDO2個・KV1個のバインディングを確認後、dev→mainへ直接push（発起人の運用指示どおり）。`api-deploy.yml`が自動起動しdev環境が実際にデプロイされたことを`gh run watch`で確認、`curl https://beb-raid-api-dev.r-sagishi.workers.dev/health`→200確認。
+- production環境は`workflow_dispatch`専用（安全側設計）のため、発起人がGitHub UI（Actions→Run workflow→environment: production）から手動実行。`curl https://beb-raid-api.r-sagishi.workers.dev/health`→200確認。
+- **追加で発見した抜け（H-1のチェックリストに無かった）**: `packages/app`は`VITE_RAID_API_BASE_URL`未設定だと`isConfigured()=false`でレイド機能が丸ごと無効化される縮退設計だが、GitHub Pagesのビルドワークフロー（`.github/workflows/deploy.yml`）にこの環境変数を注入する処理が存在しなかった。API URLは非秘匿情報のためGitHub Secretsでなく**Repository variables**（`RAID_API_BASE_URL`＝production Worker URL）を追加し、`deploy.yml`のビルドstepに`VITE_RAID_API_BASE_URL: ${{ vars.RAID_API_BASE_URL }}`を追記して解消。デプロイ後の実バンドル（`https://war-lab.github.io/BEB-Raid/assets/index-*.js`）に`beb-raid-api.r-sagishi.workers.dev`が実際に埋め込まれていることを`curl`で確認済み。
+- **未確認のまま残る事項**: (a) DOがCloudflareアカウントのプランで無料枠のまま使えているか（Workers Paid要否の停止条件は今回のデプロイが通ったことで実質解消したとみられるが明示確認はしていない）、(b) cronトリガーが実デプロイ環境に実際にアタッチされたかは次回月曜の週次ボス生成を待って確認、(c) アプリ→API間の実際のCORS疎通（`ALLOWED_ORIGINS`設定は確認済みだがブラウザからの実リクエストは未実施）。H-3（実機通し確認）でまとめて検証する想定。
+- 検証: `npm run lint`・`npm test -w @beb-raid/api`（78件）・`npm test -w @beb-raid/app`（672件）すべて通過。mainへの2回のpushはいずれもブランチ保護ルール（PR必須）を発起人の権限でバイパスしている（GitHub側の警告ログで確認済み）。
 
 **T-93 部分完了（2026-07-17。task/T-93-api-deploy-workflow ブランチ）**: H-1（Cloudflareアカウント）未了のため、アカウント不要でAI実施可能な部分を先行整備した。①`.github/workflows/api-deploy.yml` を新設: `main`へのpush（paths: `packages/api/**`）で `wrangler deploy --env dev`、`workflow_dispatch`で環境選択（production は手動実行のみ）。`cloudflare/wrangler-action@v3`（`workingDirectory: packages/api`・`command: deploy --env ...`）を使用し、デプロイ前ゲートとして shared-schemaビルド→api型検査（tsc --noEmit）→apiテストを走らせる。**H-1未了（`CLOUDFLARE_API_TOKEN`未設定）時はデプロイstepをスキップするguard step付き**（発起人判断でmainへ先行マージするため、H-1前はワークフローが緑で終わりmainに赤バッジを出さない。H-1後にトークンを設定すれば自動でデプロイ有効化）。②**wrangler.tomlのenv継承バグを発見・修正（T-93の主要成果）**: `wrangler deploy --env dev --dry-run` で「durable_objects が env.dev に無い」警告を検出。名前付き環境はバインディング（vars・kv_namespaces・durable_objects）をトップレベルから継承しないため、`--env dev`/`--env production`デプロイ（package.jsonのdeploy:dev/production・api-deploy.yml が使う経路）ではRAID_BOSS/STATS DOがバインドされずレイドが丸ごと動かない潜在バグだった。`[[env.dev.durable_objects.bindings]]`・`[[env.production.durable_objects.bindings]]`を追加して解消（dry-runで両環境ともDO2個がバインドされることを確認）。**このバグはvitest（`--env`なしのトップレベル設定を使う）・ローカル`wrangler dev`（同上）では顕在化せず、`--env`デプロイでのみ壊れるため既存テストで検出できなかった**。`migrations`・`triggers`(cron)・`compatibility_date`は継承されるため再定義不要（dry-runで警告が出るのはdurable_objectsのみ＝継承されないものだけ警告される挙動と一致）。③**🟡 H-1後の確認事項**: (a) KV id 3箇所（`REPLACE_WITH_REAL_KV_NAMESPACE_ID*`）を実IDへ転記、(b) 実デプロイで `/health` 200、(c) アプリオリジンからのCORS疎通、(d) cronがデプロイ環境に実際にアタッチされたか（`triggers`継承はドキュメント上は成立するが実デプロイ出力で要確認）。**停止条件（DO無料枠）は未確認**: DOがアカウントのプランで使えるか（有料Workers Paid要否）はH-1着手時に必ず確認する。検証: `wrangler deploy --env dev/production --dry-run` 通過（バンドル26.47KiB）、api build＋テスト71件通過、YAML parse OK、ルート `npm run lint`・`npm run build`・`npm test` 通過。
 
