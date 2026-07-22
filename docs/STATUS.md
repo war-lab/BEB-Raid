@@ -11,7 +11,7 @@
   - V-1: tokens.cssへブランド表層（`--ev-blue`・鋼グラデ・`--wordmark-grad`）・深度システム（`--surface-grad`・`--bg-grad`・`--cta-grad`・`--glow-gold/-raid`・`--hero-sky/-line`）を両テーマで追加。全ての文字使用色はコントラスト機械計算でAA適合を確認し、計算値をコメントに記録（既存慣行）。
   - V-2: Chakra Petchサブセットを数字のみ→ASCII可視文字＋×へ拡張（`ChakraPetchBold-latin.woff2` 5,816B。旧`-digits.woff2`は削除、`--font-display`のfamily名を`Chakra Petch Display`へ変更。旧名の残参照なしをgrepで確認）。`scripts/subset-font.mjs`も拡張版に更新。
   - 検証ツール導入: `packages/app/scripts/screenshot-tour.mjs`（主要画面スクショ一括採取。playwright-coreをapp devDependenciesに追加）、視覚正本 `docs/design/visual-refresh-mockup.html`（Prettier対象外に設定）。
-- **V-3〜V-6はSonnetクラスの自走対象**（1タスク=1セッション。開始プロンプト例はdocs/20の1節。V-3〜V-6は並行可）。V-7（総点検）はV-3〜V-6後。V-8（キービジュアル生成）は人間タスクで、生成プロンプトはdocs/20の4節に記載済み。
+- **V-3〜V-6はSonnetクラスの自走対象**（1タスク=1セッション。開始プロンプト例はdocs/20の1節。V-3〜V-6は並行可）。V-7（総点検）はV-3〜V-6後。
 - **V-4（BossSigil）完了（2026-07-22）**: `packages/app/src/components/BossSigil.tsx` を新設（props: `seed`・`size` のみ。20の3.3節どおり）。djb2ハッシュ＋salt文字列でseedごとに多角形の辺数(5〜8)・回転角・軌道環の数(1〜2)・破線パターン・核の半径を決定的に導出。色は `var(--raid)`/`var(--ev-blue)`/`var(--bg)` のCSS変数参照のみ、`aria-hidden="true"` の純装飾。同一シード同一出力・5シードでの辺数/環数分布をBossSigil.test.tsxで属性値ベースに検証（スナップショット不使用）。適用先: S5レイド画面（現在ボス表示・通信失敗時のキャッシュ表示の両方。`RaidScreen.tsx`）、S6ダッシュボード空状態（`LineChart`・`WeakBars`の`chart-empty`にシルエット表示＋不足量の率直な文言を追加。`Heatmap`は`buildHeatmapCells`が常に15週分のセルを返すため空状態が実質到達不能だが、防御的に同じ表示を追加）。
   - **モックアップからの意図的な逸脱**: モックアップの`.sigil`にある`drop-shadow`光暈は付与しなかった（20の2.3節(6)「光暈は金CTA・ボスHPバー・ダメージトースト・リザルト数字の4箇所限定」に紋章は含まれないため）。
   - **検証**: lint/format:check/build/test全通過（`npm test`はapi 78・app 676・cli 305・review-ui 15・shared-schema 61件が全緑。並行実行中の他ワークツリーとのCPU競合でvitestのforksワーカーが一時的にタイムアウトし非0終了になる事象を観測したが、単体・全体の再実行でいずれも解消し実装起因ではないことを確認済み）。`.dev.vars`（INVITE_CODE=dummy-invite-code）と`.env.local`（VITE_RAID_API_BASE_URL）を一時的に用意し`wrangler dev --local --test-scheduled`＋`vite dev`を起動、招待コード登録→週次ボス生成（`/__scheduled`起動）→実データでのS5表示、および新規IndexedDBでのS6空状態表示をPlaywrightでdark/light両テーマ目視確認済み（作業後に一時ファイルは削除）。screenshot-tourのdark/light一巡（他6画面）でも崩れ・console errorなし。
@@ -32,6 +32,7 @@
   - HomeScreen.test.tsx: モードタイル・CTAがアイコン/サブテキストを持つ構造になったため、該当ボタンの取得を`getByText(完全一致)`から`getByRole('button', { name: /正規表現/ })`へ機械的に置換（DOM構造変更に伴う追従。挙動は変更なし）。App.test.tsx: 見出し文言が「BEB Raid」→ワードマーク「BEB RAID ビーブレイド」に変わったため`findByRole('heading', ...)`の期待値も同様に追従。
   - lint・format:check・build・test（全workspace）全通過。screenshot-tourでlight/dark両テーマのホーム画面を目視確認: ヒーローカードは両テーマとも`--hero-sky`の固定ダーク地に読めるコントラストで表示され、ワードマークの光暈はダークのみ・ライトは無し（意図どおり）。他画面（診断ウェルカム・ドリル・ダッシュボード）のCTAは無変化（スコープ限定のセレクタが効いている）を確認。
   - **統合残タスク**: V-4（BossSigil）は本タスクと並行して別途完了・マージ済み。HomeScreenの`.home-hero-sigil-placeholder`を`<BossSigil>`へ差し替える統合作業は本PRの範囲外で、別タスクとして残っている。
+- **V-8ほぼ完了（2026-07-22）**: 発起人が生成した2枚（メイン・スプラッシュ）を採用。`generate-keyvisual.mjs` で最適化し、起動スプラッシュ背景（precache込み・オフライン表示可）・OGP meta（JPEG=クローラー互換）・README冒頭へ組込済み。詳細はdocs/20の5節「V-8の実装記録」。**残: 生成サービス名の記録**（`docs/design/keyvisual/README.md` の要記入欄を発起人が埋める）。
 
 ## 読解パート（Part6/7）完成の計画（2026-07-21）
 

@@ -9,6 +9,14 @@
     <!-- T-116(2): favicon 404の解消。既存のアプリアイコン資産をfaviconとして配線する -->
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <title>BEB Raid</title>
+    <!-- OGP（docs/20 V-8）。og:imageは絶対URL必須のためGitHub PagesのURLを直書きする
+         （配信先が変わったらここも直す）。画像はJPEG=LINE等のWebP非対応クローラー互換 -->
+    <meta property="og:title" content="BEB Raid" />
+    <meta property="og:description" content="通勤電車で英語ボスを討伐する TOEIC 学習アプリ" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://war-lab.github.io/BEB-Raid/" />
+    <meta property="og:image" content="https://war-lab.github.io/BEB-Raid/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <!-- J-39: 静的スプラッシュ。React マウントで#root の中身ごと自然に置換される -->
@@ -47,27 +55,18 @@
       </div>
     </div>
     <style>
-      /* スプラッシュ配色（レビューF8(f)）。既定はダーク（J-8）だが、OSがライト設定の
-         端末でCSS読込前の一瞬ダークが光らないよう、prefers-color-scheme: light では
-         tokens.css のライト側 --bg/--ink/--line/--gold 相当値を併記する
-         （tokens.css読込前のため変数は使えず、値を複製している） */
+      /* スプラッシュ（docs/20 V-8）: キービジュアル（夜行列車の車窓）を背景に敷く。
+         ヒーローカードと同じく両テーマで夜の絵を維持する意匠判断（docs/20 3.1節の--hero-skyと同判断）
+         のため、レビューF8(f)のライト側配色分岐は廃止し常時ダーク配色とする（意図したブランド表示
+         であり「CSS読込前のダーク一瞬光り」問題とは別物）。画像読込前・失敗時は夜紺の地が出る。
+         %BASE_URL%はViteがビルド時にbase（GitHub Pagesではサブパス）へ置換する */
       #boot-splash {
-        background: #0e1220;
+        background: #0e1220 url('%BASE_URL%splash.webp') center / cover no-repeat;
         color: #eaedf6;
       }
       #boot-spinner {
         border-color: #2c3552;
         border-top-color: #f5b83d;
-      }
-      @media (prefers-color-scheme: light) {
-        #boot-splash {
-          background: #f6f5f1;
-          color: #211e18;
-        }
-        #boot-spinner {
-          border-color: #ddd9ce;
-          border-top-color: #996600;
-        }
       }
       @keyframes boot-spin {
         to {
