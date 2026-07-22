@@ -1,5 +1,7 @@
 # BEB Raid（ビーブレイド）
 
+![BEB Raid — 夜行列車の車窓に浮かぶボスの紋章](docs/design/keyvisual/key-visual.webp)
+
 **電車で削る、英語レイド学習。**
 
 BEB Raid（ビーブレイド）は、通勤・通学中の短時間学習を主軸にした、英語学習向けの offline-first PWA です。
