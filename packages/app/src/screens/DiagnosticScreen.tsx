@@ -181,6 +181,15 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     // T-113: 途中経過の有無を確認するまでは何も出さない（settingsの1回読み込みのみで即完了する）
     if (!progressChecked) return null
 
+    // docs/20 V-6: 診断ウェルカムの第一印象改善。ワードマークは画面地（テーマ追従の--bg）上に
+    // 置くため通常どおりvar(--wordmark-grad)で両テーマ追従させる（components.css参照）
+    const wordmark = (
+      <p className="diagnostic-wordmark">
+        <span className="diagnostic-wordmark__mark">BEB RAID</span>
+        <span className="diagnostic-wordmark__sub">ビーブレイド</span>
+      </p>
+    )
+
     if (savedProgress) {
       return (
         <ScreenLayout
@@ -195,8 +204,11 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
             </>
           }
         >
-          <h1 style={{ fontSize: 'var(--fs-heading)' }}>診断を再開しますか？</h1>
-          <p>前回の診断が途中で終わっています。続きから再開できます。</p>
+          {wordmark}
+          <div className="diagnostic-hero">
+            <h1 style={{ fontSize: 'var(--fs-heading)' }}>診断を再開しますか？</h1>
+            <p>前回の診断が途中で終わっています。続きから再開できます。</p>
+          </div>
         </ScreenLayout>
       )
     }
@@ -226,12 +238,18 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
           </>
         }
       >
-        <h1 style={{ fontSize: 'var(--fs-heading)' }}>ようこそ</h1>
-        <p>30問（リスニング15問・リーディング15問）に答えると、あなたの今のレートを推定します。</p>
-        <p>自己申告TOEICスコアを入力すると、診断をスキップしてすぐ始めることもできます。</p>
+        {wordmark}
+        <div className="diagnostic-hero">
+          <h1 style={{ fontSize: 'var(--fs-heading)' }}>ようこそ</h1>
+          <p>
+            30問（リスニング15問・リーディング15問）に答えると、あなたの今のレートを推定します。
+          </p>
+          <p>自己申告TOEICスコアを入力すると、診断をスキップしてすぐ始めることもできます。</p>
+        </div>
         {/* T-116(1): 375px幅でラベルと入力欄が同一行に詰まり折返しが乱れる問題への対処。
-            settings-listの既存スタイル（label display:block）をブロック配置に流用する */}
-        <div className="settings-list">
+            settings-listの既存スタイル（label display:block）をブロック配置に流用する。
+            docs/20 V-6: フォームを--surface-gradのカード面（diagnostic-form-card）に収める */}
+        <div className="settings-list diagnostic-form-card">
           <label>
             表示名
             <input

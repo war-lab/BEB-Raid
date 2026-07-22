@@ -15,6 +15,11 @@
 - **V-4（BossSigil）完了（2026-07-22）**: `packages/app/src/components/BossSigil.tsx` を新設（props: `seed`・`size` のみ。20の3.3節どおり）。djb2ハッシュ＋salt文字列でseedごとに多角形の辺数(5〜8)・回転角・軌道環の数(1〜2)・破線パターン・核の半径を決定的に導出。色は `var(--raid)`/`var(--ev-blue)`/`var(--bg)` のCSS変数参照のみ、`aria-hidden="true"` の純装飾。同一シード同一出力・5シードでの辺数/環数分布をBossSigil.test.tsxで属性値ベースに検証（スナップショット不使用）。適用先: S5レイド画面（現在ボス表示・通信失敗時のキャッシュ表示の両方。`RaidScreen.tsx`）、S6ダッシュボード空状態（`LineChart`・`WeakBars`の`chart-empty`にシルエット表示＋不足量の率直な文言を追加。`Heatmap`は`buildHeatmapCells`が常に15週分のセルを返すため空状態が実質到達不能だが、防御的に同じ表示を追加）。
   - **モックアップからの意図的な逸脱**: モックアップの`.sigil`にある`drop-shadow`光暈は付与しなかった（20の2.3節(6)「光暈は金CTA・ボスHPバー・ダメージトースト・リザルト数字の4箇所限定」に紋章は含まれないため）。
   - **検証**: lint/format:check/build/test全通過（`npm test`はapi 78・app 676・cli 305・review-ui 15・shared-schema 61件が全緑。並行実行中の他ワークツリーとのCPU競合でvitestのforksワーカーが一時的にタイムアウトし非0終了になる事象を観測したが、単体・全体の再実行でいずれも解消し実装起因ではないことを確認済み）。`.dev.vars`（INVITE_CODE=dummy-invite-code）と`.env.local`（VITE_RAID_API_BASE_URL）を一時的に用意し`wrangler dev --local --test-scheduled`＋`vite dev`を起動、招待コード登録→週次ボス生成（`/__scheduled`起動）→実データでのS5表示、および新規IndexedDBでのS6空状態表示をPlaywrightでdark/light両テーマ目視確認済み（作業後に一時ファイルは削除）。screenshot-tourのdark/light一巡（他6画面）でも崩れ・console errorなし。
+- **V-6完了（2026-07-22）**: 診断ウェルカム・設定・語彙の3画面を刷新。
+  - 診断ウェルカム: ワードマーク（`--wordmark-grad`。画面地はテーマ追従）＋`--hero-sky`帯の案内カード＋`--surface-grad`の入力フォームカード。文言は変更なし。`--hero-sky`は両テーマ共通の固定夜空色のため、帯内の文字色もテーマ追従の`var(--ink*)`ではなく固定ダーク基準値にした（ライトの`--ink-2`をそのまま使うと暗色地に暗色文字でAA未達になるため。機械計算値をcomponents.cssにコメント記録）。
+  - S9設定: ラジオ・チェックボックスを`appearance: none`＋擬似要素のカスタム部品に置換（input自体はネイティブのままでキーボード操作・スクリーンリーダー対応は不変。フォーカスリングは`--ev-blue`）。末尾にAboutブロック（既存生成済みのPWAアイコン`icons/icon-192.png`を流用。新規バイナリ追加なし＋アプリ名＋`package.json`のバージョン）を追加。
+  - S3語彙: カード面に`--surface-grad`（仕分けモードは`SwipeCard`側の面に統一し二重箱を回避）。ランクチップをランク色トークンで着色（S/A/B/C）。**レビューで発見した既存tokens.cssの不備2件を修正**: (1) `--rank-silver`/`--rank-bronze`にライト値が無く白背景でAA未達（機械計算値2.038:1/3.451:1）だったため追加。(2) カード面（`--surface-grad`上端）でCランクに`--ink-3`を使うとAA=4.5:1をわずかに下回る（4.493:1）ため`--ink-2`に変更（docs/20の記載「C=--ink-3」からの計算に基づく最小限の逸脱）。
+  - 検証: lint・build・テスト672件（全パッケージ計1090件）通過。screenshot-tourで両テーマの3画面を目視確認、console errorsなし。Playwrightで実際にTab/Space/矢印キー操作を行い、キーボードのみでチェックボックス・ラジオが操作できること、`:focus-visible`時に`--ev-blue`のフォーカスリングが可視であることを確認。
 
 ## 読解パート（Part6/7）完成の計画（2026-07-21）
 
