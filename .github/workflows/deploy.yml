@@ -8,6 +8,11 @@
 # LLM/TTSキーはこのワークフローでは一切使わない（generate/ttsコマンドはビルド時のCLI
 # 作業であり、Pagesデプロイ自体にはAPIキーが不要。将来キーを使う工程を足す場合も
 # Actions Secrets のみを参照し、ワークフローファイルにキーを直書きしないこと）。
+#
+# VITE_RAID_API_BASE_URL（M3・H-1）: 共有API（Cloudflare Workers production環境）のURL。
+# 非秘匿情報（公開エンドポイント）のため Secrets ではなく Repository variables
+# （Settings → Secrets and variables → Actions → Variables）の RAID_API_BASE_URL を参照する。
+# 未設定なら空文字になりRaidApi.isConfigured()=falseでレイド機能は無効のまま（縮退設計）。
 name: Deploy to GitHub Pages
 
 on:
@@ -40,6 +45,7 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
+          VITE_RAID_API_BASE_URL: ${{ vars.RAID_API_BASE_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: packages/app/dist
