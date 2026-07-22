@@ -32,7 +32,7 @@
   - HomeScreen.test.tsx: モードタイル・CTAがアイコン/サブテキストを持つ構造になったため、該当ボタンの取得を`getByText(完全一致)`から`getByRole('button', { name: /正規表現/ })`へ機械的に置換（DOM構造変更に伴う追従。挙動は変更なし）。App.test.tsx: 見出し文言が「BEB Raid」→ワードマーク「BEB RAID ビーブレイド」に変わったため`findByRole('heading', ...)`の期待値も同様に追従。
   - lint・format:check・build・test（全workspace）全通過。screenshot-tourでlight/dark両テーマのホーム画面を目視確認: ヒーローカードは両テーマとも`--hero-sky`の固定ダーク地に読めるコントラストで表示され、ワードマークの光暈はダークのみ・ライトは無し（意図どおり）。他画面（診断ウェルカム・ドリル・ダッシュボード）のCTAは無変化（スコープ限定のセレクタが効いている）を確認。
   - **V-3/V-4統合完了（2026-07-22）**: HomeScreenの`.home-hero-sigil-placeholder`を`<BossSigil seed={raidState.bossId} size={56} />`へ差し替え済み（S5レイド画面=`RaidScreen.tsx`と同じseed運用）。プレースホルダー専用だった`.home-hero-sigil-placeholder`のCSSは不要になったため削除。
-- **V-8ほぼ完了（2026-07-22）**: 発起人が生成した2枚（メイン・スプラッシュ）を採用。`generate-keyvisual.mjs` で最適化し、起動スプラッシュ背景（precache込み・オフライン表示可）・OGP meta（JPEG=クローラー互換）・README冒頭へ組込済み。詳細はdocs/20の5節「V-8の実装記録」。**残: 生成サービス名の記録**（`docs/design/keyvisual/README.md` の要記入欄を発起人が埋める）。
+- **V-8完了（2026-07-22）**: 発起人が生成した2枚（メイン・スプラッシュ）を採用。`generate-keyvisual.mjs` で最適化し、起動スプラッシュ背景（precache込み・オフライン表示可）・OGP meta（JPEG=クローラー互換）・README冒頭へ組込済み。詳細はdocs/20の5節「V-8の実装記録」。生成サービスはChatGPT（GPT Image 2）で`docs/design/keyvisual/README.md`に記録済み。
 
 ## 読解パート（Part6/7）完成の計画（2026-07-21）
 
