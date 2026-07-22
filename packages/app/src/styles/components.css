@@ -819,19 +819,28 @@
 }
 
 /* --- S1ホーム: SRS期限バッジ・時間チップ・モード導線グリッド --- */
+/* docs/20 3.4節(V-3): 既存バッジを罫線＋半透明面のピル形に統一（従来は塗りつぶし地） */
 .home-due-badge {
   display: inline-flex;
   align-items: center;
   margin-left: var(--sp-1);
-  padding: 2px var(--sp-1);
+  padding: 2px var(--sp-2);
   border-radius: var(--radius-pill);
-  background: var(--warn);
-  color: var(--on-gold);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface), transparent 30%);
+  color: var(--ink-2);
   font-size: var(--fs-note);
   font-weight: 700;
 }
 /* --- ホームの日数ストリーク（T-78。session-streakとは別物: 増えた回だけパルスさせる） --- */
+/* docs/20 3.4節(V-3): 他のステータスピルと同じ面＋罫線の形に統一する */
 .streak-flame {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--gold), transparent 65%);
+  background: color-mix(in srgb, var(--surface), transparent 30%);
   color: var(--gold);
 }
 .streak-flame.is-pulse {
@@ -847,11 +856,110 @@
 .home-mini-heatmap svg {
   width: 90px;
 }
+
+/* --- ワードマーク（docs/07 3.2節・docs/20 3.2節・V-3新設） ---
+   画像でなくテキスト。--wordmark-gradの鋼グラデ文字＋ダークのみ電光青の淡い光暈 */
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+}
+.wordmark-mark {
+  font-family: var(--font-display);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--wordmark-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* ダーク既定は光暈あり。ライトは下の data-theme='light' で無効化（過剰演出を避ける） */
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ev-blue) 35%, transparent));
+}
+:root[data-theme='light'] .wordmark-mark {
+  filter: none;
+}
+.wordmark-sub {
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+}
+
+/* --- S1ホームのヒーローカード（docs/20 3.1・3.4節・V-3新設）
+   --hero-sky/--hero-line は両テーマ共通（夜の車窓を維持する意匠判断=07決定済み）。
+   レイド参加中はボス紋章(V-4までプレースホルダー)＋HPバー、未参加時はシーズン表示に縮退(JV-2) --- */
+.home-hero {
+  position: relative;
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--hero-line);
+  overflow: hidden;
+  /* --hero-skyと同じ理由（両テーマ共通の夜空を維持）で、カード内文字色もテーマに
+     追従させず常にダーク値へ固定する（ライト基調の--ink等をそのまま使うと、常に暗い
+     hero-sky上でほぼ読めなくなるため）。コントラスト機械計算値（--hero-skyの最明部
+     #16204aとの比。テーマ切替時に最も厳しくなる箇所を採用）:
+       #eaedf6(ink) = 13.394:1 / #a6aec6(ink-2) = 7.085:1 / #7e89ac(ink-3) = 4.525:1
+       #4d8dff(ev-blue) = 4.904:1 / #f0647a(ng) = 5.083:1 いずれもAA(4.5:1)適合 */
+  --home-hero-ink: #eaedf6;
+  --home-hero-ink-2: #a6aec6;
+  --home-hero-ink-3: #7e89ac;
+  --home-hero-accent: #4d8dff;
+  --home-hero-danger: #f0647a;
+  /* 車窓の星（微小radial-gradientの点描）＋下端の電光青ハイライト＋--hero-skyの3段グラデ */
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, rgba(234, 237, 246, 0.9) 50%, transparent 51%),
+    radial-gradient(1px 1px at 34% 10%, rgba(234, 237, 246, 0.7) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 58% 24%, rgba(234, 237, 246, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 14%, rgba(234, 237, 246, 0.6) 50%, transparent 51%),
+    radial-gradient(
+      140% 90% at 50% 118%,
+      color-mix(in srgb, var(--ev-blue-deep) 55%, transparent) 0%,
+      color-mix(in srgb, var(--ev-blue-deep) 15%, transparent) 45%,
+      transparent 70%
+    ),
+    var(--hero-sky);
+}
+/* 車窓の地平線（07 6節の世界観を1本の水平線で表現） */
+.home-hero::after {
+  content: '';
+  position: absolute;
+  left: var(--sp-2);
+  right: var(--sp-2);
+  bottom: var(--sp-2);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hero-line), transparent);
+}
+.home-hero-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  position: relative;
+}
+/* V-4(BossSigil)実装までのプレースホルダー。差し替え時はこのdivをBossSigilに置換する */
+.home-hero-sigil-placeholder {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  border: 1px dashed var(--hero-line);
+  background: rgba(9, 12, 23, 0.35);
+}
+.home-hero-eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--home-hero-accent);
+}
 .home-season {
   margin: var(--sp-1) 0;
 }
+/* home-seasonは常に.home-hero配下（hero-sky地）でのみ使うため、
+   固定のhome-hero-ink-2で色を出す（テーマ追従の--ink-2は使わない） */
 .home-season p {
-  color: var(--ink-2);
+  color: var(--home-hero-ink-2);
   font-size: var(--fs-sub);
 }
 .home-season-progress {
@@ -922,6 +1030,31 @@
 .home-raid-hp-note {
   font-size: var(--fs-sub);
   color: var(--ink-3);
+}
+/* docs/20 3.4節(V-3): ヒーローカード内に置く場合の調整（.home-raid-hp等はS5とも共有するため
+   ここでは.home-hero配下に限定したスコープ付きセレクタで上書きし、共有ルール本体は変更しない）。
+   文字色は上のコントラスト計算どおり固定のhome-hero-*系トークンを使う（テーマ追従させない） */
+.home-hero-top .home-raid-hp {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.home-hero .home-raid-hp-bar-fill {
+  box-shadow: var(--glow-raid);
+}
+.home-hero .home-raid-hp-line {
+  color: var(--home-hero-ink-2);
+}
+.home-hero .home-raid-hp-note {
+  color: var(--home-hero-ink-3);
+}
+.home-hero .home-raid-hp-sync.is-stale {
+  color: var(--home-hero-danger);
+}
+.home-raid-hp-boss {
+  font-weight: 700;
+  color: var(--home-hero-ink);
+  font-size: var(--fs-ui);
 }
 
 /* --- S5レイド画面（レビューF1）: ボス名のはみ出し防止・貢献一覧 --- */
@@ -1025,6 +1158,67 @@
   color: var(--ng);
   font-size: var(--fs-sub);
 }
+/* docs/20 3.4節(V-3): 金CTAに--cta-grad/--glow-goldを適用する。
+   .primary-button自体は他画面共有のため変更せず、ホーム専用の子孫セレクタで上書きする */
+.home-quest-group .primary-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: var(--cta-grad);
+  box-shadow: var(--glow-gold);
+}
+.home-cta-label {
+  font-size: var(--fs-ui);
+  font-weight: 800;
+}
+.home-cta-sub {
+  font-size: var(--fs-note);
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+/* --- S1ホーム: モードタイル（docs/20 3.4節・V-3新設。インラインSVGアイコン＋一言補足） --- */
+.home-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+}
+.home-mode-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  background: var(--surface-grad);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.home-mode-tile__icon {
+  flex: none;
+}
+.home-mode-tile__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.home-mode-tile__label {
+  font-size: var(--fs-sub);
+}
+.home-mode-tile__hint {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

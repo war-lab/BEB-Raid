@@ -41,7 +41,7 @@ describe('App（配線確認）', () => {
   it('診断済みの場合はホーム画面（HomeScreen）を描画できる', async () => {
     await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
   })
 })
@@ -50,7 +50,7 @@ describe('App: History API最小統合（T-114）', () => {
   it('navigateで履歴が積まれ、popstateで前画面へ戻る', async () => {
     await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
     render(<App />)
-    await screen.findByRole('heading', { name: 'BEB Raid' })
+    await screen.findByRole('heading', { name: /BEB RAID/ })
 
     // ダッシュボードへ遷移する（設定画面は実PackCache.usage()がjsdomのcaches未実装で
     // 例外になるため、このテストでは避ける）
@@ -63,7 +63,7 @@ describe('App: History API最小統合（T-114）', () => {
       window.dispatchEvent(new PopStateEvent('popstate', { state: { screen: 'home' } }))
     })
 
-    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
   })
 
   it('ドリル中のpopは確認なしで中断扱いになり、ホームで「続きから再開」できる', async () => {
@@ -75,7 +75,7 @@ describe('App: History API最小統合（T-114）', () => {
       ],
     })
     render(<App />)
-    await screen.findByRole('heading', { name: 'BEB Raid' })
+    await screen.findByRole('heading', { name: /BEB RAID/ })
 
     act(() => {
       useAppStore.getState().navigate('drill')
@@ -114,7 +114,7 @@ describe('App（起動チェック失敗時のエラー表示。T-68）', () => 
     await getDb().open()
     fireEvent.click(screen.getByText('再試行'))
 
-    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
   })
 
   it('エラー画面から直接エクスポートでき、DBが開けない間はエラーメッセージを出す（レビューF6(b)）', async () => {
@@ -154,7 +154,7 @@ describe('App（テーマ・文字サイズの起動時適用。T-69）', () => 
     await getDb().settings.put({ key: 'fontSizeScale', value: 'L' })
 
     render(<App />)
-    await screen.findByRole('heading', { name: 'BEB Raid' })
+    await screen.findByRole('heading', { name: /BEB RAID/ })
 
     expect(document.documentElement.dataset.theme).toBe('light')
     expect(document.documentElement.dataset.fontSize).toBe('L')
@@ -181,7 +181,7 @@ describe('App（テーマ・文字サイズの起動時適用。T-69）', () => 
     )
 
     render(<App />)
-    await screen.findByRole('heading', { name: 'BEB Raid' })
+    await screen.findByRole('heading', { name: /BEB RAID/ })
     expect(document.documentElement.dataset.theme).toBe('light')
 
     state.matches = true
@@ -198,7 +198,7 @@ describe('App（ストレージ保全。T-72）', () => {
 
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
   })
 
   it('navigator.storage.persist() が拒否されても起動を妨げない', async () => {
@@ -210,7 +210,7 @@ describe('App（ストレージ保全。T-72）', () => {
 
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'BEB Raid' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
 
     // @ts-expect-error テスト後にjsdom既定へ戻す
     delete navigator.storage

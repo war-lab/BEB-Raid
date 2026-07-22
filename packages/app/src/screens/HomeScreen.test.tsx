@@ -156,12 +156,12 @@ describe('HomeScreen: 初期状態でも破綻しない', () => {
       />,
     )
 
-    expect(screen.getByText('今日のクエスト')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /今日のクエスト/ })).toBeTruthy()
     expect(screen.queryByText(/SRS期限/)).toBeNull()
     expect(screen.queryByText(/途切れ/)).toBeNull()
     // データロード完了後も壊れないことを確認
     await flushLoad()
-    expect(screen.getByText('今日のクエスト')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /今日のクエスト/ })).toBeTruthy()
     expect(screen.queryByText(/SRS期限/)).toBeNull()
     expect(screen.queryByText(/途切れ/)).toBeNull()
   })
@@ -343,7 +343,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     // 既定で7分チップが選択されている
     expect(screen.getByText('7分').className).toContain('is-selected')
 
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(useSessionStore.getState().snapshot).not.toBeNull()
@@ -376,7 +376,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
 
     fireEvent.click(screen.getByText('3分'))
     expect(screen.getByText('3分').className).toContain('is-selected')
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
   })
@@ -393,7 +393,7 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('語彙SRS'))
+    fireEvent.click(screen.getByRole('button', { name: /語彙SRS/ }))
     expect(useAppStore.getState().screen).toBe('vocab')
   })
 
@@ -425,8 +425,8 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     )
     await flushLoad()
 
-    expect(screen.getByText(/シャドーイング L1/)).toBeTruthy()
-    fireEvent.click(screen.getByText(/シャドーイング/))
+    expect(screen.getByRole('button', { name: /シャドーイング L1/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /シャドーイング/ }))
     expect(useAppStore.getState().screen).toBe('shadowing')
   })
 })
@@ -520,7 +520,7 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part2瞬発'))
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
     expect(screen.getByText('通常')).toBeTruthy()
     expect(screen.getByText('冒頭だけ再生（特訓）')).toBeTruthy()
     // T-116(8): スクロールしないと見えない問題への対処。画面中央固定のダイアログとして出す
@@ -543,7 +543,7 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part2瞬発'))
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
     fireEvent.click(screen.getByText('冒頭だけ再生（特訓）'))
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
@@ -562,7 +562,7 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(useSessionStore.getState().partialAudioMode).toBe(false)
   })
@@ -582,7 +582,7 @@ describe('HomeScreen: イヤホンなしモード（T-23）', () => {
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
 
     const snapshot = useSessionStore.getState().snapshot!
@@ -641,7 +641,7 @@ describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     // フェーズ駆動でも既存どおりセッションが開始できることの回帰確認
     expect(useSessionStore.getState().snapshot!.items.length).toBeGreaterThan(0)
@@ -713,7 +713,7 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
     // T-122(J-61): 何を破棄するのか分かるよう、確認メッセージに残り問数を含める
     expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('残り1問'))
@@ -736,7 +736,7 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(useSessionStore.getState().snapshot!.sessionId).not.toBe(snapshot.sessionId)
     confirmSpy.mockRestore()
@@ -751,7 +751,7 @@ describe('HomeScreen: 出題プール空の案内（T-73）', () => {
     )
     await flushLoad()
 
-    const button = screen.getByText('今日のクエスト') as HTMLButtonElement
+    const button = screen.getByRole('button', { name: /今日のクエスト/ }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
     expect(
       screen.getByText('問題データを取得できていません。オンラインで開き直してください'),
@@ -770,7 +770,7 @@ describe('HomeScreen: 出題プール空の案内（T-73）', () => {
     )
     await flushLoad()
 
-    const button = screen.getByText('今日のクエスト') as HTMLButtonElement
+    const button = screen.getByRole('button', { name: /今日のクエスト/ }) as HTMLButtonElement
     expect(button.disabled).toBe(false)
     expect(screen.queryByText(/問題データを取得できていません/)).toBeNull()
   })
@@ -900,7 +900,7 @@ describe('HomeScreen: レイドHPバー（M3・T-97）', () => {
     await flushLoad()
 
     expect(screen.queryByTestId('home-raid-hp')).toBeNull()
-    expect(screen.getByText('今日のクエスト')).toBeTruthy() // 学習動線は無傷
+    expect(screen.getByRole('button', { name: /今日のクエスト/ })).toBeTruthy() // 学習動線は無傷
   })
 
   it('討伐の成立はサーバーで確定する旨の注記を表示する', async () => {
@@ -1181,7 +1181,7 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     expect(screen.getByRole('dialog', { name: 'Part5の問題数を選択' })).toBeTruthy()
     expect(screen.getByText('20問').className).toContain('is-selected')
   })
@@ -1198,7 +1198,7 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     fireEvent.click(screen.getByText('10問'))
     fireEvent.click(screen.getByText('開始'))
 
@@ -1219,7 +1219,7 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     fireEvent.click(screen.getByText('開始')) // 既定20問だがプールは2問のみ
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
@@ -1242,7 +1242,7 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     fireEvent.click(screen.getByText('10問'))
     fireEvent.click(screen.getByText('開始'))
 
@@ -1269,7 +1269,7 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part2瞬発'))
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
     fireEvent.click(screen.getByText('50問'))
     fireEvent.click(screen.getByText('通常'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
@@ -1289,7 +1289,7 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     expect(screen.getByText('50問').className).toContain('is-selected')
   })
 
@@ -1306,7 +1306,7 @@ describe('HomeScreen: 単独モードの問数選択とシャッフル（T-118�
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     expect(screen.getByText('20問').className).toContain('is-selected')
   })
 })
@@ -1325,7 +1325,7 @@ describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）'
     await flushLoad()
 
     fireEvent.click(screen.getByText('3分'))
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
 
     expect(
       await screen.findByText(
@@ -1348,11 +1348,11 @@ describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）'
     await flushLoad()
 
     fireEvent.click(screen.getByText('3分'))
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
     await screen.findByText(/今は出題できる問題がありません/)
 
     fireEvent.click(screen.getByText('7分'))
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(screen.queryByText(/今は出題できる問題がありません/)).toBeNull()
@@ -1372,7 +1372,7 @@ describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）'
     )
     await flushLoad()
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     fireEvent.click(screen.getByText('開始'))
 
     expect(await screen.findByText('今は出題できる問題がありません')).toBeTruthy()
@@ -1392,10 +1392,10 @@ describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）'
     await flushLoad()
 
     fireEvent.click(screen.getByText('3分'))
-    fireEvent.click(screen.getByText('今日のクエスト'))
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
     await screen.findByText(/今は出題できる問題がありません/)
 
-    fireEvent.click(screen.getByText('Part5'))
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
     fireEvent.click(screen.getByText('開始'))
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
