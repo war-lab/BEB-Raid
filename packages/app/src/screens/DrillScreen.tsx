@@ -32,6 +32,15 @@ import { SessionProgress } from '../components/SessionProgress'
 /** 頻出度ランクの説明（bare文字だけでは何のSかわからないため） */
 const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→Sの順に上がる）'
 
+/**
+ * パート番号→英字タグ表示（docs/20 3.4節S2「パート名・モード名を英字タグで表示」）。
+ * part=0は語彙カード（TOEICのパート番号ではないためVOCAB表記にする）。
+ * 表層追加のみで既存の出題理由表示（drill-reason等）の内容・挙動は変更しない。
+ */
+function partTagLabel(part: number): string {
+  return part === 0 ? 'VOCAB' : `PART ${part}`
+}
+
 interface Props {
   db: BebRaidDatabase
   audioPlayer: AudioPlayer
@@ -731,6 +740,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               表示できない問題を1件スキップしました
             </p>
           )}
+          {/* docs/20 3.4節S2: パート名の英字タグ（--font-display・--goldの淡い枠）。
+              表示のみの追加で、下の出題理由表示の内容は変えない */}
+          <span className="drill-part-tag">{partTagLabel(question.part)}</span>
           {/* T-116(10): レイド挑戦セッション中もヘッダが「今日のドリル」のままでレイド感が
               無い問題への対処。item.mode='raid'なら出題理由の代わりに「レイド」を出す */}
           {item.mode === 'raid' ? (

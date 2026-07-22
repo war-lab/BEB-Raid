@@ -38,7 +38,9 @@
   min-height: var(--answer-height);
   margin-bottom: var(--sp-1); /* ボタン間8px以上 */
   padding: var(--sp-1) var(--sp-2);
-  background: var(--surface);
+  /* docs/20 3.4節S2: 深度システム（面の微グラデーション）。状態変化（枠色のみ）は
+     .choice-button.is-* 側で従来どおり担保するため、レイアウト不動には影響しない */
+  background: var(--surface-grad);
   color: var(--ink);
   /* 枠は常に2px。状態では色のみ変える（太さを変えるとレイアウトが動く） */
   border: 2px solid var(--line);
@@ -97,16 +99,18 @@
   opacity: 0.45;
 }
 
-/* --- セッション進捗: 最上部の2pxバー＋残数 --- */
+/* --- セッション進捗: 最上部のバー＋残数 --- */
 .session-progress {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
   width: 100%;
 }
+/* docs/20 3.4節S2: 2px→4px。overflow:hiddenのままなのでfill::afterの微光は
+   バー幅を超えてはみ出さない */
 .session-progress__bar {
   flex: 1;
-  height: 2px;
+  height: 4px;
   background: var(--surface-2);
   border-radius: var(--radius-pill);
   overflow: hidden;
@@ -115,11 +119,41 @@
   height: 100%;
   background: var(--gold);
   transition: width 150ms;
+  position: relative; /* ::after（fill先端の微光）の基準位置 */
+}
+/* docs/20 3.4節S2「fill先端に微光」。2.3節6「光暈は限定4箇所のみ」の対象は
+   --glow-gold/--glow-raidトークンの大きめの光暈で、これは進捗バー専用に
+   別途仕様化された極小範囲（4x4px・単一shadow）の微光のため、性能配慮
+   （大面積box-shadow多重掛け回避）の趣旨には抵触しない */
+.session-progress__fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 4px var(--gold);
 }
 .session-progress__count {
   flex: none;
   font-size: var(--fs-sub);
   color: var(--ink-2);
+}
+
+/* --- パート名の英字タグ（docs/20 3.4節S2）。表示専用（aria-hidden不要=情報性なし文字装飾） --- */
+.drill-part-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--sp-half);
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
 }
 
 /* --- 表示不能スキップの非モーダル通知（T-108。数秒で自動的に消える） --- */
@@ -136,11 +170,16 @@
   color: var(--ink-2);
 }
 
-/* --- セッション内連続正解ストリーク（02の3.1: Part2瞬発の看板演出） --- */
+/* --- セッション内連続正解ストリーク（02の3.1: Part2瞬発の看板演出） ---
+   docs/20 3.4節S2「ダメージトーストに--glow-gold」: このアプリにドリル中の
+   即時「+N」トースト表示は無く、ストリーク数がS2で唯一の即時報酬フィードバックの
+   ため、その適用先として--glow-goldのtext-shadow版を当てる（アニメーション時間・
+   reduced-motion挙動は既存のstreak-pulseのまま変更しない） */
 .session-streak {
   margin: var(--sp-half) 0 0;
   font-size: var(--fs-stat);
   color: var(--gold);
+  text-shadow: var(--glow-gold);
   animation: streak-pulse 200ms ease-out;
 }
 @keyframes streak-pulse {
@@ -194,6 +233,90 @@
 }
 
 /* --- リザルト報酬演出（T-77。J-42: 総時間600〜900ms・reduced-motionでは静止表示） --- */
+/* docs/20 3.4節リザルト行「TOTAL DAMAGE」英字ラベル。既存の日本語ラベル
+   （.result-points-label＝レビューF5(c)で追加した「何の数値か」の説明）は
+   削らず併記する（情報を減らさない） */
+.result-eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+/* ディスプレイ数字特大（docs/20 3.4節リザルト行）。共有トークン--fs-displayは
+   他画面（タイマー等）でも使うため変更せず、リザルト専用に大きいサイズを指定する */
+.result-points-value {
+  font-size: 56px;
+  text-shadow: var(--glow-gold);
+}
+/* --- リザルトのボスHPバー（docs/20 3.4節リザルト行「ボスHPバー削れ」）。
+   レイド参加中かつ同期成功時のみ表示（raidBoss!==null）。ホーム/レイド画面の
+   .home-raid-hp-bar系クラスとは意図的に独立させる（2.1節: 共有セレクタの変更は
+   他タスク(V-3/V-4)と衝突するため、リザルト専用の新規クラスにする） --- */
+.result-boss-hp {
+  width: 100%;
+  margin-top: var(--sp-2);
+  text-align: left;
+}
+.result-boss-hp-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+  margin-bottom: var(--sp-half);
+}
+.result-boss-hp-bar {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--raid) 25%, transparent);
+  overflow: hidden;
+}
+.result-boss-hp-fill {
+  height: 100%;
+  background: var(--raid);
+  box-shadow: var(--glow-raid);
+  border-radius: var(--radius-pill);
+}
+.result-boss-hp-name {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* --- 統計3タイル（docs/20 3.4節リザルト行: 正解数=--ok・ストリーク=--gold・時間=--listen）。
+   「正解 X / Y」は既存テキストのまま（既存テスト・レビューF5(c)相当の文言を変えない）
+   タイル化のみで、残りの詳細行（レート変動・復習デッキ追加・スキップ件数）は
+   従来どおり.result-statsに残す（情報を減らさない） --- */
+.result-highlight-tiles {
+  list-style: none;
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-1);
+}
+.result-highlight-tile {
+  padding: var(--sp-1) 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: var(--surface-grad);
+  text-align: center;
+  font-size: var(--fs-sub);
+  font-weight: 700;
+  animation: result-stat-in 300ms ease-out both;
+}
+.result-highlight-tile--ok {
+  color: var(--ok);
+}
+.result-highlight-tile--gold {
+  color: var(--gold);
+}
+.result-highlight-tile--listen {
+  color: var(--listen);
+}
 .result-stats {
   list-style: none;
   margin: var(--sp-1) 0;
@@ -229,10 +352,16 @@
   flex-direction: column;
   gap: var(--sp-half);
 }
+/* docs/20 3.4節リザルト行「誤答ふりかえりリスト」: 面＋罫線のカード化（深度システム。
+   内容・並び順（全件表示・✓/✕の二重符号化）は既存のまま変えない） */
 .result-list__item {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-half);
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: var(--surface-grad);
 }
 .result-list__question {
   overflow: hidden;
@@ -415,7 +544,8 @@
 .explanation-card {
   margin-top: var(--sp-2);
   padding: var(--sp-2);
-  background: var(--surface);
+  /* docs/20 3.4節S2「カード面に--surface-grad」 */
+  background: var(--surface-grad);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   animation: explanation-slide-up 200ms ease-out;
