@@ -20,6 +20,12 @@
   - S9設定: ラジオ・チェックボックスを`appearance: none`＋擬似要素のカスタム部品に置換（input自体はネイティブのままでキーボード操作・スクリーンリーダー対応は不変。フォーカスリングは`--ev-blue`）。末尾にAboutブロック（既存生成済みのPWAアイコン`icons/icon-192.png`を流用。新規バイナリ追加なし＋アプリ名＋`package.json`のバージョン）を追加。
   - S3語彙: カード面に`--surface-grad`（仕分けモードは`SwipeCard`側の面に統一し二重箱を回避）。ランクチップをランク色トークンで着色（S/A/B/C）。**レビューで発見した既存tokens.cssの不備2件を修正**: (1) `--rank-silver`/`--rank-bronze`にライト値が無く白背景でAA未達（機械計算値2.038:1/3.451:1）だったため追加。(2) カード面（`--surface-grad`上端）でCランクに`--ink-3`を使うとAA=4.5:1をわずかに下回る（4.493:1）ため`--ink-2`に変更（docs/20の記載「C=--ink-3」からの計算に基づく最小限の逸脱）。
   - 検証: lint・build・テスト672件（全パッケージ計1090件）通過。screenshot-tourで両テーマの3画面を目視確認、console errorsなし。Playwrightで実際にTab/Space/矢印キー操作を行い、キーボードのみでチェックボックス・ラジオが操作できること、`:focus-visible`時に`--ev-blue`のフォーカスリングが可視であることを確認。
+- **V-5完了（2026-07-22。ドリル・リザルト表層）**: `task/V-5-drill-result`ブランチで実施。
+  - S2ドリル: 進捗バー2px→4px＋fill先端に極小の微光（`.session-progress__fill::after`。4x4pxの単一shadowで2.3節6の性能配慮を満たす）。パート名の英字タグ（`Part {n}` / 語彙カードは`VOCAB`。`question.part`から導出、`--font-display`＋`--gold`の淡い枠）を出題理由表示の上に追加表示。`choice-button`・`explanation-card`に`--surface-grad`。
+  - リザルト: 「TOTAL DAMAGE」英字ラベル（`--ev-blue`）を既存の「獲得ポイント」ラベルの上に追加（既存文言は削らず併記）。ディスプレイ数字に`--glow-gold`のtext-shadow版。統計3タイル（正解=`--ok`・最大ストリーク=`--gold`・学習時間=`--listen`。「正解 X / Y」は既存文言のまま）。ボスHPバー（レイド同期成功時のみ表示。`syncRaidDamage`の戻り値をそのまま使用、追加fetchなし）。誤答ふりかえりリストをカード化。
+  - 「ダメージトースト」相当の要素がアプリに無いため、`--glow-gold`の適用先はS2の唯一の即時報酬フィードバックである連続正解ストリーク表示（`.session-streak`）と判断（解釈上の逸脱として記録）。
+  - 不変条件確認: 正誤表示のレイアウト不動（choice-buttonの境界線幅は idle/correct/wrong で常に2px。Playwright実機で座標・border-widthを比較して確認）、演出時間（`POINTS_COUNTUP_MS`・`ANSWER_TIMER_SECONDS`等は無変更。新規タイルは既存`result-stat-in`のdelayを0〜500msへ詰め直し、合計900ms以内=J-42の600〜900ms範囲を維持）、reduced-motion（base.cssのグローバル`@media (prefers-reduced-motion: reduce)`ルールは無変更のまま新規要素にも適用されることをブラウザで確認）。lint・format:check・build・test（全workspace、680+78+305+15+61件）は全通過。screenshot-tourで両テーマの全画面を確認し、V-5対象外画面（ホーム等）に崩れが無いことも確認。
+  - 逸脱: `SessionProgress`（進捗バー）はDrillScreen以外にReadingScreen・DiagnosticScreenとも共有しているコンポーネントのため、2px→4px・fill微光の変更はこの2画面にも波及する（両画面ともdocs/20は個別に規定していないが、視覚的な悪化はない）。
 
 ## 読解パート（Part6/7）完成の計画（2026-07-21）
 
