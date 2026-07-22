@@ -27,7 +27,7 @@ enabled = true
 
 [[kv_namespaces]]
 binding = "MEMBERS"
-id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID" # H-1完了後に実IDへ差し替える
+id = "4381d217d1ee406ead9f79f1b8f79209" # H-1完了（2026-07-22）。--envなしデプロイ用のためdev用namespaceを流用
 
 [[durable_objects.bindings]]
 name = "RAID_BOSS"
@@ -65,7 +65,7 @@ ALLOWED_ORIGINS = "http://localhost:5173,https://war-lab.github.io"
 
 [[env.dev.kv_namespaces]]
 binding = "MEMBERS"
-id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID_DEV" # H-1完了後に実IDへ差し替える
+id = "4381d217d1ee406ead9f79f1b8f79209" # H-1完了（2026-07-22）
 
 # durable_objects はバインディングのため env ごとに再定義が必要（トップレベルから継承されない）。
 # class_name/migrations はトップレベル定義を共有する（migrations は継承されるため再定義不要）。
@@ -88,7 +88,7 @@ ALLOWED_ORIGINS = "https://war-lab.github.io"
 
 [[env.production.kv_namespaces]]
 binding = "MEMBERS"
-id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID_PROD" # H-1完了後に実IDへ差し替える
+id = "1e67abf93aee4b55832d3d4468eccc6b" # H-1完了（2026-07-22）
 
 [[env.production.durable_objects.bindings]]
 name = "RAID_BOSS"
