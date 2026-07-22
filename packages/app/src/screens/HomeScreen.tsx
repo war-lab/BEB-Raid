@@ -1,7 +1,9 @@
 // S1 ホーム画面（T-21。docs/07 7節S1・02の2.1・01の非機能要件=起動3秒）。
-// 上: ストリーク＋SRS期限数。中: 進行中レイドのHPバー（M3・T-97）。下: 「今日のクエスト」
+// 上: ストリーク＋SRS期限数。中: ワードマーク＋ヒーローカード（進行中レイドのHPバー=M3・T-97、
+// 未参加時はシーズン表示に縮退=docs/20 JV-2）。下: 「今日のクエスト」
 // 主ボタン＋3/7/15分チップ→generateQuickPack→セッション開始。下方グリッドは
 // 各モードへの導線（Part2瞬発・Part5・語彙SRS・ダッシュボード・設定）。
+// docs/20 3.4節(V-3): ヒーローのボス紋章はプレースホルダーdiv（BossSigil本実装はV-4で差し替え）。
 import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
@@ -34,6 +36,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { Heatmap } from '../components/charts/Heatmap'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { Wordmark } from '../components/Wordmark'
 
 interface Props {
   db: BebRaidDatabase
@@ -374,7 +377,14 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               onClick={() => void handleStartQuest()}
               disabled={questionPool.length === 0}
             >
-              今日のクエスト
+              {/* docs/20 3.4節: 金CTAにサブテキストでパック内訳を添える（V-3）。
+                  新規カード数はここでは未確定のため、実データがあるSRS復習件数のみ示す */}
+              <span className="home-cta-label">今日のクエスト</span>
+              {/* 時間チップの表記「7分」等と完全一致すると同一文言で複数要素になり
+                  テスト上も判別不能になるため、「〜のクエスト」で必ず区別できる文にする */}
+              <small className="home-cta-sub">
+                {duration}分のクエスト{dueCount > 0 ? ` ・ SRS復習${dueCount}件` : ''}
+              </small>
             </PrimaryButton>
             {questionPool.length === 0 && (
               <p className="home-pool-empty-hint">
@@ -487,19 +497,119 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               </div>
             </div>
           )}
+          {/* docs/20 3.4節: モードタイル（インラインSVGアイコン＋一言補足の2列グリッド。V-3）。
+              アイコン色はモード色に合わせる: Part2=--listen・Part5=--gold・語彙=--violet・シャドーイング=--listen */}
+          <div className="home-mode-grid">
+            <button
+              type="button"
+              className="home-mode-tile"
+              onClick={() => setShowPart2Options(true)}
+            >
+              <svg
+                className="home-mode-tile__icon"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path d="M4 8v4h3l4 4V4L7 8H4z" fill="var(--listen)" />
+                <path
+                  d="M14 7c1 .8 1 5.2 0 6"
+                  stroke="var(--listen)"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="home-mode-tile__text">
+                <span className="home-mode-tile__label">Part2瞬発</span>
+                <small className="home-mode-tile__hint">音声を聞いて即答する</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="home-mode-tile"
+              onClick={() => setShowPart5Options(true)}
+            >
+              <svg
+                className="home-mode-tile__icon"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="14" height="2.2" rx="1" fill="var(--gold)" />
+                <rect x="3" y="9" width="9" height="2.2" rx="1" fill="var(--gold)" opacity=".55" />
+                <rect x="3" y="14" width="12" height="2.2" rx="1" fill="var(--gold)" opacity=".3" />
+              </svg>
+              <span className="home-mode-tile__text">
+                <span className="home-mode-tile__label">Part5</span>
+                <small className="home-mode-tile__hint">文法・語彙の穴埋め</small>
+              </span>
+            </button>
+            <button type="button" className="home-mode-tile" onClick={() => navigate('vocab')}>
+              <svg
+                className="home-mode-tile__icon"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <rect
+                  x="3"
+                  y="3"
+                  width="11"
+                  height="14"
+                  rx="2"
+                  fill="none"
+                  stroke="var(--violet)"
+                  strokeWidth="1.5"
+                />
+                <rect
+                  x="6"
+                  y="1.5"
+                  width="11"
+                  height="14"
+                  rx="2"
+                  fill="var(--bg)"
+                  stroke="var(--violet)"
+                  strokeWidth="1.5"
+                />
+              </svg>
+              <span className="home-mode-tile__text">
+                <span className="home-mode-tile__label">語彙SRS</span>
+                <small className="home-mode-tile__hint">SRSで復習・記憶</small>
+              </span>
+            </button>
+            <button type="button" className="home-mode-tile" onClick={() => navigate('shadowing')}>
+              <svg
+                className="home-mode-tile__icon"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 10h2l2-5 3 10 2.5-7 1.5 2h3"
+                  stroke="var(--listen)"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="home-mode-tile__text">
+                <span className="home-mode-tile__label">
+                  シャドーイング{phase && ` L${phase.listeningStage}`}
+                </span>
+                <small className="home-mode-tile__hint">音声を真似て発音練習</small>
+              </span>
+            </button>
+          </div>
+          {/* ダッシュボード・設定・レイドはモード導線ではなくナビゲーションのため、
+              モードタイルとは別枠に据え置く（docs/20 3.4節はPart2/Part5/語彙/シャドーイングの
+              4タイルのみを規定。他はモックアップにも無い既存機能で構造は変えない） */}
           <div className="home-grid">
-            <button type="button" onClick={() => setShowPart2Options(true)}>
-              Part2瞬発
-            </button>
-            <button type="button" onClick={() => setShowPart5Options(true)}>
-              Part5
-            </button>
-            <button type="button" onClick={() => navigate('vocab')}>
-              語彙SRS
-            </button>
-            <button type="button" onClick={() => navigate('shadowing')}>
-              シャドーイング{phase && ` L${phase.listeningStage}`}
-            </button>
             <button type="button" onClick={() => navigate('dashboard')}>
               ダッシュボード
             </button>
@@ -515,55 +625,67 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         </>
       }
     >
-      <h1 style={{ fontSize: 'var(--fs-heading)' }}>BEB Raid</h1>
-      {phase && (
-        <div className="home-season" data-testid="home-season">
-          <p>{SEASON_LABELS[phase.season]}</p>
-          {phaseProgress !== null && (
-            <div
-              className="home-season-progress"
-              role="progressbar"
-              aria-valuenow={Math.round(phaseProgress * 100)}
-              aria-valuemin={0}
-              aria-valuemax={100}
+      <Wordmark />
+      {/* docs/20 3.4節(S1): ヒーローカード。レイド参加中はボス紋章(V-4までプレースホルダー)＋
+          HPバー、未参加時はシーズン表示に縮退する（JV-2） */}
+      {showRaidHp ? (
+        <div className="home-hero">
+          <div className="home-hero-top">
+            {/* V-4(BossSigil)実装までの仮置き。差し替え時はこのdivをBossSigilに置換する */}
+            <div className="home-hero-sigil-placeholder" aria-hidden="true" />
+            {/* レビューF2(b): button内の<p>は内容モデル違反でSRに正しく伝わらないためspan化し、
+               全体の意味はaria-labelで伝える（バー本体は装飾としてaria-hidden） */}
+            <button
+              type="button"
+              className="home-raid-hp"
+              data-testid="home-raid-hp"
+              aria-label={`ボスHP ${hpPercent}%、残り${remainingDays}日。タップでレイド画面へ`}
+              onClick={() => navigate('raid')}
             >
-              <div
-                className="home-season-progress-bar"
-                style={{ width: `${Math.round(phaseProgress * 100)}%` }}
-              />
-            </div>
-          )}
+              <span className="home-raid-hp-line home-hero-eyebrow">WEEKLY BOSS</span>
+              <span className="home-raid-hp-line home-raid-hp-boss">{bossName}</span>
+              <span className="home-raid-hp-bar" aria-hidden="true">
+                <span className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
+              </span>
+              <span className="home-raid-hp-line">残り{remainingDays}日</span>
+              <span
+                className={
+                  syncFailed
+                    ? 'home-raid-hp-line home-raid-hp-sync is-stale'
+                    : 'home-raid-hp-line home-raid-hp-sync'
+                }
+                data-testid="home-raid-last-synced"
+              >
+                最終同期: {lastSyncedLabel}
+              </span>
+              <span className="home-raid-hp-line home-raid-hp-note">
+                討伐の成立は同期時にサーバーで確定します
+              </span>
+            </button>
+          </div>
         </div>
-      )}
-      {showRaidHp && (
-        /* レビューF2(b): button内の<p>は内容モデル違反でSRに正しく伝わらないためspan化し、
-           全体の意味はaria-labelで伝える（バー本体は装飾としてaria-hidden） */
-        <button
-          type="button"
-          className="home-raid-hp"
-          data-testid="home-raid-hp"
-          aria-label={`ボスHP ${hpPercent}%、残り${remainingDays}日。タップでレイド画面へ`}
-          onClick={() => navigate('raid')}
-        >
-          <span className="home-raid-hp-line">{bossName}</span>
-          <span className="home-raid-hp-bar" aria-hidden="true">
-            <span className="home-raid-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
-          </span>
-          <span className="home-raid-hp-line">残り{remainingDays}日</span>
-          <span
-            className={
-              syncFailed
-                ? 'home-raid-hp-line home-raid-hp-sync is-stale'
-                : 'home-raid-hp-line home-raid-hp-sync'
-            }
-            data-testid="home-raid-last-synced"
-          >
-            最終同期: {lastSyncedLabel}
-          </span>
-          <span className="home-raid-hp-line home-raid-hp-note">
-            討伐の成立は同期時にサーバーで確定します
-          </span>
-        </button>
+      ) : (
+        phase && (
+          <div className="home-hero">
+            <div className="home-season" data-testid="home-season">
+              <p>{SEASON_LABELS[phase.season]}</p>
+              {phaseProgress !== null && (
+                <div
+                  className="home-season-progress"
+                  role="progressbar"
+                  aria-valuenow={Math.round(phaseProgress * 100)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div
+                    className="home-season-progress-bar"
+                    style={{ width: `${Math.round(phaseProgress * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )
       )}
       {miniHeatmapCells && (
         <div className="home-mini-heatmap" data-testid="home-mini-heatmap">
