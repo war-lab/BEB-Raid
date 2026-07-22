@@ -3,10 +3,11 @@
  * - 既定はダーク（J-8）。:root 直下にダーク値を置き、data-theme="light" で上書きする
  */
 
-/* 数字ディスプレイ書体（07の4.1）: Chakra Petch Bold の数字＋記号サブセット */
+/* ディスプレイ書体（07の4.1・docs/20 V-2）: Chakra Petch Bold の英数字＋記号サブセット
+ * （当初の数字のみ=digits から拡張。ワードマーク・英字ラベル・ボス名にも使う） */
 @font-face {
-  font-family: 'Chakra Petch Digits';
-  src: url('../assets/fonts/ChakraPetchBold-digits.woff2') format('woff2');
+  font-family: 'Chakra Petch Display';
+  src: url('../assets/fonts/ChakraPetchBold-latin.woff2') format('woff2');
   font-weight: 700;
   font-display: swap;
 }
@@ -34,6 +35,35 @@
   --listen: #4ec3e0;
   --violet: #8b79e8;
 
+  /* 3.2続き ブランド表層=鋼＋電光青（docs/20 JV-1確定。07未決事項1の①案） */
+  /* --ev-blue: --bg比5.834:1・--surface比5.177:1（機械計算値）でAA=4.5:1適合 */
+  --ev-blue: #4d8dff;
+  --ev-blue-deep: #1e3fa8; /* 装飾専用（ヒーローの夜空グラデ下端）。文字に使わない */
+  /* 鋼グラデ（ワードマーク用）。--steel-loは--bg比3.238:1で大文字テキスト基準(3:1)のみ適合。
+     グラデの一部としてのみ使い、単色の文字色に使わない */
+  --steel-hi: #e8ecf4;
+  --steel-mid: #9aa6bc;
+  --steel-lo: #5b667e;
+  --wordmark-grad: linear-gradient(
+    175deg,
+    var(--steel-hi) 15%,
+    var(--steel-mid) 48%,
+    var(--steel-lo) 60%,
+    var(--steel-hi) 100%
+  );
+
+  /* 深度システム（docs/20 3.1節。光暈は金CTA・ボスHPバー・トースト・リザルト数字の4箇所限定） */
+  --surface-grad: linear-gradient(180deg, #1c2339 0%, #181e31 100%); /* 上端がわずかに明るい面 */
+  --bg-grad: linear-gradient(180deg, #090c17 0%, #0e1220 28%);
+  /* 主ボタン（CTA）の金グラデ。--on-gold(#1A1405)との比は端点で12.625/7.724:1（機械計算値）でAA適合 */
+  --cta-grad: linear-gradient(180deg, #ffd067 0%, var(--gold) 55%, #dd9c22 100%);
+  --glow-gold: 0 6px 22px rgba(245, 184, 61, 0.35);
+  --glow-raid: 0 0 12px rgba(232, 80, 107, 0.7);
+  /* ヒーローカードの夜空（両テーマ共通=ライトでも夜の車窓を維持する。docs/20 3.2節の決定）。
+     ライトブロックで上書きしないことで両テーマ同値になる */
+  --hero-sky: linear-gradient(180deg, #0a0f21 0%, #101832 62%, #16204a 100%);
+  --hero-line: rgba(77, 141, 255, 0.25);
+
   /* 3.3 ステータス色（必ずアイコン/形と二重符号化で使う） */
   --ok: #3dc97e;
   --ng: #f0647a;
@@ -54,7 +84,7 @@
 
   /* 4節 タイポグラフィ */
   --font-ui: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
-  --font-display: 'Chakra Petch Digits', var(--font-ui);
+  --font-display: 'Chakra Petch Display', var(--font-ui);
   --fs-note: 12px;
   --fs-sub: 14px;
   --fs-ui: 16px;
@@ -94,6 +124,24 @@
   --gold: #996600;
   --on-gold: #ffffff; /* ライトの金は暗色なので白文字で AA を確保 */
   --raid: #c42b4c;
+
+  /* ブランド表層のライト値（docs/20 3.1節。機械計算値で全てAA=4.5:1適合） */
+  /* --ev-blue: --bg比6.009:1・--surface(白)比6.556:1 */
+  --ev-blue: #2456c4;
+  --ev-blue-deep: #1e3fa8; /* 装飾専用（ダークと同値） */
+  /* 鋼グラデ: hi=--bg比5.455:1 / mid=7.427:1 / lo=11.080:1 */
+  --steel-hi: #5a6478;
+  --steel-mid: #465064;
+  --steel-lo: #2e3648;
+
+  /* 深度システムのライト値。光暈は控えめにする（明地では光がノイズになるため） */
+  --surface-grad: linear-gradient(180deg, #ffffff 0%, #faf9f4 100%);
+  --bg-grad: linear-gradient(180deg, #f1efe9 0%, #f6f5f1 28%);
+  /* ライトのCTAグラデ。--on-gold(白)との比は端点で4.672/4.935/6.189:1（機械計算値）でAA適合 */
+  --cta-grad: linear-gradient(180deg, #9d6a00 0%, var(--gold) 60%, #855800 100%);
+  --glow-gold: 0 4px 14px rgba(153, 102, 0, 0.2);
+  --glow-raid: 0 0 8px rgba(196, 43, 76, 0.35);
+  /* --hero-sky / --hero-line は意図的に上書きしない（両テーマで夜の車窓を維持） */
   /* レビューF8: #0083a6（--bg比4.2:1程度でAA未達）→ #00778f。
      --bg比4.77:1・--surface比5.21:1（機械計算値）でAAを確保 */
   --listen: #00778f;
