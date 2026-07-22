@@ -18,6 +18,7 @@ import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/setti
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
+import { BossSigil } from '../components/BossSigil'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { confirmDiscardMessage, toSessionItems } from './HomeScreen'
@@ -486,7 +487,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
           <p className="drill-error">最新情報を取得できませんでした</p>
           {cachedBossName !== null && raidState && (
             <div data-testid="raid-boss-cached">
-              <p className="raid-boss-name">{cachedBossName}</p>
+              <div className="raid-boss-header">
+                <BossSigil seed={raidState.bossId} size={56} />
+                <p className="raid-boss-name">{cachedBossName}</p>
+              </div>
               <div
                 className="home-raid-hp-bar"
                 role="progressbar"
@@ -518,7 +522,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               討伐成功！
             </p>
           )}
-          <p className="raid-boss-name">{currentBoss.name}</p>
+          <div className="raid-boss-header">
+            <BossSigil seed={currentBoss.bossId} size={56} />
+            <p className="raid-boss-name">{currentBoss.name}</p>
+          </div>
           <div
             className="home-raid-hp-bar"
             role="progressbar"

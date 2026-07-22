@@ -798,6 +798,23 @@
 .raid-boss-name {
   overflow-wrap: anywhere;
 }
+/* --- BossSigilコンポーネント（V-4・20の3.3節）。
+   紋章そのものへの光暈(drop-shadow)はモックアップに存在するが、2節2.3(6)の
+   「光暈は金CTA・ボスHPバー・ダメージトースト・リザルト数字の4箇所限定」ルールにより
+   紋章は対象外のため付与しない --- */
+.boss-sigil {
+  flex: none;
+}
+.raid-boss-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+/* S6ダッシュボード空状態のシルエット表示（低透明度の装飾のみ。3.4節S6） */
+.chart-empty-sigil {
+  opacity: 0.18;
+  margin-bottom: var(--sp-1);
+}
 .raid-list {
   list-style: none;
   margin: var(--sp-1) 0;

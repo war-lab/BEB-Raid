@@ -1,6 +1,7 @@
 // 学習ヒートマップ（S6。docs/07 8節: 金の単色シーケンシャル5段・GitHub草式。0日はセル枠のみ）。
 // 色は --surface-2 → --chart-gold の間を color-mix() で機械的に補間する（hex直書き禁止）。
 import { useState } from 'react'
+import { BossSigil } from '../BossSigil'
 
 export interface HeatmapCell {
   date: string
@@ -39,6 +40,9 @@ export function Heatmap({ cells }: Props) {
   if (cells.length === 0) {
     return (
       <div className="chart-empty">
+        <div className="chart-empty-sigil">
+          <BossSigil seed="dashboard-empty-heatmap" size={64} />
+        </div>
         <p>学習ヒートマップ: まだデータが足りない</p>
       </div>
     )
