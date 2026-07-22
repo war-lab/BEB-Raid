@@ -3,6 +3,7 @@
 // 予測スコア帯（M2・T-53）は forecastBand で任意描画（--chart-violet 低透明度の面＋
 // 破線境界=07の8節159行）。予測帯が無い場合はM1と同じ見た目（帯なし）。
 import { useState } from 'react'
+import { BossSigil } from '../BossSigil'
 
 export interface LineChartPoint {
   date: string
@@ -25,9 +26,17 @@ export function LineChart({ points, title, forecastBand }: Props) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   if (points.length < 2) {
+    // 不足量の率直な表示（20の3.4節S6）: 折れ線には2点以上必要という基準がgetTagAccuracies等と
+    // 違い明確な数値なので、現在の件数をそのまま出す（断定はせず「あと何件」までは踏み込まない。
+    // 何日後に貯まるかは学習頻度依存で当コンポーネントからは分からないため）
     return (
       <div className="chart-empty">
-        <p>{title}: まだデータが足りない</p>
+        <div className="chart-empty-sigil">
+          <BossSigil seed="dashboard-empty-linechart" size={64} />
+        </div>
+        <p>
+          {title}: まだデータが足りない（現在{points.length}件 / 2件以上で表示）
+        </p>
       </div>
     )
   }
