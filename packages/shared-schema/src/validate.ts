@@ -383,6 +383,16 @@ function validateAudioMeta(
   if (!isInt(meta.durationMs) || meta.durationMs <= 0) {
     err(`${path}.durationMs`, 'invalid_value', 'durationMs は正の整数')
   }
+  // questionEndMs（任意。audio_qaの質問部終端）: 在るなら 0 < questionEndMs < durationMs
+  if (meta.questionEndMs !== undefined && meta.questionEndMs !== null) {
+    if (
+      !isInt(meta.questionEndMs) ||
+      meta.questionEndMs <= 0 ||
+      (isInt(meta.durationMs) && meta.questionEndMs >= (meta.durationMs as number))
+    ) {
+      err(`${path}.questionEndMs`, 'invalid_value', 'questionEndMs は durationMs 未満の正の整数')
+    }
+  }
 }
 
 function validateChoicesAndAnswer(

@@ -102,6 +102,33 @@ describe('validatePack: 正常系', () => {
     })
     expect(result.ok).toBe(true)
   })
+
+  it('audioMeta.questionEndMs（質問部終端。正答リーク対策）が durationMs 未満の正の整数なら通る', () => {
+    const pack = docsSamplePack()
+    firstQuestion(pack).audioMeta!.questionEndMs = 3100
+    expect(validatePack(pack).ok).toBe(true)
+  })
+})
+
+describe('validatePack: audioMeta.questionEndMs の異常系', () => {
+  it.each([
+    ['durationMs 以上', 6200],
+    ['0', 0],
+    ['負値', -100],
+    ['非整数', 3100.5],
+  ])('questionEndMs が %s なら invalid_value', (_label, value) => {
+    const pack = docsSamplePack()
+    firstQuestion(pack).audioMeta!.questionEndMs = value
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((e) => e.path.endsWith('questionEndMs'))).toBe(true)
+  })
+
+  it('null は「未設定」として通る（旧生成分との互換）', () => {
+    const pack = docsSamplePack()
+    firstQuestion(pack).audioMeta!.questionEndMs = null
+    expect(validatePack(pack).ok).toBe(true)
+  })
 })
 
 describe('validatePack: 取込拒否（完了条件の3異常系）', () => {

@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 65165
+    "sizeBytes": 66715
   },
   "questions": [
     {
@@ -32,7 +32,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4075
+        "durationMs": 4075,
+        "questionEndMs": 2474
       },
       "script": "When should I submit the expense report? — By the end of this week.",
       "translation": "経費報告書はいつ提出すればいいですか？ — 今週末までに。",
@@ -73,7 +74,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 4206
+        "durationMs": 4206,
+        "questionEndMs": 1882
       },
       "script": "Why did you reschedule the meeting? — The client had a conflict.",
       "translation": "なぜ会議の予定を変更したのですか？ — 取引先の予定が重なってしまったからです。",
@@ -114,7 +116,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 3840
+        "durationMs": 3840,
+        "questionEndMs": 1805
       },
       "script": "Who prepared this invoice? — Someone from the accounting team.",
       "translation": "この請求書は誰が作成しましたか？ — 経理チームの誰かです。",
@@ -155,7 +158,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 4389
+        "durationMs": 4389,
+        "questionEndMs": 2190
       },
       "script": "Where should we store the extra chairs? — In the warehouse next door.",
       "translation": "余分な椅子はどこに保管すればいいですか？ — 隣の倉庫にお願いします。",
@@ -196,7 +200,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4807
+        "durationMs": 4807,
+        "questionEndMs": 2807
       },
       "script": "How many candidates applied for the position? — About thirty, I believe.",
       "translation": "その職に何人の候補者が応募しましたか？ — 30人くらいだと思います。",
@@ -237,7 +242,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5016
+        "durationMs": 5016,
+        "questionEndMs": 2215
       },
       "script": "What is the budget for this project? — Around fifty thousand dollars.",
       "translation": "このプロジェクトの予算はいくらですか？ — 約5万ドルです。",
@@ -278,7 +284,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6478
+        "durationMs": 6478,
+        "questionEndMs": 1913
       },
       "script": "When will the delivery arrive? — Sometime around three o’clock.",
       "translation": "配達はいつ届きますか？ — 3時頃です。",
@@ -319,7 +326,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 4180
+        "durationMs": 4180,
+        "questionEndMs": 1892
       },
       "script": "Who signed the new contract? — Our sales director did.",
       "translation": "新しい契約書には誰がサインしましたか？ — 営業部長です。",
@@ -360,7 +368,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4493
+        "durationMs": 4493,
+        "questionEndMs": 2465
       },
       "script": "Has the inspection been completed yet? — Yes, it finished this morning.",
       "translation": "検査はもう終わりましたか？ — はい、今朝終わりました。",
@@ -401,7 +410,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5172
+        "durationMs": 5172,
+        "questionEndMs": 2077
       },
       "script": "Where is the venue for the conference? — At the downtown convention center.",
       "translation": "会議の会場はどこですか？ — 中心街のコンベンションセンターです。",
@@ -442,7 +452,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4310
+        "durationMs": 4310,
+        "questionEndMs": 1724
       },
       "script": "How can I request a refund? — Please contact the customer service desk.",
       "translation": "返金はどうすれば請求できますか？ — カスタマーサービスにご連絡ください。",
@@ -483,7 +494,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5303
+        "durationMs": 5303,
+        "questionEndMs": 2443
       },
       "script": "When does the new employee training start? — It starts at nine tomorrow morning.",
       "translation": "新入社員研修はいつ始まりますか？ — 明朝9時に始まります。",
@@ -524,7 +536,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4519
+        "durationMs": 4519,
+        "questionEndMs": 2092
       },
       "script": "Why was the shipment rejected? — The quality did not meet our standards.",
       "translation": "なぜ出荷分は却下されたのですか？ — 品質が基準を満たしていなかったからです。",
@@ -565,7 +578,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 4389
+        "durationMs": 4389,
+        "questionEndMs": 2066
       },
       "script": "Could you check the balance on this account? — Sure, let me look it up.",
       "translation": "この口座の残高を確認していただけますか？ — もちろんです、少々お待ちください。",
@@ -606,7 +620,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4101
+        "durationMs": 4101,
+        "questionEndMs": 2258
       },
       "script": "What did the client think of our proposal? — They seemed very impressed.",
       "translation": "クライアントは私たちの提案書についてどう思いましたか？ — とても感心していました。",
@@ -647,7 +662,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5068
+        "durationMs": 5068,
+        "questionEndMs": 2357
       },
       "script": "How long is the warranty on this printer? — It comes with a two-year warranty.",
       "translation": "このプリンターの保証期間はどのくらいですか？ — 2年間の保証が付いています。",
@@ -688,7 +704,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 5512
+        "durationMs": 5512,
+        "questionEndMs": 2905
       },
       "script": "Have you finished the itinerary for the business trip? — Almost, just one more stop to add.",
       "translation": "出張の旅程表は仕上がりましたか？ — ほぼ完成です、あと1件追加するだけです。",
@@ -729,7 +746,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 7523
+        "durationMs": 7523,
+        "questionEndMs": 2659
       },
       "script": "Where is the company headquarters located? — It’s in downtown Chicago.",
       "translation": "会社の本社はどこにありますか？ — シカゴのダウンタウンにあります。",
@@ -770,7 +788,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 3631
+        "durationMs": 3631,
+        "questionEndMs": 1681
       },
       "script": "When was the merger announced? — Just last week, actually.",
       "translation": "その合併はいつ発表されましたか？ — 実はつい先週です。",
@@ -811,7 +830,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5172
+        "durationMs": 5172,
+        "questionEndMs": 2675
       },
       "script": "Who is organizing the reception tonight? — The events team is handling it.",
       "translation": "今夜の歓迎会は誰が企画していますか？ — イベントチームが担当しています。",
@@ -852,7 +872,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4180
+        "durationMs": 4180,
+        "questionEndMs": 2323
       },
       "script": "When can we expect the next shipment? — It should arrive by Thursday.",
       "translation": "次の出荷はいつ届く予定ですか？ — 木曜日までには届くはずです。",
@@ -893,7 +914,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 4676
+        "durationMs": 4676,
+        "questionEndMs": 1769
       },
       "script": "Why did she get the promotion? — Her performance has been outstanding.",
       "translation": "なぜ彼女は昇進したのですか？ — 業績が非常に優れていたからです。",
@@ -934,7 +956,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6139
+        "durationMs": 6139,
+        "questionEndMs": 3502
       },
       "script": "Is the factory in compliance with the new regulations? — Yes, we passed the audit last week.",
       "translation": "工場は新しい規制を遵守していますか？ — はい、先週の監査に合格しました。",
@@ -975,7 +998,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 7210
+        "durationMs": 7210,
+        "questionEndMs": 2664
       },
       "script": "How much does the subscription cost per month? — It’s fifteen dollars a month.",
       "translation": "購読料は月にいくらですか？ — 月15ドルです。",
@@ -1016,7 +1040,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 3709
+        "durationMs": 3709,
+        "questionEndMs": 2271
       },
       "script": "How often do you check the inventory? — We check it twice a month.",
       "translation": "在庫はどのくらいの頻度で確認していますか？ — 月に2回確認しています。",
@@ -1057,7 +1082,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5695
+        "durationMs": 5695,
+        "questionEndMs": 2628
       },
       "script": "When will the office renovation be finished? — Probably by the end of next month.",
       "translation": "オフィスの改装はいつ終わりますか？ — おそらく来月末までには終わります。",
@@ -1098,7 +1124,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 5407
+        "durationMs": 5407,
+        "questionEndMs": 2701
       },
       "script": "Which vendor supplies our office furniture? — We usually order from Grantline Supplies.",
       "translation": "どの業者が私たちのオフィス家具を納入していますか？ — 通常はGrantline Suppliesに発注しています。",
@@ -1139,7 +1166,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 4780
+        "durationMs": 4780,
+        "questionEndMs": 2176
       },
       "script": "Did the audit find any problems? — No, everything looked fine.",
       "translation": "監査で問題は見つかりましたか？ — いいえ、全て問題ありませんでした。",
@@ -1180,7 +1208,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4571
+        "durationMs": 4571,
+        "questionEndMs": 2335
       },
       "script": "Why do you need an extension on the deadline? — We are still waiting on client feedback.",
       "translation": "なぜ締切の延長が必要なのですか？ — まだクライアントからのフィードバック待ちだからです。",
@@ -1221,7 +1250,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5277
+        "durationMs": 5277,
+        "questionEndMs": 2404
       },
       "script": "Who is handling the real estate sale? — A local agency is handling it.",
       "translation": "その不動産売却は誰が担当していますか？ — 地元の代理店が担当しています。",
@@ -1262,7 +1292,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4232
+        "durationMs": 4232,
+        "questionEndMs": 2392
       },
       "script": "How much are the utility bills this month? — A bit higher than usual.",
       "translation": "今月の公共料金はどのくらいですか？ — いつもより少し高めです。",
@@ -1303,7 +1334,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 6060
+        "durationMs": 6060,
+        "questionEndMs": 3202
       },
       "script": "Which company is providing the catering for the event? — Riverside Catering, as usual.",
       "translation": "どの会社がそのイベントのケータリングを担当していますか？ — いつも通りRiverside Cateringです。",
@@ -1344,7 +1376,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 5146
+        "durationMs": 5146,
+        "questionEndMs": 2586
       },
       "script": "Did the server malfunction again last night? — Yes, but the technician already fixed it.",
       "translation": "昨夜またサーバーが故障したのですか？ — はい、でも技術者がもう直してくれました。",
@@ -1385,7 +1418,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5303
+        "durationMs": 5303,
+        "questionEndMs": 2493
       },
       "script": "How many occupants are currently in the building? — Around two hundred, I think.",
       "translation": "現在この建物には何人の入居者がいますか？ — 200人くらいだと思います。",
@@ -1426,7 +1460,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4754
+        "durationMs": 4754,
+        "questionEndMs": 2934
       },
       "script": "How long does the freight take to arrive by sea? — Usually about three weeks.",
       "translation": "船便の貨物はどのくらいで届きますか？ — 通常は3週間ほどです。",
@@ -1467,7 +1502,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 6400
+        "durationMs": 6400,
+        "questionEndMs": 3455
       },
       "script": "Why did the company decide to outsource its customer service? — To reduce operating costs.",
       "translation": "なぜ会社は顧客サービスを外部委託することにしたのですか？ — 運営コストを削減するためです。",
@@ -1508,7 +1544,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7576
+        "durationMs": 7576,
+        "questionEndMs": 2692
       },
       "script": "Has the athlete signed the endorsement deal yet? — Not yet, they’re still negotiating.",
       "translation": "その選手はもう広告契約にサインしましたか？ — まだです、まだ交渉中です。",
@@ -1549,7 +1586,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8829
+        "durationMs": 8829,
+        "questionEndMs": 2846
       },
       "script": "Where can I pick up a brochure about the new product? — There’s a stack at the front desk.",
       "translation": "新製品のパンフレットはどこで受け取れますか？ — 受付にたくさん置いてあります。",
@@ -1590,7 +1628,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 5486
+        "durationMs": 5486,
+        "questionEndMs": 2609
       },
       "script": "Who are the key stakeholders in this project? — Mainly the investors and the city council.",
       "translation": "このプロジェクトの主な利害関係者は誰ですか？ — 主に投資家と市議会です。",
@@ -1631,7 +1670,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 6478
+        "durationMs": 6478,
+        "questionEndMs": 2887
       },
       "script": "How large is the new manufacturing facility? — It covers about ten thousand square meters.",
       "translation": "新しい製造施設はどのくらいの広さですか？ — 約1万平方メートルあります。",
@@ -1672,7 +1712,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7837
+        "durationMs": 7837,
+        "questionEndMs": 3198
       },
       "script": "Does the company carry liability insurance? — Yes, it’s required for all our contracts.",
       "translation": "会社は賠償責任保険に加入していますか？ — はい、全ての契約で必須です。",
@@ -1713,7 +1754,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5851
+        "durationMs": 5851,
+        "questionEndMs": 3245
       },
       "script": "What do the sales projections look like for next quarter? — Quite optimistic, actually.",
       "translation": "来四半期の売上予測はどのような感じですか？ — 実はかなり楽観的です。",
@@ -1754,7 +1796,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4650
+        "durationMs": 4650,
+        "questionEndMs": 3393
       },
       "script": "When did she earn her project management certification? — Just last year.",
       "translation": "彼女はいつプロジェクトマネジメントの認定を取得したのですか？ — つい昨年です。",
@@ -1795,7 +1838,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 4780
+        "durationMs": 4780,
+        "questionEndMs": 2022
       },
       "script": "When does the office lease expire? — At the end of this calendar year.",
       "translation": "オフィスの賃貸借契約はいつ切れますか？ — 今年の年末です。",
@@ -1836,7 +1880,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 5277
+        "durationMs": 5277,
+        "questionEndMs": 2687
       },
       "script": "Who is your direct supervisor these days? — Ms. Alvarez, since last month.",
       "translation": "最近のあなたの直属の上司は誰ですか？ — 先月からAlvarezさんです。",
@@ -1877,7 +1922,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5303
+        "durationMs": 5303,
+        "questionEndMs": 3132
       },
       "script": "Did the inspector find any defects in the batch? — Just a few minor ones.",
       "translation": "検査官はそのロットに欠陥を見つけましたか？ — 軽微なものが少しだけありました。",
@@ -1918,7 +1964,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 5538
+        "durationMs": 5538,
+        "questionEndMs": 3017
       },
       "script": "What is our strategy for entering the Asian market? — We plan to partner with a local distributor.",
       "translation": "アジア市場に参入する戦略は何ですか？ — 現地の販売代理店と提携する予定です。",
@@ -1959,7 +2006,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5642
+        "durationMs": 5642,
+        "questionEndMs": 2637
       },
       "script": "Who will negotiate the price with the supplier? — Our procurement manager will handle it.",
       "translation": "仕入れ先との価格交渉は誰が行いますか？ — 調達マネージャーが担当します。",
@@ -2000,7 +2048,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 4598
+        "durationMs": 4598,
+        "questionEndMs": 2795
       },
       "script": "How many branches does the bank have in this city? — About a dozen, I think.",
       "translation": "この街に銀行の支店はいくつありますか？ — 12店舗くらいだと思います。",
@@ -2041,7 +2090,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 5172
+        "durationMs": 5172,
+        "questionEndMs": 2440
       },
       "script": "When will the acquisition be finalized? — By the end of the third quarter.",
       "translation": "その買収はいつ最終合意に至りますか？ — 第3四半期の終わりまでには合意する見込みです。",

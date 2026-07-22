@@ -125,6 +125,8 @@ export async function synthesizeDraftsAudio(
             accent,
             voice: result.voice,
             durationMs: result.durationMs,
+            // 質問部終端（正答リーク対策）。synthesizeDialogueが実測して返す
+            questionEndMs: result.questionEndMs,
           },
         },
       })
