@@ -2,6 +2,18 @@
 
 **最終更新: 2026-07-23**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 2026-07-23: T-107読解R-1コンテンツの配信組込（task/T-107-reading-ship）
+
+H-R1（発起人によるT-107読解在庫の人手レビュー。3並列AIクロスレビュー→must-fix12件修正→独立再検証で「approve可」判定という経緯に基づき2026-07-23承認）を受け、`content/drafts/text-passage-p6-s.jsonl`・`text-passage-p7-single-s.jsonl`（crossreview-fixes節で修正済みの版）を実配布パックとして組み込んだ。フェーズR-1（T-103〜T-107）が完了し、通勤セッション内でPart6・Part7単一読解が解けRレートに反映される状態になった。
+
+- **承認記録（監査証跡）**: 両review.tsv（`content/drafts/text-passage-p6-s.review.tsv`・`text-passage-p7-single-s.review.tsv`）のstatus列を発起人承認に基づき全行「採用」で記入し、`beb review-import`で取込んだ。Part6 30件中30件採用・0件破棄、Part7単一40件中40件採用・0件破棄。accepted.jsonl/rejected.jsonlは監査証跡としてのみ生成し、実ビルド（`beb build`）は`loadPackSources`が`PACK_DEFINITIONS`の`draftPath`経由で元のドラフトjsonlを直接読む既存方式のまま（`content/drafts/text-passage-*.jsonl`が読み込み対象。accepted.jsonlは消費されない）。
+- **PACK_DEFINITIONS追加**（`packages/cli/src/build.ts`）: `READING_R1_PACK_DEFINITIONS`として2パックを追加（`pack-reading-p6-s-001`「Part6読解 30セット120問」・`pack-reading-p7single-s-001`「Part7単一読解 40セット118問」）。license=`internal-original`。originは実施経緯（エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認2026-07-23）をそのまま記録（人手目視の主張はしていない）。targetLevelは両パックとも`[600, 730]`（判断に迷う場合の既定値。両ドラフトのdifficulty分布がd2〜d4中心でd1（入門）を含まずd4の比率もPart6=2/30・Part7単一=9/40と少数のため、既存の「730帯」命名パック（例: `pack-vocab-a-001`）と同水準の帯として妥当と判断）。
+- **build.tsの欠陥修正（本タスクで発見）**: `validateExplanationQuality`が`audio_set`のみをsubQuestion単位検証の対象にしており、同じsubQuestions構造を持つ`text_passage`（T-103で追加）を判定条件に含めていなかったため、`text_passage`の全設問がトップレベル`q.explanation`（存在しない）を見て「explanationが空」エラーになり読解2パックのビルドが即時失敗した。`q.format === 'audio_set' || q.format === 'text_passage'`に修正し、回帰テスト（`build.test.ts`「text_passageはsubQuestion単位で検証する」）を追加。
+- **packages/appへの最小限の追随（当初「app実装コードは変更しない」想定からの逸脱）**: `App.tsx`の`PACK_IDS`（`content/manifest.json`と一致させる手動複製リスト。`loadQuestionPool`が実際にfetchするパックIDの正本）を更新しないと、2パックはmanifestに載っても**アプリが実行時に一切fetchせず学習に出現しない**ため、配信組込の目的を達成できない。`App.test.tsx`の既存検出テスト（「content/manifest.jsonのパック一覧と一致する」）に従い2件追加。これはPACK_DEFINITIONSと同種のデータ複製の同期であり、エンジン・UIの挙動変更ではないため実施した。
+- **ビルド結果**: `content/packs/pack-reading-p6-s-001.json`・`pack-reading-p7single-s-001.json`を生成、`content/manifest.json`が18→**20パック**に更新（新規パックのcontentLint警告0件。既存109件の警告は変化なし）。
+- **検証**: ルート`npm run lint`・`npm run format:check`（`.claude/settings.local.json`のみ既知の対象外警告）通過。`npm run build`（4ワークスペース）通過。`npm test`はapp側で既知のワーカータイムアウト（並行worktree環境要因）が出たため`--no-file-parallelism`で再実行し全通過を確認（api・cli・review-ui・shared-schema・app計757+338+94+15+αを含む全ワークスペース）。cli 338件（テスト追加2件）、app 757件（`App.test.tsx`のPACK_IDS一致テストが新パック検知で機能したことを確認済み）。
+- **新規npm依存なし**。engine・platform・shared-schema・packages/apiのロジックは変更していない（build.tsはCLIのビルド検証ロジックのバグ修正のみ）。
+
 ## 2026-07-23: T-107読解コンテンツのAIクロスレビューと修正（task/T-107-crossreview-fixes）
 
 T-107で生成した読解在庫（Part6 30セット120設問=`part6PassagesS.ts`・Part7単一 40セット118設問=`part7SinglePassagesS.ts`）へのAIクロスレビュー指摘を修正した（T-84クロスレビュー修正=2026-07-20節と同じ運用。音声を持たないテキストのみの修正）。修正後に `beb generate text_passage_p6` / `text_passage_p7_single` → 選択肢シャッフル → `beb review-export` で `content/drafts/` のjsonl・review.tsvを再生成し整合させた。**PACK_DEFINITIONS未追加＝配信対象外の状態は不変**（人手レビューゲート=ADR 0006 判断5は引き続き有効。H-R1の人手レビューはこの修正後ドラフトに対して行う）。
@@ -127,7 +139,7 @@ M4着手第一弾。22の5節T-123シートに基づき、shared-schemaへM4契�
 
 この対立を「読解をセッション長で階層化する」折衷案で解く方針を発起人が承認した（2026-07-21）。Part6・Part7単一は通常セッション（7分/15分）に組み込み、Part7複数パッセージだけを新規「じっくり読解」モード（着席・自宅想定）に隔離する。判断は [ADR 0006](adr/0006-読解パートの完成方針.md)、自走タスクシートは [18_読解パート実装計画](18_読解パート実装計画.md)（T-103〜T-110・判断J-51〜J-53・人間タスクH-R1/H-R2）に記録した。
 
-- **フェーズR-1（T-103〜T-107）**: Part6・Part7単一。完了で通勤セッション内の読解が可能になりRレートに反映される。
+- **フェーズR-1（T-103〜T-107）✅ 完了（2026-07-23。H-R1承認・配信組込まで完了）**: Part6・Part7単一。通勤セッション内の読解が可能になりRレートに反映される状態を達成した（詳細は本ファイル冒頭の「T-107読解R-1コンテンツの配信組込」節）。
 - **フェーズR-2（T-108〜T-110）**: Part7複数パッセージ。完了でTOEIC L&R全パート（Part1除く）が練習可能になる。
 - 判断J-51〜J-53は発起人が推奨値で一括承認（2026-07-21）。docs/18の該当節を「承認済み」に更新済み。
 - 読解コンテンツは人手レビュー必須ゲートを最初から有効化する（AIクロスレビューのみでの配信を認めない）。
