@@ -332,6 +332,9 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     fireEvent.click(fullButton)
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
     expect(audioPlayer.play).toHaveBeenCalledWith(q.audio)
+    // 解答保存パイプラインの完走を待ってから終了する（afterEachのdb.deleteと
+    // 進行中Dexieトランザクションが競合し、CIでDatabaseClosedErrorになるため）
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
   })
 
   it('冒頭再生モード（partialAudioMode）では play が durationMs 付きで呼ばれる', async () => {
