@@ -218,7 +218,34 @@ const DOGFOOD_BEGINNER_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）+ 初級追加（1）= 18パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行） */
+/**
+ * フェーズR-1・T-107で追加する読解2パック（Part6・Part7単一。docs/18_読解パート実装計画.md 3.6節・4節T-107行）。
+ * 発起人によるH-R1レビュー承認（2026-07-23。3並列AIクロスレビュー→must-fix12件修正→独立再検証で
+ * 「approve可」判定という経緯に基づく）済み。origin にレビュー実施状況を正直に記録する
+ * （3.6節「読解は人手レビュー必須ゲートを最初から有効化する」）。
+ */
+const READING_R1_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-reading-p6-s-001',
+    title: 'Part6読解 30セット120問',
+    license: 'internal-original',
+    origin:
+      'エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認 2026-07-23（T-107）',
+    targetLevel: [600, 730],
+    draftPath: 'drafts/text-passage-p6-s.jsonl',
+  },
+  {
+    id: 'pack-reading-p7single-s-001',
+    title: 'Part7単一読解 40セット118問',
+    license: 'internal-original',
+    origin:
+      'エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認 2026-07-23（T-107）',
+    targetLevel: [600, 730],
+    draftPath: 'drafts/text-passage-p7-single-s.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）+ 初級追加（1）+ 読解R-1（2）= 20パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行、docs/18_読解パート実装計画.md T-107行） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,
@@ -227,6 +254,7 @@ export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...T85_PART5_PACK_DEFINITIONS,
   ...T85_PART34_PACK_DEFINITIONS,
   ...DOGFOOD_BEGINNER_PACK_DEFINITIONS,
+  ...READING_R1_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */
@@ -276,7 +304,7 @@ export function applyCorrections(
 /**
  * explanation品質の機械検証（M2・T-63。正本: docs/13 T-63行）。
  * vocab_card/shadowingは「正解/不正解」の概念がなくexplanationを持たないため対象外。
- * audio_setはsubQuestion単位のexplanationを検証する。
+ * audio_set・text_passage（T-107で追加。Part6/7もsubQuestions構造）はsubQuestion単位で検証する。
  */
 const MIN_EXPLANATION_LENGTH = 15
 /** 「Aが正解」のように選択肢記号のみを参照し実テキストの引用が無い形式的な解説を検出する */
@@ -302,12 +330,12 @@ function checkExplanationText(id: string, explanation: string | null | undefined
   return problems
 }
 
-/** パック内の全問（audio_setはsubQuestions含む）のexplanation品質を検証する */
+/** パック内の全問（audio_set・text_passageはsubQuestions含む）のexplanation品質を検証する */
 export function validateExplanationQuality(questions: readonly Question[]): string[] {
   const problems: string[] = []
   for (const q of questions) {
     if (q.format === 'vocab_card' || q.format === 'shadowing') continue
-    if (q.format === 'audio_set') {
+    if (q.format === 'audio_set' || q.format === 'text_passage') {
       for (const sq of q.subQuestions ?? []) {
         problems.push(...checkExplanationText(`${q.id}/${sq.id}`, sq.explanation))
       }

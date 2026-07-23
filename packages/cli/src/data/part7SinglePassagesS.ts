@@ -32,7 +32,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     setId: 'p7s-001',
     difficulty: 3,
     tags: ['先読み', 'スキャン', '推論'],
-    keyVocabWords: ['candidate', 'interview'],
+    keyVocabWords: ['resume', 'interview'],
     passageKind: 'email',
     passageText:
       'Subject: Interview Invitation — Marketing Coordinator Position\n\nDear Ms. Alvarez,\n\nThank you for applying for the Marketing Coordinator position at Brightview Media. After reviewing your resume, we would like to invite you to an interview with our hiring team on Tuesday, June 10, at 2 p.m. at our downtown office. The interview will last approximately forty-five minutes and will include a short writing exercise related to social media planning. Please bring a copy of your portfolio if you have one. If this time does not work for you, please reply to this email within two business days so we can arrange an alternative. We look forward to speaking with you.\n\nBest regards,\nHiring Team, Brightview Media',
@@ -193,7 +193,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-005',
     difficulty: 3,
-    tags: ['スキャン', '語彙推測'],
+    tags: ['スキャン'],
     keyVocabWords: ['registration', 'venue', 'itinerary'],
     passageKind: 'form',
     passageText:
@@ -275,10 +275,10 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     setId: 'p7s-007',
     difficulty: 4,
     tags: ['推論', 'パラフレーズ照合', '語彙推測'],
-    keyVocabWords: ['dissatisfaction', 'compensate', 'apologize'],
+    keyVocabWords: ['refund', 'compensate', 'apologize'],
     passageKind: 'email',
     passageText:
-      "Subject: Re: Order 8834 — Damaged Item\n\nDear Mr. Owusu,\n\nThank you for letting us know about the damaged item you received in order 8834. We sincerely apologize for the dissatisfaction this has caused. After reviewing your account, we would like to compensate you in one of two ways: a full refund of the item's price, or a replacement shipped at no charge with a fifteen percent discount code for a future purchase. Please reply with your preference by Friday, and we will process it the same day. We have also flagged this order with our warehouse team so they can review the packaging process for fragile items. We value your business and hope to resolve this quickly.\n\nSincerely,\nCustomer Care Team",
+      "Subject: Re: Order 8834 — Damaged Item\n\nDear Mr. Owusu,\n\nThank you for letting us know about the damaged item you received in order 8834. We sincerely apologize for the inconvenience this has caused. After reviewing your account, we would like to compensate you in one of two ways: a full refund of the item's price, or a replacement shipped at no charge with a fifteen percent discount code for a future purchase. Please reply with your preference by Friday, and we will process it the same day. We have also flagged this order with our warehouse team so they can review the packaging process for fragile items. We value your business and hope to resolve this quickly.\n\nSincerely,\nCustomer Care Team",
     subQuestions: [
       {
         question: 'Why did the customer contact the company?',
@@ -418,7 +418,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     subQuestions: [
       {
         question: 'What are Priya Nair and Tom Fischer discussing?',
-        correctText: 'Changing the time of a client meeting',
+        correctText: 'Rescheduling a client meeting',
         distractors: [
           'Canceling a meeting with a client',
           'Preparing materials for a presentation',
@@ -457,8 +457,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-011',
     difficulty: 2,
-    tags: ['スキャン', '語彙推測'],
-    keyVocabWords: ['renewal', 'benefits'],
+    tags: ['スキャン'],
+    keyVocabWords: ['renewal', 'deadline'],
     passageKind: 'form',
     passageText:
       'MEMBERSHIP RENEWAL — INSTRUCTIONS\n\nYour annual membership with the Downtown Fitness Club expires at the end of this month. To continue enjoying your current benefits, including unlimited class access and locker rental, please complete the renewal section below and return it to the front desk by the 25th. Members who renew before the deadline will keep their current rate. Renewals submitted after the deadline will be charged the new rate that takes effect next month.',
@@ -710,7 +710,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         correctText: 'Review the presentation slides tomorrow afternoon',
         distractors: [
           'Attend the client meeting on Friday',
-          'Prepare the pricing numbers himself',
+          'Reserve a meeting room for Friday',
           'Reschedule the presentation to next week',
         ],
         explanation:
@@ -722,7 +722,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-017',
     difficulty: 3,
-    tags: ['スキャン', '語彙推測'],
+    tags: ['スキャン'],
     keyVocabWords: ['reimbursement', 'itemize'],
     passageKind: 'form',
     passageText:
@@ -917,7 +917,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         distractors: [
           "Experience managing a bank's investment portfolio",
           'Experience training new bank tellers',
-          'Experience working in customer complaints handling only',
+          'Experience handling customer complaints',
         ],
         explanation:
           '本文に"she coordinated store operations across multiple locations"と明記されている。',
@@ -939,7 +939,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   },
   {
     setId: 'p7s-022',
-    difficulty: 3,
+    difficulty: 2,
     tags: ['推論', 'スキャン'],
     keyVocabWords: ['malfunction', 'troubleshoot', 'technician'],
     passageKind: 'chat',
@@ -990,16 +990,16 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
       'VACATION REQUEST FORM — POLICY NOTICE\n\nAll vacation requests must be submitted at least two weeks in advance and approved by your supervisor before time off is confirmed. Requests submitted with less notice will only be approved in exceptional circumstances. Employees should not make non-refundable travel arrangements until they receive written approval. Vacation balances can be checked at any time through the employee portal.',
     subQuestions: [
       {
-        question: 'What must employees do before requesting time off?',
-        correctText: 'Submit the request at least two weeks in advance',
+        question: 'When must vacation requests be submitted?',
+        correctText: 'At least two weeks in advance',
         distractors: [
-          'Find a coworker to cover their duties',
-          'Complete a full year of employment',
-          "Attach a doctor's note to the request",
+          'One week in advance at the latest',
+          'By the end of each quarter',
+          'After receiving written approval',
         ],
         explanation:
-          '本文に"All vacation requests must be submitted at least two weeks in advance"と明記されている。',
-        translation: '休暇を申請する前に、従業員は何をしなければなりませんか。',
+          '本文に"All vacation requests must be submitted at least two weeks in advance"と明記されている。1週間前では遅く、四半期末や承認後の提出は本文の規定と合わない。',
+        translation: '休暇申請はいつまでに提出しなければなりませんか。',
       },
       {
         question: 'What are employees advised not to do before receiving approval?',
@@ -1065,7 +1065,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-025',
     difficulty: 4,
-    tags: ['推論', 'パラフレーズ照合', '語彙推測'],
+    tags: ['パラフレーズ照合', 'スキャン'],
     keyVocabWords: ['markup', 'consolidate'],
     passageKind: 'email',
     passageText:
@@ -1239,7 +1239,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-029',
     difficulty: 3,
-    tags: ['スキャン', '語彙推測'],
+    tags: ['スキャン'],
     keyVocabWords: ['training'],
     passageKind: 'form',
     passageText:
@@ -1286,8 +1286,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-030',
     difficulty: 3,
-    tags: ['スキャン', '推論'],
-    keyVocabWords: ['lease', 'tenant', 'premises'],
+    tags: ['スキャン', 'パラフレーズ照合'],
+    keyVocabWords: ['lease', 'tenant', 'maintenance'],
     passageKind: 'advertisement',
     passageText:
       'Office Space Available for Lease\n\nA newly renovated office suite is now available for lease in the downtown business district. The premises include three private offices, an open work area, and a shared conference room, totaling approximately 2,000 square feet. The lease term is flexible, with options ranging from one to five years. Interested tenants should contact the property manager to schedule a viewing. Utilities and building maintenance are included in the monthly rate.',
@@ -1333,7 +1333,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-031',
     difficulty: 4,
-    tags: ['先読み', 'スキャン', '推論'],
+    tags: ['先読み', 'スキャン'],
     keyVocabWords: ['contractor', 'proposal'],
     passageKind: 'email',
     passageText:
@@ -1437,7 +1437,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-033',
     difficulty: 4,
-    tags: ['推論', 'パラフレーズ照合', '語彙推測'],
+    tags: ['推論', 'パラフレーズ照合'],
     keyVocabWords: ['headquarters', 'lease', 'infrastructure'],
     passageKind: 'article',
     passageText:
@@ -1543,7 +1543,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-035',
     difficulty: 3,
-    tags: ['スキャン', '語彙推測', '推論'],
+    tags: ['スキャン', '推論'],
     keyVocabWords: ['survey', 'satisfaction', 'feedback'],
     passageKind: 'form',
     passageText:
@@ -1597,7 +1597,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-036',
     difficulty: 3,
-    tags: ['スキャン', '推論'],
+    tags: ['スキャン'],
     keyVocabWords: ['warehouse', 'inventory', 'shipment'],
     passageKind: 'advertisement',
     passageText:
@@ -1632,7 +1632,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         distractors: [
           'Immediately upon hiring',
           'After one year of employment',
-          'Only for full-time managers',
+          'After the two-week training period',
         ],
         explanation: '本文に"health benefits after ninety days of employment"と明記されている。',
         translation: '健康保険の福利厚生はいつから始まりますか。',
@@ -1642,7 +1642,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
   {
     setId: 'p7s-037',
     difficulty: 4,
-    tags: ['推論', 'パラフレーズ照合', '語彙推測'],
+    tags: ['推論', 'パラフレーズ照合'],
     keyVocabWords: ['invoice', 'reconcile', 'apologize'],
     passageKind: 'email',
     passageText:

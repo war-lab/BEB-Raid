@@ -174,6 +174,35 @@ describe('validateExplanationQuality（M2・T-63）', () => {
   it('妥当なexplanationは問題なしと判定する', () => {
     expect(validateExplanationQuality([part2Question()])).toEqual([])
   })
+
+  // T-107回帰: text_passage（Part6/7）もaudio_set同様subQuestions構造だが、
+  // buildPack側の判定にformatを追加し忘れるとq.explanation（存在しない）を見て
+  // 常にエラー無しと誤判定する（またはトップレベル欠落として誤検出する）バグを防ぐ
+  it('text_passageはsubQuestion単位で検証する', () => {
+    const question: Question = {
+      id: 'p6-test',
+      part: 6,
+      format: 'text_passage',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+      passages: [{ id: 'p6-test-doc1', kind: 'email', text: 'Subject: Test [[1]]' }],
+      subQuestions: [
+        {
+          id: 'p6-test-q1',
+          question: 'Which word best fits blank (1)?',
+          choices: [
+            { key: 'A', text: 'submit' },
+            { key: 'B', text: 'cancel' },
+          ],
+          answer: 'A',
+          explanation: '',
+        },
+      ],
+    }
+    const problems = validateExplanationQuality([question])
+    expect(problems.some((p) => p.includes('p6-test-q1'))).toBe(true)
+  })
 })
 
 describe('buildAllPacks', () => {

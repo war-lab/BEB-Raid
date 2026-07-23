@@ -1146,21 +1146,99 @@ describe('build（T-32）', () => {
       JSON.stringify(part34S3Draft) + '\n',
       'utf-8',
     )
+
+    // T-107: 読解R-1（Part6・Part7単一）。音声を持たないためaudioディレクトリ追加は不要
+    const textPassageP6Draft: GeneratedItemDraft = {
+      id: 'p6-submit',
+      kind: 'text_passage',
+      preview: 'Part6テスト',
+      payload: {
+        id: 'p6-submit',
+        part: 6,
+        format: 'text_passage',
+        difficulty: 2,
+        tags: [],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        passages: [
+          {
+            id: 'p6-submit-doc1',
+            kind: 'email',
+            text: 'Subject: Report\n\nPlease [[1]] the report by Friday.',
+          },
+        ],
+        subQuestions: [
+          {
+            id: 'p6-submit-q1',
+            question: 'Choose the best word for blank (1).',
+            choices: [
+              { key: 'A', text: 'submit' },
+              { key: 'B', text: 'cancel' },
+            ],
+            answer: 'A',
+            explanation: '文脈上、報告書を「提出する」submitが正しい。',
+            translation: '空所(1)に最も適切な語を選びなさい。',
+          },
+        ],
+      },
+    }
+    const textPassageP7SingleDraft: GeneratedItemDraft = {
+      id: 'p7s-submit',
+      kind: 'text_passage',
+      preview: 'Part7単一テスト',
+      payload: {
+        id: 'p7s-submit',
+        part: 7,
+        format: 'text_passage',
+        difficulty: 2,
+        tags: [],
+        keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+        passages: [
+          {
+            id: 'p7s-submit-doc1',
+            kind: 'notice',
+            text: 'NOTICE: All staff must submit the report by Friday.',
+          },
+        ],
+        subQuestions: [
+          {
+            id: 'p7s-submit-q1',
+            question: 'What must staff do by Friday?',
+            choices: [
+              { key: 'A', text: 'Submit the report' },
+              { key: 'B', text: 'Attend a meeting' },
+            ],
+            answer: 'A',
+            explanation: '通知に金曜までに報告書を提出するよう書かれている。',
+            translation: '社員は金曜までに何をしなければなりませんか。',
+          },
+        ],
+      },
+    }
+    await writeFile(
+      join(dir, 'drafts/text-passage-p6-s.jsonl'),
+      JSON.stringify(textPassageP6Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/text-passage-p7-single-s.jsonl'),
+      JSON.stringify(textPassageP7SingleDraft) + '\n',
+      'utf-8',
+    )
   })
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('18パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1）', async () => {
+  it('20パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('18パック')
+    expect(output).toContain('20パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(18)
+    expect(manifest.packs).toHaveLength(20)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -1180,6 +1258,8 @@ describe('build（T-32）', () => {
       'pack-p5-s-003',
       'pack-p34-s-003',
       'pack-vocab-s-002',
+      'pack-reading-p6-s-001',
+      'pack-reading-p7single-s-001',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)

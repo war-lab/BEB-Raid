@@ -41,7 +41,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-001',
     difficulty: 2,
-    tags: ['品詞', '語彙推測'],
+    tags: ['動詞の形', '接続詞vs前置詞'],
     keyVocabWords: ['facility', 'renovation'],
     passageKind: 'email',
     passageText:
@@ -88,7 +88,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-002',
     difficulty: 2,
-    tags: ['動詞の形', '語彙推測'],
+    tags: ['動詞の形', '接続詞vs前置詞'],
     keyVocabWords: ['maintenance', 'inspection'],
     passageKind: 'notice',
     passageText:
@@ -136,7 +136,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-003',
     difficulty: 3,
-    tags: ['接続詞vs前置詞', '語彙推測'],
+    tags: ['接続詞vs前置詞', '動詞の形'],
     keyVocabWords: ['expense', 'reimbursement', 'deadline'],
     passageKind: 'memo',
     passageText:
@@ -183,7 +183,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-004',
     difficulty: 2,
-    tags: ['前置詞コロケーション', '語彙推測'],
+    tags: ['前置詞コロケーション', '動詞の形'],
     keyVocabWords: ['upgrade', 'network'],
     passageKind: 'email',
     passageText:
@@ -231,7 +231,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-005',
     difficulty: 3,
-    tags: ['代名詞・関係詞', '語彙推測'],
+    tags: ['代名詞・関係詞', '接続詞vs前置詞'],
     keyVocabWords: ['conference', 'venue', 'itinerary'],
     passageKind: 'email',
     passageText:
@@ -256,9 +256,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'connector',
         correctText: 'If',
-        distractors: ['Unless', 'Whereas', 'Provided'],
+        distractors: ['Unless', 'Whereas', 'In case of'],
         explanation:
-          '「もし既に登録済みなら」という条件を表すIfが最も自然。Unlessは否定条件、Whereasは対比、Providedは条件を表せるが直後にthatを伴わない用法はやや不自然でここではIfが最適。',
+          '直後に主語+動詞の節が続き「もし既に登録済みなら」という条件を表すIfが適切。Unlessは否定条件で意味が逆になり、Whereasは対比を表し、In case ofは前置詞句で節を続けられない。',
         translation: '既に登録済みの方は、食事の希望が最新であるか再確認してください。',
       },
       {
@@ -278,7 +278,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-006',
     difficulty: 3,
-    tags: ['比較', '語彙推測'],
+    tags: ['比較', '動詞の形'],
     keyVocabWords: ['authorize'],
     passageKind: 'notice',
     passageText:
@@ -320,7 +320,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The security team hosts a training session every spring.',
         ],
         explanation:
-          '直前の文がバッジ更新の案内であるため、紛失・破損時の報告手順が自然に続く。他の3文はバッジ管理と直接関係しない。',
+          '直後の文がバッジの更新場所の案内であるため、その前に紛失・破損時の報告手順を置くとバッジ管理の話題として自然につながる。他の3文はバッジ管理と直接関係しない。',
         translation: '紛失または破損したバッジは、直ちに警備担当者に報告してください。',
       },
     ],
@@ -328,7 +328,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-007',
     difficulty: 2,
-    tags: ['品詞', '語彙推測'],
+    tags: ['品詞', '前置詞コロケーション'],
     keyVocabWords: ['reservation'],
     passageKind: 'memo',
     passageText:
@@ -346,9 +346,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'vocab',
         correctText: 'per',
-        distractors: ['every', 'each', 'within'],
+        distractors: ['within', 'among', 'upon'],
         explanation:
-          '「月ごとに」という意味を表す前置詞はper monthが自然。every/eachは形容詞的でこの位置の前置詞としては不適、withinは範囲を表し意味が合わない。',
+          '「月ごとに」という意味を表す前置詞はper monthが定型。withinは「〜以内に」で意味が合わず、amongは複数名詞を取る前置詞、uponは「〜の上に・〜次第」でいずれもこの文脈に合わない。',
         translation: '各部署は月ごとに同数の予約枠を受け取ります。',
       },
       {
@@ -376,11 +376,11 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-008',
     difficulty: 3,
-    tags: ['動詞の形', '語彙推測'],
+    tags: ['動詞の形', '前置詞コロケーション'],
     keyVocabWords: ['invoice', 'reconcile'],
     passageKind: 'email',
     passageText:
-      'Subject: Invoice Discrepancy — Order 4482\n\nDear Ms. Patel,\n\nWe [[1]] your invoice for order 4482 and noticed the total does not match our purchase order. Our records show a quantity of 200 units, while the invoice [[2]] 250 units. Could you please reconcile this difference and send a corrected invoice [[3]] this week? [[4]] We would like to complete payment before the end of the month.',
+      'Subject: Invoice Discrepancy — Order 4482\n\nDear Ms. Patel,\n\nWe [[1]] your invoice for order 4482 and noticed the total does not match our purchase order. Our records show a quantity of 200 units, while the invoice [[2]] 250 units. Could you please reconcile this difference and send a corrected invoice [[3]] the end of this week? [[4]] We would like to complete payment before the end of the month.',
     subQuestions: [
       {
         kind: 'grammar',
@@ -405,7 +405,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
         distractors: ['until', 'since', 'during'],
         explanation:
           '「今週末までに」という期限を表す前置詞はbyが適切。untilは継続の終点、sinceは起点、duringは期間中を表し、いずれも期限の意味には合わない。',
-        translation: 'この差異を確認し、今週中に修正した請求書を送っていただけますか。',
+        translation: 'この差異を確認し、今週末までに修正した請求書を送っていただけますか。',
       },
       {
         kind: 'insertion',
@@ -423,8 +423,8 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   },
   {
     setId: 'p6-009',
-    difficulty: 4,
-    tags: ['接続詞vs前置詞', '語彙推測'],
+    difficulty: 3,
+    tags: ['接続詞vs前置詞', '動詞の形'],
     keyVocabWords: ['workforce', 'compliance'],
     passageKind: 'memo',
     passageText:
@@ -473,7 +473,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-010',
     difficulty: 2,
-    tags: ['語彙推測', '前置詞コロケーション'],
+    tags: ['前置詞コロケーション', '接続詞vs前置詞'],
     keyVocabWords: ['recycling', 'sustainable'],
     passageKind: 'notice',
     passageText:
@@ -522,7 +522,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-011',
     difficulty: 3,
-    tags: ['語彙推測', '動詞の形'],
+    tags: ['動詞の形'],
     keyVocabWords: ['catering'],
     passageKind: 'email',
     passageText:
@@ -540,9 +540,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'grammar',
         correctText: 'will remain',
-        distractors: ['remains', 'remained', 'remaining'],
+        distractors: ['remain', 'remaining', 'to remain'],
         explanation:
-          '同じ文脈で今後の状態を述べているためwill remainが適切。remainsは現在の状態、remainedは過去、remainingは動名詞で単独動詞として機能しない。',
+          '来週月曜以降の今後の状態を述べているためwill remainが適切。remainは三人称単数の主語The salad barと一致せず、remaining/to remainは定形動詞にならないため文が成立しない。',
         translation: 'サラダバーは毎日利用可能で、ホットミールの選択肢は週替わりになります。',
       },
       {
@@ -570,8 +570,8 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   },
   {
     setId: 'p6-012',
-    difficulty: 4,
-    tags: ['代名詞・関係詞', '語彙推測'],
+    difficulty: 3,
+    tags: ['代名詞・関係詞'],
     keyVocabWords: ['initiative', 'coordinate'],
     passageKind: 'article',
     passageText:
@@ -619,7 +619,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-013',
     difficulty: 3,
-    tags: ['接続詞vs前置詞', '語彙推測'],
+    tags: ['接続詞vs前置詞', '品詞'],
     keyVocabWords: ['vendor', 'renewal', 'contract'],
     passageKind: 'email',
     passageText:
@@ -668,7 +668,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-014',
     difficulty: 2,
-    tags: ['語彙推測', '品詞'],
+    tags: ['品詞', '前置詞コロケーション'],
     keyVocabWords: ['orientation', 'training'],
     passageKind: 'email',
     passageText:
@@ -721,7 +721,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
     keyVocabWords: ['performance', 'evaluation', 'appraisal'],
     passageKind: 'memo',
     passageText:
-      'MEMO\nTo: All Managers\nFrom: Human Resources\n\nAnnual performance evaluations are [[1]] than they were last year, so please review the updated appraisal form before your meetings. Managers are asked to schedule the evaluation [[2]] two weeks before the deadline to allow time for follow-up discussions. Employees should receive their appraisal form [[3]] at least three days in advance so they can prepare. [[4]] Completed forms must be submitted to HR by the end of the month.',
+      'MEMO\nTo: All Managers\nFrom: Human Resources\n\nAnnual performance evaluations are [[1]] than they were last year, so please review the updated appraisal form before your meetings. Managers are asked to schedule the evaluation [[2]] two weeks before the deadline to allow time for follow-up discussions. Employees should receive their appraisal form [[3]] three days in advance so they can prepare. [[4]] Completed forms must be submitted to HR by the end of the month.',
     subQuestions: [
       {
         kind: 'grammar',
@@ -735,9 +735,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'connector',
         correctText: 'at least',
-        distractors: ['at most', 'no later than', 'as soon as'],
+        distractors: ['at most', 'as long as', 'as soon as'],
         explanation:
-          '「少なくとも2週間前に」という意味ではat leastが適切。at mostは「最大でも」で意味が逆、no later thanは期限の上限を表しやや不自然、as soon asは接続詞でここでは構造が合わない。',
+          '「少なくとも2週間前に」という意味ではat leastが適切。at mostは「最大でも」で意味が逆になり、as long asは「〜である限り」で期間の下限を表せず、as soon asは「〜するとすぐ」で名詞句の前に置けない。',
         translation: '評価面談は締切の2週間前には設定し、フォローアップの時間を確保してください。',
       },
       {
@@ -745,8 +745,8 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
         correctText: 'no later than',
         distractors: ['as soon as', 'in case of', 'now that'],
         explanation:
-          '「〜より遅れないように」という期限を表すno later thanが適切。as soon asは接続詞、in case ofは前置詞で意味が異なり、now thatは理由を表す接続詞でここでは合わない。',
-        translation: '従業員が準備できるよう、評価フォームは少なくとも3日前までに渡してください。',
+          '「遅くとも〜までに」という期限を表すno later thanが適切。as soon asは「〜するとすぐ」で期限を表せず、in case ofは「〜の場合に備えて」で意味が異なり、now thatは理由を表す接続詞でここでは合わない。',
+        translation: '従業員が準備できるよう、評価フォームは遅くとも3日前までに渡してください。',
       },
       {
         kind: 'insertion',
@@ -766,7 +766,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-016',
     difficulty: 2,
-    tags: ['語彙推測', '動詞の形'],
+    tags: ['動詞の形'],
     keyVocabWords: ['feedback', 'survey'],
     passageKind: 'email',
     passageText:
@@ -798,7 +798,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       },
       {
         kind: 'insertion',
-        correctText: 'The drawing winner will be announced by email in early next month.',
+        correctText: 'The drawing winner will be announced by email early next month.',
         distractors: [
           'Our store recently opened a new location downtown.',
           'Shipping delays this season affected several popular items.',
@@ -813,7 +813,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-017',
     difficulty: 3,
-    tags: ['接続詞vs前置詞', '語彙推測'],
+    tags: ['接続詞vs前置詞', '前置詞コロケーション'],
     keyVocabWords: ['technician'],
     passageKind: 'notice',
     passageText:
@@ -862,7 +862,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-018',
     difficulty: 3,
-    tags: ['品詞', '語彙推測'],
+    tags: ['品詞', '動詞の形'],
     keyVocabWords: ['branch', 'headquarters'],
     passageKind: 'article',
     passageText:
@@ -909,7 +909,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-019',
     difficulty: 2,
-    tags: ['動詞の形', '語彙推測'],
+    tags: ['動詞の形', '接続詞vs前置詞'],
     keyVocabWords: ['itinerary', 'reimbursement'],
     passageKind: 'email',
     passageText:
@@ -955,8 +955,8 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   },
   {
     setId: 'p6-020',
-    difficulty: 4,
-    tags: ['前置詞コロケーション', '語彙推測'],
+    difficulty: 3,
+    tags: ['前置詞コロケーション', '品詞'],
     keyVocabWords: ['recall', 'inspection'],
     passageKind: 'notice',
     passageText:
@@ -965,9 +965,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'connector',
         correctText: 'of',
-        distractors: ['for', 'on', 'about'],
+        distractors: ['with', 'on', 'about'],
         explanation:
-          '「〜のリコール」という意味ではrecall ofが自然な前置詞コロケーション。for/on/aboutはこの用法では一般的でない。',
+          '「〜のリコール」という意味ではrecall ofが自然な前置詞コロケーション。with/on/aboutはこの用法では使えない。',
         translation:
           '定期検査で見つかった製造上の欠陥のため、Model X200充電器の自主リコールを実施しました。',
       },
@@ -1004,7 +1004,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-021',
     difficulty: 2,
-    tags: ['品詞', '語彙推測'],
+    tags: ['品詞', '動詞の形'],
     keyVocabWords: ['renewal'],
     passageKind: 'notice',
     passageText:
@@ -1053,7 +1053,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-022',
     difficulty: 3,
-    tags: ['語彙推測', '接続詞vs前置詞'],
+    tags: ['接続詞vs前置詞', '前置詞コロケーション'],
     keyVocabWords: ['discount', 'merchandise', 'stationery'],
     passageKind: 'advertisement',
     passageText:
@@ -1070,9 +1070,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'connector',
         correctText: 'for',
-        distractors: ['at', 'to', 'on'],
+        distractors: ['at', 'to', 'of'],
         explanation:
-          '「次回来店のための」という意味ではcoupon forが自然な前置詞コロケーション。at/to/onはこの意味を表さない。',
+          '「次回来店のための」という意味ではcoupon forが自然な前置詞コロケーション。at/to/ofはこの意味を表さない。',
         translation:
           '50ドル以上お買い上げのお客様には、次回来店用の追加割引クーポンを差し上げます。',
       },
@@ -1101,7 +1101,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-023',
     difficulty: 3,
-    tags: ['動詞の形', '語彙推測'],
+    tags: ['動詞の形'],
     keyVocabWords: ['reconcile', 'invoice'],
     passageKind: 'memo',
     passageText:
@@ -1149,8 +1149,8 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-024',
     difficulty: 2,
-    tags: ['語彙推測', '前置詞コロケーション'],
-    keyVocabWords: ['orientation', 'facility'],
+    tags: ['前置詞コロケーション'],
+    keyVocabWords: ['equipment', 'facility'],
     passageKind: 'notice',
     passageText:
       'NOTICE: Gym Facility Now Open to All Staff\n\nWe are pleased to announce that the company gym facility on the second floor is now open [[1]] all employees free of charge. A short orientation session is required [[2]] first-time users to learn about the equipment and safety rules. Sessions are offered every weekday [[3]] 8 a.m. and 6 p.m. [[4]] Towels and water bottles are available for purchase at the front desk.',
@@ -1166,9 +1166,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'connector',
         correctText: 'for',
-        distractors: ['of', 'to', 'with'],
+        distractors: ['at', 'about', 'with'],
         explanation:
-          '「〜のために必要」という意味ではrequired forが自然な前置詞コロケーション。of/to/withはこの意味を表さない。',
+          '「初回利用者には〜が必要」という意味ではrequired forが自然な前置詞コロケーション。at/about/withはこの意味を表さない。',
         translation:
           '初めて利用する方は、器具や安全ルールを学ぶための短いオリエンテーションが必要です。',
       },
@@ -1196,37 +1196,37 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   },
   {
     setId: 'p6-025',
-    difficulty: 4,
-    tags: ['代名詞・関係詞', '語彙推測'],
+    difficulty: 3,
+    tags: ['動詞の形', '接続詞vs前置詞'],
     keyVocabWords: ['sustainability', 'eco-friendly'],
     passageKind: 'article',
     passageText:
-      "Company Launches Sustainability Initiative\n\nGreenline Manufacturing announced a new sustainability program [[1]] aims to reduce its carbon footprint by thirty percent over the next five years. The plan, [[2]] was developed with input from employees across all departments, includes switching to eco-friendly packaging materials. Employees [[3]] submitted ideas during the planning phase will be recognized at next month's company meeting. [[4]] The company expects the changes to also lower long-term operating costs.",
+      "Company Launches Sustainability Initiative\n\nGreenline Manufacturing announced a new sustainability program that [[1]] to reduce its carbon footprint by thirty percent over the next five years. The plan, which [[2]] with input from employees across all departments, includes switching to eco-friendly packaging materials. Employees who submitted ideas [[3]] the planning phase will be recognized at next month's company meeting. [[4]] The company expects the changes to also lower long-term operating costs.",
     subQuestions: [
       {
         kind: 'grammar',
-        correctText: 'that',
-        distractors: ['who', 'whom', 'whose'],
+        correctText: 'aims',
+        distractors: ['aim', 'aiming', 'to aim'],
         explanation:
-          '先行詞a new sustainability program（物）を修飾する関係代名詞なのでthatが適切。who/whomは人を先行詞にし、whoseは所有格でここでは使えない。',
+          '関係代名詞thatの先行詞a new sustainability programは三人称単数なのでaimsが適切。aimは主語と一致せず、aiming/to aimは定形動詞にならないため文が成立しない。',
         translation:
           'Greenline製造は、今後5年間で二酸化炭素排出量を30%削減することを目指す新しい持続可能性プログラムを発表しました。',
       },
       {
         kind: 'grammar',
-        correctText: 'which',
-        distractors: ['what', 'that', 'when'],
+        correctText: 'was developed',
+        distractors: ['developing', 'to develop', 'has develop'],
         explanation:
-          'コンマで区切られた非限定用法の関係代名詞にはwhichを使う。thatは非限定用法では使えず、whatは先行詞を取らず、whenは時を表す関係副詞でこの文脈に合わない。',
+          '主語The planは策定される側なので受動態was developedが適切。developing/to developは定形動詞にならず、has developは文法的に誤り（正しくはhas developed）。',
         translation:
           'この計画は全部署の従業員の意見を取り入れて策定され、環境に配慮した包装材への切り替えを含んでいます。',
       },
       {
-        kind: 'grammar',
-        correctText: 'who',
-        distractors: ['whom', 'which', 'whose'],
+        kind: 'connector',
+        correctText: 'during',
+        distractors: ['while', 'between', 'until'],
         explanation:
-          '先行詞Employees（人）を主語として修飾する関係代名詞はwho。whomは目的格、whichは物を先行詞にし、whoseは所有格でこの文には合わない。',
+          '直後が名詞句the planning phaseなので前置詞duringが適切。whileは接続詞で主語+動詞の節が必要、betweenは2つの対象が必要、untilは「〜まで」で意味が合わない。',
         translation: '計画段階でアイデアを提出した従業員は、来月の全社会議で表彰されます。',
       },
       {
@@ -1246,11 +1246,11 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-026',
     difficulty: 2,
-    tags: ['品詞', '語彙推測'],
+    tags: ['品詞', '動詞の形'],
     keyVocabWords: ['appraisal', 'evaluation'],
     passageKind: 'form',
     passageText:
-      'ANNUAL PERFORMANCE APPRAISAL FORM — INSTRUCTIONS\n\nPlease complete this evaluation form carefully and return it to your manager by the [[1]] date shown at the top of the page. Each section requires a written [[2]] as well as a numeric rating from one to five. If a section does not apply to your role, write "not applicable" rather than [[3]] it blank. [[4]] Employees who need extra time should contact human resources before the deadline.',
+      'ANNUAL PERFORMANCE APPRAISAL FORM — INSTRUCTIONS\n\nPlease complete this evaluation form carefully and return it to your manager by the [[1]] date shown at the top of the page. Each section requires a written [[2]] as well as a numeric rating from one to five. If a section does not apply to your role, write "not applicable" instead of [[3]] it blank. [[4]] Employees who need extra time should contact human resources before the deadline.',
     subQuestions: [
       {
         kind: 'vocab',
@@ -1265,7 +1265,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
         correctText: 'comment',
         distractors: ['commented', 'commenting', 'comments'],
         explanation:
-          '直前のwrittenに修飾される単数の名詞が必要なためcomment（コメント）が適切。commentedは過去形、commentingは動名詞、commentsは複数形で単数のa written一致しない。',
+          '直前のwrittenに修飾される単数の名詞が必要なためcomment（コメント）が適切。commentedは過去形、commentingは動名詞、commentsは複数形で単数を表すa writtenの後に置けない。',
         translation: '各項目には、1から5の数値評価に加えて記述式のコメントが必要です。',
       },
       {
@@ -1273,7 +1273,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
         correctText: 'leaving',
         distractors: ['leave', 'left', 'leaves'],
         explanation:
-          '直前のratherに続く動名詞が必要なためleavingが適切。leaveは原形、leftは過去形、leavesは三単現でこの位置には入らない。',
+          '直前のinstead ofは前置詞で、後ろには動名詞leavingが続く。leaveは原形、leftは過去形、leavesは三単現で、いずれも前置詞の後に置けない。',
         translation:
           '該当しない項目がある場合は、空欄にする代わりに「該当なし」と記入してください。',
       },
@@ -1294,7 +1294,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-027',
     difficulty: 3,
-    tags: ['接続詞vs前置詞', '語彙推測'],
+    tags: ['接続詞vs前置詞', '動詞の形'],
     keyVocabWords: ['authorize'],
     passageKind: 'notice',
     passageText:
@@ -1311,12 +1311,12 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       },
       {
         kind: 'vocab',
-        correctText: 'authorize',
-        distractors: ['authorized', 'authorizing', 'authorization'],
+        correctText: 'register',
+        distractors: ['registered', 'registering', 'registration'],
         explanation:
-          '助動詞mustの後は動詞の原形が続くためauthorizeが適切。authorizedは過去分詞、authorizingは動名詞、authorizationは名詞でこの位置には入らない。',
+          '助動詞mustの後は動詞の原形が続くためregisterが適切。registeredは過去形/過去分詞、registeringは動名詞、registrationは名詞でこの位置には入らない。',
         translation:
-          '来客を予定している従業員は、少なくとも1時間前に警備担当にその訪問を承認してもらう必要があります。',
+          '来客を予定している従業員は、少なくとも1時間前に警備担当にその訪問を登録しなければなりません。',
       },
       {
         kind: 'connector',
@@ -1345,7 +1345,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-028',
     difficulty: 4,
-    tags: ['動詞の形', '語彙推測'],
+    tags: ['動詞の形'],
     keyVocabWords: ['recall', 'inspection', 'defect'],
     passageKind: 'memo',
     passageText:
@@ -1353,12 +1353,12 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
     subQuestions: [
       {
         kind: 'grammar',
-        correctText: 'have been removed',
+        correctText: 'are being removed',
         distractors: ['have removed', 'are removing', 'had remove'],
         explanation:
-          '主語all unitsが動作を受ける側で、現在までに完了した行為を表すため現在完了受動態have been removedが適切。have removedは能動態で主語と意味が合わず、are removingは進行形能動態、had removeは文法的に誤り。',
+          '主語all unitsが撤去される側で、現在進行中の作業を表すため現在進行形の受動態are being removedが適切（後続の「残っている在庫」の指示とも整合する）。have removed/are removingは能動態で主語と意味が合わず、had removeは文法的に誤り。',
         translation:
-          '本日午前より、内部検査で配線の欠陥が見つかったため、Model X200充電器の全在庫が店頭から撤去されました。',
+          '本日午前より、内部検査で配線の欠陥が見つかったため、Model X200充電器の全在庫の店頭からの撤去が進められています。',
       },
       {
         kind: 'vocab',
@@ -1404,9 +1404,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'connector',
         correctText: 'of',
-        distractors: ['about', 'for', 'with'],
+        distractors: ['to', 'for', 'with'],
         explanation:
-          '「〜について知らせる」という意味ではinform someone ofが自然な前置詞コロケーション。about/for/withはこの動詞の用法として一般的でない。',
+          '「〜について知らせる」という意味ではinform someone ofが自然な前置詞コロケーション。to/for/withはこの動詞の用法として使えない。',
         translation:
           '今週貴社の地域倉庫に到着予定の出荷に、短い遅延が生じていることをお知らせいたします。',
       },
@@ -1421,9 +1421,9 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
       {
         kind: 'connector',
         correctText: 'approximately',
-        distractors: ['nearly', 'almost', 'roughly'],
+        distractors: ['nearly', 'almost', 'shortly'],
         explanation:
-          '「3〜5日ほど」という範囲を表す副詞としてapproximatelyが最も自然。nearly/almostは「もう少しで」という意味で範囲表現には合わず、roughlyも使えるがこの文脈ではapproximatelyがより一般的。',
+          '「3〜5日ほど」という範囲を表す副詞はapproximatelyが適切。nearly/almostは「もう少しで〜」の意味で範囲表現には合わず、shortlyは「まもなく」の意味で日数の範囲を修飾できない。',
         translation:
           '当社の配送業者は、当初予定よりおよそ3〜5日遅れて出荷が到着すると見込んでいます。',
       },
@@ -1444,7 +1444,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
   {
     setId: 'p6-030',
     difficulty: 2,
-    tags: ['語彙推測', '動詞の形'],
+    tags: ['動詞の形'],
     keyVocabWords: ['milestone', 'benchmark'],
     passageKind: 'article',
     passageText:
@@ -1485,7 +1485,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'Employees at the firm receive an annual bonus based on performance.',
         ],
         explanation:
-          '直前で10年の社史に触れているため、創業当時の経緯についての補足が自然に続く。他の3文は今回の節目のニュースと直接関係しない。',
+          '記事の冒頭で10年の社史という節目に触れているため、締めくくりとして創業当時の経緯を振り返る補足が記事の流れに合う。他の3文は今回の節目のニュースと直接関係しない。',
         translation: 'この会社は元々、2人の元エンジニアが小さな事務所から始めたものです。',
       },
     ],

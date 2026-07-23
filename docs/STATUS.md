@@ -2,6 +2,41 @@
 
 **最終更新: 2026-07-23**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 2026-07-23: T-107読解R-1コンテンツの配信組込（task/T-107-reading-ship）
+
+H-R1（発起人によるT-107読解在庫の人手レビュー。3並列AIクロスレビュー→must-fix12件修正→独立再検証で「approve可」判定という経緯に基づき2026-07-23承認）を受け、`content/drafts/text-passage-p6-s.jsonl`・`text-passage-p7-single-s.jsonl`（crossreview-fixes節で修正済みの版）を実配布パックとして組み込んだ。フェーズR-1（T-103〜T-107）が完了し、通勤セッション内でPart6・Part7単一読解が解けRレートに反映される状態になった。
+
+- **承認記録（監査証跡）**: 両review.tsv（`content/drafts/text-passage-p6-s.review.tsv`・`text-passage-p7-single-s.review.tsv`）のstatus列を発起人承認に基づき全行「採用」で記入し、`beb review-import`で取込んだ。Part6 30件中30件採用・0件破棄、Part7単一40件中40件採用・0件破棄。accepted.jsonl/rejected.jsonlは監査証跡としてのみ生成し、実ビルド（`beb build`）は`loadPackSources`が`PACK_DEFINITIONS`の`draftPath`経由で元のドラフトjsonlを直接読む既存方式のまま（`content/drafts/text-passage-*.jsonl`が読み込み対象。accepted.jsonlは消費されない）。
+- **PACK_DEFINITIONS追加**（`packages/cli/src/build.ts`）: `READING_R1_PACK_DEFINITIONS`として2パックを追加（`pack-reading-p6-s-001`「Part6読解 30セット120問」・`pack-reading-p7single-s-001`「Part7単一読解 40セット118問」）。license=`internal-original`。originは実施経緯（エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認2026-07-23）をそのまま記録（人手目視の主張はしていない）。targetLevelは両パックとも`[600, 730]`（判断に迷う場合の既定値。両ドラフトのdifficulty分布がd2〜d4中心でd1（入門）を含まずd4の比率もPart6=2/30・Part7単一=9/40と少数のため、既存の「730帯」命名パック（例: `pack-vocab-a-001`）と同水準の帯として妥当と判断）。
+- **build.tsの欠陥修正（本タスクで発見）**: `validateExplanationQuality`が`audio_set`のみをsubQuestion単位検証の対象にしており、同じsubQuestions構造を持つ`text_passage`（T-103で追加）を判定条件に含めていなかったため、`text_passage`の全設問がトップレベル`q.explanation`（存在しない）を見て「explanationが空」エラーになり読解2パックのビルドが即時失敗した。`q.format === 'audio_set' || q.format === 'text_passage'`に修正し、回帰テスト（`build.test.ts`「text_passageはsubQuestion単位で検証する」）を追加。
+- **packages/appへの最小限の追随（当初「app実装コードは変更しない」想定からの逸脱）**: `App.tsx`の`PACK_IDS`（`content/manifest.json`と一致させる手動複製リスト。`loadQuestionPool`が実際にfetchするパックIDの正本）を更新しないと、2パックはmanifestに載っても**アプリが実行時に一切fetchせず学習に出現しない**ため、配信組込の目的を達成できない。`App.test.tsx`の既存検出テスト（「content/manifest.jsonのパック一覧と一致する」）に従い2件追加。これはPACK_DEFINITIONSと同種のデータ複製の同期であり、エンジン・UIの挙動変更ではないため実施した。
+- **ビルド結果**: `content/packs/pack-reading-p6-s-001.json`・`pack-reading-p7single-s-001.json`を生成、`content/manifest.json`が18→**20パック**に更新（新規パックのcontentLint警告0件。既存109件の警告は変化なし）。
+- **検証**: ルート`npm run lint`・`npm run format:check`（`.claude/settings.local.json`のみ既知の対象外警告）通過。`npm run build`（4ワークスペース）通過。`npm test`はapp側で既知のワーカータイムアウト（並行worktree環境要因）が出たため`--no-file-parallelism`で再実行し全通過を確認（api・cli・review-ui・shared-schema・app計757+338+94+15+αを含む全ワークスペース）。cli 338件（テスト追加2件）、app 757件（`App.test.tsx`のPACK_IDS一致テストが新パック検知で機能したことを確認済み）。
+- **新規npm依存なし**。engine・platform・shared-schema・packages/apiのロジックは変更していない（build.tsはCLIのビルド検証ロジックのバグ修正のみ）。
+
+## 2026-07-23: T-107読解コンテンツのAIクロスレビューと修正（task/T-107-crossreview-fixes）
+
+T-107で生成した読解在庫（Part6 30セット120設問=`part6PassagesS.ts`・Part7単一 40セット118設問=`part7SinglePassagesS.ts`）へのAIクロスレビュー指摘を修正した（T-84クロスレビュー修正=2026-07-20節と同じ運用。音声を持たないテキストのみの修正）。修正後に `beb generate text_passage_p6` / `text_passage_p7_single` → 選択肢シャッフル → `beb review-export` で `content/drafts/` のjsonl・review.tsvを再生成し整合させた。**PACK_DEFINITIONS未追加＝配信対象外の状態は不変**（人手レビューゲート=ADR 0006 判断5は引き続き有効。H-R1の人手レビューはこの修正後ドラフトに対して行う）。
+
+- **must-fix 12件（正答一意性の破綻・非文法）**: 第2正解の除去が中心。代表例: p6-015 q3は本文の "at least" が正答 no later than と衝突（"no later than at least..."）するため本文から削除、p6-007 q2は `credits [[2]] month` で every/each も正解になるため誤答を within/among/upon へ、p6-026 q3は rather than+原形が標準用法で leave が第2正解のため本文を instead of へ変更、p6-016 q4の文挿入正答文 "in early next month" の非文法な in を削除。ほか p6-005/011/020/022/024/029(2件)/015 q2 の誤答差し替え（各解説・和訳も整合済み。「no later thanはやや不自然」等の誤った文法説明も書き直した）。
+- **系統的修正（MF-1・正答キー循環バイアス）**: `rotateTextPassageChoices` の決定的ローテーションにより、ドラフト全70セットの正答キーがセット内で一定差分の循環（Part6は全て A→D→C→B、Part7単一は降順循環）になっていた。**生成プロセスの既知事象**（M1レビュー⑦の決定的分散方式を text_passage にもそのまま適用した帰結。アプリは描画時シャッフル=ReadingScreen.tsxのため学習体験上の実害はないが、review-ui・将来のエクスポート面に露出する）。対処: ①一回限りのスクリプト `packages/cli/scripts/shuffle-text-passage-choices.mjs`（subQuestion idから導出する決定的シード=FNV-1a→mulberry32。再実行しても同一結果）でドラフトjsonlの選択肢順238設問分をシャッフルしanswerキーを追随させた。②再発防止として `contentLint.ts` にルール⑥ `checkAnswerKeyCycle`（対象3セット以上かつ全セットが同一差分の循環のときのみ警告。シャッフル済みデータの偽陽性は確率的に無視できる）を追加し、シャッフル後の両ドラフトで警告0件・素のローテーション出力で警告検出を確認した。
+- **系統的修正（tags。tagStats弱点集計の汚染防止）**: Part6全30セットに一律付与されていた「語彙推測」を設問実態（文法主体）に合わせて docs/03 7.1 の既存タグへ修正（動詞の形/品詞/接続詞vs前置詞/前置詞コロケーション/代名詞・関係詞/比較。26セット変更）。**p6-015・p6-029のみ「語彙推測」を維持**（at least/no later than・approximately の語義選択問題を実際に含むため実態に合致）。Part7は p7s-005/011/017/025/029/033/035/037 の「語彙推測」（語彙問題を含まないセット）と p7s-025/030/031/036 の「推論」（明示情報の照合のみのセット）を削除またはスキャン/パラフレーズ照合へ差し替え（12セット変更）。
+- **minor 10項目**: p6-025がp6-012と実質同一（関係代名詞3問・選択肢まで一致）だったため動詞の形＋前置詞のセットへ書き換えてバリエーション化／p7s-023 q1を「When must vacation requests be submitted?」型に変更（before requesting の論理矛盾解消）／p7s-016 q2・p7s-021 q2・p7s-036 q3 の誤答品質改善／p7s-010 q1 正答を "Rescheduling a client meeting" へ／英文修正（p6-008 by the end of this week・p6-027 register the visit・p6-028 冒頭を are being removed で在庫矛盾解消・p7s-007 for the inconvenience）／解説の軽微修正（p6-006 q4 位置関係・p6-030 q4 直前文参照・p6-026 q2 脱字）／difficulty調整（p6-009/012/020/025→3、p7s-022→2）。
+- **シートと異なる対処をした項目（keyVocab sense修正）**: keyVocabのsenseは語彙カード（600語）の`back`から`vocabEntryForWord`で解決される設計のため、設問単位のsense書き換えは生成器の設計変更（または全SRSカードに影響する語彙カード側の変更）を要する。設計を変えず目的（本文文脈とsenseの一致）を達するため、**keyVocab語自体を本文実在かつsense適合のカード語へ差し替えた**: p7s-011 benefits→deadline、p7s-001 candidate→resume（シート例示のportfolioはカードsenseが「保有資産の組み合わせ」=投資文脈で作品集の文脈に不一致のため）、p6-024 orientation→equipment、p7s-030 premises→maintenance。
+- **既知事象（本タスクでは未修正）**: `part7SinglePassagesS.ts` 冒頭コメントの「設問合計120問（2問x10・3問x20・4問x10）」は実データ（118問=2問x11・3問x20・4問x9）と不一致（dev時点から存在）。データ本体は118問で整合しており、コメント/docs/18側の記述整理は別途。
+- **検証**: cli 337件（contentLint⑥の新規3件含む）、ルート `npm run lint` / `npm run format:check` / `npm run build` / `npm test` 全通過。shared-schema validatePack（generate時）・contentLint（新チェック含む）全件通過。
+
+## T-130完了: 成長ランク（2026-07-23。ブランチ `task/T-130-growth-rank`）
+
+M4（21・22）の依存なしタスク。**端末内導出のみ・サーバー送信なし（J-68）**で実装した。
+
+- 新規 `engine/growthRank.ts`: `rankPoints = max(0, 現在の総合レート − 初期レート) + 学習日数`（22の3.7節）。初期レートは `ratingHistory`（section='total'）最古スナップショット（不在時は現在レートを代入し差分0とする＝新規ユーザーは学習日数のみが加点）。学習日数は `attempts` が1件以上存在する暦日数（`toDateString`。ストリーク/ヒートマップと同じ基準だが、ヒートマップの表示窓15週とは異なり**全期間**を対象にする＝累積の継続装置のため）。
+- 新規 `engine/growthRankConfig.json`: 閾値（暫定）ブロンズ0/シルバー40/ゴールド90/プラチナ150/マスター230。`validateGrowthRankConfig` が読込時にminPoints昇順を検証（`validateQuickPackConfig`の前例に倣う）。
+- `DashboardScreen.tsx` にランク名・現在ポイント・次ランクまでの残りを表示（`.dashboard-growth-rank`。既存 `.dashboard-forecast-hero` と同じカード面言語を再利用。新規の光暈・アニメーションは追加していない＝20の2.3節の光暈4箇所限定を維持）。
+- テスト: `engine/growthRank.test.ts`（config整合検証・式の境界値・resolveGrowthRankの各ランク境界±1・countLearningDays・ratingHistory不在でブロンズ0pt・ネットワークAPI未使用の回帰）、`DashboardScreen.test.tsx` に新規ユーザー表示・実データ導出の2件を追加。
+- 検証: ルート `npm run lint` / `npm run format:check` / `npm run build` / `npm test` 全通過（api 78・app 731・cli 307・review-ui 15・shared-schema 67 = 計1198件）。
+- R-1側の作業領域（`engine/quickPack.ts`・`curriculum.ts`・`rating.ts`・`tagStats.ts`・`keyVocab.ts`・`packages/cli/`・`content/`）は**未変更**（`rating.ts`の`DEFAULT_INITIAL_RATING`は既存パターンどおり読取のみ）。shared-schema・packages/apiも未変更。新規npm依存の追加なし。
+
 ## M3完了ゲート通過とM4計画の起草（2026-07-23）
 
 - **M3完了ゲート通過（発起人確認）**: 複数人で週次レイドが回り、「今週みんなで倒す」が実際に会話に出ている。06のM3完了条件を充足した。H-2（招待コード配布・周知）も完了（17の3.11節を更新済み）。加えて、昼の集まりが**週1回の頻度で既に開催されている**（M4の昼イベント実測の場が存在する）。
@@ -104,7 +139,7 @@ M4着手第一弾。22の5節T-123シートに基づき、shared-schemaへM4契�
 
 この対立を「読解をセッション長で階層化する」折衷案で解く方針を発起人が承認した（2026-07-21）。Part6・Part7単一は通常セッション（7分/15分）に組み込み、Part7複数パッセージだけを新規「じっくり読解」モード（着席・自宅想定）に隔離する。判断は [ADR 0006](adr/0006-読解パートの完成方針.md)、自走タスクシートは [18_読解パート実装計画](18_読解パート実装計画.md)（T-103〜T-110・判断J-51〜J-53・人間タスクH-R1/H-R2）に記録した。
 
-- **フェーズR-1（T-103〜T-107）**: Part6・Part7単一。完了で通勤セッション内の読解が可能になりRレートに反映される。
+- **フェーズR-1（T-103〜T-107）✅ 完了（2026-07-23。H-R1承認・配信組込まで完了）**: Part6・Part7単一。通勤セッション内の読解が可能になりRレートに反映される状態を達成した（詳細は本ファイル冒頭の「T-107読解R-1コンテンツの配信組込」節）。
 - **フェーズR-2（T-108〜T-110）**: Part7複数パッセージ。完了でTOEIC L&R全パート（Part1除く）が練習可能になる。
 - 判断J-51〜J-53は発起人が推奨値で一括承認（2026-07-21）。docs/18の該当節を「承認済み」に更新済み。
 - 読解コンテンツは人手レビュー必須ゲートを最初から有効化する（AIクロスレビューのみでの配信を認めない）。

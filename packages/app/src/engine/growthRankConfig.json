@@ -1,0 +1,10 @@
+{
+  "$comment": "成長ランクの閾値（暫定値。J-68・docs/22 3.7節。開催実測で調整する）。ranks は minPoints 昇順で定義すること（growthRank.ts の validateGrowthRankConfig が読込時に検証する）",
+  "ranks": [
+    { "id": "bronze", "name": "ブロンズ", "minPoints": 0 },
+    { "id": "silver", "name": "シルバー", "minPoints": 40 },
+    { "id": "gold", "name": "ゴールド", "minPoints": 90 },
+    { "id": "platinum", "name": "プラチナ", "minPoints": 150 },
+    { "id": "master", "name": "マスター", "minPoints": 230 }
+  ]
+}

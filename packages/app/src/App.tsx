@@ -38,7 +38,8 @@ import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore, type ScreenName } from './store/appStore'
 
 /**
- * 配布パック全17件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2。T-32/T-64/T-83〜T-85のPACK_DEFINITIONSと対応。cli側の定義を
+ * 配布パック全20件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2。
+ * T-32/T-64/T-83〜T-85/T-107のPACK_DEFINITIONSと対応。cli側の定義を
  * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
  * idはここに複製する）。手動複製のため追加漏れが起きうる——App.test.tsxで
  * content/manifest.json（build成果物）のパック一覧との一致をテストで検証する
@@ -62,6 +63,8 @@ export const PACK_IDS = [
   'pack-p5-s-003',
   'pack-p34-s-003',
   'pack-vocab-s-002',
+  'pack-reading-p6-s-001',
+  'pack-reading-p7single-s-001',
 ]
 
 /**
