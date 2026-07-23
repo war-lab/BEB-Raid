@@ -9,6 +9,17 @@
 - **読解フェーズR-1（[18_読解パート実装計画](18_読解パート実装計画.md) T-105〜T-107）はM4と並行で進める**（こちらもSonnet自走。開始プロンプトは18の1節）。M4側はR-1の作業領域（engine/quickPack・curriculum・rating・tagStats・keyVocab、packages/cli、content/）を触らない取り決め（22の2.1節）。
 - リポジトリ直下にあった金フレ由来の参照用JSON（`kinfure_all_1000.json`）は発起人が削除済み（誤コミットリスクの解消）。
 
+## T-123 shared-schemaへM4契約追加（2026-07-23。ブランチ `task/T-123-m4-contract`。dev起点・単独PR）
+
+M4着手第一弾。22の5節T-123シートに基づき、shared-schemaへM4契約型を追加した。実装コード（app/api）は変更していない（契約のみの単独PR）。
+
+- **型追加**（`packages/shared-schema/src/types.ts`）: `RaidBossState` へ `bossType?`・`defense?`・`ghost?` を追加（全て省略可能。SCHEMA_VERSION据え置き・既存シリアライズテスト無修正で通過）。新規 `BossType`・`GhostDefenseEntry`・`GhostBossInfo`・`GhostRecordEntry`・`GhostRecordPayload`（`consent: true` リテラル固定）・`OkResponse`・`CreateBattleRoomResponse`・`RaidSummary`・昼バトルWebSocketの `BattleClientMessage`（join/answer/openQuestion/closeQuestion/finish）・`BattleServerMessage`（roomState/questionOpen/standings/result/error）discriminated unionを定義（22の3.1節・3.2節）。
+- **`buildGhostRecordPayload`**（新規 `ghostRecord.ts`）: 同意結果（boolean）を明示引数に取り、未同意なら例外。**型レベルの強制はvitestが型検査しないためテストでは検証できず**、`ghostRecord.ts` 末尾に実行時コストゼロの型のみの等価判定（`Expect<Equal<GhostRecordPayload['consent'], true>>`）を置き、`npm run build`（tsc）が `consent` の型を `boolean` へ広げる回帰を検出する（実際に一時的に `boolean` へ広げてビルドが失敗することを確認済み）。
+- **`isBattleClientMessage`/`isBattleServerMessage`**（新規 `battleMessages.ts`）: 受信JSONのtype判別（未知typeはfalse）。JSON往復・未知type判別・役割取り違え（Client/Server type混同）のテストを追加。
+- **04の4節更新**: ghosts行をKVレイアウト実装形（`ghost:<deviceToken>`）へ、battleRooms行をDO揮発・保証範囲注記（J-63）へ、members行のratingBandを「見送り（21のJ-70）」へ更新。
+- **検証**: ルートで `npm run lint` / `npm run format:check` / `npm run build` 全通過。`npm test` は全ワークスペース計93ファイル/1194件通過（api 12件/78・app 52件/700・cli 18件/307・review-ui 3件/15・shared-schema 8件/94）。初回の `npm test`（全ワークスペース並列実行）でapp側に並行worktreeとのCPU競合によるワーカータイムアウト13件が発生（既知事象。テスト自体の失敗ではない）。api/appを個別に再実行（app は `vitest run --no-file-parallelism`）して全件通過を確認した。
+- **環境メモ**: 本タスクはSonnet専用worktree（`.claude/worktrees/`）で実施。worktree直下に `node_modules` が無い状態だとNode解決が親ディレクトリ（メインチェックアウト）のnode_modulesへエスケープし、意図せずメインチェックアウト側のdistを参照してビルドが誤って壊れる事象を確認した。`npm ci` をworktree直下で実行し解消（以降のM4タスクセッションでも同様の注意が必要）。
+
 ## ドッグフィードバック反映（2026-07-23。ブランチ `task/beginner-ux-feedback`。dev起点）
 
 発起人のドッグフーディングで挙がった初学者UXの2点を反映した。
