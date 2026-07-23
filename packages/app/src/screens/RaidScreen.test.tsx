@@ -217,6 +217,58 @@ describe('RaidScreen: 未登録→登録→参加の一連（T-98）', () => {
   })
 })
 
+describe('RaidScreen: 初期診断未完了ユーザーの登録ガード（issue #43）', () => {
+  it('プロフィール未作成なら登録フォームを出さず初期診断へ誘導し、register APIを呼ばない', async () => {
+    const db = newDb() // putProfileしない = deviceTokenが空のまま
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    // 登録フォームではなく診断誘導が出る
+    expect(await screen.findByTestId('raid-needs-profile')).toBeTruthy()
+    expect(screen.queryByTestId('raid-register-form')).toBeNull()
+
+    // 「初期診断へ」で診断画面へ遷移する
+    fireEvent.click(screen.getByText('初期診断へ'))
+    expect(useAppStore.getState().screen).toBe('diagnostic')
+
+    // 空deviceTokenの登録が送信されない（API側400の往復を発生させない）
+    expect(raidApi.register).not.toHaveBeenCalled()
+  })
+
+  it('プロフィール作成済みなら日本語表示名を含めて正常に登録できる', async () => {
+    const db = newDb()
+    await db.profile.put({
+      id: PROFILE_ID,
+      displayName: 'みぞぐち',
+      initialToeic: null,
+      createdAt: 0,
+      deviceToken: 'device-1',
+    })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-register-form')
+
+    fireEvent.change(screen.getByLabelText('招待コード'), { target: { value: 'invite-1' } })
+    fireEvent.click(screen.getByText('登録する'))
+
+    await screen.findByTestId('raid-boss')
+    expect(raidApi.registerCalls).toEqual([
+      {
+        inviteCode: 'invite-1',
+        deviceToken: 'device-1',
+        displayName: 'みぞぐち',
+        dailyGoal: 'normal',
+      },
+    ])
+  })
+})
+
 describe('RaidScreen: レイドに挑む（T-98）', () => {
   async function joinedSetup() {
     const db = newDb()
