@@ -104,6 +104,9 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   const [loaded, setLoaded] = useState(false)
   const [registered, setRegistered] = useState(false)
   const [deviceToken, setDeviceToken] = useState('')
+  // issue #43: 「読込成功かつプロフィール不在」を明示的に持つ。deviceTokenの空判定だけだと
+  // DB読取失敗（プロフィール有無が不明）と区別できず、失敗時に誤って診断誘導へ倒してしまうため
+  const [profileMissing, setProfileMissing] = useState(false)
   const [raidState, setRaidState] = useState<RaidStateRecord | null>(null)
   const [currentBoss, setCurrentBoss] = useState<RaidBossState | null>(null)
   const [raidBadges, setRaidBadges] = useState<BadgeRecord[]>([])
@@ -146,6 +149,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
         if (profile) {
           setDeviceToken(profile.deviceToken)
           setDisplayName(profile.displayName)
+        } else {
+          // issue #43: 読込に成功した上でプロフィールが無い＝初期診断が未完了/未スキップ。
+          // このときだけ登録フォームでなく診断誘導を出す（DB読取失敗時はここに来ない）
+          setProfileMissing(true)
         }
         const isRegistered = registeredSetting?.value !== undefined
         setRegistered(isRegistered)
@@ -204,6 +211,13 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
 
   async function handleRegister() {
     setRegisterError(null)
+    // issue #43: プロフィール未作成（初期診断を完了/スキップしていない）だとdeviceTokenが空のまま。
+    // 空トークンはAPI側の入力検証（deviceToken.length > 0）で400になるため、送信前に遮断する。
+    // UI側でも登録フォームを出さず診断へ誘導するが、経路が増えても事故らないよう二重防御にする
+    if (!deviceToken) {
+      setRegisterError('初期診断を完了してからレイドに参加してください')
+      return
+    }
     // レビューF1(g): 送信前の空チェック（無駄な通信とサーバー側エラーの往復を避ける）
     if (inviteCode.trim() === '') {
       setRegisterError('招待コードを入力してください')
@@ -338,6 +352,32 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}
       >
         <p>読み込み中…</p>
+      </ScreenLayout>
+    )
+  }
+
+  // issue #43: プロフィール未作成（deviceTokenが空）のユーザーは登録フォームを出さず初期診断へ誘導する。
+  // 空トークンでの登録はAPIで400になり「入力内容を確認してください」としか出ず原因が伝わらないため。
+  // 再登録フロー（showRegisterForm）は登録済み=プロフィール前提でdeviceTokenが埋まっているので該当しない。
+  // profileMissing（読込成功かつ不在）でのみ誘導し、DB読取失敗時は従来どおり登録フォームへフォールバックする
+  if ((!registered || showRegisterForm) && profileMissing) {
+    return (
+      <ScreenLayout
+        status={<p>レイド登録</p>}
+        action={
+          <>
+            <PrimaryButton onClick={() => navigate('diagnostic')}>初期診断へ</PrimaryButton>
+            <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+              ホームへ
+            </button>
+          </>
+        }
+      >
+        <div className="settings-list" data-testid="raid-needs-profile">
+          <p className="settings-note">
+            レイドに参加するには初期診断が必要です。診断を完了するか、自己申告スコアでスキップすると参加できます。
+          </p>
+        </div>
       </ScreenLayout>
     )
   }
