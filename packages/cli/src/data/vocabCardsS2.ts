@@ -5,7 +5,7 @@
 // 【著作権】市販教材（銀のフレーズ／金のフレーズ等）の見出し語配列・例文は一切参照・転記していない。
 // 語の選定・和訳・例文はすべて新規に書き下ろした自作（vocabCardsS.ts と同じ制約）。
 // front は既存3パック（S/A/B）の見出し語と重複しないものだけを選び、id 衝突を避けている。
-// phraseAudio は生成段階では予約パス（TTSで実音声に差し替えるまで。音声モデル導入が別途必要）。
+// phraseAudio の実音声は生成済み（Piper。content/audio/vocab/<word>.mp3）。人手目視レビューは未実施。
 
 import type { VocabCardEntry } from './vocabCardsS.js'
 
@@ -19,7 +19,7 @@ export const VOCAB_CARDS_S2: VocabCardEntry[] = [
     back: '高い（値段が）',
     phrase: 'That restaurant is too expensive for lunch.',
   },
-  { word: 'open', back: '開ける／開いている', phrase: 'The bank does not open until nine.' },
+  { word: 'open', back: '開く／開ける', phrase: 'The bank does not open until nine.' },
   { word: 'close', back: '閉める', phrase: 'Please close the window before you leave.' },
   { word: 'early', back: '早い／早く', phrase: 'She arrived early to prepare the room.' },
   { word: 'late', back: '遅れた／遅い', phrase: 'Sorry, I am late because of the train.' },
@@ -30,7 +30,7 @@ export const VOCAB_CARDS_S2: VocabCardEntry[] = [
   { word: 'learn', back: '学ぶ', phrase: 'I want to learn how the new system works.' },
   { word: 'teach', back: '教える', phrase: 'She will teach the new staff next week.' },
   { word: 'answer', back: '答える／答え', phrase: 'He could not answer the difficult question.' },
-  { word: 'question', back: '質問', phrase: 'Do you have any question about the schedule?' },
+  { word: 'question', back: '質問', phrase: 'Do you have a question about the schedule?' },
   { word: 'problem', back: '問題', phrase: 'There is a small problem with the printer.' },
   { word: 'easy', back: '簡単な', phrase: 'The test was easy for most of the students.' },
   { word: 'difficult', back: '難しい', phrase: 'This report is difficult to finish today.' },

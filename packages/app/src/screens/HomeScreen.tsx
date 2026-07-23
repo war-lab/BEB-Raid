@@ -297,9 +297,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     // T-121: 単独モード開始時は「今日のクエスト」の空パック案内が残っていればクリアする
     setEmptyPackMessage(null)
     const filtered = questionPool.filter((q) => q.format === format)
-    // J-57: 毎回シャッフルして先頭N問を取る（プール順固定だと後半に永遠に到達しない問題への対処）。
+    // J-57: 各層内をシャッフルして先頭N問を取る（プール順固定だと後半に永遠に到達しない問題への対処）。
     // プールがN問未満のときはある分だけで開始する。
-    // レート連動: 実力相応/以下の問題を先に、過度に難しい問題を後ろに並べる（orderByRating。各層内はシャッフル）
+    // レート連動(orderByRating): 実力相応/以下の問題を先に、過度に難しい問題を後ろに並べる。
+    // 注: 過度に難しい層は末尾に固定されるため、プールがN問超なら低レートのユーザーは
+    // レートが閾値を越えるまでその層に到達しない（J-57の「後半到達不能」を難易度ゲートとして
+    // 意図的に再導入。同一層内のシャッフルで層内の偏りは残さない）。
     const [lRating, rRating] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
     const ratings = {
       L: lRating?.rating ?? DEFAULT_INITIAL_RATING,

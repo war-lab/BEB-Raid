@@ -33,13 +33,49 @@ function drillItem(questionId: string): QuickPackItem {
   }
 }
 
-function srsItem(questionId: string): QuickPackItem {
+function srsItem(
+  questionId: string,
+  kind: 'srsQuestion' | 'srsVocab' = 'srsQuestion',
+): QuickPackItem {
   return {
-    kind: 'srsQuestion',
+    kind,
     mode: 'srs',
     questionId,
-    srsCardId: `question:${questionId}`,
+    srsCardId: kind === 'srsVocab' ? `vocab:${questionId}` : `question:${questionId}`,
     reason: { type: 'srsDue' },
+  }
+}
+
+/** L区間（part 1-4）の問題。難易度連動がL/R別に効くことの確認用 */
+function audioQuestion(id: string, difficulty: number): Question {
+  return {
+    id,
+    part: 2,
+    format: 'audio_qa',
+    difficulty,
+    tags: [],
+    keyVocab: [],
+    audio: '/dummy.mp3',
+    choices: [{ key: 'A', text: 'a' }],
+    answer: 'A',
+  }
+}
+
+/** 語彙カード（part 0=レート対象外）。sectionForPartがnullで差し替え対象外になることの確認用 */
+function vocabQuestion(id: string): Question {
+  return {
+    id,
+    part: 0,
+    format: 'vocab_card',
+    difficulty: 1,
+    tags: [],
+    keyVocab: [],
+    front: id,
+    phrase: `use ${id} here`,
+    phraseAudio: `audio/vocab/${id}.mp3`,
+    back: 'いみ',
+    freqRank: 'S',
+    levelBand: 600,
   }
 }
 
@@ -82,6 +118,62 @@ describe('applyRatingDifficultyFilter', () => {
     const filtered = applyRatingDifficultyFilter(pack, questions, LOW)
     expect(filtered.items).toHaveLength(1)
     expect(filtered.items[0]!.questionId).toBe('hard')
+  })
+
+  it('SRS由来item（srsVocab）も難易度が高くても差し替えない', () => {
+    const pack: QuickPack = { duration: 7, items: [srsItem('hard', 'srsVocab')], srsOverflow: 0 }
+    const questions = new Map<string, Question>([
+      ['hard', textQuestion('hard', 5)],
+      ['easy1', textQuestion('easy1', 1)],
+    ])
+    const filtered = applyRatingDifficultyFilter(pack, questions, LOW)
+    expect(filtered.items).toEqual(pack.items)
+  })
+
+  it('語彙カード（part 0=レート対象外）はドリルでも差し替えない', () => {
+    const pack: QuickPack = { duration: 7, items: [drillItem('voc')], srsOverflow: 0 }
+    const questions = new Map<string, Question>([
+      ['voc', vocabQuestion('voc')],
+      ['easy1', textQuestion('easy1', 1)],
+    ])
+    const filtered = applyRatingDifficultyFilter(pack, questions, LOW)
+    expect(filtered.items[0]!.questionId).toBe('voc')
+  })
+
+  it('L区間（Part2）の過度に難しい問題はLレート基準で同区間の易しい問題へ差し替える', () => {
+    const pack: QuickPack = { duration: 7, items: [drillItem('l-hard')], srsOverflow: 0 }
+    const questions = new Map<string, Question>([
+      ['l-hard', audioQuestion('l-hard', 5)],
+      ['l-easy', audioQuestion('l-easy', 1)],
+    ])
+    const filtered = applyRatingDifficultyFilter(pack, questions, { L: 400, R: 900 })
+    expect(filtered.items[0]!.questionId).toBe('l-easy')
+  })
+
+  it('難問が複数あっても、同じ易しい問題を2件が奪い合わない（usedIdsで重複防止）', () => {
+    const pack: QuickPack = {
+      duration: 7,
+      items: [drillItem('hard1'), drillItem('hard2')],
+      srsOverflow: 0,
+    }
+    const questions = new Map<string, Question>([
+      ['hard1', textQuestion('hard1', 5)],
+      ['hard2', textQuestion('hard2', 5)],
+      ['easy1', textQuestion('easy1', 1)], // 易しい候補は1件のみ
+    ])
+    const filtered = applyRatingDifficultyFilter(pack, questions, LOW)
+    const ids = filtered.items.map((i) => i.questionId)
+    // 1件だけが easy1 へ差し替わり、もう1件は代替枯渇で元のまま。easy1の重複はない
+    expect(ids).toContain('easy1')
+    expect(new Set(ids).size).toBe(2)
+    expect(ids.filter((id) => id === 'easy1')).toHaveLength(1)
+  })
+
+  it('questionIdがマップに無いdrill itemはそのまま通す（落とさない）', () => {
+    const pack: QuickPack = { duration: 7, items: [drillItem('ghost')], srsOverflow: 0 }
+    const questions = new Map<string, Question>([['easy1', textQuestion('easy1', 1)]])
+    const filtered = applyRatingDifficultyFilter(pack, questions, LOW)
+    expect(filtered.items[0]!.questionId).toBe('ghost')
   })
 
   it('レートが十分高ければ難易度が高くても差し替えない（実力相応の範囲）', () => {

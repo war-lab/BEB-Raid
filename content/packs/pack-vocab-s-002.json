@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 18277
+    "sizeBytes": 18266
   },
   "questions": [
     {
@@ -92,7 +92,7 @@
       "front": "open",
       "phrase": "The bank does not open until nine.",
       "phraseAudio": "audio/vocab/open.mp3",
-      "back": "開ける／開いている",
+      "back": "開く／開ける",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -244,7 +244,7 @@
       "tags": [],
       "keyVocab": [],
       "front": "question",
-      "phrase": "Do you have any question about the schedule?",
+      "phrase": "Do you have a question about the schedule?",
       "phraseAudio": "audio/vocab/question.mp3",
       "back": "質問",
       "freqRank": "S",

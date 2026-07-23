@@ -47,6 +47,10 @@ function poolKey(question: Question): string {
  * kind:'drill' の過度に難しい問題を、同型（format＋part一致）・未使用・元より易しい候補のうち
  * 「ユーザーのレートに最も近い d」を持つものへ差し替える。代替が無ければ元のまま残す
  * （イヤホンフィルタと違い難問でも解答は可能なので取り除かず、セッション長を保つ）。
+ *
+ * 保証するのは「元より易しく、その中でレートに最も近い」までで、差し替え後がレートの
+ * MARGIN 内に必ず収まるわけではない（プール全体が実力より難しい場合は best-effort で
+ * 最も易しい寄りの1問になる）。段階的な易化であり、完全な実力相応化ではない。
  */
 export function applyRatingDifficultyFilter(
   pack: QuickPack,
