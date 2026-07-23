@@ -662,6 +662,7 @@ describe('build（T-32）', () => {
     await writeFile(join(dir, 'audio/vocab/submit.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/vocab/revise.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/vocab/streamline.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/vocab/buy.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/submit.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/revise.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-01.mp3'), 'dummy')
@@ -686,6 +687,25 @@ describe('build（T-32）', () => {
         phrase: 'Please submit the report.',
         phraseAudio: 'audio/vocab/submit.mp3',
         back: '提出する',
+        freqRank: 'S',
+        levelBand: 600,
+      },
+    }
+    const vocabS2Draft: GeneratedItemDraft = {
+      id: 'vocab-buy',
+      kind: 'vocab_card',
+      preview: 'buy',
+      payload: {
+        id: 'vocab-buy',
+        part: 0,
+        format: 'vocab_card',
+        difficulty: 1,
+        tags: [],
+        keyVocab: [],
+        front: 'buy',
+        phrase: 'I want to buy a new laptop for work.',
+        phraseAudio: 'audio/vocab/buy.mp3',
+        back: '買う',
         freqRank: 'S',
         levelBand: 600,
       },
@@ -931,6 +951,11 @@ describe('build（T-32）', () => {
       JSON.stringify(vocabDraft) + '\n',
       'utf-8',
     )
+    await writeFile(
+      join(dir, 'drafts/vocab-card-s2.jsonl'),
+      JSON.stringify(vocabS2Draft) + '\n',
+      'utf-8',
+    )
     await writeFile(join(dir, 'drafts/part2-s.jsonl'), JSON.stringify(part2Draft) + '\n', 'utf-8')
     await writeFile(join(dir, 'drafts/part5-s.jsonl'), JSON.stringify(part5Draft) + '\n', 'utf-8')
     await writeFile(
@@ -1127,15 +1152,15 @@ describe('build（T-32）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('17パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2）', async () => {
+  it('18パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('17パック')
+    expect(output).toContain('18パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(17)
+    expect(manifest.packs).toHaveLength(18)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -1154,6 +1179,7 @@ describe('build（T-32）', () => {
       'pack-dict-s-002',
       'pack-p5-s-003',
       'pack-p34-s-003',
+      'pack-vocab-s-002',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)

@@ -61,6 +61,7 @@ export const PACK_IDS = [
   'pack-dict-s-002',
   'pack-p5-s-003',
   'pack-p34-s-003',
+  'pack-vocab-s-002',
 ]
 
 /**

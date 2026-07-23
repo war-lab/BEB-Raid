@@ -205,7 +205,20 @@ const T85_PART34_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）= 17パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行） */
+/** ドッグフィードバック 2026-07-22「問題が難しすぎる」への対応。既存Sより基礎的な入門語彙50語 */
+const DOGFOOD_BEGINNER_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-vocab-s-002',
+    title: '語彙カード 初級50語（600帯・入門）',
+    license: 'internal-original',
+    origin:
+      'エージェント直接執筆 2026-07（ドッグフィードバック対応。TTS音声生成済み・🟡人間目視レビュー待ち）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/vocab-card-s2.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）+ 初級追加（1）= 18パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,
@@ -213,6 +226,7 @@ export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...T84_PACK_DEFINITIONS,
   ...T85_PART5_PACK_DEFINITIONS,
   ...T85_PART34_PACK_DEFINITIONS,
+  ...DOGFOOD_BEGINNER_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */

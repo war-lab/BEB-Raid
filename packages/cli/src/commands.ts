@@ -27,6 +27,7 @@ import {
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
+import { VOCAB_CARDS_S2 } from './data/vocabCardsS2.js'
 import {
   buildDictationDrafts,
   buildDictationQuestions,
@@ -88,6 +89,7 @@ const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
 const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
 const DEFAULT_VOCAB_A_DRAFT_PATH = 'content/drafts/vocab-card-a.jsonl'
 const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
+const DEFAULT_VOCAB_S2_DRAFT_PATH = 'content/drafts/vocab-card-s2.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
@@ -128,6 +130,13 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_B, 'B'),
     validate: (questions) => validateVocabCardQuestions(questions, 860),
     defaultPath: DEFAULT_VOCAB_B_DRAFT_PATH,
+  },
+  // 初級追加パック（銀フレ相当・600帯。ドッグフィードバック 2026-07-22）。既存Sと同じ freqRank='S'/600帯
+  vocab_card_s2: {
+    buildQuestions: () => buildVocabCardQuestions(VOCAB_CARDS_S2, 'S'),
+    buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_S2, 'S'),
+    validate: (questions) => validateVocabCardQuestions(questions, 600),
+    defaultPath: DEFAULT_VOCAB_S2_DRAFT_PATH,
   },
   audio_qa: {
     buildQuestions: buildPart2Questions,

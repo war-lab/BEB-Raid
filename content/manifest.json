@@ -170,6 +170,16 @@
       ],
       "sizeBytes": 42134,
       "hash": "a4bb8f587df7cd15"
+    },
+    {
+      "id": "pack-vocab-s-002",
+      "title": "語彙カード 初級50語（600帯・入門）",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 18277,
+      "hash": "b0c25d3ab74a8fa5"
     }
   ]
 }
