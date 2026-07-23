@@ -301,6 +301,39 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, undefined)
   })
 
+  it('questionEndMs があれば解答前の再生は質問部までにクリップされる（正答リーク対策）', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    q.audioMeta = { ...q.audioMeta!, questionEndMs: 1800 }
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+    expect(audioPlayer.play).toHaveBeenCalledWith(q.audio, { durationMs: 1800 })
+  })
+
+  it('解答後の「全体を再生（質問と応答）」で全長再生される（オプション無しのplay）', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    q.audioMeta = { ...q.audioMeta!, questionEndMs: 1800 }
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    fireEvent.click(screen.getByText('Yesterday.'))
+    const fullButton = await screen.findByText('全体を再生（質問と応答）')
+
+    audioPlayer.play.mockClear()
+    fireEvent.click(fullButton)
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+    expect(audioPlayer.play).toHaveBeenCalledWith(q.audio)
+  })
+
   it('冒頭再生モード（partialAudioMode）では play が durationMs 付きで呼ばれる', async () => {
     const db = newDb()
     const q = audioQaQuestion('p2-1', 'A')

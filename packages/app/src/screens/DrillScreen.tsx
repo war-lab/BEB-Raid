@@ -552,6 +552,18 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       await audioPlayer.unlock()
       const options: { durationMs?: number; rate?: number } = {}
       if (partialAudioMode) options.durationMs = PARTIAL_AUDIO_DURATION_MS
+      // audio_qa: 音声は「質問＋応答(=正答)」の連結ファイルのため、解答前の再生は
+      // 質問部終端（questionEndMs）で止めて正答の読み上げリークを防ぐ（旧生成分=
+      // questionEndMs無しは従来どおり全長再生）。replay()はlastOptionsを引き継ぐため
+      // 「もう一度再生」も自動的に質問部のみになる。全体は解答後の「全体を再生」で聞ける。
+      // 冒頭再生モード時も、質問部が2500msより短い場合は短い方を採る（リーク防止が優先）
+      const questionEndMs = question!.audioMeta?.questionEndMs
+      if (isAudioQa && typeof questionEndMs === 'number') {
+        options.durationMs =
+          options.durationMs !== undefined
+            ? Math.min(options.durationMs, questionEndMs)
+            : questionEndMs
+      }
       if (isDictation && dictationRate !== 1) options.rate = dictationRate
       if (question!.audio) {
         await audioPlayer.play(
@@ -598,6 +610,17 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   async function handleReplay() {
     try {
       await audioPlayer.replay()
+    } catch (err) {
+      console.warn('[DrillScreen] 再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
+  }
+
+  /** audio_qa: 解答後に「質問＋応答」の全体を聞き直す（正答リーク対策で解答前は質問部のみのため） */
+  async function handlePlayFullExchange() {
+    if (!question?.audio) return
+    try {
+      await audioPlayer.play(question.audio)
     } catch (err) {
       console.warn('[DrillScreen] 再生に失敗', err)
       setAudioError('音声を再生できませんでした')
@@ -997,6 +1020,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           {!isVocabCard && !isAudioSet && result && (
             <>
               {result.isTimeout && <p>時間切れ</p>}
+              {isAudioQa && question.audio && (
+                <button
+                  type="button"
+                  className="drill-replay"
+                  onClick={() => void handlePlayFullExchange()}
+                >
+                  全体を再生（質問と応答）
+                </button>
+              )}
               <ExplanationCard
                 question={question}
                 isCorrect={result.isCorrect}
@@ -1068,8 +1100,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
             : playState === 'playing'
               ? '再生中…'
               : playState === 'played'
-                ? '音声再生済み'
-                : '音声を聞いて解答してください'}
+                ? '聞こえた質問への応答として正しいものを選んでください'
+                : '音声で質問が流れます。応答として正しい選択肢を選んでください'}
         </p>
       ) : (
         <p className="question-text">{question.question}</p>

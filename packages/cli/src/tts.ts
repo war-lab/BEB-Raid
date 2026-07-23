@@ -69,7 +69,19 @@ export function isSupportedAccent(accent: AudioAccent): accent is SupportedAccen
  * この問題を踏んでいなかった。ダッシュを読点相当のカンマに置換して回避する
  */
 export function sanitizeForTts(text: string): string {
-  return text.replace(/\s*[–—]\s*/g, ', ')
+  return (
+    text
+      .replace(/\s*[–—]\s*/g, ', ')
+      // カーリークォート等の非ASCII約物をASCIIへ正規化する。
+      // 【判明した不具合（2026-07-22。発起人FB「chineseなんとかを二回繰り返す」起点）】
+      // U+2019（'）等を含むテキストをpiperのstdinへ渡すと、パイプ境界のエンコーディング
+      // 不整合でCJK文字に化け、espeak-ngが「Chinese letter …」と読み上げる。
+      // Part2の30問・語彙9語の committed 音声で実発生をwhisper転写により確認した
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/…/g, '...')
+      .replace(/ /g, ' ')
+  )
 }
 
 export interface SynthesizeInput {
@@ -85,6 +97,12 @@ export interface SynthesizeResult {
   voice: string
   /** audioMeta.durationMs に記録する値（実測） */
   durationMs: number
+  /**
+   * audioMeta.questionEndMs に記録する値（audio_qa=synthesizeDialogueのみ）。
+   * 質問部WAVの実測長＋ターン間無音の半分。解答前の再生をここで止めることで
+   * 応答（=正答）の読み上げリークを防ぐ
+   */
+  questionEndMs?: number
 }
 
 export interface SynthesizeDialogueInput {
@@ -352,6 +370,10 @@ export class PiperTtsProvider implements TtsProvider {
       tmpAnswerWav,
     )
 
+    // 質問部の実測長（連結前に測る）。questionEndMs は質問終端＋無音の半分（200ms）に置き、
+    // クリップ再生時に質問の尻切れを防ぎつつ応答の頭を含めない
+    const questionDurationMs = await this.probeDurationMs(tmpQuestionWav)
+
     // 2本のWAVをターン間400ms無音を挟んで1本のmp3に連結する（J-37）
     const durationMs = await this.concatTurnsWithGaps(
       [tmpQuestionWav, tmpAnswerWav],
@@ -360,7 +382,11 @@ export class PiperTtsProvider implements TtsProvider {
     await rm(tmpQuestionWav, { force: true })
     await rm(tmpAnswerWav, { force: true })
 
-    return { voice: `${questionVoice.voiceName}+${answerVoice.voiceName}`, durationMs }
+    return {
+      voice: `${questionVoice.voiceName}+${answerVoice.voiceName}`,
+      durationMs,
+      questionEndMs: Math.min(questionDurationMs + (TURN_GAP_SECONDS * 1000) / 2, durationMs - 1),
+    }
   }
 
   async synthesizeMultiTurnDialogue(input: SynthesizeMultiTurnInput): Promise<SynthesizeResult> {
