@@ -125,7 +125,22 @@
 - **未対応の副次課題（意図的に対象外）**: RaidScreen起点のセッションでもreading itemがレイド扱い（`item.mode==='raid'`）で出題されうるが、`ReadingScreen`にはDrillScreenの「レイド」ヘッダ表示に相当する分岐が無い（見た目のみの差。ダメージ計算・記録は通常どおり動く）。3.3節・3.5節の記載範囲外のため対応しなかった。
 - 検証: `engine/quickPack.test.ts`・`engine/curriculum.test.ts`に読解配分・Part7複数除外の回帰テストを追加、`screens/DrillScreen.test.tsx`・`screens/ReadingScreen.test.tsx`に画面切替のテストを追加。ルート`npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 78件/app 703件/cli 307件/review-ui 15件/shared-schema 67件）で確認。**既知の事前問題（本タスクと無関係。対象外ファイルのため未修正）**: `packages/cli/src/tts.ts`のirregular-whitespace lintエラーがorigin/dev時点で既に存在する（本ブランチでの新規混入ではないことをstashで確認済み）。作業指示で`packages/cli`は対象外のため修正していない。並行して他ワークツリーが動いている影響と見られるCPU競合起因のテストタイムアウト（VocabScreen/DashboardScreen/HomeScreen/DrillScreen等。T-84等で既出の既知の揺れと同種）を複数回観測したが、対象ファイル単体・全体の再実行でいずれも解消し本タスクの変更とは無関係と確認済み。
 
-**次のアクション**: T-106（学習ロジック接続）が着手可能。T-107（CLI生成＋初期パック）はT-103完了時点で並行着手可能（H-R1の人手レビュー体制が前提）。
+**T-106 完了（2026-07-23。学習ロジック接続。task/T-106-reading-logicブランチ。#46＝T-105のドラフトPRの上に積むstacked PR）**: 読解の各subQuestionをRレートへ独立反映・読解解法タグのtagStats接続・誤答→keyVocab循環・noEarphoneFilterの実機能確認を、既存実装の点検→3件のギャップ修正→テストによる担保、の順で実施した。
+
+- **点検結果（T-104時点で既に正しかった部分）**: `recordAnswerPipeline`経由で1問ごとに`applyRatingUpdate`が呼ばれる実装、`processWrongAnswer`によるkeyVocab循環の起動自体は、ReadingScreen実装時点（T-104）で既に接続済みだった。`computeSetResult`（audioSet.ts。2/3ルール）はReadingScreenから一切importされていないことをコードリーディングと新規テストの両方で確認。
+- **発見・修正した3件の実装ギャップ**:
+  1. **`engine/subQuestionLookup.ts`のタグ合成漏れ**: `withSubQuestionLookup`が常に親questionのtagsだけを疑似Questionへコピーし、`SubQuestion.tags`（T-103で追加した設問単位の解法タグ。先読み/スキャン/パラフレーズ照合/相互参照/推論/語彙推測を設問ごとに付ける運用を想定）を無視していた。設問固有のタグはtagStats・弱点判定に一切乗らない状態だったため、sq.tagsを親のtagsへ「追加」（上書きでなく合算＋重複除去）する形に修正。sq.tagsを持たない既存content（audio_set等）は無変更。
+  2. **`engine/keyVocab.ts`の本文まるごと再出題混入**: `processWrongAnswer`が誤答のたびに「誤答問題そのもの」を`refType:'question'`のSRSカードとして無条件登録しており、text_passageではこれが親Question（＝本文パッセージ全体）の再出題に直結していた。ADR 0006 判断6・18の3.4節が明示的に禁止する「本文まるごとの再出題」である。加えて、key語彙カードの`sourceQuestionId`経由でも、卒業時に`srs.ts`の`reviewSrsCard`が発生元パッセージを再投入する経路があり、二重に同じ問題を持っていた。`question.format==='text_passage'`のときは questionCard を作らず`sourceQuestionId`も乗せないよう修正し、両経路を遮断（keyVocab循環＝語彙カードの追加自体は継続。再挑戦は`quickPack.ts`の`similarOrFallback`が担う既存の「同一タグ・keyVocabの別パッセージ優先」機構に委ねる。18の3.4節どおり）。`WrongAnswerResult.questionCard`の型を`SrsCardRecord | null`に変更（既存呼び出し側・テストへの影響は`questionCard?.id`への機械的追従のみ）。
+  3. **`engine/noEarphoneFilter.ts`のPart7複数パッセージ混入リスク**: リーディング差し替え候補プールが読み込み済み全問題から`text_blank`/`text_passage`を無条件に拾っており、T-105が確立した「Part7複数パッセージは通常パックに入らない」不変条件をこのフィルタだけが素通りしていた（複数パッセージコンテンツが実在しない現時点では顕在化しないが、T-108/T-109後に踏む地雷だった）。`quickPack.ts`の`isReadingAllocatable`を再利用し候補から除外。
+- **完了条件の充足状況**:
+  - 読解正誤でRレートが動く・2/3ルール不使用（テストで担保）: **充足**。正誤混在パターン（正・誤・正）で各設問が独立Elo更新されることを、`engine/rating.ts`の`applyRatingUpdate`を参照側で直接呼んだ期待値と突き合わせて検証（`screens/ReadingScreen.test.tsx`）。
+  - 読解タグが弱点判定に乗る: **充足**。上記1の修正後、`SubQuestion.tags`のみに付いた解法タグ（テストでは「推論」）がtagStatsに現れ、正答率60%未満で弱点判定されることを確認（`engine/subQuestionLookup.test.ts`の単体4件＋`screens/ReadingScreen.test.tsx`の結合テスト1件）。
+  - noEarphoneFilterがtext_passageへ差し替わるテスト: **充足**。単一パッセージのみが候補にある場合に実際に差し替わること、複数パッセージは候補があっても選ばれない（除外により代替候補ゼロ＝item除去）ことのテストを追加（`engine/noEarphoneFilter.test.ts`）。
+  - 全通過: **充足**（下記検証参照）。
+- **停止・逸脱事項**: なし。3節・シートの記載範囲内での実装。`packages/cli`・`content/`（並行セッションのT-107作業対象）には触れていない。platform層・新規依存も無し。
+- 検証: 新規・変更テスト（`engine/keyVocab.test.ts`+2件、`engine/subQuestionLookup.test.ts`新規4件、`engine/noEarphoneFilter.test.ts`+3件、`screens/ReadingScreen.test.tsx`+2件。計11件追加）を含め、ルート`npm run lint`・`npm run format:check`・`npm run build`・`npm test`で確認。**既知のCPU競合flake（T-104/T-105で既出）を本タスクでも複数回観測**（HomeScreen時刻追従tick・SettingsScreen・DrillScreenのDatabaseClosedError・vitestワーカータイムアウト等、いずれも本タスクの変更対象外ファイル／プロセスレベルの事象）。`git stash`でT-106差分を除いたT-105ベースライン単独でも同種の揺れが再現することを確認済みで、本タスクの変更に起因しないことを確認した。対象ファイルのみの実行では常に全通過（30/30）。
+
+**次のアクション**: T-107（CLI生成＋初期パック）はT-103完了時点で並行着手可能（H-R1の人手レビュー体制が前提。別セッションで着手中）。T-108（複数パッセージUI・じっくり読解モード）はT-105・T-106完了によりR-1の学習ロジック面は固まったため着手可能。
 
 - 着手前に確認が要る運用: T-107・T-109の人手レビュー体制（H-R1）。J-53（ロードマップ06への紐づけ）はドキュメント更新のみで実装非ブロッキング。
 - **⚠️ タスクID衝突（2026-07-21のdev合流時に発覚）**: 本セッションの間にdevへ別系統の [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md)（T-103〜T-117・PR #27）がマージされていた。両文書とも「T-103」「T-104」を独立に採番しており、以後この番号だけでは文書を一意に特定できない。要リナンバリング（別途対応。docs/18_読解パート実装計画.mdの改番を検討）。

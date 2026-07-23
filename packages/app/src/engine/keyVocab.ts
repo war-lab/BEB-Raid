@@ -12,8 +12,11 @@ import { addSrsCard } from './srs'
 
 /** 誤答処理の結果 */
 export interface WrongAnswerResult {
-  /** SRSに入った（または既に入っていた）誤答問題カード */
-  questionCard: SrsCardRecord
+  /**
+   * SRSに入った（または既に入っていた）誤答問題カード。
+   * text_passage（読解）は null（本文まるごとの再出題はしないため。T-106・下記コメント参照）
+   */
+  questionCard: SrsCardRecord | null
   /** SRSに入った（または既に入っていた）key語彙カード */
   vocabCards: SrsCardRecord[]
 }
@@ -25,25 +28,37 @@ export interface WrongAnswerResult {
  *
  * 時間切れ・当て勘の区別はここでは行わない（全誤答が復習デッキに落ちるのが
  * 02の1節の不変ルール。統計上の重み減は T-12 が担う）
+ *
+ * 読解（text_passage）の例外（T-106・ADR 0006 判断6・docs/18 3.4節）:
+ * 「本文まるごとの再出題はしない」ため、上記フローの「誤答問題そのものをSRSへ」は
+ * text_passage では行わない（questionCardはnull）。さらに、key語彙カードにも
+ * sourceQuestionId を乗せない（undefinedのまま）。sourceQuestionIdは
+ * srs.tsのreviewSrsCardが「語彙カード卒業時に発生元問題を再出題する」ために使う
+ * フィールドであり、これを乗せると後で同じ本文（passage）がSRSキューに戻ってきてしまう。
+ * 読解の再挑戦は「同一タグ・keyVocabの別パッセージ」（quickPack.tsのkeyVocabReview重み付け＝
+ * similarOrFallback）に委ねる
  */
 export async function processWrongAnswer(
   db: BebRaidDatabase,
   question: Question,
   now: number = Date.now(),
 ): Promise<WrongAnswerResult> {
+  const isPassage = question.format === 'text_passage'
   return db.transaction('rw', db.srsCards, async () => {
-    const questionCard = await addSrsCard(db, {
-      refType: 'question',
-      refId: question.id,
-      now,
-    })
+    const questionCard = isPassage
+      ? null
+      : await addSrsCard(db, {
+          refType: 'question',
+          refId: question.id,
+          now,
+        })
     const vocabCards: SrsCardRecord[] = []
     for (const vocab of question.keyVocab) {
       vocabCards.push(
         await addSrsCard(db, {
           refType: 'vocab',
           refId: vocab.word,
-          sourceQuestionId: question.id,
+          sourceQuestionId: isPassage ? undefined : question.id,
           now,
         }),
       )
