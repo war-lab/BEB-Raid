@@ -13,10 +13,10 @@ import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
 import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { buildHeatmapCells } from '../engine/heatmapCells'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
+import { applyRatingDifficultyFilter, orderByRating } from '../engine/ratingDifficultyFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { generateQuickPack } from '../engine/quickPack'
 import { formatRelativeTime } from '../engine/relativeTime'
-import { shuffle } from '../engine/shuffle'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
@@ -255,11 +255,21 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       phase: phase?.season,
       listeningStage: phase?.listeningStage,
     })
-    const noEarphoneSetting = await db.settings.get(NO_EARPHONE_MODE_KEY)
-    const filteredPack =
-      noEarphoneSetting?.value === true
-        ? applyNoEarphoneFilter(pack, new Map(questionPool.map((q) => [q.id, q])))
-        : pack
+    const [noEarphoneSetting, lRating, rRating] = await Promise.all([
+      db.settings.get(NO_EARPHONE_MODE_KEY),
+      db.ratings.get('L'),
+      db.ratings.get('R'),
+    ])
+    const ratings = {
+      L: lRating?.rating ?? DEFAULT_INITIAL_RATING,
+      R: rRating?.rating ?? DEFAULT_INITIAL_RATING,
+    }
+    const questionMap = new Map(questionPool.map((q) => [q.id, q]))
+    // イヤホン差し替え（リスニング→リーディング）を先に、レート連動の難易度差し替え（過度に難しい
+    // 問題→実力相応）を後に適用する。両者ともkind:'drill'のみ対象・SRS由来itemは不変
+    let filteredPack =
+      noEarphoneSetting?.value === true ? applyNoEarphoneFilter(pack, questionMap) : pack
+    filteredPack = applyRatingDifficultyFilter(filteredPack, questionMap, ratings)
     const items = toSessionItems(filteredPack.items)
     // J-60: 3分クエストはSRS復習中心の構成のため、SRS期限・新規カードが無い状態
     // （新規ユーザーの典型）で高確率で空パックになる。従来は黙って何も起きなかった
@@ -288,8 +298,15 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     setEmptyPackMessage(null)
     const filtered = questionPool.filter((q) => q.format === format)
     // J-57: 毎回シャッフルして先頭N問を取る（プール順固定だと後半に永遠に到達しない問題への対処）。
-    // プールがN問未満のときはある分だけで開始する
-    const selected = shuffle(filtered).slice(0, singleModeCount)
+    // プールがN問未満のときはある分だけで開始する。
+    // レート連動: 実力相応/以下の問題を先に、過度に難しい問題を後ろに並べる（orderByRating。各層内はシャッフル）
+    const [lRating, rRating] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
+    const ratings = {
+      L: lRating?.rating ?? DEFAULT_INITIAL_RATING,
+      R: rRating?.rating ?? DEFAULT_INITIAL_RATING,
+    }
+    const ordered = orderByRating(filtered, ratings)
+    const selected = ordered.slice(0, singleModeCount)
     const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
     if (items.length === 0) {
       setEmptyPackMessage(EMPTY_PACK_MESSAGE)
