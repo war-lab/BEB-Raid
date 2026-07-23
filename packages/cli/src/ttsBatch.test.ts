@@ -71,7 +71,7 @@ describe('synthesizeDraftsAudio', () => {
       }),
       synthesizeDialogue: vi.fn(async (input: SynthesizeDialogueInput) => {
         dialogueCalls.push(input)
-        return { voice: 'fake-voice-q+fake-voice-a', durationMs: 4321 }
+        return { voice: 'fake-voice-q+fake-voice-a', durationMs: 4321, questionEndMs: 2500 }
       }),
       synthesizeMultiTurnDialogue: vi.fn(async (input: SynthesizeMultiTurnInput) => {
         multiTurnCalls.push(input)
@@ -267,10 +267,12 @@ describe('synthesizeDraftsAudio', () => {
     expect(dialogueCalls[0]?.outputPath).toBe(join(dir, 'audio/part2/submit.mp3'))
 
     const updated = result.updatedDrafts[0]!.payload as {
-      audioMeta: { accent: string; voice: string; durationMs: number }
+      audioMeta: { accent: string; voice: string; durationMs: number; questionEndMs?: number }
     }
     expect(updated.audioMeta.voice).toBe('fake-voice-q+fake-voice-a')
     expect(updated.audioMeta.durationMs).toBe(4321)
+    // 質問部終端（正答リーク対策）がproviderの実測値からaudioMetaへ記録される
+    expect(updated.audioMeta.questionEndMs).toBe(2500)
     // 生成時のプレースホルダaccent('AU')は実合成に使ったaccentで上書きされる
     expect(updated.audioMeta.accent).not.toBe('AU')
     expect(['US', 'UK']).toContain(updated.audioMeta.accent)
