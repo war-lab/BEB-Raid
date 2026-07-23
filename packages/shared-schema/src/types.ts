@@ -224,6 +224,15 @@ export interface RaidBossState {
   /** 認証tokenの主のこれまでの合計ダメージ */
   myDamage: number
   contributions: RaidContribution[]
+  /**
+   * M4: ボス種別（docs/22 3.1節。T-123）。既存クライアントとの互換のため省略可能とし、
+   * 省略時はsynthetic相当として扱う（SCHEMA_VERSIONは据え置き）
+   */
+  bossType?: BossType
+  /** M4: ghost時のみ配信。questionId別の倍率（docs/22 3.3節。堅い0.5/弱点2.0） */
+  defense?: GhostDefenseEntry[] | null
+  /** M4: ghost時のみ配信。S5の名誉表示（討伐された回数）に使う */
+  ghost?: GhostBossInfo | null
 }
 
 /** POST /raid/sync のリクエストボディ */
@@ -275,3 +284,177 @@ export interface ApiError {
     message: string
   }
 }
+
+// ---------------------------------------------------------------------------
+// M4共有APIの契約型（正本: docs/22_M4実装計画.md 3.1節・3.2節・3.3節。T-123）
+// app/apiの双方がこれらの型をimportし、単一正本として扱う（J-62〜J-70）
+// ---------------------------------------------------------------------------
+
+/** ボス種別（docs/04 2.2節）。synthetic=通常週、ghost=ボス役の記録によるゴースト週 */
+export type BossType = 'synthetic' | 'ghost'
+
+/** ゴーストボスの問題別倍率1件分（docs/22 3.3節。堅い=correct由来0.5・弱点=wrong由来2.0） */
+export interface GhostDefenseEntry {
+  questionId: string
+  multiplier: number
+}
+
+/** ゴーストボスの表示情報（S5の名誉表示「討伐された回数」用） */
+export interface GhostBossInfo {
+  displayName: string
+  defeatedCount: number
+}
+
+/** ゴースト記録の問題別正誤1件分（ボス役自身の解答記録） */
+export interface GhostRecordEntry {
+  questionId: string
+  correct: boolean
+}
+
+/**
+ * ボス役の記録受領ペイロード（POST /ghosts。正本: docs/22 3.1節・3.3節）。
+ * consent はリテラル型 true 固定とし、未同意ペイロードを型レベルで構築不能にする
+ * （questionStatsのdeviceToken非構造と同じ「型レベルで違反を作れない」方式。J-67）。
+ * 実際の構築は `buildGhostRecordPayload`（ghostRecord.ts）に限定し、
+ * 呼び出し側は同意結果（boolean）を明示的に渡す（実行時側の強制はビルダー関数が担う）
+ */
+export interface GhostRecordPayload {
+  consent: true
+  displayName: string
+  records: GhostRecordEntry[]
+}
+
+/** POST /ghosts・DELETE /ghosts/own の成功レスポンス（記録が無い場合も200・冪等） */
+export interface OkResponse {
+  ok: true
+}
+
+/** POST /battle/rooms のレスポンス（4文字英数大文字のルームコード。衝突時はサーバー側で再生成） */
+export interface CreateBattleRoomResponse {
+  code: string
+}
+
+/**
+ * 週次サマリ1件（GET /raid/summary。正本: docs/22 3.8節）。運用者の係数調整用の管理データで、
+ * クライアントアプリはこのエンドポイントを呼ばない。個人別データは含めない
+ */
+export interface RaidSummary {
+  bossId: string
+  bossType: BossType
+  maxHp: number
+  remainingHp: number
+  defeated: boolean
+  /** epoch ms。未討伐ならnull */
+  defeatedAt: number | null
+  participantCount: number
+}
+
+// ---------------------------------------------------------------------------
+// 昼バトルWebSocketメッセージ（正本: docs/22 3.2節。T-123）
+// BattleRoomDOはコンテンツ非依存（questionIdと換算点のみを扱い、問題文・選択肢・正解は持たない）。
+// 認証は Sec-WebSocket-Protocol: `bearer.<deviceToken>`（3.1節。ブラウザWebSocketは
+// Authorizationヘッダを付けられないため）
+// ---------------------------------------------------------------------------
+
+/** Client→Server（参加者）: ルーム参加 */
+export interface BattleJoinMessage {
+  type: 'join'
+  displayName: string
+  /**
+   * 期待点=直近の自己平均基礎点（ハンディキャップ換算値のみ。レート実値は送らない=J-63）。
+   * 0以下はサーバー側で1にクランプする
+   */
+  expectedPointsPerQuestion: number
+}
+
+/** Client→Server（参加者）: 解答送信。基礎点のみを送り、速度ボーナスはDO側で加算する（J-64） */
+export interface BattleAnswerMessage {
+  type: 'answer'
+  questionIndex: number
+  /** クライアント算出の基礎点（既存 engine/damage.ts の基礎点ロジック）。誤答は0 */
+  points: number
+}
+
+/**
+ * Client→Server（ホストのみ。ルーム作成者のdeviceTokenのみ受理）: 出題オープン。
+ * 音声の再生完了後に送る（docs/05 4.2節「再生完了イベントで解答受付を開く」）
+ */
+export interface BattleOpenQuestionMessage {
+  type: 'openQuestion'
+  questionIndex: number
+  questionId: string
+}
+
+/** Client→Server（ホストのみ）: 出題クローズ */
+export interface BattleCloseQuestionMessage {
+  type: 'closeQuestion'
+  questionIndex: number
+}
+
+/** Client→Server（ホストのみ）: バトル終了 */
+export interface BattleFinishMessage {
+  type: 'finish'
+}
+
+/** 昼バトルWebSocketのClient→Serverメッセージ（discriminated union。正本: docs/22 3.2節） */
+export type BattleClientMessage =
+  | BattleJoinMessage
+  | BattleAnswerMessage
+  | BattleOpenQuestionMessage
+  | BattleCloseQuestionMessage
+  | BattleFinishMessage
+
+/** ルーム参加者1件（表示名のみ。個人紐づき情報は含めない） */
+export interface BattleParticipant {
+  displayName: string
+}
+
+/** Server→Client: ルーム状態（参加者一覧） */
+export interface BattleRoomStateMessage {
+  type: 'roomState'
+  participants: BattleParticipant[]
+}
+
+/**
+ * Server→Client: 出題オープン通知。
+ * deadlineAt=DO受信時刻+30秒（epoch ms）。DO側タイマーが正でクライアント時計は信用しない
+ */
+export interface BattleQuestionOpenMessage {
+  type: 'questionOpen'
+  questionIndex: number
+  questionId: string
+  deadlineAt: number
+}
+
+/** 順位表示1件分（表示名＋合計最終点。換算値のみ） */
+export interface BattleStandingEntry {
+  displayName: string
+  totalPoints: number
+}
+
+/** Server→Client: 各問クローズ後の順位表示 */
+export interface BattleStandingsMessage {
+  type: 'standings'
+  entries: BattleStandingEntry[]
+}
+
+/** Server→Client: 最終リザルト（順位＋ベストグロース賞。growth最大の参加者。同率は先着） */
+export interface BattleResultMessage {
+  type: 'result'
+  entries: BattleStandingEntry[]
+  bestGrowth: { displayName: string }
+}
+
+/** Server→Client: エラー通知（例: 未登録token=1008クローズ、deadline後の解答拒否等） */
+export interface BattleErrorMessage {
+  type: 'error'
+  code: string
+}
+
+/** 昼バトルWebSocketのServer→Clientメッセージ（discriminated union。正本: docs/22 3.2節） */
+export type BattleServerMessage =
+  | BattleRoomStateMessage
+  | BattleQuestionOpenMessage
+  | BattleStandingsMessage
+  | BattleResultMessage
+  | BattleErrorMessage

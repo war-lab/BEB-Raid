@@ -80,7 +80,7 @@ export function sanitizeForTts(text: string): string {
       .replace(/[‘’]/g, "'")
       .replace(/[“”]/g, '"')
       .replace(/…/g, '...')
-      .replace(/ /g, ' ')
+      .replace(/\u00A0/g, ' ')
   )
 }
 

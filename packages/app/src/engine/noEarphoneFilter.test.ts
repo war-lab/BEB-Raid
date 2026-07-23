@@ -32,6 +32,37 @@ function textQuestion(id: string): Question {
   }
 }
 
+/** Part7単一（passages 1件）: 通常パックへの差し替え候補になる（T-105・T-106） */
+function singlePassageQuestion(id: string): Question {
+  return {
+    id,
+    part: 7,
+    format: 'text_passage',
+    difficulty: 2,
+    tags: [],
+    keyVocab: [],
+    passages: [{ id: `${id}-p1`, kind: 'email', text: 'dummy' }],
+    subQuestions: [{ id: `${id}-q0`, question: 'q', choices: [], answer: 'A' }],
+  }
+}
+
+/** Part7複数パッセージ（passages 2件以上）: 「じっくり読解」専用。通常パックの差し替え候補にしない */
+function multiPassageQuestion(id: string): Question {
+  return {
+    id,
+    part: 7,
+    format: 'text_passage',
+    difficulty: 2,
+    tags: [],
+    keyVocab: [],
+    passages: [
+      { id: `${id}-p1`, kind: 'email', text: 'dummy1' },
+      { id: `${id}-p2`, kind: 'chat', text: 'dummy2' },
+    ],
+    subQuestions: [{ id: `${id}-q0`, question: 'q', choices: [], answer: 'A' }],
+  }
+}
+
 function drillItem(questionId: string): QuickPackItem {
   return {
     kind: 'drill',
@@ -135,5 +166,55 @@ describe('applyNoEarphoneFilter: M2新規リスニングformat（T-52）', () =>
     ])
     const filtered = applyNoEarphoneFilter(pack, questions)
     expect(questions.get(filtered.items[0]!.questionId!)!.format).toBe('text_blank')
+  })
+})
+
+describe('applyNoEarphoneFilter: text_passage（読解）への差し替え（T-106・docs/18 3.4節）', () => {
+  it('リーディング候補がtext_passage（Part7単一）しか無くても実際に差し替わる（従来はtext_blankにしか差し替わらなかった疑いの解消）', () => {
+    const pack: QuickPack = { duration: 7, items: [drillItem('p2-1')], srsOverflow: 0 }
+    const questions = new Map<string, Question>([
+      ['p2-1', audioQuestion('p2-1')],
+      ['p7-1', singlePassageQuestion('p7-1')],
+    ])
+
+    const filtered = applyNoEarphoneFilter(pack, questions)
+
+    expect(filtered.items).toHaveLength(1)
+    expect(filtered.items[0]!.questionId).toBe('p7-1')
+    expect(questions.get(filtered.items[0]!.questionId!)!.format).toBe('text_passage')
+  })
+
+  it('Part7複数パッセージは差し替え候補にしない（「じっくり読解」専用。T-105の不変条件を継承）', () => {
+    const pack: QuickPack = { duration: 7, items: [drillItem('p2-1')], srsOverflow: 0 }
+    // リーディング候補が複数パッセージのみ（単一パッセージ・text_blankとも無し）の状況
+    const questions = new Map<string, Question>([
+      ['p2-1', audioQuestion('p2-1')],
+      ['p7-multi', multiPassageQuestion('p7-multi')],
+    ])
+
+    const filtered = applyNoEarphoneFilter(pack, questions)
+
+    // 代替候補が（除外により）実質ゼロのため、itemは取り除かれる（差し替えられない）
+    expect(filtered.items).toHaveLength(0)
+  })
+
+  it('単一パッセージとtext_blankが両方候補にある場合も、複数パッセージだけは選ばれない', () => {
+    const pack: QuickPack = {
+      duration: 7,
+      items: [drillItem('p2-1'), drillItem('p2-2')],
+      srsOverflow: 0,
+    }
+    const questions = new Map<string, Question>([
+      ['p2-1', audioQuestion('p2-1')],
+      ['p2-2', audioQuestion('p2-2')],
+      ['p7-multi', multiPassageQuestion('p7-multi')],
+      ['p5-1', textQuestion('p5-1')],
+    ])
+
+    const filtered = applyNoEarphoneFilter(pack, questions)
+
+    const resultIds = filtered.items.map((i) => i.questionId)
+    expect(resultIds).not.toContain('p7-multi')
+    expect(resultIds).toEqual(['p5-1'])
   })
 })

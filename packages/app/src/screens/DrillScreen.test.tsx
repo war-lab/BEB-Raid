@@ -332,6 +332,9 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
     fireEvent.click(fullButton)
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
     expect(audioPlayer.play).toHaveBeenCalledWith(q.audio)
+    // 解答保存パイプラインの完走を待ってから終了する（afterEachのdb.deleteと
+    // 進行中Dexieトランザクションが競合し、CIでDatabaseClosedErrorになるため）
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
   })
 
   it('冒頭再生モード（partialAudioMode）では play が durationMs 付きで呼ばれる', async () => {
@@ -696,6 +699,39 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(card?.stage).toBe(0) // もう一回はstage0へリセット
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
+  })
+
+  it('「わからない」で正解提示→次へでisCorrect=false・SRSはagain（stage0）で記録される', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:attend',
+      refType: 'vocab',
+      refId: 'attend',
+      stage: 2,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('attend')
+    const decoy = vocabCardQuestion('decoy')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:attend' }]
+    await setupSession(db, items, [q, decoy])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('わからない'))
+    // 正解（attend の意味）がcorrect表示
+    await waitFor(() =>
+      expect(screen.getByText('attend の意味').closest('button')?.dataset.state).toBe('correct'),
+    )
+    expect(screen.queryByText('OK')).toBeNull()
+    fireEvent.click(screen.getByText('次へ'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(false)
+    expect((await db.srsCards.get('vocab:attend'))?.stage).toBe(0)
   })
 
   it('T-76: 自己評価時の解答保存失敗もエラーバナーが出て、DBの実状態に再同期する', async () => {
@@ -1445,5 +1481,52 @@ describe('DrillScreen: セッション途中終了導線（T-122・J-61）', () 
 
     await answerAndSettle('b', 2) // q-2に正解
     expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+  })
+})
+
+describe('DrillScreen: 読解（text_passage）混在時のreading画面への自動切替（T-105。18の3.3節・3.5節）', () => {
+  function readingQuestion(id: string): Question {
+    return {
+      id,
+      part: 7,
+      format: 'text_passage',
+      difficulty: 3,
+      tags: [],
+      keyVocab: [{ word: `${id}-word`, sense: '意味', freqRank: 'S' }],
+      passages: [{ id: `${id}-p1`, kind: 'email', text: `${id}の本文` }],
+      subQuestions: [
+        { id: `${id}-q0`, question: '設問0', choices: [{ key: 'A', text: 'a' }], answer: 'A' },
+      ],
+    }
+  }
+
+  it('現在itemがtext_passageだとreading画面へ切り替わり、DrillScreenは何も描画しない', async () => {
+    const db = newDb()
+    const q = readingQuestion('read-1')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
+    // セッション状態自体は進めない（このitemはまだ未解答。スキップとは異なる）
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(0)
+  })
+
+  it('通常item→text_passage itemの順で混在するパックでも、1問目は通常どおり解答できてから切り替わる', async () => {
+    const db = newDb()
+    const q1 = part5Question('q-mixed-1', 'A', 'submit')
+    const q2 = readingQuestion('read-mixed-2')
+    const items: SessionItem[] = [
+      { questionId: q1.id, mode: 'solo' },
+      { questionId: q2.id, mode: 'solo' },
+    ]
+    await setupSession(db, items, [q1, q2])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    await answerAndSettle('a', 1) // q1に正解
+    fireEvent.click(screen.getByText('次へ'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1) // q2はまだ未解答
   })
 })

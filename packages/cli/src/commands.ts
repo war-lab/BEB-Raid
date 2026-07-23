@@ -27,6 +27,7 @@ import {
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
+import { VOCAB_CARDS_S2 } from './data/vocabCardsS2.js'
 import {
   buildDictationDrafts,
   buildDictationQuestions,
@@ -76,6 +77,14 @@ import {
   buildShadowingQuestions,
   validateShadowingQuestions,
 } from './shadowingQuestion.js'
+import {
+  buildPart6Drafts,
+  buildPart6Questions,
+  buildPart7SingleDrafts,
+  buildPart7SingleQuestions,
+  validatePart6Questions,
+  validatePart7SingleQuestions,
+} from './textPassageQuestion.js'
 import { PiperTtsProvider } from './tts.js'
 import { synthesizeDraftsAudio } from './ttsBatch.js'
 import {
@@ -88,6 +97,7 @@ const DEFAULT_FREQ_LIST_PATH = 'content/freq-list.json'
 const DEFAULT_VOCAB_DRAFT_PATH = 'content/drafts/vocab-card-s.jsonl'
 const DEFAULT_VOCAB_A_DRAFT_PATH = 'content/drafts/vocab-card-a.jsonl'
 const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
+const DEFAULT_VOCAB_S2_DRAFT_PATH = 'content/drafts/vocab-card-s2.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
@@ -102,6 +112,8 @@ const DEFAULT_SHADOWING_DRAFT_PATH = 'content/drafts/shadowing-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_DRAFT_PATH = 'content/drafts/key-vocab-similar-s.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH = 'content/drafts/key-vocab-similar-s2.jsonl'
 const DEFAULT_KEY_VOCAB_SIMILAR_S3_DRAFT_PATH = 'content/drafts/key-vocab-similar-s3.jsonl'
+const DEFAULT_TEXT_PASSAGE_P6_DRAFT_PATH = 'content/drafts/text-passage-p6-s.jsonl'
+const DEFAULT_TEXT_PASSAGE_P7_SINGLE_DRAFT_PATH = 'content/drafts/text-passage-p7-single-s.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -128,6 +140,13 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_B, 'B'),
     validate: (questions) => validateVocabCardQuestions(questions, 860),
     defaultPath: DEFAULT_VOCAB_B_DRAFT_PATH,
+  },
+  // 初級追加パック（銀フレ相当・600帯。ドッグフィードバック 2026-07-22）。既存Sと同じ freqRank='S'/600帯
+  vocab_card_s2: {
+    buildQuestions: () => buildVocabCardQuestions(VOCAB_CARDS_S2, 'S'),
+    buildDrafts: () => buildVocabCardDrafts(VOCAB_CARDS_S2, 'S'),
+    validate: (questions) => validateVocabCardQuestions(questions, 600),
+    defaultPath: DEFAULT_VOCAB_S2_DRAFT_PATH,
   },
   audio_qa: {
     buildQuestions: buildPart2Questions,
@@ -203,6 +222,18 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: () => buildPart34Drafts(PART34_ENTRIES_S3),
     validate: validatePart34Questions,
     defaultPath: DEFAULT_PART34_S3_DRAFT_PATH,
+  },
+  text_passage_p6: {
+    buildQuestions: buildPart6Questions,
+    buildDrafts: buildPart6Drafts,
+    validate: validatePart6Questions,
+    defaultPath: DEFAULT_TEXT_PASSAGE_P6_DRAFT_PATH,
+  },
+  text_passage_p7_single: {
+    buildQuestions: buildPart7SingleQuestions,
+    buildDrafts: buildPart7SingleDrafts,
+    validate: validatePart7SingleQuestions,
+    defaultPath: DEFAULT_TEXT_PASSAGE_P7_SINGLE_DRAFT_PATH,
   },
   dictation: {
     buildQuestions: buildDictationQuestions,

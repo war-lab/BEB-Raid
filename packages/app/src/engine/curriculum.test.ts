@@ -414,4 +414,23 @@ describe('curriculumConfig.json: 整合性検証', () => {
     expect(templateForSeason('P2').season).toBe('P2')
     expect(templateForSeason('P3').season).toBe('P3')
   })
+
+  // T-105（docs/18 3.3節）: 読解（Part6・Part7単一）配分の回帰ロック。
+  // 数値自体は暫定値（ドッグフード実測で調整）だが、「P1に少量」「P2はP1より厚い」
+  // 「P3は通常パックのreadingバケットを持たない（Part7複数はじっくり読解モード専用）」
+  // という3.3節の構造は固定する
+  it('P1はreadingバケットを少量持つ', () => {
+    const reading = templateForSeason('P1').allocation.reading
+    expect(reading).toBeGreaterThan(0)
+  })
+
+  it('P2のreading配分はP1より厚い（Part7単一の本格投入=3.3節）', () => {
+    const p1Reading = templateForSeason('P1').allocation.reading ?? 0
+    const p2Reading = templateForSeason('P2').allocation.reading ?? 0
+    expect(p2Reading).toBeGreaterThan(p1Reading)
+  })
+
+  it('P3はreadingバケットを持たない（Part7複数は「じっくり読解」モード専用=T-108/T-109）', () => {
+    expect(templateForSeason('P3').allocation.reading).toBeUndefined()
+  })
 })

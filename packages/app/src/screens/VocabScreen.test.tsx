@@ -166,6 +166,32 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     expect(card?.stage).toBe(0) // もう一回はstage0へリセット（グレードによる間隔調整は従来どおり）
   })
 
+  it('「わからない」で正解を提示し、次へでisCorrect=false・SRSはagain（stage0）で記録される', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'iota')
+    const questions = [vocabQuestion('iota'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will iota it.'))).toBeTruthy())
+
+    fireEvent.click(screen.getByText('わからない'))
+    // 正解（iota の意味）がcorrect表示になっている＝答えを提示している
+    await waitFor(() =>
+      expect(screen.getByText('iota の意味').closest('button')?.dataset.state).toBe('correct'),
+    )
+    // 自己評価3段階は出さず「次へ」だけ
+    expect(screen.queryByText('OK')).toBeNull()
+    expect(screen.queryByText('余裕')).toBeNull()
+    fireEvent.click(screen.getByText('次へ'))
+
+    await screen.findByText(/仕分け \d/)
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(false)
+    // 「わからない」は間隔をagain（stage0リセット）にする
+    expect((await db.srsCards.get('vocab:iota'))?.stage).toBe(0)
+  })
+
   it('選択済みの4択は再クリックしても選択が変わらない（disabled）', async () => {
     const db = newDb()
     await seedDueCard(db, 'theta')

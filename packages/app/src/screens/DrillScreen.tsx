@@ -71,10 +71,12 @@ const PARTIAL_AUDIO_DURATION_MS = 2500
 const PRE_READING_SECONDS: Record<PhaseSeason, number> = { P1: 15, P2: 15, P3: 10 }
 
 /**
- * DrillScreen が描画分岐を持つ format の一覧（進行不能防止の防御）。
+ * DrillScreen が「知っている」format の一覧（進行不能防止の防御）。
  * ここに無い format（shadowing 等。専用画面の担当）の item が混入すると
  * 問題文もボタンも描画されず画面が空白のまま固まるため、questionId 未解決と
- * 同じ経路でスキップする（将来パックに未知 format が入っても詰まらないための防御）
+ * 同じ経路でスキップする（将来パックに未知 format が入っても詰まらないための防御）。
+ * text_passage はここでは「知っている」扱い（スキップしない）だが、実際の描画分岐は
+ * 持たず専用画面（ReadingScreen）へ切り替える（T-105。上のtext_passage専用effect参照）
  */
 const RENDERABLE_FORMATS = new Set<string>([
   'text_blank',
@@ -141,6 +143,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [streak, setStreak] = useState(0)
   // vocab_card 専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す。VocabScreenと同じ設計）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
+  // vocab_card 専用:「わからない」を選んだ状態（ドッグフィードバック 2026-07-22。VocabScreenと同規約）。
+  // 正解は提示しつつ isCorrect=false・SRSはagain扱いにし、当てずっぽうの偽陽性を防ぐ
+  const [dontKnowVocab, setDontKnowVocab] = useState(false)
   // vocab_card 専用: フレーズ音声自動再生の可否（イヤホンなしモードならOFF。VocabScreenと同じ規約）。
   // settingsLoadedがtrueになるまでは自動再生エフェクトを走らせない（非同期読み込み完了前の
   // 初期値falseで誤って再生してしまうレースを防ぐ）
@@ -352,6 +357,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }, [item, question, snapshot, displayIndex, db, navigate])
 
+  // T-105（18の3.3節・3.5節): text_passage（Part6/7単一）はDrillScreenの4択UIでは描画できない
+  // （本文＋設問の2ペインが必要＝専用のReadingScreenの担当。3.5節）。7分/15分パックに
+  // 読解が混在するようになったため、現在itemがtext_passageならセッション状態
+  // （useSessionStoreは画面間で共有）を保ったままreading画面へ切り替える。
+  // advanceSessionは呼ばない（このitem自体は解答が必要でスキップ対象ではない）
+  useEffect(() => {
+    if (!snapshot || !item || question?.format !== 'text_passage') return
+    navigate('reading')
+  }, [item, question, snapshot, navigate])
+
   // T-108: スキップ通知は数秒で自動的に消える（非モーダル。累計件数はResultScreen側で表示する）
   useEffect(() => {
     if (!skipNotice) return
@@ -376,6 +391,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     if (snapshot && !item) navigate('result')
     return null
   }
+  // text_passageはこのコンポーネントに描画分岐が無い（上のeffectがreading画面へ切り替える）。
+  // 切り替え完了までの1レンダーは何も描画しない（choices空の中途半端な描画を避ける）
+  if (question.format === 'text_passage') return null
 
   const total = snapshot.items.length
   const current = displayIndex + 1
@@ -391,10 +409,17 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
     setResult(null)
     if (options?.resyncSnapshot ?? true) {
-      const resumed = await resumeSession(db)
-      if (resumed) {
-        useSessionStore.setState({ snapshot: resumed })
-        setDisplayIndex(resumed.answeredCount)
+      // リカバリ自体の失敗（DBクローズ済み等）はここで握る。呼び出し元は
+      // void で投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+      // （保存失敗のバナーは表示済みで、これ以上ユーザーに提示できる情報はない）
+      try {
+        const resumed = await resumeSession(db)
+        if (resumed) {
+          useSessionStore.setState({ snapshot: resumed })
+          setDisplayIndex(resumed.answeredCount)
+        }
+      } catch (resyncErr) {
+        console.error('[DrillScreen] 保存失敗後のセッション再同期にも失敗', resyncErr)
       }
     }
   }
@@ -689,6 +714,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setBlankFillsByIndex(new Map())
     setDictationRate(1)
     setSelectedChoiceKey(null)
+    setDontKnowVocab(false)
     setSubQuestionIndex(0)
     setSubQuestionResults([])
     setPreReadingSecondsLeft(null)
@@ -702,12 +728,19 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   function handleSelectVocabChoice(key: string) {
-    if (selectedChoiceKey !== null) return
+    if (selectedChoiceKey !== null || dontKnowVocab) return
     setSelectedChoiceKey(key)
     triggerCorrectHaptics(
       hapticsEnabled,
       quizChoices.find((c) => c.key === key)?.isCorrect ?? false,
     )
+  }
+
+  // 「わからない」タップ: 選択肢は選ばず正解の提示だけ行い、「次へ」で handleVocabGrade('again') を呼ぶ。
+  // isCorrectは未選択（selectedChoiceKey=null）のため false で確定する
+  function handleDontKnowVocab() {
+    if (selectedChoiceKey !== null || dontKnowVocab) return
+    setDontKnowVocab(true)
   }
 
   /**
@@ -800,7 +833,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           {isVocabCard &&
             quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
-              if (selectedChoiceKey !== null) {
+              if (selectedChoiceKey !== null || dontKnowVocab) {
                 if (choice.isCorrect) state = 'correct'
                 else if (choice.key === selectedChoiceKey) state = 'wrong'
                 else state = 'dimmed'
@@ -810,16 +843,31 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   key={choice.key}
                   marker={choice.key}
                   state={state}
-                  disabled={selectedChoiceKey !== null}
+                  disabled={selectedChoiceKey !== null || dontKnowVocab}
                   onClick={() => handleSelectVocabChoice(choice.key)}
                 >
                   {choice.text}
                 </ChoiceButton>
               )
             })}
-          {isVocabCard && selectedChoiceKey === null && question.phraseAudio && (
+          {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && question.phraseAudio && (
             <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
               もう一度再生
+            </button>
+          )}
+          {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && (
+            <button type="button" className="vocab-dontknow-button" onClick={handleDontKnowVocab}>
+              わからない
+            </button>
+          )}
+          {/* 「わからない」提示後は自己評価3段階を出さず「次へ」だけ（間隔はagain固定） */}
+          {isVocabCard && dontKnowVocab && (
+            <button
+              type="button"
+              className="vocab-grade-button"
+              onClick={() => void handleVocabGrade('again')}
+            >
+              次へ
             </button>
           )}
           {isVocabCard && selectedChoiceKey !== null && (
