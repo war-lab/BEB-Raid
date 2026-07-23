@@ -714,6 +714,28 @@
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+/* 「わからない」ボタン（ドッグフィードバック 2026-07-22）。回答選択肢A–Dより一段控えめにし、
+   当てずっぽうより正直な申告を選びやすくする。破線＋淡色で選択肢とは別物であることを示す */
+.vocab-dontknow-button {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-top: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: transparent;
+  color: var(--ink-2);
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.vocab-dontknow-button:active {
+  background: var(--surface-2);
+}
+.vocab-dontknow-button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
 .dictation-rate-chips {
   display: flex;
   gap: var(--sp-1);

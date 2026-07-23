@@ -141,6 +141,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [streak, setStreak] = useState(0)
   // vocab_card 専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す。VocabScreenと同じ設計）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
+  // vocab_card 専用:「わからない」を選んだ状態（ドッグフィードバック 2026-07-22。VocabScreenと同規約）。
+  // 正解は提示しつつ isCorrect=false・SRSはagain扱いにし、当てずっぽうの偽陽性を防ぐ
+  const [dontKnowVocab, setDontKnowVocab] = useState(false)
   // vocab_card 専用: フレーズ音声自動再生の可否（イヤホンなしモードならOFF。VocabScreenと同じ規約）。
   // settingsLoadedがtrueになるまでは自動再生エフェクトを走らせない（非同期読み込み完了前の
   // 初期値falseで誤って再生してしまうレースを防ぐ）
@@ -666,6 +669,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setBlankFillsByIndex(new Map())
     setDictationRate(1)
     setSelectedChoiceKey(null)
+    setDontKnowVocab(false)
     setSubQuestionIndex(0)
     setSubQuestionResults([])
     setPreReadingSecondsLeft(null)
@@ -679,12 +683,19 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   function handleSelectVocabChoice(key: string) {
-    if (selectedChoiceKey !== null) return
+    if (selectedChoiceKey !== null || dontKnowVocab) return
     setSelectedChoiceKey(key)
     triggerCorrectHaptics(
       hapticsEnabled,
       quizChoices.find((c) => c.key === key)?.isCorrect ?? false,
     )
+  }
+
+  // 「わからない」タップ: 選択肢は選ばず正解の提示だけ行い、「次へ」で handleVocabGrade('again') を呼ぶ。
+  // isCorrectは未選択（selectedChoiceKey=null）のため false で確定する
+  function handleDontKnowVocab() {
+    if (selectedChoiceKey !== null || dontKnowVocab) return
+    setDontKnowVocab(true)
   }
 
   /**
@@ -777,7 +788,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           {isVocabCard &&
             quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
-              if (selectedChoiceKey !== null) {
+              if (selectedChoiceKey !== null || dontKnowVocab) {
                 if (choice.isCorrect) state = 'correct'
                 else if (choice.key === selectedChoiceKey) state = 'wrong'
                 else state = 'dimmed'
@@ -787,16 +798,31 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   key={choice.key}
                   marker={choice.key}
                   state={state}
-                  disabled={selectedChoiceKey !== null}
+                  disabled={selectedChoiceKey !== null || dontKnowVocab}
                   onClick={() => handleSelectVocabChoice(choice.key)}
                 >
                   {choice.text}
                 </ChoiceButton>
               )
             })}
-          {isVocabCard && selectedChoiceKey === null && question.phraseAudio && (
+          {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && question.phraseAudio && (
             <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
               もう一度再生
+            </button>
+          )}
+          {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && (
+            <button type="button" className="vocab-dontknow-button" onClick={handleDontKnowVocab}>
+              わからない
+            </button>
+          )}
+          {/* 「わからない」提示後は自己評価3段階を出さず「次へ」だけ（間隔はagain固定） */}
+          {isVocabCard && dontKnowVocab && (
+            <button
+              type="button"
+              className="vocab-grade-button"
+              onClick={() => void handleVocabGrade('again')}
+            >
+              次へ
             </button>
           )}
           {isVocabCard && selectedChoiceKey !== null && (

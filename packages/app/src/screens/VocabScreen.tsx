@@ -72,6 +72,9 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [triagePaused, setTriagePaused] = useState(false)
   // 復習モード専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
+  // 「わからない」を選んだ状態（ドッグフィードバック 2026-07-22）。当てずっぽうの正解で
+  // isCorrectが偽陽性になるのを防ぐため、正解は提示しつつ isCorrect=false・SRSはagain扱いにする
+  const [dontKnow, setDontKnow] = useState(false)
   const [startedAt, setStartedAt] = useState(() => now())
   // T-78: ハプティクス設定（既定ON）
   const [hapticsEnabled, setHapticsEnabled] = useState(true)
@@ -188,12 +191,19 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   if (reviewQueue === null || triageQueue === null) return null
 
   function handleSelectChoice(key: string) {
-    if (selectedChoiceKey !== null) return
+    if (selectedChoiceKey !== null || dontKnow) return
     setSelectedChoiceKey(key)
     // T-78: 正解確定時の軽い振動フィードバック（設定でOFF・非対応環境では何もしない）
     if (hapticsEnabled && quizChoices.find((c) => c.key === key)?.isCorrect) {
       navigator.vibrate?.(15)
     }
+  }
+
+  // 「わからない」タップ: 選択肢は選ばず、正解の提示（answered=true）だけ行う。
+  // 記録はこの後の「次へ」で handleGrade('again') を呼び、isCorrect=false（未選択のため）で確定する
+  function handleDontKnow() {
+    if (selectedChoiceKey !== null || dontKnow) return
+    setDontKnow(true)
   }
 
   async function handleGrade(grade: SrsGrade) {
@@ -227,6 +237,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     await evaluateStreak(db)
     setReviewIndex((i) => i + 1)
     setSelectedChoiceKey(null)
+    setDontKnow(false)
     setStartedAt(now())
   }
 
@@ -256,7 +267,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   if (reviewIndex < reviewQueue.length && reviewCard) {
     const front = reviewQuestion?.front ?? reviewCard.refId
     const phrase = reviewQuestion?.phrase ?? front
-    const answered = selectedChoiceKey !== null
+    const answered = selectedChoiceKey !== null || dontKnow
 
     return (
       <ScreenLayout
@@ -308,7 +319,23 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 もう一度再生
               </button>
             )}
-            {answered && (
+            {!answered && (
+              <button type="button" className="vocab-dontknow-button" onClick={handleDontKnow}>
+                わからない
+              </button>
+            )}
+            {/* 「わからない」で正解を提示した後は、自己評価3段階は出さず「次へ」だけにする
+                （既に「わからない」と申告済みなので間隔はagain固定・タップ数も最小にする） */}
+            {answered && dontKnow && (
+              <button
+                type="button"
+                className="vocab-grade-button"
+                onClick={() => void handleGrade('again')}
+              >
+                次へ
+              </button>
+            )}
+            {answered && !dontKnow && (
               <>
                 <button
                   type="button"

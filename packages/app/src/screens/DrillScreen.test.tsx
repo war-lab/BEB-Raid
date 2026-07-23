@@ -665,6 +665,39 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(attempt.isCorrect).toBe(false)
   })
 
+  it('「わからない」で正解提示→次へでisCorrect=false・SRSはagain（stage0）で記録される', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:attend',
+      refType: 'vocab',
+      refId: 'attend',
+      stage: 2,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('attend')
+    const decoy = vocabCardQuestion('decoy')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:attend' }]
+    await setupSession(db, items, [q, decoy])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('わからない'))
+    // 正解（attend の意味）がcorrect表示
+    await waitFor(() =>
+      expect(screen.getByText('attend の意味').closest('button')?.dataset.state).toBe('correct'),
+    )
+    expect(screen.queryByText('OK')).toBeNull()
+    fireEvent.click(screen.getByText('次へ'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(false)
+    expect((await db.srsCards.get('vocab:attend'))?.stage).toBe(0)
+  })
+
   it('T-76: 自己評価時の解答保存失敗もエラーバナーが出て、DBの実状態に再同期する', async () => {
     const db = newDb()
     await db.srsCards.put({
