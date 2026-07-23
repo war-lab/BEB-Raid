@@ -11,6 +11,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import { applyRatingUpdate } from '../engine/rating'
 import { advanceSession, startSession, type SessionItem } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -167,6 +168,55 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     expect(rating).toBeDefined()
   })
 
+  it('T-106: 正誤混在（正・誤・正）でも各設問が独立採点され、computeSetResultの2/3ルールに基づく一括判定を経由しない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-mixed', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    // 正・誤・正（3問中2問正解=2/3ルールなら「セット正解」となる分布だが、
+    // ここではセット単位の合否判定ではなく設問ごとの独立したElo更新のみで説明できることを確かめる）
+    const pattern = ['a', 'b', 'a']
+    for (let i = 0; i < pattern.length; i++) {
+      fireEvent.click(screen.getByText(pattern[i]!))
+      await waitFor(() =>
+        expect(screen.getByText(pattern[i] === 'a' ? '正解' : '不正解')).toBeTruthy(),
+      )
+      // recordAnswerPipelineはUIの正誤表示（activeAnswerの楽観的更新）より後にDB書き込みが
+      // 完了する（rating更新が最後のステップ）。次の設問へ進む前にratings.answerCountの
+      // 増分を待ち、後続クリックのrecordAnswerPipeline呼び出しと競合させない
+      // （この待機が無いとElo更新の実行順序が意図した正誤順と入れ替わりうる＝Eloは順序依存のため）
+      await waitFor(async () => expect((await db.ratings.get('R'))?.answerCount).toBe(i + 1))
+      fireEvent.click(screen.getByText('次へ'))
+      if (i < pattern.length - 1) {
+        await waitFor(() =>
+          expect(screen.getByTestId('reading-question').textContent).toContain(`設問${i + 2}/3`),
+        )
+      }
+    }
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+
+    // 期待値はengine/rating.tsのapplyRatingUpdateを正誤パターンどおりに3回独立適用した軌跡。
+    // computeSetResult（audioSet.ts）は一切importしておらず、セット単位の合否で
+    // まとめて1回更新するような別経路が無いことを、この一致で担保する
+    const refDb = newDb()
+    for (const c of pattern) {
+      await applyRatingUpdate(refDb, {
+        part: q.part,
+        difficulty: q.difficulty,
+        isCorrect: c === 'a',
+        mode: 'solo',
+      })
+    }
+    const actualRating = await db.ratings.get('R')
+    const expectedRating = await refDb.ratings.get('R')
+    expect(expectedRating).toBeDefined()
+    expect(actualRating?.rating).toBeCloseTo(expectedRating!.rating, 6)
+    expect(actualRating?.answerCount).toBe(3)
+  })
+
   it('誤答した設問はkeyVocabがSRSに追加される（2/3ルールは使わず1問ごとに独立採点）', async () => {
     const db = newDb()
     const q = part7Question('p7-2', 1)
@@ -180,6 +230,75 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     const attempts = await db.attempts.toArray()
     expect(attempts).toHaveLength(1)
     expect(attempts[0]?.isCorrect).toBe(false)
+  })
+})
+
+describe('ReadingScreen: 読解の解法タグがtagStats・弱点判定に乗る（T-106・docs/18 3.4節）', () => {
+  /**
+   * subQuestion単位の解法タグ（'推論'）は親questionのtags（'パラフレーズ照合'）とは別に
+   * 設問側にだけ付与する（T-103のSubQuestion.tags想定運用）。10問すべて誤答させ、
+   * 当て勘重み（応答<2秒の誤答=0.5倍。03の7.2節）を踏まえてもwindowTotal（弱点判定に
+   * 必要な最小標本数=5）に届く数だけ用意する
+   */
+  function taggedPassageQuestion(id: string, subCount: number): Question {
+    return {
+      id,
+      part: 7,
+      format: 'text_passage',
+      difficulty: 2,
+      tags: ['パラフレーズ照合'],
+      keyVocab: [],
+      passages: [{ id: `${id}-p1`, kind: 'article', text: `${id}の本文。` }],
+      subQuestions: Array.from({ length: subCount }, (_, i) => ({
+        id: `${id}-q${i}`,
+        question: `設問${i}`,
+        choices: [
+          { key: 'A', text: 'a' },
+          { key: 'B', text: 'b' },
+        ],
+        answer: 'A',
+        tags: ['推論'],
+      })),
+    }
+  }
+
+  it('subQuestion.tagsの解法タグが弱点判定（正答率60%未満）に反映される', async () => {
+    const db = newDb()
+    const subCount = 10
+    const q = taggedPassageQuestion('p7-tagged', subCount)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    for (let i = 0; i < subCount; i++) {
+      fireEvent.click(screen.getByText('b')) // 全問誤答
+      await waitFor(() => expect(screen.getByText('不正解')).toBeTruthy())
+      // recordAnswerPipelineの完了（tagStats再構築を含む）を待ってから次へ進む。
+      // rating更新（ratings.answerCountの増分）がパイプラインの最終ステップのため、
+      // これを完了マーカーに使う。待たないと後続クリックのrecomputeTagStatsが先に走り、
+      // 直近の誤答が未反映のままwindowTotalが実際より少なく記録されうる（フレーク要因）
+      await waitFor(async () => expect((await db.ratings.get('R'))?.answerCount).toBe(i + 1))
+      fireEvent.click(screen.getByText('次へ'))
+      if (i < subCount - 1) {
+        await waitFor(() =>
+          expect(screen.getByTestId('reading-question').textContent).toContain(
+            `設問${i + 2}/${subCount}`,
+          ),
+        )
+      }
+    }
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+
+    // subQuestion固有の解法タグ（'推論'）がtagStatsに現れる（親のtagsだけを見る実装だと
+    // このキー自体が存在しない= tagStats.get('推論') が undefined のままになる）
+    const inferenceStat = await db.tagStats.get('推論')
+    expect(inferenceStat).toBeDefined()
+    expect(inferenceStat!.windowTotal).toBeGreaterThanOrEqual(5)
+    expect(inferenceStat!.windowCorrect / inferenceStat!.windowTotal).toBeLessThan(0.6)
+
+    // 親questionのtags（'パラフレーズ照合'）も従来どおり反映され続ける（回帰なし）
+    const paraphraseStat = await db.tagStats.get('パラフレーズ照合')
+    expect(paraphraseStat).toBeDefined()
   })
 })
 
