@@ -180,6 +180,26 @@
       ],
       "sizeBytes": 18266,
       "hash": "276f3b5d8ae983d3"
+    },
+    {
+      "id": "pack-reading-p6-s-001",
+      "title": "Part6読解 30セット120問",
+      "targetLevel": [
+        600,
+        730
+      ],
+      "sizeBytes": 145980,
+      "hash": "e135f4f09883f7bf"
+    },
+    {
+      "id": "pack-reading-p7single-s-001",
+      "title": "Part7単一読解 40セット118問",
+      "targetLevel": [
+        600,
+        730
+      ],
+      "sizeBytes": 153037,
+      "hash": "13195947463e3e99"
     }
   ]
 }
