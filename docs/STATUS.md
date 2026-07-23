@@ -2,6 +2,17 @@
 
 **最終更新: 2026-07-23**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## T-130完了: 成長ランク（2026-07-23。ブランチ `task/T-130-growth-rank`）
+
+M4（21・22）の依存なしタスク。**端末内導出のみ・サーバー送信なし（J-68）**で実装した。
+
+- 新規 `engine/growthRank.ts`: `rankPoints = max(0, 現在の総合レート − 初期レート) + 学習日数`（22の3.7節）。初期レートは `ratingHistory`（section='total'）最古スナップショット（不在時は現在レートを代入し差分0とする＝新規ユーザーは学習日数のみが加点）。学習日数は `attempts` が1件以上存在する暦日数（`toDateString`。ストリーク/ヒートマップと同じ基準だが、ヒートマップの表示窓15週とは異なり**全期間**を対象にする＝累積の継続装置のため）。
+- 新規 `engine/growthRankConfig.json`: 閾値（暫定）ブロンズ0/シルバー40/ゴールド90/プラチナ150/マスター230。`validateGrowthRankConfig` が読込時にminPoints昇順を検証（`validateQuickPackConfig`の前例に倣う）。
+- `DashboardScreen.tsx` にランク名・現在ポイント・次ランクまでの残りを表示（`.dashboard-growth-rank`。既存 `.dashboard-forecast-hero` と同じカード面言語を再利用。新規の光暈・アニメーションは追加していない＝20の2.3節の光暈4箇所限定を維持）。
+- テスト: `engine/growthRank.test.ts`（config整合検証・式の境界値・resolveGrowthRankの各ランク境界±1・countLearningDays・ratingHistory不在でブロンズ0pt・ネットワークAPI未使用の回帰）、`DashboardScreen.test.tsx` に新規ユーザー表示・実データ導出の2件を追加。
+- 検証: ルート `npm run lint` / `npm run format:check` / `npm run build` / `npm test` 全通過（api 78・app 731・cli 307・review-ui 15・shared-schema 67 = 計1198件）。
+- R-1側の作業領域（`engine/quickPack.ts`・`curriculum.ts`・`rating.ts`・`tagStats.ts`・`keyVocab.ts`・`packages/cli/`・`content/`）は**未変更**（`rating.ts`の`DEFAULT_INITIAL_RATING`は既存パターンどおり読取のみ）。shared-schema・packages/apiも未変更。新規npm依存の追加なし。
+
 ## M3完了ゲート通過とM4計画の起草（2026-07-23）
 
 - **M3完了ゲート通過（発起人確認）**: 複数人で週次レイドが回り、「今週みんなで倒す」が実際に会話に出ている。06のM3完了条件を充足した。H-2（招待コード配布・周知）も完了（17の3.11節を更新済み）。加えて、昼の集まりが**週1回の頻度で既に開催されている**（M4の昼イベント実測の場が存在する）。
