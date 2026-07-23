@@ -409,10 +409,17 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
     setResult(null)
     if (options?.resyncSnapshot ?? true) {
-      const resumed = await resumeSession(db)
-      if (resumed) {
-        useSessionStore.setState({ snapshot: resumed })
-        setDisplayIndex(resumed.answeredCount)
+      // リカバリ自体の失敗（DBクローズ済み等）はここで握る。呼び出し元は
+      // void で投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+      // （保存失敗のバナーは表示済みで、これ以上ユーザーに提示できる情報はない）
+      try {
+        const resumed = await resumeSession(db)
+        if (resumed) {
+          useSessionStore.setState({ snapshot: resumed })
+          setDisplayIndex(resumed.answeredCount)
+        }
+      } catch (resyncErr) {
+        console.error('[DrillScreen] 保存失敗後のセッション再同期にも失敗', resyncErr)
       }
     }
   }
