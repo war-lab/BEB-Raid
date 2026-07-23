@@ -9,8 +9,23 @@
 
 import type { Choice, Question } from '@beb-raid/shared-schema'
 
-/** 選択肢・script等からテキストを集める（null/undefinedは除外） */
+/**
+ * 選択肢・script等からテキストを集める（null/undefinedは除外）。
+ * text_passage（Part6/7）はトップレベルのquestion/choicesを持たず、代わりにpassages本文＋
+ * subQuestionsのquestion/choicesを持つ（T-107。shared-schema validateKeyVocabの検査対象と
+ * 同じ範囲に合わせないと②keyVocab出現チェックが全件誤検出になるため、ここで専用に集める）
+ */
 function collectTexts(q: Question): string[] {
+  if (q.format === 'text_passage') {
+    const passageTexts = (q.passages ?? []).map((p) => p.text)
+    const subQuestionTexts = (q.subQuestions ?? []).flatMap((sq) => [
+      sq.question,
+      ...sq.choices.map((c) => c.text),
+    ])
+    return [...passageTexts, ...subQuestionTexts].filter(
+      (s): s is string => typeof s === 'string' && s !== '',
+    )
+  }
   return [q.question, q.script, ...(q.choices ?? []).map((c) => c.text)].filter(
     (s): s is string => typeof s === 'string' && s !== '',
   )
