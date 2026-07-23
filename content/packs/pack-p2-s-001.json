@@ -284,8 +284,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6478,
-        "questionEndMs": 1913
+        "durationMs": 4180,
+        "questionEndMs": 2081
       },
       "script": "When will the delivery arrive? — Sometime around three o’clock.",
       "translation": "配達はいつ届きますか？ — 3時頃です。",
@@ -746,8 +746,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 7523,
-        "questionEndMs": 2659
+        "durationMs": 4937,
+        "questionEndMs": 2510
       },
       "script": "Where is the company headquarters located? — It’s in downtown Chicago.",
       "translation": "会社の本社はどこにありますか？ — シカゴのダウンタウンにあります。",
@@ -998,8 +998,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 7210,
-        "questionEndMs": 2664
+        "durationMs": 5224,
+        "questionEndMs": 2731
       },
       "script": "How much does the subscription cost per month? — It’s fifteen dollars a month.",
       "translation": "購読料は月にいくらですか？ — 月15ドルです。",
@@ -1544,8 +1544,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7576,
-        "questionEndMs": 2692
+        "durationMs": 5224,
+        "questionEndMs": 2998
       },
       "script": "Has the athlete signed the endorsement deal yet? — Not yet, they’re still negotiating.",
       "translation": "その選手はもう広告契約にサインしましたか？ — まだです、まだ交渉中です。",
@@ -1586,8 +1586,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8829,
-        "questionEndMs": 2846
+        "durationMs": 5773,
+        "questionEndMs": 2952
       },
       "script": "Where can I pick up a brochure about the new product? — There’s a stack at the front desk.",
       "translation": "新製品のパンフレットはどこで受け取れますか？ — 受付にたくさん置いてあります。",
@@ -1712,8 +1712,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7837,
-        "questionEndMs": 3198
+        "durationMs": 6165,
+        "questionEndMs": 3323
       },
       "script": "Does the company carry liability insurance? — Yes, it’s required for all our contracts.",
       "translation": "会社は賠償責任保険に加入していますか？ — はい、全ての契約で必須です。",

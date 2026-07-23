@@ -69,7 +69,19 @@ export function isSupportedAccent(accent: AudioAccent): accent is SupportedAccen
  * この問題を踏んでいなかった。ダッシュを読点相当のカンマに置換して回避する
  */
 export function sanitizeForTts(text: string): string {
-  return text.replace(/\s*[–—]\s*/g, ', ')
+  return (
+    text
+      .replace(/\s*[–—]\s*/g, ', ')
+      // カーリークォート等の非ASCII約物をASCIIへ正規化する。
+      // 【判明した不具合（2026-07-22。発起人FB「chineseなんとかを二回繰り返す」起点）】
+      // U+2019（'）等を含むテキストをpiperのstdinへ渡すと、パイプ境界のエンコーディング
+      // 不整合でCJK文字に化け、espeak-ngが「Chinese letter …」と読み上げる。
+      // Part2の30問・語彙9語の committed 音声で実発生をwhisper転写により確認した
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/…/g, '...')
+      .replace(/ /g, ' ')
+  )
 }
 
 export interface SynthesizeInput {

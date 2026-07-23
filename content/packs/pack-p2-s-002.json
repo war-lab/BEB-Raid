@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 131243
+    "sizeBytes": 131242
   },
   "questions": [
     {
@@ -956,8 +956,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 5590,
-        "questionEndMs": 2008
+        "durationMs": 3474,
+        "questionEndMs": 2092
       },
       "script": "What time does the briefing start? — At ten o’clock sharp.",
       "translation": "説明会は何時に始まりますか？ — 10時ちょうどです。",
@@ -998,8 +998,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8986,
-        "questionEndMs": 4835
+        "durationMs": 6113,
+        "questionEndMs": 3555
       },
       "script": "How many people are included in this year’s headcount increase? — Around thirty new hires.",
       "translation": "今年の増員には何人が含まれますか？ — 新規採用約30人です。",
@@ -1334,8 +1334,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9300,
-        "questionEndMs": 6568
+        "durationMs": 5355,
+        "questionEndMs": 2626
       },
       "script": "What is the company’s current attrition rate? — Around eight percent annually.",
       "translation": "会社の現在の離職率はどれくらいですか？ — 年間約8パーセントです。",
@@ -1418,8 +1418,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 7393,
-        "questionEndMs": 3310
+        "durationMs": 5303,
+        "questionEndMs": 2952
       },
       "script": "Do you want to sit in on the onboarding session tomorrow? — I’d love to, actually.",
       "translation": "明日の新人研修に同席したい？ — ぜひ参加したいです。",
@@ -1460,8 +1460,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6452,
-        "questionEndMs": 2435
+        "durationMs": 4415,
+        "questionEndMs": 2441
       },
       "script": "Could ya expedite this order for us? — I’ll check with the warehouse right away.",
       "translation": "この注文を急いでもらえますか？ — すぐに倉庫に確認します。",
@@ -1544,8 +1544,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7758,
-        "questionEndMs": 3588
+        "durationMs": 5277,
+        "questionEndMs": 3439
       },
       "script": "Are you going to streamline the approval process this quarter? — That’s the plan, yes.",
       "translation": "今四半期は承認プロセスを合理化するつもり？ — その予定です。",
@@ -1586,8 +1586,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8255,
-        "questionEndMs": 2981
+        "durationMs": 5433,
+        "questionEndMs": 3021
       },
       "script": "Should we incentivize early sign-ups this time? — I think that’s worth trying.",
       "translation": "今回は早期申込に特典をつけるべきかな？ — 試してみる価値はあると思う。",
@@ -1628,8 +1628,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6243,
-        "questionEndMs": 2597
+        "durationMs": 4493,
+        "questionEndMs": 2812
       },
       "script": "Do you know when my appraisal is scheduled? — I believe it’s next Monday.",
       "translation": "私の人事評価がいつ予定されているか知ってる？ — 来週の月曜だと思う。",
@@ -1712,8 +1712,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6949,
-        "questionEndMs": 2828
+        "durationMs": 5120,
+        "questionEndMs": 2870
       },
       "script": "Are you going to automate the invoicing this year? — We’re still discussing the budget for it.",
       "translation": "今年、請求業務を自動化するつもり？ — まだ予算について話し合っているところです。",
@@ -1754,8 +1754,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9300,
-        "questionEndMs": 3358
+        "durationMs": 6374,
+        "questionEndMs": 3346
       },
       "script": "Should the fund diversify into overseas markets? — That’s what the advisor recommends.",
       "translation": "そのファンドは海外市場にも分散投資すべきかな？ — アドバイザーはそう勧めています。",
@@ -1880,8 +1880,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7706,
-        "questionEndMs": 2948
+        "durationMs": 5198,
+        "questionEndMs": 2952
       },
       "script": "Why did we book a chartered bus for the delegates? — The regular shuttle doesn’t run that late.",
       "translation": "なぜ代表団のために貸し切りバスを予約したのですか？ — 通常のシャトルはその時間には走っていないからです。",
@@ -2006,8 +2006,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8673,
-        "questionEndMs": 6084
+        "durationMs": 5642,
+        "questionEndMs": 3091
       },
       "script": "What did the guests say about the hotel’s hospitality? — They praised the friendly staff.",
       "translation": "ゲストはホテルのもてなしについて何と言っていましたか？ — フレンドリーなスタッフを褒めていました。",
@@ -2216,8 +2216,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8020,
-        "questionEndMs": 3329
+        "durationMs": 5016,
+        "questionEndMs": 3172
       },
       "script": "Has the board voted to ratify the merger agreement yet? — They’re meeting again this afternoon.",
       "translation": "取締役会は合併契約をもう批准しましたか？ — 今日の午後また会議があります。",
@@ -2300,8 +2300,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9509,
-        "questionEndMs": 5123
+        "durationMs": 5512,
+        "questionEndMs": 3648
       },
       "script": "Isn’t the travel expense reimbursement already processed? — I haven’t checked my account yet.",
       "translation": "出張費はもう払い戻されていませんか？ — まだ自分の口座を確認していません。",
@@ -2342,8 +2342,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9091,
-        "questionEndMs": 6186
+        "durationMs": 6139,
+        "questionEndMs": 3126
       },
       "script": "Wasn’t IT supposed to troubleshoot the printer by now? — The technician just left, actually.",
       "translation": "プリンターはもう直っているはずでは？ — ちょうど技術者が帰ったところです。",
@@ -2426,8 +2426,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9195,
-        "questionEndMs": 2874
+        "durationMs": 6348,
+        "questionEndMs": 2824
       },
       "script": "Is the supplier really facing insolvency? — That’s what the news is reporting, anyway.",
       "translation": "その仕入先は本当に経営破綻しかけているのですか？ — とにかく報道ではそう言われています。",
@@ -2510,8 +2510,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 11207,
-        "questionEndMs": 4636
+        "durationMs": 6531,
+        "questionEndMs": 2719
       },
       "script": "Isn’t this software already obsolete? — We’re actually rolling out an update next week.",
       "translation": "このソフトはもう旧式なのでは？ — 実は来週アップデートを配信する予定です。",
@@ -2594,8 +2594,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9195,
-        "questionEndMs": 6328
+        "durationMs": 5799,
+        "questionEndMs": 3068
       },
       "script": "Doesn’t the new factory meet sustainability standards? — The certification is still pending.",
       "translation": "新しい工場は持続可能性の基準を満たしていないのですか？ — 認証はまだ保留中です。",
@@ -2636,8 +2636,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7027,
-        "questionEndMs": 2611
+        "durationMs": 5224,
+        "questionEndMs": 3114
       },
       "script": "Did the court find any patent infringement? — The ruling won’t come out until next month.",
       "translation": "裁判所は特許侵害を認定しましたか？ — 判決は来月まで出ません。",
@@ -2762,8 +2762,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9300,
-        "questionEndMs": 3280
+        "durationMs": 6713,
+        "questionEndMs": 3509
       },
       "script": "Is staff redundancy being considered for next quarter? — Management hasn’t made a final decision.",
       "translation": "来四半期にさらなる人員整理が予定されていますか？ — 経営陣はまだ最終決定していません。",
@@ -2804,8 +2804,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6792,
-        "questionEndMs": 2197
+        "durationMs": 4885,
+        "questionEndMs": 2626
       },
       "script": "Is the downsizing plan finalized? — We’re still waiting to hear from headquarters.",
       "translation": "人員削減計画は確定しましたか？ — まだ本社からの連絡を待っているところです。",
@@ -2888,8 +2888,8 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7314,
-        "questionEndMs": 2452
+        "durationMs": 4728,
+        "questionEndMs": 2534
       },
       "script": "Did the city approve the zoning variance? — We won’t know until the next council meeting.",
       "translation": "市は用途地域の例外許可を承認しましたか？ — 次の議会まで分かりません。",
@@ -3350,8 +3350,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9247,
-        "questionEndMs": 3719
+        "durationMs": 6243,
+        "questionEndMs": 3404
       },
       "script": "How much is the company spending on cybersecurity this year? — About twice last year’s budget.",
       "translation": "今年、会社はサイバーセキュリティにどれくらい費やしていますか？ — 去年の予算のほぼ2倍です。",
@@ -3686,8 +3686,8 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9509,
-        "questionEndMs": 3581
+        "durationMs": 6165,
+        "questionEndMs": 3195
       },
       "script": "How does our performance compare to the industry benchmark? — We’re about ten percent above average.",
       "translation": "我々の実績は業界基準と比べてどうですか？ — 平均より約10パーセント上です。",

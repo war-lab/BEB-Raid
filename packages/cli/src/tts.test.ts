@@ -70,6 +70,14 @@ describe('sanitizeForTts（M2・T-64。em/enダッシュがPiperのstdinでク�
     expect(sanitizeForTts('pages 10–20')).toBe('pages 10, 20')
   })
 
+  it('カーリーアポストロフィをASCIIへ正規化する（「Chinese letter」誤読み上げの再発防止）', () => {
+    expect(sanitizeForTts('That’s the plan, yes.')).toBe("That's the plan, yes.")
+  })
+
+  it('カーリーダブルクォート・三点リーダ・NBSPも正規化する', () => {
+    expect(sanitizeForTts('“Sure…” OK')).toBe('"Sure..." OK')
+  })
+
   it('ダッシュを含まないテキストはそのまま', () => {
     expect(sanitizeForTts('Please submit the report.')).toBe('Please submit the report.')
   })
