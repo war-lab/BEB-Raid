@@ -8,11 +8,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
+import { templateForSeason } from './curriculum'
 import { processWrongAnswer } from './keyVocab'
 import {
   buildDrillCandidates,
   computeAllocationCounts,
+  drillCategoryOf,
   generateQuickPack,
+  isReadingAllocatable,
   QUICK_PACK_CONFIG,
   validateQuickPackConfig,
   weightedSample,
@@ -56,6 +59,42 @@ function part5Question(id: string, tags: string[] = [], words: string[] = []): Q
   return { id, part: 5, format: 'text_blank', difficulty: 3, tags, keyVocab: words.map(kv) }
 }
 
+/** Part6/Part7単一（text_passage・passages 1件）。T-105（docs/18 3.3節）の読解配分テスト用 */
+function readingSingleQuestion(id: string, part: 6 | 7 = 7, tags: string[] = []): Question {
+  return {
+    id,
+    part,
+    format: 'text_passage',
+    difficulty: 3,
+    tags,
+    keyVocab: [kv(`${id}-word`)],
+    passages: [{ id: `${id}-p1`, kind: 'email', text: `${id}の本文` }],
+    subQuestions: [
+      { id: `${id}-q0`, question: '設問0', choices: [{ key: 'A', text: 'a' }], answer: 'A' },
+    ],
+  }
+}
+
+/** Part7複数パッセージ（text_passage・passages 2〜3件）。通常パックに絶対に入らないことのテスト用 */
+function readingMultiQuestion(id: string, passageCount: 2 | 3 = 2): Question {
+  return {
+    id,
+    part: 7,
+    format: 'text_passage',
+    difficulty: 4,
+    tags: ['cross-reference'],
+    keyVocab: [kv(`${id}-word`)],
+    passages: Array.from({ length: passageCount }, (_, i) => ({
+      id: `${id}-p${i}`,
+      kind: 'email',
+      text: `${id}の本文${i}`,
+    })),
+    subQuestions: [
+      { id: `${id}-q0`, question: '設問0', choices: [{ key: 'A', text: 'a' }], answer: 'A' },
+    ],
+  }
+}
+
 /** 語彙・Part2・Part5 が十分にあるプール */
 function bigPool(): Question[] {
   return [
@@ -91,12 +130,12 @@ async function seedDueCards(db: BebRaidDatabase, n: number): Promise<void> {
   }
 }
 
-describe('computeAllocationCounts: 固定配分（語彙50/Part2 25/Part5 25 = J-2）', () => {
+describe('computeAllocationCounts: 固定配分（語彙40/Part2 25/Part5 25/読解10 = J-2・T-105）', () => {
   it('割り切れる枠はそのまま、端数は最大剰余法で配る（合計=枠数）', () => {
-    expect(computeAllocationCounts(12)).toEqual({ vocab: 6, part2: 3, part5: 3 })
-    expect(computeAllocationCounts(5)).toEqual({ vocab: 3, part2: 1, part5: 1 })
+    expect(computeAllocationCounts(12)).toEqual({ vocab: 5, part2: 3, part5: 3, reading: 1 })
+    expect(computeAllocationCounts(5)).toEqual({ vocab: 2, part2: 1, part5: 1, reading: 1 })
     const counts = computeAllocationCounts(7)
-    expect((counts.vocab ?? 0) + (counts.part2 ?? 0) + (counts.part5 ?? 0)).toBe(7)
+    expect(Object.values(counts).reduce((sum, n) => sum + n, 0)).toBe(7)
   })
 })
 
@@ -300,7 +339,7 @@ describe('validateQuickPackConfig（レビューフォローアップ3.8節: all
   it('allocation の合計が1から大きくずれる設定は拒否される', () => {
     const broken: QuickPackConfig = {
       ...QUICK_PACK_CONFIG,
-      allocation: { vocab: 0.5, part2: 0.2, part5: 0.2 }, // 合計0.9（不正）
+      allocation: { vocab: 0.5, part2: 0.2, part5: 0.2, reading: 0 }, // 合計0.9（不正）
     }
     expect(() => validateQuickPackConfig(broken)).toThrow(/allocation/)
   })
@@ -308,7 +347,7 @@ describe('validateQuickPackConfig（レビューフォローアップ3.8節: all
   it('1±0.01 の範囲内なら許容される', () => {
     const ok: QuickPackConfig = {
       ...QUICK_PACK_CONFIG,
-      allocation: { vocab: 0.5, part2: 0.25, part5: 0.255 }, // 合計1.005
+      allocation: { vocab: 0.5, part2: 0.25, part5: 0.255, reading: 0 }, // 合計1.005
     }
     expect(() => validateQuickPackConfig(ok)).not.toThrow()
   })
@@ -516,5 +555,170 @@ describe('generateQuickPack: M2フェーズ配分（P1/P2/P3で配分が変わ�
       (i) => i.questionId !== null && weakLookup.get(i.questionId)?.tags.includes('weak-tag'),
     ).length
     expect(weakTagCount).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// T-105（docs/18 3.3節・ADR 0006 判断2）: 読解（Part6・Part7単一）の配分組込。
+// Part7複数パッセージは通常パックの対象外を必ず担保する
+// ---------------------------------------------------------------------------
+
+/** m2Poolに読解（単一10件・複数5件）を足したプール。lookupも読解込みで返す */
+function m2PoolWithReading(): { questions: Question[]; lookup: QuestionLookup } {
+  const { questions: base } = m2Pool()
+  const questions = [
+    ...base,
+    ...Array.from({ length: 10 }, (_, i) => readingSingleQuestion(`read-single-${i}`)),
+    ...Array.from({ length: 5 }, (_, i) => readingMultiQuestion(`read-multi-${i}`)),
+  ]
+  return { questions, lookup: new Map(questions.map((q) => [q.id, q])) }
+}
+
+function countReadingItems(
+  pack: Awaited<ReturnType<typeof generateQuickPack>>,
+  lookup: QuestionLookup,
+): { single: number; multi: number } {
+  let single = 0
+  let multi = 0
+  for (const item of pack.items) {
+    if (item.questionId === null) continue
+    const q = lookup.get(item.questionId)
+    if (q?.format !== 'text_passage') continue
+    if (isReadingAllocatable(q)) single += 1
+    else multi += 1
+  }
+  return { single, multi }
+}
+
+describe('drillCategoryOf / isReadingAllocatable: text_passageの分類（T-105）', () => {
+  it('単一パッセージ（passages 1件）はreadingカテゴリ', () => {
+    const q = readingSingleQuestion('r-1')
+    expect(isReadingAllocatable(q)).toBe(true)
+    expect(drillCategoryOf(q)).toBe('reading')
+  })
+
+  it('複数パッセージ（passages 2件以上）はreading対象外（drillCategoryOfはnull）', () => {
+    const q2 = readingMultiQuestion('r-2', 2)
+    const q3 = readingMultiQuestion('r-3', 3)
+    expect(isReadingAllocatable(q2)).toBe(false)
+    expect(isReadingAllocatable(q3)).toBe(false)
+    expect(drillCategoryOf(q2)).toBeNull()
+    expect(drillCategoryOf(q3)).toBeNull()
+  })
+})
+
+describe('generateQuickPack: 読解の配分組込（M1固定配分。フェーズ未指定=quickPackConfig.json）', () => {
+  it('7分・15分パックにPart6/Part7単一が「なぜ出たか」ラベル付きで混ざる', async () => {
+    const db = newDb()
+    const { questions, lookup } = m2PoolWithReading()
+    const pack7 = await generateQuickPack(db, { duration: 7, questions, now: NOW, rng: firstPick })
+    const pack15 = await generateQuickPack(newDb(), {
+      duration: 15,
+      questions,
+      now: NOW,
+      rng: firstPick,
+    })
+
+    const r7 = countReadingItems(pack7, lookup)
+    const r15 = countReadingItems(pack15, lookup)
+    expect(r7.single).toBeGreaterThan(0)
+    expect(r15.single).toBeGreaterThan(0)
+    // 15分は7分より総枠が大きい分、読解も絶対数で増える（「厚めに」=3.3節。
+    // 配分%は同一でdurationのtotalItemsスケールにより絶対数が増える設計）
+    expect(r15.single).toBeGreaterThan(r7.single)
+
+    const readingItem = pack7.items.find(
+      (i) => lookup.get(i.questionId ?? '')?.format === 'text_passage',
+    )
+    expect(readingItem?.reason).toBeDefined() // allocation/weakTag/keyVocabReviewのいずれか
+  })
+
+  it('3分パックには読解を含まない（SRSのみ・現状維持=3.3節）', async () => {
+    const db = newDb()
+    const { questions, lookup } = m2PoolWithReading()
+    const pack = await generateQuickPack(db, { duration: 3, questions, now: NOW, rng: firstPick })
+    expect(countReadingItems(pack, lookup).single).toBe(0)
+  })
+
+  it('Part7複数パッセージ（passages 2件以上）は絶対に通常パックに入らない', async () => {
+    const { questions, lookup } = m2PoolWithReading()
+    for (const duration of [3, 7, 15] as const) {
+      const pack = await generateQuickPack(newDb(), {
+        duration,
+        questions,
+        now: NOW,
+        rng: firstPick,
+      })
+      expect(countReadingItems(pack, lookup).multi).toBe(0)
+    }
+  })
+})
+
+describe('generateQuickPack: 読解の配分組込（M2フェーズ配分。curriculumConfig.json）', () => {
+  it('P1: Part6/Part7単一が少量導入される', async () => {
+    const db = newDb()
+    const { questions, lookup } = m2PoolWithReading()
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    expect(countReadingItems(pack, lookup).single).toBeGreaterThan(0)
+    expect(countReadingItems(pack, lookup).multi).toBe(0)
+  })
+
+  it('P2はP1よりPart7単一の配分率が厚い（本格投入=3.3節）', async () => {
+    const { questions } = m2PoolWithReading()
+    const p1Pack = await generateQuickPack(newDb(), {
+      duration: 15,
+      questions,
+      phase: 'P1',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    const p2Pack = await generateQuickPack(newDb(), {
+      duration: 15,
+      questions,
+      phase: 'P2',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    expect(templateForSeason('P1').allocation.reading).toBeLessThan(
+      templateForSeason('P2').allocation.reading ?? 0,
+    )
+    const lookup = new Map(questions.map((q) => [q.id, q]))
+    const p1Reading = countReadingItems(p1Pack, lookup).single
+    const p2Reading = countReadingItems(p2Pack, lookup).single
+    expect(p2Reading).toBeGreaterThanOrEqual(p1Reading)
+  })
+
+  it('P3テンプレはreadingバケットを持たない（Part7複数はじっくり読解モード専用=T-108/T-109。3.3節）', () => {
+    expect(templateForSeason('P3').allocation.reading).toBeUndefined()
+  })
+
+  it('P3でもPart7複数パッセージは出題されない（弱点タグ付きでもweaknessバケットへ流れない）', async () => {
+    const db = newDb()
+    const { questions } = m2PoolWithReading()
+    const tagged = questions.map((q) =>
+      isReadingAllocatable(q) || q.format !== 'text_passage'
+        ? q
+        : { ...q, tags: ['cross-reference'] },
+    )
+    await db.tagStats.put({ tag: 'cross-reference', windowCorrect: 1, windowTotal: 10 })
+    const pack = await generateQuickPack(db, {
+      duration: 15,
+      questions: tagged,
+      phase: 'P3',
+      listeningStage: 1,
+      now: NOW,
+      rng: firstPick,
+    })
+    const taggedLookup = new Map(tagged.map((q) => [q.id, q]))
+    expect(countReadingItems(pack, taggedLookup).multi).toBe(0)
   })
 })

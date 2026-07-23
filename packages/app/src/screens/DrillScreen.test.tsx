@@ -1480,3 +1480,50 @@ describe('DrillScreen: セッション途中終了導線（T-122・J-61）', () 
     expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
   })
 })
+
+describe('DrillScreen: 読解（text_passage）混在時のreading画面への自動切替（T-105。18の3.3節・3.5節）', () => {
+  function readingQuestion(id: string): Question {
+    return {
+      id,
+      part: 7,
+      format: 'text_passage',
+      difficulty: 3,
+      tags: [],
+      keyVocab: [{ word: `${id}-word`, sense: '意味', freqRank: 'S' }],
+      passages: [{ id: `${id}-p1`, kind: 'email', text: `${id}の本文` }],
+      subQuestions: [
+        { id: `${id}-q0`, question: '設問0', choices: [{ key: 'A', text: 'a' }], answer: 'A' },
+      ],
+    }
+  }
+
+  it('現在itemがtext_passageだとreading画面へ切り替わり、DrillScreenは何も描画しない', async () => {
+    const db = newDb()
+    const q = readingQuestion('read-1')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
+    // セッション状態自体は進めない（このitemはまだ未解答。スキップとは異なる）
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(0)
+  })
+
+  it('通常item→text_passage itemの順で混在するパックでも、1問目は通常どおり解答できてから切り替わる', async () => {
+    const db = newDb()
+    const q1 = part5Question('q-mixed-1', 'A', 'submit')
+    const q2 = readingQuestion('read-mixed-2')
+    const items: SessionItem[] = [
+      { questionId: q1.id, mode: 'solo' },
+      { questionId: q2.id, mode: 'solo' },
+    ]
+    await setupSession(db, items, [q1, q2])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    await answerAndSettle('a', 1) // q1に正解
+    fireEvent.click(screen.getByText('次へ'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1) // q2はまだ未解答
+  })
+})

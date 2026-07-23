@@ -183,6 +183,44 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
   })
 })
 
+describe('ReadingScreen: 読解以外item混在時のdrill画面への自動切替（T-105。18の3.3節・3.5節）', () => {
+  function part5Question(id: string): Question {
+    return {
+      id,
+      part: 5,
+      format: 'text_blank',
+      difficulty: 2,
+      tags: ['品詞'],
+      keyVocab: [],
+      question: `${id}の設問文`,
+      choices: [
+        { key: 'A', text: 'a' },
+        { key: 'B', text: 'b' },
+      ],
+      answer: 'A',
+    }
+  }
+
+  it('現在itemがtext_passageでなければdrill画面へ切り替わり、ReadingScreenは何も描画しない', async () => {
+    const db = newDb()
+    const q1 = part7Question('read-3', 1)
+    const q2 = part5Question('p5-4')
+    let snapshot = await startSession(db, {
+      items: [
+        { questionId: q1.id, mode: 'solo' },
+        { questionId: q2.id, mode: 'solo' },
+      ],
+    })
+    // 1問目（読解）は解答済みで、現在itemはq2（通常形式）を模擬する
+    snapshot = await advanceSession(db, snapshot)
+    useSessionStore.getState().begin(snapshot, [q1, q2], { L: 400, R: 400 })
+
+    render(<ReadingScreen db={db} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+  })
+})
+
 describe('ReadingScreen: 中断復帰（T-104）', () => {
   it('完了済みの1問目（パッセージ）をスキップして2問目から表示される', async () => {
     const db = newDb()
