@@ -217,6 +217,57 @@ describe('checkOpeningPhraseDiversity（⑤。警告のみ）', () => {
   })
 })
 
+describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環検出。T-107クロスレビューMF-1）', () => {
+  /** 指定した正答キー列を持つtext_passageセットを組み立てる */
+  function cycleSet(setId: string, answers: string[]): Question {
+    return textPassageQuestion({
+      id: setId,
+      subQuestions: answers.map((answer, i) => ({
+        id: `${setId}-q${i + 1}`,
+        question: `Question ${i + 1} of ${setId}?`,
+        choices: [
+          { key: 'A', text: 'An invoice' },
+          { key: 'B', text: 'A resume' },
+          { key: 'C', text: 'A receipt' },
+          { key: 'D', text: 'A catalog' },
+        ],
+        answer,
+        explanation: '解説テキスト',
+        translation: '和訳',
+      })),
+    })
+  }
+
+  it('全セットが同一差分の循環（rotateTextPassageChoicesの素の出力）なら警告する', () => {
+    const questions = [
+      cycleSet('p6-cyc-1', ['A', 'D', 'C', 'B']),
+      cycleSet('p6-cyc-2', ['D', 'C', 'B', 'A']),
+      cycleSet('p6-cyc-3', ['C', 'B', 'A', 'D']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p6-test')
+    expect(problems.some((p) => p.startsWith('[警告]') && p.includes('決定的循環'))).toBe(true)
+  })
+
+  it('シャッフル済み（循環が崩れている）なら警告しない', () => {
+    const questions = [
+      cycleSet('p6-mix-1', ['B', 'B', 'D', 'A']),
+      cycleSet('p6-mix-2', ['C', 'A', 'A', 'D']),
+      cycleSet('p6-mix-3', ['D', 'B', 'C', 'C']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p6-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('対象セットが3セット未満なら判定しない（小規模フィクスチャの誤検出防止）', () => {
+    const questions = [
+      cycleSet('p6-few-1', ['A', 'D', 'C', 'B']),
+      cycleSet('p6-few-2', ['D', 'C', 'B', 'A']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p6-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+})
+
 describe('全パック一括検査（T-81完了条件: T-80ルール①③の検出ゼロ）', () => {
   it('J-43（S1選択肢書き換え）・カジュアル縮約6問修正（T-81）により①③の検出が0件になる', () => {
     const packs: Array<{ id: string; questions: Question[] }> = [

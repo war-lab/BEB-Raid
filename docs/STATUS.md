@@ -2,6 +2,18 @@
 
 **最終更新: 2026-07-23**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 2026-07-23: T-107読解コンテンツのAIクロスレビューと修正（task/T-107-crossreview-fixes）
+
+T-107で生成した読解在庫（Part6 30セット120設問=`part6PassagesS.ts`・Part7単一 40セット118設問=`part7SinglePassagesS.ts`）へのAIクロスレビュー指摘を修正した（T-84クロスレビュー修正=2026-07-20節と同じ運用。音声を持たないテキストのみの修正）。修正後に `beb generate text_passage_p6` / `text_passage_p7_single` → 選択肢シャッフル → `beb review-export` で `content/drafts/` のjsonl・review.tsvを再生成し整合させた。**PACK_DEFINITIONS未追加＝配信対象外の状態は不変**（人手レビューゲート=ADR 0006 判断5は引き続き有効。H-R1の人手レビューはこの修正後ドラフトに対して行う）。
+
+- **must-fix 12件（正答一意性の破綻・非文法）**: 第2正解の除去が中心。代表例: p6-015 q3は本文の "at least" が正答 no later than と衝突（"no later than at least..."）するため本文から削除、p6-007 q2は `credits [[2]] month` で every/each も正解になるため誤答を within/among/upon へ、p6-026 q3は rather than+原形が標準用法で leave が第2正解のため本文を instead of へ変更、p6-016 q4の文挿入正答文 "in early next month" の非文法な in を削除。ほか p6-005/011/020/022/024/029(2件)/015 q2 の誤答差し替え（各解説・和訳も整合済み。「no later thanはやや不自然」等の誤った文法説明も書き直した）。
+- **系統的修正（MF-1・正答キー循環バイアス）**: `rotateTextPassageChoices` の決定的ローテーションにより、ドラフト全70セットの正答キーがセット内で一定差分の循環（Part6は全て A→D→C→B、Part7単一は降順循環）になっていた。**生成プロセスの既知事象**（M1レビュー⑦の決定的分散方式を text_passage にもそのまま適用した帰結。アプリは描画時シャッフル=ReadingScreen.tsxのため学習体験上の実害はないが、review-ui・将来のエクスポート面に露出する）。対処: ①一回限りのスクリプト `packages/cli/scripts/shuffle-text-passage-choices.mjs`（subQuestion idから導出する決定的シード=FNV-1a→mulberry32。再実行しても同一結果）でドラフトjsonlの選択肢順238設問分をシャッフルしanswerキーを追随させた。②再発防止として `contentLint.ts` にルール⑥ `checkAnswerKeyCycle`（対象3セット以上かつ全セットが同一差分の循環のときのみ警告。シャッフル済みデータの偽陽性は確率的に無視できる）を追加し、シャッフル後の両ドラフトで警告0件・素のローテーション出力で警告検出を確認した。
+- **系統的修正（tags。tagStats弱点集計の汚染防止）**: Part6全30セットに一律付与されていた「語彙推測」を設問実態（文法主体）に合わせて docs/03 7.1 の既存タグへ修正（動詞の形/品詞/接続詞vs前置詞/前置詞コロケーション/代名詞・関係詞/比較。26セット変更）。**p6-015・p6-029のみ「語彙推測」を維持**（at least/no later than・approximately の語義選択問題を実際に含むため実態に合致）。Part7は p7s-005/011/017/025/029/033/035/037 の「語彙推測」（語彙問題を含まないセット）と p7s-025/030/031/036 の「推論」（明示情報の照合のみのセット）を削除またはスキャン/パラフレーズ照合へ差し替え（12セット変更）。
+- **minor 10項目**: p6-025がp6-012と実質同一（関係代名詞3問・選択肢まで一致）だったため動詞の形＋前置詞のセットへ書き換えてバリエーション化／p7s-023 q1を「When must vacation requests be submitted?」型に変更（before requesting の論理矛盾解消）／p7s-016 q2・p7s-021 q2・p7s-036 q3 の誤答品質改善／p7s-010 q1 正答を "Rescheduling a client meeting" へ／英文修正（p6-008 by the end of this week・p6-027 register the visit・p6-028 冒頭を are being removed で在庫矛盾解消・p7s-007 for the inconvenience）／解説の軽微修正（p6-006 q4 位置関係・p6-030 q4 直前文参照・p6-026 q2 脱字）／difficulty調整（p6-009/012/020/025→3、p7s-022→2）。
+- **シートと異なる対処をした項目（keyVocab sense修正）**: keyVocabのsenseは語彙カード（600語）の`back`から`vocabEntryForWord`で解決される設計のため、設問単位のsense書き換えは生成器の設計変更（または全SRSカードに影響する語彙カード側の変更）を要する。設計を変えず目的（本文文脈とsenseの一致）を達するため、**keyVocab語自体を本文実在かつsense適合のカード語へ差し替えた**: p7s-011 benefits→deadline、p7s-001 candidate→resume（シート例示のportfolioはカードsenseが「保有資産の組み合わせ」=投資文脈で作品集の文脈に不一致のため）、p6-024 orientation→equipment、p7s-030 premises→maintenance。
+- **既知事象（本タスクでは未修正）**: `part7SinglePassagesS.ts` 冒頭コメントの「設問合計120問（2問x10・3問x20・4問x10）」は実データ（118問=2問x11・3問x20・4問x9）と不一致（dev時点から存在）。データ本体は118問で整合しており、コメント/docs/18側の記述整理は別途。
+- **検証**: cli 337件（contentLint⑥の新規3件含む）、ルート `npm run lint` / `npm run format:check` / `npm run build` / `npm test` 全通過。shared-schema validatePack（generate時）・contentLint（新チェック含む）全件通過。
+
 ## T-130完了: 成長ランク（2026-07-23。ブランチ `task/T-130-growth-rank`）
 
 M4（21・22）の依存なしタスク。**端末内導出のみ・サーバー送信なし（J-68）**で実装した。

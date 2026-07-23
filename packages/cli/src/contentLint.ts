@@ -156,9 +156,47 @@ function checkOpeningPhraseDiversity(questions: readonly Question[], packId: str
   return problems
 }
 
+/** 正答キー→0..3のインデックス変換に使うキー一覧 */
+const ANSWER_KEYS = ['A', 'B', 'C', 'D'] as const
+
 /**
- * パック1件分の5ルール検証。①②③は個別問題ごと、④は問題ごと（警告）、
- * ⑤はパック全体（警告）。戻り値は修正すべき問題点の一覧（このタスクでは記録のみ。
+ * ⑥text_passage: セット内正答キー列の決定的循環検出（T-107クロスレビューMF-1の再発防止）。
+ * rotateTextPassageChoicesの決定的ローテーション出力をそのまま配布物に載せると、セット内の
+ * 正答キーが常に一定差分の循環（Part6なら A→D→C→B）になり並びから推測可能になる。
+ * 対象セット（subQuestions2問以上のtext_passage）が3セット以上あり、かつ全セットの隣接する
+ * 正答キー差分が同一値で揃っている場合のみ警告する（シャッフル済みデータが偶然この条件を
+ * 満たす確率は (1/4)^(セット数-1) 以下で無視できるため誤検出はほぼ起きない）。
+ * 解消手段は packages/cli/scripts/shuffle-text-passage-choices.mjs（シード付き決定的シャッフル）。
+ */
+function checkAnswerKeyCycle(questions: readonly Question[], packId: string): string[] {
+  const sets = questions.filter(
+    (q) => q.format === 'text_passage' && (q.subQuestions?.length ?? 0) >= 2,
+  )
+  if (sets.length < 3) return []
+  let sharedDelta: number | undefined
+  for (const q of sets) {
+    const indices = (q.subQuestions ?? []).map((sq) =>
+      ANSWER_KEYS.indexOf(sq.answer as (typeof ANSWER_KEYS)[number]),
+    )
+    if (indices.some((i) => i < 0)) return []
+    const delta = (indices[1]! - indices[0]! + 4) % 4
+    for (let i = 1; i < indices.length - 1; i++) {
+      if ((indices[i + 1]! - indices[i]! + 4) % 4 !== delta) return []
+    }
+    if (sharedDelta === undefined) {
+      sharedDelta = delta
+    } else if (sharedDelta !== delta) {
+      return []
+    }
+  }
+  return [
+    `[警告] ${packId}: text_passage全${sets.length}セットの正答キーがセット内で一定差分${sharedDelta}の決定的循環になっている（選択肢シャッフル漏れの可能性。scripts/shuffle-text-passage-choices.mjs参照）`,
+  ]
+}
+
+/**
+ * パック1件分の6ルール検証。①②③は個別問題ごと、④は問題ごと（警告）、
+ * ⑤⑥はパック全体（警告）。戻り値は修正すべき問題点の一覧（このタスクでは記録のみ。
  * buildPack側ではwarningsとして扱いビルドを失敗させない）
  */
 export function validateContentLint(questions: readonly Question[], packId: string): string[] {
@@ -170,5 +208,6 @@ export function validateContentLint(questions: readonly Question[], packId: stri
     problems.push(...checkTextBlankLength(q))
   }
   problems.push(...checkOpeningPhraseDiversity(questions, packId))
+  problems.push(...checkAnswerKeyCycle(questions, packId))
   return problems
 }
