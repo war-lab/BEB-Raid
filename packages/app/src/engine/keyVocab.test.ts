@@ -45,13 +45,27 @@ function question(id: string, keyVocab: string[]): Question {
   }
 }
 
+/** 読解（Part7単一）の親Question。本文まるごと再出題しない例外の対象（T-106） */
+function passageQuestion(id: string, keyVocab: string[]): Question {
+  return {
+    id,
+    part: 7,
+    format: 'text_passage',
+    difficulty: 3,
+    tags: ['パラフレーズ照合'],
+    keyVocab: keyVocab.map(kv),
+    passages: [{ id: `${id}-p1`, kind: 'email', text: 'dummy' }],
+    subQuestions: [{ id: `${id}-q0`, question: 'q', choices: [], answer: 'A' }],
+  }
+}
+
 describe('processWrongAnswer: 誤答→SRS登録', () => {
   it('誤答問題カードと key語彙カード（発生元問題ID付き）が srsCards に入る', async () => {
     const db = newDb()
     const now = new Date(2026, 6, 9).getTime()
     const result = await processWrongAnswer(db, question('q-1', ['submit', 'deadline']), now)
 
-    expect(result.questionCard.id).toBe('question:q-1')
+    expect(result.questionCard?.id).toBe('question:q-1')
     expect(result.vocabCards.map((c) => c.id)).toEqual(['vocab:submit', 'vocab:deadline'])
     expect((await db.srsCards.get('vocab:submit'))?.sourceQuestionId).toBe('q-1')
     expect(await db.srsCards.count()).toBe(3)
@@ -117,6 +131,37 @@ describe('key単語定着後の元問題再投入（03の3.2）', () => {
     await db.srsCards.update('vocab:submit', { stage: 5, introducedDate: '2026-07-01' })
     await reviewSrsCard(db, 'vocab:submit', 'good', now)
     expect((await db.srsCards.get('question:q-1'))?.stage).toBe(2)
+  })
+})
+
+describe('processWrongAnswer: 読解（text_passage）は本文まるごとの再出題をしない（T-106・ADR 0006 判断6・docs/18 3.4節）', () => {
+  it('誤答問題カード（questionCard）を作らず、key語彙カードにもsourceQuestionIdを乗せない', async () => {
+    const db = newDb()
+    const now = new Date(2026, 6, 9).getTime()
+    const result = await processWrongAnswer(db, passageQuestion('p7-1', ['invoice']), now)
+
+    expect(result.questionCard).toBeNull()
+    expect(await db.srsCards.get('question:p7-1')).toBeUndefined()
+    const vocabCard = await db.srsCards.get('vocab:invoice')
+    expect(vocabCard).toBeDefined()
+    expect(vocabCard?.sourceQuestionId ?? null).toBeNull()
+    // srsCardsに増えるのは語彙カードのみ（questionCard分が増えない）
+    expect(await db.srsCards.count()).toBe(1)
+  })
+
+  it('key語彙カードが卒業しても、発生元パッセージ（本文）はSRSに再投入されない', async () => {
+    const db = newDb()
+    const now = new Date(2026, 6, 9).getTime()
+    await processWrongAnswer(db, passageQuestion('p7-2', ['invoice']), now)
+    await db.srsCards.update('vocab:invoice', { stage: 5, introducedDate: '2026-07-01' })
+
+    const result = await reviewSrsCard(db, 'vocab:invoice', 'good', now)
+    expect(result.graduated).toBe(true)
+
+    // 03の3.2の通常循環なら'question:p7-2'が復活するが、読解では本文まるごと再出題を
+    // しないためsourceQuestionIdが無く、questionカードは一度も作られない
+    expect(await db.srsCards.get('question:p7-2')).toBeUndefined()
+    expect(await db.srsCards.count()).toBe(1)
   })
 })
 

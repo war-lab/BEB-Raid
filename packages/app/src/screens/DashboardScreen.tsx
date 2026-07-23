@@ -6,6 +6,7 @@ import type { BebRaidDatabase } from '../db/database'
 import type { ExamScoreRecord, ExamScoreSource } from '../db/schema'
 import { localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { computeForecast, type RatingHistoryPoint } from '../engine/forecast'
+import { getGrowthRank, type GrowthRankResult } from '../engine/growthRank'
 import { buildHeatmapCells } from '../engine/heatmapCells'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { getTagAccuracies, WEAK_MIN_SAMPLE } from '../engine/tagStats'
@@ -39,6 +40,8 @@ export function DashboardScreen({ db }: Props) {
   const [growthPoints, setGrowthPoints] = useState<LineChartPoint[] | null>(null)
   const [weakBars, setWeakBars] = useState<TagAccuracy[] | null>(null)
   const [heatmapCells, setHeatmapCells] = useState<HeatmapCell[] | null>(null)
+  // M4・T-130: 成長ランク（端末内導出のみ。サーバー送信なし=J-68）
+  const [growthRank, setGrowthRank] = useState<GrowthRankResult | null>(null)
   // M2・T-53: 予測スコア・到達予測・実試験スコア登録
   const [forecast, setForecast] = useState<ForecastResult | null>(null)
   const [examScores, setExamScores] = useState<ExamScoreRecord[]>([])
@@ -74,11 +77,12 @@ export function DashboardScreen({ db }: Props) {
         startOfLocalDay(Date.now()),
         -(HEATMAP_WEEKS * 7 - 1),
       )
-      const [[history, accuracies, attempts]] = await Promise.all([
+      const [[history, accuracies, attempts, rank]] = await Promise.all([
         Promise.all([
           db.ratingHistory.where('section').equals('total').sortBy('date'),
           getTagAccuracies(db),
           db.attempts.where('answeredAt').aboveOrEqual(heatmapCutoff).toArray(),
+          getGrowthRank(db),
         ]),
         reloadForecastAndExamScores(),
       ])
@@ -93,6 +97,7 @@ export function DashboardScreen({ db }: Props) {
         setGrowthPoints(history.map((h) => ({ date: h.date, value: h.rating })))
         setWeakBars(accuracies.filter((t) => t.windowTotal >= WEAK_MIN_SAMPLE))
         setHeatmapCells(buildHeatmapCells(countsByDate, Date.now(), HEATMAP_WEEKS))
+        setGrowthRank(rank)
       }
     }
     void load()
@@ -121,7 +126,13 @@ export function DashboardScreen({ db }: Props) {
     await reloadForecastAndExamScores()
   }
 
-  if (growthPoints === null || weakBars === null || heatmapCells === null || forecast === null) {
+  if (
+    growthPoints === null ||
+    weakBars === null ||
+    heatmapCells === null ||
+    forecast === null ||
+    growthRank === null
+  ) {
     return null
   }
 
@@ -141,6 +152,21 @@ export function DashboardScreen({ db }: Props) {
         </p>
         <p className="dashboard-forecast-note">予測スコア帯（参考値。社内問題での推定）</p>
         <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+      </section>
+
+      <section className="dashboard-growth-rank" data-testid="growth-rank">
+        <h2 style={{ fontSize: 'var(--fs-sub)' }}>成長ランク</h2>
+        <p className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
+          {growthRank.rank.name}
+        </p>
+        <p className="dashboard-forecast-note">現在 {growthRank.rankPoints}pt</p>
+        {growthRank.nextRank ? (
+          <p data-testid="growth-rank-next">
+            次のランク（{growthRank.nextRank.name}）まで残り {growthRank.pointsToNext}pt
+          </p>
+        ) : (
+          <p data-testid="growth-rank-next">最上位ランクに到達</p>
+        )}
       </section>
 
       <section>

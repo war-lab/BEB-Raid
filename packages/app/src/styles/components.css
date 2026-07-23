@@ -1369,6 +1369,16 @@
   font-size: var(--fs-note);
 }
 
+/* ダッシュボードの成長ランク（M4・T-130。既存カード面言語の範囲。光暈・新規アニメーションは追加しない） */
+.dashboard-growth-rank {
+  padding: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+
 /* ディクテーションのスクリプト表示（question-textと併用。空欄記号を見やすくする） */
 .dictation-script {
   letter-spacing: 0.01em;

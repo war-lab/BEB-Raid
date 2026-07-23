@@ -61,6 +61,32 @@ function part5Question(overrides: Partial<Question> = {}): Question {
   }
 }
 
+function textPassageQuestion(overrides: Partial<Question> = {}): Question {
+  return {
+    id: 'p7s-test',
+    part: 7,
+    format: 'text_passage',
+    difficulty: 2,
+    tags: ['スキャン'],
+    keyVocab: [{ word: 'invoice', sense: '請求書', freqRank: 'S' }],
+    passages: [{ id: 'p7s-test-doc1', kind: 'email', text: 'Please review the attached invoice.' }],
+    subQuestions: [
+      {
+        id: 'p7s-test-q1',
+        question: 'What is attached to the email?',
+        choices: [
+          { key: 'A', text: 'An invoice' },
+          { key: 'B', text: 'A resume' },
+        ],
+        answer: 'A',
+        explanation: '解説テキスト',
+        translation: '和訳',
+      },
+    ],
+    ...overrides,
+  }
+}
+
 describe('checkPart2ScriptChoiceMatch（①）', () => {
   it('script応答部と正解選択肢テキストが一致すれば問題なし', () => {
     expect(validateContentLint([part2Question()], 'pack-p2-test')).toEqual([])
@@ -103,6 +129,21 @@ describe('checkKeyVocabAppearance（②）', () => {
   it('keyVocab.wordが本文のどこにも出現しなければ検出する', () => {
     const q = part5Question({ keyVocab: [{ word: 'negotiate', sense: '交渉する', freqRank: 'A' }] })
     const problems = validateContentLint([q], 'pack-p5-test')
+    expect(problems.some((p) => p.includes('keyVocab「negotiate」'))).toBe(true)
+  })
+
+  it('text_passage（Part6/7）はpassages本文＋subQuestionsのquestion/choicesを検査対象にする（T-107）', () => {
+    // keyVocab「invoice」はpassages本文にのみ出現し、トップレベルのquestion/scriptは
+    // text_passageに存在しない。shared-schemaのvalidateKeyVocabと同じ検査範囲でないと
+    // 全件誤検出になってしまうための回帰テスト
+    expect(validateContentLint([textPassageQuestion()], 'pack-p7s-test')).toEqual([])
+  })
+
+  it('text_passageでkeyVocabがpassages/subQuestionsのどこにも出現しなければ検出する', () => {
+    const q = textPassageQuestion({
+      keyVocab: [{ word: 'negotiate', sense: '交渉する', freqRank: 'A' }],
+    })
+    const problems = validateContentLint([q], 'pack-p7s-test')
     expect(problems.some((p) => p.includes('keyVocab「negotiate」'))).toBe(true)
   })
 })

@@ -26,8 +26,8 @@ import type {
   QuickPackRequest,
 } from './types'
 
-/** ドリルの配分カテゴリ（J-2 の固定配分の単位） */
-export type DrillCategory = 'vocab' | 'part2' | 'part5'
+/** ドリルの配分カテゴリ（J-2 の固定配分の単位）。'reading'=T-105（18の3.3節）で追加 */
+export type DrillCategory = 'vocab' | 'part2' | 'part5' | 'reading'
 
 interface DurationConfig {
   totalItems: number
@@ -73,11 +73,21 @@ export interface DrillCandidate {
   reason: QuickPackReason
 }
 
-/** 問題→配分カテゴリ。M1のコンテンツ（語彙/Part2/Part5）以外はドリル対象外 */
+/**
+ * text_passage（Part6/7）が通常パック配分の対象か（docs/18 3.3節・ADR 0006 判断2）。
+ * Part7複数パッセージ（passages 2件以上）は「じっくり読解」モード専用（T-108/T-109）のため、
+ * 通常の7分/15分パックには常に除外する（フェーズ・弱点タグの有無を問わない）
+ */
+export function isReadingAllocatable(question: Question): boolean {
+  return question.format === 'text_passage' && (question.passages?.length ?? 0) < 2
+}
+
+/** 問題→配分カテゴリ。M1のコンテンツ（語彙/Part2/Part5/読解）以外はドリル対象外 */
 export function drillCategoryOf(question: Question): DrillCategory | null {
   if (question.format === 'vocab_card') return 'vocab'
   if (question.part === 2) return 'part2'
   if (question.part === 5) return 'part5'
+  if (isReadingAllocatable(question)) return 'reading'
   return null
 }
 
@@ -240,9 +250,15 @@ function resolveListeningSubCategory(
 }
 
 /**
- * M2: 問題→フェーズ配分カテゴリの解決（13の3.2節）。
+ * M2: 問題→フェーズ配分カテゴリの解決（13の3.2節、読解=T-105・18の3.3節）。
  * - vocab_card は template に 'vocab' キーがある場合のみ対象（P3にはvocabバケットが無い）
+ * - Part7複数パッセージ（passages 2件以上）はフェーズ・弱点タグの有無を問わず常に対象外
+ *   （「じっくり読解」モード専用=T-108/T-109。弱点タグ判定より先に除外し、P3のweaknessバケット
+ *   へも絶対に流れ込ませない）
  * - 弱点タグ保有かつ template に 'weakness' キーがある場合（P3）はそちらを優先
+ * - Part6・Part7単一（text_passage・passages 1件）は 'reading' バケットへ（P1/P2のみ想定。
+ *   P3テンプレは 'reading' キーを持たないため対象外になる=3.3節: P3はじっくり読解でPart7複数を扱う
+ *   前提のため通常パックのreadingバケットは新設していない）
  * - リスニング系（dictation/shadowing/audio_set/Part2音声）は 'listening' バケットへ
  * - Part5（text_blank）は 'part5' バケットへ
  */
@@ -259,12 +275,17 @@ function resolveM2Category(
   // （配分は目標値であり在庫が優先、というM1からの方針どおり）。
   // weakness 判定より先に除外する（P3で弱点タグ付きshadowingがweaknessバケットに入るのも同罪のため）
   if (question.format === 'shadowing') return null
+  // Part7複数パッセージの除外は弱点タグ判定より前に行う（weakness判定で復活させないため）
+  if (question.format === 'text_passage' && !isReadingAllocatable(question)) return null
   if (question.format === 'vocab_card') {
     return 'vocab' in template.allocation ? 'vocab' : null
   }
   const isWeak = question.tags.some((t) => weakTags.has(t))
   if (isWeak && 'weakness' in template.allocation) return 'weakness'
 
+  if (isReadingAllocatable(question)) {
+    return 'reading' in template.allocation ? 'reading' : null
+  }
   if (resolveListeningSubCategory(question) !== null) {
     return 'listening' in template.allocation ? 'listening' : null
   }

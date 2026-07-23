@@ -190,6 +190,60 @@ describe('DashboardScreen: 実データからの描画', () => {
   })
 })
 
+describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
+  it('ratingHistory不在（新規ユーザー）でもブロンズ0ptが表示される', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} />)
+
+    const rankSection = await screen.findByTestId('growth-rank')
+    expect(rankSection.textContent).toContain('ブロンズ')
+    expect(rankSection.textContent).toContain('0pt')
+    expect((await screen.findByTestId('growth-rank-next')).textContent).toBe(
+      '次のランク（シルバー）まで残り 40pt',
+    )
+  })
+
+  it('レート上昇分＋学習日数からランクが導出され表示される', async () => {
+    const db = newDb()
+    await db.ratingHistory.bulkPut([
+      { date: '2026-07-01', section: 'total', rating: 400 },
+      { date: '2026-07-05', section: 'total', rating: 445 },
+    ])
+    await db.ratings.put({ section: 'total', rating: 445, updatedAt: Date.now() })
+    await db.attempts.bulkAdd([
+      {
+        id: 'ga-1',
+        questionId: 'q-1',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: new Date(2026, 6, 1, 12).getTime(),
+      },
+      {
+        id: 'ga-2',
+        questionId: 'q-2',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: new Date(2026, 6, 5, 12).getTime(),
+      },
+    ])
+    render(<DashboardScreen db={db} />)
+
+    // (445-400) + 学習日数2 = 47 → シルバー（40以上90未満）
+    const rankSection = await screen.findByTestId('growth-rank')
+    expect(rankSection.textContent).toContain('シルバー')
+    expect(rankSection.textContent).toContain('47pt')
+    expect((await screen.findByTestId('growth-rank-next')).textContent).toBe(
+      '次のランク（ゴールド）まで残り 43pt',
+    )
+  })
+})
+
 describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () => {
   it('ratings不在でもヒーロー数値と「計測中」表示が壊れず出る', async () => {
     const db = newDb()

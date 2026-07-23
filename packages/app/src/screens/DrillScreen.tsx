@@ -71,10 +71,12 @@ const PARTIAL_AUDIO_DURATION_MS = 2500
 const PRE_READING_SECONDS: Record<PhaseSeason, number> = { P1: 15, P2: 15, P3: 10 }
 
 /**
- * DrillScreen が描画分岐を持つ format の一覧（進行不能防止の防御）。
+ * DrillScreen が「知っている」format の一覧（進行不能防止の防御）。
  * ここに無い format（shadowing 等。専用画面の担当）の item が混入すると
  * 問題文もボタンも描画されず画面が空白のまま固まるため、questionId 未解決と
- * 同じ経路でスキップする（将来パックに未知 format が入っても詰まらないための防御）
+ * 同じ経路でスキップする（将来パックに未知 format が入っても詰まらないための防御）。
+ * text_passage はここでは「知っている」扱い（スキップしない）だが、実際の描画分岐は
+ * 持たず専用画面（ReadingScreen）へ切り替える（T-105。上のtext_passage専用effect参照）
  */
 const RENDERABLE_FORMATS = new Set<string>([
   'text_blank',
@@ -355,6 +357,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }, [item, question, snapshot, displayIndex, db, navigate])
 
+  // T-105（18の3.3節・3.5節): text_passage（Part6/7単一）はDrillScreenの4択UIでは描画できない
+  // （本文＋設問の2ペインが必要＝専用のReadingScreenの担当。3.5節）。7分/15分パックに
+  // 読解が混在するようになったため、現在itemがtext_passageならセッション状態
+  // （useSessionStoreは画面間で共有）を保ったままreading画面へ切り替える。
+  // advanceSessionは呼ばない（このitem自体は解答が必要でスキップ対象ではない）
+  useEffect(() => {
+    if (!snapshot || !item || question?.format !== 'text_passage') return
+    navigate('reading')
+  }, [item, question, snapshot, navigate])
+
   // T-108: スキップ通知は数秒で自動的に消える（非モーダル。累計件数はResultScreen側で表示する）
   useEffect(() => {
     if (!skipNotice) return
@@ -379,6 +391,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     if (snapshot && !item) navigate('result')
     return null
   }
+  // text_passageはこのコンポーネントに描画分岐が無い（上のeffectがreading画面へ切り替える）。
+  // 切り替え完了までの1レンダーは何も描画しない（choices空の中途半端な描画を避ける）
+  if (question.format === 'text_passage') return null
 
   const total = snapshot.items.length
   const current = displayIndex + 1
@@ -394,10 +409,17 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
     setResult(null)
     if (options?.resyncSnapshot ?? true) {
-      const resumed = await resumeSession(db)
-      if (resumed) {
-        useSessionStore.setState({ snapshot: resumed })
-        setDisplayIndex(resumed.answeredCount)
+      // リカバリ自体の失敗（DBクローズ済み等）はここで握る。呼び出し元は
+      // void で投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+      // （保存失敗のバナーは表示済みで、これ以上ユーザーに提示できる情報はない）
+      try {
+        const resumed = await resumeSession(db)
+        if (resumed) {
+          useSessionStore.setState({ snapshot: resumed })
+          setDisplayIndex(resumed.answeredCount)
+        }
+      } catch (resyncErr) {
+        console.error('[DrillScreen] 保存失敗後のセッション再同期にも失敗', resyncErr)
       }
     }
   }

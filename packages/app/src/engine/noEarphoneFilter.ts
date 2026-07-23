@@ -8,6 +8,7 @@
 // （復習は「そのカードを復習した」記録の同一性が本質のため、別問題への差し替えは不可）。
 
 import type { Question } from '@beb-raid/shared-schema'
+import { isReadingAllocatable } from './quickPack'
 import type { QuickPack, QuickPackItem } from './types'
 
 // M2・T-52で dictation/shadowing を追加（音声前提のformatはすべてリスニング扱い）
@@ -26,7 +27,13 @@ function isListening(question: Question | undefined): boolean {
 /**
  * kind:'drill' のリスニング問題を、パックに未使用のリーディング系問題（text_blank/text_passage）
  * に差し替える。代替候補が尽きた場合はそのitemを取り除く（パックが目減りするが、
- * M1ダミーコンテンツはリーディング問題の在庫が少ないため起こりうる既知の制約）
+ * M1ダミーコンテンツはリーディング問題の在庫が少ないため起こりうる既知の制約）。
+ *
+ * text_passage の候補は isReadingAllocatable（T-105・docs/18 3.3節）で絞り込み、
+ * Part7複数パッセージ（passages 2件以上）を除外する。この関数は questions（読み込み済みの
+ * 全問題プール）全体から差し替え候補を探すため、フィルタが無いと「じっくり読解」専用の
+ * 複数パッセージ問題が通常の7分/15分パックに紛れ込み、T-105が担保した不変条件
+ * （複数パッセージは通常パックに入らない）を素通りしてしまう
  */
 export function applyNoEarphoneFilter(
   pack: QuickPack,
@@ -36,7 +43,7 @@ export function applyNoEarphoneFilter(
     pack.items.flatMap((item) => (item.questionId !== null ? [item.questionId] : [])),
   )
   const readingPool = [...questions.values()].filter(
-    (q) => (q.format === 'text_blank' || q.format === 'text_passage') && !usedIds.has(q.id),
+    (q) => (q.format === 'text_blank' || isReadingAllocatable(q)) && !usedIds.has(q.id),
   )
 
   const items: QuickPackItem[] = []
