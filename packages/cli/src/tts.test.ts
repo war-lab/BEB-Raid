@@ -70,6 +70,14 @@ describe('sanitizeForTts（M2・T-64。em/enダッシュがPiperのstdinでク�
     expect(sanitizeForTts('pages 10–20')).toBe('pages 10, 20')
   })
 
+  it('カーリーアポストロフィをASCIIへ正規化する（「Chinese letter」誤読み上げの再発防止）', () => {
+    expect(sanitizeForTts('That’s the plan, yes.')).toBe("That's the plan, yes.")
+  })
+
+  it('カーリーダブルクォート・三点リーダ・NBSPも正規化する', () => {
+    expect(sanitizeForTts('“Sure…” OK')).toBe('"Sure..." OK')
+  })
+
   it('ダッシュを含まないテキストはそのまま', () => {
     expect(sanitizeForTts('Please submit the report.')).toBe('Please submit the report.')
   })
@@ -250,18 +258,29 @@ describe('PiperTtsProvider.synthesizeDialogue（Part2: 設問と応答で別話�
       outputPath: '/out/part2-submit.mp3',
     })
 
-    // piper(質問)→piper(応答)→ffmpeg(無音生成。J-37の400msギャップ)→ffmpeg(連結)→ffprobe
-    expect(calls.map((c) => c.command)).toEqual(['piper', 'piper', 'ffmpeg', 'ffmpeg', 'ffprobe'])
+    // piper(質問)→piper(応答)→ffprobe(質問部実測=questionEndMs用)→
+    // ffmpeg(無音生成。J-37の400msギャップ)→ffmpeg(連結)→ffprobe(全長実測)
+    expect(calls.map((c) => c.command)).toEqual([
+      'piper',
+      'piper',
+      'ffprobe',
+      'ffmpeg',
+      'ffmpeg',
+      'ffprobe',
+    ])
     // 設問はprimary、応答はsecondaryの声で読む
     expect(calls[0]?.args).toContain('/voices/en_US-lessac-medium.onnx')
     expect(calls[1]?.args).toContain('/voices/en_US-ryan-medium.onnx')
     // 無音生成: 400ms・モノラル
-    expect(calls[2]?.args).toContain('anullsrc=r=22050:cl=mono')
-    expect(calls[2]?.args).toContain('0.4')
+    expect(calls[3]?.args).toContain('anullsrc=r=22050:cl=mono')
+    expect(calls[3]?.args).toContain('0.4')
     // ffmpegはconcatフィルタで「設問・無音・応答」の3本を1本にする（aformatで正規化してから連結）
-    expect(calls[3]?.args.join(' ')).toContain('concat=n=3:v=0:a=1[out]')
+    expect(calls[4]?.args.join(' ')).toContain('concat=n=3:v=0:a=1[out]')
     expect(result.voice).toBe('piper:en_US-lessac-medium+piper:en_US-ryan-medium')
     expect(result.durationMs).toBe(3579)
+    // questionEndMs = 質問部実測(3579ms。fakeは全ffprobeが3.579を返す)＋無音の半分(200ms)。
+    // ただし全長-1msでクランプされる（fakeでは全長も3579msのため 3578 になる）
+    expect(result.questionEndMs).toBe(3578)
   })
 
   it('設問と応答をそれぞれの話者のstdinに渡す', async () => {

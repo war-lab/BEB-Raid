@@ -40,6 +40,12 @@ export interface AudioMeta {
   tts: boolean
   voice: string
   durationMs: number
+  /**
+   * audio_qa（Part2）の質問部分の終端ms（「質問 — 応答」を1ファイルに連結しているため）。
+   * 解答前の再生はここまでで止め、応答（=正答）の読み上げを解答後まで遅らせる。
+   * 旧生成分には存在しない（省略時は全長再生=従来挙動）
+   */
+  questionEndMs?: number | null
 }
 
 /** 選択肢 */
