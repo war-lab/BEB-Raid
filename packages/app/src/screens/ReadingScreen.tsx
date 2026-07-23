@@ -13,6 +13,12 @@
 // Part6は本文に空所マーカー [[1]]…[[n]] を持つ（subQuestions[i]がマーカー[[i+1]]に対応。
 // docs/18 3.1節）。空所は非線形にタップして該当設問へジャンプできる（3.5節）。
 // Part7単一はマーカーを持たず、設問は「次へ」で順番に進める。
+//
+// 画面切替（T-105。docs/18 3.3節・3.5節）: 7分/15分パックにPart6・Part7単一が弱点配分で
+// 混在するようになったため、セッション内の現在item（useSessionStoreで共有）の
+// question.formatを見て、text_passageならこの画面、それ以外ならDrillScreenへ自動的に
+// 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
+// 「通常セッションからreading画面への遷移方式」の設計判断はここで確定した
 import { useEffect, useMemo, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
@@ -89,6 +95,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     return () => clearInterval(interval)
   }, [activeAnswer, startedAt])
 
+  // T-105（18の3.3節・3.5節）: 7分/15分パックに読解以外のitem（Part2音声・Part5等）が
+  // 混在するようになったため、現在itemがtext_passageでなければDrillScreenへ切り替える
+  // （DrillScreen側の対の効果と合わせ、item.question.formatに応じて2画面を往復する）
+  useEffect(() => {
+    if (!snapshot || !item || !question || question.format === 'text_passage') return
+    navigate('drill')
+  }, [item, question, snapshot, navigate])
+
   // item はあるが questionId が解決できない場合（DrillScreenと同じ理由のリカバリ）
   useEffect(() => {
     if (!snapshot || !item || question) return
@@ -114,6 +128,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     if (snapshot && !item) navigate('result')
     return null
   }
+  // text_passage以外はこのコンポーネントの担当外（上のeffectがdrill画面へ切り替える）。
+  // 切り替え完了までの1レンダーは何も描画しない
+  if (question.format !== 'text_passage') return null
 
   const total = snapshot.items.length
   const current = displayIndex + 1

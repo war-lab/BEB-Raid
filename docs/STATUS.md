@@ -116,7 +116,16 @@
 - **未検証事項（正直な申告）**: 本セッションでは実ブラウザでの目視確認を行っていない（Playwright等のブラウザ自動化ツールが本環境に未設定のため）。単体テストはjsdom＋testing-library＋fake-indexeddbで実DOM描画・実Dexie書込を検証済みだが、実機・実ブラウザでのレイアウト確認はH-R2相当の範囲として持ち越し。次回T-105着手時、または人間による動作確認時に実施を推奨する。
 - 検証: ReadingScreen単体テスト5件（Part6表示・空所反映＋ジャンプ・Part7単一の順次解答＋Rレート反映・誤答時keyVocab登録・中断復帰）、DrillScreen単体44件（リファクタ後の回帰確認）、ルート `npm run lint`・`npm run build`・`npm test`（全ワークスペース。api 71件/app 532件/cli 305件/review-ui 15件/shared-schema 61件）すべて通過。
 
-**次のアクション**: T-105（セッション配分への組込。quickPack.ts/curriculum.ts）はT-104完了により着手可能。T-106（学習ロジック接続）はT-105完了後。T-107（CLI生成＋初期パック）はT-103完了時点で並行着手可能（H-R1の人手レビュー体制が前提）。
+**T-105 完了（2026-07-23。セッション配分への組込。task/T-105-reading-allocationブランチ）**: 7分/15分パックにPart6・Part7単一を弱点配分へ組み込み、通常セッションからreading画面への遷移方式（T-104で保留していた設計判断）を確定した。
+
+- **配分ロジック（engine/quickPack.ts）**: `DrillCategory`に`'reading'`を追加。`drillCategoryOf`（M1固定配分）・`resolveM2Category`（M2フェーズ配分）に読解カテゴリの解決を追加。**Part7複数パッセージ（passages 2件以上）は`isReadingAllocatable()`で判定し、弱点タグ・フェーズを問わず常に対象外**にする（P3のweaknessバケットにも流れ込まないよう、弱点タグ判定より前段で除外）。「なぜ出たか」ラベルは既存のweakTag/keyVocabReview/allocation機構（カテゴリ非依存）にそのまま乗るため追加実装は不要だった。
+- **配分数値（quickPackConfig.json・curriculumConfig.json。すべて暫定値・ドッグフード実測で調整）**: M1（フェーズ未確定時のフォールバック。P1相当）とP1テンプレはvocabから0.1移してreading=0.1を追加。P2テンプレは03の1.2節の原表（Part7シングル15%）をJ-9振替前の形へ復元（vocab0.25/listening0.35/part5 0.25/reading0.15＝P1よりreading配分が厚い＝「本格投入」）。**P3テンプレにはreadingバケットを追加していない**（3.3節がP3のPart7複数を「じっくり読解」モード=T-108/T-109専用と規定しており、P3の通常パックへの新規導入の記述が無いことに基づく解釈。異論があれば要修正）。
+- **「15分はPart7単一を厚めに」の解釈**: duration別に配分%を変える仕組みは既存アーキテクチャに無く、シートにも新設の指示が無いため追加しなかった。既存のtotalItemsスケーリング（15分40問×reading15%は7分20問×reading15%より絶対数が多い）で「厚めに」を満たすと解釈した。
+- **画面切替（T-104で保留していた設計判断を確定）**: `DrillScreen`・`ReadingScreen`はどちらも`useSessionStore`のセッション状態を共有しているため、各画面に「現在item（`snapshot.items[displayIndex]`）の`question.format`を見て担当外ならもう一方の画面へ`navigate()`する」対の`useEffect`を追加した（`advanceSession`は呼ばずscreen切替のみ。item自体は進めない）。HomeScreen「今日のクエスト」・RaidScreenのレイド挑戦セッションの呼び出し側コードは無改修（`navigate('drill')`のまま）で読解itemに到達できる。
+- **未対応の副次課題（意図的に対象外）**: RaidScreen起点のセッションでもreading itemがレイド扱い（`item.mode==='raid'`）で出題されうるが、`ReadingScreen`にはDrillScreenの「レイド」ヘッダ表示に相当する分岐が無い（見た目のみの差。ダメージ計算・記録は通常どおり動く）。3.3節・3.5節の記載範囲外のため対応しなかった。
+- 検証: `engine/quickPack.test.ts`・`engine/curriculum.test.ts`に読解配分・Part7複数除外の回帰テストを追加、`screens/DrillScreen.test.tsx`・`screens/ReadingScreen.test.tsx`に画面切替のテストを追加。ルート`npm run lint`・`npm run format:check`・`npm run build`・`npm test`（全ワークスペース。api 78件/app 703件/cli 307件/review-ui 15件/shared-schema 67件）で確認。**既知の事前問題（本タスクと無関係。対象外ファイルのため未修正）**: `packages/cli/src/tts.ts`のirregular-whitespace lintエラーがorigin/dev時点で既に存在する（本ブランチでの新規混入ではないことをstashで確認済み）。作業指示で`packages/cli`は対象外のため修正していない。並行して他ワークツリーが動いている影響と見られるCPU競合起因のテストタイムアウト（VocabScreen/DashboardScreen/HomeScreen/DrillScreen等。T-84等で既出の既知の揺れと同種）を複数回観測したが、対象ファイル単体・全体の再実行でいずれも解消し本タスクの変更とは無関係と確認済み。
+
+**次のアクション**: T-106（学習ロジック接続）が着手可能。T-107（CLI生成＋初期パック）はT-103完了時点で並行着手可能（H-R1の人手レビュー体制が前提）。
 
 - 着手前に確認が要る運用: T-107・T-109の人手レビュー体制（H-R1）。J-53（ロードマップ06への紐づけ）はドキュメント更新のみで実装非ブロッキング。
 - **⚠️ タスクID衝突（2026-07-21のdev合流時に発覚）**: 本セッションの間にdevへ別系統の [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md)（T-103〜T-117・PR #27）がマージされていた。両文書とも「T-103」「T-104」を独立に採番しており、以後この番号だけでは文書を一意に特定できない。要リナンバリング（別途対応。docs/18_読解パート実装計画.mdの改番を検討）。
