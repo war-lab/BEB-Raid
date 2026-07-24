@@ -2,6 +2,7 @@
 // T-90時点は/healthのみだった。/stats/questionsはT-100、/reportsはT-101で追加した
 
 import { authenticateRequest } from './auth'
+import { handleCreateBattleRoom } from './battleHandlers'
 import { handlePreflight, withCors } from './cors'
 import type { Env } from './env'
 import { handleRaidCurrent, handleRaidSync } from './raidHandlers'
@@ -9,8 +10,12 @@ import { handleRegister } from './register'
 import { generateWeeklyBoss } from './scheduled'
 import { handleGetStats, handlePostReport, handlePostStats } from './statsHandlers'
 
+export { BattleRoomDO } from './battleRoomDo'
 export { RaidBossDO } from './raidBossDo'
 export { StatsDO } from './statsDo'
+
+/** GET /battle/rooms/:code/ws のコード部分を取り出す（4文字英数字大文字のみ許可） */
+const BATTLE_WS_PATH = /^\/battle\/rooms\/([A-Z0-9]{4})\/ws$/
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -64,6 +69,21 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handlePostReport(request, env)
   }
 
+  if (request.method === 'POST' && url.pathname === '/battle/rooms') {
+    const auth = await authenticateRequest(request, env)
+    if (auth instanceof Response) return auth
+    return handleCreateBattleRoom(env, auth.deviceToken, Date.now())
+  }
+
+  // WebSocket Upgradeのため認証はBearerヘッダではなくSec-WebSocket-Protocol経由
+  // （BattleRoomDO.fetch()内で行う。docs/22 3.1節）。ここではDOへ転送するのみ
+  const wsMatch = url.pathname.match(BATTLE_WS_PATH)
+  if (request.method === 'GET' && wsMatch) {
+    const code = wsMatch[1]!
+    const stub = env.BATTLE_ROOM.get(env.BATTLE_ROOM.idFromName(code))
+    return stub.fetch(request)
+  }
+
   return notFound()
 }
 
@@ -85,6 +105,12 @@ export default {
         500,
       )
     }
+    // 101(WebSocket Upgrade)はResponseに`webSocket`という非標準プロパティを持つが、
+    // withCors内の`new Response(response.body, {...})`はこれを引き継がないため
+    // webSocketが失われて接続が壊れる。WSハンドシェイクはfetch/XHRと異なりブラウザの
+    // Access-Control-Allow-Origin相当のチェック対象外（ブラウザは実装上ブロックしない）
+    // なので、CORSヘッダ付与をスキップしてそのまま返す
+    if (response.status === 101) return response
     return withCors(request, env, response)
   },
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
