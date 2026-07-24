@@ -4,7 +4,14 @@
 
 import { DurableObject } from 'cloudflare:workers'
 
-import type { RaidBossState, RaidContribution, RaidStatus } from '@beb-raid/shared-schema'
+import type {
+  BossType,
+  GhostBossInfo,
+  GhostDefenseEntry,
+  RaidBossState,
+  RaidContribution,
+  RaidStatus,
+} from '@beb-raid/shared-schema'
 
 import type { BossProfile } from './bossProfiles'
 import type { Env, MemberRecord } from './env'
@@ -18,6 +25,18 @@ export interface InitBossParams {
   maxHp: number
   startAt: number
   endAt: number
+  /** M4: ボス種別（docs/22 3.3節）。省略時は'synthetic'として初期化する */
+  bossType?: BossType
+  /** M4: ghost時のみ。questionId別の倍率（堅い0.5/弱点2.0） */
+  defense?: GhostDefenseEntry[] | null
+  /** M4: ghost時のみ。S5の名誉表示用（生成時点のdefeatedCountをそのまま埋め込む） */
+  ghost?: GhostBossInfo | null
+  /**
+   * M4: ghost時のみ。記録提供者のdeviceToken（サーバー内部専用。RaidBossState経由で
+   * クライアントへは絶対に出さない）。撤回時の当週差し替え判定・翌週cronのdefeatedCount
+   * 加算判定に使う
+   */
+  ghostSourceToken?: string | null
 }
 
 export interface DamageSyncEntry {
@@ -40,6 +59,10 @@ interface StateRow extends Record<string, string | number | null> {
   startAt: number
   endAt: number
   defeatedAt: number | null
+  bossType: string
+  defenseJson: string | null
+  ghostJson: string | null
+  ghostSourceToken: string | null
 }
 
 export class RaidBossDO extends DurableObject<Env> {
@@ -66,19 +89,89 @@ export class RaidBossDO extends DurableObject<Env> {
         receivedAt INTEGER NOT NULL
       )
     `)
+    // M4: ゴースト関連カラムの追加（正本: docs/22 3.3節）。
+    // 既存のCREATE TABLE IF NOT EXISTSは既存テーブルへ新カラムを足せないため、
+    // PRAGMA table_infoで存在確認してから足りないカラムだけALTER TABLEする
+    // （本番データがまだ無い開発段階だが、後方互換な移行処理として実装しておく）
+    this.ensureColumn('bossType', "bossType TEXT NOT NULL DEFAULT 'synthetic'")
+    this.ensureColumn('defenseJson', 'defenseJson TEXT')
+    this.ensureColumn('ghostJson', 'ghostJson TEXT')
+    this.ensureColumn('ghostSourceToken', 'ghostSourceToken TEXT')
+  }
+
+  /** stateテーブルに指定カラムが無ければALTER TABLEで追加する（冪等） */
+  private ensureColumn(column: string, addColumnDdl: string): void {
+    const columns = this.ctx.storage.sql
+      .exec<{ name: string }>('PRAGMA table_info(state)')
+      .toArray()
+    if (columns.some((c) => c.name === column)) return
+    this.ctx.storage.sql.exec(`ALTER TABLE state ADD COLUMN ${addColumnDdl}`)
   }
 
   /** ボス未初期化のときだけ初期化する（冪等。週次cronの再実行・重複呼び出し対策） */
   init(params: InitBossParams): void {
     if (this.getStateRow()) return
     this.ctx.storage.sql.exec(
-      'INSERT INTO state (bossId, name, profileJson, maxHp, startAt, endAt, defeatedAt) VALUES (?, ?, ?, ?, ?, ?, NULL)',
+      `INSERT INTO state
+        (bossId, name, profileJson, maxHp, startAt, endAt, defeatedAt, bossType, defenseJson, ghostJson, ghostSourceToken)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
       params.bossId,
       params.profile.name,
       JSON.stringify(params.profile),
       params.maxHp,
       params.startAt,
       params.endAt,
+      params.bossType ?? 'synthetic',
+      params.defense ? JSON.stringify(params.defense) : null,
+      params.ghost ? JSON.stringify(params.ghost) : null,
+      params.ghostSourceToken ?? null,
+    )
+  }
+
+  /**
+   * 撤回（DELETE /ghosts/own）時の当週差し替え（docs/22 3.3節）。
+   * 当週ボスがdeviceToken由来のghostボスであるときのみ、synthetic相当へ差し替える
+   * （名前・bossType・defense/ghostのみ変更。HP・累計ダメージ・討伐状態は維持）。
+   * 由来が一致しなければ何もせずfalseを返す（未初期化・別ユーザー由来・既にsyntheticの場合を含む）
+   */
+  revokeGhostIfOwner(deviceToken: string, replacementProfile: BossProfile): boolean {
+    const state = this.getStateRow()
+    if (!state || state.bossType !== 'ghost' || state.ghostSourceToken !== deviceToken) {
+      return false
+    }
+    this.ctx.storage.sql.exec(
+      `UPDATE state
+         SET name = ?, profileJson = ?, bossType = 'synthetic', defenseJson = NULL, ghostJson = NULL, ghostSourceToken = NULL
+       WHERE bossId = ?`,
+      replacementProfile.name,
+      JSON.stringify(replacementProfile),
+      state.bossId,
+    )
+    return true
+  }
+
+  /**
+   * 翌週cronのクローズ処理向け（docs/22 3.3節）。このボスがghost週で、かつ記録提供者の
+   * deviceTokenが残っている（=撤回されていない）ときのみ情報を返す。
+   * defeatedがtrueの場合のみdefeatedCountを+1する判断は呼び出し側（scheduled.ts）が行う
+   */
+  getGhostCloseInfo(): { ghostSourceToken: string; defeated: boolean } | undefined {
+    const state = this.getStateRow()
+    if (!state || state.bossType !== 'ghost' || !state.ghostSourceToken) return undefined
+    return { ghostSourceToken: state.ghostSourceToken, defeated: state.defeatedAt !== null }
+  }
+
+  /**
+   * クローズ処理の実施済みマーク（冪等化。docs/22 3.3節）。
+   * ghostSourceTokenをクリアし、cronの再実行でdefeatedCountが二重加算されないようにする
+   * （getGhostCloseInfoはghostSourceToken不在だとundefinedを返すため以後は完全に無視される）
+   */
+  markGhostCloseoutHandled(): void {
+    const state = this.getStateRow()
+    if (!state) return
+    this.ctx.storage.sql.exec(
+      'UPDATE state SET ghostSourceToken = NULL WHERE bossId = ?',
+      state.bossId,
     )
   }
 
@@ -221,6 +314,8 @@ export class RaidBossDO extends DurableObject<Env> {
       })
     }
 
+    const bossType = state.bossType as BossType
+
     return {
       bossId: state.bossId,
       name: state.name,
@@ -232,6 +327,15 @@ export class RaidBossDO extends DurableObject<Env> {
       participantCount: grouped.length,
       myDamage,
       contributions,
+      bossType,
+      defense:
+        bossType === 'ghost' && state.defenseJson
+          ? (JSON.parse(state.defenseJson) as GhostDefenseEntry[])
+          : undefined,
+      ghost:
+        bossType === 'ghost' && state.ghostJson
+          ? (JSON.parse(state.ghostJson) as GhostBossInfo)
+          : undefined,
     }
   }
 }

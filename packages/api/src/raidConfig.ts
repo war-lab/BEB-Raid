@@ -37,3 +37,15 @@ export const MIN_BOSS_HP = Math.round(
 
 /** EMA補正の重み（前週実績と旧emaDailyDamageを半々にブレンドする。J-48） */
 export const EMA_WEIGHT = 0.5
+
+/**
+ * ゴースト週のHP係数（docs/22 3.3節・docs/03 6.3節）。
+ * 通常式で算出したmaxHpにそのまま乗算する。初期値1.0（暫定・勝率60–70%目標で実測調整する）
+ */
+export const GHOST_HP_FACTOR = 1.0
+
+/** ゴーストボスの防御倍率「堅い」（ボス役が正解した問題。docs/03 6.3節の確定値） */
+export const GHOST_MULTIPLIER_SOLID = 0.5
+
+/** ゴーストボスの防御倍率「弱点」（ボス役が誤答した問題。docs/03 6.3節の確定値） */
+export const GHOST_MULTIPLIER_WEAK = 2.0

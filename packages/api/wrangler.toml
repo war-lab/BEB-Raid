@@ -37,6 +37,10 @@ class_name = "RaidBossDO"
 name = "STATS"
 class_name = "StatsDO"
 
+[[durable_objects.bindings]]
+name = "BATTLE_ROOM"
+class_name = "BattleRoomDO"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RaidBossDO"]
@@ -44,6 +48,14 @@ new_sqlite_classes = ["RaidBossDO"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["StatsDO"]
+
+# BattleRoomDOは永続ストレージ（SQLite/KV API）を使わない設計（docs/22 3.2節・T-124）だが、
+# DOクラスとして登録する以上はmigrationsへの記載が必須。SQLiteクラスとして登録しておけば
+# 将来誤って永続化APIを使い始めても動作自体は壊れない（使わないことはコードレビュー・
+# テストの `state.storage` 空検証で担保する）
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["BattleRoomDO"]
 
 # 週次ボス生成（3.4節）。"1" = 月曜（標準cron表記。日=0〜土=6）
 [triggers]
@@ -77,6 +89,10 @@ class_name = "RaidBossDO"
 name = "STATS"
 class_name = "StatsDO"
 
+[[env.dev.durable_objects.bindings]]
+name = "BATTLE_ROOM"
+class_name = "BattleRoomDO"
+
 [env.production]
 name = "beb-raid-api"
 
@@ -97,3 +113,7 @@ class_name = "RaidBossDO"
 [[env.production.durable_objects.bindings]]
 name = "STATS"
 class_name = "StatsDO"
+
+[[env.production.durable_objects.bindings]]
+name = "BATTLE_ROOM"
+class_name = "BattleRoomDO"
