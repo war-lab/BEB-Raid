@@ -2,6 +2,18 @@
 
 **最終更新: 2026-07-24**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## T-127完了: ゴーストAPI（記録受領・撤回削除・週次生成組込）（2026-07-24。ブランチ `task/T-127-ghost-api`。dev起点）
+
+22の7節T-127シートに基づき、`packages/api/` に閉じてゴースト週次組込を実装した。T-123（shared-schema契約）は依存済み・変更なし。
+
+- **新規エンドポイント**: `POST /ghosts`（Bearer認証。`GhostRecordPayload`をKV `ghost:<deviceToken>` へ保存。1人1記録・再POSTは`createdAt`/`defeatedCount`/`lastUsedBossId`を含め全体を作り直す）・`DELETE /ghosts/own`（Bearer認証。KVから即時削除。記録が無くても200・冪等）。バリデーションは新規 `ghostValidation.ts`（`isGhostRecordPayload`。`consent===true`固定・displayName・records配列を検証）。
+- **週次cron（`scheduled.ts`）**: `generateWeeklyBoss`に分岐追加。新規 `ghostSelection.ts`（`selectGhostRecord`）が`env.MEMBERS.list({prefix:'ghost:'})`から`lastUsedBossId`が直近2週のbossIdでない記録のうち`createdAt`最古の1件を選ぶ。選ばれればghost週として生成（ボス名`ゴースト・<displayName>`、defenseは`records`を`correct→0.5(堅い)`・`!correct→2.0(弱点)`に変換=`raidConfig.ts`に追加した`GHOST_MULTIPLIER_SOLID`/`WEAK`、HPは通常式×新設`GHOST_HP_FACTOR`(初期値1.0)）。無ければ従来のsynthetic生成のまま（回帰）。選定記録の`lastUsedBossId`を今回のbossIdへ更新。
+- **`RaidBossDO`拡張**（`raidBossDo.ts`）: `state`テーブルへ`bossType`/`defenseJson`/`ghostJson`/`ghostSourceToken`を追加。既存の`CREATE TABLE IF NOT EXISTS`は既存行にカラムを足せないため、`PRAGMA table_info`で存在確認してから`ALTER TABLE ADD COLUMN`する後方互換な移行処理（`ensureColumn`）を実装し、既存`raidBossDo.test.ts`は無改修で通過を確認。`buildBossState`が`bossType`・（ghost週のみ）`defense`/`ghost`を配信するよう拡張。新規メソッド`revokeGhostIfOwner`（撤回時の当週差し替え。HP・累計ダメージ・討伐状態は維持し、名前・bossType・defense/ghostのみsynthetic相当へ戻す）・`getGhostCloseInfo`/`markGhostCloseoutHandled`（翌週cronの討伐成立判定とdefeatedCount+1加算の冪等化。cron再実行での二重加算を防止）。
+- **撤回時の当週差し替え**: `DELETE /ghosts/own`ハンドラが当週bossIdのDOへ`revokeGhostIfOwner(deviceToken, syntheticProfile)`を呼び、記録提供者由来のghostボスのときだけsynthetic名・defense空へ差し替える（別ユーザー由来・未初期化なら無変化）。
+- **テスト**（新規21件。api計99件=既存78+新規21）: `ghostHandlers.test.ts`（POST/DELETEの認証・バリデーション・保存・作り直し・撤回・当週差し替え・別ユーザー由来では差し替えないケース）、`ghostWeekly.test.ts`（ghost週生成のdefense/HP/名前、`GET /raid/current`でのdefense配信、承認記録なし週のsynthetic回帰、クールダウン、複数候補時の最古選択、defeatedCount加算・不成立時は加算なし・撤回済みスキップ・同週内cron再実行での冪等性）。
+- **検証**: ルート`npm run build`・`npm run lint`・`npm run format:check`全通過。`npm test`はapi 99件・cli 338件・review-ui 15件・shared-schema 94件が通過。app側は既知の並行worktree起因ワーカータイムアウト（api変更のみのタスクにつき無関係と判断し`--no-file-parallelism`で再判定）。
+- **ガードレール遵守**: 新規npm依存なし。`packages/app`・`packages/shared-schema`・R-1領域（engine/quickPack・curriculum・rating・tagStats・keyVocab、packages/cli、content/）・T-124の`battleRoomDo.ts`/`battleHandlers.ts`は未変更。変更は`packages/api/`のみ。
+
 ## T-124完了: BattleRoomDO（昼バトルのWebSocket同期基盤。2026-07-24。ブランチ `task/T-124-battle-room-do`）
 
 M4（21・22）の昼バトル基盤タスク。[22_M4実装計画](22_M4実装計画.md) 6節のT-124シートに基づき、`packages/api/` に閉じて実装した（app/shared-schemaは変更なし。R-1領域も未変更）。

@@ -2,20 +2,55 @@
 // Cron Trigger（月曜0:00 UTC=JST9:00）で発火する想定。
 // ①前週ボスの実績からmembersのemaDailyDamageを更新 → ②更新後の値からHPを算出 → ③当週ボスDOを初期化（冪等）
 
+import type { GhostDefenseEntry } from '@beb-raid/shared-schema'
+
 import { bossProfileForWeek } from './bossProfiles'
 import type { Env, MemberRecord } from './env'
 import { memberKey } from './env'
+import { selectGhostRecord } from './ghostSelection'
+import { ghostKey, type GhostRecord } from './ghostStore'
+import type { RaidBossDO } from './raidBossDo'
 import {
   BOSS_HP_FACTOR,
   DAILY_GOAL_QUESTIONS,
   DAMAGE_PER_QUESTION,
   EMA_WEIGHT,
+  GHOST_HP_FACTOR,
+  GHOST_MULTIPLIER_SOLID,
+  GHOST_MULTIPLIER_WEAK,
   MIN_BOSS_HP,
   RAID_DAYS,
 } from './raidConfig'
 import { bossIdFor, isoWeekInfo, previousWeekInfo, weekEndAt } from './raidWeek'
 
 const MEMBER_KEY_PREFIX = 'member:'
+
+/**
+ * 前週ボスのゴーストクローズ処理（正本: docs/22 3.3節）。
+ * 前週がghost週かつ討伐成立していれば、該当ghostレコードのdefeatedCountを+1する
+ * （レコードが撤回済み＝KVから無ければ何もしない）。cronの再実行に備え、処理後は
+ * 前週DO側のghostSourceTokenをクリアして二重加算されないようにする（DO側で冪等化）
+ */
+async function closeOutPreviousGhost(
+  env: Env,
+  previousStub: DurableObjectStub<RaidBossDO>,
+): Promise<void> {
+  const info = await previousStub.getGhostCloseInfo()
+  if (!info) return
+
+  if (info.defeated) {
+    const key = ghostKey(info.ghostSourceToken)
+    const raw = await env.MEMBERS.get(key)
+    if (raw) {
+      const record = JSON.parse(raw) as GhostRecord
+      await env.MEMBERS.put(
+        key,
+        JSON.stringify({ ...record, defeatedCount: record.defeatedCount + 1 }),
+      )
+    }
+  }
+  await previousStub.markGhostCloseoutHandled()
+}
 
 function estimatedDailyDamage(member: MemberRecord): number {
   return member.emaDailyDamage ?? DAILY_GOAL_QUESTIONS[member.dailyGoal] * DAMAGE_PER_QUESTION
@@ -33,6 +68,9 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<void> {
   const previousBossId = bossIdFor(previous)
   const previousStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(previousBossId))
   const previousDamageByToken = await previousStub.totalDamageByDeviceToken()
+
+  // ゴースト週クローズ処理（docs/22 3.3節）: 前週がghost週かつ討伐成立していればdefeatedCountを+1
+  await closeOutPreviousGhost(env, previousStub)
 
   const memberKeys = await env.MEMBERS.list({ prefix: MEMBER_KEY_PREFIX })
 
@@ -69,15 +107,50 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<void> {
   }
   const maxHp = Math.max(MIN_BOSS_HP, Math.round(totalDailyDamage * RAID_DAYS * BOSS_HP_FACTOR))
 
-  // ③当週ボスDOを初期化する（既に存在すれば何もしない）
+  // ③当週ボスDOを初期化する（既に存在すれば何もしない）。
+  // 承認済みのゴースト記録があればghost週として生成し（docs/22 3.3節）、無ければ従来どおりsynthetic
   const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
-  await stub.init({
-    bossId,
-    profile: bossProfileForWeek(current.isoWeek),
-    maxHp,
-    startAt,
-    endAt,
-  })
+  const recentBossIds = [bossId, previousBossId]
+  const selectedGhost = await selectGhostRecord(env, recentBossIds)
+
+  if (selectedGhost) {
+    const defense: GhostDefenseEntry[] = selectedGhost.record.records.map((r) => ({
+      questionId: r.questionId,
+      multiplier: r.correct ? GHOST_MULTIPLIER_SOLID : GHOST_MULTIPLIER_WEAK,
+    }))
+    const ghostMaxHp = Math.round(maxHp * GHOST_HP_FACTOR)
+    await stub.init({
+      bossId,
+      profile: {
+        name: `ゴースト・${selectedGhost.record.displayName}`,
+        flavor:
+          'かつてボス役を務めた挑戦者の記録から生まれたゴースト。堅い/弱点の跡が今週の防御になる。',
+      },
+      maxHp: ghostMaxHp,
+      startAt,
+      endAt,
+      bossType: 'ghost',
+      defense,
+      ghost: {
+        displayName: selectedGhost.record.displayName,
+        defeatedCount: selectedGhost.record.defeatedCount,
+      },
+      ghostSourceToken: selectedGhost.deviceToken,
+    })
+    // 選定した記録のlastUsedBossIdを今回のbossIdへ更新する（次回以降のクールダウン判定に使う）
+    await env.MEMBERS.put(
+      ghostKey(selectedGhost.deviceToken),
+      JSON.stringify({ ...selectedGhost.record, lastUsedBossId: bossId }),
+    )
+  } else {
+    await stub.init({
+      bossId,
+      profile: bossProfileForWeek(current.isoWeek),
+      maxHp,
+      startAt,
+      endAt,
+    })
+  }
 
   // 週1回しか走らないジョブのため、成功時も生成結果を必ずログに残す（失敗時の切り分け材料）
   console.log(`週次ボス生成完了: bossId=${bossId} maxHp=${maxHp} members=${memberKeys.keys.length}`)

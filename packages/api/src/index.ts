@@ -5,6 +5,7 @@ import { authenticateRequest } from './auth'
 import { handleCreateBattleRoom } from './battleHandlers'
 import { handlePreflight, withCors } from './cors'
 import type { Env } from './env'
+import { handleDeleteGhostOwn, handlePostGhost } from './ghostHandlers'
 import { handleRaidCurrent, handleRaidSync } from './raidHandlers'
 import { handleRegister } from './register'
 import { generateWeeklyBoss } from './scheduled'
@@ -67,6 +68,18 @@ async function route(request: Request, env: Env): Promise<Response> {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
     return handlePostReport(request, env)
+  }
+
+  if (request.method === 'POST' && url.pathname === '/ghosts') {
+    const auth = await authenticateRequest(request, env)
+    if (auth instanceof Response) return auth
+    return handlePostGhost(request, env, auth.deviceToken, Date.now())
+  }
+
+  if (request.method === 'DELETE' && url.pathname === '/ghosts/own') {
+    const auth = await authenticateRequest(request, env)
+    if (auth instanceof Response) return auth
+    return handleDeleteGhostOwn(env, auth.deviceToken, Date.now())
   }
 
   if (request.method === 'POST' && url.pathname === '/battle/rooms') {
