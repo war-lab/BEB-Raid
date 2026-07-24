@@ -1,6 +1,21 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-23**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-24**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+
+## T-124完了: BattleRoomDO（昼バトルのWebSocket同期基盤。2026-07-24。ブランチ `task/T-124-battle-room-do`）
+
+M4（21・22）の昼バトル基盤タスク。[22_M4実装計画](22_M4実装計画.md) 6節のT-124シートに基づき、`packages/api/` に閉じて実装した（app/shared-schemaは変更なし。R-1領域も未変更）。
+
+- **新規 `packages/api/src/battleRoomDo.ts`**: `BattleRoomDO`（`DurableObject`継承）。DOの永続ストレージ（`ctx.storage.sql`・`ctx.storage.get/put`等のKV API）は**一切使用していない**（ルーム状態はインスタンスフィールド＋WebSocket Hibernation APIの`serializeAttachment`のみで保持。唯一の例外は2時間強制クローズ用の`ctx.storage.setAlarm`/`deleteAlarm`＝個人データを含まない起床タイマーで、22の作業指示どおり制約の対象外と判断済み）。ルーム全体の共有メタ情報（フェーズ・現在の出題・deadlineAt・現在解答中の受信リスト等）は全接続のattachmentに重複して持たせ、コンストラクタで`ctx.getWebSockets()`から復元する（Cloudflare推奨パターン。ハイバネーション復帰時にJSインスタンスフィールドが消えても復元できる）。
+  - 進行ステートマシン（lobby→question(n)→…→result→closed）、ホストのみが`openQuestion`/`closeQuestion`/`finish`を送れる認可、解答受理（`questionOpen`後〜deadlineAt/`closeQuestion`まで・1参加者1問1回）、速度ボーナス（`points + round(points*0.2*(1-(受信順位-1)/参加者数))`。誤答=0点はボーナスなし）、ベストグロース賞（`合計最終点÷(expectedPointsPerQuestion×出題数)`最大。同率は先着=joinOrder）を実装。
+  - クローズ条件（`finish`受信・ホストWebSocket切断・作成から2時間経過のalarm）はいずれも同一の`closeRoom()`に集約し、全接続を閉じたうえで`this.meta = null`・`this.connections.clear()`で個人別データをメモリ上からも完全に破棄する。
+- **新規 `packages/api/src/battleHandlers.ts`**: `POST /battle/rooms`（Bearer認証必須）。4文字英数字大文字のコードを生成し`idFromName(code)`→`tryInit()`で衝突チェック（既存ルームがopenなら再生成、最大5回で500）。
+- **`index.ts`**: `POST /battle/rooms`と`GET /battle/rooms/:code/ws`（WebSocket Upgrade。認証はBearerではなく`Sec-WebSocket-Protocol: bearer.<deviceToken>`をDO側で検証し、未登録/ルーム不在は101で受理した直後に1008でクローズ）を追加。`BattleRoomDO`をexport。**発見した既存バグの修正を伴う**: `withCors()`が`new Response(response.body, {status, headers})`で101レスポンスを再構築すると非標準プロパティ`webSocket`が失われWebSocketが機能しなくなるため、`status===101`のレスポンスはCORS付与をスキップしてそのまま返すよう分岐を追加（WSハンドシェイクはfetch/XHRと異なりブラウザのCORSチェック対象外のため実害はない）。
+- **`env.ts`/`wrangler.toml`**: `BATTLE_ROOM: DurableObjectNamespace<BattleRoomDO>`を追加。DOバインディングをトップレベル・`env.dev`・`env.production`の3箇所全てに追加（T-93のenv非継承バグの教訓どおり）。migrationsタグ`v3`で`BattleRoomDO`を`new_sqlite_classes`に登録（SQLite自体は使わないが、DOクラス登録上はmigrations記載が必須なための形式上の登録。実際に使わないことはコードレビュー・テストの`state.storage`空検証で担保）。
+- **テスト（`battleRoomDo.test.ts`・`battleHandlers.test.ts`）**: 参加→解答→速度ボーナス（1位/最下位/誤答0点の境界）→standings→finish→result→クローズの一連、ホスト以外の進行メッセージ拒否（openQuestion/closeQuestion/finish全て）、未登録token・存在しないルームコードへの接続が1008でクローズ、deadline後の解答無視、二重解答無視、参加者（ホスト以外）切断ではルームが閉じないこと、ホスト切断・2時間alarmでのクローズ、クローズ後に`meta`/`connections`が空でありDOの永続ストレージ（`storage.list()`・`sqlite_master`のユーザーテーブル）が空であることを検証。WebSocketはstub.fetch()の実Upgradeハンドシェイクで検証（`@cloudflare/vitest-pool-workers`は実workerdランタイム上で動くため、`response.webSocket`を`.accept()`して実際のsend/message/closeイベントで駆動できる）。**broadcast()が送信者自身にもメッセージを配信する**（ホストも参加者もconnectionsに含まれるため）性質に起因するテストの初期実装の競合（roomStateブロードキャストの取りこぼし・forbiddenエラーの取り違え）を、ソケットごとのFIFOメッセージキューヘルパーに直して解消した（実装側のバグではなくテストハーネス側の修正）。
+- **検証**: api 93件（新規22件）全通過。ルート`npm run lint`/`npm run format:check`/`npm run build`（4ワークスペース）全通過。`npm test`は`packages/app`側で並行worktree環境由来の既知のワーカー起動タイムアウト（13件。T-107ship節等で既出の事象）が発生したが、api変更のみのタスクでありapp側は無変更のため、`packages/app`を`--no-file-parallelism`で再実行し757件全通過を確認（api 93・app 757・cli 338・review-ui 15・shared-schema 94）。
+- **新規npm依存なし**。app・shared-schema・R-1領域（`engine/quickPack.ts`等・`packages/cli/`・`content/`）は未変更。
+- **停止・逸脱した設計判断**: 無し（作業指示に明記された2点＝Hibernation API採用・Alarms APIの例外扱いの範囲内で実装）。
 
 ## 2026-07-23: T-107読解R-1コンテンツの配信組込（task/T-107-reading-ship）
 
