@@ -2,6 +2,19 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## README/00_READMEの現状反映（2026-07-27。ブランチ `task/docs-readme-refresh`。origin/dev起点。ドキュメントのみ）
+
+リポジトリルートの `README.md` と [00_README](00_README.md) の記述が実態から乖離していたため更新した。実装コードは変更していない。
+
+- **README.mdのdocs一覧を01〜24へ拡張**: 20（ビジュアル刷新計画）・21（M4タスク分解）・22（M4実装計画）・23（M5ネイティブ化計画）・24（読解パート実装計画）の5行を追加した。24の行には旧`18_読解パート実装計画.md`からの改番（2026-07-27。PR #65）を注記し、旧IDとの対応表が同書0節にあることを示した。
+- **README.mdのRepository Statusを更新**: 従来「次のマイルストーンはM4」と書かれていたが、M4の実装タスクT-123〜T-131はすべて完了しdevへマージ済みである。**実装完了とマイルストーン完了を区別して記述した**。M4の完了条件は06および21の4節が定める「昼イベントを2回開催し、レベル差があっても接戦になること」で、判定はH-4の記録に基づく。残る人間タスクはH-4〜H-6である。あわせてM3を「完了ゲート通過済み（2026-07-23）」に、読解をR-1完了・R-2未着手に、M5を着手保留＋Web Push検証（T-149）先行（[ADR 0007](adr/0007-通知手段の選択とM5ネイティブ化の前提.md)）に改めた。
+- **README.mdのCore Featuresに実装済み機能を追加**: 読解（Part6・Part7単一）・昼バトル・成長ランクを追加し、ゴーストレイドの記述を実装内容（同意に基づく記録提供・弱点2.0倍/堅い0.5倍・挑戦前はPart/タグ単位の集計のみ開示）に合わせた。未実装のPart7複数パッセージとM5の通知は機能として書いていない。
+- **README.mdのGetting Started・Packages**: 開発コマンドに `npm run format:check`・`npm run review-ui`（いずれもルート `package.json` の scripts に実在することを確認）を追加し、worktree直下で `npm ci` を実行する必要がある既知事象を明記した。Packages表の`packages/app`・`packages/api`の説明に昼バトル・ゴーストを追記した。パッケージ構成そのものは5パッケージのままで変化はない。
+- **00_README.mdのドキュメント構成表に20〜24を追加**（PR #65が残課題として明記していた項目）。CLAUDE.mdの構成表と内容を突き合わせ、齟齬がない状態にした。冒頭のレビュー反映履歴に本作業の行を追記した。
+- **リンク検証**: 使い捨てのNodeスクリプトで、README.mdとdocs/00_README.mdからMarkdownリンク・画像・リポジトリ内パスを指すインラインコードを正規表現で抽出し、全件について実ファイルの存在を確認した（README.md 41件・00_README.md 29件のユニーク参照）。README.mdのdocs一覧はファイル名のみを書くため、リンク元ディレクトリ起点と `docs/` 起点の両方で解決を試みている。**未解決は4件で、いずれも実在しないことが意図された参照**である: 利用者が作成する `packages/app/.env.local`・`packages/api/.dev.vars` の2件と、改番前の旧名を平文で言及している `18_読解パート実装計画.md` の2件（README.md・00_README.mdに各1件）。これら以外の欠落は0件。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build` 全通過。`npm test` は api 125件・app 847件・cli 338件・review-ui 15件・shared-schema 94件が全通過（appは並行実行時に既知の `DatabaseClosedError` 由来のunhandled rejectionで終了コードが1になったため `--no-file-parallelism` で再実行し、62ファイル847件全通過・終了コード0を確認した）。`npm run format:check` はgit管理外のローカル設定ファイル `.claude/settings.local.json` 1件のみ未整形として報告される（本作業の変更対象外・commit対象外。既知事象）。
+- **反映しなかった事項**: 本作業の指示には「Web Push検証（T-149）の前段として手動アラームでの効果検証（H-12）を置く2段構え」という記述があったが、origin/dev時点の docs/23・ADR 0007・STATUS.md のいずれにもH-12および手動アラームの記載が存在しない。未確認の内容を確定事項として書かないため、READMEにはADR 0007に記録された「Web Push検証を先行し、その結果で再判断する」までを書いた。H-12が別途確定した場合はREADMEのRepository Statusを追記する必要がある。
+
 ## 潜在不具合の修正: scheduled()のcron出し分け（2026-07-27。ブランチ `task/fix-scheduled-cron-dispatch`。origin/dev起点）
 
 Web Push検証（T-149）の事前調査中に、`packages/api/src/index.ts` の `scheduled` ハンドラが `controller.cron` を一切見ず、**どのcronで発火しても無条件に `generateWeeklyBoss()` を呼ぶ**実装であることを検出した。cronを1本追加した時点で壊れる潜在不具合のため、日次cronの追加（T-149）より先に単独で修正した。
