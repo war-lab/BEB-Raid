@@ -219,7 +219,7 @@ const DOGFOOD_BEGINNER_PACK_DEFINITIONS: readonly PackDefinition[] = [
 ]
 
 /**
- * フェーズR-1・T-107で追加する読解2パック（Part6・Part7単一。docs/18_読解パート実装計画.md 3.6節・4節T-107行）。
+ * フェーズR-1・T-107で追加する読解2パック（Part6・Part7単一。docs/24_読解パート実装計画.md 3.6節・4節T-142行＝改番前の旧T-107）。
  * 発起人によるH-R1レビュー承認（2026-07-23。3並列AIクロスレビュー→must-fix12件修正→独立再検証で
  * 「approve可」判定という経緯に基づく）済み。origin にレビュー実施状況を正直に記録する
  * （3.6節「読解は人手レビュー必須ゲートを最初から有効化する」）。
@@ -245,7 +245,7 @@ const READING_R1_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）+ 初級追加（1）+ 読解R-1（2）= 20パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行、docs/18_読解パート実装計画.md T-107行） */
+/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）+ 初級追加（1）+ 読解R-1（2）= 20パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行、docs/24_読解パート実装計画.md T-142行） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,

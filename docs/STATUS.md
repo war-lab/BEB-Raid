@@ -12,6 +12,34 @@
 - **テストで捕まっていなかった理由**: `WebAudioPlayer.test.ts` の onPosition 関連テストが `startMs=0` しか検証しておらず（`startMs > 0` のケースでは両経路の式が一致してしまう）、`startMs > 0` かつ `rate !== 1` の組み合わせが抜けていた。回帰テストを3件追加した（AudioBuffer経路の `startMs>0`・HTMLAudioElement経路の `startMs>0`・同一 `startMs` に対して両経路が同じ座標系を返すことの突き合わせ）。
 - **未修正で残した同種の論点**（判断が必要なため本PRでは触れていない）: 複数srcの `playSequence` で `onPosition` の意味がなお経路間で異なる。AudioBuffer経路は連結全体の通算経過msを返すため2件目以降は「そのファイル内の絶対ms」にならず、HTMLAudioElement経路は要素ごとに `audio.currentTime` がリセットされるため2件目以降も各ファイル内の絶対msを返す。現状 `onPosition` の利用箇所はシャドーイング（単一srcの `play()`）のみなので実害はないが、連結再生でカラオケハイライトを使う場合は先に意味を決める必要がある。`durationMs` の打ち切り判定は両経路とも「メディア時間での長さ」として一貫しており、食い違いはなかった。
 - **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build`（4ワークスペース）全通過。`npm run format:check` は未追跡の `.claude/settings.local.json`（gitignore対象外の作業環境ファイル。本変更とは無関係）のみ警告で、変更した2ファイルは整形済み。`npm test` は api 122件・cli 338件・review-ui 15件・shared-schema 94件が通過。app側は並行実行時に `RaidScreen.test.tsx` 起因の `DatabaseClosedError` unhandled rejection で終了コード1になる既知事象が出たため `--no-file-parallelism` で再実行し、62ファイル847件全通過（終了コード0）を確認した。
+## 2026-07-27: M5の前提訂正と通知手段の方針転換（ブランチ `task/docs-23-m5-premises`。ドキュメントのみ）
+
+発起人がM5（Capacitorネイティブ化）の着手を決定したのを受けて前提を点検したところ、[23_M5ネイティブ化計画](23_M5ネイティブ化計画.md) の記述5件が現行実装と食い違っていることが判明した。訂正の作業中に発起人が方針を変更し、**M5の着手を保留してiOS PWAのWeb Pushを先に検証する**決定に至った。実装コードは変更していない。
+
+- **方針転換（[ADR 0007](adr/0007-通知手段の選択とM5ネイティブ化の前提.md) を起票）**: **M5の着手を保留し、先にiOS PWAのWeb Pushで通知の効果を実測する**（新規T-149）。iOS 16.4以降、ホーム画面に追加したPWAはWeb Pushを受け取れるため、05の7節が置いていた「iOSではスケジュール通知が打てないためネイティブ化が必要」という主動機が部分的に崩れている。23のJ-76はWeb Pushを代替案として棄却していたが、その評価は「ネイティブ化する前提の中での実装方式の比較」に留まり、「ネイティブ化を回避する手段」としては行われていなかった（評価漏れを23の1.7節に記録）。M5の実施決定自体は撤回していない。着手条件（M4完了ゲート通過・M4残タスクと並行しない）は維持したうえで、T-149の結果による再判断を加えた。
+- **Web Pushに課した制約**: 通知本文は**件数を含まない汎用文に限定**する（「今日の復習n件」はサーバーが各人の復習件数を知る必要があり、個人紐づきで共有APIに送るのはダメージ換算値＋表示名のみという不変条件に反する）。購読情報は `deviceToken` と結合できない形で保存する（J-86。方式は未確定でT-149で設計）。Service Workerは `generateSW` から `injectManifest` 等への変更が必要になる見込みで、既存のPWAキャッシュ挙動への回帰リスクがある（方式は未確定）。**Web Pushで解決するのは通知だけで、iOSストレージ退避の解消とバックグラウンド音声はネイティブ化の動機として残る**。
+- **発起人が決定した前提（ADR 0007に記録）**: 対象プラットフォームは**iOSのみ**（Androidは初回スコープ外。J-72）。**Apple Developer Program（$99/年）には登録しない**。iOSビルドはGitHub ActionsのmacOSランナーで行い、実機導入は無料Apple IDでのsideload（Sideloadly/AltStore。プロビジョニングプロファイルが7日で失効する等の制約は一般に知られている値で本プロジェクトでは未検証）。**参加者への配布は不可**のため、$99の支出判断は「発起人自身が実機で使えれば十分か」で決まる。問題パック・音声（`content/` 51MB）は**アプリに同梱**する（J-82）。
+- **前提の訂正5件**（詳細は23の8.1節。いずれも実コードを確認）:
+  - J-74「同一ビルド成果物」→「**別ビルド成果物**」。`packages/app/vite.config.ts` が `GITHUB_PAGES==='true'` で `base='/BEB-Raid/'` に切り替わり、`capacitor://localhost` 配下では解決できないため、ネイティブ向けの `base='/'` ビルドが必須。T-133の成果物にビルドスクリプトの追加を明記。
+  - J-75/T-134「SW非依存の `PackCache` 実装を追加する」→ `platform/cache/CacheStoragePackCache.ts` が既にSW非依存。J-82の同梱決定により推奨案を**`NullPackCache`＋SW登録抑止**に変更（`WebAudioPlayer.loadBlob/loadBuffer` と `packSync.loadPackQuestions` が `packCache.get()` の null で `fetch` にフォールバックする実装を確認済み）。T-134の成果物を縮小。
+  - J-78の根拠文「パックはHTTP取得のため再配布不要」→ 誤り。`scripts/copy-content.mjs` が `content/` を `dist/` へコピーし Capacitor が同梱する。加えて出題プールのパックIDは `App.tsx` の `PACK_IDS` にハードコードで manifest 駆動ではない。結論（再ビルドのみ）は維持し根拠文を訂正。
+  - J-77の要件列挙が不足 → 要件表（23の1.6節）を追加。`onPosition` 間隔100ms・位置精度±100ms未満（`content/packs/pack-shadow-s-001.json` の `timing` 実測: 30問708区間で最小192ms・中位値255ms・48.6%が250ms未満）・`durationMs` の打ち切り精度（`questionEndMs` で正答読み上げのリークを防いでいる）・入力がBlobであること。推奨案を**聞き流し経路限定のネイティブ実装**に変更（`audioPlayer` は `App.tsx` のモジュール変数でpropsで渡るため配線のみで注入でき、`screens/`・`engine/` の改修はゼロ）。
+  - J-71のベースライン「参加者のストリーク維持率」→ 取得手段なし（共有APIの `RaidContribution` は表示名とダメージのみ）。一次指標を**自分の週次学習日数**（`attempts` 由来。`engine/streak.ts` の `countSrsAnswersOn` で遡及算出）に固定し、参加者側は補助扱いに訂正（`RaidSummary.participantCount` はT-131で追加されたばかりで過去週のKVレコードがなく前方向にしか蓄積しない）。
+- **新規起票**: T-149（Web Push検証。先行実施）・T-146（Capacitorスパイク。**保留中**。着手条件はT-149の完了と再判断）・T-147（`PACK_IDS` の manifest 駆動化。ネイティブ化と独立に実施可）・T-148（調整可能パラメータのリモート配信。外出し可と固定必須の線引きを記載。詳細設計は実装PRと同じPRで別ADR）。判断J-82（content同梱）・J-83（繰り返し通知の表現方式）・J-84（bundle ID。変更すると学習データが分離する）・J-85（通知手段の順序）・J-86（購読情報の保存方式）。人間タスクH-10（実機導入前のデータ退避と再インストール後の保持確認）・H-11（Web Pushの実機導入と効果測定）。
+- **ID採番の前提**: T-138〜T-145・J-79〜J-81 は PR #65（読解計画を `docs/18` → `docs/24` へ改番）が使用するため、本作業の追加分は **T-146・J-82** から採番した。**PR #65が先にマージされる前提**である。
+- **残課題**: 05の7節と06のM5項の「iOSではスケジュール通知が打てない」前提記述の更新（影響範囲が広いため別タスク。T-149の実測後に行う）。J-71・J-73〜J-78・J-83・J-86は未承認。J-84（bundle IDの値）は発起人判断待ち。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test` を実行。
+## docs/18番号衝突の解消（2026-07-27。ブランチ `task/docs-18-renumber`。origin/dev起点）
+
+18番の2文書（改修計画_表示更新とUX残課題／読解パート実装計画）が文書番号・タスクID（T-103〜）・判断ID（J-51〜）を重複して使っていた問題を解消した。ドキュメントの番号・ID・相互参照のみを変更し、設計判断とアプリの挙動は変更していない。
+
+- **改番**: 後から合流した読解計画を `docs/18_読解パート実装計画.md` → `docs/24_読解パート実装計画.md` へ `git mv`（リネームとして追跡）。タスクIDを T-103〜T-110 → **T-138〜T-145**、判断IDを J-51〜J-53 → **J-79〜J-81** に振り直した。空き帯の根拠は docs/23（M5）が T-137・J-78 まで使用済みであること。人間タスクID H-R1・H-R2 は他文書と衝突していないため変更していない。18番と T-103〜T-117・J-51〜J-56 は改修計画_表示更新とUX残課題の側が保持する。
+- **旧ID→新IDの対応表を docs/24 の0節に新設**。改番前に確定した記録（本ファイルの完了節・コミットメッセージ・git のブランチ名・ソースコードのコメントに書かれたタスクID）は旧IDのまま残し、対応はこの表で引く運用にした。過去の記録を書き換えるとPR・コミットとの対応が追えなくなるため。
+- **更新した参照**: CLAUDE.mdのドキュメント構成表（読解計画の行を24として23の下へ移し、衝突の「注意」書きを解消済みの記述へ差し替え）、00_README.mdの履歴行、04の2節（`text_passage` の参照先とタスクID）、21の1節（ID採番の前提）、22の2.1節、ADR 0006（関連文書・判断3）、本ファイルの読解関連節。
+- **ソースコードのコメント**: 読解関連の22ファイルに残っていた `docs/18 …節` の参照先を `docs/24` へ差し替えた（コメントのみ。実行コードは無変更）。改修計画_表示更新とUX残課題を指す `docs/18` 参照（`store/raidSyncStore.ts`・`store/appStore.ts`・`App.tsx`・`ResultScreen.tsx`・`services/settingsKeys.ts`・`platform/net/FetchRaidApi.ts`・`store/sessionStore.ts`・`pwa/InstallHint.test.tsx`）はそのまま維持している。IDで特定の行を指していた3箇所（`packages/cli/src/build.ts`×2・`ReadingScreen.test.tsx`）だけは参照が解決しなくなるため新IDへ直した。
+- **リンク切れ検証**: `docs/` 配下・CLAUDE.md・`packages/` を対象に、(a) 旧ファイル名を対象にしたMarkdownリンクの残存が0件で、残る `18_読解` の記述はすべて「改番前はこの名前だった」と述べる平文であること、(b) `docs/` 配下のMarkdownリンクの相対パス全件について実ファイルの存在確認、(c) `docs/18` を含む行の全件目視で改修計画_表示更新とUX残課題を指すものだけが残っていること、を確認した。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build` 全通過、`npm test` は api 122件・app 844件・cli 338件・review-ui 15件・shared-schema 94件が全通過。`npm run format:check` はgit管理外のローカル設定ファイル `.claude/settings.local.json` 1件のみ未整形として報告される（本作業の変更対象外・commit対象外）。
+- **残課題**: 00_README.mdのドキュメント構成表は20〜24の行が未収載（20〜23の欠落は本作業以前から。番号衝突とは別件のため本PRでは追加していない）。
 
 ## T-131完了: バランス調整の運用装置（2026-07-27。ブランチ `task/T-131-balance-ops`。dev起点）
 
@@ -104,7 +132,7 @@ M4（21・22）の昼バトルT-124依存タスク。[22_M4実装計画](22_M4�
 - **05の7節の移行判断ゲートが未実施のまま推移していた**ことを確認した。「M2完了時点でストリーク維持率が悪ければ前倒し」「iOSでデータが飛んだら即着手」のいずれも判定記録が無く、08の完了ゲートの観測記録欄も空である。23のJ-71で、このゲートを着手可否の判定から **H-9での効果測定（ストリーク維持率の前後比較）** へ組み替え、改善が確認できない場合に $99/年 の継続可否を再判断する形にした。
 - **[22_M4実装計画](22_M4実装計画.md) 2.1節を更新**: 読解フェーズR-1の完了（2026-07-23）に伴い、R-1作業領域（`engine/quickPack.ts`・`curriculum.ts`・`rating.ts`・`tagStats.ts`・`keyVocab.ts`、`packages/cli/`、`content/`）の変更禁止ルールを解除した。ただしこれらは学習ロジックの中核であり、M4の残タスクは原則としてこれらを変更せずに実装できる設計になっているため、変更が必要だと判断した場合は停止して確認する運用は残した。あわせて、T-123で発生したworktreeのnode_modules解決の問題（worktree直下で `npm ci` を実行しないと親のnode_modulesへ抜け、メインチェックアウト側のdistを参照してビルドが誤って壊れる）を共通ルールへ明記した。
 - **06のM5項**から23への参照を追加し、CLAUDE.mdのdocs一覧に23を追加した。
-- 未対応のまま残っている事項: docs/18系2文書のタスクID衝突（T-103〜が二重）のリナンバリング。M4完了ゲートの判定時に、片付けるか明示的に次へ送るかを判断する。
+- 未対応のまま残っている事項: docs/18系2文書のタスクID衝突（T-103〜が二重）のリナンバリング。M4完了ゲートの判定時に、片付けるか明示的に次へ送るかを判断する。→ **2026-07-27に解消**（本ファイル冒頭の「docs/18番号衝突の解消」節）。
 
 ## T-127完了: ゴーストAPI（記録受領・撤回削除・週次生成組込）（2026-07-24。ブランチ `task/T-127-ghost-api`。dev起点）
 
@@ -154,7 +182,7 @@ T-107で生成した読解在庫（Part6 30セット120設問=`part6PassagesS.ts
 - **系統的修正（tags。tagStats弱点集計の汚染防止）**: Part6全30セットに一律付与されていた「語彙推測」を設問実態（文法主体）に合わせて docs/03 7.1 の既存タグへ修正（動詞の形/品詞/接続詞vs前置詞/前置詞コロケーション/代名詞・関係詞/比較。26セット変更）。**p6-015・p6-029のみ「語彙推測」を維持**（at least/no later than・approximately の語義選択問題を実際に含むため実態に合致）。Part7は p7s-005/011/017/025/029/033/035/037 の「語彙推測」（語彙問題を含まないセット）と p7s-025/030/031/036 の「推論」（明示情報の照合のみのセット）を削除またはスキャン/パラフレーズ照合へ差し替え（12セット変更）。
 - **minor 10項目**: p6-025がp6-012と実質同一（関係代名詞3問・選択肢まで一致）だったため動詞の形＋前置詞のセットへ書き換えてバリエーション化／p7s-023 q1を「When must vacation requests be submitted?」型に変更（before requesting の論理矛盾解消）／p7s-016 q2・p7s-021 q2・p7s-036 q3 の誤答品質改善／p7s-010 q1 正答を "Rescheduling a client meeting" へ／英文修正（p6-008 by the end of this week・p6-027 register the visit・p6-028 冒頭を are being removed で在庫矛盾解消・p7s-007 for the inconvenience）／解説の軽微修正（p6-006 q4 位置関係・p6-030 q4 直前文参照・p6-026 q2 脱字）／difficulty調整（p6-009/012/020/025→3、p7s-022→2）。
 - **シートと異なる対処をした項目（keyVocab sense修正）**: keyVocabのsenseは語彙カード（600語）の`back`から`vocabEntryForWord`で解決される設計のため、設問単位のsense書き換えは生成器の設計変更（または全SRSカードに影響する語彙カード側の変更）を要する。設計を変えず目的（本文文脈とsenseの一致）を達するため、**keyVocab語自体を本文実在かつsense適合のカード語へ差し替えた**: p7s-011 benefits→deadline、p7s-001 candidate→resume（シート例示のportfolioはカードsenseが「保有資産の組み合わせ」=投資文脈で作品集の文脈に不一致のため）、p6-024 orientation→equipment、p7s-030 premises→maintenance。
-- **既知事象（本タスクでは未修正）**: `part7SinglePassagesS.ts` 冒頭コメントの「設問合計120問（2問x10・3問x20・4問x10）」は実データ（118問=2問x11・3問x20・4問x9）と不一致（dev時点から存在）。データ本体は118問で整合しており、コメント/docs/18側の記述整理は別途。
+- **既知事象（本タスクでは未修正）**: `part7SinglePassagesS.ts` 冒頭コメントの「設問合計120問（2問x10・3問x20・4問x10）」は実データ（118問=2問x11・3問x20・4問x9）と不一致（dev時点から存在）。データ本体は118問で整合しており、コメント/読解計画（改番後は docs/24）側の記述整理は別途。
 - **検証**: cli 337件（contentLint⑥の新規3件含む）、ルート `npm run lint` / `npm run format:check` / `npm run build` / `npm test` 全通過。shared-schema validatePack（generate時）・contentLint（新チェック含む）全件通過。
 
 ## T-130完了: 成長ランク（2026-07-23。ブランチ `task/T-130-growth-rank`）
@@ -172,7 +200,7 @@ M4（21・22）の依存なしタスク。**端末内導出のみ・サーバー
 
 - **M3完了ゲート通過（発起人確認）**: 複数人で週次レイドが回り、「今週みんなで倒す」が実際に会話に出ている。06のM3完了条件を充足した。H-2（招待コード配布・周知）も完了（17の3.11節を更新済み）。加えて、昼の集まりが**週1回の頻度で既に開催されている**（M4の昼イベント実測の場が存在する）。
 - **M4計画docsを起草**: [21_M4タスク分解](21_M4タスク分解.md)（T-123〜T-131・判断J-62〜J-70・人間タスクH-4〜H-6）と [22_M4実装計画](22_M4実装計画.md)（Sonnet自走タスクシート）。**J-62〜J-70は発起人が推奨案で一括承認済み（2026-07-23）**。T-123から実装着手可。実装はSonnetクラスの自走で行う（1タスク=1セッション。開始プロンプトは22の1節）。
-- **読解フェーズR-1（[18_読解パート実装計画](18_読解パート実装計画.md) T-105〜T-107）はM4と並行で進める**（こちらもSonnet自走。開始プロンプトは18の1節）。M4側はR-1の作業領域（engine/quickPack・curriculum・rating・tagStats・keyVocab、packages/cli、content/）を触らない取り決め（22の2.1節）。
+- **読解フェーズR-1（[24_読解パート実装計画](24_読解パート実装計画.md) T-140〜T-142。本節執筆時点の旧IDはT-105〜T-107）はM4と並行で進める**（こちらもSonnet自走。開始プロンプトは24の1節）。M4側はR-1の作業領域（engine/quickPack・curriculum・rating・tagStats・keyVocab、packages/cli、content/）を触らない取り決め（22の2.1節）。
 - リポジトリ直下にあった金フレ由来の参照用JSON（`kinfure_all_1000.json`）は発起人が削除済み（誤コミットリスクの解消）。
 
 ## T-123 shared-schemaへM4契約追加（2026-07-23。ブランチ `task/T-123-m4-contract`。dev起点・単独PR）
@@ -268,24 +296,24 @@ M4着手第一弾。22の5節T-123シートに基づき、shared-schemaへM4契�
 
 全量レビューで、TOEIC対策としての実装に穴があることが判明した。`text_passage`（Part6/7）はスキーマに予約済みだがUIコンポーネント・配信コンテンツともに存在せず、**ユーザーは読解問題を一切解けない**。TOEIC ReadingはPart5〜7で100問（Part7だけで54問と最多）で、当初目的（380→760、Rはスコアの半分）に対し読解欠落は致命的。一方で「通勤・片手・短時間」コンセプトはPart7複数パッセージと衝突する。
 
-この対立を「読解をセッション長で階層化する」折衷案で解く方針を発起人が承認した（2026-07-21）。Part6・Part7単一は通常セッション（7分/15分）に組み込み、Part7複数パッセージだけを新規「じっくり読解」モード（着席・自宅想定）に隔離する。判断は [ADR 0006](adr/0006-読解パートの完成方針.md)、自走タスクシートは [18_読解パート実装計画](18_読解パート実装計画.md)（T-103〜T-110・判断J-51〜J-53・人間タスクH-R1/H-R2）に記録した。
+この対立を「読解をセッション長で階層化する」折衷案で解く方針を発起人が承認した（2026-07-21）。Part6・Part7単一は通常セッション（7分/15分）に組み込み、Part7複数パッセージだけを新規「じっくり読解」モード（着席・自宅想定）に隔離する。判断は [ADR 0006](adr/0006-読解パートの完成方針.md)、自走タスクシートは [24_読解パート実装計画](24_読解パート実装計画.md)（T-138〜T-145・判断J-79〜J-81・人間タスクH-R1/H-R2）に記録した。**本節以下の完了記録は2026-07-27の改番前に書かれており、旧ID（T-103〜T-110・J-51〜J-53）のままである**（対応表は24の0節）。
 
-- **フェーズR-1（T-103〜T-107）✅ 完了（2026-07-23。H-R1承認・配信組込まで完了）**: Part6・Part7単一。通勤セッション内の読解が可能になりRレートに反映される状態を達成した（詳細は本ファイル冒頭の「T-107読解R-1コンテンツの配信組込」節）。
-- **フェーズR-2（T-108〜T-110）**: Part7複数パッセージ。完了でTOEIC L&R全パート（Part1除く）が練習可能になる。
-- 判断J-51〜J-53は発起人が推奨値で一括承認（2026-07-21）。docs/18の該当節を「承認済み」に更新済み。
+- **フェーズR-1（旧T-103〜T-107＝現T-138〜T-142）✅ 完了（2026-07-23。H-R1承認・配信組込まで完了）**: Part6・Part7単一。通勤セッション内の読解が可能になりRレートに反映される状態を達成した（詳細は本ファイル冒頭の「T-107読解R-1コンテンツの配信組込」節）。
+- **フェーズR-2（現T-143〜T-145。旧T-108〜T-110）**: Part7複数パッセージ。完了でTOEIC L&R全パート（Part1除く）が練習可能になる。
+- 判断J-51〜J-53（現J-79〜J-81）は発起人が推奨値で一括承認（2026-07-21）。読解計画（改番後は docs/24）の該当節を「承認済み」に更新済み。
 - 読解コンテンツは人手レビュー必須ゲートを最初から有効化する（AIクロスレビューのみでの配信を認めない）。
 
 **T-103 完了（2026-07-21。基盤=共有面スキーマ）**: 全タスクがimportする単一正本を先に固めるため、スキーマ・バリデータ・テストをOpusが実装した（Sonnetに任せると事故りやすい共有面の確定）。
 
-- **型（shared-schema/types.ts）**: `Passage`（id/kind/text）を新設。`Question` に `passages?: Passage[] | null` を追加。`SubQuestion` に `tags?: string[] | null` を追加（Part7複数パッセージの相互参照設問を設問単位でタグ付けし、弱点集計の粒度を上げる用途。docs/18 3.4節と整合）。`SCHEMA_VERSION` は後方互換の追加のため2据え置き。
+- **型（shared-schema/types.ts）**: `Passage`（id/kind/text）を新設。`Question` に `passages?: Passage[] | null` を追加。`SubQuestion` に `tags?: string[] | null` を追加（Part7複数パッセージの相互参照設問を設問単位でタグ付けし、弱点集計の粒度を上げる用途。docs/24 3.4節と整合）。`SCHEMA_VERSION` は後方互換の追加のため2据え置き。
 - **バリデータ（validate.ts）**: `text_passage` を「トップレベル question+choices の単一問題」から「audio_set と同じ passages（刺激）+ subQuestions 構造」へ再定義。TEXT_FORMATS/CHOICE_FORMATS から text_passage を除外し、専用検証を追加: part は6/7限定、passages は Part6=1件・Part7=1〜3件、subQuestions は1〜5件（既存 audio_set と共通ヘルパ `validateSubQuestions` に集約）、**Part6は空所マーカー [[n]] が1から連番・重複なしで subQuestions 件数と一致**すること、keyVocab の存在検査対象を「passages本文＋subQuestionsのquestion/choices」に拡張。
 - **実装判断**: 変更前は text_passage コンテンツ・UIとも存在せず（参照は validate/types/noEarphoneFilter のみ）、既存 text_passage テストも無かったため、単一問題→passages+subQuestions への構造変更は安全と判断した。
 - 検証: shared-schema単体61件（既存47＋新規14: Part6/Part7単一/複数の正常系、passages/subQuestions欠落、part不正、Part6マーカー不整合3種、passages4件超、answer不整合、keyVocab不在、tags不正、id重複）、ルート `npm run lint`・`npm run build`（app+api tsc含む）・`npm test` すべて通過。`npm run format:check` は変更ファイルを整形済み（既存の `.claude/worktrees/` 配下の未整形ファイル=本変更と無関係のstale worktree成果物は残存）。
 
 **T-104 完了（2026-07-21。ReadingScreen新設。devへ直接commit）**: 新規`screens/ReadingScreen.tsx`（Part6・Part7単一を解く専用画面。DrillScreenに分岐追加ではなく別画面=3.5節）を実装。`ScreenName`に`'reading'`追加、App.tsxに画面分岐を配線。
 
-- **本セッションでの運用変更**: 発起人の指示により本タスクは**task/ブランチ＋PR運用ではなくdevへ直接commit＆push**で実施した（18の2.1節が定める通常運用からの一時的な逸脱）。
-- **採点方針（ADR 0006 判断4・18の3.2節）を実装**: audio_setの2/3セット正解ルールは使わず、各subQuestionを独立採点対象とする。`recordAnswerPipeline`を`skip:{srs:true}`のみで呼ぶ（rating・tagStats・誤答→keyVocab循環はスキップしない）ため、question.part（6/7）経由でRセクションレートへ1問ごとに反映される。SRSレビューは本文まるごと再出題しないため（3.4節）、audio_setと違いセット完了時の`reviewSrsCard`呼び出しは無い。
+- **本セッションでの運用変更**: 発起人の指示により本タスクは**task/ブランチ＋PR運用ではなくdevへ直接commit＆push**で実施した（24の2.1節が定める通常運用からの一時的な逸脱）。
+- **採点方針（ADR 0006 判断4・24の3.2節）を実装**: audio_setの2/3セット正解ルールは使わず、各subQuestionを独立採点対象とする。`recordAnswerPipeline`を`skip:{srs:true}`のみで呼ぶ（rating・tagStats・誤答→keyVocab循環はスキップしない）ため、question.part（6/7）経由でRセクションレートへ1問ごとに反映される。SRSレビューは本文まるごと再出題しないため（3.4節）、audio_setと違いセット完了時の`reviewSrsCard`呼び出しは無い。
 - **Part6の空所UIは非線形ジャンプで実装**: 本文中の`[[n]]`マーカーを`___(n)___`として表示し、未解答の空所は好きな順にタップして該当設問へジャンプできる（線形進行を強制しない）。解答済みの空所は選択結果（選んだ選択肢の文言＋正誤色）を本文へ反映する。Part7単一（マーカー無し）は「次へ」で順に進む。
 - **ペース表示**: リスニングの15秒自動タイムアウトは付けず、経過秒数のみを柔らかく提示（「目安1問/分（経過n秒）」）。自動確定・色による煽りはしない。
 - **共通化リファクタ**: `withSubQuestionLookup`（DrillScreenのaudio_set専用ヘルパだった）を`engine/subQuestionLookup.ts`へ抽出し、DrillScreen・ReadingScreen双方から共有。
@@ -307,7 +335,7 @@ M4着手第一弾。22の5節T-123シートに基づき、shared-schemaへM4契�
 - **点検結果（T-104時点で既に正しかった部分）**: `recordAnswerPipeline`経由で1問ごとに`applyRatingUpdate`が呼ばれる実装、`processWrongAnswer`によるkeyVocab循環の起動自体は、ReadingScreen実装時点（T-104）で既に接続済みだった。`computeSetResult`（audioSet.ts。2/3ルール）はReadingScreenから一切importされていないことをコードリーディングと新規テストの両方で確認。
 - **発見・修正した3件の実装ギャップ**:
   1. **`engine/subQuestionLookup.ts`のタグ合成漏れ**: `withSubQuestionLookup`が常に親questionのtagsだけを疑似Questionへコピーし、`SubQuestion.tags`（T-103で追加した設問単位の解法タグ。先読み/スキャン/パラフレーズ照合/相互参照/推論/語彙推測を設問ごとに付ける運用を想定）を無視していた。設問固有のタグはtagStats・弱点判定に一切乗らない状態だったため、sq.tagsを親のtagsへ「追加」（上書きでなく合算＋重複除去）する形に修正。sq.tagsを持たない既存content（audio_set等）は無変更。
-  2. **`engine/keyVocab.ts`の本文まるごと再出題混入**: `processWrongAnswer`が誤答のたびに「誤答問題そのもの」を`refType:'question'`のSRSカードとして無条件登録しており、text_passageではこれが親Question（＝本文パッセージ全体）の再出題に直結していた。ADR 0006 判断6・18の3.4節が明示的に禁止する「本文まるごとの再出題」である。加えて、key語彙カードの`sourceQuestionId`経由でも、卒業時に`srs.ts`の`reviewSrsCard`が発生元パッセージを再投入する経路があり、二重に同じ問題を持っていた。`question.format==='text_passage'`のときは questionCard を作らず`sourceQuestionId`も乗せないよう修正し、両経路を遮断（keyVocab循環＝語彙カードの追加自体は継続。再挑戦は`quickPack.ts`の`similarOrFallback`が担う既存の「同一タグ・keyVocabの別パッセージ優先」機構に委ねる。18の3.4節どおり）。`WrongAnswerResult.questionCard`の型を`SrsCardRecord | null`に変更（既存呼び出し側・テストへの影響は`questionCard?.id`への機械的追従のみ）。
+  2. **`engine/keyVocab.ts`の本文まるごと再出題混入**: `processWrongAnswer`が誤答のたびに「誤答問題そのもの」を`refType:'question'`のSRSカードとして無条件登録しており、text_passageではこれが親Question（＝本文パッセージ全体）の再出題に直結していた。ADR 0006 判断6・24の3.4節が明示的に禁止する「本文まるごとの再出題」である。加えて、key語彙カードの`sourceQuestionId`経由でも、卒業時に`srs.ts`の`reviewSrsCard`が発生元パッセージを再投入する経路があり、二重に同じ問題を持っていた。`question.format==='text_passage'`のときは questionCard を作らず`sourceQuestionId`も乗せないよう修正し、両経路を遮断（keyVocab循環＝語彙カードの追加自体は継続。再挑戦は`quickPack.ts`の`similarOrFallback`が担う既存の「同一タグ・keyVocabの別パッセージ優先」機構に委ねる。24の3.4節どおり）。`WrongAnswerResult.questionCard`の型を`SrsCardRecord | null`に変更（既存呼び出し側・テストへの影響は`questionCard?.id`への機械的追従のみ）。
   3. **`engine/noEarphoneFilter.ts`のPart7複数パッセージ混入リスク**: リーディング差し替え候補プールが読み込み済み全問題から`text_blank`/`text_passage`を無条件に拾っており、T-105が確立した「Part7複数パッセージは通常パックに入らない」不変条件をこのフィルタだけが素通りしていた（複数パッセージコンテンツが実在しない現時点では顕在化しないが、T-108/T-109後に踏む地雷だった）。`quickPack.ts`の`isReadingAllocatable`を再利用し候補から除外。
 - **完了条件の充足状況**:
   - 読解正誤でRレートが動く・2/3ルール不使用（テストで担保）: **充足**。正誤混在パターン（正・誤・正）で各設問が独立Elo更新されることを、`engine/rating.ts`の`applyRatingUpdate`を参照側で直接呼んだ期待値と突き合わせて検証（`screens/ReadingScreen.test.tsx`）。
@@ -320,13 +348,13 @@ M4着手第一弾。22の5節T-123シートに基づき、shared-schemaへM4契�
 **次のアクション**: T-107（CLI生成＋初期パック）はT-103完了時点で並行着手可能（H-R1の人手レビュー体制が前提。別セッションで着手中）。T-108（複数パッセージUI・じっくり読解モード）はT-105・T-106完了によりR-1の学習ロジック面は固まったため着手可能。
 
 - 着手前に確認が要る運用: T-107・T-109の人手レビュー体制（H-R1）。J-53（ロードマップ06への紐づけ）はドキュメント更新のみで実装非ブロッキング。
-- **⚠️ タスクID衝突（2026-07-21のdev合流時に発覚）**: 本セッションの間にdevへ別系統の [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md)（T-103〜T-117・PR #27）がマージされていた。両文書とも「T-103」「T-104」を独立に採番しており、以後この番号だけでは文書を一意に特定できない。要リナンバリング（別途対応。docs/18_読解パート実装計画.mdの改番を検討）。
+- **⚠️ タスクID衝突（2026-07-21のdev合流時に発覚）**: 本セッションの間にdevへ別系統の [18_改修計画_表示更新とUX残課題](18_改修計画_表示更新とUX残課題.md)（T-103〜T-117・PR #27）がマージされていた。両文書とも「T-103」「T-104」を独立に採番しており、以後この番号だけでは文書を一意に特定できない。要リナンバリング（別途対応。docs/18_読解パート実装計画.mdの改番を検討）。→ **2026-07-27に解消**: 読解計画を [24_読解パート実装計画](24_読解パート実装計画.md)（T-138〜T-145）へ改番した（本ファイル冒頭の該当節）。
 
-**[18_読解パート実装計画](18_読解パート実装計画.md) T-107 完了（2026-07-23。CLI生成＋初期パック。task/T-107-reading-content）**: T-103完了時点で並行着手可能だったCLI生成・初期在庫を実装した。packages/appは触れていない（並行セッションがengine系=T-105/T-106を作業中のため）。
+**[24_読解パート実装計画](24_読解パート実装計画.md) T-107（現T-142）完了（2026-07-23。CLI生成＋初期パック。task/T-107-reading-content）**: T-103完了時点で並行着手可能だったCLI生成・初期在庫を実装した。packages/appは触れていない（並行セッションがengine系=T-105/T-106を作業中のため）。
 
 - **変更**: `packages/cli/src/textPassageQuestion.ts`（新規。Part6・Part7単一の生成/バリデーション関数。`rotateTextPassageChoices`はpart34Question.tsと同じM1レビュー⑦の決定的ローテーション方式）、`packages/cli/src/data/part6PassagesS.ts`・`part7SinglePassagesS.ts`（新規データ本体）、`commands.ts`（`generate`に`text_passage_p6`・`text_passage_p7_single`を追加）、`contentLint.ts`（②keyVocab出現チェックの`collectTexts`をtext_passage対応に拡張。トップレベルquestion/choicesを持たないtext_passageのままだと全件誤検出になるため、passages本文＋subQuestionsのquestion/choicesを検査対象にする回帰修正）。
-- **生成量**: Part6 30セット・120問（本文中の空所マーカー`[[1]]〜[[4]]`4個＋設問4問。4問目は文挿入問題で固定）、Part7単一40セット・118問（設問2〜4問／セット。目標「約120問」に対し118問）。全問に解説・和訳・keyVocab（1件以上）・tags（先読み/スキャン/パラフレーズ照合/推論/語彙推測。docs/18 3.4節）・difficulty(1-5)を付与。license/originは検証専用ダミー値（実配布パックではないため）。英文はメール/notice/memo/article/chat/form/advertisementの体裁でエージェントが直接執筆したオリジナル（市販教材の流用なし）。
-- **機械検証**: Part6の空所マーカー数と設問数の整合はshared-schema（T-103実装済みの`validatePart6Markers`）が検証、CLI側は追加でPart6=4問固定・Part7単一=2〜4問（docs/18 3.1節の業務ルール。shared-schemaの一般的な1〜5件制約より狭いためCLI側で追加）を検証する。「Part7の参照整合（複数パッセージ）」はPart7複数専用（T-109・R-2）のためスコープ外。keyVocabWordsは全語がS/A/B語彙カード（600語）に実在し、passages本文またはsubQuestionsのquestion/choicesに文字列として出現することをテストで担保（初回生成時に7語が本文中で未出現だったため該当setのkeyVocabWordsから除去して解消。詳細はコミット参照）。
+- **生成量**: Part6 30セット・120問（本文中の空所マーカー`[[1]]〜[[4]]`4個＋設問4問。4問目は文挿入問題で固定）、Part7単一40セット・118問（設問2〜4問／セット。目標「約120問」に対し118問）。全問に解説・和訳・keyVocab（1件以上）・tags（先読み/スキャン/パラフレーズ照合/推論/語彙推測。docs/24 3.4節）・difficulty(1-5)を付与。license/originは検証専用ダミー値（実配布パックではないため）。英文はメール/notice/memo/article/chat/form/advertisementの体裁でエージェントが直接執筆したオリジナル（市販教材の流用なし）。
+- **機械検証**: Part6の空所マーカー数と設問数の整合はshared-schema（T-103実装済みの`validatePart6Markers`）が検証、CLI側は追加でPart6=4問固定・Part7単一=2〜4問（docs/24 3.1節の業務ルール。shared-schemaの一般的な1〜5件制約より狭いためCLI側で追加）を検証する。「Part7の参照整合（複数パッセージ）」はPart7複数専用（T-109・R-2）のためスコープ外。keyVocabWordsは全語がS/A/B語彙カード（600語）に実在し、passages本文またはsubQuestionsのquestion/choicesに文字列として出現することをテストで担保（初回生成時に7語が本文中で未出現だったため該当setのkeyVocabWordsから除去して解消。詳細はコミット参照）。
 - **人手レビューゲート（ADR 0006 判断5）を遵守**: `beb generate text_passage_p6`・`text_passage_p7_single`で`content/drafts/text-passage-p6-s.jsonl`（30件）・`text-passage-p7-single-s.jsonl`（40件）を生成し、`beb review-export`で`content/drafts/text-passage-p6-s.review.tsv`・`text-passage-p7-single-s.review.tsv`を書き出した。**`content/packs/`への書き出し・`build.ts`の`PACK_DEFINITIONS`への追加・`manifest.json`の更新は意図的に未実施**（T-107完了条件「人手レビューゲートを経たパックのみ配信」を優先し、シート4節の「変更」列挙が示す「content/packs/生成・manifest更新」より完了条件を優先した。人手レビュー未実施のまま`PACK_DEFINITIONS`に入れると既存パックの一部に残る「AIクロスレビューのみで配信」の運用を読解でも踏襲することになり、ADR 0006 判断5に反するため）。
   - **H-R1（発起人）が次にやること**: ①`content/drafts/text-passage-p6-s.review.tsv`・`text-passage-p7-single-s.review.tsv`をスプレッドシートで開き、docs/11の②③手順で正答の妥当性・ひっかけの質・不自然な英文・既存教材との類似を確認しstatus列（採用・修正・破棄）を埋める。②`beb review-import content/drafts/text-passage-p6-s.jsonl content/drafts/text-passage-p6-s.review.tsv content/drafts/text-passage-p6-s.accepted.jsonl content/drafts/text-passage-p6-s.rejected.jsonl`（Part7単一も同様）で取込む。③レビュー済み件数・却下理由を踏まえてPACK_DEFINITIONS（`packages/cli/src/build.ts`）へパック定義を追加し、originに実施した人手レビューの事実（実施者・日付）を正直に記録した上で`beb build`を実行しmanifest.jsonへ反映する（この③は次タスクとして別セッションで実施する想定）。
 - **検証**: `packages/cli/src/textPassageQuestion.test.ts`（新規25件）・`contentLint.test.ts`（text_passage回帰2件追加）を含めcli 334件、ルート`npm run lint`・`npm run format:check`・`npm run build`・`npm test`（api 78件/app 688件/cli 334件/review-ui 15件/shared-schema 67件）を実行。

@@ -1,4 +1,4 @@
-// Part6（text_passage）1パッセージ4空所の初期在庫データ本体（T-107。正本: docs/18 3.1節・3.6節）。
+// Part6（text_passage）1パッセージ4空所の初期在庫データ本体（T-107。正本: docs/24 3.1節・3.6節）。
 //
 // 30セット・各4設問=計120設問。本文には空所マーカー[[1]]〜[[4]]を1から連番で埋め込む
 // （空所番号=subQuestionsの並び順に対応。shared-schemaのvalidatePart6Markersが整合検証する）。
