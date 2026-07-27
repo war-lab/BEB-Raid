@@ -1147,3 +1147,91 @@ describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）'
     expect(await screen.findByTestId('ghost-boss-candidate')).toBeTruthy()
   })
 })
+
+describe('RaidScreen: ゴースト週の弱点マップ・名誉表示（M4・T-129。docs/22 3.4節）', () => {
+  const GHOST_BOSS: RaidBossState = {
+    ...ACTIVE_BOSS,
+    bossId: 'boss-2026-w31',
+    name: 'ゴースト・上級者A',
+    bossType: 'ghost',
+    defense: [
+      { questionId: 'q-0', multiplier: 2.0 },
+      { questionId: 'q-1', multiplier: 2.0 },
+      { questionId: 'q-2', multiplier: 0.5 },
+    ],
+    ghost: { displayName: '上級者A', defeatedCount: 3 },
+  }
+
+  it('弱点マップがPart・タグ単位で表示され、questionIdは表示に出ない（正答の狙い撃ち防止）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = GHOST_BOSS
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const weaknessMap = await screen.findByTestId('ghost-weakness-map')
+    // QUESTION_POOLのtextBlankQuestionは全てpart:5・tags:['品詞']（q-0/q-1がmultiplier2.0=弱点）
+    expect(weaknessMap.textContent).toContain('Part5 品詞 ×2が2問')
+    expect(weaknessMap.textContent).not.toContain('q-0')
+    expect(weaknessMap.textContent).not.toContain('q-1')
+    expect(weaknessMap.textContent).not.toContain('q-2') // 堅い（0.5）は挑戦前に見せない
+  })
+
+  it('「討伐された回数」が名誉表示として出る（公開処刑にしない演出方針=02の5.3節）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = GHOST_BOSS
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const defeatedCount = await screen.findByTestId('ghost-defeated-count')
+    expect(defeatedCount.textContent).toContain('討伐された回数: 3回')
+  })
+
+  it('synthetic週（bossType省略。従来のRaidBossState）では弱点マップ・討伐回数のいずれも表示されない（回帰）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    // ACTIVE_BOSSはbossType/defense/ghostを持たない（M3までの既存レスポンス相当）
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.queryByTestId('ghost-weakness-map')).toBeNull()
+    expect(screen.queryByTestId('ghost-defeated-count')).toBeNull()
+  })
+
+  it('参加すると、raidStateキャッシュにbossType・defenseJson・ghostJsonが保存される（answerPipelineの倍率適用の入力）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = GHOST_BOSS
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    fireEvent.click(await screen.findByText('参加する'))
+
+    await waitFor(async () => {
+      const raidState = await db.raidState.get(RAID_STATE_ID)
+      expect(raidState?.bossType).toBe('ghost')
+      expect(JSON.parse(raidState!.defenseJson!)).toEqual({ 'q-0': 2.0, 'q-1': 2.0, 'q-2': 0.5 })
+      expect(JSON.parse(raidState!.ghostJson!)).toEqual({
+        displayName: '上級者A',
+        defeatedCount: 3,
+      })
+    })
+  })
+})
