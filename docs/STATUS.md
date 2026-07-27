@@ -2,6 +2,25 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 修正: 昼バトルの切断理由をUIに反映（2026-07-27。ブランチ `task/fix-battle-close-reason`。origin/dev起点）
+
+昼バトルに参加できなかったとき、**原因が利用者に伝わらない**不具合を修正した。サーバー（`packages/api/src/battleRoomDo.ts`）は切断理由を区別して返していたが、クライアントがその情報を捨てていた。`packages/api` は変更していない。
+
+- **原因**: `packages/app/src/platform/net/BattleSocket.ts` の `BattleSocketCloseHandler` が `(event: { code: number }) => void` で `reason` を型に持たず、`WebSocketBattleSocket` の `ws.onclose` も `event.reason` を渡していなかった。さらに `BattleScreen.tsx`・`BattleHostScreen.tsx` の `onClose` は引数を一切見ず、固定文「接続が切れました／ホストの終了、または通信断で接続が終了しました」を出していた。結果として**レイド未登録の端末で参加を試みた人に、招待コードでの登録が必要であることが伝わらなかった**。
+- **インターフェース変更（platform/の共有面。範囲は最小限）**: `BattleSocketCloseHandler` の event に `reason: string` を追加し、`WebSocketBattleSocket` が `event.reason` を透過させるようにした。`FakeBattleSocket.emitClose(code, reason = '')` は**第2引数を省略可能にして後方互換を保った**（既存の `emitClose(1006)` 等の呼び出しはそのまま動く。省略時は空文字＝サーバーが理由を付けられない通信断相当）。`AudioPlayer` 等の他の抽象には触っていない。
+- **close reasonを共有契約（shared-schema）の正本に置いた**: `BattleCloseReason` 型（`types.ts`）と判別関数 `isBattleCloseReason()`（`battleMessages.ts`）を追加した。**判断理由**: close reasonはWebSocketプロトコルの一部でサーバーが送りクライアントが解釈する契約であり、同ファイル群が既に `BattleClientMessage`/`BattleServerMessage` という同じWSプロトコルの契約の正本になっているため、置き場所として整合する。文字列リテラルをapp側にだけ複製すると、サーバーの文言変更に気づけない。**残る限界（省略しない）**: 本PRでは `packages/api` を変更していないため、**api側は依然として `'room_not_found'` 等のリテラルをハードコードしており、shared-schemaの定義を参照していない**。したがって現状の担保は「app側が参照する正本が1箇所にある」までで、api↔appのドリフトを型で防げてはいない。api側を `BattleCloseReason` 経由に寄せる作業を残課題とする（api変更を伴うため別PR）。なおshared-schemaへの追加は型・関数の追加のみで既存定義を変えていないため、api のビルド（`tsc --noEmit`）・テスト125件が通ることを確認済み。
+- **文言の出し分け**（新規 `packages/app/src/screens/battleCloseMessage.ts`。参加者・ホストの2画面で共用し、役割で次にとる行動を切り替える）。敬体・非技術者向けで、内部用語（WebSocket・deviceToken・KV等）は出していない。原因を利用者のせいにしない（[02_機能設計](02_機能設計.md)の心理的安全性の方針）。
+  - `unauthorized`（レイド未登録）: 見出し「昼バトルに参加できませんでした」／本文「この端末はまだレイドに登録されていません。昼バトルは、レイドに登録済みの端末だけが利用できます。ホーム画面の「レイド」を開き、招待コードを入力して登録すると参加できます（ホストでは「主催できます」）。招待コードは主催者から受け取ってください。」
+  - `room_not_found`: 見出し「ルームが見つかりませんでした」／参加者本文「ルームコードが違っているか、このバトルがすでに終了している可能性があります。ルームコードを主催者に確認して、もう一度お試しください。」／ホスト本文「このルームは見つからないか、すでに終了しています。お手数ですが、ルームをもう一度作成してください。」
+  - `room_closed`（正常終了）: 見出し「バトルが終了しました」／参加者本文「主催者がバトルを終了しました。お疲れさまでした。」／ホスト本文「バトルを終了しました。お疲れさまでした。」
+  - 上記以外・理由なし: 見出し「接続が切れました」／参加者本文「通信が途切れたか、主催者側の接続が終了したようです。電波の届く場所で、もう一度お試しください。」／ホスト本文「通信が途切れたため、接続が終了しました。電波の届く場所で、ルームをもう一度作成してください。」
+- **登録導線の確認方法**: 推測で「設定画面から」と書かないため、コードで実地確認した。招待コード入力フォームは `packages/app/src/screens/RaidScreen.tsx`（未登録時の登録フォーム。ラベル「招待コード」）にあり、そこへの遷移は `packages/app/src/screens/HomeScreen.tsx` の `navigate('raid')` を呼ぶ**ラベル「レイド」のボタン**のみ（`raidApi.isConfigured()` が真のときだけ表示）。設定画面（`SettingsScreen.tsx`）には登録導線が無いことも確認した。よって文言は「ホーム画面の「レイド」を開き」とした。
+- **リリースノートとの整合**: `BEB-Raid-リリースノート.html` の「昼バトルは**レイドに登録済みの端末**だけが使えます（招待コードでの登録が済んでいること）。主催も参加も同じ条件です。」と表現を揃えた（同ファイルは別タスクが編集中のため読むだけで変更していない）。
+- **ホスト画面も同じ不具合を持っていた**ため同様に修正した。ホストも参加者と同じ登録条件を要するため、`unauthorized` の案内が必要である。なお実際にはホストは `raidApi.createBattleRoom()` の段階で先に失敗するのが通常経路で、この表示に到達するのは稀。
+- **追加テスト（計10件）**: `BattleScreen.test.tsx`・`BattleHostScreen.test.tsx` に理由4系統（`unauthorized`・`room_not_found`・`room_closed`・未知／理由なし）の文言表示テストを追加（参加5件・ホスト4件）。`shared-schema/battleMessages.test.ts` に `isBattleCloseReason()` の既知/未知判別テストを追加。`BattleSocket.test.ts` は `ws.onclose` の `reason` 透過と `emitClose` の省略時既定値（後方互換）を検証するよう更新した。
+- **変更ファイル**: `packages/shared-schema/src/types.ts`・`battleMessages.ts`・`battleMessages.test.ts`、`packages/app/src/platform/net/BattleSocket.ts`・`BattleSocket.test.ts`、`packages/app/src/screens/battleCloseMessage.ts`（新規）・`BattleScreen.tsx`・`BattleScreen.test.tsx`・`BattleHostScreen.tsx`・`BattleHostScreen.test.tsx`、本ファイル。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build` 全通過。`npm test` は api 125件・cli 338件・review-ui 15件・shared-schema 96件・app 857件が全通過。appは既知の `DatabaseClosedError` 由来のunhandled rejection（`RaidScreen.test.tsx` 由来）で終了コードが1になるため `--no-file-parallelism` で再実行したが同事象が残った。**本変更と無関係であることを確認するため、変更をstashしてorigin/dev相当の状態で同じ全量実行を行い、同一のエラーと終了コード1（847件全通過）を再現した**。すなわち既存の事象で、本変更はテスト件数を847→857に増やしall passである。`npm run format:check` はgit管理外のローカル設定ファイル `.claude/settings.local.json` 1件のみ未整形として報告される（本作業の変更対象外・commit対象外。既知事象）。
+
 ## README/00_READMEの現状反映（2026-07-27。ブランチ `task/docs-readme-refresh`。origin/dev起点。ドキュメントのみ）
 
 リポジトリルートの `README.md` と [00_README](00_README.md) の記述が実態から乖離していたため更新した。実装コードは変更していない。

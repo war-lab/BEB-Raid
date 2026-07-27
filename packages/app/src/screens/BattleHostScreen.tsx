@@ -12,6 +12,7 @@ import type { AudioPlayer, BattleSocket, RaidApi } from '../platform'
 import { useAppStore } from '../store/appStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { resolveBattleCloseMessage } from './battleCloseMessage'
 
 interface Props {
   raidApi: RaidApi
@@ -51,6 +52,8 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   const [resultEntries, setResultEntries] = useState<StandingRow[]>([])
   const [bestGrowthName, setBestGrowthName] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  /** サーバーが付与した切断理由（closed表示の案内文の出し分けに使う。通信断時は空文字） */
+  const [closeReason, setCloseReason] = useState('')
 
   const closeQuestionSentRef = useRef(false)
 
@@ -81,7 +84,9 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         setErrorMessage(`エラーが発生しました（${message.code}）`)
       }
     })
-    battleSocket.onClose(() => {
+    battleSocket.onClose((event) => {
+      // 切断理由を保持して案内文を出し分ける（未登録・ルーム不在・終了・通信断）
+      setCloseReason(event.reason)
       setPhase((p) => (p === 'result' ? p : 'closed'))
     })
   }, [battleSocket])
@@ -323,13 +328,15 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     )
   }
 
-  // closed（参加者切断は無関係。ホスト自身の切断・エラー等の予期しないクローズ）
+  // closed（参加者切断は無関係。ホスト自身の切断・エラー等のクローズ）。
+  // 理由ごとに原因と次にとる行動を出す
+  const closeMessage = resolveBattleCloseMessage(closeReason, 'host')
   return (
     <ScreenLayout
-      status={<p>接続が切れました</p>}
+      status={<p>{closeMessage.title}</p>}
       action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
     >
-      <p>通信断で接続が終了しました</p>
+      <p data-testid="battle-host-close-reason">{closeMessage.body}</p>
     </ScreenLayout>
   )
 }

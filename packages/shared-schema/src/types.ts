@@ -458,3 +458,13 @@ export type BattleServerMessage =
   | BattleStandingsMessage
   | BattleResultMessage
   | BattleErrorMessage
+
+/**
+ * 昼バトルWebSocketのクローズ理由（Server→Client。WebSocket close frame の reason 文字列）。
+ * サーバー（BattleRoomDO）が切断時に付与し、クライアントは理由ごとに案内文を出し分ける。
+ * - unauthorized: この端末がレイド未登録（招待コードでの登録が未了）
+ * - room_not_found: ルームが存在しない、またはすでに利用不可
+ * - room_closed: ホストがバトルを終了した（異常ではない正常終了）
+ * 上記以外（空文字を含む）は通信断等の想定外クローズとして扱う
+ */
+export type BattleCloseReason = 'unauthorized' | 'room_not_found' | 'room_closed'

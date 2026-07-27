@@ -317,3 +317,57 @@ describe('BattleScreen: expectedPointsPerQuestion（join時の期待点）', () 
     expect(DEFAULT_INITIAL_RATING).toBeGreaterThan(0)
   })
 })
+
+// 切断理由ごとの案内（回帰防止）: 以前はサーバーが返すreasonを捨てて「接続が切れました」の
+// 固定文しか出していなかったため、レイド未登録の人に「招待コードでの登録が必要」と伝わらなかった
+describe('BattleScreen: 切断理由ごとの案内', () => {
+  async function renderAndClose(code: number, reason?: string) {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    if (reason === undefined) socket.emitClose(code)
+    else socket.emitClose(code, reason)
+    return screen.findByTestId('battle-close-reason')
+  }
+
+  it('unauthorizedならレイド未登録が原因と、ホームの「レイド」で招待コード登録が必要だと案内する', async () => {
+    const body = await renderAndClose(1008, 'unauthorized')
+    expect(screen.getByText('昼バトルに参加できませんでした')).toBeTruthy()
+    expect(body.textContent).toContain('この端末はまだレイドに登録されていません')
+    expect(body.textContent).toContain('ホーム画面の「レイド」')
+    expect(body.textContent).toContain('招待コードを入力して登録すると参加できます')
+  })
+
+  it('room_not_foundならコードの確認と終了済みの可能性を案内する', async () => {
+    const body = await renderAndClose(1008, 'room_not_found')
+    expect(screen.getByText('ルームが見つかりませんでした')).toBeTruthy()
+    expect(body.textContent).toContain('ルームコードが違っているか')
+    expect(body.textContent).toContain('すでに終了している可能性')
+  })
+
+  it('room_closedならホストの終了（異常ではない）と案内する', async () => {
+    const body = await renderAndClose(1000, 'room_closed')
+    expect(screen.getByText('バトルが終了しました')).toBeTruthy()
+    expect(body.textContent).toContain('主催者がバトルを終了しました')
+  })
+
+  it('未知の理由・理由なしなら通信断の汎用案内に落とす', async () => {
+    const body = await renderAndClose(1006)
+    expect(screen.getByText('接続が切れました')).toBeTruthy()
+    expect(body.textContent).toContain('通信が途切れた')
+  })
+
+  it('サーバーが未知のreasonを返しても汎用案内に落とす', async () => {
+    const body = await renderAndClose(1011, 'something_unexpected')
+    expect(screen.getByText('接続が切れました')).toBeTruthy()
+    expect(body.textContent).toContain('通信が途切れた')
+  })
+})

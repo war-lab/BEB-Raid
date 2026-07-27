@@ -15,7 +15,7 @@ class StubWebSocket {
   static instances: StubWebSocket[] = []
   onopen: (() => void) | null = null
   onmessage: ((event: { data: string }) => void) | null = null
-  onclose: ((event: { code: number }) => void) | null = null
+  onclose: ((event: { code: number; reason: string }) => void) | null = null
   sent: string[] = []
   closed = false
   readyState = 0 // CONNECTING
@@ -214,8 +214,10 @@ describe('WebSocketBattleSocket', () => {
     await Promise.resolve()
     const stub = StubWebSocket.instances.at(-1)!
 
-    stub.onclose?.({ code: 1008 })
-    expect(closeHandler).toHaveBeenCalledWith({ code: 1008 })
+    // サーバーが付与したreasonをそのままハンドラへ渡すこと（UIの案内文の出し分けに使う。
+    // 以前はcodeのみを渡していたため、未登録が原因でも汎用の切断表示しか出せなかった）
+    stub.onclose?.({ code: 1008, reason: 'unauthorized' })
+    expect(closeHandler).toHaveBeenCalledWith({ code: 1008, reason: 'unauthorized' })
   })
 })
 
@@ -236,11 +238,21 @@ describe('FakeBattleSocket', () => {
     fake.emitMessage({ type: 'roomState', participants: [{ displayName: 'A' }] })
     expect(messages).toEqual([{ type: 'roomState', participants: [{ displayName: 'A' }] }])
 
+    // reasonを省略した既存の呼び方は空文字（通信断相当）として扱う＝後方互換
     fake.emitClose(1000)
-    expect(closes).toEqual([{ code: 1000 }])
+    expect(closes).toEqual([{ code: 1000, reason: '' }])
     expect(fake.closed).toBe(true)
 
     fake.close()
     expect(fake.closed).toBe(true)
+  })
+
+  it('emitCloseはreasonを渡せる（省略時は空文字＝後方互換）', () => {
+    const fake = new FakeBattleSocket()
+    const closes: unknown[] = []
+    fake.onClose((e) => closes.push(e))
+
+    fake.emitClose(1008, 'unauthorized')
+    expect(closes).toEqual([{ code: 1008, reason: 'unauthorized' }])
   })
 })
