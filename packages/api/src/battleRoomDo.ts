@@ -15,6 +15,7 @@ import { DurableObject } from 'cloudflare:workers'
 
 import type {
   BattleAnswerMessage,
+  BattleCloseReason,
   BattleJoinMessage,
   BattleOpenQuestionMessage,
   BattleServerMessage,
@@ -88,6 +89,17 @@ function cloneMeta(meta: RoomMeta): RoomMeta {
   }
 }
 
+/**
+ * close frame の reason を shared-schema の BattleCloseReason に限定して接続を閉じる。
+ * reason 文字列の正本は shared-schema 側の型ひとつであり、api側で任意の文字列を
+ * 直接渡せないようにすることで、api↔app間の理由文字列のドリフトをtscで検出できる状態にする
+ * （型に無い値を渡すとコンパイルエラーになる）。
+ * close code は用途ごとに使い分けるため引数で受ける（1008=ポリシー違反、1000=正常終了）
+ */
+function closeWithReason(ws: WebSocket, code: number, reason: BattleCloseReason): void {
+  ws.close(code, reason)
+}
+
 export class BattleRoomDO extends DurableObject<Env> {
   private meta: RoomMeta | null = null
   private connections = new Map<string, Connection>()
@@ -151,7 +163,7 @@ export class BattleRoomDO extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server)
 
     if (!deviceToken || !registered || !roomAvailable) {
-      server.close(1008, !roomAvailable ? 'room_not_found' : 'unauthorized')
+      closeWithReason(server, 1008, !roomAvailable ? 'room_not_found' : 'unauthorized')
       return new Response(null, { status: 101, webSocket: client })
     }
 
@@ -366,7 +378,7 @@ export class BattleRoomDO extends DurableObject<Env> {
 
     for (const conn of this.connections.values()) {
       try {
-        conn.ws.close(1000, 'room_closed')
+        closeWithReason(conn.ws, 1000, 'room_closed')
       } catch {
         // 既にクローズ済みの接続への close() 呼び出しは無視する
       }

@@ -21,6 +21,23 @@
 - **リンク検証**: 使い捨てのNodeスクリプトで、25内のMarkdownリンク2件（07・20への相対リンク）と、インラインコードで言及したリポジトリ内パス49件を抽出し、`packages/app/src` 配下の各ディレクトリ・リポジトリルートを起点に実ファイルの存在を確認した。**未解決は `components/StandingsList.tsx` の1件のみで、これはV-9で新設する予定のファイル**である（意図的に存在しない）。他48件は全て解決した。
 - **変更ファイル**: `docs/25_ビジュアル刷新計画_M4以降の未適用画面.md`（新規）・`docs/00_README.md`・`README.md`・`CLAUDE.md`・本ファイル。`git diff origin/dev --stat` で `packages/` 配下の変更が0件であることを確認済み。
 - **検証**: worktree直下で `npm ci` 実施後、ルート `npm run build`・`npm run lint` 全通過。`npm test` は api 125件・app 858件・cli 338件・review-ui 15件・shared-schema 96件が全通過。appは既知の `DatabaseClosedError` 由来のunhandled rejection（`RaidScreen.test.tsx` の「参加すると、raidStateキャッシュにbossType・defenseJson・ghostJsonが保存される」で発生）により終了コードが1になる。**本変更はドキュメントのみで `packages/` 配下を1行も変更していないため、この事象と因果関係はない**（PR #69・#73でも同一事象が報告されている既知のフレーク）。`npm run format:check` はgit管理外のローカル設定ファイル `.claude/settings.local.json` 1件のみ未整形として報告される（本作業の変更対象外・commit対象外。既知事象）。
+## リファクタ: api側のclose reasonをBattleCloseReason型に寄せた（2026-07-27。ブランチ `task/api-battle-close-reason-contract`。origin/dev起点）
+
+PR #72（昼バトルの切断理由をUIに反映）が残課題として明記していた「**api側は依然としてリテラルをハードコードしており、api↔appのドリフトを型で防げていない**」を解消した。挙動は変えていない（送出されるclose code・reason文字列は従来と同一）。`packages/app` は変更していない（PR #72で単一正本化済み）。
+
+- **変更内容**: `packages/api/src/battleRoomDo.ts` に `closeWithReason(ws, code, reason: BattleCloseReason)` を追加し、`close(code, reason)` の直接呼び出し2箇所（未登録端末・存在しないルームの1008、ルームクローズ時の1000）をこの関数経由に置き換えた。`BattleCloseReason` は `@beb-raid/shared-schema` から type import している（同パッケージは既に `packages/api` の dependencies にあり、依存構成は変更していない）。
+- **ドリフトを型で防げる根拠**: reason 引数の型が `BattleCloseReason` に固定されたため、shared-schema の型に無い文字列を渡すと `tsc --noEmit`（= `npm run build -w @beb-raid/api`）が失敗する。実際に `'room_not_found'` を `'room_gone'` に書き換えて `Type '"room_gone"' is not assignable to type 'BattleCloseReason'.` でビルドが落ちることを確認したうえで元に戻している。逆方向（shared-schema側で理由を改名・削除する）についても、api実装とテストの双方が同じ型を参照するためコンパイルエラーになる。
+- **close codeの扱い**: code は `BattleCloseReason` に含めず引数で受ける形にした。**判断理由**: 理由と code は1対1ではなく、`room_not_found` / `unauthorized` は 1008（ポリシー違反）、`room_closed` は 1000（正常終了）で、さらに同じ 1008 を2つの理由が共有する。型に code を持たせると対応関係を1箇所に固定してしまい、現状の使い分けを変えるか不自然なマッピングを作ることになるため避けた。code の使い分けは従来のままである。
+- **追加・強化したテスト**（`packages/api/src/battleRoomDo.test.ts`。既存テストの削除・置換はしていない）:
+  - 未登録deviceTokenの接続 → close code 1008 かつ reason `unauthorized`（従来は code のみ検証していた）
+  - 存在しないルームコードへの接続 → 1008 かつ `room_not_found`（同上）
+  - ホストのWebSocket切断 → 参加者側に 1000 かつ `room_closed`（従来は close の到達のみ検証）
+  - finish受信によるクローズ → ホスト・参加者2名の全接続で 1000 かつ `room_closed`
+- **網羅性担保の方針と判断理由**: テスト側に期待値テーブル `CLOSE_REASONS` を置き、`as const satisfies Record<BattleCloseReason, BattleCloseReason>` を付けた。`Record` のキーが `BattleCloseReason` の全メンバを要求するため、**shared-schemaに理由が追加されるとキー不足でコンパイルエラーになり、テストの追加漏れに気づける**。各キーは上記4テストのいずれかで実際のclose frameと突き合わせている。**より強い担保（reason一覧を shared-schema から実行時に export し、実装が全メンバを送出しうることを機械的に検査する）は採らなかった**。理由は、(1) 理由の総数が3で追加頻度が低く、(2) そのためには現在 module-private な `BATTLE_CLOSE_REASONS` を公開APIに昇格させて共有面を広げる必要があり、(3) 「型に存在する理由が実装から出ていない」という取り違えは `satisfies Record` によるキー強制とテスト本体で十分検出できるためである。費用対効果が見合わないと判断した。**残る限界（省略しない）**: `satisfies Record` が検出するのは型側の追加・改名・削除であり、「実装が理由を送らなくなった（該当分岐が消えた）」場合はテスト本体の失敗として現れる。テストごと削除された場合を機械的に防ぐ仕組みは入れていない。
+- **変更ファイル**: `packages/api/src/battleRoomDo.ts`・`packages/api/src/battleRoomDo.test.ts`、本ファイル。
+- **検証**: worktree直下で `npm ci` 実施後、`npm run lint`・`npm run build`（app のViteビルド＋api の `tsc --noEmit` 含む）通過。`npm test` は api 125件・app 858件・cli 338件・review-ui 15件・shared-schema 96件が全通過。api・shared-schema は単独実行でも通過を確認した。`npm run format:check` は `.claude/` 配下のローカル設定・他エージェントのworktree作業ファイル・未コミットの `BEB-Raid-取説.html` を未整形として報告するが、いずれも本作業の変更対象外かつCIには存在しない（自分が変更した2ファイルは整形済み）。
+- **遭遇したテストの不安定さと切り分け**: 全量 `npm test` の実行中、app の `RaidScreen.test.tsx` 由来の `DatabaseClosedError` unhandled rejection で終了コードが1になる既知事象（PR #72の記録と同一。テスト自体は858件全通過）に1回遭遇した。`packages/app` を一切変更していないため本変更とは無関係である。別に api で1件failを観測した回が1度あったが、以降の api 単独実行（複数回）と全量実行の再実行では再現せず、失敗テスト名を取れていない。**再現しなかった事実のみを記録し、原因は未特定とする**（close reason検証は close frame の到達待ちを含むため、WebSocketの受信タイミング依存で不安定になる可能性は否定できない）。
+
 ## リリースノートへのスクリーンショット埋め込み（2026-07-27。ブランチ `task/docs-release-note-screenshots`。ドキュメントのみ）
 
 `BEB-Raid-リリースノート.html`（PR #71で追加）に、ローカル実機で撮影した画面のスクリーンショット13枚を埋め込んだ。実装コードは変更していない。
