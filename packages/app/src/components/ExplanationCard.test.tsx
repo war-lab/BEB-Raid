@@ -65,6 +65,7 @@ class FakeRaidApi implements RaidApi {
   })
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
 }
 
 let seq = 0

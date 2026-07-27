@@ -53,6 +53,7 @@ class FakeRaidApi implements RaidApi {
   fetchCurrentBoss = vi.fn(async () => null)
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
 
   constructor(configured = true) {
     this.isConfigured = () => configured

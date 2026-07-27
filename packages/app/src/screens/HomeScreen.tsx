@@ -648,6 +648,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 昼バトルに参加
               </button>
             )}
+            {/* M4・T-126: 昼バトル主催（ホスト）の入口（isConfigured時のみ。同上） */}
+            {raidApi.isConfigured() && (
+              <button type="button" onClick={() => navigate('battleHost')}>
+                昼バトルを主催
+              </button>
+            )}
           </div>
         </>
       }

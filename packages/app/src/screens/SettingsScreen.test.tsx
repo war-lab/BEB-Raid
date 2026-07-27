@@ -60,6 +60,7 @@ class FakeRaidApi implements RaidApi {
   syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: FAKE_BOSS }))
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
 }
 
 const flushLoad = () => screen.findByTestId('settings-loaded')
