@@ -4,7 +4,7 @@
 // （検査対象フィールドは format 毎に定義: audio系=script、text_blank=question＋choices、
 // text_passage=passages本文＋subQuestions、vocab_card=phrase）/ 音声存在チェック
 // （audioFiles オプション指定時のみ）。text_passage（Part6/7）は audio_set と同じ
-// 「1刺激＋subQuestions」構造で、刺激は音声でなく passages（本文）になる（ADR 0006・docs/18 3.1節）。
+// 「1刺激＋subQuestions」構造で、刺激は音声でなく passages（本文）になる（ADR 0006・docs/24 3.1節）。
 //
 // エラーはパック単位で全件レポートし、部分取込はしない（1件でもエラーがあれば ok=false）。
 // ファイルシステムには触れない設計: 実ファイルの列挙はビルド側（T-32）が行い、
@@ -70,7 +70,7 @@ const AUDIO_FORMATS: readonly QuestionFormat[] = [
 const TEXT_FORMATS: readonly QuestionFormat[] = ['text_blank']
 /** 単独の choices + answer を持つ format（audio_set / text_passage は subQuestions 側で持つ） */
 const CHOICE_FORMATS: readonly QuestionFormat[] = ['audio_qa', 'audio_photo', 'text_blank']
-/** text_passage の subQuestions 件数上限（Part7複数パッセージ=5問。docs/18 3.1節） */
+/** text_passage の subQuestions 件数上限（Part7複数パッセージ=5問。docs/24 3.1節） */
 const MAX_SUB_QUESTIONS = 5
 /** Part6 の空所マーカー（本文中の [[1]]…[[4]]）。数字を1グループで捕捉する */
 const PASSAGE_MARKER_RE = /\[\[(\d+)\]\]/g

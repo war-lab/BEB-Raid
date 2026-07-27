@@ -134,7 +134,7 @@ describe('key単語定着後の元問題再投入（03の3.2）', () => {
   })
 })
 
-describe('processWrongAnswer: 読解（text_passage）は本文まるごとの再出題をしない（T-106・ADR 0006 判断6・docs/18 3.4節）', () => {
+describe('processWrongAnswer: 読解（text_passage）は本文まるごとの再出題をしない（T-106・ADR 0006 判断6・docs/24 3.4節）', () => {
   it('誤答問題カード（questionCard）を作らず、key語彙カードにもsourceQuestionIdを乗せない', async () => {
     const db = newDb()
     const now = new Date(2026, 6, 9).getTime()

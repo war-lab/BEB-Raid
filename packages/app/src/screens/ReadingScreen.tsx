@@ -1,20 +1,20 @@
-// 読解（Part6/7単一）専用画面（T-104。正本: docs/18 3.5節・02の2.2節）。
+// 読解（Part6/7単一）専用画面（T-104。正本: docs/24 3.5節・02の2.2節）。
 // DrillScreenに分岐追加ではなく専用画面にする理由: 本文＋設問の2ペインが
 // 既存4択UI（1問1画面）と別レイアウトのため（3.5節）。
 // Part7複数パッセージ（タブ切替・相互参照）はT-108のスコープでここでは扱わない
 // （passages[0]のみを描画する）。
 //
-// 採点方針（ADR 0006 判断4・docs/18 3.2節）: audio_setの2/3セット正解ルールは使わず、
+// 採点方針（ADR 0006 判断4・docs/24 3.2節）: audio_setの2/3セット正解ルールは使わず、
 // 各subQuestionを独立採点対象とする。レートはRセクションへ1問ごとに反映
 // （question.part=6/7→engine/rating.tsのsectionForPartが自動でRへ振る）。
 // SRSレビューは本文まるごと再出題しない（3.4節）ため、audio_setと違いセット完了時の
 // reviewSrsCard呼び出しは行わない。
 //
 // Part6は本文に空所マーカー [[1]]…[[n]] を持つ（subQuestions[i]がマーカー[[i+1]]に対応。
-// docs/18 3.1節）。空所は非線形にタップして該当設問へジャンプできる（3.5節）。
+// docs/24 3.1節）。空所は非線形にタップして該当設問へジャンプできる（3.5節）。
 // Part7単一はマーカーを持たず、設問は「次へ」で順番に進める。
 //
-// 画面切替（T-105。docs/18 3.3節・3.5節）: 7分/15分パックにPart6・Part7単一が弱点配分で
+// 画面切替（T-105。docs/24 3.3節・3.5節）: 7分/15分パックにPart6・Part7単一が弱点配分で
 // 混在するようになったため、セッション内の現在item（useSessionStoreで共有）の
 // question.formatを見て、text_passageならこの画面、それ以外ならDrillScreenへ自動的に
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
@@ -100,7 +100,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     return () => clearInterval(interval)
   }, [activeAnswer, startedAt])
 
-  // T-105（18の3.3節・3.5節）: 7分/15分パックに読解以外のitem（Part2音声・Part5等）が
+  // T-105（24の3.3節・3.5節）: 7分/15分パックに読解以外のitem（Part2音声・Part5等）が
   // 混在するようになったため、現在itemがtext_passageでなければDrillScreenへ切り替える
   // （DrillScreen側の対の効果と合わせ、item.question.formatに応じて2画面を往復する）
   useEffect(() => {

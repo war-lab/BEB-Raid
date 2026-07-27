@@ -415,7 +415,7 @@
   color: var(--listen);
 }
 
-/* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/18 3.5節） --- */
+/* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/24 3.5節） --- */
 .passage-kind {
   margin: 0 0 var(--sp-1);
   color: var(--ink-3);

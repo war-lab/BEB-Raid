@@ -1,4 +1,4 @@
-// 読解（text_passage: Part6・Part7単一）問題生成（T-107。正本: docs/18 3.1節・3.6節、ADR 0006）。
+// 読解（text_passage: Part6・Part7単一）問題生成（T-107。正本: docs/24 3.1節・3.6節、ADR 0006）。
 //
 // Part6は1パッセージ＋空所マーカー[[1]]〜[[4]]4個＋設問4問（grammar/vocab/connector/insertion）。
 // Part7単一は1パッセージ＋設問2〜4問（読解の内容一致・語彙推測・推論等）。いずれも
@@ -6,13 +6,13 @@
 // 決定的ローテーション」方式（M1レビュー⑦）。keyVocabの和訳・freqRankはS/A/B語彙カード
 // （600語）から解決する（vocabEntryForWord。part2Question.ts等と同方式）。
 //
-// 【人手レビューゲート（ADR 0006 判断5・docs/18 3.6節）】本モジュールが生成したドラフトは
+// 【人手レビューゲート（ADR 0006 判断5・docs/24 3.6節）】本モジュールが生成したドラフトは
 // 必ず beb review-export → 人手レビュー（TSV） → review-import を経て初めて build.ts の
 // PACK_DEFINITIONS へ追加してよい。生成したてのドラフトをそのまま PACK_DEFINITIONS に入れて
 // manifest に載せてはならない（既存パックの一部に残る「AIクロスレビューのみで配信」の運用は
 // 読解では踏襲しない。T-107時点ではPACK_DEFINITIONS未追加＝配信対象外。docs/STATUS.md参照）。
 //
-// 「Part7の参照整合（複数パッセージで参照先が実在するか）」（docs/18 3.6節）はPart7複数
+// 「Part7の参照整合（複数パッセージで参照先が実在するか）」（docs/24 3.6節）はPart7複数
 // パッセージ（T-109・R-2フェーズ）専用のチェックで、本モジュールが扱うPart7単一には
 // 参照先パッセージが存在しないため対象外（validatePassages/validatePart6Markersが
 // 単一パッセージの整合はshared-schema側で検証済み）。
@@ -147,7 +147,7 @@ export function buildPart6Drafts(
 
 /**
  * Part7単一エントリ→Question（text_passage・part7）への変換。subQuestionsは2〜4問
- * （docs/18 3.1節「Part7単一」）。件数チェックはvalidatePart7SingleQuestionsで行う
+ * （docs/24 3.1節「Part7単一」）。件数チェックはvalidatePart7SingleQuestionsで行う
  */
 export function part7SingleQuestion(
   entry: Part7SingleRawEntry,
@@ -243,7 +243,7 @@ export function validatePart6Questions(questions: Question[]): string[] {
 
 /**
  * バリデータ（T-05のvalidatePack）にQuestion配列を通す（Part7単一）。加えて
- * docs/18 3.1節「Part7単一: subQuestions 2〜4問」の業務ルールをCLI側で追加検証する
+ * docs/24 3.1節「Part7単一: subQuestions 2〜4問」の業務ルールをCLI側で追加検証する
  * （shared-schemaの一般的な1〜5件制約より狭いPart7単一固有の制約のため、契約変更ではなく
  * ここでのみ検査する）。
  */

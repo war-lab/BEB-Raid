@@ -1,4 +1,4 @@
-// T-104 完了条件のテスト（正本: docs/18 3.5節・4節T-104）:
+// T-104（改番後はT-139）完了条件のテスト（正本: docs/24 3.5節・4節T-139）:
 // - Part6（4空所）が表示され、空所をタップして該当設問へジャンプできる
 // - 空所を解答すると本文の該当箇所に選択結果が反映される
 // - Part7単一（マーカーなし）を順に解答するとattemptsにサブ設問IDで記録され、
@@ -41,7 +41,7 @@ async function setupSession(db: BebRaidDatabase, items: SessionItem[], questions
   return snapshot
 }
 
-/** Part6: 本文に [[1]]…[[4]] の空所マーカーを持つ問題（docs/18 3.1節） */
+/** Part6: 本文に [[1]]…[[4]] の空所マーカーを持つ問題（docs/24 3.1節） */
 function part6Question(id: string): Question {
   const subCount = 4
   return {
@@ -233,7 +233,7 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
   })
 })
 
-describe('ReadingScreen: 読解の解法タグがtagStats・弱点判定に乗る（T-106・docs/18 3.4節）', () => {
+describe('ReadingScreen: 読解の解法タグがtagStats・弱点判定に乗る（T-106・docs/24 3.4節）', () => {
   /**
    * subQuestion単位の解法タグ（'推論'）は親questionのtags（'パラフレーズ照合'）とは別に
    * 設問側にだけ付与する（T-103のSubQuestion.tags想定運用）。10問すべて誤答させ、
@@ -302,7 +302,7 @@ describe('ReadingScreen: 読解の解法タグがtagStats・弱点判定に乗�
   })
 })
 
-describe('ReadingScreen: 読解以外item混在時のdrill画面への自動切替（T-105。18の3.3節・3.5節）', () => {
+describe('ReadingScreen: 読解以外item混在時のdrill画面への自動切替（T-105。24の3.3節・3.5節）', () => {
   function part5Question(id: string): Question {
     return {
       id,

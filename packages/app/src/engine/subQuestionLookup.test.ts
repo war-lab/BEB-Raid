@@ -1,4 +1,4 @@
-// T-106: withSubQuestionLookup のタグ合成テスト（docs/18 3.4節）。
+// T-106: withSubQuestionLookup のタグ合成テスト（docs/24 3.4節）。
 // 何を防ぐか: SubQuestion.tags（設問単位の解法タグ。読解の先読み/スキャン/パラフレーズ照合/
 // 相互参照/推論/語彙推測等）が親questionのtagsで上書き・無視され、tagStats集計（弱点判定）に
 // 一切乗らなくなる回帰

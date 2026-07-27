@@ -1484,7 +1484,7 @@ describe('DrillScreen: セッション途中終了導線（T-122・J-61）', () 
   })
 })
 
-describe('DrillScreen: 読解（text_passage）混在時のreading画面への自動切替（T-105。18の3.3節・3.5節）', () => {
+describe('DrillScreen: 読解（text_passage）混在時のreading画面への自動切替（T-105。24の3.3節・3.5節）', () => {
   function readingQuestion(id: string): Question {
     return {
       id,

@@ -59,7 +59,7 @@ function part5Question(id: string, tags: string[] = [], words: string[] = []): Q
   return { id, part: 5, format: 'text_blank', difficulty: 3, tags, keyVocab: words.map(kv) }
 }
 
-/** Part6/Part7単一（text_passage・passages 1件）。T-105（docs/18 3.3節）の読解配分テスト用 */
+/** Part6/Part7単一（text_passage・passages 1件）。T-105（docs/24 3.3節）の読解配分テスト用 */
 function readingSingleQuestion(id: string, part: 6 | 7 = 7, tags: string[] = []): Question {
   return {
     id,
@@ -559,7 +559,7 @@ describe('generateQuickPack: M2フェーズ配分（P1/P2/P3で配分が変わ�
 })
 
 // ---------------------------------------------------------------------------
-// T-105（docs/18 3.3節・ADR 0006 判断2）: 読解（Part6・Part7単一）の配分組込。
+// T-105（docs/24 3.3節・ADR 0006 判断2）: 読解（Part6・Part7単一）の配分組込。
 // Part7複数パッセージは通常パックの対象外を必ず担保する
 // ---------------------------------------------------------------------------
 
