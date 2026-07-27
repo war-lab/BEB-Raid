@@ -19,6 +19,18 @@ export { StatsDO } from './statsDo'
 /** GET /battle/rooms/:code/ws のコード部分を取り出す（4文字英数字大文字のみ許可） */
 const BATTLE_WS_PATH = /^\/battle\/rooms\/([A-Z0-9]{4})\/ws$/
 
+/**
+ * 週次ボス生成のcron式（wrangler.toml の `[triggers] crons` と一字一句一致させる）。
+ * triggersは名前付き環境（env.dev/env.production）へ継承されるため、この1本が全環境共通。
+ *
+ * cron式をここで定数化するのは、scheduled()が`controller.cron`を見ずに全cronで
+ * generateWeeklyBossを走らせる実装だったため。cronを1本追加した瞬間に週次ボス生成が
+ * 追加cronの発火でも走り、emaDailyDamage（翌週以降のボスHP算出に使う）のEMA平滑化が
+ * 崩れて前週値へ収束する＝レイド難易度調整が無症状で壊れる事故経路になっていた。
+ * cron追加時は必ずここに分岐を足すこと（式を文字列リテラルで散らさない）
+ */
+const CRON_WEEKLY_BOSS = '0 0 * * 1'
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -134,12 +146,24 @@ export default {
     return withCors(request, env, response)
   },
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    // waitUntil経由の失敗は既定では完全に無音になるため、必ずログに残す
-    // （週1回しか走らないボス生成の失敗は致命的で、無音だと発見が翌週になる）
-    ctx.waitUntil(
-      generateWeeklyBoss(env, controller.scheduledTime).catch((e) => {
-        console.error('週次ボス生成に失敗しました', e)
-      }),
-    )
+    // どのcronで発火したかで処理を出し分ける。全cronで無条件にボス生成を走らせると
+    // 週次以外のcronを追加した時点でEMAが壊れる（CRON_WEEKLY_BOSSのコメント参照）
+    switch (controller.cron) {
+      case CRON_WEEKLY_BOSS:
+        // waitUntil経由の失敗は既定では完全に無音になるため、必ずログに残す
+        // （週1回しか走らないボス生成の失敗は致命的で、無音だと発見が翌週になる）
+        ctx.waitUntil(
+          generateWeeklyBoss(env, controller.scheduledTime).catch((e) => {
+            console.error('週次ボス生成に失敗しました', e)
+          }),
+        )
+        break
+      default:
+        // 未知のcron式は「何もしない」を選ぶ。誤ってボス生成へフォールバックさせると
+        // wrangler.tomlへのcron追加ミスがEMA破壊という無症状の障害に直結するため。
+        // ただし黙って捨てるとcron追加が動いていないことに永久に気づけないので必ず警告を残す
+        console.warn(`未知のcron式で発火したため何も実行しませんでした: cron=${controller.cron}`)
+        break
+    }
   },
 } satisfies ExportedHandler<Env>
