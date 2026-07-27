@@ -50,3 +50,9 @@ export const DIAGNOSTIC_PROGRESS_KEY = 'diagnosticProgress'
  * 「今日のクエスト」には作用しない。Part2/Part5で共通の1キーでよい（同節）
  */
 export const SINGLE_MODE_COUNT_KEY = 'singleModeCount'
+/**
+ * ボス役記録（POST /ghosts）を送信済みか（epoch ms。M4・T-128）。
+ * RaidScreenがこれを見て「撤回する」導線の表示要否を判断する（サーバー側KVの
+ * 有無を都度問い合わせない端末内キャッシュ。撤回=DELETE成功時に削除する）
+ */
+export const GHOST_BOSS_SUBMITTED_AT_KEY = 'ghostBossSubmittedAt'

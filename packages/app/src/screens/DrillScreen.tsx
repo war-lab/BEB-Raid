@@ -16,7 +16,7 @@ import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import type { DictationAnswer, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AiClient, AudioPlayer, RaidApi } from '../platform'
-import { recordAnswerPipeline } from '../services/answerPipeline'
+import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
 import { advanceSession, resumeSession } from '../services/session'
 import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
@@ -54,6 +54,10 @@ interface AnswerResult {
   selectedKey: string | null
   isCorrect: boolean
   isTimeout: boolean
+  /** M4・T-129: レイドダメージがエンキューされた場合のみ設定（ExplanationCardの
+   * 「堅い/弱点」バッジ・実ダメージ表示に使う。recordAnswerPipeline完了後に追記されるため、
+   * 解答直後の1レンダーは未設定のまま=バッジ無し表示で、直後に反映される） */
+  raidDamage?: RaidDamageResult
 }
 
 /** audio_qa の解答受付タイマー（02の3.1: 1問15秒完結） */
@@ -437,8 +441,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
-      // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）
-      const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
+      // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）。
+      // mode='battle'（ボス役セッション=M4・T-128）はレート更新の対象外（docs/22 3.5節・3.2節と同じ扱い）
+      const { nextSnapshot, ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
         snapshot,
         questionId: question.id,
         question,
@@ -448,7 +453,10 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         isTimeout,
         mode: item.mode,
         srsCardId: item.srsCardId,
+        skip: { rating: item.mode === 'battle' },
       })
+      // M4・T-129: 堅い/弱点バッジ・実ダメージ表示用（該当なしならraidDamageはundefinedのまま）
+      if (raidDamage) setResult((r) => (r ? { ...r, raidDamage } : r))
 
       recordAnswer(nextSnapshot!, {
         questionId: question.id,
@@ -480,16 +488,18 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
     try {
       // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
-      // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）
-      const { ratingUpdate } = await recordAnswerPipeline(db, {
+      // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）。
+      // mode='battle'はレート更新の対象外（finalizeAnswerと同じ理由）
+      const { ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
         questionId: currentSubQuestion.id,
         question,
         lookup: subQuestionLookup,
         isCorrect,
         responseMs,
         mode: item.mode,
-        skip: { srs: true },
+        skip: { srs: true, rating: item.mode === 'battle' },
       })
+      if (raidDamage) setResult((r) => (r ? { ...r, raidDamage } : r))
       setSubQuestionResults((prev) => [...prev, isCorrect])
       recordAnswer(snapshot, {
         questionId: currentSubQuestion.id,
@@ -1057,6 +1067,14 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 aiClient={aiClient}
                 raidApi={raidApi}
                 db={db}
+                ghostDefense={
+                  result.raidDamage?.ghostDefenseMultiplier !== undefined
+                    ? {
+                        multiplier: result.raidDamage.ghostDefenseMultiplier,
+                        damage: result.raidDamage.damage,
+                      }
+                    : null
+                }
               />
               <PrimaryButton onClick={() => void advanceSubQuestion()}>
                 {subQuestionIndex + 1 < (question.subQuestions ?? []).length
@@ -1083,6 +1101,14 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 aiClient={aiClient}
                 raidApi={raidApi}
                 db={db}
+                ghostDefense={
+                  result.raidDamage?.ghostDefenseMultiplier !== undefined
+                    ? {
+                        multiplier: result.raidDamage.ghostDefenseMultiplier,
+                        damage: result.raidDamage.damage,
+                      }
+                    : null
+                }
               />
               <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
               {/* T-122(J-61): 途中で電車を降りるとき等、全問完走以外でリザルトへ到達する手段が

@@ -24,7 +24,7 @@ import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import { shuffle } from '../engine/shuffle'
 import type { AiClient, RaidApi } from '../platform'
-import { recordAnswerPipeline } from '../services/answerPipeline'
+import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { advanceSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -59,6 +59,11 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const [displayIndex, setDisplayIndex] = useState(() => snapshot?.answeredCount ?? 0)
   // サブ設問インデックス（0始まり）→ 解答済みの結果。Part6は非線形にタップされうるためMapで持つ
   const [answers, setAnswers] = useState<Map<number, PassageAnswer>>(new Map())
+  // M4・T-129: サブ設問インデックス→レイドダメージ結果（該当時のみ設定。ExplanationCardの
+  // 堅い/弱点バッジ・実ダメージ表示に使う。answersと同じライフサイクルでitem切替時にクリアする）
+  const [ghostDefenseByIndex, setGhostDefenseByIndex] = useState<Map<number, RaidDamageResult>>(
+    new Map(),
+  )
   // 現在選択肢を表示しているサブ設問（空所タップ・「次へ」で切り替わる）
   const [activeIndex, setActiveIndex] = useState(0)
   const [startedAt, setStartedAt] = useState(() => now())
@@ -151,16 +156,20 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     try {
       // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
       // 本文まるごと再出題しないため呼ばない（skip.srs）。レート・tagStats・
-      // keyVocab循環は通常どおり（skipしない）
-      const { ratingUpdate } = await recordAnswerPipeline(db, {
+      // keyVocab循環は通常どおり（skipしない）。ただしmode='battle'（ボス役セッション=
+      // M4・T-128）はレート更新の対象外（docs/22 3.5節・DrillScreenと同じ扱い）
+      const { ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
         questionId: sub.id,
         question,
         lookup: subQuestionLookup,
         isCorrect,
         responseMs,
         mode: item.mode,
-        skip: { srs: true },
+        skip: { srs: true, rating: item.mode === 'battle' },
       })
+      if (raidDamage) {
+        setGhostDefenseByIndex((prev) => new Map(prev).set(index, raidDamage))
+      }
       recordAnswer(snapshot, {
         questionId: sub.id,
         isCorrect,
@@ -201,6 +210,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       }
       setDisplayIndex((i) => i + 1)
       setAnswers(new Map())
+      setGhostDefenseByIndex(new Map())
       setActiveIndex(0)
       setStartedAt(now())
       return
@@ -265,6 +275,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                 aiClient={aiClient}
                 raidApi={raidApi}
                 db={db}
+                ghostDefense={
+                  ghostDefenseByIndex.get(activeIndex)?.ghostDefenseMultiplier !== undefined
+                    ? {
+                        multiplier: ghostDefenseByIndex.get(activeIndex)!.ghostDefenseMultiplier!,
+                        damage: ghostDefenseByIndex.get(activeIndex)!.damage,
+                      }
+                    : null
+                }
               />
               <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>
             </>
