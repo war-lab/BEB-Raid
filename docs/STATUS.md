@@ -14,6 +14,33 @@ Web Push検証（T-149）の事前調査中に、`packages/api/src/index.ts` の
 - **スコープ**: `wrangler.toml` へのcron追加は行っていない（日次cronの追加自体はT-149）。変更は `packages/api/src/index.ts` と同 `index.test.ts` の2ファイルのみ。既存の週次cronの挙動は無変更。
 - **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build` 全通過。`npm test` は api 125件・app 844件・cli 338件・review-ui 15件・shared-schema 94件が全通過（appのフレークは発生せず、`--no-file-parallelism` での再実行は不要だった）。`npm run format:check` はgit管理外のローカル設定ファイル `.claude/settings.local.json` 1件のみ未整形として報告される（本作業の変更対象外・commit対象外。docs/18番号衝突解消時と同じ既知事象）。
 
+## バグ修正: rate経路のonPosition座標系（2026-07-27。ブランチ `task/fix-audio-onposition`。dev起点）
+
+**発見経緯**: M5ネイティブ化（23）の事前調査で `packages/app/src/platform/audio/` を読んだ際に検出した。M5タスク（T-132〜）の実装ではない。
+
+- **不具合**: `WebAudioPlayer` の `onPosition` 通知が2つの再生経路で座標系が食い違っていた。AudioBuffer経路（`rate` が1または未指定）は `startMs` を足し戻して**ファイル先頭からの絶対ms**を通知するのに対し、HTMLAudioElement経路（`rate !== 1`）は `Math.max(0, (audio.currentTime - startSec) * 1000)` と**区間相対ms**を通知していた。問題パックの `timing`（単語開始ms）はファイル先頭からの絶対msなので、絶対位置が正しい。
+- **再現条件**: シャドーイング画面で速度チップを1.0以外にした状態（=HTMLAudioElement経路）で、3秒戻し（`ShadowingScreen.handleRewind`）または文タップの区間リピート（`handleSentenceTap`）を使う。いずれも `startMs > 0` になるため、カラオケ式ハイライト（`KaraokeScript` → `currentWordIndex(timing, positionMs)`）が先頭語に戻り、音声とずれる。速度1.0のままなら発生しない。
+- **修正**: HTMLAudioElement経路の通知を `baseMs + Math.max(0, (audio.currentTime - startSec) * 1000)`（`baseMs = startSec * 1000`）に変更し、両経路が同一の座標系（絶対ms）を返すことを保証した。`AudioPlayer` インターフェースのシグネチャは変更していない（挙動の是正のみ）。
+- **テストで捕まっていなかった理由**: `WebAudioPlayer.test.ts` の onPosition 関連テストが `startMs=0` しか検証しておらず（`startMs > 0` のケースでは両経路の式が一致してしまう）、`startMs > 0` かつ `rate !== 1` の組み合わせが抜けていた。回帰テストを3件追加した（AudioBuffer経路の `startMs>0`・HTMLAudioElement経路の `startMs>0`・同一 `startMs` に対して両経路が同じ座標系を返すことの突き合わせ）。
+- **未修正で残した同種の論点**（判断が必要なため本PRでは触れていない）: 複数srcの `playSequence` で `onPosition` の意味がなお経路間で異なる。AudioBuffer経路は連結全体の通算経過msを返すため2件目以降は「そのファイル内の絶対ms」にならず、HTMLAudioElement経路は要素ごとに `audio.currentTime` がリセットされるため2件目以降も各ファイル内の絶対msを返す。現状 `onPosition` の利用箇所はシャドーイング（単一srcの `play()`）のみなので実害はないが、連結再生でカラオケハイライトを使う場合は先に意味を決める必要がある。`durationMs` の打ち切り判定は両経路とも「メディア時間での長さ」として一貫しており、食い違いはなかった。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build`（4ワークスペース）全通過。`npm run format:check` は未追跡の `.claude/settings.local.json`（gitignore対象外の作業環境ファイル。本変更とは無関係）のみ警告で、変更した2ファイルは整形済み。`npm test` は api 122件・cli 338件・review-ui 15件・shared-schema 94件が通過。app側は並行実行時に `RaidScreen.test.tsx` 起因の `DatabaseClosedError` unhandled rejection で終了コード1になる既知事象が出たため `--no-file-parallelism` で再実行し、62ファイル847件全通過（終了コード0）を確認した。
+## 2026-07-27: M5の前提訂正と通知手段の方針転換（ブランチ `task/docs-23-m5-premises`。ドキュメントのみ）
+
+発起人がM5（Capacitorネイティブ化）の着手を決定したのを受けて前提を点検したところ、[23_M5ネイティブ化計画](23_M5ネイティブ化計画.md) の記述5件が現行実装と食い違っていることが判明した。訂正の作業中に発起人が方針を変更し、**M5の着手を保留してiOS PWAのWeb Pushを先に検証する**決定に至った。実装コードは変更していない。
+
+- **方針転換（[ADR 0007](adr/0007-通知手段の選択とM5ネイティブ化の前提.md) を起票）**: **M5の着手を保留し、先にiOS PWAのWeb Pushで通知の効果を実測する**（新規T-149）。iOS 16.4以降、ホーム画面に追加したPWAはWeb Pushを受け取れるため、05の7節が置いていた「iOSではスケジュール通知が打てないためネイティブ化が必要」という主動機が部分的に崩れている。23のJ-76はWeb Pushを代替案として棄却していたが、その評価は「ネイティブ化する前提の中での実装方式の比較」に留まり、「ネイティブ化を回避する手段」としては行われていなかった（評価漏れを23の1.7節に記録）。M5の実施決定自体は撤回していない。着手条件（M4完了ゲート通過・M4残タスクと並行しない）は維持したうえで、T-149の結果による再判断を加えた。
+- **Web Pushに課した制約**: 通知本文は**件数を含まない汎用文に限定**する（「今日の復習n件」はサーバーが各人の復習件数を知る必要があり、個人紐づきで共有APIに送るのはダメージ換算値＋表示名のみという不変条件に反する）。購読情報は `deviceToken` と結合できない形で保存する（J-86。方式は未確定でT-149で設計）。Service Workerは `generateSW` から `injectManifest` 等への変更が必要になる見込みで、既存のPWAキャッシュ挙動への回帰リスクがある（方式は未確定）。**Web Pushで解決するのは通知だけで、iOSストレージ退避の解消とバックグラウンド音声はネイティブ化の動機として残る**。
+- **発起人が決定した前提（ADR 0007に記録）**: 対象プラットフォームは**iOSのみ**（Androidは初回スコープ外。J-72）。**Apple Developer Program（$99/年）には登録しない**。iOSビルドはGitHub ActionsのmacOSランナーで行い、実機導入は無料Apple IDでのsideload（Sideloadly/AltStore。プロビジョニングプロファイルが7日で失効する等の制約は一般に知られている値で本プロジェクトでは未検証）。**参加者への配布は不可**のため、$99の支出判断は「発起人自身が実機で使えれば十分か」で決まる。問題パック・音声（`content/` 51MB）は**アプリに同梱**する（J-82）。
+- **前提の訂正5件**（詳細は23の8.1節。いずれも実コードを確認）:
+  - J-74「同一ビルド成果物」→「**別ビルド成果物**」。`packages/app/vite.config.ts` が `GITHUB_PAGES==='true'` で `base='/BEB-Raid/'` に切り替わり、`capacitor://localhost` 配下では解決できないため、ネイティブ向けの `base='/'` ビルドが必須。T-133の成果物にビルドスクリプトの追加を明記。
+  - J-75/T-134「SW非依存の `PackCache` 実装を追加する」→ `platform/cache/CacheStoragePackCache.ts` が既にSW非依存。J-82の同梱決定により推奨案を**`NullPackCache`＋SW登録抑止**に変更（`WebAudioPlayer.loadBlob/loadBuffer` と `packSync.loadPackQuestions` が `packCache.get()` の null で `fetch` にフォールバックする実装を確認済み）。T-134の成果物を縮小。
+  - J-78の根拠文「パックはHTTP取得のため再配布不要」→ 誤り。`scripts/copy-content.mjs` が `content/` を `dist/` へコピーし Capacitor が同梱する。加えて出題プールのパックIDは `App.tsx` の `PACK_IDS` にハードコードで manifest 駆動ではない。結論（再ビルドのみ）は維持し根拠文を訂正。
+  - J-77の要件列挙が不足 → 要件表（23の1.6節）を追加。`onPosition` 間隔100ms・位置精度±100ms未満（`content/packs/pack-shadow-s-001.json` の `timing` 実測: 30問708区間で最小192ms・中位値255ms・48.6%が250ms未満）・`durationMs` の打ち切り精度（`questionEndMs` で正答読み上げのリークを防いでいる）・入力がBlobであること。推奨案を**聞き流し経路限定のネイティブ実装**に変更（`audioPlayer` は `App.tsx` のモジュール変数でpropsで渡るため配線のみで注入でき、`screens/`・`engine/` の改修はゼロ）。
+  - J-71のベースライン「参加者のストリーク維持率」→ 取得手段なし（共有APIの `RaidContribution` は表示名とダメージのみ）。一次指標を**自分の週次学習日数**（`attempts` 由来。`engine/streak.ts` の `countSrsAnswersOn` で遡及算出）に固定し、参加者側は補助扱いに訂正（`RaidSummary.participantCount` はT-131で追加されたばかりで過去週のKVレコードがなく前方向にしか蓄積しない）。
+- **新規起票**: T-149（Web Push検証。先行実施）・T-146（Capacitorスパイク。**保留中**。着手条件はT-149の完了と再判断）・T-147（`PACK_IDS` の manifest 駆動化。ネイティブ化と独立に実施可）・T-148（調整可能パラメータのリモート配信。外出し可と固定必須の線引きを記載。詳細設計は実装PRと同じPRで別ADR）。判断J-82（content同梱）・J-83（繰り返し通知の表現方式）・J-84（bundle ID。変更すると学習データが分離する）・J-85（通知手段の順序）・J-86（購読情報の保存方式）。人間タスクH-10（実機導入前のデータ退避と再インストール後の保持確認）・H-11（Web Pushの実機導入と効果測定）。
+- **ID採番の前提**: T-138〜T-145・J-79〜J-81 は PR #65（読解計画を `docs/18` → `docs/24` へ改番）が使用するため、本作業の追加分は **T-146・J-82** から採番した。**PR #65が先にマージされる前提**である。
+- **残課題**: 05の7節と06のM5項の「iOSではスケジュール通知が打てない」前提記述の更新（影響範囲が広いため別タスク。T-149の実測後に行う）。J-71・J-73〜J-78・J-83・J-86は未承認。J-84（bundle IDの値）は発起人判断待ち。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test` を実行。
 ## docs/18番号衝突の解消（2026-07-27。ブランチ `task/docs-18-renumber`。origin/dev起点）
 
 18番の2文書（改修計画_表示更新とUX残課題／読解パート実装計画）が文書番号・タスクID（T-103〜）・判断ID（J-51〜）を重複して使っていた問題を解消した。ドキュメントの番号・ID・相互参照のみを変更し、設計判断とアプリの挙動は変更していない。
