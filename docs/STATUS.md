@@ -2,6 +2,17 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## バグ修正: シャドーイングの開始位置確定とindexの競合（2026-07-27。ブランチ `task/fix-shadowing-index-race`。origin/dev起点）
+
+CIで `ShadowingScreen.test.tsx` の「「前の素材へ」で戻れる」が**ドキュメントのみのPRでも間欠的に落ちる**事象が2回発生した（PR #69・#73。エラーはいずれも `Unable to find an element with the text: /1\/2/`）。テストの不安定さではなく**実装の競合が間欠的に露出していた**もので、原因を特定して修正した。
+
+- **不具合**: マウント時に未実施素材の先頭から開始する `useEffect`（T-120・J-59）が `db.attempts` を非同期に読み、解決時に `setIndex(firstUnfinished)` で**インデックスを絶対値で上書き**していた。この解決が利用者の素材移動より遅れると、(1) 表示中の素材が巻き戻り、(2) `handlePrev` の下限ガード `if (index === 0) return` が**レンダー時にキャプチャした古い `index`** を見るため、最新値が0であってもガードを通過して `setIndex((i) => i - 1)` が走り、**index が -1 になって `question` が undefined になり画面が壊れる**（`if (!question)` の早期returnに落ちる）。
+- **再現条件**: 起動直後、`attempts` の読み込みが完了する前に素材を移動する。読み込みが遅い端末・データ量が多い端末で踏みやすい。テスト環境では実行時間のばらつきで間欠的に発生していた。
+- **修正**: (1) `userMovedRef` を追加し、利用者が一度でも素材を移動していたら開始位置の自動決定を適用しない（利用者の位置を尊重する）。(2) `handlePrev` の下限ガードを更新関数の内側に移し、`setIndex((i) => (i > 0 ? i - 1 : i))` として最新の index に対して判定する。
+- **テスト**: `attempts` 読み込みの解決を保留できるスタブを使い、「利用者の移動が先・開始位置の確定が後」の順序を確定的に作る回帰テストを追加した。**修正を外すと、追加したテストと従来のCIで落ちていたテストの両方が落ちる**ことを確認済み（後者のエラーはCIで観測されたものと同一）。Dexieの実インスタンスへの `vi.spyOn` では読み込みを遅延させられなかったため、マウント時に使う `attempts.where(...).startsWith(...).toArray()` の経路のみをスタブに置き換えている。
+- **検証**: `npm run lint`・`npm run build` 通過。`npm test` は api 125・app 858・cli 338・review-ui 15・shared-schema 96 が全通過（終了コード0）。
+- **付随して判明した運用上の注意**: ローカルで `packages/shared-schema/dist` が古いまま `npm test -w @beb-raid/app` を実行すると、shared-schema に追加された関数が解決できず `TypeError: isBattleCloseReason is not a function` で app のテストが落ちる。CIは `npm run build` を先に実行するため発生しない。**shared-schema を変更したPRの後は、appのテスト前に `npm run build` を実行する**こと。
+
 ## 修正: 昼バトルの切断理由をUIに反映（2026-07-27。ブランチ `task/fix-battle-close-reason`。origin/dev起点）
 
 昼バトルに参加できなかったとき、**原因が利用者に伝わらない**不具合を修正した。サーバー（`packages/api/src/battleRoomDo.ts`）は切断理由を区別して返していたが、クライアントがその情報を捨てていた。`packages/api` は変更していない。
