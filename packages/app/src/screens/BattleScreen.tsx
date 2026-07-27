@@ -15,6 +15,7 @@ import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { resolveBattleCloseMessage } from './battleCloseMessage'
 
 interface Props {
   db: BebRaidDatabase
@@ -74,6 +75,8 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const [resultEntries, setResultEntries] = useState<StandingRow[]>([])
   const [bestGrowthName, setBestGrowthName] = useState<string | null>(null)
   const [wrongCount, setWrongCount] = useState(0)
+  /** サーバーが付与した切断理由（closed表示の案内文の出し分けに使う。通信断時は空文字） */
+  const [closeReason, setCloseReason] = useState('')
 
   // questionPoolはprops経由で固定のためMapはマウント時に1回だけ作る
   const questionLookup = useRef<QuestionLookup>(new Map(questionPool.map((q) => [q.id, q])))
@@ -127,7 +130,9 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         setErrorMessage(`エラーが発生しました（${message.code}）`)
       }
     })
-    battleSocket.onClose(() => {
+    battleSocket.onClose((event) => {
+      // 切断理由を保持して案内文を出し分ける（未登録・ルーム不在・ホスト終了・通信断）
+      setCloseReason(event.reason)
       setPhase((p) => (p === 'result' ? p : 'closed'))
     })
   }, [battleSocket])
@@ -387,13 +392,14 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     )
   }
 
-  // closed（サーバー切断・finish以外の予期しないクローズ）
+  // closed（サーバー切断・finish以外のクローズ）。理由ごとに原因と次にとる行動を出す
+  const closeMessage = resolveBattleCloseMessage(closeReason, 'participant')
   return (
     <ScreenLayout
-      status={<p>接続が切れました</p>}
+      status={<p>{closeMessage.title}</p>}
       action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
     >
-      <p>ホストの終了、または通信断で接続が終了しました</p>
+      <p data-testid="battle-close-reason">{closeMessage.body}</p>
     </ScreenLayout>
   )
 }

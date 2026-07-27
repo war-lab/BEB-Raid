@@ -2,7 +2,7 @@
 // BattleRoomDO・クライアント双方が受信JSONの type を検証する際に使う。
 // 未知の type は既知メッセージとして扱わない（discriminated unionの受信側ガード）
 
-import type { BattleClientMessage, BattleServerMessage } from './types.js'
+import type { BattleClientMessage, BattleCloseReason, BattleServerMessage } from './types.js'
 
 const BATTLE_CLIENT_MESSAGE_TYPES = [
   'join',
@@ -48,4 +48,23 @@ export function isBattleServerMessage(value: unknown): value is BattleServerMess
     hasStringTypeField(value) &&
     (BATTLE_SERVER_MESSAGE_TYPES as readonly string[]).includes(value.type)
   )
+}
+
+/**
+ * サーバーが付与しうるクローズ理由の一覧（close frame の reason 文字列の正本）。
+ * BattleRoomDO側の close(code, reason) とクライアント側の案内文の出し分けが、
+ * この1箇所を参照して食い違わないようにするために置く
+ */
+const BATTLE_CLOSE_REASONS = [
+  'unauthorized',
+  'room_not_found',
+  'room_closed',
+] as const satisfies readonly BattleCloseReason[]
+
+/**
+ * クローズ理由の文字列が既知のBattleCloseReasonかどうかを判別する。
+ * 通信断のように理由が空文字・未知の場合はfalseを返す（呼び出し側は汎用の案内文に落とす）
+ */
+export function isBattleCloseReason(value: string): value is BattleCloseReason {
+  return (BATTLE_CLOSE_REASONS as readonly string[]).includes(value)
 }

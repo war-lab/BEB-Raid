@@ -11,7 +11,12 @@ import {
 } from '@beb-raid/shared-schema'
 
 export type BattleSocketMessageHandler = (message: BattleServerMessage) => void
-export type BattleSocketCloseHandler = (event: { code: number }) => void
+/**
+ * クローズ通知のハンドラ。reason はサーバーが付与した切断理由（BattleCloseReason の文字列。
+ * 正本は shared-schema）。通信断のようにサーバーが理由を付けられない場合は空文字になるため、
+ * 呼び出し側は未知の値を汎用の案内文に落とすこと
+ */
+export type BattleSocketCloseHandler = (event: { code: number; reason: string }) => void
 
 export interface BattleSocket {
   /**
@@ -103,7 +108,8 @@ export class WebSocketBattleSocket implements BattleSocket {
       }
       ws.onclose = (event: CloseEvent) => {
         this.ws = null
-        this.closeHandler?.({ code: event.code })
+        // reasonはUIの案内文の出し分けに使う（未登録・ルーム不在・ホスト終了の区別）
+        this.closeHandler?.({ code: event.code, reason: event.reason })
       }
     })
   }
@@ -170,9 +176,12 @@ export class FakeBattleSocket implements BattleSocket {
     this.messageHandler?.(message)
   }
 
-  /** テストからクローズを模擬発生させる */
-  emitClose(code: number): void {
+  /**
+   * テストからクローズを模擬発生させる。
+   * reasonは省略可（既定は空文字＝サーバーが理由を付けられない通信断相当）
+   */
+  emitClose(code: number, reason = ''): void {
     this.closed = true
-    this.closeHandler?.({ code })
+    this.closeHandler?.({ code, reason })
   }
 }
