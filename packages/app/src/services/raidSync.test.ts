@@ -10,7 +10,7 @@ import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { resetRaidSyncStoreForTest, useRaidSyncStore } from '../store/raidSyncStore'
-import { syncRaidDamage } from './raidSync'
+import { buildRaidStateBossCache, syncRaidDamage } from './raidSync'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 let seq = 0
@@ -53,6 +53,9 @@ class FakeRaidApi implements RaidApi {
   fetchCurrentBoss = vi.fn(async () => null)
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
+  sendGhostRecord = vi.fn(async () => {})
+  deleteOwnGhostRecord = vi.fn(async () => {})
 
   constructor(configured = true) {
     this.isConfigured = () => configured
@@ -415,5 +418,71 @@ describe('syncRaidDamage: レイド系バッジの導出（M3・T-102）', () =>
 
     expect(await db.badges.count()).toBe(2)
     expect(secondEarnedAt).toBe(firstEarnedAt)
+  })
+})
+
+describe('buildRaidStateBossCache（M4・T-129。docs/22 3.4節）', () => {
+  it('synthetic週相当（bossType/defense/ghost省略）はsynthetic・null・nullを返す', () => {
+    expect(buildRaidStateBossCache(BOSS)).toEqual({
+      bossType: 'synthetic',
+      defenseJson: null,
+      ghostJson: null,
+    })
+  })
+
+  it('ghost週はdefense配列をquestionId→multiplierのRecordへ変換し、ghostをJSON化する', () => {
+    const ghostBoss: RaidBossState = {
+      ...BOSS,
+      bossType: 'ghost',
+      defense: [
+        { questionId: 'q-1', multiplier: 2.0 },
+        { questionId: 'q-2', multiplier: 0.5 },
+      ],
+      ghost: { displayName: '上級者A', defeatedCount: 1 },
+    }
+
+    const cache = buildRaidStateBossCache(ghostBoss)
+
+    expect(cache.bossType).toBe('ghost')
+    expect(JSON.parse(cache.defenseJson!)).toEqual({ 'q-1': 2.0, 'q-2': 0.5 })
+    expect(JSON.parse(cache.ghostJson!)).toEqual({ displayName: '上級者A', defeatedCount: 1 })
+  })
+})
+
+describe('syncRaidDamage: ghost週のraidStateキャッシュ更新（M4・T-129）', () => {
+  it('同期のレスポンスがghostボスなら、raidStateにbossType・defenseJson・ghostJsonが保存される', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const ghostBoss: RaidBossState = {
+      ...BOSS,
+      bossType: 'ghost',
+      defense: [{ questionId: 'q-1', multiplier: 2.0 }],
+      ghost: { displayName: '上級者A', defeatedCount: 5 },
+    }
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: [], boss: ghostBoss })
+
+    await syncRaidDamage(db, raidApi)
+
+    const raidState = await db.raidState.get(RAID_STATE_ID)
+    expect(raidState?.bossType).toBe('ghost')
+    expect(JSON.parse(raidState!.defenseJson!)).toEqual({ 'q-1': 2.0 })
+    expect(JSON.parse(raidState!.ghostJson!)).toEqual({
+      displayName: '上級者A',
+      defeatedCount: 5,
+    })
+  })
+
+  it('synthetic週（従来レスポンス）の同期後は、raidStateのbossTypeがsynthetic・defenseJson/ghostJsonがnullになる（回帰）', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+
+    await syncRaidDamage(db, raidApi)
+
+    const raidState = await db.raidState.get(RAID_STATE_ID)
+    expect(raidState?.bossType).toBe('synthetic')
+    expect(raidState?.defenseJson).toBeNull()
+    expect(raidState?.ghostJson).toBeNull()
   })
 })

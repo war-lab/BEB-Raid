@@ -11,6 +11,7 @@ import { setFontSizeScale } from './fontSize'
 import {
   createAiClient,
   createAudioPlayer,
+  createBattleSocket,
   createPackCache,
   createRaidApi,
   type PackCache,
@@ -25,9 +26,12 @@ import { BYOK_API_KEY_KEY, FONT_SIZE_KEY, THEME_PREFERENCE_KEY } from './service
 import { resolveTheme, setTheme, type ThemePreference } from './theme'
 import { PrimaryButton } from './components/PrimaryButton'
 import { ScreenLayout } from './components/ScreenLayout'
+import { BattleHostScreen } from './screens/BattleHostScreen'
+import { BattleScreen } from './screens/BattleScreen'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
+import { GhostBossResultScreen } from './screens/GhostBossResultScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RaidScreen } from './screens/RaidScreen'
 import { ReadingScreen } from './screens/ReadingScreen'
@@ -36,6 +40,7 @@ import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
 import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore, type ScreenName } from './store/appStore'
+import { useSessionStore } from './store/sessionStore'
 
 /**
  * 配布パック全20件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2。
@@ -146,8 +151,20 @@ const raidApi = createRaidApi(
   async () => (await getDb().profile.get(PROFILE_ID))?.deviceToken ?? '',
 )
 
+/**
+ * 昼バトル（M4・T-125）のWebSocketクライアント。raidApiと同じbaseUrl/deviceToken疎結合パターン。
+ * 画面を離れる際はBattleScreen側でclose()を呼ぶ（次回参加時にconnect()が新規WebSocketを張り直す）
+ */
+const battleSocket = createBattleSocket(
+  import.meta.env.VITE_RAID_API_BASE_URL as string | undefined,
+  async () => (await getDb().profile.get(PROFILE_ID))?.deviceToken ?? '',
+)
+
 export function App() {
   const screen = useAppStore((s) => s.screen)
+  // M4・T-128: 'result' 画面をボス役セッション（ゴースト記録プレビュー）か
+  // 通常のResultScreenかで振り分ける（同意の構造的強制。GhostBossResultScreen冒頭コメント参照）
+  const isGhostBossSession = useSessionStore((s) => s.isGhostBossSession)
   const navigate = useAppStore((s) => s.navigate)
   // 起動時のprofile有無チェック＋パック読み込みが終わるまで描画をブロックする
   // （HomeScreenが一瞬見えてから診断へ切り替わるチラつきを防ぐ。パック読み込みは
@@ -347,7 +364,10 @@ export function App() {
       <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} raidApi={raidApi} />
     )
   }
-  if (screen === 'result') return <ResultScreen db={getDb()} raidApi={raidApi} />
+  if (screen === 'result') {
+    if (isGhostBossSession) return <GhostBossResultScreen db={getDb()} raidApi={raidApi} />
+    return <ResultScreen db={getDb()} raidApi={raidApi} />
+  }
   if (screen === 'vocab') {
     return <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={vocabQuestions} />
   }
@@ -383,6 +403,19 @@ export function App() {
   }
   if (screen === 'reading') {
     return <ReadingScreen db={getDb()} aiClient={aiClient} raidApi={raidApi} />
+  }
+  if (screen === 'battle') {
+    return <BattleScreen db={getDb()} battleSocket={battleSocket} questionPool={questionPool} />
+  }
+  if (screen === 'battleHost') {
+    return (
+      <BattleHostScreen
+        raidApi={raidApi}
+        battleSocket={battleSocket}
+        audioPlayer={audioPlayer}
+        questionPool={questionPool}
+      />
+    )
   }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする

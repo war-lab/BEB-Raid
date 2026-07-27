@@ -33,12 +33,20 @@ interface SessionStore {
    * 行に使う。スナップショットのスキーマは変えない（アプリ再起動を跨ぐ持続は不要）
    */
   skippedCount: number
+  /**
+   * ボス役セッション中か（M4・T-128。docs/22 3.5節）。true の間はApp.tsxが
+   * 'result' 画面をResultScreenではなくGhostBossResultScreen（記録プレビュー・送信/破棄）へ
+   * 振り分ける。RaidScreenの同意画面確定後にのみ true でbegin()が呼ばれる
+   * （同意なしにこのフラグが立つ経路は無い＝GhostBossResultScreenの送信ボタンが
+   * 到達不能になる構造的強制の一部）
+   */
+  isGhostBossSession: boolean
 
   begin: (
     snapshot: SessionSnapshot,
     questions: readonly Question[],
     ratingBefore: { L: number; R: number } | null,
-    options?: { partialAudioMode?: boolean },
+    options?: { partialAudioMode?: boolean; isGhostBossSession?: boolean },
   ) => void
   /** 1問の解答結果を記録し、スナップショットを進める（DB書き込み後に呼ぶ） */
   recordAnswer: (snapshot: SessionSnapshot, entry: SessionResultEntry) => void
@@ -54,6 +62,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   ratingBefore: null,
   partialAudioMode: false,
   skippedCount: 0,
+  isGhostBossSession: false,
 
   begin: (snapshot, questions, ratingBefore, options) =>
     set({
@@ -63,6 +72,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
       ratingBefore,
       partialAudioMode: options?.partialAudioMode ?? false,
       skippedCount: 0,
+      isGhostBossSession: options?.isGhostBossSession ?? false,
     }),
 
   recordAnswer: (snapshot, entry) =>
@@ -78,5 +88,6 @@ export const useSessionStore = create<SessionStore>((set) => ({
       ratingBefore: null,
       partialAudioMode: false,
       skippedCount: 0,
+      isGhostBossSession: false,
     }),
 }))

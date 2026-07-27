@@ -3,7 +3,9 @@
 // UI・サービス層はこのクラスを直接newせず、platform/index.ts の createRaidApi 経由で使うこと
 
 import type {
+  CreateBattleRoomResponse,
   DamageSyncPayload,
+  GhostRecordPayload,
   QuestionReportPayload,
   QuestionStatPayload,
   QuestionStatsRequest,
@@ -87,6 +89,20 @@ export class FetchRaidApi implements RaidApi {
 
   async sendReport(report: QuestionReportPayload): Promise<void> {
     await this.request('/reports', { method: 'POST', body: JSON.stringify(report) }, true)
+  }
+
+  async createBattleRoom(): Promise<string> {
+    const res = await this.request('/battle/rooms', { method: 'POST' }, true)
+    const { code } = (await res!.json()) as CreateBattleRoomResponse
+    return code
+  }
+
+  async sendGhostRecord(payload: GhostRecordPayload): Promise<void> {
+    await this.request('/ghosts', { method: 'POST', body: JSON.stringify(payload) }, true)
+  }
+
+  async deleteOwnGhostRecord(): Promise<void> {
+    await this.request('/ghosts/own', { method: 'DELETE' }, true)
   }
 
   /**

@@ -12,15 +12,82 @@
 - **テスト**（新規`raidSummary.test.ts`。api計122件=既存99+新規23）: 未討伐/討伐済み/ghost週それぞれのサマリ書込（値・個人別データ非含有＝キー一覧の網羅比較）、前週ボス未初期化（サービス開始直後）でも例外を投げず書込スキップ、同週内cron再実行での書込冪等性、`GET /raid/summary`の未認証401・保存済み配列返却・0件時の空配列。
 - **検証**: worktree直下で`npm ci`実施後、ルート`npm run lint`・`npm run format:check`・`npm run build`（4ワークスペース）全通過。`npm test`はapi 122件・cli 338件・review-ui 15件・shared-schema 94件が通過。app側は既知の並行worktree起因ワーカータイムアウトが発生したため`--no-file-parallelism`で再実行し757件全通過を確認（api変更のみのタスクでapp側は無変更）。
 - **ガードレール遵守**: 新規npm依存なし・新規KVバインディングなし。`packages/app`・`packages/shared-schema`・R-1領域・`battleRoomDo.ts`/`battleHandlers.ts`は未変更。変更は`packages/api/`と`docs/22`のみ。
-- **M4残タスク**: T-125・T-126（昼バトルのクライアント）、T-128・T-129（ゴーストのクライアント）が未着手。人間タスクH-4〜H-6も未実施。
+- **M4残タスク**（本節の執筆時点ではT-125・T-126・T-128・T-129が未着手だったが、dev取り込み時点で4件とも完了済み）: 実装タスクは全て完了。残るは人間タスクH-4〜H-6（昼イベントの実開催2回とその実測）のみ。
+## T-126完了: S8ホスト画面（昼バトルWebSocketホストUI。2026-07-27。ブランチ `task/T-126-battle-host`。`task/T-125-battle-participant`（PR #61・未マージ）起点）
+
+22の6節T-126シートに基づき実装。T-125（S7参加画面）に依存するため、PR #61のブランチから分岐した（dev起点ではない。PR #61マージ後にdevへretargetする想定）。
+
+- **新規 `packages/app/src/engine/battleLottery.ts`**: `drawBattleQuestionSet(pool, rng?)`。J-65正文（22の3.2節）どおりPart2:Part5=6:6の12問を無作為抽選し、在庫不足時は他方で補填する（両方合わせても12問未満なら在庫分だけを返す。T-128のdifficulty>=4抽選と異なりこちらに停止条件は無い＝22の6節T-126シート）。既存`engine/shuffle.ts`を再利用（rng注入でテスト決定的）。
+- **新規 `packages/app/src/screens/BattleHostScreen.tsx`**: T-125のBattleScreen.tsxとは別ファイルに分割（22の3.6節「ファイル分割は任意」）。フェーズ`setup→creating→lobby→presenting→question→standings→result→closed`。
+  - **抽選プレビュー・再抽選**: setup画面で抽選結果一覧とPart内訳を表示し、再抽選ボタンで引き直せる。
+  - **ルーム作成**: `raidApi.createBattleRoom()`（新規追加。下記）→`battleSocket.connect(code)`。ホストは`join`を送らない（BattleRoomDO側がルーム作成者のdeviceTokenを自動的にhost roleとして扱うため=T-124の`battleRoomDo.ts`実装）。
+  - **音声再生完了ゲート（05の4.2節・22の3.6節の中核要件）**: `presentQuestion()`が問題を投影し、Part2（audio_qa。`question.audio`あり）は`audioPlayer.unlock()`→`play()`（`audioMeta.questionEndMs`があれば質問部で打ち切り、正答読み上げリークを防ぐ=DrillScreenの既存パターンを踏襲）の**完了後にのみ**`openQuestion`を送信する。Part5等（音声無し）は表示と同時に送信する。BattleHostScreen.test.tsxの「音声再生完了前に解答受付が開かないテスト」（制御可能なPromiseのFakeAudioPlayerで検証）と、Playwright実機通し（下記）の双方で確認。
+  - **締切送信**: `questionOpen`受信のdeadlineAt（DO側タイマーが正）を基準にカウントダウンし、0になったらホストが`closeQuestion`を自動送信する（手動の「解答締切」ボタンは設けていない。ドキュメントに明記が無いためシンプルな自動締切とした）。
+  - **進行**: standings受信後「次の問題へ」（未回答問題が残る間）／「結果発表」（最終問題後）ボタンで`finish`まで進める。ホストは参加者として解答しない（進行専任）。
+- **`platform/net/RaidApi.ts`・`FetchRaidApi.ts`に`createBattleRoom(): Promise<string>`を追加**（`POST /battle/rooms`。T-124で実装済みのエンドポイントに対する初のクライアント呼び出し）。既存の`implements RaidApi`実装8箇所（テストのFakeRaidApi）にモックを追加。
+- **`store/appStore.ts`に`battleHost`画面を追加**、`App.tsx`・`HomeScreen.tsx`（「昼バトルを主催」ボタン。`isConfigured()`時のみ表示=縮退設計）に配線。
+- **T-125由来の実欠陥を発見・修正（`platform/net/BattleSocket.ts`）**: Playwright実機通し中に、参加者の`join`メッセージがサーバーに一切届かない不具合を発見した。原因は`WebSocketBattleSocket.connect()`が`getDeviceToken()`（IndexedDB読み出し、非同期）の解決を待たずに返り、呼び出し側（`BattleScreen.handleJoin`）が`connect()`の直後に同期的に`send()`を呼ぶ実装（T-125由来）のため、`this.ws`未設定の間の`send()`が`this.ws?.send()`のoptional chainingで無音に握りつぶされていたこと（さらに`this.ws`設定後もWebSocketが`OPEN`に達する前の`send()`は実ブラウザでは`InvalidStateError`を投げる）。ユニットテストはFakeBattleSocket（同期）で検証していたため発見されていなかった。**修正**: 送信メッセージをキューに積み、WebSocketの`onopen`到達時にFIFOでflushする方式に変更。`BattleSocket.test.ts`に回帰テストを追加（キュー→flushの検証、既存の委譲テストは`stub.open()`呼び出しを追加して修正）。
+- **検証**: ルート`npm run lint`・`npm run format:check`・`npm run build`（4ワークスペース）全通過。`npm test`は api 114件・app 786件（新規29件: battleLottery 8+ BattleHostScreen 4 + BattleSocket回帰1 + HomeScreen 2 + FetchRaidApi 1 + 各FakeRaidApi更新分の既存回帰）・cli 338件・review-ui 15件・shared-schema 94件、全パッケージ通過。
+- **🟡 人間チェックポイント（Playwrightでの2ブラウザ実ローカル通し）を実施**: `wrangler dev --local`（`.dev.vars`に`INVITE_CODE=dummy-invite-code`。検証後は`.dev.vars.example`相当に戻し済み）＋`vite`（dev。ポート5173が別worktreeのプロセスに使用中のため5174。`.dev.vars`に一時的に`ALLOWED_ORIGINS=http://localhost:5174`を追記して検証し、api既存CORSテストへの汚染に気づいて`.dev.vars`を戻した上でapi全テスト再通過を確認済み）を起動し、Playwright MCPで**完全に別のブラウザコンテキスト**（`browser.newContext()`。同一コンテキストの別タブだとIndexedDBが共有されデバイスが分離できないため）を用意し、ホスト役・参加者役をそれぞれ招待コード登録から実施した。
+  - ホスト: 抽選プレビュー（Part2 6問/Part5 6問）確認→ルーム作成（コード発行確認）→参加者「参加者花子」のロビー入室確認→開始→全12問（Part2音声問題は実際に`/audio/part2/*.mp3`をフェッチし再生完了を待ってから出題オープンされることをネットワークログで確認、Part5は即時オープン）→締切自動送信→途中順位（速度ボーナス計算値83点=基礎点69点×ボーナス14点を実測で確認）→最終リザルト・ベストグロース賞表彰まで到達。
+  - 参加者: 正答時の基礎点即時表示、無回答問題（1問取りこぼし）でも進行が壊れないこと、最終リザルトでの「誤答0問を復習デッキに登録しました」表示を確認。
+  - スクリーンショット: `.playwright-mcp/host-0{1..5}-*.png`・`participant-0{1..5}-*.png`（ローカル一時生成物。gitignore対象のため本PRには含まれない）。
+- **ガードレール遵守**: 新規npm依存なし。R-1領域・T-124の`battleRoomDo.ts`/`battleHandlers.ts`・T-127のゴースト関連ファイルは未変更。
+
+## T-125完了: S7参加画面（昼バトルWebSocket参加者UI。2026-07-27。ブランチ `task/T-125-battle-participant`。origin/dev起点）
+
+M4（21・22）の昼バトルT-124依存タスク。[22_M4実装計画](22_M4実装計画.md) 6節のT-125シートに基づき実装した。
+
+- **新規 `packages/app/src/platform/net/BattleSocket.ts`**: WebSocketの抽象化レイヤ（`BattleSocket`インターフェース＋ブラウザ標準WebSocketによる`WebSocketBattleSocket`＋テスト用`FakeBattleSocket`。RaidApiと同じ疎結合パターン）。`connect(code)`が`https→wss`/`http→ws`変換したURL（`/battle/rooms/:code/ws`）へ、`Sec-WebSocket-Protocol: bearer.<deviceToken>`を付与して接続する（22の3.1節の認証方式）。受信JSONは`isBattleServerMessage`（T-123・shared-schema）で検証し、未知typeは棄却する。
+- **`platform/index.ts`**: `createBattleSocket(baseUrl, getDeviceToken)`ファクトリを追加（createRaidApiと同型）。
+- **新規 `screens/BattleScreen.tsx`（S7参加者モード）**: ルームコード入力（4文字・大文字化。`normalizeRoomCode`）→ロビー（`roomState`の参加者一覧・「最新パックを取得してから参加」案内）→出題中（`questionOpen`受信でローカルパックから選択肢を解決。`ChoiceButton`の大ボタンUIで解答→即時に自分の基礎点を表示）→各問後の順位表示（`standings`）→最終リザルト（`result`。順位・ベストグロース賞・誤答件数の復習デッキ登録済み表示）。
+  - **正誤判定・基礎点算出は参加端末側**（BattleRoomDOはquestionIdと換算点のみを扱うコンテンツ非依存設計=22の3.2節）。基礎点は`engine/rating.ts`の`basePoints`/`difficultyToRatingSpace`（既存の読取専用関数。R-1領域につき変更せず利用のみ）を使い、参加時に取得した`ratings`（total）を使い回す。
+  - **join時の`expectedPointsPerQuestion`**: 22の3.2節「直近の自己平均基礎点」の厳密値はattemptsに基礎点を保存していないため算出不能（保存には別途スキーマ変更が要り、R-1/schema領域外のためT-125のスコープ外と判断）。現在の総合レートから難易度3（Part2/Part5の中央値と仮定）で導出する近似値を暫定値として使用（コード内コメントに明記。数値パラメータの暫定扱いは22の3節冒頭の方針どおり）。
+  - **パック未取得問題**: `questionOpen`のquestionIdがローカルpoolに無ければ「パック未取得」表示にして解答不可のまま流す（0点。attempts記録もしない。22の3.2節どおり）。
+  - **バトル終了時の記録**（`result`受信時）: 解答できた問題ぶんだけ`recordAnswerPipeline`を`mode:'battle', skip:{rating:true}`で呼ぶ（srsCardIdは渡さないため`reviewSrsCard`＝SRS復習も自然に発火しない）。`skip.wrongAnswer`は指定しないため誤答時は`processWrongAnswer`が実行され、keyVocabの復習デッキ（srsCards）登録は通常どおり行われる。**レート更新（`db.ratings`/`ratingHistory`）・SRS復習間隔は変動せず、keyVocab循環のみ機能することをテストで確認済み**（3.2節「レート・SRS除外／keyVocab循環は実施」の要件を`recordAnswerPipeline`の既存skipオプションの組み合わせのみで満たせた。停止条件には該当しなかった）。
+- **`App.tsx`**: `battleSocket`（モジュールスコープ。raidApiと同じbaseUrl/deviceToken疎結合）を追加し、`screen==='battle'`で`BattleScreen`を描画。
+- **`store/appStore.ts`**: `ScreenName`に`'battle'`を追加。
+- **`screens/HomeScreen.tsx`**: ナビゲーション行に「昼バトルに参加」ボタンを追加（`raidApi.isConfigured()`時のみ表示。共有API無効時は入口ごと非表示＝22の2.3節の縮退設計）。
+- **`styles/components.css`**: `.battle-room-code-input`・`.battle-lobby-hint`を追加（他は既存の`.raid-list`・`.drill-error`・`.drill-timer`・`.secondary-action`等の既存クラスを再利用）。
+- **テスト**: `BattleSocket.test.ts`（bearer付与URL組立・baseUrl未設定時の例外・未知メッセージ棄却・send/close委譲・FakeBattleSocketのemitMessage/emitClose）、`BattleScreen.test.tsx`（join→questionOpen→解答→standings→resultの一連、パック未取得問題が0点で進行を壊さない、誤答のattempts記録・keyVocab復習デッキ登録・レート/SRS不変、ルームコード正規化、expectedPointsPerQuestion算出）、`HomeScreen.test.tsx`に入口ボタンの表示/非表示2件を追加。
+- **検証**: ルート`npm run build`・`npm run lint`・`npm run format:check`全通過。`npm test`はapi 114・cli 338・review-ui 15・shared-schema 94が通過、appは既知の並行worktree環境要因のワーカータイムアウト（`HomeScreen.test.tsx`の時刻追従テスト2件。本タスクの変更と無関係な既存テスト）が発生したため`--no-file-parallelism`で再実行し770件全通過を確認（precedent: T-124/T-127/T-130と同じ切り分け）。
+- **レビュー指摘の反映**（マージ前修正）: (1) `WebSocketBattleSocket` に世代番号を導入し、`getDeviceToken()`解決前に`close()`／再`connect()`された場合はWebSocketを張らない（従来は`this.ws`未設定のまま接続が開き、閉じられない孤立接続がルームの参加者枠を占有した）。(2) `BattleScreen`のアンマウント時に`close()`を呼ぶ（`battleSocket`はモジュール単位のシングルトンのため画面遷移だけでは接続が残る）。(3) attempts記録を`result`受信時の一括処理から解答時点へ移動（ホスト切断・通信断で`closed`へ落ちた回の解答ログが1件も残らない問題を解消。書き込み順序は直列化チェーンで解答順を維持）。(4) 参加者一覧・順位表のReact keyを表示名からindexへ（同名参加者でkey重複）。回帰テスト3件を追加。
+- **ガードレール遵守**: 新規npm依存なし（ブラウザ標準WebSocketのみ）。R-1領域（`engine/quickPack.ts`・`curriculum.ts`・`rating.ts`・`tagStats.ts`・`keyVocab.ts`・`packages/cli/`・`content/`）は未変更（`rating.ts`は既存パターンどおり読取のみ）。`packages/api`・`packages/shared-schema`も未変更。
+## T-129完了: ゴースト挑戦（S5拡張・弱点可視化）（2026-07-27。ブランチ `task/T-129-ghost-challenge`。`task/T-128-ghost-boss-client`（PR #62）起点。**dev向けではない**。#62マージ後にdevへretargetする想定）
+
+22の7節T-129シートに基づき、`packages/app/` にゴースト週の挑戦体験（倍率適用・弱点マップ・討伐回数の名誉表示）を実装した。T-127（ゴーストAPI）は依存済み・変更なし。T-128（ボス役クライアント）が同じ`RaidScreen.tsx`を変更するため、その変更を含む`task/T-128-ghost-boss-client`ブランチを起点に作業した。
+
+- **raidStateキャッシュの拡張**（3.4節）: `db/schema.ts`の`RaidStateRecord`へ`bossType`・`defenseJson`（`Record<questionId, multiplier>`のJSON文字列）・`ghostJson`を非インデックスフィールドとして追加（Dexieスキーマversionは据え置き=version(3)のまま）。書込箇所は既存の2箇所（`RaidScreen.tsx`の`handleJoin`・`services/raidSync.ts`の`syncRaidDamage`）のみで、新設した`buildRaidStateBossCache(boss: RaidBossState)`（`raidSync.ts`からexport）が`RaidBossState.defense`配列をO(1)引き用のRecordへ変換する。
+- **倍率適用**（3.4節。**pendingSync書込前の1箇所=`services/answerPipeline.ts`に集約**。`engine/damage.ts`本体は無変更）: `enqueueRaidSyncIfEnabled`内で、既存のモード係数適用後ダメージ（`computeDamage(points, mode)`＝raid1.0/solo0.5）に対し、`raidState.bossType==='ghost'`かつ`defenseJson`に該当questionIdがある場合のみ`multiplier`（堅い0.5/弱点2.0）を乗算してからpendingSyncへ書く。defense外・synthetic週・API無効時はmultiplier解決が`undefined`になり実質1.0（無変化）で、既存のM3挙動と完全に同一になる。JSON破損（外部編集されたバックアップ等）も例外を投げず1.0にフォールバックする。`recordAnswerPipeline`の戻り値に`raidDamage?: RaidDamageResult`（`{ damage, ghostDefenseMultiplier? }`）を追加し、`DrillScreen.tsx`・`ReadingScreen.tsx`がこれを解説カードの表示に転用する（倍率計算をUI側で再実装しない）。
+- **弱点可視化**（3.4節・02の5.3節）: 新規`engine/ghostWeaknessMap.ts`の`buildGhostWeaknessMap(defense, lookup)`が、挑戦前に見せてよいPart・タグ単位の集計（例:「Part5 前置詞コロケーション ×2が3問」）のみを返す。**堅い（multiplier<=1）は集計対象外**とし、個別questionIdは戻り値に一切含めない（正答の狙い撃ち防止）。同ファイルの`buildFullQuestionLookup(pool)`は、defenseに含まれうる任意のquestionId（audio_set/text_passageはサブ設問id）を解決するため、questionPool全件へ既存`withSubQuestionLookup`を適用して組み立てる。`RaidScreen.tsx`はこれをuseMemo（earlyreturnより前。Reactフックのルール）で計算し、ghost週のみ「弱点」セクションと「討伐された回数」（`currentBoss.ghost.defeatedCount`。公開処刑にしない演出方針=02の5.3）を表示する。
+- **解答後のバッジ表示**（3.4節）: `components/ExplanationCard.tsx`に`ghostDefense?: { multiplier, damage } | null`を追加し、該当時のみ「堅い×0.5」/「弱点×2.0」バッジと今回の実ダメージを表示する（事前非開示の原則は「解答後にその1問限りの結果を見せる」ことと矛盾しないと判断）。`DrillScreen.tsx`（finalizeAnswer・finalizeSubQuestionAnswer）・`ReadingScreen.tsx`（finalizeSubQuestionAnswer）は、`recordAnswerPipeline`が返す`raidDamage`をローカルstateへ非同期に反映し、ExplanationCardへ渡す。
+- **テスト**（新規）: `services/answerPipeline.test.ts`（8件追加。弱点/堅いの倍率適用・solo/raid両モードでの乗算・defense外は無変化・誤答は常に0・defenseJson破損時のフォールバック・**synthetic週/API無効時がM3と完全同一のダメージになる回帰2件**）、`engine/ghostWeaknessMap.test.ts`（新規6件。Part・タグ単位集計・questionId非露出・複数タグの独立カウント・パック未取得の黙殺・null/undefined・サブ設問id解決）、`services/raidSync.test.ts`（4件追加。`buildRaidStateBossCache`の変換・synthetic週はsynthetic/null/null・ghost週の同期後キャッシュ更新・synthetic週同期後の回帰）、`screens/RaidScreen.test.tsx`（4件追加。弱点マップのPart・タグ表示とquestionId非表示・討伐回数の名誉表示・synthetic週での非表示回帰・参加時のraidStateキャッシュ保存）、`components/ExplanationCard.test.tsx`（3件追加。未指定時は非表示・弱点/堅いバッジの表示）。
+- **検証**: ルート`npm run lint`・`npm run format:check`・`npm run build`全通過。`npm test`はapi 114件・cli 338件・review-ui 15件・shared-schema 94件が通過。`packages/app`は並行worktree由来の既知のワーカータイムアウト（1件・`DatabaseClosedError`の未処理rejection）が1回発生したが、単独再実行（`vitest run -w @beb-raid/app`）および`--no-file-parallelism`再実行の両方で809件全通過を確認し、環境要因（既知事象）と判断した。
+- **ガードレール遵守**: 新規npm依存なし。`engine/damage.ts`本体・R-1領域（`engine/quickPack.ts`等・`packages/cli/`・`content/`）・`packages/api`・`packages/shared-schema`は未変更。
+- **停止条件**: 該当なし。
+
+## T-128完了: ボス役クライアント（2026-07-27。ブランチ `task/T-128-ghost-boss-client`。dev起点）
+
+22の7節T-128シートに基づき、`packages/app/` にボス役セッション（立候補→同意画面→高難度セッション→記録プレビュー→送信）を実装した。T-127（ゴーストAPI）は依存済み・変更なし。
+
+- **同意の構造的強制**（J-67・22の3.5節）: 新規 `services/ghostBoss.ts` の `sendGhostBossRecord(raidApi, consented, input)` は、`shared-schema` の `buildGhostRecordPayload`（T-123実装済み。`consented=false`で例外）を経由してのみ `raidApi.sendGhostRecord` を呼ぶ。UI側は加えて、`useSessionStore` に追加した `isGhostBossSession` フラグが立っているときだけ `App.tsx` が `screen==='result'` を新規 `GhostBossResultScreen`（送信ボタンを持つ唯一の画面）へ振り分け、このフラグは `RaidScreen` の同意画面（チェックボックス＋「同意して開始」）確定後の `handleGhostBossConsentConfirm` からのみ true になる。結果、同意画面を経由しない限り「送信ボタンを持つ画面自体が存在しない」＋「その画面内の送信ハンドラも consent=false では例外で止まる」の二重構造になっている。チェックボックス無効化はUIの補助に過ぎず、それだけに依存していないことをテスト（`services/ghostBoss.test.ts`: consented=falseでraidApi.sendGhostRecordが一度も呼ばれないことを直接検証）で担保した。
+- **出題抽選**（3.5節）: 新規 `engine/ghostBossSelection.ts` の `selectGhostBossQuestions`。レート対象format（vocab_card・shadowing・dictationを除外）から difficulty>=4 を30問無作為抽選し、30問に満たなければ difficulty===3 で補填、補填後合計が10問未満なら `null`（在庫不足）を返す。実データ（`content/packs/`）を集計し、difficulty>=4が137問・difficulty===3が285問（除外format抜き）と大幅に余裕があることを確認済み（停止条件には未該当。在庫増産の相談は不要と判断）。
+- **mode='battle'のレート非対象化**（3.5節・3.2節と同じ扱い）: `DrillScreen.tsx`（finalizeAnswer・finalizeSubQuestionAnswer）・`ReadingScreen.tsx`（text_passageのsubQuestion採点）に `skip: { rating: item.mode === 'battle' }` を追加。レイドダメージは既存の `damageConfig.json`（battle未定義=係数0）で元々対象外のため変更不要（`engine/damage.test.ts`に既存カバレッジ）。attempts記録自体は通常どおり行われる（ボス役自身の学習になる=02の5.3）。
+- **RaidScreen.tsx**: 「ボス役に立候補」ボタン（isConfigured かつ登録済みのときのみ。3.5節）→同意画面（共有内容3点を明示: 正誤の堅い/弱点公開・表示名のボス名公開・撤回で即時削除）→開始で `selectGhostBossQuestions` → `startSession`（items全てmode='battle'）→`beginSession(..., { isGhostBossSession: true })` → drill画面。在庫不足時はエラー表示のみで開始しない。
+- **新規 `screens/GhostBossResultScreen.tsx`**: セッション完了後の記録プレビュー（正解数・「弱点として公開される問題数」＝誤答数・問題一覧）。送信ボタンで `sendGhostBossRecord(raidApi, true, {displayName, records})` → 成功で送信済みフラグ（`settingsKeys.ts`の`GHOST_BOSS_SUBMITTED_AT_KEY`）を保存。破棄ボタンは送信せず `completeSession` のみでホームへ戻る（送信前ならいつでも破棄可=3.5節）。
+- **撤回導線（J-67の開示事項を実際に行使できるようにする追加実装。T-128シートの必須列挙には無いが、同意画面が明示する「いつでも撤回できる」を満たすUI経路が他に存在しないため本タスクで実装）**: `platform/net/RaidApi.ts`/`FetchRaidApi.ts` に `sendGhostRecord`（POST /ghosts）・`deleteOwnGhostRecord`（DELETE /ghosts/own）を追加。送信済みフラグがある間はRaidScreenに「ボス役記録を撤回する」ボタンを表示し、`withdrawGhostBossRecord` → 撤回成功でフラグを削除して立候補ボタンへ戻す。
+- **テスト**（新規・追加分）: `engine/ghostBossSelection.test.ts`（6件。difficulty>=4優先・30問未満の補填・10問未満での停止・除外formatの境界・境界値）、`services/ghostBoss.test.ts`（4件。同意の構造的強制の直接検証を含む）、`screens/GhostBossResultScreen.test.tsx`（4件）、`platform/net/FetchRaidApi.test.ts`（2件追加）、`services/answerPipeline.test.ts`（2件追加。mode='battle'でattempts記録・ratings非変化・pendingSync非エンキュー）、`screens/RaidScreen.test.tsx`（9件追加。立候補ボタンの表示条件・同意画面の文言・チェック無しでの起動不可・開始後のmode='battle'遷移・在庫不足エラー・やめる・撤回導線）、`App.test.tsx`（2件追加。'result'画面の振り分け）。既存のRaidApiフェイク実装7ファイルに新規メソッドのスタブを追加（型整合のみ・既存テストへの影響なし）。
+- **検証**: ルート `npm run lint`・`npm run format:check`・`npm run build` 全通過。`npm test` は `packages/app` を `--pool=threads` で実行し785件中783件通過（T-128関連の新規テストは全通過）。残る2件（`HomeScreen.test.tsx`の時刻追従テスト×2）は本タスクで変更していないタイマーロジックのテストで、並行worktree（別セッションの `vitest run --no-file-parallelism` が同時実行中）によるCPU競合由来のタイムアウトと判断（該当テストのfake timer機構・HomeScreen.tsx自体は本タスクで無変更）。単独実行時も同様のタイムアウトを観測したが、実行時間が271秒・279秒（本来ミリ秒オーダーの処理）と極端に遅く、環境要因（別プロセスの重い並行実行）と判断した。
+- **ガードレール遵守**: 新規npm依存なし。R-1領域（`engine/quickPack.ts`等・`packages/cli/`・`content/`）・`packages/api`・`packages/shared-schema`は未変更（`buildGhostRecordPayload`等T-123実装済みのものをimportで再利用したのみ）。
+- **停止条件**: 該当なし（実データで在庫は十分。3.5節の停止条件は発生しなかった）。
 
 ## 2026-07-27: M4残タスクの整理とM5ネイティブ化計画の起票（ブランチ `task/docs-23-m5-native`）
 
 発起人が「M4を全部やる。完了後にアプリ化」を決定した。実装はSonnetクラスの自走で行うため、本タスクは着手前の基盤整備のみを行い、実装コードは変更していない。
 
-**M4の現在地**: T-123（契約）・T-130（成長ランク）・T-124（BattleRoomDO）・T-127（ゴーストAPI）が完了。残りは **T-125・T-126（昼バトルのクライアント）、T-128・T-129（ゴーストのクライアント）、T-131（バランス調整の運用装置）** の5タスクと、人間タスク H-4〜H-6。
+**M4の現在地**: T-123（契約）・T-130（成長ランク）・T-124（BattleRoomDO）・T-127（ゴーストAPI）・T-128（ボス役クライアント）・T-129（ゴースト挑戦。本書冒頭の節）が完了。残りは **T-125・T-126（昼バトルのクライアント）、T-131（バランス調整の運用装置）** の2タスクと、人間タスク H-4〜H-6。（この段落は2026-07-27時点の記述。T-128・T-129はその後の作業で完了）
 
-サーバー側（`packages/api`）はT-124・T-127で揃っており、残る実装は `packages/app` 側に集中する。T-125とT-128はいずれも依存タスクが完了済みのため並行して着手できる。
+サーバー側（`packages/api`）はT-124・T-127で揃っており、残る実装は `packages/app` 側に集中する。T-125は依存タスクが完了済みのため他タスクと並行して着手できる。
 
 - **[23_M5ネイティブ化計画](23_M5ネイティブ化計画.md) を新規起票**: Capacitorネイティブ化のタスク分解と自走シートを1冊に統合した（T-132〜T-137・判断J-71〜J-78・人間タスクH-7〜H-9）。6タスクと小規模なため 16/17・21/22 のような2冊構成にしていない。**J-71〜J-78は未承認**。とくにJ-72のApple Developer Program $99/年は、B-2でPiperを選定した「無料の徹底」方針と異なるため発起人の明示承認を要する。着手はM4完了ゲート通過後。
 - **05の7節の移行判断ゲートが未実施のまま推移していた**ことを確認した。「M2完了時点でストリーク維持率が悪ければ前倒し」「iOSでデータが飛んだら即着手」のいずれも判定記録が無く、08の完了ゲートの観測記録欄も空である。23のJ-71で、このゲートを着手可否の判定から **H-9での効果測定（ストリーク維持率の前後比較）** へ組み替え、改善が確認できない場合に $99/年 の継続可否を再判断する形にした。

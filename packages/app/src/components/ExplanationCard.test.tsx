@@ -65,6 +65,9 @@ class FakeRaidApi implements RaidApi {
   })
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
+  sendGhostRecord = vi.fn(async () => {})
+  deleteOwnGhostRecord = vi.fn(async () => {})
 }
 
 let seq = 0
@@ -315,5 +318,37 @@ describe('ExplanationCard: 「問題がおかしい」報告の送信（T-101）
     ).toBeTruthy()
     expect(screen.queryByText('報告しました')).toBeNull()
     expect(screen.getByText('正解が間違っている')).toBeTruthy()
+  })
+})
+
+describe('ExplanationCard: ゴースト週の堅い/弱点バッジ（M4・T-129。docs/22 3.4節）', () => {
+  it('ghostDefense未指定（synthetic週・defense外の問題）ではバッジが出ない', () => {
+    render(<ExplanationCard question={question()} isCorrect={true} />)
+    expect(screen.queryByTestId('ghost-defense-badge')).toBeNull()
+  })
+
+  it('ghostDefense.multiplier>1のときは「弱点」バッジと実ダメージを表示する', () => {
+    render(
+      <ExplanationCard
+        question={question()}
+        isCorrect={true}
+        ghostDefense={{ multiplier: 2.0, damage: 20 }}
+      />,
+    )
+    const badge = screen.getByTestId('ghost-defense-badge')
+    expect(badge.textContent).toContain('弱点 ×2')
+    expect(badge.textContent).toContain('20')
+  })
+
+  it('ghostDefense.multiplier<=1のときは「堅い」バッジを表示する', () => {
+    render(
+      <ExplanationCard
+        question={question()}
+        isCorrect={true}
+        ghostDefense={{ multiplier: 0.5, damage: 5 }}
+      />,
+    )
+    const badge = screen.getByTestId('ghost-defense-badge')
+    expect(badge.textContent).toContain('堅い ×0.5')
   })
 })
