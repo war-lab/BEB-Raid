@@ -2,6 +2,18 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 潜在不具合の修正: scheduled()のcron出し分け（2026-07-27。ブランチ `task/fix-scheduled-cron-dispatch`。origin/dev起点）
+
+Web Push検証（T-149）の事前調査中に、`packages/api/src/index.ts` の `scheduled` ハンドラが `controller.cron` を一切見ず、**どのcronで発火しても無条件に `generateWeeklyBoss()` を呼ぶ**実装であることを検出した。cronを1本追加した時点で壊れる潜在不具合のため、日次cronの追加（T-149）より先に単独で修正した。
+
+- **現状は実害なし**: `packages/api/wrangler.toml` の `[triggers] crons` は `["0 0 * * 1"]`（週次1本）のみ。`triggers` は名前付き環境（`env.dev`・`env.production`）へ継承され、両環境とも `triggers` を再定義していないため（バインディング=`vars`/`kv_namespaces`/`durable_objects` と異なり継承される。同ファイル冒頭のコメント参照）、全環境で発火するcronはこの1本だけ。したがって現時点では誤発火の経路が存在しない。
+- **なぜ危険か**: cronを1本追加すると、その発火でも週次ボス生成が走る。最も影響が大きいのは `scheduled.ts` のEMA更新 `EMA_WEIGHT * previousDaily + (1 - EMA_WEIGHT) * member.emaDailyDamage` で、日次で適用されると本来週1回の平滑化が崩れ**約1週で `emaDailyDamage` が前週値へ収束する**。この値は翌週以降のボスHP算出（`BOSS_HP_FACTOR`）に使われるため、**レイドの難易度調整がエラーも出さずに壊れる**（無症状）。加えて `writeRaidSummary` がKVを毎日上書きし、`closeOutPreviousGhost` も毎日走る。
+- **`closeOutPreviousGhost` / `writeRaidSummary` の冪等性を確認**: 前者は `markGhostCloseoutHandled()` が DO の `ghostSourceToken` をNULL化し、以後 `getGhostCloseInfo()` が `undefined` を返すため `defeatedCount` の二重加算は起きない（DO側で冪等化済み。docs/22 3.3節）。後者は同一 `previousBossId` に対する `raidSummary:<bossId>` の同値上書きで、KV書込回数が増えるだけで値は壊れない。**つまり実際に壊れるのはEMAのみ**だが、それだけでレイド難易度の正本が失われる。
+- **修正**: `scheduled` を `controller.cron` による `switch` に変更し、週次ボス生成は `CRON_WEEKLY_BOSS = '0 0 * * 1'`（`wrangler.toml` の値と一字一句一致させる定数。cron式を文字列リテラルで散らさないため1箇所に定義）のときのみ実行する。**未知のcron式は「何もしない」を選択**（誤ってボス生成へフォールバックさせると、cron追加ミスが上記のEMA破壊という無症状の障害に直結するため）。ただし黙って捨てるとcron追加が機能していないことに気づけないので、`console.warn` でcron式を必ずログに残す（既存コードの「waitUntil経由の失敗は既定では完全に無音になるため、必ずログに残す」方針に倣った）。
+- **テストで防いだ内容**（`packages/api/src/index.test.ts` に3件追加。api計125件）: 既存の `scheduled.test.ts` は `generateWeeklyBoss` を直接呼ぶため出し分けを検証できていなかった。新規テストは `scheduled` ハンドラ経由で、(a) 週次cron式では当該ISO週のボスDOが初期化される＝生成が実行される（かつ警告ログが出ない）、(b) **別のcron式（`0 0 * * *`）ではボスDOが初期化されない＝生成が実行されない**（本修正の主眼）、(c) 未知のcron式では `console.warn` が1回・cron式を含んで呼ばれる、を検証する。修正前の実装に差し替えると(b)が失敗することを確認済み（負のテストが機能していることの確認）。
+- **スコープ**: `wrangler.toml` へのcron追加は行っていない（日次cronの追加自体はT-149）。変更は `packages/api/src/index.ts` と同 `index.test.ts` の2ファイルのみ。既存の週次cronの挙動は無変更。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build` 全通過。`npm test` は api 125件・app 844件・cli 338件・review-ui 15件・shared-schema 94件が全通過（appのフレークは発生せず、`--no-file-parallelism` での再実行は不要だった）。`npm run format:check` はgit管理外のローカル設定ファイル `.claude/settings.local.json` 1件のみ未整形として報告される（本作業の変更対象外・commit対象外。docs/18番号衝突解消時と同じ既知事象）。
+
 ## バグ修正: rate経路のonPosition座標系（2026-07-27。ブランチ `task/fix-audio-onposition`。dev起点）
 
 **発見経緯**: M5ネイティブ化（23）の事前調査で `packages/app/src/platform/audio/` を読んだ際に検出した。M5タスク（T-132〜）の実装ではない。
