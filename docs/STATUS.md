@@ -2,6 +2,17 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## T-131完了: バランス調整の運用装置（2026-07-27。ブランチ `task/T-131-balance-ops`。dev起点）
+
+22の8節T-131シートに基づき、`packages/api/` に閉じて週次サマリの記録・取得と、付録Aの係数調整手順を完成させた。T-127（ゴーストAPI）は依存済み・変更なし。
+
+- **週次サマリのKV書込**: `RaidBossDO`へ新規メソッド`getSummary()`を追加（個人別データ=貢献者一覧・displayNameを一切含まない集計のみを返す。未初期化ならundefined）。`scheduled.ts`の`generateWeeklyBoss`に`writeRaidSummary()`を追加し、前週ボスのクローズ処理（`closeOutPreviousGhost`と同じタイミング）で`raidSummary:<bossId>`としてKVへ書き込む（新規`raidSummaryStore.ts`。`ghostStore.ts`と同じ方針でenv.MEMBERSに別プレフィックスで同居させ、専用KVバインディングは追加していない）。
+- **管理用エンドポイント`GET /raid/summary`**（Bearer認証必須。新規`raidSummaryHandlers.ts`）: `raidSummary:`prefixの全件をKVから配列で返す。`statsHandlers.ts`の`handleGetStats`（`GET /stats/questions`）と同格の運用者向けエンドポイントで、クライアントアプリは呼ばない。
+- **付録A（係数調整手順）を完成**: 22の付録Aのプレースホルダーを、全4係数（`BOSS_HP_FACTOR`・`GHOST_HP_FACTOR`・`GHOST_MULTIPLIER_SOLID`/`WEAK`・速度ボーナス率0.2）について現在値・定義ファイル（実パス）・観測指標・調整の向きを実コードから確認して記入した（詳細は22の付録A参照）。
+- **テスト**（新規`raidSummary.test.ts`。api計122件=既存99+新規23）: 未討伐/討伐済み/ghost週それぞれのサマリ書込（値・個人別データ非含有＝キー一覧の網羅比較）、前週ボス未初期化（サービス開始直後）でも例外を投げず書込スキップ、同週内cron再実行での書込冪等性、`GET /raid/summary`の未認証401・保存済み配列返却・0件時の空配列。
+- **検証**: worktree直下で`npm ci`実施後、ルート`npm run lint`・`npm run format:check`・`npm run build`（4ワークスペース）全通過。`npm test`はapi 122件・cli 338件・review-ui 15件・shared-schema 94件が通過。app側は既知の並行worktree起因ワーカータイムアウトが発生したため`--no-file-parallelism`で再実行し757件全通過を確認（api変更のみのタスクでapp側は無変更）。
+- **ガードレール遵守**: 新規npm依存なし・新規KVバインディングなし。`packages/app`・`packages/shared-schema`・R-1領域・`battleRoomDo.ts`/`battleHandlers.ts`は未変更。変更は`packages/api/`と`docs/22`のみ。
+- **M4残タスク**（本節の執筆時点ではT-125・T-126・T-128・T-129が未着手だったが、dev取り込み時点で4件とも完了済み）: 実装タスクは全て完了。残るは人間タスクH-4〜H-6（昼イベントの実開催2回とその実測）のみ。
 ## T-126完了: S8ホスト画面（昼バトルWebSocketホストUI。2026-07-27。ブランチ `task/T-126-battle-host`。`task/T-125-battle-participant`（PR #61・未マージ）起点）
 
 22の6節T-126シートに基づき実装。T-125（S7参加画面）に依存するため、PR #61のブランチから分岐した（dev起点ではない。PR #61マージ後にdevへretargetする想定）。
