@@ -1093,6 +1093,27 @@ describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）'
     expect(useAppStore.getState().screen).not.toBe('drill')
   })
 
+  // 回帰防止: startSession失敗時にcatchが無いと、void呼び出しのため例外が握り潰され
+  // 画面が無反応になる（在庫不足以外の失敗が利用者に一切伝わらない）
+  it('セッション開始に失敗した場合はエラーを表示し、drillへ遷移しない', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+    const putSpy = vi
+      .spyOn(db.settings, 'put')
+      .mockRejectedValueOnce(new Error('セッション保存に失敗'))
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-consent-checkbox'))
+    fireEvent.click(screen.getByText('同意して開始'))
+
+    expect(await screen.findByText(/セッションを開始できませんでした/)).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+    putSpy.mockRestore()
+  })
+
   it('「やめる」で同意画面を離れ、通常のレイド画面へ戻る', async () => {
     const { db, raidApi, pool } = await registeredSetup()
 

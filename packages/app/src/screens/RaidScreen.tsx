@@ -357,6 +357,11 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       setShowGhostBossConsent(false)
       setGhostBossConsentChecked(false)
       navigate('drill')
+    } catch (e) {
+      // startSession（既存の中断セッションが残っている等）で例外が出ても
+      // 画面が無反応にならないようにする（catchが無いとvoid呼び出しのため握り潰される）
+      console.error('[RaidScreen] ボス役セッションの開始に失敗', e)
+      setGhostBossError('セッションを開始できませんでした。時間をおいて再度お試しください')
     } finally {
       setGhostBossStarting(false)
     }
