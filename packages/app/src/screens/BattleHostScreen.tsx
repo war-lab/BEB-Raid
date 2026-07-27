@@ -86,6 +86,12 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     })
   }, [battleSocket])
 
+  // 画面を離れるときは必ずWebSocketを閉じる（battleSocketはApp.tsxのモジュール単位
+  // シングルトンのため、閉じ忘れるとホーム遷移後もホスト接続が残る）
+  useEffect(() => {
+    return () => battleSocket.close()
+  }, [battleSocket])
+
   // 出題中のカウントダウン。0になったらホストが closeQuestion を送る
   // （DO側タイマーが正=22の3.2節。ホストのタイマーは締切送信の契機に過ぎない）
   useEffect(() => {
@@ -228,8 +234,9 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         </p>
         <p>参加者にルームコードを伝えてください</p>
         <ul className="raid-list" data-testid="battle-host-participants">
-          {participants.map((name) => (
-            <li key={name}>{name}</li>
+          {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
+          {participants.map((name, i) => (
+            <li key={i}>{name}</li>
           ))}
         </ul>
       </ScreenLayout>
@@ -286,8 +293,8 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         }
       >
         <ol className="raid-list" data-testid="battle-host-standings">
-          {standings.map((entry) => (
-            <li key={entry.displayName}>
+          {standings.map((entry, i) => (
+            <li key={i}>
               {entry.displayName}: {entry.totalPoints}点
             </li>
           ))}
@@ -303,8 +310,8 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
         <ol className="raid-list" data-testid="battle-host-result">
-          {resultEntries.map((entry) => (
-            <li key={entry.displayName}>
+          {resultEntries.map((entry, i) => (
+            <li key={i}>
               {entry.displayName}: {entry.totalPoints}点
             </li>
           ))}

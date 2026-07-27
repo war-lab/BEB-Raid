@@ -267,3 +267,26 @@ describe('BattleHostScreen: 音声再生完了前は解答受付が開かない'
     )
   })
 })
+
+describe('BattleHostScreen: 離脱時の後始末', () => {
+  // 回帰防止: battleSocketはApp.tsxのモジュール単位シングルトンのため、画面を離れても
+  // 閉じないとホスト接続が残り続ける
+  it('アンマウント時にWebSocketをcloseする', async () => {
+    const socket = new FakeBattleSocket()
+    const audioPlayer = new ControllableAudioPlayer()
+    const { unmount } = render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={audioPlayer}
+        questionPool={[textBlankQuestion('q-1')]}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    unmount()
+    expect(socket.closed).toBe(true)
+  })
+})

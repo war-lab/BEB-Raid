@@ -225,6 +225,61 @@ describe('BattleScreen: 誤答のattempts記録・復習デッキ登録・レー
   })
 })
 
+describe('BattleScreen: 切断・離脱時の後始末', () => {
+  // 回帰防止: attempts記録を最終リザルト受信までまとめて遅延させると、ホスト切断・通信断で
+  // closedへ落ちた回の解答ログが1件も残らない（attemptsは分析の基盤＝欠落させない）
+  it('resultを受け取らずに切断されても、解答済みぶんはattemptsに残る', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const q1 = textBlankQuestion('q-1', 'A')
+    const socket = new FakeBattleSocket()
+
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q1]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'bbbb' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('BBBB'))
+
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByText(q1.question!)
+    fireEvent.click(screen.getByRole('button', { name: /submit$/ }))
+
+    // resultを受けずにサーバー切断
+    socket.emitClose(1006)
+    expect(await screen.findByText('接続が切れました')).toBeTruthy()
+
+    await waitFor(async () => {
+      const attempts = await db.attempts.toArray()
+      expect(attempts).toHaveLength(1)
+      expect(attempts[0]).toMatchObject({ questionId: 'q-1', isCorrect: true, mode: 'battle' })
+    })
+  })
+
+  // 回帰防止: battleSocketはApp.tsxのモジュール単位シングルトンのため、画面を離れても
+  // 閉じないとルーム内の参加者枠を占有したままになる
+  it('アンマウント時にWebSocketをcloseする', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const { unmount } = render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'cccc' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('CCCC'))
+
+    unmount()
+    expect(socket.closed).toBe(true)
+  })
+})
+
 describe('BattleScreen: ルームコードの正規化', () => {
   it('小文字・4文字超は大文字化・切り詰めされる', async () => {
     const db = newDb()

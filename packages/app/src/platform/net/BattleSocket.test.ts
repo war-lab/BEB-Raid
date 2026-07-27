@@ -144,6 +144,59 @@ describe('WebSocketBattleSocket', () => {
     ])
   })
 
+  // 回帰防止: connect()はdeviceToken解決（IndexedDB読み出し）を待たずに返るため、
+  // 解決前にclose()された場合にWebSocketを張ってしまうと、どこからも閉じられない
+  // 孤立接続がルームに残り続ける（ホーム遷移後も参加者枠を占有する）
+  it('deviceToken解決前にclose()されたらWebSocketを張らない', async () => {
+    StubWebSocket.instances = []
+    let resolveToken: ((token: string) => void) | undefined
+    const factory = vi.fn(
+      (url: string, protocols?: string | string[]) =>
+        new StubWebSocket(url, protocols) as unknown as WebSocket,
+    )
+    const socket = new WebSocketBattleSocket(
+      'https://api.example.com',
+      () =>
+        new Promise<string>((resolve) => {
+          resolveToken = resolve
+        }),
+      factory,
+    )
+    socket.connect('ABCD')
+    socket.close()
+    resolveToken!('token')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(factory).not.toHaveBeenCalled()
+    expect(StubWebSocket.instances).toHaveLength(0)
+  })
+
+  // 回帰防止: token解決後・OPEN到達前にclose()された場合も、開いた接続を放置しない
+  it('OPEN到達前にclose()されたら、OPEN時にその接続を即座に閉じる', async () => {
+    StubWebSocket.instances = []
+    const factory = vi.fn(
+      (url: string, protocols?: string | string[]) =>
+        new StubWebSocket(url, protocols) as unknown as WebSocket,
+    )
+    const socket = new WebSocketBattleSocket(
+      'https://api.example.com',
+      async () => 'token',
+      factory,
+    )
+    socket.connect('ABCD')
+    await Promise.resolve()
+    await Promise.resolve()
+    const stub = StubWebSocket.instances.at(-1)!
+
+    socket.close()
+    stub.open()
+
+    expect(stub.closed).toBe(true)
+    // 閉じた接続にキュー済みメッセージをflushしない
+    expect(stub.sent).toEqual([])
+  })
+
   it('onCloseハンドラがWebSocketのcloseイベントで呼ばれる', async () => {
     const factory = vi.fn(
       (url: string, protocols?: string | string[]) =>

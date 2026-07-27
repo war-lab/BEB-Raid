@@ -50,6 +50,13 @@ export class WebSocketBattleSocket implements BattleSocket {
    * OPEN到達まではここに溜め、onopenでFIFOに送信する
    */
   private pendingMessages: BattleClientMessage[] = []
+  /**
+   * connect()の世代番号。connect()はgetDeviceToken()（IndexedDB読み出し）の解決を待たずに
+   * 返るため、解決前にclose()や再connect()が呼ばれると、後から生成されたWebSocketが
+   * どこからも閉じられない孤立接続として残る（this.wsはonopen到達時にしか設定されない）。
+   * close()/connect()のたびに世代を進め、古い世代のコールバックは接続を破棄する
+   */
+  private generation = 0
 
   constructor(
     private readonly baseUrl: string | undefined,
@@ -63,9 +70,18 @@ export class WebSocketBattleSocket implements BattleSocket {
       throw new Error('VITE_RAID_API_BASE_URLが未設定です')
     }
     const wsUrl = `${this.baseUrl.replace(/^http/, 'ws')}/battle/rooms/${code}/ws`
+    const generation = ++this.generation
     void this.getDeviceToken().then((token) => {
+      // token解決を待つ間にclose()／再connect()されていたら接続自体を張らない
+      if (generation !== this.generation) return
       const ws = this.wsFactory(wsUrl, [`bearer.${token}`])
       ws.onopen = () => {
+        // OPEN到達までの間にclose()／再connect()されていたら、この接続は即座に閉じる
+        // （this.wsへ載せると新しい世代の接続を上書きしてしまう）
+        if (generation !== this.generation) {
+          ws.close()
+          return
+        }
         this.ws = ws
         for (const message of this.pendingMessages.splice(0)) {
           ws.send(JSON.stringify(message))
@@ -109,6 +125,8 @@ export class WebSocketBattleSocket implements BattleSocket {
   }
 
   close(): void {
+    // 世代を進めることで、token解決待ちのconnect()が後からWebSocketを張るのを止める
+    this.generation += 1
     this.ws?.close()
     this.ws = null
     this.pendingMessages = []
