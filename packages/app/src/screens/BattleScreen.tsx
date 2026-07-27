@@ -80,6 +80,13 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const answeredThisQuestion = useRef(false)
   const answerRecords = useRef<AnsweredRecord[]>([])
   const finalized = useRef(false)
+  /**
+   * attempts記録の直列化チェーン。解答のたびにここへ繋いで記録する（最終リザルト受信まで
+   * 貯めておくと、ホスト切断・通信断でclosedへ落ちた回の解答が1件も残らないため。
+   * attemptsは分析の基盤で欠落させない＝CLAUDE.mdの不変条件）。
+   * 直列化するのは同一セッションのDexie書き込み順序を解答順と一致させるため
+   */
+  const persistChain = useRef<Promise<void>>(Promise.resolve())
   /** join時に取得した現在レート（各問の基礎点算出に使い回す。回線都度の再取得はしない） */
   const ratingRef = useRef(DEFAULT_INITIAL_RATING)
   /** questionOpen受信時刻（responseMs算出用） */
@@ -134,36 +141,25 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     return () => window.clearInterval(id)
   }, [phase, deadlineAt])
 
-  // 最終リザルト受信時に、この端末が解答できた問題ぶんだけattempts記録＋誤答の
-  // 復習デッキ登録を行う（22の3.2節末尾。レート更新は行わない=skip.rating）
+  // 画面を離れるときは必ずWebSocketを閉じる（battleSocketはApp.tsxのモジュール単位
+  // シングルトンのため、閉じ忘れるとホーム遷移後も接続とルーム内の参加者枠が残る）
+  useEffect(() => {
+    return () => battleSocket.close()
+  }, [battleSocket])
+
+  // 最終リザルト受信時に、解答時から進めてきたattempts記録の完了を待って誤答数を確定する
+  // （記録そのものはhandleAnswer時点で開始済み＝persistAnswer。ここでは表示の確定だけを行う）
   useEffect(() => {
     if (phase !== 'result' || finalized.current) return
     finalized.current = true
     let cancelled = false
-    void (async () => {
-      let wrong = 0
-      for (const record of answerRecords.current) {
-        if (!record.isCorrect) wrong += 1
-        try {
-          await recordAnswerPipeline(db, {
-            questionId: record.questionId,
-            question: record.question,
-            lookup: questionLookup.current,
-            isCorrect: record.isCorrect,
-            responseMs: record.responseMs,
-            mode: 'battle',
-            skip: { rating: true },
-          })
-        } catch (e) {
-          console.warn('[BattleScreen] バトル解答のattempts記録に失敗', e)
-        }
-      }
-      if (!cancelled) setWrongCount(wrong)
-    })()
+    void persistChain.current.then(() => {
+      if (!cancelled) setWrongCount(answerRecords.current.filter((r) => !r.isCorrect).length)
+    })
     return () => {
       cancelled = true
     }
-  }, [phase, db])
+  }, [phase])
 
   async function handleJoin() {
     const code = normalizeRoomCode(codeInput)
@@ -194,6 +190,29 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     }
   }
 
+  /**
+   * 1問ぶんのattempts記録＋誤答のkeyVocab復習デッキ登録を行う（22の3.2節末尾。
+   * レート更新は行わない=skip.rating）。解答した時点で記録するため、以降にホスト切断・
+   * 通信断でclosedへ落ちても解答ログは端末に残る
+   */
+  function persistAnswer(record: AnsweredRecord): void {
+    persistChain.current = persistChain.current.then(async () => {
+      try {
+        await recordAnswerPipeline(db, {
+          questionId: record.questionId,
+          question: record.question,
+          lookup: questionLookup.current,
+          isCorrect: record.isCorrect,
+          responseMs: record.responseMs,
+          mode: 'battle',
+          skip: { rating: true },
+        })
+      } catch (e) {
+        console.warn('[BattleScreen] バトル解答のattempts記録に失敗', e)
+      }
+    })
+  }
+
   function handleAnswer(choiceKey: string) {
     if (
       phase !== 'question' ||
@@ -211,12 +230,14 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
       : 0
     setOwnPoints(points)
     const responseMs = questionOpenedAtRef.current > 0 ? now() - questionOpenedAtRef.current : 0
-    answerRecords.current.push({
+    const record: AnsweredRecord = {
       questionId: currentQuestion.id,
       question: currentQuestion,
       isCorrect,
       responseMs,
-    })
+    }
+    answerRecords.current.push(record)
+    persistAnswer(record)
     battleSocket.send({ type: 'answer', questionIndex: currentQuestionIndex, points })
   }
 
@@ -274,8 +295,9 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           最新パックを取得してから参加してください（未取得の問題は0点で流れます）
         </p>
         <ul className="raid-list">
-          {participants.map((name) => (
-            <li key={name}>{name}</li>
+          {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
+          {participants.map((name, i) => (
+            <li key={i}>{name}</li>
           ))}
         </ul>
       </ScreenLayout>
@@ -334,8 +356,8 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     return (
       <ScreenLayout status={<p>途中順位</p>} action={<p>次の問題をお待ちください</p>}>
         <ol className="raid-list" data-testid="battle-standings">
-          {standings.map((entry) => (
-            <li key={entry.displayName}>
+          {standings.map((entry, i) => (
+            <li key={i}>
               {entry.displayName}: {entry.totalPoints}点
             </li>
           ))}
@@ -351,8 +373,8 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
         <ol className="raid-list" data-testid="battle-result">
-          {resultEntries.map((entry) => (
-            <li key={entry.displayName}>
+          {resultEntries.map((entry, i) => (
+            <li key={i}>
               {entry.displayName}: {entry.totalPoints}点
             </li>
           ))}
