@@ -2,6 +2,25 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## T-125完了: S7参加画面（昼バトルWebSocket参加者UI。2026-07-27。ブランチ `task/T-125-battle-participant`。origin/dev起点）
+
+M4（21・22）の昼バトルT-124依存タスク。[22_M4実装計画](22_M4実装計画.md) 6節のT-125シートに基づき実装した。
+
+- **新規 `packages/app/src/platform/net/BattleSocket.ts`**: WebSocketの抽象化レイヤ（`BattleSocket`インターフェース＋ブラウザ標準WebSocketによる`WebSocketBattleSocket`＋テスト用`FakeBattleSocket`。RaidApiと同じ疎結合パターン）。`connect(code)`が`https→wss`/`http→ws`変換したURL（`/battle/rooms/:code/ws`）へ、`Sec-WebSocket-Protocol: bearer.<deviceToken>`を付与して接続する（22の3.1節の認証方式）。受信JSONは`isBattleServerMessage`（T-123・shared-schema）で検証し、未知typeは棄却する。
+- **`platform/index.ts`**: `createBattleSocket(baseUrl, getDeviceToken)`ファクトリを追加（createRaidApiと同型）。
+- **新規 `screens/BattleScreen.tsx`（S7参加者モード）**: ルームコード入力（4文字・大文字化。`normalizeRoomCode`）→ロビー（`roomState`の参加者一覧・「最新パックを取得してから参加」案内）→出題中（`questionOpen`受信でローカルパックから選択肢を解決。`ChoiceButton`の大ボタンUIで解答→即時に自分の基礎点を表示）→各問後の順位表示（`standings`）→最終リザルト（`result`。順位・ベストグロース賞・誤答件数の復習デッキ登録済み表示）。
+  - **正誤判定・基礎点算出は参加端末側**（BattleRoomDOはquestionIdと換算点のみを扱うコンテンツ非依存設計=22の3.2節）。基礎点は`engine/rating.ts`の`basePoints`/`difficultyToRatingSpace`（既存の読取専用関数。R-1領域につき変更せず利用のみ）を使い、参加時に取得した`ratings`（total）を使い回す。
+  - **join時の`expectedPointsPerQuestion`**: 22の3.2節「直近の自己平均基礎点」の厳密値はattemptsに基礎点を保存していないため算出不能（保存には別途スキーマ変更が要り、R-1/schema領域外のためT-125のスコープ外と判断）。現在の総合レートから難易度3（Part2/Part5の中央値と仮定）で導出する近似値を暫定値として使用（コード内コメントに明記。数値パラメータの暫定扱いは22の3節冒頭の方針どおり）。
+  - **パック未取得問題**: `questionOpen`のquestionIdがローカルpoolに無ければ「パック未取得」表示にして解答不可のまま流す（0点。attempts記録もしない。22の3.2節どおり）。
+  - **バトル終了時の記録**（`result`受信時）: 解答できた問題ぶんだけ`recordAnswerPipeline`を`mode:'battle', skip:{rating:true}`で呼ぶ（srsCardIdは渡さないため`reviewSrsCard`＝SRS復習も自然に発火しない）。`skip.wrongAnswer`は指定しないため誤答時は`processWrongAnswer`が実行され、keyVocabの復習デッキ（srsCards）登録は通常どおり行われる。**レート更新（`db.ratings`/`ratingHistory`）・SRS復習間隔は変動せず、keyVocab循環のみ機能することをテストで確認済み**（3.2節「レート・SRS除外／keyVocab循環は実施」の要件を`recordAnswerPipeline`の既存skipオプションの組み合わせのみで満たせた。停止条件には該当しなかった）。
+- **`App.tsx`**: `battleSocket`（モジュールスコープ。raidApiと同じbaseUrl/deviceToken疎結合）を追加し、`screen==='battle'`で`BattleScreen`を描画。
+- **`store/appStore.ts`**: `ScreenName`に`'battle'`を追加。
+- **`screens/HomeScreen.tsx`**: ナビゲーション行に「昼バトルに参加」ボタンを追加（`raidApi.isConfigured()`時のみ表示。共有API無効時は入口ごと非表示＝22の2.3節の縮退設計）。
+- **`styles/components.css`**: `.battle-room-code-input`・`.battle-lobby-hint`を追加（他は既存の`.raid-list`・`.drill-error`・`.drill-timer`・`.secondary-action`等の既存クラスを再利用）。
+- **テスト**: `BattleSocket.test.ts`（bearer付与URL組立・baseUrl未設定時の例外・未知メッセージ棄却・send/close委譲・FakeBattleSocketのemitMessage/emitClose）、`BattleScreen.test.tsx`（join→questionOpen→解答→standings→resultの一連、パック未取得問題が0点で進行を壊さない、誤答のattempts記録・keyVocab復習デッキ登録・レート/SRS不変、ルームコード正規化、expectedPointsPerQuestion算出）、`HomeScreen.test.tsx`に入口ボタンの表示/非表示2件を追加。
+- **検証**: ルート`npm run build`・`npm run lint`・`npm run format:check`全通過。`npm test`はapi 114・cli 338・review-ui 15・shared-schema 94が通過、appは既知の並行worktree環境要因のワーカータイムアウト（`HomeScreen.test.tsx`の時刻追従テスト2件。本タスクの変更と無関係な既存テスト）が発生したため`--no-file-parallelism`で再実行し770件全通過を確認（precedent: T-124/T-127/T-130と同じ切り分け）。
+- **ガードレール遵守**: 新規npm依存なし（ブラウザ標準WebSocketのみ）。R-1領域（`engine/quickPack.ts`・`curriculum.ts`・`rating.ts`・`tagStats.ts`・`keyVocab.ts`・`packages/cli/`・`content/`）は未変更（`rating.ts`は既存パターンどおり読取のみ）。`packages/api`・`packages/shared-schema`も未変更。
+
 ## 2026-07-27: M4残タスクの整理とM5ネイティブ化計画の起票（ブランチ `task/docs-23-m5-native`）
 
 発起人が「M4を全部やる。完了後にアプリ化」を決定した。実装はSonnetクラスの自走で行うため、本タスクは着手前の基盤整備のみを行い、実装コードは変更していない。

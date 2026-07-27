@@ -1629,6 +1629,26 @@
   color: var(--ink-2);
 }
 
+/* --- S7 昼バトル参加画面（M4・T-125。docs/22 3.6節） --- */
+.battle-room-code-input {
+  width: 100%;
+  min-height: var(--tap-min);
+  margin: var(--sp-1) 0;
+  padding: 0 var(--sp-1);
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.battle-lobby-hint {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;

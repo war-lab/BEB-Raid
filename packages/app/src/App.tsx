@@ -11,6 +11,7 @@ import { setFontSizeScale } from './fontSize'
 import {
   createAiClient,
   createAudioPlayer,
+  createBattleSocket,
   createPackCache,
   createRaidApi,
   type PackCache,
@@ -25,6 +26,7 @@ import { BYOK_API_KEY_KEY, FONT_SIZE_KEY, THEME_PREFERENCE_KEY } from './service
 import { resolveTheme, setTheme, type ThemePreference } from './theme'
 import { PrimaryButton } from './components/PrimaryButton'
 import { ScreenLayout } from './components/ScreenLayout'
+import { BattleScreen } from './screens/BattleScreen'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
@@ -142,6 +144,15 @@ const aiClient = createAiClient(
  * 都度読み出す（aiClientと同じ疎結合パターン）
  */
 const raidApi = createRaidApi(
+  import.meta.env.VITE_RAID_API_BASE_URL as string | undefined,
+  async () => (await getDb().profile.get(PROFILE_ID))?.deviceToken ?? '',
+)
+
+/**
+ * 昼バトル（M4・T-125）のWebSocketクライアント。raidApiと同じbaseUrl/deviceToken疎結合パターン。
+ * 画面を離れる際はBattleScreen側でclose()を呼ぶ（次回参加時にconnect()が新規WebSocketを張り直す）
+ */
+const battleSocket = createBattleSocket(
   import.meta.env.VITE_RAID_API_BASE_URL as string | undefined,
   async () => (await getDb().profile.get(PROFILE_ID))?.deviceToken ?? '',
 )
@@ -383,6 +394,9 @@ export function App() {
   }
   if (screen === 'reading') {
     return <ReadingScreen db={getDb()} aiClient={aiClient} raidApi={raidApi} />
+  }
+  if (screen === 'battle') {
+    return <BattleScreen db={getDb()} battleSocket={battleSocket} questionPool={questionPool} />
   }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする

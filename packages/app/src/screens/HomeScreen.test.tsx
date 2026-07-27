@@ -1402,3 +1402,37 @@ describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）'
     expect(screen.queryByText(/今は出題できる問題がありません/)).toBeNull()
   })
 })
+
+describe('HomeScreen: 昼バトル参加の入口（M4・T-125。22の3.6節）', () => {
+  it('raidApi.isConfigured()=falseなら入口ボタンが表示されない（縮退設計）', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(false)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByRole('button', { name: '昼バトルに参加' })).toBeNull()
+  })
+
+  it('raidApi.isConfigured()=trueなら入口ボタンが表示され、タップでbattle画面へ遷移する', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const button = screen.getByRole('button', { name: '昼バトルに参加' })
+    fireEvent.click(button)
+    expect(useAppStore.getState().screen).toBe('battle')
+  })
+})
