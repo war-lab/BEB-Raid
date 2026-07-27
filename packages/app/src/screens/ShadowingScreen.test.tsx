@@ -365,4 +365,66 @@ describe('ShadowingScreen: 開始位置と素材間移動（T-120・J-59）', ()
     fireEvent.click(screen.getByText('前の素材へ'))
     await waitFor(() => expect(screen.getByText(/1\/2/)).toBeTruthy())
   })
+
+  // 開始位置の非同期確定（attempts読み込み）が利用者の移動より遅れて解決したときの競合。
+  // 修正前は「移動後にindexが巻き戻る」うえ、handlePrevのガードが古いindexを見るため
+  // indexが-1になりquestionがundefinedになって画面が壊れていた（CIで間欠的に落ちていた）
+  it('開始位置の確定が移動より遅れても、表示中の素材を巻き戻さない（負のindexにしない）', async () => {
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2', script: 'Second one.', timing: [0, 500] })
+
+    // attemptsの読み込みを保留させ、利用者の移動が先に起きる順序を確定的に作る。
+    // Dexieの実インスタンスへspyOnしても差し込めなかったため、マウント時に使う
+    // `attempts.where(...).startsWith(...).toArray()` の経路だけをスタブに置き換える
+    // （この画面の他のdb利用は再生完了時のみで、本テストでは通らない）
+    let releaseAttempts: (() => void) | undefined
+    let toArrayStarted = false
+    let toArrayResolved = false
+    const pending = new Promise<void>((resolve) => {
+      releaseAttempts = resolve
+    })
+    const stubDb = {
+      attempts: {
+        where: () => ({
+          startsWith: () => ({
+            toArray: async () => {
+              toArrayStarted = true
+              await pending
+              toArrayResolved = true
+              // 未実施なので空配列。firstUnfinished=0 となりindexを0へ戻そうとする
+              return []
+            },
+          }),
+        }),
+      },
+    } as unknown as BebRaidDatabase
+
+    render(<ShadowingScreen db={stubDb} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    // 初期表示（index=0）のまま、読み込み未完了の段階で次へ移動する
+    await waitFor(() => expect(screen.getByText(/1\/2/)).toBeTruthy())
+    fireEvent.click(screen.getByText('次の素材へ'))
+    await waitFor(() => expect(screen.getByText(/2\/2/)).toBeTruthy())
+
+    // 保留を仕込めていることの確認（ここが効いていないと以降が無意味なテストになる）
+    expect(toArrayStarted).toBe(true)
+    expect(toArrayResolved).toBe(false)
+
+    // ここで読み込みが解決する（未実施なのでfirstUnfinished=0を返しindexを0に戻そうとする）
+    await act(async () => {
+      releaseAttempts?.()
+      await pending
+      await Promise.resolve()
+    })
+    expect(toArrayResolved).toBe(true)
+
+    // 利用者の位置が尊重され、素材2の表示が維持される
+    expect(screen.getByText(/2\/2/)).toBeTruthy()
+
+    // 巻き戻っていないので「前の素材へ」も生きており、押すと素材1に戻れる（-1にならない）
+    fireEvent.click(screen.getByText('前の素材へ'))
+    await waitFor(() => expect(screen.getByText(/1\/2/)).toBeTruthy())
+    expect(screen.queryByText('前の素材へ')).toBeNull()
+  })
 })
