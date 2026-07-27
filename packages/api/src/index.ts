@@ -7,6 +7,7 @@ import { handlePreflight, withCors } from './cors'
 import type { Env } from './env'
 import { handleDeleteGhostOwn, handlePostGhost } from './ghostHandlers'
 import { handleRaidCurrent, handleRaidSync } from './raidHandlers'
+import { handleGetRaidSummary } from './raidSummaryHandlers'
 import { handleRegister } from './register'
 import { generateWeeklyBoss } from './scheduled'
 import { handleGetStats, handlePostReport, handlePostStats } from './statsHandlers'
@@ -80,6 +81,12 @@ async function route(request: Request, env: Env): Promise<Response> {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
     return handleDeleteGhostOwn(env, auth.deviceToken, Date.now())
+  }
+
+  if (request.method === 'GET' && url.pathname === '/raid/summary') {
+    const auth = await authenticateRequest(request, env)
+    if (auth instanceof Response) return auth
+    return handleGetRaidSummary(env)
   }
 
   if (request.method === 'POST' && url.pathname === '/battle/rooms') {

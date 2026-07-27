@@ -11,6 +11,7 @@ import type {
   RaidBossState,
   RaidContribution,
   RaidStatus,
+  RaidSummary,
 } from '@beb-raid/shared-schema'
 
 import type { BossProfile } from './bossProfiles'
@@ -173,6 +174,29 @@ export class RaidBossDO extends DurableObject<Env> {
       'UPDATE state SET ghostSourceToken = NULL WHERE bossId = ?',
       state.bossId,
     )
+  }
+
+  /**
+   * 週次サマリ用（正本: docs/22 3.8節）。個人別データ（contributions・displayName等）を
+   * 一切含まない集計のみを返す（未初期化ならundefined）。週次cronのクローズ処理で
+   * `raidSummary:<bossId>` としてKVへ書き込むために使う
+   */
+  getSummary(): RaidSummary | undefined {
+    const state = this.getStateRow()
+    if (!state) return undefined
+    const remainingHp = Math.max(0, state.maxHp - this.totalDamage())
+    const participantCount = this.ctx.storage.sql
+      .exec<{ c: number }>('SELECT COUNT(DISTINCT deviceToken) as c FROM damage_attempts')
+      .one().c
+    return {
+      bossId: state.bossId,
+      bossType: state.bossType as BossType,
+      maxHp: state.maxHp,
+      remainingHp,
+      defeated: state.defeatedAt !== null,
+      defeatedAt: state.defeatedAt,
+      participantCount,
+    }
   }
 
   /** 現在の状態を返す（未初期化ならundefined） */
