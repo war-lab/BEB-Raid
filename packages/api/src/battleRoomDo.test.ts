@@ -8,13 +8,26 @@
 // 影響を受ける全ソケット分を明示的にdrainしてから次のアクションに進むこと
 // （drainしないと後続のnextMessage()が古い未消費メッセージを誤って返す）
 
-import type { BattleServerMessage } from '@beb-raid/shared-schema'
+import type { BattleCloseReason, BattleServerMessage } from '@beb-raid/shared-schema'
 import { env, runInDurableObject, SELF } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 
 import type { BattleRoomDO } from './battleRoomDo'
 
 const VALID_INVITE_CODE = 'test-invite-code'
+
+/**
+ * サーバーが送出しうるクローズ理由の期待値。`satisfies Record<BattleCloseReason, BattleCloseReason>`
+ * により、shared-schema側で理由が追加・改名・削除されるとこのテストがコンパイルエラーになる
+ * （api実装とapp側の案内文が同じ正本を見ていることを型で担保する）。
+ * 各キーは下の個別テストで1つずつ実際のclose frameと突き合わせており、
+ * 「型にある理由がどれも実装から出ていない」状態を検出できる
+ */
+const CLOSE_REASONS = {
+  unauthorized: 'unauthorized',
+  room_not_found: 'room_not_found',
+  room_closed: 'room_closed',
+} as const satisfies Record<BattleCloseReason, BattleCloseReason>
 
 async function registerDevice(displayName: string): Promise<string> {
   const deviceToken = `device-${crypto.randomUUID()}`
@@ -199,9 +212,11 @@ describe('BattleRoomDO', () => {
     expect(result.type).toBe('result')
     expect(result.bestGrowth.displayName).toBe('アリス')
 
-    await hostClose
-    await aliceClose
-    await bobClose
+    // finish後の全接続クローズは1000・room_closed（正常終了である旨をapp側に伝える）
+    for (const closed of await Promise.all([hostClose, aliceClose, bobClose])) {
+      expect(closed.code).toBe(1000)
+      expect(closed.reason).toBe(CLOSE_REASONS.room_closed)
+    }
 
     // クローズ後、個人別データが一切残っていないこと（メモリ上のインスタンスフィールド）
     await runInDurableObject(stub, (instance: BattleRoomDO) => {
@@ -256,7 +271,7 @@ describe('BattleRoomDO', () => {
     })
   })
 
-  it('未登録deviceTokenの接続は1008でクローズされる', async () => {
+  it('未登録deviceTokenの接続は1008・unauthorizedでクローズされる', async () => {
     const code = freshCode()
     const hostToken = await registerDevice('ホスト3')
     const stub = await createRoom(code, hostToken)
@@ -270,9 +285,11 @@ describe('BattleRoomDO', () => {
     ws.accept()
     const closed = await nextClose(ws)
     expect(closed.code).toBe(1008)
+    // app側（screens/battleCloseMessage.ts）がレイド未登録の案内文に分岐する理由文字列
+    expect(closed.reason).toBe(CLOSE_REASONS.unauthorized)
   })
 
-  it('存在しないルームコードへの接続も1008でクローズされる', async () => {
+  it('存在しないルームコードへの接続は1008・room_not_foundでクローズされる', async () => {
     const code = freshCode()
     const someToken = await registerDevice('存在しない部屋テスト')
     const stub = env.BATTLE_ROOM.get(env.BATTLE_ROOM.idFromName(code))
@@ -286,6 +303,7 @@ describe('BattleRoomDO', () => {
     ws.accept()
     const closed = await nextClose(ws)
     expect(closed.code).toBe(1008)
+    expect(closed.reason).toBe(CLOSE_REASONS.room_not_found)
   })
 
   it('deadline後の解答は無視される', async () => {
@@ -361,7 +379,7 @@ describe('BattleRoomDO', () => {
     expect(await stub.tryInit(code, secondHostToken, Date.now())).toBe(true)
   })
 
-  it('ホストのWebSocket切断でルームがクローズされる', async () => {
+  it('ホストのWebSocket切断でルームがクローズされ、参加者へroom_closedが伝わる', async () => {
     const code = freshCode()
     const hostToken = await registerDevice('ホスト7')
     const aliceToken = await registerDevice('アリス7')
@@ -371,7 +389,9 @@ describe('BattleRoomDO', () => {
 
     const aliceClosed = nextClose(aliceWs)
     hostWs.close(1000, 'client_disconnect')
-    await aliceClosed
+    const closed = await aliceClosed
+    expect(closed.code).toBe(1000)
+    expect(closed.reason).toBe(CLOSE_REASONS.room_closed)
 
     await runInDurableObject(stub, (instance: BattleRoomDO) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
