@@ -63,10 +63,53 @@ export interface AnswerPipelineResult {
   nextSnapshot?: SessionSnapshot
   /** skip.rating指定時、またはSRS復習・語彙カード等レート対象外の解答ではundefined/null */
   ratingUpdate?: RatingUpdate | null
+  /**
+   * M4・T-129: レイドダメージがpendingSyncへエンキューされた場合のみ設定
+   * （raidSyncEnabled=OFF・未参加・期間外・ダメージ0のいずれかならundefined）。
+   * DrillScreen等が解説カードの「堅い/弱点」バッジ・実ダメージ表示に使う
+   */
+  raidDamage?: RaidDamageResult
 }
 
 /**
- * レイドダメージをpendingSyncへエンキューする（T-89。M3基盤・端末内完結ステップ）。
+ * ゴーストボスの問題別倍率を、raidStateキャッシュのdefenseJsonから解決する
+ * （M4・T-129。正本: docs/22 3.4節）。倍率適用はこの関数を含むこのファイル1箇所に
+ * 集約し、engine/damage.ts本体（solo/raid/srsのモード係数）は変更しない。
+ * bossType!=='ghost'・defenseJson無し・該当questionId無しのいずれも倍率1.0（無変化）を返す。
+ * 破損JSON（外部編集されたバックアップ等）も同様に1.0へフォールバックし、レイド機能自体を止めない
+ */
+function resolveGhostDefenseMultiplier(
+  raidState: Pick<RaidStateRecordLike, 'bossType' | 'defenseJson'>,
+  questionId: string,
+): number | undefined {
+  if (raidState.bossType !== 'ghost' || !raidState.defenseJson) return undefined
+  try {
+    const map = JSON.parse(raidState.defenseJson) as Record<string, number>
+    return map[questionId]
+  } catch {
+    return undefined
+  }
+}
+
+/** enqueueRaidSyncIfEnabledが参照するraidStateの最小形（テスト用フェイクとの結合を緩める） */
+interface RaidStateRecordLike {
+  bossType?: 'synthetic' | 'ghost'
+  defenseJson?: string | null
+}
+
+/** enqueueRaidSyncIfEnabledの戻り値。呼び出し側（DrillScreen等）が解説カードの
+ * 「今回の実ダメージ」「堅い/弱点」バッジを、倍率計算を再実装せずに表示するために使う */
+export interface RaidDamageResult {
+  /** 倍率適用後（pendingSyncへ積んだ）最終ダメージ */
+  damage: number
+  /** ghost週かつdefenseに該当questionIdがある場合のみ設定（0.5=堅い/2.0=弱点）。
+   * 該当なし・synthetic週はundefined（バッジを出さない判定に使う） */
+  ghostDefenseMultiplier?: number
+}
+
+/**
+ * レイドダメージをpendingSyncへエンキューする（T-89。M3基盤・端末内完結ステップ。
+ * M4・T-129でghostボスの倍率適用を追加）。
  * `raidSyncEnabled`設定が既定OFFのため、OFF時はこの読み取り1回のみで追加の書き込みは
  * 一切発生しない（縮退設計の常時保証）。参加中のレイドが無い・ダメージが0の場合も送らない
  */
@@ -74,27 +117,33 @@ async function enqueueRaidSyncIfEnabled(
   db: BebRaidDatabase,
   params: {
     attemptId: string
+    questionId: string
     answeredAt: number
     mode: AttemptMode
     isCorrect: boolean
     basePoints: number
   },
-): Promise<void> {
+): Promise<RaidDamageResult | null> {
   const setting = await db.settings.get(RAID_SYNC_ENABLED_KEY)
-  if (setting?.value !== true) return
+  if (setting?.value !== true) return null
 
   const raidState = await db.raidState.get(RAID_STATE_ID)
-  if (!raidState?.joined) return
+  if (!raidState?.joined) return null
 
   // 端末キャッシュのボス期間（endAt）を過ぎた解答はエンキューしない。
   // 端末は今週のボス情報を持っていない状態であり、旧bossId宛の期間外payloadを積んでも
   // サーバー（J-49: answeredAtが[startAt, endAt]区間内のみ加算=docs/16）は非加算のまま
   // acceptedIds扱いにするため、キューから消えて再送機会を失うだけになる
-  if (params.answeredAt > raidState.endAt) return
+  if (params.answeredAt > raidState.endAt) return null
 
   const points = params.isCorrect ? params.basePoints : 0
-  const damage = computeDamage(points, params.mode)
-  if (damage <= 0) return
+  // 3.4節: 倍率適用は「モード係数（raid1.0/solo0.5）を掛けたダメージ」に対して行う（併用は乗算）。
+  // defense外の問題・synthetic週・API無効時はmultiplier未定義=1.0扱いで、既存のsynthetic/API無効
+  // 挙動と完全に同一になる（回帰の要）
+  const baseDamage = computeDamage(points, params.mode)
+  if (baseDamage <= 0) return null
+  const ghostDefenseMultiplier = resolveGhostDefenseMultiplier(raidState, params.questionId)
+  const damage = baseDamage * (ghostDefenseMultiplier ?? 1)
 
   const payload = buildDamageSyncPayload({
     attemptId: params.attemptId,
@@ -108,6 +157,7 @@ async function enqueueRaidSyncIfEnabled(
     payloadJson: JSON.stringify(payload),
     createdAt: Date.now(),
   })
+  return { damage, ghostDefenseMultiplier }
 }
 
 /**
@@ -168,13 +218,15 @@ export async function recordAnswerPipeline(
     await reviewSrsCard(db, srsCardId, srsGrade ?? (isCorrect ? 'good' : 'again'))
   }
 
-  await enqueueRaidSyncIfEnabled(db, {
-    attemptId,
-    answeredAt,
-    mode,
-    isCorrect,
-    basePoints: ratingUpdate?.basePoints ?? 0,
-  })
+  const raidDamage =
+    (await enqueueRaidSyncIfEnabled(db, {
+      attemptId,
+      questionId,
+      answeredAt,
+      mode,
+      isCorrect,
+      basePoints: ratingUpdate?.basePoints ?? 0,
+    })) ?? undefined
 
-  return { nextSnapshot, ratingUpdate }
+  return { nextSnapshot, ratingUpdate, raidDamage }
 }

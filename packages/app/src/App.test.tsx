@@ -19,6 +19,7 @@ import type { PackCache } from './platform'
 import { createProfile } from './services/profile'
 import { startSession } from './services/session'
 import { useAppStore } from './store/appStore'
+import { useSessionStore } from './store/sessionStore'
 
 beforeEach(() => {
   useAppStore.setState({ screen: 'home' })
@@ -29,6 +30,7 @@ afterEach(async () => {
   await getDb().settings.clear()
   delete document.documentElement.dataset.theme
   delete document.documentElement.dataset.fontSize
+  useSessionStore.getState().reset()
   vi.restoreAllMocks()
 })
 
@@ -43,6 +45,29 @@ describe('App（配線確認）', () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
+  })
+})
+
+describe('App: 結果画面の振り分け（M4・T-128）', () => {
+  it('isGhostBossSessionがtrueならGhostBossResultScreenを描画する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    useSessionStore.setState({ isGhostBossSession: true, results: [], questions: new Map() })
+    useAppStore.setState({ screen: 'result' })
+
+    render(<App />)
+
+    expect(await screen.findByText('ボス役の記録')).toBeTruthy()
+  })
+
+  it('isGhostBossSessionがfalse（既定）なら通常のResultScreenを描画する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    useSessionStore.setState({ isGhostBossSession: false, results: [], questions: new Map() })
+    useAppStore.setState({ screen: 'result' })
+
+    render(<App />)
+
+    expect(await screen.findByText('リザルト')).toBeTruthy()
+    expect(screen.queryByText('ボス役の記録')).toBeNull()
   })
 })
 
