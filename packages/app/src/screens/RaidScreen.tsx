@@ -2,7 +2,7 @@
 // 未登録（招待コード入力）→登録済み（現ボス表示・参加・挑戦・手動同期）→討伐演出の一連。
 // 「レイドに挑む」は既存のstartSession系統にmode='raid'を渡すだけで、DrillScreen側は変更しない
 // （answerPipelineがmodeを透過するため=3.3節）。
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { DailyGoal, Question, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, RAID_STATE_ID, type BadgeRecord, type RaidStateRecord } from '../db/schema'
@@ -10,11 +10,16 @@ import { generateQuickPack } from '../engine/quickPack'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { formatRelativeTime } from '../engine/relativeTime'
 import { selectGhostBossQuestions } from '../engine/ghostBossSelection'
+import { buildFullQuestionLookup, buildGhostWeaknessMap } from '../engine/ghostWeaknessMap'
 import type { RaidApi } from '../platform'
 import { RaidApiError } from '../platform'
 import { withdrawGhostBossRecord } from '../services/ghostBoss'
 import { getOrInitPhaseState } from '../services/phase'
-import { RAID_FIRST_CLEAR_BADGE_ID, syncRaidDamage } from '../services/raidSync'
+import {
+  buildRaidStateBossCache,
+  RAID_FIRST_CLEAR_BADGE_ID,
+  syncRaidDamage,
+} from '../services/raidSync'
 import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
 import {
   GHOST_BOSS_SUBMITTED_AT_KEY,
@@ -228,6 +233,15 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     }
   }, [db, raidSyncCount])
 
+  // M4・T-129: ゴースト週の弱点マップ（docs/22 3.4節）。フックはearly returnより前に置く
+  // 必要がある（React hooksのルール）ため、後段の条件分岐より前にここで計算する。
+  // 個別questionIdはUIへ渡さず、Part・タグ単位の集計結果のみをJSXで使う
+  const ghostWeaknessMap = useMemo(() => {
+    if (!currentBoss?.defense) return []
+    const lookup = buildFullQuestionLookup(questionPool)
+    return buildGhostWeaknessMap(currentBoss.defense, lookup)
+  }, [currentBoss, questionPool])
+
   async function handleRegister() {
     setRegisterError(null)
     // issue #43: プロフィール未作成（初期診断を完了/スキップしていない）だとdeviceTokenが空のまま。
@@ -285,6 +299,7 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       startAt: currentBoss.startAt,
       endAt: currentBoss.endAt,
       lastSyncedAt: Date.now(),
+      ...buildRaidStateBossCache(currentBoss),
     })
     await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
     setRaidState((await db.raidState.get(RAID_STATE_ID)) ?? null)
@@ -742,6 +757,26 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               </li>
             ))}
           </ul>
+          {/* M4・T-129: ゴースト週の弱点可視化（docs/22 3.4節）。個別questionIdは出さず
+              Part・タグ単位の集計のみ表示する（正答の狙い撃ち防止） */}
+          {currentBoss.bossType === 'ghost' && ghostWeaknessMap.length > 0 && (
+            <div data-testid="ghost-weakness-map">
+              <p>弱点</p>
+              <ul className="raid-list">
+                {ghostWeaknessMap.map((w) => (
+                  <li key={`${w.part}:${w.tag}`}>
+                    Part{w.part} {w.tag} ×{w.multiplier}が{w.count}問
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/* M4・T-129: 討伐された回数の名誉表示（02の5.3節。公開処刑にしない演出方針） */}
+          {currentBoss.bossType === 'ghost' && currentBoss.ghost && (
+            <p data-testid="ghost-defeated-count">
+              討伐された回数: {currentBoss.ghost.defeatedCount}回
+            </p>
+          )}
           {lastSyncedLabel !== null && (
             <p
               className={syncFailed ? 'raid-sync-label is-stale' : 'raid-sync-label'}

@@ -8,7 +8,7 @@ import type { Question } from '@beb-raid/shared-schema'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
-import { RAID_STATE_ID } from '../db/schema'
+import { RAID_STATE_ID, type RaidStateRecord } from '../db/schema'
 import type { QuestionLookup } from '../engine/types'
 import { recordAnswerPipeline } from './answerPipeline'
 import { startSession } from './session'
@@ -504,5 +504,221 @@ describe('recordAnswerPipeline: レイドダメージのpendingSyncエンキュ�
     })
 
     expect(await db.pendingSync.count()).toBe(1)
+  })
+})
+
+describe('recordAnswerPipeline: ゴーストボスの倍率適用（M4・T-129。正本: docs/22 3.4節）', () => {
+  async function seedGhostRaidState(
+    db: BebRaidDatabase,
+    defense: Record<string, number>,
+    overrides: Partial<RaidStateRecord> = {},
+  ) {
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-w30',
+      profileJson: '{}',
+      hp: 8000,
+      maxHp: 10000,
+      myDamage: 0,
+      joined: true,
+      startAt: 1000,
+      endAt: Date.now() + 86_400_000,
+      lastSyncedAt: 1000,
+      bossType: 'ghost',
+      defenseJson: JSON.stringify(defense),
+      ghostJson: JSON.stringify({ displayName: 'ゴースト・上級者A', defeatedCount: 0 }),
+      ...overrides,
+    })
+  }
+
+  it('弱点（×2.0）のquestionIdは、倍率適用後のダメージがpendingSyncへ積まれ、multiplierが返る', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await seedGhostRaidState(db, { 'q-1': 2.0 })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage?.ghostDefenseMultiplier).toBe(2.0)
+    const queued = await db.pendingSync.toArray()
+    expect(queued).toHaveLength(1)
+    const payload = JSON.parse(queued[0]!.payloadJson) as { damage: number }
+    // raidモード係数1.0 × 基礎点 × 弱点倍率2.0 = 無印(raid係数のみ)の2倍
+    expect(payload.damage).toBe(result.raidDamage!.damage)
+    expect(payload.damage).toBeGreaterThan(0)
+  })
+
+  it('堅い（×0.5）のquestionIdは、倍率適用後のダメージが半減する（solo/raid両モードで乗算=3.4節）', async () => {
+    for (const mode of ['solo', 'raid'] as const) {
+      const db = newDb()
+      await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+      await seedGhostRaidState(db, { 'q-1': 0.5 })
+      const q = question('q-1')
+
+      // 倍率なし（synthetic相当）の基準ダメージを別DBで計測する
+      const baselineDb = newDb()
+      await baselineDb.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+      await baselineDb.raidState.put({
+        id: RAID_STATE_ID,
+        bossId: 'boss-2026-w30',
+        profileJson: '{}',
+        hp: 8000,
+        maxHp: 10000,
+        myDamage: 0,
+        joined: true,
+        startAt: 1000,
+        endAt: Date.now() + 86_400_000,
+        lastSyncedAt: 1000,
+      })
+      const baselineResult = await recordAnswerPipeline(baselineDb, {
+        questionId: q.id,
+        question: q,
+        lookup: lookupOf(q),
+        isCorrect: true,
+        responseMs: 1000,
+        mode,
+      })
+
+      const result = await recordAnswerPipeline(db, {
+        questionId: q.id,
+        question: q,
+        lookup: lookupOf(q),
+        isCorrect: true,
+        responseMs: 1000,
+        mode,
+      })
+
+      expect(result.raidDamage?.ghostDefenseMultiplier).toBe(0.5)
+      expect(result.raidDamage!.damage).toBeCloseTo(baselineResult.raidDamage!.damage * 0.5)
+    }
+  })
+
+  it('defenseに含まれないquestionIdは倍率1.0（無変化）で、ghostDefenseMultiplierはundefined', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await seedGhostRaidState(db, { 'other-question': 2.0 })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage?.ghostDefenseMultiplier).toBeUndefined()
+  })
+
+  it('bossType="ghost"でも誤答（ダメージ0）ならpendingSyncへ書き込まない（0×倍率は常に0）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await seedGhostRaidState(db, { 'q-1': 2.0 })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: false,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage).toBeUndefined()
+    expect(await db.pendingSync.count()).toBe(0)
+  })
+
+  it('defenseJsonが破損していても例外にせず倍率1.0にフォールダックする（外部編集バックアップ耐性）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await seedGhostRaidState(db, {}, { defenseJson: '{not-json' })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage?.ghostDefenseMultiplier).toBeUndefined()
+    expect(await db.pendingSync.count()).toBe(1)
+  })
+})
+
+describe('recordAnswerPipeline: synthetic週・API無効時の回帰（M4・T-129。docs/22 3.4節）', () => {
+  it('raidStateにbossType/defenseJsonが無い（synthetic週・M3までの既存キャッシュ）場合、倍率は常に1.0でM3と同一のダメージになる', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-w29',
+      profileJson: '{}',
+      hp: 8000,
+      maxHp: 10000,
+      myDamage: 0,
+      joined: true,
+      startAt: 1000,
+      endAt: Date.now() + 86_400_000,
+      lastSyncedAt: 1000,
+      // bossType/defenseJson/ghostJsonを意図的に付けない（synthetic週・旧キャッシュ）
+    })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage?.ghostDefenseMultiplier).toBeUndefined()
+    const queued = await db.pendingSync.toArray()
+    const payload = JSON.parse(queued[0]!.payloadJson) as { damage: number }
+    expect(payload.damage).toBe(result.raidDamage!.damage)
+  })
+
+  it('raidSyncEnabled=OFF（API無効・未設定と同じ縮退経路）はbossType="ghost"が仮に立っていてもpendingSyncへ一切書き込まない', async () => {
+    const db = newDb()
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-2026-w30',
+      profileJson: '{}',
+      hp: 8000,
+      maxHp: 10000,
+      myDamage: 0,
+      joined: true,
+      startAt: 1000,
+      endAt: Date.now() + 86_400_000,
+      lastSyncedAt: 1000,
+      bossType: 'ghost',
+      defenseJson: JSON.stringify({ 'q-1': 2.0 }),
+    })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage).toBeUndefined()
+    expect(await db.pendingSync.count()).toBe(0)
   })
 })

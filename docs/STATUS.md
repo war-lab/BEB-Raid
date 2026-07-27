@@ -2,6 +2,19 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## T-129完了: ゴースト挑戦（S5拡張・弱点可視化）（2026-07-27。ブランチ `task/T-129-ghost-challenge`。`task/T-128-ghost-boss-client`（PR #62）起点。**dev向けではない**。#62マージ後にdevへretargetする想定）
+
+22の7節T-129シートに基づき、`packages/app/` にゴースト週の挑戦体験（倍率適用・弱点マップ・討伐回数の名誉表示）を実装した。T-127（ゴーストAPI）は依存済み・変更なし。T-128（ボス役クライアント）が同じ`RaidScreen.tsx`を変更するため、その変更を含む`task/T-128-ghost-boss-client`ブランチを起点に作業した。
+
+- **raidStateキャッシュの拡張**（3.4節）: `db/schema.ts`の`RaidStateRecord`へ`bossType`・`defenseJson`（`Record<questionId, multiplier>`のJSON文字列）・`ghostJson`を非インデックスフィールドとして追加（Dexieスキーマversionは据え置き=version(3)のまま）。書込箇所は既存の2箇所（`RaidScreen.tsx`の`handleJoin`・`services/raidSync.ts`の`syncRaidDamage`）のみで、新設した`buildRaidStateBossCache(boss: RaidBossState)`（`raidSync.ts`からexport）が`RaidBossState.defense`配列をO(1)引き用のRecordへ変換する。
+- **倍率適用**（3.4節。**pendingSync書込前の1箇所=`services/answerPipeline.ts`に集約**。`engine/damage.ts`本体は無変更）: `enqueueRaidSyncIfEnabled`内で、既存のモード係数適用後ダメージ（`computeDamage(points, mode)`＝raid1.0/solo0.5）に対し、`raidState.bossType==='ghost'`かつ`defenseJson`に該当questionIdがある場合のみ`multiplier`（堅い0.5/弱点2.0）を乗算してからpendingSyncへ書く。defense外・synthetic週・API無効時はmultiplier解決が`undefined`になり実質1.0（無変化）で、既存のM3挙動と完全に同一になる。JSON破損（外部編集されたバックアップ等）も例外を投げず1.0にフォールバックする。`recordAnswerPipeline`の戻り値に`raidDamage?: RaidDamageResult`（`{ damage, ghostDefenseMultiplier? }`）を追加し、`DrillScreen.tsx`・`ReadingScreen.tsx`がこれを解説カードの表示に転用する（倍率計算をUI側で再実装しない）。
+- **弱点可視化**（3.4節・02の5.3節）: 新規`engine/ghostWeaknessMap.ts`の`buildGhostWeaknessMap(defense, lookup)`が、挑戦前に見せてよいPart・タグ単位の集計（例:「Part5 前置詞コロケーション ×2が3問」）のみを返す。**堅い（multiplier<=1）は集計対象外**とし、個別questionIdは戻り値に一切含めない（正答の狙い撃ち防止）。同ファイルの`buildFullQuestionLookup(pool)`は、defenseに含まれうる任意のquestionId（audio_set/text_passageはサブ設問id）を解決するため、questionPool全件へ既存`withSubQuestionLookup`を適用して組み立てる。`RaidScreen.tsx`はこれをuseMemo（earlyreturnより前。Reactフックのルール）で計算し、ghost週のみ「弱点」セクションと「討伐された回数」（`currentBoss.ghost.defeatedCount`。公開処刑にしない演出方針=02の5.3）を表示する。
+- **解答後のバッジ表示**（3.4節）: `components/ExplanationCard.tsx`に`ghostDefense?: { multiplier, damage } | null`を追加し、該当時のみ「堅い×0.5」/「弱点×2.0」バッジと今回の実ダメージを表示する（事前非開示の原則は「解答後にその1問限りの結果を見せる」ことと矛盾しないと判断）。`DrillScreen.tsx`（finalizeAnswer・finalizeSubQuestionAnswer）・`ReadingScreen.tsx`（finalizeSubQuestionAnswer）は、`recordAnswerPipeline`が返す`raidDamage`をローカルstateへ非同期に反映し、ExplanationCardへ渡す。
+- **テスト**（新規）: `services/answerPipeline.test.ts`（8件追加。弱点/堅いの倍率適用・solo/raid両モードでの乗算・defense外は無変化・誤答は常に0・defenseJson破損時のフォールバック・**synthetic週/API無効時がM3と完全同一のダメージになる回帰2件**）、`engine/ghostWeaknessMap.test.ts`（新規6件。Part・タグ単位集計・questionId非露出・複数タグの独立カウント・パック未取得の黙殺・null/undefined・サブ設問id解決）、`services/raidSync.test.ts`（4件追加。`buildRaidStateBossCache`の変換・synthetic週はsynthetic/null/null・ghost週の同期後キャッシュ更新・synthetic週同期後の回帰）、`screens/RaidScreen.test.tsx`（4件追加。弱点マップのPart・タグ表示とquestionId非表示・討伐回数の名誉表示・synthetic週での非表示回帰・参加時のraidStateキャッシュ保存）、`components/ExplanationCard.test.tsx`（3件追加。未指定時は非表示・弱点/堅いバッジの表示）。
+- **検証**: ルート`npm run lint`・`npm run format:check`・`npm run build`全通過。`npm test`はapi 114件・cli 338件・review-ui 15件・shared-schema 94件が通過。`packages/app`は並行worktree由来の既知のワーカータイムアウト（1件・`DatabaseClosedError`の未処理rejection）が1回発生したが、単独再実行（`vitest run -w @beb-raid/app`）および`--no-file-parallelism`再実行の両方で809件全通過を確認し、環境要因（既知事象）と判断した。
+- **ガードレール遵守**: 新規npm依存なし。`engine/damage.ts`本体・R-1領域（`engine/quickPack.ts`等・`packages/cli/`・`content/`）・`packages/api`・`packages/shared-schema`は未変更。
+- **停止条件**: 該当なし。
+
 ## T-128完了: ボス役クライアント（2026-07-27。ブランチ `task/T-128-ghost-boss-client`。dev起点）
 
 22の7節T-128シートに基づき、`packages/app/` にボス役セッション（立候補→同意画面→高難度セッション→記録プレビュー→送信）を実装した。T-127（ゴーストAPI）は依存済み・変更なし。
@@ -21,9 +34,9 @@
 
 発起人が「M4を全部やる。完了後にアプリ化」を決定した。実装はSonnetクラスの自走で行うため、本タスクは着手前の基盤整備のみを行い、実装コードは変更していない。
 
-**M4の現在地**: T-123（契約）・T-130（成長ランク）・T-124（BattleRoomDO）・T-127（ゴーストAPI）が完了。残りは **T-125・T-126（昼バトルのクライアント）、T-128・T-129（ゴーストのクライアント）、T-131（バランス調整の運用装置）** の5タスクと、人間タスク H-4〜H-6。
+**M4の現在地**: T-123（契約）・T-130（成長ランク）・T-124（BattleRoomDO）・T-127（ゴーストAPI）・T-128（ボス役クライアント）・T-129（ゴースト挑戦。本書冒頭の節）が完了。残りは **T-125・T-126（昼バトルのクライアント）、T-131（バランス調整の運用装置）** の2タスクと、人間タスク H-4〜H-6。（この段落は2026-07-27時点の記述。T-128・T-129はその後の作業で完了）
 
-サーバー側（`packages/api`）はT-124・T-127で揃っており、残る実装は `packages/app` 側に集中する。T-125とT-128はいずれも依存タスクが完了済みのため並行して着手できる。
+サーバー側（`packages/api`）はT-124・T-127で揃っており、残る実装は `packages/app` 側に集中する。T-125は依存タスクが完了済みのため他タスクと並行して着手できる。
 
 - **[23_M5ネイティブ化計画](23_M5ネイティブ化計画.md) を新規起票**: Capacitorネイティブ化のタスク分解と自走シートを1冊に統合した（T-132〜T-137・判断J-71〜J-78・人間タスクH-7〜H-9）。6タスクと小規模なため 16/17・21/22 のような2冊構成にしていない。**J-71〜J-78は未承認**。とくにJ-72のApple Developer Program $99/年は、B-2でPiperを選定した「無料の徹底」方針と異なるため発起人の明示承認を要する。着手はM4完了ゲート通過後。
 - **05の7節の移行判断ゲートが未実施のまま推移していた**ことを確認した。「M2完了時点でストリーク維持率が悪ければ前倒し」「iOSでデータが飛んだら即着手」のいずれも判定記録が無く、08の完了ゲートの観測記録欄も空である。23のJ-71で、このゲートを着手可否の判定から **H-9での効果測定（ストリーク維持率の前後比較）** へ組み替え、改善が確認できない場合に $99/年 の継続可否を再判断する形にした。
