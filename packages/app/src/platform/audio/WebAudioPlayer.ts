@@ -273,8 +273,12 @@ export class WebAudioPlayer implements AudioPlayer {
 
         if (options.onPosition) {
           const onPosition = options.onPosition
+          // 通知はファイル先頭からの絶対位置に統一する（AudioBuffer経路と同一の座標系）。
+          // 問題パックの timing は先頭からの絶対msなので、startMs 起点を足し戻さないと
+          // 区間リピート・3秒戻し（startMs>0）でカラオケハイライトが先頭語に戻ってずれる
+          const baseMs = startSec * 1000
           this.positionTimer = setInterval(() => {
-            onPosition(Math.max(0, (audio.currentTime - startSec) * 1000))
+            onPosition(baseMs + Math.max(0, (audio.currentTime - startSec) * 1000))
           }, POSITION_NOTIFY_INTERVAL_MS)
         }
         if (options.durationMs !== undefined) {

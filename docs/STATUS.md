@@ -2,6 +2,16 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## バグ修正: rate経路のonPosition座標系（2026-07-27。ブランチ `task/fix-audio-onposition`。dev起点）
+
+**発見経緯**: M5ネイティブ化（23）の事前調査で `packages/app/src/platform/audio/` を読んだ際に検出した。M5タスク（T-132〜）の実装ではない。
+
+- **不具合**: `WebAudioPlayer` の `onPosition` 通知が2つの再生経路で座標系が食い違っていた。AudioBuffer経路（`rate` が1または未指定）は `startMs` を足し戻して**ファイル先頭からの絶対ms**を通知するのに対し、HTMLAudioElement経路（`rate !== 1`）は `Math.max(0, (audio.currentTime - startSec) * 1000)` と**区間相対ms**を通知していた。問題パックの `timing`（単語開始ms）はファイル先頭からの絶対msなので、絶対位置が正しい。
+- **再現条件**: シャドーイング画面で速度チップを1.0以外にした状態（=HTMLAudioElement経路）で、3秒戻し（`ShadowingScreen.handleRewind`）または文タップの区間リピート（`handleSentenceTap`）を使う。いずれも `startMs > 0` になるため、カラオケ式ハイライト（`KaraokeScript` → `currentWordIndex(timing, positionMs)`）が先頭語に戻り、音声とずれる。速度1.0のままなら発生しない。
+- **修正**: HTMLAudioElement経路の通知を `baseMs + Math.max(0, (audio.currentTime - startSec) * 1000)`（`baseMs = startSec * 1000`）に変更し、両経路が同一の座標系（絶対ms）を返すことを保証した。`AudioPlayer` インターフェースのシグネチャは変更していない（挙動の是正のみ）。
+- **テストで捕まっていなかった理由**: `WebAudioPlayer.test.ts` の onPosition 関連テストが `startMs=0` しか検証しておらず（`startMs > 0` のケースでは両経路の式が一致してしまう）、`startMs > 0` かつ `rate !== 1` の組み合わせが抜けていた。回帰テストを3件追加した（AudioBuffer経路の `startMs>0`・HTMLAudioElement経路の `startMs>0`・同一 `startMs` に対して両経路が同じ座標系を返すことの突き合わせ）。
+- **未修正で残した同種の論点**（判断が必要なため本PRでは触れていない）: 複数srcの `playSequence` で `onPosition` の意味がなお経路間で異なる。AudioBuffer経路は連結全体の通算経過msを返すため2件目以降は「そのファイル内の絶対ms」にならず、HTMLAudioElement経路は要素ごとに `audio.currentTime` がリセットされるため2件目以降も各ファイル内の絶対msを返す。現状 `onPosition` の利用箇所はシャドーイング（単一srcの `play()`）のみなので実害はないが、連結再生でカラオケハイライトを使う場合は先に意味を決める必要がある。`durationMs` の打ち切り判定は両経路とも「メディア時間での長さ」として一貫しており、食い違いはなかった。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run build`（4ワークスペース）全通過。`npm run format:check` は未追跡の `.claude/settings.local.json`（gitignore対象外の作業環境ファイル。本変更とは無関係）のみ警告で、変更した2ファイルは整形済み。`npm test` は api 122件・cli 338件・review-ui 15件・shared-schema 94件が通過。app側は並行実行時に `RaidScreen.test.tsx` 起因の `DatabaseClosedError` unhandled rejection で終了コード1になる既知事象が出たため `--no-file-parallelism` で再実行し、62ファイル847件全通過（終了コード0）を確認した。
 ## 2026-07-27: M5の前提訂正と通知手段の方針転換（ブランチ `task/docs-23-m5-premises`。ドキュメントのみ）
 
 発起人がM5（Capacitorネイティブ化）の着手を決定したのを受けて前提を点検したところ、[23_M5ネイティブ化計画](23_M5ネイティブ化計画.md) の記述5件が現行実装と食い違っていることが判明した。訂正の作業中に発起人が方針を変更し、**M5の着手を保留してiOS PWAのWeb Pushを先に検証する**決定に至った。実装コードは変更していない。
