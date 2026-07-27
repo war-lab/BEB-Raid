@@ -2,6 +2,32 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 2026-07-27: 通知の効果検証を2段構えに変更（ブランチ `task/docs-23-webpush-staging`。ドキュメントのみ）
+
+PR #67で決めた「M5着手を保留し、先にiOS PWAのWeb Push（T-149）で通知の効果を実測する」方針に対し、**T-149の前段にコストゼロの手動検証を挟む**変更を発起人が決定した（J-87）。実装コードは変更していない。
+
+- **決定（J-87）**: 効果検証を2段に分ける。**第1段はiPhone標準のリマインダー・アラームを毎朝2週間セットする人間タスク（新規H-12。コード0行）**、第2段はWeb Push実装（T-149）で、第1段で効果が確認できた場合に限り着手する。効果が確認できなければ**Web PushもCapacitorのローカル通知（T-135）も作らない**という判断があり得る。T-149の状態を「先行実施」から「保留中（H-12の結果次第）」に変更し、既に保留中だったT-135にもH-12の結果が着手条件に加わることを明記した。
+- **この順序にする最大の理由**: **Web Pushでは負の結果が解釈不能になる**。AppleはiOS PWAへのWeb Pushの配送タイミングを保証していない（一次情報を確認できておらず未検証）ため、「学習日数が増えなかった」が効果の不在なのか未到達なのかを切り分けられない。手動アラームなら到達が確実なので負の結果も解釈できる。副次的な理由は、仮説（リマインドが学習日数を増やすか）に対して配送手段は本質でないこと、`attempts` が追記のみで削除できないため**測定機構を事前に仕込まずに遡及算出できる**こと、Web Push実装の作業量が大きいこと（新規7ファイル・変更9ファイル規模。Service Workerの方式移行を含む）。
+- **第1段の限界（省略しない）**: 自作アラームには「通知から1タップでアプリを開く」導線がない。自分でセットした通知と外から来る通知では慣れ方・無視のしかたが異なる可能性がある。n=1で統計的有意性は主張できず、交絡（季節性・繁忙期・自作バイアス・M4や読解の同時期改修）が残る。したがって第1段は**方向性を見るための検証**であり、判断に使うのは方向のみとする。
+- **T-149シートに反映した技術調査結果**（重大度順。docs/23の1.7.2〜1.7.5節）:
+  - **S1（最重要）**: 到達を確認できないと測定が解釈不能になる。**到達ログをT-149の必須要件とし、持たない実装は承認しない**。通知本文または `tag` に受信時刻を入れて目視記録する方式（IndexedDB非依存のためS2の影響を受けない）。
+  - **S2（高）**: iOSでService Workerのpushハンドラから `indexedDB` が `undefined` になる報告がある（Apple Developer Forums thread 769794、iOS 18.1.1。Appleの応答・WebKit bugzilla項目・回避策のいずれも確認できず、iOS 26での修正状況は未検証）。「SWがIndexedDBを読んで本文に復習件数を差し込む」案は確度が低く、汎用文フォールバック込みでしか作れないため**件数差し込みはスコープ外**にした（測定の交絡も避ける）。なお同案は**サイレントpushではない**（pushを受けて必ず `showNotification` を呼び、本文だけを端末内データから作る）。WebKitが禁じているのは通知を出さないことである。
+  - **S3（高）**: サイレントpush禁止と購読失効。ハンドラ内の例外（ペイロードのJSONパース失敗等）も違反に数えられ、重ねると購読が失効して**測定が静かに死ぬ**（「3回で失効」は二次情報。WWDC22とWebKitブログの「`userVisibleOnly` 違反は購読失効」という記述と整合するが未検証）。緩和はハンドラ全体のtry/catchとcatch側でも汎用文で `showNotification` すること、および**ペイロードを空にしてパース例外の経路自体を消すこと**（RFC 8030はbody無しpushを許すため、汎用固定文ならRFC 8291の暗号化が不要でVAPID JWT署名1回で全員に送れる）。これを推奨構成として記載。
+  - **S6（中）**: `injectManifest` 移行のリスク。現状は `generateSW`（`packages/app/vite.config.ts` の `VitePWA` に `strategies` 指定がないため既定）で、`registerType: 'autoUpdate'`（同23行目）が `skipWaiting()`・`clientsClaim()` を注入している。手書きSWで再現し忘れると**更新が永久に反映されない**。SWのユニットテストはゼロでCIでは検出できず、デプロイ後の手動確認をゲートに置く。`CacheStoragePackCache` の `beb-pack-cache-v1` はWorkboxのprecache名前空間とは別名で干渉しないが、**自前SWに未知のcache名を消すクリーンアップを書くと破壊する**ため書かない（コードコメントで明示）。
+  - **S8（中）**: Workers無料枠のCPU 10ms/invocation。**VAPID JWTはバッチ内で1回署名して全購読で再利用する**（RFC 8292上24時間有効）。subrequestは50/invocation上限。20人規模ならcron 5本・KV枠は余裕。
+  - **暗号処理**: Cloudflare公式のWeb Cryptoドキュメントの対応表でVAPID JWTのECDSA P-256署名・RFC 8291のECDH P-256 `deriveBits`・HKDF-SHA256・AES-128-GCM の対応を確認。ただし鍵フォーマット（`raw` 65バイト非圧縮点・`jwk`）のインポート可否は明記がなく**未検証**で、`wrangler dev --local` でのスモークテストを完了条件に入れた。ライブラリは純WebCrypto実装（`@pushforge/builder` 等）を使い、Node製 `web-push` は `crypto.createECDH` 不在の未クローズissueがあるため避ける。
+  - **iOS PWA前提**: ホーム画面追加が必須（Safariタブでは `PushManager` が露出しない。iOS 16.4）。権限要求はユーザー操作起点が必須。`subscribe({userVisibleOnly:true})` 必須。ホーム画面追加の導線は `pwa/InstallHint.tsx` に既にあり追加不要。通知許可の導線は **`SettingsScreen.tsx` に「学習リマインド通知」セクションを新設**する（`InstallHint` はホーム画面追加**前**のバナーで、その時点では `PushManager` が使えず失敗するため相乗り不可）。既存の `platform/notifications/Notifier.ts` は `schedule`/`cancel` を持つローカル通知前提で `schedule()` はWebでは実装不能なため**流用せず**、`requestPermission`＋`subscribe` の別インターフェース（例 `PushSubscriber`）を追加する。
+  - **配信対象は発起人1台**。20人配信・購読管理UI・通知時刻カスタマイズ・Declarative Web Push・複数種別の通知・購読失効の自動再購読はスコープ外。
+- **プライバシー境界（J-86の判断材料）**: push subscription（`endpoint`/`p256dh`/`auth`）は端末ごとの安定識別子で、不変条件の文面（個人紐づきで送るのはダメージ換算値＋表示名のみ）に収まっていない。`endpoint` は正誤詳細・レート実値・本名・社名のいずれでもないため即却下ではなく、**文面を拡張する判断が必要**。保存方式は `questionStats` と同じ構造的手段を適用する（`packages/api/src/index.ts` のroute側で `handlePostStats` に `auth.deviceToken` を渡していない・`packages/api/src/statsDo.ts` の `question_stats` 表にdeviceToken列がない、を確認済み）。**ただし完全な非結合は達成できない**（同一IP・近接時刻での相関が可能。KVの `createdAt`、Cloudflareのログ）。到達水準は「構造的に結合できない」ではなく「**結合するコードを書いていない**」であることを文書とコードコメントに明記する。
+- **効果測定の算出方法を固定**（docs/23の1.4.1節）: `週次学習日数(週W) = |{ d ∈ W : countSrsAnswersOn(db, d) >= STREAK_REQUIRED_SRS_ANSWERS }|`（`packages/app/src/engine/streak.ts`。`STREAK_REQUIRED_SRS_ANSWERS = 5`）。ストリーク成立条件と揃える。副指標として `>= 1` の日数も併記する（開いたが5問未達の日を拾う）。**サーバー送信不要で端末内で完結**。専用UIも必須ではない（`DashboardScreen.tsx` が `db.attempts.where('answeredAt').aboveOrEqual(...)` の日別集計と `engine/heatmapCells.ts` の `buildHeatmapCells()` を既に持つ）。
+- **T-132の縮小**: 遡及算出が可能である以上「ベースライン収集」は不要なので、T-132の役割を**判定基準の明文化**に縮小した。遡及算出できない項目（iOSでのデータ消失・退避の観測有無）だけは従来どおりH-4/H-6での聞き取りとして残す。
+- **却下理由の不成立**: docs/05の7節およびdocs/23のJ-76が挙げた「Web Push＋サーバーcronはサーバーレス方針と衝突する」は現在成立していない。M3で Workers + KV + DO と週次cron（`packages/api/wrangler.toml` の `[triggers] crons = ["0 0 * * 1"]`、`.github/workflows/api-deploy.yml`）が本番稼働しており、日次cronの追加はゼロからサーバーを立てる話ではない。docs/23には記録し、**docs/05の改訂はPR #67で既に立っている残課題（上位文書の前提記述の更新）に統合**した（重複させていない）。
+- **T-149の前提条件（別PR対応）**: `packages/api/src/index.ts` の `scheduled` ハンドラが `controller.cron` を見ずに無条件で `generateWeeklyBoss` を呼んでいる（確認済み）。**未修正で日次cronを追加すると `emaDailyDamage` の平滑化が毎日走り、レイド難易度調整が無症状で壊れる。** ブランチ `task/fix-scheduled-cron-dispatch` で修正中で、その完了をT-149の前提条件に記載した。本PRでは `packages/api` を変更していない。
+- **ID採番**: 新規は **J-87**（判断）・**H-12**（人間タスク）。docs/23の現物でT-149・J-86・H-11までの使用を確認し、T-150以降は未使用のまま残した（第1段は実装を伴わないためタスクIDを起票していない）。
+- **ADRの扱い**: 新規ADRを作らず、[ADR 0007](adr/0007-通知手段の選択とM5ネイティブ化の前提.md) の末尾に **2026-07-27 Amendment** を追記した。adr/README.mdの「承認済みADRの本文は書き換えず、判断が変わったら新しいADRを起こす」規則に対し、本件は案B（Web Push先行）の撤回ではなく実測手段を1段後ろへずらす差分であり、ADR 0005の「2026-07-18 Amendment」と同じ前例に従った。本文は書き換えず、判断1の正文がAmendmentで上書きされることを冒頭のメタ情報に明記した。
+- **変更ファイル**: `docs/23_M5ネイティブ化計画.md`、`docs/adr/0007-通知手段の選択とM5ネイティブ化の前提.md`、`docs/adr/README.md`、`CLAUDE.md`（23の行のID帯と要約）、本ファイル。
+- **検証**: worktree直下で `npm ci` 実施後、ルート `npm run lint`・`npm run format:check`・`npm run build`・`npm test` を実行。
+
 ## バグ修正: rate経路のonPosition座標系（2026-07-27。ブランチ `task/fix-audio-onposition`。dev起点）
 
 **発見経緯**: M5ネイティブ化（23）の事前調査で `packages/app/src/platform/audio/` を読んだ際に検出した。M5タスク（T-132〜）の実装ではない。
