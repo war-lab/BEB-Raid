@@ -2,6 +2,27 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## T-126完了: S8ホスト画面（昼バトルWebSocketホストUI。2026-07-27。ブランチ `task/T-126-battle-host`。`task/T-125-battle-participant`（PR #61・未マージ）起点）
+
+22の6節T-126シートに基づき実装。T-125（S7参加画面）に依存するため、PR #61のブランチから分岐した（dev起点ではない。PR #61マージ後にdevへretargetする想定）。
+
+- **新規 `packages/app/src/engine/battleLottery.ts`**: `drawBattleQuestionSet(pool, rng?)`。J-65正文（22の3.2節）どおりPart2:Part5=6:6の12問を無作為抽選し、在庫不足時は他方で補填する（両方合わせても12問未満なら在庫分だけを返す。T-128のdifficulty>=4抽選と異なりこちらに停止条件は無い＝22の6節T-126シート）。既存`engine/shuffle.ts`を再利用（rng注入でテスト決定的）。
+- **新規 `packages/app/src/screens/BattleHostScreen.tsx`**: T-125のBattleScreen.tsxとは別ファイルに分割（22の3.6節「ファイル分割は任意」）。フェーズ`setup→creating→lobby→presenting→question→standings→result→closed`。
+  - **抽選プレビュー・再抽選**: setup画面で抽選結果一覧とPart内訳を表示し、再抽選ボタンで引き直せる。
+  - **ルーム作成**: `raidApi.createBattleRoom()`（新規追加。下記）→`battleSocket.connect(code)`。ホストは`join`を送らない（BattleRoomDO側がルーム作成者のdeviceTokenを自動的にhost roleとして扱うため=T-124の`battleRoomDo.ts`実装）。
+  - **音声再生完了ゲート（05の4.2節・22の3.6節の中核要件）**: `presentQuestion()`が問題を投影し、Part2（audio_qa。`question.audio`あり）は`audioPlayer.unlock()`→`play()`（`audioMeta.questionEndMs`があれば質問部で打ち切り、正答読み上げリークを防ぐ=DrillScreenの既存パターンを踏襲）の**完了後にのみ**`openQuestion`を送信する。Part5等（音声無し）は表示と同時に送信する。BattleHostScreen.test.tsxの「音声再生完了前に解答受付が開かないテスト」（制御可能なPromiseのFakeAudioPlayerで検証）と、Playwright実機通し（下記）の双方で確認。
+  - **締切送信**: `questionOpen`受信のdeadlineAt（DO側タイマーが正）を基準にカウントダウンし、0になったらホストが`closeQuestion`を自動送信する（手動の「解答締切」ボタンは設けていない。ドキュメントに明記が無いためシンプルな自動締切とした）。
+  - **進行**: standings受信後「次の問題へ」（未回答問題が残る間）／「結果発表」（最終問題後）ボタンで`finish`まで進める。ホストは参加者として解答しない（進行専任）。
+- **`platform/net/RaidApi.ts`・`FetchRaidApi.ts`に`createBattleRoom(): Promise<string>`を追加**（`POST /battle/rooms`。T-124で実装済みのエンドポイントに対する初のクライアント呼び出し）。既存の`implements RaidApi`実装8箇所（テストのFakeRaidApi）にモックを追加。
+- **`store/appStore.ts`に`battleHost`画面を追加**、`App.tsx`・`HomeScreen.tsx`（「昼バトルを主催」ボタン。`isConfigured()`時のみ表示=縮退設計）に配線。
+- **T-125由来の実欠陥を発見・修正（`platform/net/BattleSocket.ts`）**: Playwright実機通し中に、参加者の`join`メッセージがサーバーに一切届かない不具合を発見した。原因は`WebSocketBattleSocket.connect()`が`getDeviceToken()`（IndexedDB読み出し、非同期）の解決を待たずに返り、呼び出し側（`BattleScreen.handleJoin`）が`connect()`の直後に同期的に`send()`を呼ぶ実装（T-125由来）のため、`this.ws`未設定の間の`send()`が`this.ws?.send()`のoptional chainingで無音に握りつぶされていたこと（さらに`this.ws`設定後もWebSocketが`OPEN`に達する前の`send()`は実ブラウザでは`InvalidStateError`を投げる）。ユニットテストはFakeBattleSocket（同期）で検証していたため発見されていなかった。**修正**: 送信メッセージをキューに積み、WebSocketの`onopen`到達時にFIFOでflushする方式に変更。`BattleSocket.test.ts`に回帰テストを追加（キュー→flushの検証、既存の委譲テストは`stub.open()`呼び出しを追加して修正）。
+- **検証**: ルート`npm run lint`・`npm run format:check`・`npm run build`（4ワークスペース）全通過。`npm test`は api 114件・app 786件（新規29件: battleLottery 8+ BattleHostScreen 4 + BattleSocket回帰1 + HomeScreen 2 + FetchRaidApi 1 + 各FakeRaidApi更新分の既存回帰）・cli 338件・review-ui 15件・shared-schema 94件、全パッケージ通過。
+- **🟡 人間チェックポイント（Playwrightでの2ブラウザ実ローカル通し）を実施**: `wrangler dev --local`（`.dev.vars`に`INVITE_CODE=dummy-invite-code`。検証後は`.dev.vars.example`相当に戻し済み）＋`vite`（dev。ポート5173が別worktreeのプロセスに使用中のため5174。`.dev.vars`に一時的に`ALLOWED_ORIGINS=http://localhost:5174`を追記して検証し、api既存CORSテストへの汚染に気づいて`.dev.vars`を戻した上でapi全テスト再通過を確認済み）を起動し、Playwright MCPで**完全に別のブラウザコンテキスト**（`browser.newContext()`。同一コンテキストの別タブだとIndexedDBが共有されデバイスが分離できないため）を用意し、ホスト役・参加者役をそれぞれ招待コード登録から実施した。
+  - ホスト: 抽選プレビュー（Part2 6問/Part5 6問）確認→ルーム作成（コード発行確認）→参加者「参加者花子」のロビー入室確認→開始→全12問（Part2音声問題は実際に`/audio/part2/*.mp3`をフェッチし再生完了を待ってから出題オープンされることをネットワークログで確認、Part5は即時オープン）→締切自動送信→途中順位（速度ボーナス計算値83点=基礎点69点×ボーナス14点を実測で確認）→最終リザルト・ベストグロース賞表彰まで到達。
+  - 参加者: 正答時の基礎点即時表示、無回答問題（1問取りこぼし）でも進行が壊れないこと、最終リザルトでの「誤答0問を復習デッキに登録しました」表示を確認。
+  - スクリーンショット: `.playwright-mcp/host-0{1..5}-*.png`・`participant-0{1..5}-*.png`（ローカル一時生成物。gitignore対象のため本PRには含まれない）。
+- **ガードレール遵守**: 新規npm依存なし。R-1領域・T-124の`battleRoomDo.ts`/`battleHandlers.ts`・T-127のゴースト関連ファイルは未変更。
+
 ## T-125完了: S7参加画面（昼バトルWebSocket参加者UI。2026-07-27。ブランチ `task/T-125-battle-participant`。origin/dev起点）
 
 M4（21・22）の昼バトルT-124依存タスク。[22_M4実装計画](22_M4実装計画.md) 6節のT-125シートに基づき実装した。

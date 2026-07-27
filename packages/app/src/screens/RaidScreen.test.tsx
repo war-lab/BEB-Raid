@@ -78,6 +78,7 @@ class FakeRaidApi implements RaidApi {
   syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: this.currentBoss ?? ACTIVE_BOSS }))
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
   sendGhostRecord = vi.fn(async () => {})
   deleteOwnGhostRecord = vi.fn(async () => {})
 }

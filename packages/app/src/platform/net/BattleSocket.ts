@@ -41,6 +41,16 @@ export class WebSocketBattleSocket implements BattleSocket {
   private messageHandler: BattleSocketMessageHandler | null = null
   private closeHandler: BattleSocketCloseHandler | null = null
   /**
+   * connect()直後に送られたメッセージのキュー（T-126の実機通しで発見・修正）。
+   * connect()はgetDeviceToken()（IndexedDB読み出し）の解決を待たずに返るため、
+   * 呼び出し側（BattleScreen.handleJoin等）がconnect()の直後同期的にsend()を呼ぶと、
+   * まだthis.wsが未設定（またはWebSocketがOPENに達していない）状態でsend()が素通りし、
+   * 送信メッセージが黙って失われていた（optional chaining `this.ws?.send()`がno-op化。
+   * さらにOPEN未達時のsend()はブラウザ実装ではInvalidStateErrorを投げる）。
+   * OPEN到達まではここに溜め、onopenでFIFOに送信する
+   */
+  private pendingMessages: BattleClientMessage[] = []
+  /**
    * connect()の世代番号。connect()はgetDeviceToken()（IndexedDB読み出し）の解決を待たずに
    * 返るため、解決前にclose()や再connect()が呼ばれると、後から生成されたWebSocketが
    * どこからも閉じられない孤立接続として残る（this.wsはonopen到達時にしか設定されない）。
@@ -65,6 +75,18 @@ export class WebSocketBattleSocket implements BattleSocket {
       // token解決を待つ間にclose()／再connect()されていたら接続自体を張らない
       if (generation !== this.generation) return
       const ws = this.wsFactory(wsUrl, [`bearer.${token}`])
+      ws.onopen = () => {
+        // OPEN到達までの間にclose()／再connect()されていたら、この接続は即座に閉じる
+        // （this.wsへ載せると新しい世代の接続を上書きしてしまう）
+        if (generation !== this.generation) {
+          ws.close()
+          return
+        }
+        this.ws = ws
+        for (const message of this.pendingMessages.splice(0)) {
+          ws.send(JSON.stringify(message))
+        }
+      }
       ws.onmessage = (event: MessageEvent) => {
         let parsed: unknown
         try {
@@ -80,14 +102,18 @@ export class WebSocketBattleSocket implements BattleSocket {
         this.messageHandler?.(parsed)
       }
       ws.onclose = (event: CloseEvent) => {
+        this.ws = null
         this.closeHandler?.({ code: event.code })
       }
-      this.ws = ws
     })
   }
 
   send(message: BattleClientMessage): void {
-    this.ws?.send(JSON.stringify(message))
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message))
+      return
+    }
+    this.pendingMessages.push(message)
   }
 
   onMessage(handler: BattleSocketMessageHandler): void {
@@ -103,6 +129,7 @@ export class WebSocketBattleSocket implements BattleSocket {
     this.generation += 1
     this.ws?.close()
     this.ws = null
+    this.pendingMessages = []
   }
 }
 

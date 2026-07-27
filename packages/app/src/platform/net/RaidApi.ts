@@ -26,6 +26,11 @@ export interface RaidApi {
   /** 「問題がおかしい」報告の送信（M3・T-101）。キューイングしない直接送信 */
   sendReport(report: QuestionReportPayload): Promise<void>
   /**
+   * 昼バトルのルーム作成（M4・T-126。POST /battle/rooms）。
+   * 戻り値は4文字英数大文字のルームコード（衝突時の再生成込みでサーバー側が保証する）
+   */
+  createBattleRoom(): Promise<string>
+  /**
    * ボス役の記録送信（M4・T-128。POST /ghosts）。呼び出しは必ず
    * services/ghostBoss.ts の sendGhostBossRecord 経由（同意の構造的強制）にすること。
    * このメソッド自体は同意有無を検証しない（検証済みpayloadの送信だけを担う）

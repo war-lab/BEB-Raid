@@ -5,18 +5,32 @@
 import { describe, expect, it, vi } from 'vitest'
 import { FakeBattleSocket, WebSocketBattleSocket } from './BattleSocket'
 
+/**
+ * T-126の実機通しで発見: connect()直後にsend()すると、getDeviceToken()解決前は
+ * this.wsが未設定（＝送信メッセージが黙って失われる）、解決後もWebSocketがOPENに
+ * 達する前にsend()すると実ブラウザではInvalidStateErrorになる。このStubは
+ * readyState・onopenを模擬し、その修正（onopen後にキューをflush）を検証できるようにする
+ */
 class StubWebSocket {
   static instances: StubWebSocket[] = []
+  onopen: (() => void) | null = null
   onmessage: ((event: { data: string }) => void) | null = null
   onclose: ((event: { code: number }) => void) | null = null
   sent: string[] = []
   closed = false
+  readyState = 0 // CONNECTING
 
   constructor(
     public url: string,
     public protocols?: string | string[],
   ) {
     StubWebSocket.instances.push(this)
+  }
+
+  /** テストからOPENへ遷移させる（実WebSocketのopenイベントに相当） */
+  open() {
+    this.readyState = 1 // OPEN
+    this.onopen?.()
   }
 
   send(data: string) {
@@ -79,7 +93,7 @@ describe('WebSocketBattleSocket', () => {
     expect(handler).toHaveBeenCalledWith({ type: 'roomState', participants: [] })
   })
 
-  it('send/closeがWebSocketへ委譲される', async () => {
+  it('send/closeがWebSocketへ委譲される（OPEN後は即送信）', async () => {
     const factory = vi.fn(
       (url: string, protocols?: string | string[]) =>
         new StubWebSocket(url, protocols) as unknown as WebSocket,
@@ -93,6 +107,7 @@ describe('WebSocketBattleSocket', () => {
     await Promise.resolve()
     await Promise.resolve()
     const stub = StubWebSocket.instances.at(-1)!
+    stub.open()
 
     socket.send({ type: 'join', displayName: '太郎', expectedPointsPerQuestion: 80 })
     expect(stub.sent).toEqual([
@@ -101,6 +116,32 @@ describe('WebSocketBattleSocket', () => {
 
     socket.close()
     expect(stub.closed).toBe(true)
+  })
+
+  it('connect()直後・OPEN前のsend()はキューされ、OPEN到達時にflushされる（T-126実機通しで発見した欠陥の回帰）', async () => {
+    const factory = vi.fn(
+      (url: string, protocols?: string | string[]) =>
+        new StubWebSocket(url, protocols) as unknown as WebSocket,
+    )
+    const socket = new WebSocketBattleSocket(
+      'https://api.example.com',
+      async () => 'token',
+      factory,
+    )
+    // getDeviceToken()解決前（this.ws未設定）に送信を試みても失われない
+    socket.connect('ABCD')
+    socket.send({ type: 'join', displayName: '太郎', expectedPointsPerQuestion: 80 })
+    await Promise.resolve()
+    await Promise.resolve()
+    const stub = StubWebSocket.instances.at(-1)!
+
+    // OPEN到達前はまだ送信されない
+    expect(stub.sent).toEqual([])
+
+    stub.open()
+    expect(stub.sent).toEqual([
+      JSON.stringify({ type: 'join', displayName: '太郎', expectedPointsPerQuestion: 80 }),
+    ])
   })
 
   // 回帰防止: connect()はdeviceToken解決（IndexedDB読み出し）を待たずに返るため、
@@ -129,6 +170,31 @@ describe('WebSocketBattleSocket', () => {
 
     expect(factory).not.toHaveBeenCalled()
     expect(StubWebSocket.instances).toHaveLength(0)
+  })
+
+  // 回帰防止: token解決後・OPEN到達前にclose()された場合も、開いた接続を放置しない
+  it('OPEN到達前にclose()されたら、OPEN時にその接続を即座に閉じる', async () => {
+    StubWebSocket.instances = []
+    const factory = vi.fn(
+      (url: string, protocols?: string | string[]) =>
+        new StubWebSocket(url, protocols) as unknown as WebSocket,
+    )
+    const socket = new WebSocketBattleSocket(
+      'https://api.example.com',
+      async () => 'token',
+      factory,
+    )
+    socket.connect('ABCD')
+    await Promise.resolve()
+    await Promise.resolve()
+    const stub = StubWebSocket.instances.at(-1)!
+
+    socket.close()
+    stub.open()
+
+    expect(stub.closed).toBe(true)
+    // 閉じた接続にキュー済みメッセージをflushしない
+    expect(stub.sent).toEqual([])
   })
 
   it('onCloseハンドラがWebSocketのcloseイベントで呼ばれる', async () => {

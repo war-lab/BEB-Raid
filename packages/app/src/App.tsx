@@ -26,6 +26,7 @@ import { BYOK_API_KEY_KEY, FONT_SIZE_KEY, THEME_PREFERENCE_KEY } from './service
 import { resolveTheme, setTheme, type ThemePreference } from './theme'
 import { PrimaryButton } from './components/PrimaryButton'
 import { ScreenLayout } from './components/ScreenLayout'
+import { BattleHostScreen } from './screens/BattleHostScreen'
 import { BattleScreen } from './screens/BattleScreen'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
@@ -405,6 +406,16 @@ export function App() {
   }
   if (screen === 'battle') {
     return <BattleScreen db={getDb()} battleSocket={battleSocket} questionPool={questionPool} />
+  }
+  if (screen === 'battleHost') {
+    return (
+      <BattleHostScreen
+        raidApi={raidApi}
+        battleSocket={battleSocket}
+        audioPlayer={audioPlayer}
+        questionPool={questionPool}
+      />
+    )
   }
 
   // 'home' に加え、未実装の画面もホームへフォールバックする

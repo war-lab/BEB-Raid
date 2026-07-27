@@ -149,6 +149,21 @@ describe('FetchRaidApi.sendReport', () => {
   })
 })
 
+describe('FetchRaidApi.createBattleRoom', () => {
+  it('POST /battle/roomsへBearerヘッダ付きで送り、codeを返す', async () => {
+    const fetchMock = mockFetch(async () => fakeResponse({ code: 'ABCD' }))
+    const client = new FetchRaidApi('https://api.example.com', async () => 'device-1', fetchMock)
+
+    const code = await client.createBattleRoom()
+
+    expect(code).toBe('ABCD')
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe('https://api.example.com/battle/rooms')
+    expect(init!.method).toBe('POST')
+    expect((init!.headers as Record<string, string>).Authorization).toBe('Bearer device-1')
+  })
+})
+
 describe('FetchRaidApi.sendGhostRecord', () => {
   it('POST /ghostsへBearerヘッダ・payloadをボディに含めて送る', async () => {
     const fetchMock = mockFetch(async () => fakeResponse({ ok: true }))
