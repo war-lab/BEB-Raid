@@ -26,7 +26,7 @@ import type {
   QuickPackRequest,
 } from './types'
 
-/** ドリルの配分カテゴリ（J-2 の固定配分の単位）。'reading'=T-105（18の3.3節）で追加 */
+/** ドリルの配分カテゴリ（J-2 の固定配分の単位）。'reading'=T-105（24の3.3節）で追加 */
 export type DrillCategory = 'vocab' | 'part2' | 'part5' | 'reading'
 
 interface DurationConfig {
@@ -74,7 +74,7 @@ export interface DrillCandidate {
 }
 
 /**
- * text_passage（Part6/7）が通常パック配分の対象か（docs/18 3.3節・ADR 0006 判断2）。
+ * text_passage（Part6/7）が通常パック配分の対象か（docs/24 3.3節・ADR 0006 判断2）。
  * Part7複数パッセージ（passages 2件以上）は「じっくり読解」モード専用（T-108/T-109）のため、
  * 通常の7分/15分パックには常に除外する（フェーズ・弱点タグの有無を問わない）
  */
@@ -250,7 +250,7 @@ function resolveListeningSubCategory(
 }
 
 /**
- * M2: 問題→フェーズ配分カテゴリの解決（13の3.2節、読解=T-105・18の3.3節）。
+ * M2: 問題→フェーズ配分カテゴリの解決（13の3.2節、読解=T-105・24の3.3節）。
  * - vocab_card は template に 'vocab' キーがある場合のみ対象（P3にはvocabバケットが無い）
  * - Part7複数パッセージ（passages 2件以上）はフェーズ・弱点タグの有無を問わず常に対象外
  *   （「じっくり読解」モード専用=T-108/T-109。弱点タグ判定より先に除外し、P3のweaknessバケット

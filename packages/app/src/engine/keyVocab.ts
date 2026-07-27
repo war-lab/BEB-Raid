@@ -29,7 +29,7 @@ export interface WrongAnswerResult {
  * 時間切れ・当て勘の区別はここでは行わない（全誤答が復習デッキに落ちるのが
  * 02の1節の不変ルール。統計上の重み減は T-12 が担う）
  *
- * 読解（text_passage）の例外（T-106・ADR 0006 判断6・docs/18 3.4節）:
+ * 読解（text_passage）の例外（T-106・ADR 0006 判断6・docs/24 3.4節）:
  * 「本文まるごとの再出題はしない」ため、上記フローの「誤答問題そのものをSRSへ」は
  * text_passage では行わない（questionCardはnull）。さらに、key語彙カードにも
  * sourceQuestionId を乗せない（undefinedのまま）。sourceQuestionIdは

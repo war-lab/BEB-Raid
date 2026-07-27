@@ -29,7 +29,7 @@ function isListening(question: Question | undefined): boolean {
  * に差し替える。代替候補が尽きた場合はそのitemを取り除く（パックが目減りするが、
  * M1ダミーコンテンツはリーディング問題の在庫が少ないため起こりうる既知の制約）。
  *
- * text_passage の候補は isReadingAllocatable（T-105・docs/18 3.3節）で絞り込み、
+ * text_passage の候補は isReadingAllocatable（T-105・docs/24 3.3節）で絞り込み、
  * Part7複数パッセージ（passages 2件以上）を除外する。この関数は questions（読み込み済みの
  * 全問題プール）全体から差し替え候補を探すため、フィルタが無いと「じっくり読解」専用の
  * 複数パッセージ問題が通常の7分/15分パックに紛れ込み、T-105が担保した不変条件
