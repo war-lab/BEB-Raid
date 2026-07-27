@@ -151,7 +151,8 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     try {
       // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
       // 本文まるごと再出題しないため呼ばない（skip.srs）。レート・tagStats・
-      // keyVocab循環は通常どおり（skipしない）
+      // keyVocab循環は通常どおり（skipしない）。ただしmode='battle'（ボス役セッション=
+      // M4・T-128）はレート更新の対象外（docs/22 3.5節・DrillScreenと同じ扱い）
       const { ratingUpdate } = await recordAnswerPipeline(db, {
         questionId: sub.id,
         question,
@@ -159,7 +160,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         isCorrect,
         responseMs,
         mode: item.mode,
-        skip: { srs: true },
+        skip: { srs: true, rating: item.mode === 'battle' },
       })
       recordAnswer(snapshot, {
         questionId: sub.id,

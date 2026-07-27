@@ -2,6 +2,21 @@
 
 **最終更新: 2026-07-27**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## T-128完了: ボス役クライアント（2026-07-27。ブランチ `task/T-128-ghost-boss-client`。dev起点）
+
+22の7節T-128シートに基づき、`packages/app/` にボス役セッション（立候補→同意画面→高難度セッション→記録プレビュー→送信）を実装した。T-127（ゴーストAPI）は依存済み・変更なし。
+
+- **同意の構造的強制**（J-67・22の3.5節）: 新規 `services/ghostBoss.ts` の `sendGhostBossRecord(raidApi, consented, input)` は、`shared-schema` の `buildGhostRecordPayload`（T-123実装済み。`consented=false`で例外）を経由してのみ `raidApi.sendGhostRecord` を呼ぶ。UI側は加えて、`useSessionStore` に追加した `isGhostBossSession` フラグが立っているときだけ `App.tsx` が `screen==='result'` を新規 `GhostBossResultScreen`（送信ボタンを持つ唯一の画面）へ振り分け、このフラグは `RaidScreen` の同意画面（チェックボックス＋「同意して開始」）確定後の `handleGhostBossConsentConfirm` からのみ true になる。結果、同意画面を経由しない限り「送信ボタンを持つ画面自体が存在しない」＋「その画面内の送信ハンドラも consent=false では例外で止まる」の二重構造になっている。チェックボックス無効化はUIの補助に過ぎず、それだけに依存していないことをテスト（`services/ghostBoss.test.ts`: consented=falseでraidApi.sendGhostRecordが一度も呼ばれないことを直接検証）で担保した。
+- **出題抽選**（3.5節）: 新規 `engine/ghostBossSelection.ts` の `selectGhostBossQuestions`。レート対象format（vocab_card・shadowing・dictationを除外）から difficulty>=4 を30問無作為抽選し、30問に満たなければ difficulty===3 で補填、補填後合計が10問未満なら `null`（在庫不足）を返す。実データ（`content/packs/`）を集計し、difficulty>=4が137問・difficulty===3が285問（除外format抜き）と大幅に余裕があることを確認済み（停止条件には未該当。在庫増産の相談は不要と判断）。
+- **mode='battle'のレート非対象化**（3.5節・3.2節と同じ扱い）: `DrillScreen.tsx`（finalizeAnswer・finalizeSubQuestionAnswer）・`ReadingScreen.tsx`（text_passageのsubQuestion採点）に `skip: { rating: item.mode === 'battle' }` を追加。レイドダメージは既存の `damageConfig.json`（battle未定義=係数0）で元々対象外のため変更不要（`engine/damage.test.ts`に既存カバレッジ）。attempts記録自体は通常どおり行われる（ボス役自身の学習になる=02の5.3）。
+- **RaidScreen.tsx**: 「ボス役に立候補」ボタン（isConfigured かつ登録済みのときのみ。3.5節）→同意画面（共有内容3点を明示: 正誤の堅い/弱点公開・表示名のボス名公開・撤回で即時削除）→開始で `selectGhostBossQuestions` → `startSession`（items全てmode='battle'）→`beginSession(..., { isGhostBossSession: true })` → drill画面。在庫不足時はエラー表示のみで開始しない。
+- **新規 `screens/GhostBossResultScreen.tsx`**: セッション完了後の記録プレビュー（正解数・「弱点として公開される問題数」＝誤答数・問題一覧）。送信ボタンで `sendGhostBossRecord(raidApi, true, {displayName, records})` → 成功で送信済みフラグ（`settingsKeys.ts`の`GHOST_BOSS_SUBMITTED_AT_KEY`）を保存。破棄ボタンは送信せず `completeSession` のみでホームへ戻る（送信前ならいつでも破棄可=3.5節）。
+- **撤回導線（J-67の開示事項を実際に行使できるようにする追加実装。T-128シートの必須列挙には無いが、同意画面が明示する「いつでも撤回できる」を満たすUI経路が他に存在しないため本タスクで実装）**: `platform/net/RaidApi.ts`/`FetchRaidApi.ts` に `sendGhostRecord`（POST /ghosts）・`deleteOwnGhostRecord`（DELETE /ghosts/own）を追加。送信済みフラグがある間はRaidScreenに「ボス役記録を撤回する」ボタンを表示し、`withdrawGhostBossRecord` → 撤回成功でフラグを削除して立候補ボタンへ戻す。
+- **テスト**（新規・追加分）: `engine/ghostBossSelection.test.ts`（6件。difficulty>=4優先・30問未満の補填・10問未満での停止・除外formatの境界・境界値）、`services/ghostBoss.test.ts`（4件。同意の構造的強制の直接検証を含む）、`screens/GhostBossResultScreen.test.tsx`（4件）、`platform/net/FetchRaidApi.test.ts`（2件追加）、`services/answerPipeline.test.ts`（2件追加。mode='battle'でattempts記録・ratings非変化・pendingSync非エンキュー）、`screens/RaidScreen.test.tsx`（9件追加。立候補ボタンの表示条件・同意画面の文言・チェック無しでの起動不可・開始後のmode='battle'遷移・在庫不足エラー・やめる・撤回導線）、`App.test.tsx`（2件追加。'result'画面の振り分け）。既存のRaidApiフェイク実装7ファイルに新規メソッドのスタブを追加（型整合のみ・既存テストへの影響なし）。
+- **検証**: ルート `npm run lint`・`npm run format:check`・`npm run build` 全通過。`npm test` は `packages/app` を `--pool=threads` で実行し785件中783件通過（T-128関連の新規テストは全通過）。残る2件（`HomeScreen.test.tsx`の時刻追従テスト×2）は本タスクで変更していないタイマーロジックのテストで、並行worktree（別セッションの `vitest run --no-file-parallelism` が同時実行中）によるCPU競合由来のタイムアウトと判断（該当テストのfake timer機構・HomeScreen.tsx自体は本タスクで無変更）。単独実行時も同様のタイムアウトを観測したが、実行時間が271秒・279秒（本来ミリ秒オーダーの処理）と極端に遅く、環境要因（別プロセスの重い並行実行）と判断した。
+- **ガードレール遵守**: 新規npm依存なし。R-1領域（`engine/quickPack.ts`等・`packages/cli/`・`content/`）・`packages/api`・`packages/shared-schema`は未変更（`buildGhostRecordPayload`等T-123実装済みのものをimportで再利用したのみ）。
+- **停止条件**: 該当なし（実データで在庫は十分。3.5節の停止条件は発生しなかった）。
+
 ## 2026-07-27: M4残タスクの整理とM5ネイティブ化計画の起票（ブランチ `task/docs-23-m5-native`）
 
 発起人が「M4を全部やる。完了後にアプリ化」を決定した。実装はSonnetクラスの自走で行うため、本タスクは着手前の基盤整備のみを行い、実装コードは変更していない。

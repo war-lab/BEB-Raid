@@ -9,12 +9,18 @@ import { PROFILE_ID, RAID_STATE_ID, type BadgeRecord, type RaidStateRecord } fro
 import { generateQuickPack } from '../engine/quickPack'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { formatRelativeTime } from '../engine/relativeTime'
+import { selectGhostBossQuestions } from '../engine/ghostBossSelection'
 import type { RaidApi } from '../platform'
 import { RaidApiError } from '../platform'
+import { withdrawGhostBossRecord } from '../services/ghostBoss'
 import { getOrInitPhaseState } from '../services/phase'
 import { RAID_FIRST_CLEAR_BADGE_ID, syncRaidDamage } from '../services/raidSync'
-import { startSession, type SessionSnapshot } from '../services/session'
-import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
+import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
+import {
+  GHOST_BOSS_SUBMITTED_AT_KEY,
+  RAID_REGISTERED_AT_KEY,
+  RAID_SYNC_ENABLED_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -128,6 +134,16 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   // T-121(J-60): 生成パックが0問だったときの案内。自動では消さず、セッション開始成功でクリアする
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
 
+  // M4・T-128: ボス役セッション（docs/22 3.5節）
+  const [showGhostBossConsent, setShowGhostBossConsent] = useState(false)
+  const [ghostBossConsentChecked, setGhostBossConsentChecked] = useState(false)
+  const [ghostBossError, setGhostBossError] = useState<string | null>(null)
+  const [ghostBossStarting, setGhostBossStarting] = useState(false)
+  // 送信済み記録があるか（撤回導線の表示要否。端末内キャッシュ=settingsKeys.ts参照）
+  const [ghostBossSubmitted, setGhostBossSubmitted] = useState(false)
+  const [ghostBossWithdrawing, setGhostBossWithdrawing] = useState(false)
+  const [ghostBossWithdrawError, setGhostBossWithdrawError] = useState<string | null>(null)
+
   // レイド機能が利用可能な間だけ60秒tickで現在時刻を進める（raidEnded・残り日数・最終同期表示に使う）
   useEffect(() => {
     if (!raidApi.isConfigured()) return
@@ -139,12 +155,14 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     let cancelled = false
     async function load() {
       try {
-        const [profile, registeredSetting, raidStateRecord, badges] = await Promise.all([
-          db.profile.get(PROFILE_ID),
-          db.settings.get(RAID_REGISTERED_AT_KEY),
-          db.raidState.get(RAID_STATE_ID),
-          loadRaidBadges(db),
-        ])
+        const [profile, registeredSetting, raidStateRecord, badges, ghostBossSubmittedSetting] =
+          await Promise.all([
+            db.profile.get(PROFILE_ID),
+            db.settings.get(RAID_REGISTERED_AT_KEY),
+            db.raidState.get(RAID_STATE_ID),
+            loadRaidBadges(db),
+            db.settings.get(GHOST_BOSS_SUBMITTED_AT_KEY),
+          ])
         if (cancelled) return
         if (profile) {
           setDeviceToken(profile.deviceToken)
@@ -158,6 +176,7 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
         setRegistered(isRegistered)
         setRaidState(raidStateRecord ?? null)
         setRaidBadges(badges)
+        setGhostBossSubmitted(ghostBossSubmittedSetting?.value !== undefined)
 
         if (isRegistered && raidApi.isConfigured()) {
           try {
@@ -308,6 +327,57 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     navigate('drill')
   }
 
+  /**
+   * ボス役セッションの開始（M4・T-128。docs/22 3.5節）。
+   * 同意チェックボックスが確定していない限りこの関数は呼ばれない（handleGhostBossConsentConfirm
+   * からのみ呼ぶ。ボタン自体もconsentCheckedがfalseの間はdisabled=UI・呼び出し経路の両面で防ぐ）。
+   * beginSession に isGhostBossSession: true を渡すのはこの経路のみ
+   * （GhostBossResultScreenの送信ボタンが到達可能になる唯一の入口）
+   */
+  async function handleGhostBossConsentConfirm() {
+    if (!ghostBossConsentChecked || ghostBossStarting) return
+    setGhostBossError(null)
+    setGhostBossStarting(true)
+    try {
+      const selection = selectGhostBossQuestions(questionPool)
+      if (!selection) {
+        setGhostBossError(
+          '出題できる高難度問題の在庫が不足しています。運営に増産を相談してください',
+        )
+        return
+      }
+      const items: SessionItem[] = selection.questions.map((q) => ({
+        questionId: q.id,
+        mode: 'battle' as const,
+      }))
+      const snapshot = await startSession(db, { items })
+      // ボス役セッションはレート対象外（3.5節・3.2節と同じ扱い）のため、ratingBeforeは
+      // 使わない（GhostBossResultScreenがレート変動を表示しないため null で足りる）
+      beginSession(snapshot, questionPool, null, { isGhostBossSession: true })
+      setShowGhostBossConsent(false)
+      setGhostBossConsentChecked(false)
+      navigate('drill')
+    } finally {
+      setGhostBossStarting(false)
+    }
+  }
+
+  /** 送信済みボス役記録の撤回（J-67の開示事項。DELETE /ghosts/ownは記録が無くても200・冪等） */
+  async function handleWithdrawGhostBoss() {
+    setGhostBossWithdrawError(null)
+    setGhostBossWithdrawing(true)
+    try {
+      await withdrawGhostBossRecord(raidApi)
+      await db.settings.delete(GHOST_BOSS_SUBMITTED_AT_KEY)
+      setGhostBossSubmitted(false)
+    } catch (e) {
+      console.warn('[RaidScreen] ボス役記録の撤回に失敗', e)
+      setGhostBossWithdrawError('撤回に失敗しました。通信を確認してください')
+    } finally {
+      setGhostBossWithdrawing(false)
+    }
+  }
+
   async function handleManualSync() {
     setSyncError(null)
     const result = await syncRaidDamage(db, raidApi)
@@ -454,6 +524,60 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     )
   }
 
+  // M4・T-128: ボス役の同意画面（docs/22 3.5節。共有される内容を明示してから同意を取る）。
+  // 「同意して開始」はconsentCheckedがtrueでない限りdisabled。ハンドラ側
+  // （handleGhostBossConsentConfirm）も未チェックなら即returnする二重防御
+  if (showGhostBossConsent) {
+    return (
+      <ScreenLayout
+        status={<p>ボス役に立候補</p>}
+        action={
+          <>
+            <PrimaryButton
+              onClick={() => void handleGhostBossConsentConfirm()}
+              disabled={!ghostBossConsentChecked || ghostBossStarting}
+            >
+              同意して開始
+            </PrimaryButton>
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={() => {
+                setShowGhostBossConsent(false)
+                setGhostBossConsentChecked(false)
+                setGhostBossError(null)
+              }}
+            >
+              やめる
+            </button>
+          </>
+        }
+      >
+        <div className="settings-list" data-testid="ghost-boss-consent">
+          <p className="settings-note">
+            ボス役は高難度の問題セットを解き、その正誤記録を今週のゴーストレイドのボスに変換します。
+            開始前に次の内容を確認してください。
+          </p>
+          <ul className="result-list">
+            <li>自分の問題別の正誤が、レイド参加者全員に「堅い/弱点」として見えます</li>
+            <li>表示名（{displayName || '（未設定）'}）がボス名として全員に見えます</li>
+            <li>いつでも撤回でき、撤回すると記録はサーバーから即時削除されます</li>
+          </ul>
+          <label>
+            <input
+              type="checkbox"
+              checked={ghostBossConsentChecked}
+              onChange={(e) => setGhostBossConsentChecked(e.target.checked)}
+              data-testid="ghost-boss-consent-checkbox"
+            />
+            上記の内容に同意します
+          </label>
+          {ghostBossError && <p className="drill-error">{ghostBossError}</p>}
+        </div>
+      </ScreenLayout>
+    )
+  }
+
   const hpPercent =
     currentBoss && currentBoss.maxHp > 0
       ? Math.round((currentBoss.hp / currentBoss.maxHp) * 100)
@@ -514,6 +638,29 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               再登録する
             </button>
           )}
+          {/* M4・T-128: ボス役立候補（isConfigured かつ登録済みのときのみ=3.5節） */}
+          {!ghostBossSubmitted && (
+            <button
+              type="button"
+              className="secondary-action"
+              data-testid="ghost-boss-candidate"
+              onClick={() => setShowGhostBossConsent(true)}
+            >
+              ボス役に立候補
+            </button>
+          )}
+          {ghostBossSubmitted && (
+            <button
+              type="button"
+              className="secondary-action"
+              data-testid="ghost-boss-withdraw"
+              onClick={() => void handleWithdrawGhostBoss()}
+              disabled={ghostBossWithdrawing}
+            >
+              ボス役記録を撤回する
+            </button>
+          )}
+          {ghostBossWithdrawError && <p className="drill-error">{ghostBossWithdrawError}</p>}
           <button type="button" className="secondary-action" onClick={() => navigate('home')}>
             ホームへ
           </button>

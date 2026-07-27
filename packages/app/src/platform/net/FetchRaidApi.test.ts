@@ -149,6 +149,41 @@ describe('FetchRaidApi.sendReport', () => {
   })
 })
 
+describe('FetchRaidApi.sendGhostRecord', () => {
+  it('POST /ghostsへBearerヘッダ・payloadをボディに含めて送る', async () => {
+    const fetchMock = mockFetch(async () => fakeResponse({ ok: true }))
+    const client = new FetchRaidApi('https://api.example.com', async () => 'device-1', fetchMock)
+    const payload = {
+      consent: true as const,
+      displayName: '太郎',
+      records: [{ questionId: 'q-1', correct: true }],
+    }
+
+    await client.sendGhostRecord(payload)
+
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe('https://api.example.com/ghosts')
+    expect(init!.method).toBe('POST')
+    expect((init!.headers as Record<string, string>).Authorization).toBe('Bearer device-1')
+    expect(JSON.parse(init!.body as string)).toEqual(payload)
+  })
+})
+
+describe('FetchRaidApi.deleteOwnGhostRecord', () => {
+  it('DELETE /ghosts/ownへBearerヘッダ付きでリクエストする（ボディ無し）', async () => {
+    const fetchMock = mockFetch(async () => fakeResponse({ ok: true }))
+    const client = new FetchRaidApi('https://api.example.com', async () => 'device-1', fetchMock)
+
+    await client.deleteOwnGhostRecord()
+
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe('https://api.example.com/ghosts/own')
+    expect(init!.method).toBe('DELETE')
+    expect((init!.headers as Record<string, string>).Authorization).toBe('Bearer device-1')
+    expect(init!.body).toBeUndefined()
+  })
+})
+
 describe('FetchRaidApi: エラー種別判定', () => {
   it('未設定（isConfigured=false）ならfetchせずunknownエラー', async () => {
     const fetchMock = vi.fn()

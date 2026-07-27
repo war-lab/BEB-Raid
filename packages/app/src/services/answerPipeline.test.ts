@@ -208,6 +208,60 @@ describe('recordAnswerPipeline: レート更新', () => {
   })
 })
 
+describe('recordAnswerPipeline: mode="battle"（M4・T-128ボス役セッション）', () => {
+  it('attemptsには記録されるが、skip.rating:trueと組み合わせるとratingsは変化しない', async () => {
+    const db = newDb()
+    const q = question('q-1', { part: 5, difficulty: 4 })
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'battle',
+      skip: { rating: true },
+    })
+
+    expect(result.ratingUpdate).toBeUndefined()
+    expect(await db.ratings.get('R')).toBeUndefined()
+    const attempts = await db.attempts.where('questionId').equals('q-1').toArray()
+    expect(attempts).toHaveLength(1)
+    expect(attempts[0]!.mode).toBe('battle')
+    expect(attempts[0]!.isCorrect).toBe(true)
+  })
+
+  it('レイドに参加中（raidSyncEnabled=ON・joined）でも、mode="battle"はpendingSyncへ積まれない（damageConfig.jsonでbattleは係数未定義=0のため）', async () => {
+    const db = newDb()
+    const q = question('q-1', { part: 5, difficulty: 4 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: 'boss-test',
+      profileJson: '{}',
+      hp: 100,
+      maxHp: 100,
+      myDamage: 0,
+      joined: true,
+      startAt: 0,
+      endAt: Date.now() + 86_400_000,
+      lastSyncedAt: 0,
+    })
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'battle',
+      skip: { rating: true },
+    })
+
+    expect(await db.pendingSync.count()).toBe(0)
+  })
+})
+
 describe('recordAnswerPipeline: SRSカードの自己評価（reviewSrsCard）', () => {
   async function seedSrsCard(db: BebRaidDatabase, id: string) {
     await db.srsCards.put({

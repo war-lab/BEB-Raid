@@ -437,7 +437,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
-      // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）
+      // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）。
+      // mode='battle'（ボス役セッション=M4・T-128）はレート更新の対象外（docs/22 3.5節・3.2節と同じ扱い）
       const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
         snapshot,
         questionId: question.id,
@@ -448,6 +449,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         isTimeout,
         mode: item.mode,
         srsCardId: item.srsCardId,
+        skip: { rating: item.mode === 'battle' },
       })
 
       recordAnswer(nextSnapshot!, {
@@ -480,7 +482,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
     try {
       // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
-      // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）
+      // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）。
+      // mode='battle'はレート更新の対象外（finalizeAnswerと同じ理由）
       const { ratingUpdate } = await recordAnswerPipeline(db, {
         questionId: currentSubQuestion.id,
         question,
@@ -488,7 +491,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         isCorrect,
         responseMs,
         mode: item.mode,
-        skip: { srs: true },
+        skip: { srs: true, rating: item.mode === 'battle' },
       })
       setSubQuestionResults((prev) => [...prev, isCorrect])
       recordAnswer(snapshot, {
