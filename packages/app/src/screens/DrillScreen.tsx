@@ -361,7 +361,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }, [item, question, snapshot, displayIndex, db, navigate])
 
-  // T-105（18の3.3節・3.5節): text_passage（Part6/7単一）はDrillScreenの4択UIでは描画できない
+  // T-105（24の3.3節・3.5節): text_passage（Part6/7単一）はDrillScreenの4択UIでは描画できない
   // （本文＋設問の2ペインが必要＝専用のReadingScreenの担当。3.5節）。7分/15分パックに
   // 読解が混在するようになったため、現在itemがtext_passageならセッション状態
   // （useSessionStoreは画面間で共有）を保ったままreading画面へ切り替える。

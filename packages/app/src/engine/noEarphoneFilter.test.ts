@@ -169,7 +169,7 @@ describe('applyNoEarphoneFilter: M2新規リスニングformat（T-52）', () =>
   })
 })
 
-describe('applyNoEarphoneFilter: text_passage（読解）への差し替え（T-106・docs/18 3.4節）', () => {
+describe('applyNoEarphoneFilter: text_passage（読解）への差し替え（T-106・docs/24 3.4節）', () => {
   it('リーディング候補がtext_passage（Part7単一）しか無くても実際に差し替わる（従来はtext_blankにしか差し替わらなかった疑いの解消）', () => {
     const pack: QuickPack = { duration: 7, items: [drillItem('p2-1')], srsOverflow: 0 }
     const questions = new Map<string, Question>([

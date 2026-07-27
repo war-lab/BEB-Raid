@@ -415,7 +415,7 @@ describe('curriculumConfig.json: 整合性検証', () => {
     expect(templateForSeason('P3').season).toBe('P3')
   })
 
-  // T-105（docs/18 3.3節）: 読解（Part6・Part7単一）配分の回帰ロック。
+  // T-105（docs/24 3.3節）: 読解（Part6・Part7単一）配分の回帰ロック。
   // 数値自体は暫定値（ドッグフード実測で調整）だが、「P1に少量」「P2はP1より厚い」
   // 「P3は通常パックのreadingバケットを持たない（Part7複数はじっくり読解モード専用）」
   // という3.3節の構造は固定する

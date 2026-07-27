@@ -1,11 +1,11 @@
-// Part7単一（text_passage）1文書＋設問2〜4問の初期在庫データ本体（T-107。正本: docs/18 3.1節・3.6節）。
+// Part7単一（text_passage）1文書＋設問2〜4問の初期在庫データ本体（T-107。正本: docs/24 3.1節・3.6節）。
 //
 // 40セット・設問合計120問（2問x10・3問x20・4問x10セット）。各設問はcorrectText/distractorsの
 // 形で書き、textPassageQuestion.tsのrotateTextPassageChoicesが4択A〜Dへの決定的ローテーションを
 // 行う（part34Question.ts/part6PassagesS.tsと同じM1レビュー⑦の方式）。
 // keyVocabWordsはS/A/B語彙カード（600語）から選び、passages本文またはsubQuestionsの
 // question/choicesに実在する語のみを使う（shared-schema validate.tsのvalidateKeyVocab参照）。
-// tagsはdocs/18 3.4節の読解解法タグ（先読み/スキャン/パラフレーズ照合/推論/語彙推測）を
+// tagsはdocs/24 3.4節の読解解法タグ（先読み/スキャン/パラフレーズ照合/推論/語彙推測）を
 // 各セットの設問構成に応じて付与する（相互参照はPart7複数専用のためここでは使わない）。
 // 全文・設問はエージェント直接執筆のオリジナル（市販教材の流用なし。CLAUDE.md不変条件）。
 
