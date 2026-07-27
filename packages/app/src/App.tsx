@@ -28,6 +28,7 @@ import { ScreenLayout } from './components/ScreenLayout'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { DiagnosticScreen } from './screens/DiagnosticScreen'
 import { DrillScreen } from './screens/DrillScreen'
+import { GhostBossResultScreen } from './screens/GhostBossResultScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RaidScreen } from './screens/RaidScreen'
 import { ReadingScreen } from './screens/ReadingScreen'
@@ -36,6 +37,7 @@ import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
 import { VocabScreen } from './screens/VocabScreen'
 import { useAppStore, type ScreenName } from './store/appStore'
+import { useSessionStore } from './store/sessionStore'
 
 /**
  * 配布パック全20件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2。
@@ -148,6 +150,9 @@ const raidApi = createRaidApi(
 
 export function App() {
   const screen = useAppStore((s) => s.screen)
+  // M4・T-128: 'result' 画面をボス役セッション（ゴースト記録プレビュー）か
+  // 通常のResultScreenかで振り分ける（同意の構造的強制。GhostBossResultScreen冒頭コメント参照）
+  const isGhostBossSession = useSessionStore((s) => s.isGhostBossSession)
   const navigate = useAppStore((s) => s.navigate)
   // 起動時のprofile有無チェック＋パック読み込みが終わるまで描画をブロックする
   // （HomeScreenが一瞬見えてから診断へ切り替わるチラつきを防ぐ。パック読み込みは
@@ -347,7 +352,10 @@ export function App() {
       <DrillScreen db={getDb()} audioPlayer={audioPlayer} aiClient={aiClient} raidApi={raidApi} />
     )
   }
-  if (screen === 'result') return <ResultScreen db={getDb()} raidApi={raidApi} />
+  if (screen === 'result') {
+    if (isGhostBossSession) return <GhostBossResultScreen db={getDb()} raidApi={raidApi} />
+    return <ResultScreen db={getDb()} raidApi={raidApi} />
+  }
   if (screen === 'vocab') {
     return <VocabScreen db={getDb()} audioPlayer={audioPlayer} vocabQuestions={vocabQuestions} />
   }

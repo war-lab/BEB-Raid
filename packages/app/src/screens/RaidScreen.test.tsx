@@ -78,6 +78,8 @@ class FakeRaidApi implements RaidApi {
   syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: this.currentBoss ?? ACTIVE_BOSS }))
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  sendGhostRecord = vi.fn(async () => {})
+  deleteOwnGhostRecord = vi.fn(async () => {})
 }
 
 function textBlankQuestion(id: string): Question {
@@ -100,6 +102,22 @@ function textBlankQuestion(id: string): Question {
 }
 
 const QUESTION_POOL: Question[] = Array.from({ length: 10 }, (_, i) => textBlankQuestion(`q-${i}`))
+
+/** M4・T-128: ボス役セッションの抽選対象（difficulty>=4）フィクスチャ */
+function hardQuestion(id: string): Question {
+  return { ...textBlankQuestion(id), difficulty: 4 }
+}
+
+/** difficulty>=4が30問以上ある在庫プール（正常系: 抽選が成立する） */
+const GHOST_BOSS_READY_POOL: Question[] = [
+  ...QUESTION_POOL,
+  ...Array.from({ length: 32 }, (_, i) => hardQuestion(`hard-${i}`)),
+]
+
+/** difficulty>=3の合計が10問未満の在庫プール（停止条件: 抽選不成立） */
+const GHOST_BOSS_INSUFFICIENT_POOL: Question[] = Array.from({ length: 3 }, (_, i) =>
+  hardQuestion(`hard-${i}`),
+)
 
 async function putProfile(db: BebRaidDatabase) {
   await db.profile.put({
@@ -979,5 +997,153 @@ describe('RaidScreen: 時刻追従（T-105）', () => {
     await screen.findByText('レイド機能は現在利用できません')
 
     expect(() => vi.advanceTimersByTime(5 * 60_000)).not.toThrow()
+  })
+})
+
+describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）', () => {
+  async function registeredSetup(pool: Question[] = GHOST_BOSS_READY_POOL) {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    return { db, raidApi, pool }
+  }
+
+  it('登録済みビューに「ボス役に立候補」ボタンが表示される', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.getByTestId('ghost-boss-candidate')).toBeTruthy()
+  })
+
+  it('未登録（登録フォーム表示中）では立候補ボタンが出ない', async () => {
+    const db = newDb()
+    await putProfile(db)
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-register-form')
+
+    expect(screen.queryByTestId('ghost-boss-candidate')).toBeNull()
+  })
+
+  it('立候補ボタンを押すと同意画面が表示され、共有される内容3点が明示される', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+
+    const consent = await screen.findByTestId('ghost-boss-consent')
+    expect(consent.textContent).toContain('堅い/弱点')
+    expect(consent.textContent).toContain('ボス名として全員に見えます')
+    expect(consent.textContent).toContain('撤回すると記録はサーバーから即時削除')
+  })
+
+  it('同意チェック無しでは「同意して開始」がdisabledで、開始できない（構造的強制のUI側担保）', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    const startButton = screen.getByText('同意して開始') as HTMLButtonElement
+    expect(startButton.disabled).toBe(true)
+
+    fireEvent.click(startButton)
+    expect(useAppStore.getState().screen).not.toBe('drill')
+  })
+
+  it('同意チェックの上で開始すると、全itemがmode="battle"のセッションでdrill画面へ遷移する', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-consent-checkbox'))
+    fireEvent.click(screen.getByText('同意して開始'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    const snapshot = useSessionStore.getState().snapshot
+    expect(snapshot).not.toBeNull()
+    expect(snapshot!.items.every((item) => item.mode === 'battle')).toBe(true)
+    expect(useSessionStore.getState().isGhostBossSession).toBe(true)
+  })
+
+  it('difficulty>=3まで含めても在庫が10問未満なら開始せずエラーを表示する（停止条件）', async () => {
+    const { db, raidApi, pool } = await registeredSetup(GHOST_BOSS_INSUFFICIENT_POOL)
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-consent-checkbox'))
+    fireEvent.click(screen.getByText('同意して開始'))
+
+    expect(await screen.findByText(/在庫が不足しています/)).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+  })
+
+  // 回帰防止: startSession失敗時にcatchが無いと、void呼び出しのため例外が握り潰され
+  // 画面が無反応になる（在庫不足以外の失敗が利用者に一切伝わらない）
+  it('セッション開始に失敗した場合はエラーを表示し、drillへ遷移しない', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+    const putSpy = vi
+      .spyOn(db.settings, 'put')
+      .mockRejectedValueOnce(new Error('セッション保存に失敗'))
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-consent-checkbox'))
+    fireEvent.click(screen.getByText('同意して開始'))
+
+    expect(await screen.findByText(/セッションを開始できませんでした/)).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+    putSpy.mockRestore()
+  })
+
+  it('「やめる」で同意画面を離れ、通常のレイド画面へ戻る', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByText('やめる'))
+
+    expect(await screen.findByTestId('raid-boss')).toBeTruthy()
+  })
+
+  it('送信済み記録がある場合は「ボス役記録を撤回する」ボタンが立候補ボタンの代わりに出て、撤回するとdeleteOwnGhostRecordが呼ばれる', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+    const { GHOST_BOSS_SUBMITTED_AT_KEY } = await import('../services/settingsKeys')
+    await db.settings.put({ key: GHOST_BOSS_SUBMITTED_AT_KEY, value: Date.now() })
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.queryByTestId('ghost-boss-candidate')).toBeNull()
+    const withdrawButton = await screen.findByTestId('ghost-boss-withdraw')
+
+    fireEvent.click(withdrawButton)
+
+    await waitFor(() => expect(raidApi.deleteOwnGhostRecord).toHaveBeenCalledTimes(1))
+    await waitFor(async () => {
+      expect(await db.settings.get(GHOST_BOSS_SUBMITTED_AT_KEY)).toBeUndefined()
+    })
+    expect(await screen.findByTestId('ghost-boss-candidate')).toBeTruthy()
   })
 })

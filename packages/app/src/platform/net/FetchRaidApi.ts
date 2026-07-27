@@ -4,6 +4,7 @@
 
 import type {
   DamageSyncPayload,
+  GhostRecordPayload,
   QuestionReportPayload,
   QuestionStatPayload,
   QuestionStatsRequest,
@@ -87,6 +88,14 @@ export class FetchRaidApi implements RaidApi {
 
   async sendReport(report: QuestionReportPayload): Promise<void> {
     await this.request('/reports', { method: 'POST', body: JSON.stringify(report) }, true)
+  }
+
+  async sendGhostRecord(payload: GhostRecordPayload): Promise<void> {
+    await this.request('/ghosts', { method: 'POST', body: JSON.stringify(payload) }, true)
+  }
+
+  async deleteOwnGhostRecord(): Promise<void> {
+    await this.request('/ghosts/own', { method: 'DELETE' }, true)
   }
 
   /**
