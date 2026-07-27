@@ -14,6 +14,16 @@
 - **検証**: `npm run lint` 通過。`npm run format:check` はgit管理外の `.claude/settings.local.json` 1件のみ未整形（既知・commit対象外）。
 - **判明した事実（別途対応が必要）**: スクリーンショットにより、**昼バトルの最終リザルトは画面の約6割が空白で、順位・表彰の視覚的強調が一切ない**こと、**ゴーストの弱点マップが素のテキスト9行**であること、**貢献者0人のときに「貢献ダメージ」の見出しだけが浮く空状態**があることが可視化された。原因は [20_ビジュアル刷新計画](20_ビジュアル刷新計画.md) のV-1〜V-8完了（2026-07-22）より後にM4の画面が実装されたため刷新の対象に入っていないことで、別途ビジュアル刷新の計画を起票する。
 - **配布前の前提**: M4の機能は `dev` までしか入っておらず、GitHub Pagesへの配信は `.github/workflows/deploy.yml` により `main` への push 時のみである。**本リリースノートを配布する前に dev→main のリリースPRが必要**。
+## バグ修正: シャドーイングの開始位置確定とindexの競合（2026-07-27。ブランチ `task/fix-shadowing-index-race`。origin/dev起点）
+
+CIで `ShadowingScreen.test.tsx` の「「前の素材へ」で戻れる」が**ドキュメントのみのPRでも間欠的に落ちる**事象が2回発生した（PR #69・#73。エラーはいずれも `Unable to find an element with the text: /1\/2/`）。テストの不安定さではなく**実装の競合が間欠的に露出していた**もので、原因を特定して修正した。
+
+- **不具合**: マウント時に未実施素材の先頭から開始する `useEffect`（T-120・J-59）が `db.attempts` を非同期に読み、解決時に `setIndex(firstUnfinished)` で**インデックスを絶対値で上書き**していた。この解決が利用者の素材移動より遅れると、(1) 表示中の素材が巻き戻り、(2) `handlePrev` の下限ガード `if (index === 0) return` が**レンダー時にキャプチャした古い `index`** を見るため、最新値が0であってもガードを通過して `setIndex((i) => i - 1)` が走り、**index が -1 になって `question` が undefined になり画面が壊れる**（`if (!question)` の早期returnに落ちる）。
+- **再現条件**: 起動直後、`attempts` の読み込みが完了する前に素材を移動する。読み込みが遅い端末・データ量が多い端末で踏みやすい。テスト環境では実行時間のばらつきで間欠的に発生していた。
+- **修正**: (1) `userMovedRef` を追加し、利用者が一度でも素材を移動していたら開始位置の自動決定を適用しない（利用者の位置を尊重する）。(2) `handlePrev` の下限ガードを更新関数の内側に移し、`setIndex((i) => (i > 0 ? i - 1 : i))` として最新の index に対して判定する。
+- **テスト**: `attempts` 読み込みの解決を保留できるスタブを使い、「利用者の移動が先・開始位置の確定が後」の順序を確定的に作る回帰テストを追加した。**修正を外すと、追加したテストと従来のCIで落ちていたテストの両方が落ちる**ことを確認済み（後者のエラーはCIで観測されたものと同一）。Dexieの実インスタンスへの `vi.spyOn` では読み込みを遅延させられなかったため、マウント時に使う `attempts.where(...).startsWith(...).toArray()` の経路のみをスタブに置き換えている。
+- **検証**: `npm run lint`・`npm run build` 通過。`npm test` は api 125・app 858・cli 338・review-ui 15・shared-schema 96 が全通過（終了コード0）。
+- **付随して判明した運用上の注意**: ローカルで `packages/shared-schema/dist` が古いまま `npm test -w @beb-raid/app` を実行すると、shared-schema に追加された関数が解決できず `TypeError: isBattleCloseReason is not a function` で app のテストが落ちる。CIは `npm run build` を先に実行するため発生しない。**shared-schema を変更したPRの後は、appのテスト前に `npm run build` を実行する**こと。
 
 ## 修正: 昼バトルの切断理由をUIに反映（2026-07-27。ブランチ `task/fix-battle-close-reason`。origin/dev起点）
 
