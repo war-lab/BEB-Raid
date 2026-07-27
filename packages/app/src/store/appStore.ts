@@ -21,6 +21,7 @@ export type ScreenName =
   | 'result'
   | 'raid'
   | 'reading'
+  | 'battle'
 
 interface AppStore {
   screen: ScreenName

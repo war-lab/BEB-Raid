@@ -642,6 +642,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 レイド
               </button>
             )}
+            {/* M4・T-125: 昼バトル参加の入口（isConfigured時のみ。共有API無効時は入口ごと非表示=22の2.3節） */}
+            {raidApi.isConfigured() && (
+              <button type="button" onClick={() => navigate('battle')}>
+                昼バトルに参加
+              </button>
+            )}
           </div>
         </>
       }
