@@ -153,6 +153,14 @@ export class BattleRoomDO extends DurableObject<Env> {
     const protocolHeader = request.headers.get('Sec-WebSocket-Protocol')
     const deviceToken = extractBearerFromProtocol(protocolHeader)
 
+    // 101応答には要求されたサブプロトコルを必ず反映する。反映しないとブラウザは
+    // ハンドシェイクを失敗させ、接続が確立しないためcloseフレームのreasonが
+    // クライアントへ届かない（拒否経路でこれを落としており、unauthorized /
+    // room_not_found の案内が実ブラウザで汎用文に落ちていた）。
+    // 成功経路・拒否経路の両方で同じヘッダを返す
+    const upgradeHeaders = new Headers()
+    if (protocolHeader) upgradeHeaders.set('Sec-WebSocket-Protocol', protocolHeader)
+
     const pair = new WebSocketPair()
     const client = pair[0]
     const server = pair[1]
@@ -164,7 +172,7 @@ export class BattleRoomDO extends DurableObject<Env> {
 
     if (!deviceToken || !registered || !roomAvailable) {
       closeWithReason(server, 1008, !roomAvailable ? 'room_not_found' : 'unauthorized')
-      return new Response(null, { status: 101, webSocket: client })
+      return new Response(null, { status: 101, webSocket: client, headers: upgradeHeaders })
     }
 
     const role: ConnectionRole = this.meta!.hostToken === deviceToken ? 'host' : 'participant'
@@ -183,9 +191,7 @@ export class BattleRoomDO extends DurableObject<Env> {
       meta: cloneMeta(this.meta!),
     } satisfies ConnectionAttachment)
 
-    const headers = new Headers()
-    if (protocolHeader) headers.set('Sec-WebSocket-Protocol', protocolHeader)
-    return new Response(null, { status: 101, webSocket: client, headers })
+    return new Response(null, { status: 101, webSocket: client, headers: upgradeHeaders })
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {

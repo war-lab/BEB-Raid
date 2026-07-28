@@ -1238,15 +1238,31 @@
   gap: var(--sp-1);
   margin-top: var(--sp-2);
 }
+/* V-13（docs/25 4.8節）: 面をカード言語（--surface-grad＋罫線）に揃える。
+   **構造（2列グリッド・素のボタン列）は変えない**（V-3の判断を尊重＝4.8節の明記事項）。
+   アイコンを持つボタン（昼バトルの2導線）と持たないボタンで横位置が揃うよう
+   inline-flexの中央寄せにする。コントラスト（docs/20 2.3節の式・機械計算値。
+   面=--surface-grad上端 dark #1c2339 / light #ffffff、下端 dark #181e31 / light #faf9f4）:
+     文字 --ink : dark 13.302 / 14.141、light 16.620 / 15.766（本文基準4.5:1適合）
+     アイコン --raid : dark 4.293 / 4.564、light 5.531 / 5.247（UI部品基準3:1適合。
+       ダークは本文基準4.5:1を下回るが、アイコンは装飾＝aria-hiddenのUI部品で
+       文字色には使わないため基準は3:1でよい） */
 .home-grid button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-half);
   min-height: var(--tap-min);
   padding: 0 var(--sp-1);
-  background: var(--surface);
+  background: var(--surface-grad);
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: var(--radius-button);
   font-size: var(--fs-sub);
   cursor: pointer;
+}
+.home-grid__icon {
+  flex: none;
 }
 
 /* --- S9 BYOK設定の注記（M2・T-55。05の5節: 平文保存・支出上限推奨） --- */
@@ -1747,24 +1763,143 @@
   color: var(--ink-2);
 }
 
-/* --- S7 昼バトル参加画面（M4・T-125。docs/22 3.6節） --- */
+/* --- S7 昼バトル参加画面（M4・T-125。docs/22 3.6節） ---
+   待機系（ルームコード入力・ロビー・切断）の表層はV-13（正本: docs/25 4.4節）。
+   待機は報酬ではないので過剰演出はしない: アニメーション・光暈・背景演出は一切足さず、
+   カード面（--surface-grad＋罫線）とタイポの階層付けだけを行う。
+   出題中（questionフェーズ）は学習中と同じ扱いで何も足さない（2.2.1節・07の原則3）。
+
+   コントラスト（docs/20 2.3節の式での機械計算値。基準=本文4.5:1／UI部品3:1。
+   半透明の塗りは使わないため混色地は発生しない＝すべてトークンの実色どうしの比）:
+     面=--surface-grad 上端 dark #1c2339 / light #ffffff、下端 dark #181e31 / light #faf9f4
+     入力欄の地=--surface-2 dark #222a44 / light #efede6
+       文字 --ink on --surface-2      : dark 12.102 / light 14.187（本文AA適合）
+       文字 --ink on 面              : dark 13.302 / 14.141、light 16.620 / 15.766（本文AA適合）
+       補助 --ink-2 on 面            : dark 7.036 / 7.480、light 5.608 / 5.320（本文AA適合）
+       英字ラベル --ev-blue on 面    : dark 4.870 / 5.177、light 6.556 / 6.219（本文AA適合）
+       入力欄の枠・チップ枠 --ink-3  : 面に対し dark 4.493 / light 4.929、
+                                       --surface-2に対し dark 4.088 / light 4.208（UI部品AA適合）
+       フォーカスリング --ev-blue    : 面に対し dark 4.870 / light 6.556、
+                                       --surface-2に対し dark 4.431 / light 5.596（UI部品AA適合。
+                                       ダークは本文基準4.5:1を割るため文字色には使わない） */
+.battle-entry {
+  display: flex;
+  flex-direction: column;
+}
+/* 入力欄が操作ゾーンに押し出されないよう、この画面のロゴはホームより小さく表示する
+   （.battle-host配下で.standings*のサイズを上書きするのと同じ、親クラス側での調整） */
+.battle-entry .wordmark-logo {
+  width: min(52%, 200px);
+}
+.battle-entry__card {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.battle-entry__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.battle-entry__label {
+  display: block;
+  margin-top: var(--sp-half);
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
 .battle-room-code-input {
   width: 100%;
-  min-height: var(--tap-min);
-  margin: var(--sp-1) 0;
+  /* --fs-display（40px）の1行が収まる高さ。--tap-min（48px）は当然満たす */
+  min-height: 72px;
+  margin: var(--sp-1) 0 0;
   padding: 0 var(--sp-1);
-  background: var(--surface);
+  background: var(--surface-2);
   color: var(--ink);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3);
   border-radius: var(--radius-button);
-  font-size: var(--fs-ui);
+  /* 4文字だけの入力なのでディスプレイ書体の特大にする（docs/25 4.4節） */
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
   letter-spacing: 0.2em;
   text-align: center;
   text-transform: uppercase;
 }
+/* キーボード操作でフォーカスリングが可視であること（V-13の完了条件）。
+   outlineは枠の外側に出すので入力欄の2px枠と重ならない */
+.battle-room-code-input:focus-visible {
+  outline: 2px solid var(--ev-blue);
+  outline-offset: 2px;
+}
 .battle-lobby-hint {
   color: var(--ink-2);
   font-size: var(--fs-note);
+}
+/* ロビー: 待機中の唯一の情報は参加者が増えることなので、一覧をピル形のチップの並びにする。
+   チップは--surface-2の塗りだけでは面（--surface-grad）との差が小さく境界が読めないため
+   （dark #222a44 対 #1c2339 は1.246）、枠を--ink-3にしてUI部品基準3:1を確保する */
+.battle-lobby {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.battle-lobby__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.battle-lobby__wait {
+  margin: var(--sp-half) 0 0;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.battle-lobby__chips {
+  /* 10人程度でも崩れないよう折り返す（V-13の完了条件） */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+}
+.battle-lobby__chip {
+  max-width: 100%;
+  padding: var(--sp-half) var(--sp-2);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sub);
+  overflow-wrap: anywhere;
+}
+/* 切断（closed）: 文言はbattleCloseMessage.tsのまま変えず、面をカード化して
+   見出しと本文の階層を付けるだけに留める（docs/25 4.4節）。
+   原因を利用者のせいにしない方針のため--ng / --warnは使わない */
+.battle-closed {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.battle-closed__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-heading);
+}
+.battle-closed__body {
+  margin: var(--sp-1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  line-height: 1.7;
 }
 
 /* --- ゴースト記録プレビュー（GhostBossResultScreen。docs/25 V-16・4.7節） ---
