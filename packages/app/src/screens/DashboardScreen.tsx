@@ -6,7 +6,7 @@ import type { BebRaidDatabase } from '../db/database'
 import type { ExamScoreRecord, ExamScoreSource } from '../db/schema'
 import { localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { computeForecast, type RatingHistoryPoint } from '../engine/forecast'
-import { getGrowthRank, type GrowthRankResult } from '../engine/growthRank'
+import { getGrowthRank, GROWTH_RANK_CONFIG, type GrowthRankResult } from '../engine/growthRank'
 import { buildHeatmapCells } from '../engine/heatmapCells'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { getTagAccuracies, WEAK_MIN_SAMPLE } from '../engine/tagStats'
@@ -30,6 +30,28 @@ function forecastMessage(forecast: ForecastResult): string {
     return `このペースなら${forecast.year}年${forecast.month}月頃到達（参考値）`
   }
   return `このペースでは到達しない見込み。週の学習日数をあと${forecast.addDaysPerWeek}日増やすことを目安に（参考値）`
+}
+
+/**
+ * ランク段数（1始まり）。台座の線の本数に使う（docs/25 4.5節の二重符号化）。
+ * growthRankConfig.json の定義順がそのまま段位の低→高なので、その添字を段数とする。
+ * 未知IDは最下段扱い（1本）にして描画を落とさない。
+ */
+function growthRankTier(rankId: string): number {
+  const index = GROWTH_RANK_CONFIG.ranks.findIndex((r) => r.id === rankId)
+  return index < 0 ? 1 : index + 1
+}
+
+/**
+ * 次ランクまでの進捗率（0〜1）。最上位ランク到達時は null（バーを出さない）。
+ * 表示済みの rankPoints / pointsToNext を割り算するだけで、新しい情報は持ち込まない。
+ */
+function growthRankProgress(result: GrowthRankResult): number | null {
+  if (result.nextRank === null || result.pointsToNext === null) return null
+  const span = result.nextRank.minPoints - result.rank.minPoints
+  if (span <= 0) return null
+  const done = span - result.pointsToNext
+  return Math.min(1, Math.max(0, done / span))
 }
 
 /** 学習ヒートマップの表示週数（07 8節: 直近15週程度） */
@@ -136,6 +158,8 @@ export function DashboardScreen({ db }: Props) {
     return null
   }
 
+  const rankProgress = growthRankProgress(growthRank)
+
   return (
     <ScreenLayout
       action={
@@ -154,11 +178,22 @@ export function DashboardScreen({ db }: Props) {
         <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
       </section>
 
-      <section className="dashboard-growth-rank" data-testid="growth-rank">
-        <h2 style={{ fontSize: 'var(--fs-sub)' }}>成長ランク</h2>
-        <p className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
-          {growthRank.rank.name}
-        </p>
+      {/* docs/25 4.5節（V-14）: 色（data-rank）＋台座の線の本数でランク段数を二重符号化する。
+          グレースケールでも線の本数からランクが判別できる。光暈・アニメーションは足さない */}
+      <section
+        className="dashboard-growth-rank"
+        data-testid="growth-rank"
+        data-rank={growthRank.rank.id}
+      >
+        <p className="dashboard-growth-rank__eyebrow">Growth Rank</p>
+        <h2 className="dashboard-growth-rank__heading">成長ランク</h2>
+        <p className="display-num dashboard-growth-rank__name">{growthRank.rank.name}</p>
+        {/* 台座（装飾）。段数はランク名のテキストで既に読めるため aria-hidden にする */}
+        <div className="dashboard-growth-rank__pedestal" aria-hidden="true">
+          {Array.from({ length: growthRankTier(growthRank.rank.id) }, (_, i) => (
+            <span key={i} className="dashboard-growth-rank__tier-bar" />
+          ))}
+        </div>
         <p className="dashboard-forecast-note">現在 {growthRank.rankPoints}pt</p>
         {growthRank.nextRank ? (
           <p data-testid="growth-rank-next">
@@ -166,6 +201,16 @@ export function DashboardScreen({ db }: Props) {
           </p>
         ) : (
           <p data-testid="growth-rank-next">最上位ランクに到達</p>
+        )}
+        {/* 次ランクまでの進捗バー。既存の pointsToNext を視覚化するだけで情報は増やさない
+            （数値は上の行に既出のため装飾扱い） */}
+        {rankProgress !== null && (
+          <div className="dashboard-growth-rank__progress" aria-hidden="true">
+            <span
+              className="dashboard-growth-rank__progress-fill"
+              style={{ width: `${rankProgress * 100}%` }}
+            />
+          </div>
         )}
       </section>
 

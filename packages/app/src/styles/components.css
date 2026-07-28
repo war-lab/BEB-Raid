@@ -1369,14 +1369,93 @@
   font-size: var(--fs-note);
 }
 
-/* ダッシュボードの成長ランク（M4・T-130。既存カード面言語の範囲。光暈・新規アニメーションは追加しない） */
+/* ダッシュボードの成長ランク（M4・T-130。既存カード面言語の範囲。光暈・新規アニメーションは追加しない）
+   docs/25 V-14: ランク色（data-rank）＋台座の線の本数による二重符号化を追加した。
+   ダッシュボードは「区切り」ではなく「確認」の画面なので演出は足さない（4.5節）。
+   コントラスト（機械計算値。前景=ランク色 / 背景=--surface）:
+     dark  bronze 4.795 / silver 8.122 / gold 9.304 / platinum 9.797 / master 4.727（対#181e31）
+     light bronze 5.727 / silver 8.102 / gold 4.935 / platinum 6.337 / master 5.379（対#ffffff）
+   **--rank-master の使用制限**: ダーク値#8b79e8は--surface-grad上端#1c2339に対し4.447:1で
+   本文基準を満たさない。ここでの用途は--fs-display（40px）のランク名＝大文字基準3:1のみで、
+   注記（--fs-note/--fs-sub）や本文にランク色を使ってはならない。注記は--ink-2のままとする */
 .dashboard-growth-rank {
+  /* ランク色の受け皿。data-rankで切り替え、配下は--growth-rank-color経由で参照する
+     （生の16進をここに書かない=トークン経由参照の原則） */
+  --growth-rank-color: var(--rank-bronze);
+
   padding: var(--sp-2);
   margin-bottom: var(--sp-2);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   text-align: center;
+}
+.dashboard-growth-rank[data-rank='bronze'] {
+  --growth-rank-color: var(--rank-bronze);
+}
+.dashboard-growth-rank[data-rank='silver'] {
+  --growth-rank-color: var(--rank-silver);
+}
+.dashboard-growth-rank[data-rank='gold'] {
+  --growth-rank-color: var(--rank-gold);
+}
+.dashboard-growth-rank[data-rank='platinum'] {
+  --growth-rank-color: var(--rank-platinum);
+}
+.dashboard-growth-rank[data-rank='master'] {
+  --growth-rank-color: var(--rank-master);
+}
+/* 英字ラベル（docs/25 4.5節。.result-eyebrowと同じ書式で--ev-blue） */
+.dashboard-growth-rank__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+/* 日本語見出しは残す（英字ラベルだけにすると何の数値か読み取れない） */
+.dashboard-growth-rank__heading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  font-weight: 400;
+}
+/* ランク名。ランク色を使ってよいのはこのディスプレイ書体40pxの見出しだけ（上記の使用制限） */
+.dashboard-growth-rank__name {
+  margin: var(--sp-half) 0 0;
+  color: var(--growth-rank-color);
+  font-size: var(--fs-display);
+  line-height: 1.15;
+}
+/* 台座。線の本数＝ランク段数（ブロンズ1・シルバー2・ゴールド3・プラチナ4・マスター5）。
+   色を失っても本数でランクが判別できるので、色単独の符号化にならない（07の原則4） */
+.dashboard-growth-rank__pedestal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin: var(--sp-1) 0 var(--sp-2);
+}
+.dashboard-growth-rank__tier-bar {
+  width: 96px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--growth-rank-color);
+}
+/* 次ランクまでの進捗バー（pointsToNextの視覚化のみ。数値は直上の行に既出） */
+.dashboard-growth-rank__progress {
+  height: 6px;
+  margin-top: var(--sp-1);
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.dashboard-growth-rank__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--growth-rank-color);
+  border-radius: var(--radius-pill);
 }
 
 /* ディクテーションのスクリプト表示（question-textと併用。空欄記号を見やすくする） */
