@@ -99,6 +99,39 @@
   opacity: 0.45;
 }
 
+/* --- 選択肢の形マーカー（イベントバトル専用。docs/25 4.4節・JV-7=案B・07の7節S7/S8） ---
+   S7手元画面とS8ホスト画面で同じ形（▲■●◆）と同じ色を同じ選択肢に当て、投影の色ずれと
+   色覚多様性の両方に耐えさせる（07の原則4）。ソロ学習は記号A–Dのままなので、
+   既定の .choice-button__marker は変えず、[data-marker-variant='shape'] のときだけ着色する。
+   枠色は正誤フィードバック（--ok/--ng）専用のまま残し、キーごとの色はマーカーだけに当てる
+   （枠に当てると解答前の枠色が正誤表示と混ざって読める）。
+   形マーカーは文字ではなく図形（aria-hidden。記号はvisually-hiddenで伝える）なので
+   WCAG 1.4.11の3:1が基準。実測比（--surface-grad の上端/下端。20の2.3節の式・機械計算値）:
+     dark  A --ev-blue 4.870/5.177・B --gold 8.753/9.304・C --listen 7.567/8.043・D --violet 4.447/4.727
+     light A --ev-blue 6.556/6.219・B --gold 4.935/4.682・C --listen 5.204/4.937・D --violet 5.379/5.103
+   D（--violet）のダークのみ本文基準4.5:1を0.053下回るが図形基準3:1は満たす（同じ判断は
+   --rank-master の注記に既出）。減光状態（.is-dimmed。opacity 0.45）では地との混色で
+   実効比が1.9〜2.8:1まで落ちるが、これは解答後に未選択の選択肢を弱める既存挙動で、
+   このときの情報は枠色＋✓✕が担う（V-12で変更しない） */
+.choice-button[data-marker-variant='shape'] .choice-button__marker.is-shape {
+  /* 器の寸法（28px角・ピル）は記号表示と同じままにしてレイアウトを動かさない */
+  border-color: currentcolor;
+  font-size: var(--fs-heading);
+  line-height: 1;
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='A'] .choice-button__marker {
+  color: var(--ev-blue);
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='B'] .choice-button__marker {
+  color: var(--gold);
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='C'] .choice-button__marker {
+  color: var(--listen);
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='D'] .choice-button__marker {
+  color: var(--violet);
+}
+
 /* --- セッション進捗: 最上部のバー＋残数 --- */
 .session-progress {
   display: flex;
@@ -2435,9 +2468,11 @@
   color: var(--ink);
   font-size: var(--host-fs-choice);
 }
-/* 記号の器。V-12は同じ器（.battle-host-choice__marker の中身）へ形マーカー（▲■●◆）を
-   載せて三重符号化を完成させる。キーごとの色は [data-choice-key] で当てているので、
-   V-12はS7の手元画面に同じ対応（A=--ev-blue / B=--gold / C=--listen / D=--violet）を作れば足りる */
+/* 形マーカーの器。V-12で中身を記号A–Dから形マーカー（▲■●◆）へ置き換え、キーごとの色
+   （下の [data-choice-key]）と併せて三重符号化を成立させた。S7の手元画面も同じ対応
+   （A=--ev-blue / B=--gold / C=--listen / D=--violet）で、形の対応表は ChoiceButton と共有する。
+   この画面は明地固定（JV-6）なのでライト値のみで判定する。実測比（--surface-grad 上端/下端・
+   機械計算値）: A 6.556/6.219・B 4.935/4.682・C 5.204/4.937・D 5.379/5.103 で全てAA適合 */
 .battle-host-choice__marker {
   flex: none;
   display: inline-flex;
