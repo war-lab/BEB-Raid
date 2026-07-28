@@ -273,6 +273,31 @@ describe('BattleHostScreen: 音声再生完了前は解答受付が開かない'
   })
 })
 
+describe('BattleHostScreen: 抽選プレビューでもscriptを出さない', () => {
+  // ルーム作成前のホストの下見だが、プレビューを映したまま参加者が居ると正答が漏れる。
+  // 音声問題は行を区別できる必要があるため種別とidで示す（V-17の確認で再指摘された）
+  it('音声問題の行にscriptを出さず、種別とidを出す', () => {
+    const leaky = audioQaQuestion('q-leak')
+    leaky.script = 'When should I submit the report? — By the end of this week.'
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={new FakeBattleSocket()}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[
+          leaky,
+          ...Array.from({ length: 20 }, (_, i) => textBlankQuestion(`p5-${i}`)),
+        ]}
+        rng={() => 0.3}
+      />,
+    )
+
+    const preview = screen.getByTestId('battle-host-lottery-preview')
+    expect(preview.textContent).not.toContain('By the end of this week')
+    expect(preview.textContent).toContain('音声問題（q-leak）')
+  })
+})
+
 describe('BattleHostScreen: 音声問題のscriptを投影しない', () => {
   // scriptは読み上げ原稿で質問文と正答の両方を含むため、投影すると
   // リスニングが読解になるだけでなく正答が画面に出る。
