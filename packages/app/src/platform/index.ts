@@ -62,7 +62,7 @@ export function createRaidApi(
 }
 
 /**
- * 昼バトル（M4・T-125）のWebSocketクライアントの実装を返す。
+ * イベントバトル（M4・T-125）のWebSocketクライアントの実装を返す。
  * baseUrlはRaidApiと同じ VITE_RAID_API_BASE_URL（http/httpsをws/wssへ変換して使う）
  */
 export function createBattleSocket(

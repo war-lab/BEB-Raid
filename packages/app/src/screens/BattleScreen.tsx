@@ -1,4 +1,4 @@
-// S7 昼バトル参加画面（M4・T-125。正本: docs/22_M4実装計画.md 3.2節・3.6節、docs/02 6.1節・6.2節）。
+// S7 イベントバトル参加画面（M4・T-125。正本: docs/22_M4実装計画.md 3.2節・3.6節、docs/02 6.1節・6.2節）。
 // ルームコード入力→ロビー（参加者一覧）→出題中（選択肢ボタンのみの大ボタンUI）→
 // 各問後の順位表示→最終リザルト（順位・ベストグロース賞・自分の誤答一覧）の一連。
 // BattleRoomDOはコンテンツ非依存（questionIdと換算点のみ）のため、問題文・選択肢の解決・
@@ -260,7 +260,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   if (phase === 'entry' || phase === 'connecting') {
     return (
       <ScreenLayout
-        status={<p>昼バトルに参加</p>}
+        status={<p>イベントバトルに参加</p>}
         action={
           <>
             <PrimaryButton onClick={() => void handleJoin()} disabled={phase === 'connecting'}>
@@ -428,7 +428,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const closeMessage = resolveBattleCloseMessage(closeReason, 'participant')
   return (
     <ScreenLayout
-      status={<p>昼バトル</p>}
+      status={<p>イベントバトル</p>}
       action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
     >
       <div className="battle-closed">

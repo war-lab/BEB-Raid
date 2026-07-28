@@ -642,8 +642,8 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 レイド
               </button>
             )}
-            {/* M4・T-125: 昼バトル参加の入口（isConfigured時のみ。共有API無効時は入口ごと非表示=22の2.3節）。
-                V-13（docs/25 4.8節）: 5導線の中で昼バトルの2つを識別できるよう--raidのアイコンを付ける。
+            {/* M4・T-125: イベントバトル参加の入口（isConfigured時のみ。共有API無効時は入口ごと非表示=22の2.3節）。
+                V-13（docs/25 4.8節）: 5導線の中でイベントバトルの2つを識別できるよう--raidのアイコンを付ける。
                 アイコンは装飾（aria-hidden）で、識別は文字ラベルでも成立する（07の原則4） */}
             {raidApi.isConfigured() && (
               <button type="button" onClick={() => navigate('battle')}>
@@ -678,10 +678,10 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span>昼バトルに参加</span>
+                <span>イベントバトルに参加</span>
               </button>
             )}
-            {/* M4・T-126: 昼バトル主催（ホスト）の入口（isConfigured時のみ。同上） */}
+            {/* M4・T-126: イベントバトル主催（ホスト）の入口（isConfigured時のみ。同上） */}
             {raidApi.isConfigured() && (
               <button type="button" onClick={() => navigate('battleHost')}>
                 <svg
@@ -709,7 +709,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                     strokeLinecap="round"
                   />
                 </svg>
-                <span>昼バトルを主催</span>
+                <span>イベントバトルを主催</span>
               </button>
             )}
           </div>

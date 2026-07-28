@@ -1,4 +1,4 @@
-// M4・T-125: 昼バトルWebSocket抽象化レイヤのテスト。
+// M4・T-125: イベントバトルWebSocket抽象化レイヤのテスト。
 // - WebSocketBattleSocket: connect時にSec-WebSocket-Protocolでbearerトークンを付与すること、
 //   受信JSONの正規化（未知メッセージの棄却）、送信・クローズの委譲
 // - FakeBattleSocket: emitMessage/emitCloseでハンドラが駆動されること

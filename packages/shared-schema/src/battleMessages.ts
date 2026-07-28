@@ -1,4 +1,4 @@
-// 昼バトルWebSocketメッセージの判別ユーティリティ（M4・T-123。正本: docs/22 3.2節）。
+// イベントバトルWebSocketメッセージの判別ユーティリティ（M4・T-123。正本: docs/22 3.2節）。
 // BattleRoomDO・クライアント双方が受信JSONの type を検証する際に使う。
 // 未知の type は既知メッセージとして扱わない（discriminated unionの受信側ガード）
 
