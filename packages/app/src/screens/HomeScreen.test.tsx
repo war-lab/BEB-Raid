@@ -1503,7 +1503,10 @@ describe('HomeScreen: .home-gridの表層（V-13。docs/25 4.8節）', () => {
   it('イベントバトルの2導線だけがアイコンを持ち、アイコンはaria-hiddenでラベルは変わらない', async () => {
     const grid = await renderConfigured()
     const withIcon = Array.from(grid.children).filter((el) => el.querySelector('.home-grid__icon'))
-    expect(withIcon.map((el) => el.textContent)).toEqual(['イベントバトルに参加', 'イベントバトルを主催'])
+    expect(withIcon.map((el) => el.textContent)).toEqual([
+      'イベントバトルに参加',
+      'イベントバトルを主催',
+    ])
     for (const el of withIcon) {
       expect(el.querySelector('.home-grid__icon')?.getAttribute('aria-hidden')).toBe('true')
     }
