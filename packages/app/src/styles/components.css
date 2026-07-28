@@ -1773,6 +1773,8 @@
   color: var(--ok);
   font-size: var(--fs-heading);
   font-weight: 700;
+}
+
 /* --- 昼バトルの順位表（V-9。docs/25 4.1節）。S7参加者画面・S8ホスト画面の
    途中順位と最終リザルトで共用する（StandingsList）。
    順位は数字バッジ（形）＋色の二重符号化で、グレースケール表示でも数字だけで
