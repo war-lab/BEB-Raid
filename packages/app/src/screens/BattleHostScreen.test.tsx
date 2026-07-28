@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AudioPlayer, RaidApi } from '../platform'
 import { FakeBattleSocket } from '../platform/net/BattleSocket'
 import { useAppStore } from '../store/appStore'
+import { setTheme } from '../theme'
 import { BattleHostScreen } from './BattleHostScreen'
 
 const BOSS: RaidBossState = {
@@ -56,6 +57,8 @@ class ControllableAudioPlayer implements AudioPlayer {
 
 afterEach(() => {
   useAppStore.setState({ screen: 'home' })
+  // ホスト画面は表示中だけ明地に固定する（V-11・JV-6）ため、テスト間で持ち越さない
+  setTheme('dark')
 })
 
 function textBlankQuestion(id: string): Question {
@@ -290,6 +293,87 @@ describe('BattleHostScreen: 離脱時の後始末', () => {
 
     unmount()
     expect(socket.closed).toBe(true)
+  })
+})
+
+// V-11 投影用意匠（docs/25 4.3節・JV-5・JV-6）。防ぐもの:
+// - 投影フェーズがモバイル用の縦3分割（ScreenLayout）に戻ること
+// - 明地固定（JV-6）が外れて暗地のまま投影されること・離脱後にテーマが戻らないこと
+// - 選択肢の三重符号化の器（キーごとの色を当てる data-choice-key と、V-12が形マーカーを
+//   載せる .battle-host-choice__marker）が失われること
+describe('BattleHostScreen: 投影用意匠（V-11）', () => {
+  /** 出題中（questionフェーズ）まで進める */
+  async function renderToQuestion() {
+    const socket = new FakeBattleSocket()
+    const view = render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1'), textBlankQuestion('q-2')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 20_000,
+    })
+    await screen.findByTestId('battle-host-timer')
+    return { socket, view }
+  }
+
+  it('出題中は縦3分割を使わず、外周リング付きの投影レイアウトで問題文と選択肢を出す', async () => {
+    const { view } = await renderToQuestion()
+
+    expect(view.container.querySelector('.screen-layout')).toBeNull()
+    expect(view.container.querySelector('.battle-host-stage')).not.toBeNull()
+    expect(screen.getByTestId('battle-host-ring')).toBeTruthy()
+    expect(view.container.querySelector('.battle-host-question')?.textContent).toContain(
+      'Please ___ the q-1.',
+    )
+
+    // 選択肢はキーごとに色を当てられる器（data-choice-key）と、V-12が形マーカーを載せる
+    // マーカー要素を持つ
+    const choices = Array.from(view.container.querySelectorAll('.battle-host-choice'))
+    expect(choices.map((c) => c.getAttribute('data-choice-key'))).toEqual(['A', 'B'])
+    expect(choices[0]?.querySelector('.battle-host-choice__marker')?.textContent).toBe('A')
+  })
+
+  it('途中順位・最終リザルトも投影レイアウトで、進行ボタンは画面下端の操作帯に置く', async () => {
+    const { socket, view } = await renderToQuestion()
+
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: 'テスト1', totalPoints: 90 }],
+    })
+    await screen.findByTestId('battle-host-standings')
+    expect(view.container.querySelector('.screen-layout')).toBeNull()
+    // 順位表は投影用スケールを持つ .battle-host 配下に入る（サイズ差は親クラスで上書きする）
+    expect(view.container.querySelector('.battle-host .standings')).not.toBeNull()
+    const foot = view.container.querySelector('.battle-host-stage__foot')
+    expect(foot?.querySelector('button')?.textContent).toBe('次の問題へ')
+    // 出題中でないフェーズにはリング（残り時間）を出さない
+    expect(screen.queryByTestId('battle-host-ring')).toBeNull()
+  })
+
+  it('ホスト画面の表示中だけ明地（ライトテーマ）に固定し、離脱で元のテーマへ戻す（JV-6）', () => {
+    setTheme('dark')
+    const { unmount } = render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={new FakeBattleSocket()}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1')]}
+      />,
+    )
+    expect(document.documentElement.dataset.theme).toBe('light')
+    unmount()
+    expect(document.documentElement.dataset.theme).toBe('dark')
   })
 })
 

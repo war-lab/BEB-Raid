@@ -1937,24 +1937,24 @@
   }
 }
 /* --- S8 ホスト画面（投影）側のサイズ差。コンポーネントに分岐を持たせず親クラスで
-   上書きする（docs/25 4.1節）。投影用の本格的な意匠（別テーマ・特大タイポ・
-   外周リング）はV-11の担当で、ここではサイズの引き上げだけに留める --- */
+   上書きする（docs/25 4.1節）。V-11でホスト画面専用の投影用スケール（--host-fs-*）に
+   置き換え、順位の得点を6vw以上にした（docs/25 4.3節） --- */
 .battle-host .standings__label {
-  font-size: var(--fs-sub);
+  font-size: var(--host-fs-label);
 }
 .battle-host .standings__badge {
-  min-width: 40px;
-  height: 40px;
-  font-size: var(--fs-heading);
+  min-width: 2em;
+  height: 2em;
+  font-size: var(--host-fs-name);
 }
 .battle-host .standings__name {
-  font-size: var(--fs-heading);
+  font-size: var(--host-fs-name);
 }
 .battle-host .standings__points {
-  font-size: var(--fs-stat);
+  font-size: var(--host-fs-points);
 }
 .battle-host .standings__bar {
-  height: 10px;
+  height: 12px;
 }
 
 /* --- 昼バトル最終リザルトの表彰（V-10。docs/25 4.2節・JV-4）。
@@ -2109,27 +2109,215 @@
     transition: none;
   }
 }
-/* S8ホスト画面（投影）側のサイズ差。投影用の本格的な意匠はV-11の担当 */
+/* S8ホスト画面（投影）側のサイズ差。V-11で投影用スケール（--host-fs-*）に置き換えた。
+   台座の高さも vw 基準にして、投影サイズでも順位差（高さ）が離れて見えるようにする */
 .battle-host .battle-award__points {
-  font-size: var(--fs-heading);
+  font-size: var(--host-fs-name);
 }
 .battle-host .battle-award__place[data-rank='1'] .battle-award__points {
-  font-size: var(--fs-display);
+  font-size: var(--host-fs-points);
 }
 .battle-host .battle-award__name {
-  font-size: var(--fs-ui);
+  font-size: var(--host-fs-name);
 }
 .battle-host .battle-award__place[data-rank='1'] .battle-award__pedestal {
-  height: 110px;
+  height: max(9vw, 110px);
 }
 .battle-host .battle-award__place[data-rank='2'] .battle-award__pedestal {
-  height: 78px;
+  height: max(6.4vw, 78px);
 }
 .battle-host .battle-award__place[data-rank='3'] .battle-award__pedestal {
-  height: 52px;
+  height: max(4.3vw, 52px);
 }
 .battle-host .battle-award__rank-num {
-  font-size: var(--fs-display);
+  font-size: var(--host-fs-points);
+}
+
+/* --- S8ホスト画面（プロジェクター投影）の意匠（V-11。正本: docs/25 4.3節・JV-5・JV-6）---
+   - JV-5（承認済み・案A）: 縦3分割・操作ゾーン下45%を適用しない。適用外はS8ホスト画面の
+     PC表示のみで、他画面には及ばない（docs/20 1節の「変えないもの」に明記済み）
+   - JV-6（承認済み・案A）: プロジェクターは黒を投影できないため明地固定。地色はライトテーマの
+     トークンをそのまま使う（画面表示中だけ data-theme をライトへ固定する=BattleHostScreen.tsx）。
+     したがって以下の実効値はライト値で、コントラストは docs/20 2.3節の式での機械計算値:
+       --ink #211e18 on --bg #f6f5f1 = 15.234:1（問題文・選択肢本文・得点。最大コントラスト）
+       --ink on --surface-grad #ffffff→#faf9f4 = 16.620/15.766:1（選択肢カード・順位表の面）
+       --ink-2 #6d675c on --bg = 5.140:1（メタ表示・注記）
+       --ev-blue #2456c4 on --bg = 6.009:1（英字ラベル・外周リング・選択肢A）
+       --raid #c42b4c on --bg = 5.070:1（残り5秒以下のリングと残秒数）
+       --gold #996600 on --surface-grad = 4.935/4.682:1（選択肢B）
+       --listen #00778f on --surface-grad = 5.204/4.937:1（選択肢C）
+       --violet #6a55d8 on --surface-grad = 5.379/5.103:1（選択肢D）
+     いずれも本文基準4.5:1に適合する。リングの軌道（--line #ddd9ce on --bg = 1.293:1）だけは
+     基準を満たさないが、残り時間は数値（--ink / --raid）で必ず併記するためリングは装飾扱い
+     （aria-hidden）で、情報は色・線長に依存しない
+   - タイポは vw 基準（問題文5vw以上・選択肢4vw以上・順位の得点6vw以上）。--fs-* はモバイルの
+     px固定なので、ホスト画面専用のスケールをここ（.battle-host スコープ）に持つ。
+     グローバルトークンは増やさない（docs/25 5節） --- */
+.battle-host {
+  /* max() で vw 側を下限に固定する。狭いウィンドウでも px 下限で崩れないようにしつつ、
+     ビューポート幅に対する比は常に規定値以上になる */
+  --host-fs-label: max(1.6vw, 14px);
+  --host-fs-meta: max(2.2vw, 18px);
+  --host-fs-name: max(3vw, 20px);
+  --host-fs-choice: max(4vw, 24px);
+  --host-fs-question: max(5vw, 28px);
+  --host-fs-points: max(6vw, 32px);
+  /* 外周リングの見た目の太さ。投影レイアウトの余白はこの分を足して確保する */
+  --host-ring-width: 12px;
+}
+.battle-host-stage {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--sp-2);
+  min-height: 100dvh;
+  padding: calc(var(--host-ring-width) + var(--sp-2));
+  background: var(--bg);
+}
+.battle-host-stage__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.battle-host-stage__meta {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--host-fs-meta);
+  letter-spacing: 0.12em;
+}
+.battle-host-stage__timer {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--host-fs-meta);
+}
+/* 残り時間の警告はリングの色と数値の色を同時に変える（色単独に頼らず数値も併記する） */
+.battle-host-stage__timer[data-low='true'] {
+  color: var(--raid);
+}
+.battle-host-stage__body {
+  min-width: 0;
+  overflow-y: auto;
+}
+.battle-host-stage__phase {
+  margin: 0 0 var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--host-fs-meta);
+}
+/* 進行ボタンは投影に映る必要がないため画面下端に小さく置く（docs/25 4.3節）。
+   注記は左、ボタンは右に寄せる */
+.battle-host-stage__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.battle-host-stage__note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--host-fs-label);
+}
+/* 全幅・56pxの主ボタンを投影用に縮める。ただしタップ目標48px（docs/20 2.3節5）は維持する */
+.battle-host-stage__foot .primary-button {
+  width: auto;
+  min-width: 200px;
+  min-height: var(--tap-min);
+  margin-left: auto;
+}
+/* 外周リング（残り時間）。周長が減る表現で、SVGの stroke-dasharray を1秒刻みで更新する。
+   transition を当てない＝常時アニメーションにならない（07の9節の精神。docs/25 4.3節）。
+   線幅の外側半分は viewBox の外へ出て切り取られるため、見た目の2倍の太さを指定する */
+.battle-host-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.battle-host-ring__track,
+.battle-host-ring__fill {
+  fill: none;
+  stroke-width: calc(var(--host-ring-width) * 2);
+  vector-effect: non-scaling-stroke;
+}
+.battle-host-ring__track {
+  stroke: var(--line);
+}
+.battle-host-ring__fill {
+  stroke: var(--ev-blue);
+}
+.battle-host-ring[data-low='true'] .battle-host-ring__fill {
+  stroke: var(--raid);
+}
+/* 問題文は最小5vw（--host-fs-question）。07の4.2節に従い行間1.65・最大幅34em */
+.battle-host-question {
+  max-width: 34em;
+  margin: 0 0 var(--sp-3);
+  color: var(--ink);
+  font-size: var(--host-fs-question);
+  line-height: 1.65;
+}
+/* 選択肢は最小4vw（--host-fs-choice）。手元画面（S7）と同じ4択を2列で並べる */
+.battle-host-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.battle-host-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface-grad);
+  border: 3px solid var(--line);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  font-size: var(--host-fs-choice);
+}
+/* 記号の器。V-12は同じ器（.battle-host-choice__marker の中身）へ形マーカー（▲■●◆）を
+   載せて三重符号化を完成させる。キーごとの色は [data-choice-key] で当てているので、
+   V-12はS7の手元画面に同じ対応（A=--ev-blue / B=--gold / C=--listen / D=--violet）を作れば足りる */
+.battle-host-choice__marker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  border: 3px solid currentcolor;
+  border-radius: var(--radius-pill);
+}
+.battle-host-choice__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.battle-host-choice[data-choice-key='A'] {
+  border-color: var(--ev-blue);
+}
+.battle-host-choice[data-choice-key='A'] .battle-host-choice__marker {
+  color: var(--ev-blue);
+}
+.battle-host-choice[data-choice-key='B'] {
+  border-color: var(--gold);
+}
+.battle-host-choice[data-choice-key='B'] .battle-host-choice__marker {
+  color: var(--gold);
+}
+.battle-host-choice[data-choice-key='C'] {
+  border-color: var(--listen);
+}
+.battle-host-choice[data-choice-key='C'] .battle-host-choice__marker {
+  color: var(--listen);
+}
+.battle-host-choice[data-choice-key='D'] {
+  border-color: var(--violet);
+}
+.battle-host-choice[data-choice-key='D'] .battle-host-choice__marker {
+  color: var(--violet);
 }
 
 /* --- ユーティリティ --- */

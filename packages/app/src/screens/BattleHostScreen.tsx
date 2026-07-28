@@ -11,9 +11,11 @@ import { drawBattleQuestionSet } from '../engine/battleLottery'
 import type { AudioPlayer, BattleSocket, RaidApi } from '../platform'
 import { useAppStore } from '../store/appStore'
 import { BattleAward } from '../components/BattleAward'
+import { HostProjectionLayout } from '../components/HostProjectionLayout'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { StandingsList } from '../components/StandingsList'
+import { getTheme, setTheme } from '../theme'
 import { resolveBattleCloseMessage } from './battleCloseMessage'
 
 interface Props {
@@ -50,6 +52,8 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [deadlineAt, setDeadlineAt] = useState<number | null>(null)
   const [remainingSec, setRemainingSec] = useState(0)
+  /** 外周リングの満量（この問の制限秒数）。questionOpen受信時点の残秒数から算出する */
+  const [totalSec, setTotalSec] = useState(1)
   const [standings, setStandings] = useState<StandingRow[]>([])
   const [resultEntries, setResultEntries] = useState<StandingRow[]>([])
   const [bestGrowthName, setBestGrowthName] = useState<string | null>(null)
@@ -68,6 +72,9 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
       if (message.type === 'questionOpen') {
         closeQuestionSentRef.current = false
         setDeadlineAt(message.deadlineAt)
+        // 外周リングは「残り/制限」の比で描くため、受信時点の残秒数を満量として覚える
+        // （制限秒数はプロトコルに無い。DO側タイマーが正である点は変えない=22の3.2節）
+        setTotalSec(Math.max(1, Math.ceil((message.deadlineAt - now()) / 1000)))
         setPhase('question')
         return
       }
@@ -92,6 +99,16 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
       setPhase((p) => (p === 'result' ? p : 'closed'))
     })
   }, [battleSocket])
+
+  // JV-6（承認済み・案A）: プロジェクターは黒を投影できないため、ホスト画面のみ明地にする。
+  // 明地の値はライトテーマのトークン（AA検証済み。docs/20 V-7の表）をそのまま使いたいので、
+  // 新しい地色トークンを増やさず（docs/25 5節）、この画面の表示中だけ data-theme を
+  // ライトへ固定し、離脱時に元のテーマへ戻す
+  useEffect(() => {
+    const previousTheme = getTheme()
+    setTheme('light')
+    return () => setTheme(previousTheme)
+  }, [])
 
   // 画面を離れるときは必ずWebSocketを閉じる（battleSocketはApp.tsxのモジュール単位
   // シングルトンのため、閉じ忘れるとホーム遷移後もホスト接続が残る）
@@ -183,6 +200,8 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   }
 
   const isLastQuestion = currentIndex + 1 >= questionSet.length
+  // 投影の左上に出す進行位置（英字。ディスプレイ書体で読ませる）
+  const questionMeta = `Q${currentIndex + 1} / ${questionSet.length}`
   const part2Count = questionSet.filter((q) => q.part === 2).length
   const part5Count = questionSet.filter((q) => q.part === 5).length
 
@@ -250,47 +269,64 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     )
   }
 
+  // 以下、投影に映るフェーズ（音声再生中・出題中・途中順位・最終リザルト）はモバイル用の
+  // ScreenLayout を使わず HostProjectionLayout で組む（docs/25 4.3節・JV-5）
   if (phase === 'presenting') {
     return (
-      <ScreenLayout
-        status={<p>問{currentIndex + 1}: 音声再生中…</p>}
-        action={<p>再生完了後に解答受付が開きます</p>}
+      <HostProjectionLayout
+        meta={questionMeta}
+        action={<p className="battle-host-stage__note">再生完了後に解答受付が開きます</p>}
       >
-        {currentQuestion && <p>{currentQuestion.question ?? currentQuestion.script ?? ''}</p>}
-      </ScreenLayout>
+        <p className="battle-host-stage__phase">音声再生中…</p>
+        {currentQuestion && (
+          <p className="battle-host-question">
+            {currentQuestion.question ?? currentQuestion.script ?? ''}
+          </p>
+        )}
+      </HostProjectionLayout>
     )
   }
 
   if (phase === 'question') {
     return (
-      <ScreenLayout
-        status={
-          <p className="drill-timer display-num" data-testid="battle-host-timer">
-            問{currentIndex + 1}: 残り{remainingSec}秒
-          </p>
-        }
-        action={<p>参加者が解答中です</p>}
+      <HostProjectionLayout
+        meta={questionMeta}
+        remainingSec={remainingSec}
+        totalSec={totalSec}
+        action={<p className="battle-host-stage__note">参加者が解答中です</p>}
       >
         {currentQuestion && (
           <>
-            <p>{currentQuestion.question ?? currentQuestion.script ?? ''}</p>
-            <ul className="raid-list">
+            <p className="battle-host-question">
+              {currentQuestion.question ?? currentQuestion.script ?? ''}
+            </p>
+            {/* 選択肢は「形＋色＋記号」の三重符号化の器。色（キーごとのアクセント）と
+                記号（A–D）は本タスクで、形マーカー（▲■●◆）はV-12が
+                .battle-host-choice__marker の中身として載せる（docs/25 4.4節・JV-7=案B）。
+                出題中は演出を足さない（07の原則3・docs/25 4.4節末尾） */}
+            <ul className="battle-host-choices">
               {currentQuestion.choices?.map((choice) => (
-                <li key={choice.key}>
-                  {choice.key}. {choice.text}
+                <li key={choice.key} className="battle-host-choice" data-choice-key={choice.key}>
+                  <span className="battle-host-choice__marker display-num" aria-hidden="true">
+                    {choice.key}
+                  </span>
+                  <span className="battle-host-choice__text">{choice.text}</span>
+                  {/* 記号を装飾扱いにしたぶんの読み上げ（投影画面は読み上げ対象外だが、
+                      ホスト端末の支援技術で選択肢が判別できるようにしておく） */}
+                  <span className="visually-hidden">{choice.key}</span>
                 </li>
               ))}
             </ul>
           </>
         )}
-      </ScreenLayout>
+      </HostProjectionLayout>
     )
   }
 
   if (phase === 'standings') {
     return (
-      <ScreenLayout
-        status={<p>問{currentIndex + 1}終了・途中順位</p>}
+      <HostProjectionLayout
+        meta={`${questionMeta} DONE`}
         action={
           isLastQuestion ? (
             <PrimaryButton onClick={handleFinish}>結果発表</PrimaryButton>
@@ -300,38 +336,35 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         }
       >
         {/* ホストは解答しないため自分の行が無い（selfDisplayNameを渡さない）。
-            投影用のサイズ差は.battle-host配下のCSSで上書きする（docs/25 4.1節） */}
-        <div className="battle-host">
-          <StandingsList entries={standings} listTestId="battle-host-standings" />
-        </div>
-      </ScreenLayout>
+            投影用のサイズ差は.battle-host配下のCSSで上書きする（docs/25 4.1節）。
+            .battle-host は HostProjectionLayout のルートが持つ */}
+        <StandingsList entries={standings} listTestId="battle-host-standings" />
+      </HostProjectionLayout>
     )
   }
 
   if (phase === 'result') {
     return (
-      <ScreenLayout
-        status={<p>最終リザルト</p>}
+      <HostProjectionLayout
+        meta="FINAL RESULT"
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
         {/* 表彰（表彰台・ベストグロース賞・段階開示）はV-10のBattleAwardが持つ。
             上位3名は表彰台に載るため順位表は4位以下だけを描く（fromRank=4）。
             ホストは解答しないためselfDisplayNameは渡さない（docs/25 4.1節・4.2節） */}
-        <div className="battle-host">
-          <StandingsList
+        <StandingsList
+          entries={resultEntries}
+          label="FINAL RESULT"
+          fromRank={4}
+          listTestId="battle-host-result"
+        >
+          <BattleAward
             entries={resultEntries}
-            label="FINAL RESULT"
-            fromRank={4}
-            listTestId="battle-host-result"
-          >
-            <BattleAward
-              entries={resultEntries}
-              bestGrowthName={bestGrowthName}
-              bestGrowthTestId="battle-host-best-growth"
-            />
-          </StandingsList>
-        </div>
-      </ScreenLayout>
+            bestGrowthName={bestGrowthName}
+            bestGrowthTestId="battle-host-best-growth"
+          />
+        </StandingsList>
+      </HostProjectionLayout>
     )
   }
 
