@@ -73,7 +73,7 @@ BEB Raid（ビーブレイド）は、通勤・通学中の短時間学習を主
 - Local-first learning data storage（端末内 IndexedDB）
 - Offline content cache
 - Static content delivery（問題パック JSON＋TTS 音声）
-- Minimal shared API for raid state, ghost records, lunch battle sync, and question stats（Cloudflare Workers + KV + Durable Objects）
+- Minimal shared API for raid state, ghost records, event battle sync, and question stats（Cloudflare Workers + KV + Durable Objects）
 - BYOK AI explanation flow where applicable
 
 詳細は `docs/05_アーキテクチャ設計.md` を参照してください。
