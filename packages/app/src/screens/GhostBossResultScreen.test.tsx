@@ -123,6 +123,20 @@ describe('GhostBossResultScreen: 記録プレビュー', () => {
     )
   })
 
+  // docs/25 V-16: 同意判断の材料になる数値なので、--warn枠の注意カード内に数値だけを
+  // 独立した要素として出す（誤答を悪と示さないため--ngは使わない）
+  it('弱点として公開される問題数は注意カード内の独立した要素に出す', async () => {
+    const db = newDb()
+    await seedGhostBossSession(db)
+    const raidApi = new FakeRaidApi()
+
+    render(<GhostBossResultScreen db={db} raidApi={raidApi} />)
+
+    const line = await screen.findByTestId('ghost-boss-weakness-count')
+    expect(line.closest('.ghost-preview-notice')).toBeTruthy()
+    expect(line.querySelector('.ghost-preview-notice__count')?.textContent).toBe('2')
+  })
+
   it('送信ボタンでconsented=trueのsendGhostBossRecord経由でraidApi.sendGhostRecordが呼ばれ、送信済みフラグが保存される', async () => {
     const db = newDb()
     await seedGhostBossSession(db)
