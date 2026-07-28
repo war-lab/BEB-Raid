@@ -2,6 +2,16 @@
 
 **最終更新: 2026-07-28**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## バグ修正: RaidScreenの投げっぱなし非同期がunhandled rejectionになっていた（2026-07-28。ブランチ `task/fix-raid-unhandled-rejection`。origin/dev起点）
+
+`RaidScreen.test.tsx` の `DatabaseClosedError` unhandled rejection が**CIで顕在化してPRのCIを落とした**（テストは895件全通過だがvitestが終了コード1になる）。これまでローカルで間欠的に観測され「環境要因」として扱われていた事象で、実体は**実装側の投げっぱなし非同期に `.catch` が無いこと**だった。
+
+- **不具合**: `RaidScreen` のボタンは `onClick={() => void handleJoin()}` のように **`void` でpromiseを捨てている**。`handleJoin`・`handleChallenge`・`handleManualSync` の3つは内部にtry/catchを持たないため、失敗が **unhandled rejection** になっていた（`handleRegister`・`handleGhostBossConsentConfirm`・`handleWithdrawGhostBoss` は内部で捕まえており対象外）。
+- **テストで露出した経路**: 「参加すると、raidStateキャッシュにbossType・defenseJson・ghostJsonが保存される」（T-129）が `raidState` の書込を確認した時点で終了し、`afterEach` がDBを閉じる。`handleJoin` はその後も `db.settings.put` と `db.raidState.get` を続けるため、閉じたDBへのアクセスで例外になっていた。実行時間のばらつきで間欠的に見えていた。
+- **実アプリでの影響**: テスト固有の問題ではない。参加ボタンを押した直後に画面を離れた場合や書込が失敗した場合、**利用者には何も伝わらないまま参加できていない状態**になる。原因もログに残らない。
+- **修正**: 上記3関数を try/catch で囲み、`console.warn` でログに残したうえで既存の `syncError` 表示（同じ操作エリアに出る）で利用者に伝える。`handleChallenge`・`handleManualSync` は本体を別関数（`startRaidQuest`・`runManualSync`）へ切り出し、呼び出し側が失敗の扱いを持つ構造にした。
+- **検証**: `RaidScreen.test.tsx` 単体を3回、appスイート全体を2回実行し、**いずれも `Errors` 0・終了コード0**を確認（修正前は間欠的に `1 error` が出ていた）。`npm run lint`・`npm run build` 通過。
+
 ## 修正: 最終リザルトの4位以下のスケールを下げて1080pの縦に収める（2026-07-28。ブランチ `task/fix-host-result-overflow`。origin/dev起点）
 
 V-11（PR #86）が報告した「参加者4名以上の最終リザルトが1080pの縦を使い切る」への対応。発起人判断で**案1と案2の併用**（4位以下のスケールを落とす＋それでも溢れる場合はスクロールで受ける）を採った。
