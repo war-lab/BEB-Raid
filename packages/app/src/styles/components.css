@@ -1890,7 +1890,7 @@
   justify-content: center;
   gap: var(--sp-1);
   list-style: none;
-  margin: 0 0 var(--sp-2);
+  margin: 0 0 var(--sp-3);
   padding: 0;
 }
 .battle-award__place {
@@ -1954,8 +1954,7 @@
   justify-content: center;
   background: var(--surface-2);
   border: 2px solid var(--line);
-  border-bottom: none;
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  border-radius: var(--radius-card);
 }
 .battle-award__place[data-rank='1'] .battle-award__pedestal {
   height: 76px;
