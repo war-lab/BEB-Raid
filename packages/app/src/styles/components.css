@@ -1969,3 +1969,175 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* --- S5レイド画面のゴースト表層（V-15。正本: docs/25 4.6節）---
+   貢献ダメージリストは順位表（V-9）の `.standings*` をそのまま流用するため、ここでは
+   見出しの追加分だけを持つ（構造の流用=4.6節。StandingsListコンポーネント自体を再利用しない
+   理由は RaidContributionList.tsx の冒頭コメント）。
+
+   コントラスト（docs/20 2.3節の式での機械計算値。基準=本文4.5:1／UI部品3:1。
+   面=--surface-grad上端 dark #1c2339 / light #ffffff）:
+     倍率チップの文字 --ink        : dark 13.302 / light 16.620（本文AA適合）
+     チップ枠・バー塗り --ok       : dark 7.306 / light 4.358（対面）、--surface-2上で dark 6.646 / light 3.720
+     チップ枠・バー塗り --ink-3    : dark 4.493 / light 4.929（対面）、--surface-2上で dark 4.088 / light 4.208
+     名誉バッジ枠・数値 --gold     : dark 8.753 / light 4.935（本文AA適合）
+     空状態の文 --ink-2            : dark 7.036 / light 5.608（本文AA適合）
+     英字ラベル --ev-blue          : dark 4.870 / light 6.556（本文AA適合）
+   **--ok / --ink-3 を文字色に使わない**: light の --ok は面に対し4.358で本文基準4.5を満たさず、
+   dark の --ink-3 は4.493で同様に満たさない。そのため倍率チップの文字は --ink 固定とし、
+   --ok / --ink-3 は枠線・バー塗り（UI部品基準3:1）にのみ使う。
+   --warn / --ng は使わない（弱点は攻略の手がかりでボス役の告発ではない=4.6節・02の5.3節）。 */
+.raid-contrib__heading,
+.ghost-weakness__heading,
+.raid-badges__heading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  font-weight: 400;
+}
+.ghost-weakness__eyebrow,
+.raid-badges__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+/* 弱点マップ・バッジ一覧の面（順位表と同じカード言語に揃える） */
+.ghost-weakness,
+.raid-badges {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.ghost-weakness__note {
+  margin: var(--sp-half) 0 var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+.ghost-weakness__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ghost-weakness__row {
+  /* 倍率の強弱色の受け皿。data-strengthで切り替え、配下は--weakness-color経由で参照する
+     （生の16進をここに書かない=トークン経由参照の原則。V-14の--growth-rank-colorと同じ形） */
+  --weakness-color: var(--ink-3);
+  --weakness-chip-border-style: dashed;
+
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.ghost-weakness__row[data-strength='weak'] {
+  --weakness-color: var(--ok);
+  /* 弱点=実線・堅い=破線。色を失っても線種と語（弱点/堅い）と倍率の数値で区別できる（07の原則4） */
+  --weakness-chip-border-style: solid;
+}
+.ghost-weakness__chip {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+  min-width: 74px;
+  padding: 2px var(--sp-1);
+  border: 1px var(--weakness-chip-border-style) var(--weakness-color);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-size: var(--fs-note);
+}
+.ghost-weakness__main {
+  flex: 1;
+  min-width: 0;
+}
+.ghost-weakness__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.ghost-weakness__tag {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ghost-weakness__count {
+  flex: none;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.ghost-weakness__bar {
+  display: block;
+  height: 6px;
+  margin-top: var(--sp-half);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.ghost-weakness__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--weakness-color);
+}
+/* 討伐された回数（名誉表示）。数字を誇示せず小さな金のバッジ形に留める（4.6節・02の5.3節） */
+.raid-honor {
+  /* 「討伐された回数: N回」を1文として読ませるため、flexではなく通常のインライン整形にする
+     （flexにすると数字前後の空白が落ち、単位が数字から離れて読める） */
+  display: inline-block;
+  margin: var(--sp-1) 0;
+  padding: 2px var(--sp-1);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-note);
+}
+.raid-honor__count {
+  color: var(--gold);
+  font-size: var(--fs-sub);
+}
+/* 取得済みバッジ（07の6節: 獲得済みは--gold枠。取得日を併記する） */
+.raid-badges__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  list-style: none;
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+}
+.raid-badges__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  padding: var(--sp-half) var(--sp-1);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-button);
+}
+.raid-badges__name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.raid-badges__date {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+/* 空状態（貢献者0人・弱点0件・バッジ0件）。見出しだけが浮くのを防ぐ枠（4.6節）。
+   煽らないトーンを保つため色は--ink-2のみで、--warn / --ng は使わない */
+.raid-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-1);
+}
+.raid-empty__text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  text-align: center;
+}
