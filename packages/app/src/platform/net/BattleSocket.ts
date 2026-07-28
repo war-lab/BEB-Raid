@@ -1,4 +1,4 @@
-// 昼バトルWebSocketの抽象化レイヤ（M4・T-125。正本: docs/22_M4実装計画.md 3.6節）。
+// イベントバトルWebSocketの抽象化レイヤ（M4・T-125。正本: docs/22_M4実装計画.md 3.6節）。
 // UI・サービス層は素の WebSocket を直接触らず、必ずこのインターフェース経由で使う
 // （platform/index.ts の factory 経由。RaidApiと同じ抽象化パターン）。
 // 認証は Sec-WebSocket-Protocol: `bearer.<deviceToken>`（22の3.1節。ブラウザWebSocketは

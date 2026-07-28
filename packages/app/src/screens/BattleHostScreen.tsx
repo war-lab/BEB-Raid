@@ -1,4 +1,4 @@
-// S8 昼バトルホスト画面（M4・T-126。正本: docs/22_M4実装計画.md 3.2節・3.6節、docs/02 6.1節・6.2節、
+// S8 イベントバトルホスト画面（M4・T-126。正本: docs/22_M4実装計画.md 3.2節・3.6節、docs/02 6.1節・6.2節、
 // docs/05 4.2節）。
 // ルーム作成→出題セット抽選プレビュー（再抽選可）→参加者が揃ったら開始→
 // 問題投影（音声再生完了後にopenQuestion送信）→カウントダウン→各問順位→最終順位・
@@ -222,7 +222,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   if (phase === 'setup' || phase === 'creating') {
     return (
       <ScreenLayout
-        status={<p>昼バトルを主催</p>}
+        status={<p>イベントバトルを主催</p>}
         action={
           <>
             <PrimaryButton onClick={() => void handleCreateRoom()} disabled={phase === 'creating'}>

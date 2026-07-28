@@ -1,4 +1,4 @@
-// T-123完了条件③: 昼バトルWebSocketメッセージのJSON往復＋未知typeの判別テスト
+// T-123完了条件③: イベントバトルWebSocketメッセージのJSON往復＋未知typeの判別テスト
 // （docs/22 3.1節・3.2節）
 import { describe, expect, it } from 'vitest'
 

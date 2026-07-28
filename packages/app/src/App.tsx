@@ -152,7 +152,7 @@ const raidApi = createRaidApi(
 )
 
 /**
- * 昼バトル（M4・T-125）のWebSocketクライアント。raidApiと同じbaseUrl/deviceToken疎結合パターン。
+ * イベントバトル（M4・T-125）のWebSocketクライアント。raidApiと同じbaseUrl/deviceToken疎結合パターン。
  * 画面を離れる際はBattleScreen側でclose()を呼ぶ（次回参加時にconnect()が新規WebSocketを張り直す）
  */
 const battleSocket = createBattleSocket(

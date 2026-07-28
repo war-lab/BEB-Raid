@@ -26,7 +26,7 @@ export interface RaidApi {
   /** 「問題がおかしい」報告の送信（M3・T-101）。キューイングしない直接送信 */
   sendReport(report: QuestionReportPayload): Promise<void>
   /**
-   * 昼バトルのルーム作成（M4・T-126。POST /battle/rooms）。
+   * イベントバトルのルーム作成（M4・T-126。POST /battle/rooms）。
    * 戻り値は4文字英数大文字のルームコード（衝突時の再生成込みでサーバー側が保証する）
    */
   createBattleRoom(): Promise<string>

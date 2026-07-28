@@ -350,7 +350,7 @@ export interface RaidSummary {
 }
 
 // ---------------------------------------------------------------------------
-// 昼バトルWebSocketメッセージ（正本: docs/22 3.2節。T-123）
+// イベントバトルWebSocketメッセージ（正本: docs/22 3.2節。T-123）
 // BattleRoomDOはコンテンツ非依存（questionIdと換算点のみを扱い、問題文・選択肢・正解は持たない）。
 // 認証は Sec-WebSocket-Protocol: `bearer.<deviceToken>`（3.1節。ブラウザWebSocketは
 // Authorizationヘッダを付けられないため）
@@ -396,7 +396,7 @@ export interface BattleFinishMessage {
   type: 'finish'
 }
 
-/** 昼バトルWebSocketのClient→Serverメッセージ（discriminated union。正本: docs/22 3.2節） */
+/** イベントバトルWebSocketのClient→Serverメッセージ（discriminated union。正本: docs/22 3.2節） */
 export type BattleClientMessage =
   | BattleJoinMessage
   | BattleAnswerMessage
@@ -451,7 +451,7 @@ export interface BattleErrorMessage {
   code: string
 }
 
-/** 昼バトルWebSocketのServer→Clientメッセージ（discriminated union。正本: docs/22 3.2節） */
+/** イベントバトルWebSocketのServer→Clientメッセージ（discriminated union。正本: docs/22 3.2節） */
 export type BattleServerMessage =
   | BattleRoomStateMessage
   | BattleQuestionOpenMessage
@@ -460,7 +460,7 @@ export type BattleServerMessage =
   | BattleErrorMessage
 
 /**
- * 昼バトルWebSocketのクローズ理由（Server→Client。WebSocket close frame の reason 文字列）。
+ * イベントバトルWebSocketのクローズ理由（Server→Client。WebSocket close frame の reason 文字列）。
  * サーバー（BattleRoomDO）が切断時に付与し、クライアントは理由ごとに案内文を出し分ける。
  * - unauthorized: この端末がレイド未登録（招待コードでの登録が未了）
  * - room_not_found: ルームが存在しない、またはすでに利用不可

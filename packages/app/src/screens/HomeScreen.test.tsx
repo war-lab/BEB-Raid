@@ -1406,7 +1406,7 @@ describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）'
   })
 })
 
-describe('HomeScreen: 昼バトル参加の入口（M4・T-125。22の3.6節）', () => {
+describe('HomeScreen: イベントバトル参加の入口（M4・T-125。22の3.6節）', () => {
   it('raidApi.isConfigured()=falseなら入口ボタンが表示されない（縮退設計）', async () => {
     const db = newDb()
     render(
@@ -1419,7 +1419,7 @@ describe('HomeScreen: 昼バトル参加の入口（M4・T-125。22の3.6節）'
     )
     await flushLoad()
 
-    expect(screen.queryByRole('button', { name: '昼バトルに参加' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'イベントバトルに参加' })).toBeNull()
   })
 
   it('raidApi.isConfigured()=trueなら入口ボタンが表示され、タップでbattle画面へ遷移する', async () => {
@@ -1434,13 +1434,13 @@ describe('HomeScreen: 昼バトル参加の入口（M4・T-125。22の3.6節）'
     )
     await flushLoad()
 
-    const button = screen.getByRole('button', { name: '昼バトルに参加' })
+    const button = screen.getByRole('button', { name: 'イベントバトルに参加' })
     fireEvent.click(button)
     expect(useAppStore.getState().screen).toBe('battle')
   })
 })
 
-describe('HomeScreen: 昼バトル主催の入口（M4・T-126。22の3.6節）', () => {
+describe('HomeScreen: イベントバトル主催の入口（M4・T-126。22の3.6節）', () => {
   it('raidApi.isConfigured()=falseなら入口ボタンが表示されない（縮退設計）', async () => {
     const db = newDb()
     render(
@@ -1453,7 +1453,7 @@ describe('HomeScreen: 昼バトル主催の入口（M4・T-126。22の3.6節）'
     )
     await flushLoad()
 
-    expect(screen.queryByRole('button', { name: '昼バトルを主催' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'イベントバトルを主催' })).toBeNull()
   })
 
   it('raidApi.isConfigured()=trueなら入口ボタンが表示され、タップでbattleHost画面へ遷移する', async () => {
@@ -1468,7 +1468,7 @@ describe('HomeScreen: 昼バトル主催の入口（M4・T-126。22の3.6節）'
     )
     await flushLoad()
 
-    const button = screen.getByRole('button', { name: '昼バトルを主催' })
+    const button = screen.getByRole('button', { name: 'イベントバトルを主催' })
     fireEvent.click(button)
     expect(useAppStore.getState().screen).toBe('battleHost')
   })
@@ -1495,20 +1495,20 @@ describe('HomeScreen: .home-gridの表層（V-13。docs/25 4.8節）', () => {
 
   it('構造は2列グリッドの素のボタン列のまま（直下の子は全てbutton要素）', async () => {
     const grid = await renderConfigured()
-    // ダッシュボード・設定・レイド・昼バトル参加・昼バトル主催の5導線
+    // ダッシュボード・設定・レイド・イベントバトル参加・イベントバトル主催の5導線
     expect(grid.children).toHaveLength(5)
     expect(Array.from(grid.children).every((el) => el.tagName === 'BUTTON')).toBe(true)
   })
 
-  it('昼バトルの2導線だけがアイコンを持ち、アイコンはaria-hiddenでラベルは変わらない', async () => {
+  it('イベントバトルの2導線だけがアイコンを持ち、アイコンはaria-hiddenでラベルは変わらない', async () => {
     const grid = await renderConfigured()
     const withIcon = Array.from(grid.children).filter((el) => el.querySelector('.home-grid__icon'))
-    expect(withIcon.map((el) => el.textContent)).toEqual(['昼バトルに参加', '昼バトルを主催'])
+    expect(withIcon.map((el) => el.textContent)).toEqual(['イベントバトルに参加', 'イベントバトルを主催'])
     for (const el of withIcon) {
       expect(el.querySelector('.home-grid__icon')?.getAttribute('aria-hidden')).toBe('true')
     }
     // アクセシブルネームは文字ラベルのみで成立する（07の原則4: 色・形だけに頼らない）
-    expect(screen.getByRole('button', { name: '昼バトルに参加' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '昼バトルを主催' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'イベントバトルに参加' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'イベントバトルを主催' })).toBeTruthy()
   })
 })

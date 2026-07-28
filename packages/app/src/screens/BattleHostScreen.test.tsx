@@ -447,7 +447,7 @@ describe('BattleHostScreen: 切断理由ごとの案内', () => {
 
   it('unauthorizedならレイド未登録が原因と、ホームの「レイド」で招待コード登録が必要だと案内する', async () => {
     const body = await renderAndClose(1008, 'unauthorized')
-    expect(screen.getByText('昼バトルに参加できませんでした')).toBeTruthy()
+    expect(screen.getByText('イベントバトルに参加できませんでした')).toBeTruthy()
     expect(body.textContent).toContain('この端末はまだレイドに登録されていません')
     expect(body.textContent).toContain('ホーム画面の「レイド」')
     expect(body.textContent).toContain('招待コードを入力して登録すると主催できます')
