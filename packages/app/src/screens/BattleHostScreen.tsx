@@ -363,18 +363,24 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         {/* 表彰（表彰台・ベストグロース賞・段階開示）はV-10のBattleAwardが持つ。
             上位3名は表彰台に載るため順位表は4位以下だけを描く（fromRank=4）。
             ホストは解答しないためselfDisplayNameは渡さない（docs/25 4.1節・4.2節） */}
-        <StandingsList
-          entries={resultEntries}
-          label="FINAL RESULT"
-          fromRank={4}
-          listTestId="battle-host-result"
-        >
-          <BattleAward
+        {/* 最終リザルトは表彰台＋ベストグロース賞＋4位以下が縦に積むため、参加者が増えると
+            1080pの縦を使い切る。4位以下の行だけ得点スケールを下げて行数を稼ぎ（表彰台は
+            6vwを維持して見せ場を保つ）、それでも収まらない場合は
+            .battle-host-stage__body のスクロールで受ける（2段構え。発起人判断） */}
+        <div className="battle-host-final">
+          <StandingsList
             entries={resultEntries}
-            bestGrowthName={bestGrowthName}
-            bestGrowthTestId="battle-host-best-growth"
-          />
-        </StandingsList>
+            label="FINAL RESULT"
+            fromRank={4}
+            listTestId="battle-host-result"
+          >
+            <BattleAward
+              entries={resultEntries}
+              bestGrowthName={bestGrowthName}
+              bestGrowthTestId="battle-host-best-growth"
+            />
+          </StandingsList>
+        </div>
       </HostProjectionLayout>
     )
   }
