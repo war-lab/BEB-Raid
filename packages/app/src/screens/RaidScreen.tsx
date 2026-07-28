@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { DailyGoal, Question, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, RAID_STATE_ID, type BadgeRecord, type RaidStateRecord } from '../db/schema'
+import { toDateString } from '../engine/date'
 import { generateQuickPack } from '../engine/quickPack'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { formatRelativeTime } from '../engine/relativeTime'
@@ -30,7 +31,10 @@ import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BossSigil } from '../components/BossSigil'
+import { GhostWeaknessMap } from '../components/GhostWeaknessMap'
 import { PrimaryButton } from '../components/PrimaryButton'
+import { RaidContributionList } from '../components/RaidContributionList'
+import { RaidEmptyNote } from '../components/RaidEmptyNote'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { confirmDiscardMessage, toSessionItems } from './HomeScreen'
 
@@ -754,32 +758,29 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               自分の貢献ダメージ: <span className="display-num">{currentBoss.myDamage}</span>
             </p>
           )}
-          <p>貢献ダメージ</p>
-          <ul className="raid-list">
-            {currentBoss.contributions.map((c, i) => (
-              <li key={i}>
-                {c.displayName}: <span className="display-num">{c.damage}</span>
-              </li>
-            ))}
-          </ul>
+          {/* V-15（docs/25 4.6節）: 順位表（V-9）と同じ構造の貢献リスト。空状態は
+              コンポーネント側が持つ（見出しだけが浮く状態を作らない） */}
+          <RaidContributionList
+            entries={currentBoss.contributions}
+            selfDisplayName={displayName}
+            sigilSeed={currentBoss.bossId}
+          />
           {/* M4・T-129: ゴースト週の弱点可視化（docs/22 3.4節）。個別questionIdは出さず
-              Part・タグ単位の集計のみ表示する（正答の狙い撃ち防止） */}
-          {currentBoss.bossType === 'ghost' && ghostWeaknessMap.length > 0 && (
-            <div data-testid="ghost-weakness-map">
-              <p>弱点</p>
-              <ul className="raid-list">
-                {ghostWeaknessMap.map((w) => (
-                  <li key={`${w.part}:${w.tag}`}>
-                    Part{w.part} {w.tag} ×{w.multiplier}が{w.count}問
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {/* M4・T-129: 討伐された回数の名誉表示（02の5.3節。公開処刑にしない演出方針） */}
+              Part・タグ単位の集計のみ表示する（正答の狙い撃ち防止）。
+              V-15: 0件でも見出しだけが浮かないよう、空状態はコンポーネント側で出す */}
+          {/* シルエットは貢献リストの空状態にだけ置く（同一画面に紋章が並ぶと過剰なため
+              弱点マップ・バッジの空状態は文だけにする） */}
+          {currentBoss.bossType === 'ghost' && <GhostWeaknessMap entries={ghostWeaknessMap} />}
+          {/* M4・T-129: 討伐された回数の名誉表示（02の5.3節。公開処刑にしない演出方針）。
+              V-15: 数字を誇示せず --gold の小さなバッジ形に留める（4.6節。過度な強調は
+              ボス役の心理的コストを上げる） */}
           {currentBoss.bossType === 'ghost' && currentBoss.ghost && (
-            <p data-testid="ghost-defeated-count">
-              討伐された回数: {currentBoss.ghost.defeatedCount}回
+            <p className="raid-honor" data-testid="ghost-defeated-count">
+              討伐された回数:{' '}
+              <span className="raid-honor__count display-num">
+                {currentBoss.ghost.defeatedCount}
+              </span>
+              回
             </p>
           )}
           {lastSyncedLabel !== null && (
@@ -793,16 +794,27 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
           <p>討伐の成立は同期時にサーバーで確定します（表示は最終同期時点のものです）</p>
         </div>
       )}
-      {raidBadges.length > 0 && (
-        <div data-testid="raid-badges">
-          <p>獲得バッジ</p>
-          <ul className="raid-list">
+      {/* V-15（docs/25 4.6節）: 取得済みバッジは --gold 枠＋取得日の併記（07の6節）。
+          未取得バッジのシルエット表示は全バッジ定義の列挙（T-150）が必要なため本タスクでは扱わない。
+          0件でもセクションを出し、空状態の文で「どうすれば増えるか」を示す（4.6節の完了条件） */}
+      <section className="raid-badges" data-testid="raid-badges">
+        <p className="raid-badges__eyebrow">Badges</p>
+        <h2 className="raid-badges__heading">獲得バッジ</h2>
+        {raidBadges.length === 0 ? (
+          <RaidEmptyNote testId="raid-badges-empty">
+            まだバッジはありません。ボスを討伐すると、その週のバッジがここに並びます
+          </RaidEmptyNote>
+        ) : (
+          <ul className="raid-badges__list">
             {raidBadges.map((b) => (
-              <li key={b.badgeId}>{raidBadgeLabel(b.badgeId)}</li>
+              <li key={b.badgeId} className="raid-badges__item">
+                <span className="raid-badges__name">{raidBadgeLabel(b.badgeId)}</span>
+                <span className="raid-badges__date display-num">{toDateString(b.earnedAt)}</span>
+              </li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </section>
     </ScreenLayout>
   )
 }

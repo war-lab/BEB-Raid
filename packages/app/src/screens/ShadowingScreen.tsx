@@ -236,13 +236,18 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   return (
     <ScreenLayout
       status={
-        <p className="shadowing-status">
-          素材 {index + 1}/{shadowingQuestions.length}（{laps}/{COMPLETION_LAPS}周）
-          {/* T-120: 実施済み素材を表示中であることの注記（3周未満で「前へ」戻った場合等） */}
-          {completedIds.has(question.id) && (
-            <span className="shadowing-status-done"> 実施済み</span>
-          )}
-        </p>
+        <>
+          {/* docs/25 4.8節（V-19）: 英字ラベル。色は07の7節S4「画面は--listenのアクセント」に
+              合わせ、.drill-part-tagの形を再利用して--listenへ置換する（定義自体は変えない） */}
+          <span className="drill-part-tag shadowing-part-tag">SHADOWING</span>
+          <p className="shadowing-status">
+            素材 {index + 1}/{shadowingQuestions.length}（{laps}/{COMPLETION_LAPS}周）
+            {/* T-120: 実施済み素材を表示中であることの注記（3周未満で「前へ」戻った場合等） */}
+            {completedIds.has(question.id) && (
+              <span className="shadowing-status-done"> 実施済み</span>
+            )}
+          </p>
+        </>
       }
       action={
         <>
@@ -320,7 +325,9 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     >
       <div className="shadowing-accent-line" />
       {scriptMode !== 'hidden' && question.script && (
-        <>
+        // docs/25 4.8節（V-19）: スクリプト面に--surface-gradを当てる。カラオケハイライトの
+        // 規定（07の6節）と発話中の演出は一切変更しない（原則3: 発話中は静かであるべき）
+        <div className="shadowing-script-surface">
           <KaraokeScript
             script={question.script}
             timing={question.timing ?? null}
@@ -331,7 +338,7 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
           {scriptMode === 'en_ja' && question.translation && (
             <p className="shadowing-translation">{question.translation}</p>
           )}
-        </>
+        </div>
       )}
     </ScreenLayout>
   )

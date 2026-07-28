@@ -8,6 +8,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import { toDateString } from '../engine/date'
 import { PROFILE_ID, RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { syncRaidDamage } from '../services/raidSync'
@@ -507,6 +508,9 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     expect(list.textContent).toContain('初回討伐')
     // レビューF1(h): bossIdは人が読める形式に整形する
     expect(list.textContent).toContain('討伐: 2026年 第29週')
+    // V-15（docs/25 4.6節・07の6節）: 取得済みバッジは取得日を併記する
+    expect(list.textContent).toContain(toDateString(1000))
+    expect(screen.queryByTestId('raid-badges-empty')).toBeNull()
   })
 
   it('raidBadgeLabel: 規約外のbossIdはID表示にフォールバックする（レビューF1(h)）', () => {
@@ -514,7 +518,10 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     expect(raidBadgeLabel('raid-clear:special-event')).toBe('討伐: special-event')
   })
 
-  it('レイド系バッジが無ければ一覧セクション自体が出ない', async () => {
+  // V-15（docs/25 4.6節・6.3節）で「0件ならセクションを出さない」から
+  // 「0件でもセクションを出し空状態の文を見せる」へ変更した（見出しだけが浮く状態を作らない方針の
+  // 適用範囲がバッジ0件にも及ぶため）。バッジの列挙条件（レイド系のみ）は変えていない
+  it('レイド系バッジが無ければ一覧の代わりに空状態が出る', async () => {
     const db = newDb()
     await putProfile(db)
     await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
@@ -525,7 +532,12 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     )
     await screen.findByTestId('raid-boss')
 
-    expect(screen.queryByTestId('raid-badges')).toBeNull()
+    const section = screen.getByTestId('raid-badges')
+    expect(section.querySelector('.raid-badges__list')).toBeNull()
+    const empty = screen.getByTestId('raid-badges-empty')
+    expect(empty.textContent).toContain('まだバッジはありません')
+    // 煽らない・責めないトーン（4.6節）: 次の行動が分かる文になっている
+    expect(empty.textContent).toContain('ボスを討伐すると')
   })
 
   it('レイド系以外のバッジ（badgeIdがraid-*でない）は一覧に含めない', async () => {
@@ -540,7 +552,10 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     )
     await screen.findByTestId('raid-boss')
 
-    expect(screen.queryByTestId('raid-badges')).toBeNull()
+    // セクションは出るが一覧は空（=レイド系以外は列挙されない）
+    expect(screen.getByTestId('raid-badges').querySelector('.raid-badges__list')).toBeNull()
+    expect(screen.getByTestId('raid-badges-empty')).toBeTruthy()
+    expect(screen.getByTestId('raid-badges').textContent).not.toContain('first-session')
   })
 })
 
@@ -940,9 +955,67 @@ describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）',
     const boss = await screen.findByTestId('raid-boss')
 
     expect(screen.getByText('貢献ダメージ')).toBeTruthy()
-    const list = boss.querySelector('ul.raid-list')
+    // V-15（docs/25 4.6節）でリストの構造を順位表（V-9）と同じ`.standings*`へ変更したため、
+    // 参照先を`ul.raid-list`から貢献リストのdata-testidへ機械的に追従させた（表示情報は同じ）
+    const list = boss.querySelector('[data-testid="raid-contributions-list"]')
     expect(list).toBeTruthy()
-    expect(list!.querySelector('.display-num')?.textContent).toBe('100')
+    expect(list!.querySelector('.standings__points.display-num')?.textContent).toBe('100')
+  })
+
+  it('貢献リストは順位・相対バー・自分の行の識別を持ち、正答率は表示しない（V-15・プライバシー境界）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = {
+      ...ACTIVE_BOSS,
+      participantCount: 2,
+      contributions: [
+        { displayName: '花子', damage: 400 },
+        // putProfileの表示名と一致する行が自分の行になる
+        { displayName: '太郎', damage: 100 },
+      ],
+    }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    const rows = Array.from(
+      screen.getByTestId('raid-contributions-list').querySelectorAll('.standings__row'),
+    )
+    expect(rows.length).toBe(2)
+    // 順位は数字バッジ（形）＋色の二重符号化。1〜3位だけdata-rankが付く
+    expect(rows.map((li) => li.getAttribute('data-rank'))).toEqual(['1', '2'])
+    expect(rows.map((li) => li.querySelector('.standings__badge')!.textContent)).toEqual(['1', '2'])
+    // バーは最大ダメージ基準の相対長。数値は必ず併記される
+    expect(
+      rows.map((li) => li.querySelector<HTMLElement>('.standings__bar-fill')!.style.width),
+    ).toEqual(['100%', '25%'])
+    expect(rows.map((li) => li.getAttribute('data-self'))).toEqual([null, 'true'])
+    expect(screen.getByText('YOU')).toBeTruthy()
+    // 正答率（%表記）は貢献リストに出さない
+    expect(screen.getByTestId('raid-contributions').textContent).not.toContain('%')
+  })
+
+  it('貢献者0人でも見出しだけが浮かず、次の行動が分かる空状態が出る（V-15。docs/25 4.6節）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = { ...ACTIVE_BOSS, participantCount: 0, myDamage: 0, contributions: [] }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.getByText('貢献ダメージ')).toBeTruthy()
+    expect(screen.queryByTestId('raid-contributions-list')).toBeNull()
+    const empty = screen.getByTestId('raid-contributions-empty')
+    expect(empty.textContent).toContain('まだ誰も挑戦していません')
+    expect(empty.textContent).toContain('最初の一撃')
   })
 
   it('討伐確定の注記が「同期時にサーバーで確定」の表現になっている', async () => {
@@ -1175,8 +1248,17 @@ describe('RaidScreen: ゴースト週の弱点マップ・名誉表示（M4・T-
     )
 
     const weaknessMap = await screen.findByTestId('ghost-weakness-map')
-    // QUESTION_POOLのtextBlankQuestionは全てpart:5・tags:['品詞']（q-0/q-1がmultiplier2.0=弱点）
-    expect(weaknessMap.textContent).toContain('Part5 品詞 ×2が2問')
+    // QUESTION_POOLのtextBlankQuestionは全てpart:5・tags:['品詞']（q-0/q-1がmultiplier2.0=弱点）。
+    // V-15（docs/25 4.6節）でチップ＋横棒の構造にしたため、1文の一致から要素単位の一致へ
+    // 機械的に追従させた（表示する情報＝Part・タグ・倍率・問数は同じ）
+    expect(weaknessMap.textContent).toContain('Part5 品詞')
+    expect(weaknessMap.textContent).toContain('×2')
+    expect(weaknessMap.textContent).toContain('2問')
+    // 倍率は色だけでなく数値と語の両方で示す（07の原則4）
+    expect(weaknessMap.textContent).toContain('弱点')
+    expect(weaknessMap.querySelector('.ghost-weakness__row')?.getAttribute('data-strength')).toBe(
+      'weak',
+    )
     expect(weaknessMap.textContent).not.toContain('q-0')
     expect(weaknessMap.textContent).not.toContain('q-1')
     expect(weaknessMap.textContent).not.toContain('q-2') // 堅い（0.5）は挑戦前に見せない
@@ -1195,6 +1277,27 @@ describe('RaidScreen: ゴースト週の弱点マップ・名誉表示（M4・T-
 
     const defeatedCount = await screen.findByTestId('ghost-defeated-count')
     expect(defeatedCount.textContent).toContain('討伐された回数: 3回')
+    // V-15: 数字を誇示せず小さな金のバッジ形に留める（4.6節）。--ng/--warn系のクラスは使わない
+    expect(defeatedCount.className).toBe('raid-honor')
+  })
+
+  it('弱点が0件でも見出しだけが浮かず、空状態が出る（V-15。docs/25 4.6節）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    // パック未取得等でdefenseが解決できない状態（集計0件）を模す
+    raidApi.currentBoss = { ...GHOST_BOSS, defense: [] }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const weaknessMap = await screen.findByTestId('ghost-weakness-map')
+    expect(weaknessMap.querySelector('.ghost-weakness__list')).toBeNull()
+    const empty = screen.getByTestId('ghost-weakness-map-empty')
+    expect(empty.textContent).toContain('弱点の傾向はまだ表示できません')
+    expect(empty.textContent).toContain('問題パックを取得すると')
   })
 
   it('synthetic週（bossType省略。従来のRaidBossState）では弱点マップ・討伐回数のいずれも表示されない（回帰）', async () => {

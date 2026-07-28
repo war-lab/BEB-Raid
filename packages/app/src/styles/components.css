@@ -416,9 +416,22 @@
 }
 
 /* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/24 3.5節） --- */
+/* docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面＋罫線までで、光暈・
+   アニメーション・背景演出は足さない（07の原則3「静かな学習」により読解中は静かに保つ）。
+   面上のコントラスト（機械計算値。上端#1c2339 / 下端#181e31、ライトは#ffffff / #faf9f4）:
+   --ink 13.302/14.141・15.766〜16.620、--ink-2 7.036/7.480・5.320〜5.608 でいずれもAA適合 */
+.reading-passage {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+/* 面に載せたため--ink-3ではなく--ink-2を使う（--ink-3(#7e89ac)は--surface-grad上端
+   #1c2339に対し4.493:1でAA=4.5:1をわずかに下回る。--vocab-card__rank[C]と同じ理由・同じ対処。
+   --ink-2は7.036:1／ライトは5.608:1でAA適合） */
 .passage-kind {
   margin: 0 0 var(--sp-1);
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: var(--fs-note);
   text-transform: uppercase;
 }
@@ -1257,6 +1270,32 @@
 .shadowing-status {
   color: var(--listen);
 }
+/* docs/25 4.8節（V-19）: 英字ラベル「SHADOWING」。形は.drill-part-tagを再利用し、色だけ
+   07の7節S4のアクセント（--listen）へ置き換える（.drill-part-tag の定義自体は変更しない）。
+   .drill-part-tagの6%の淡い塗りは敷かない: --listen 6%を混色した地（ライト#e7edeb）では
+   文字比が4.389:1でAA=4.5:1を下回るため。地を--bgのままにすると--listenの比は
+   ダーク9.064:1・ライト4.770:1（機械計算値）でAA適合する */
+.shadowing-part-tag {
+  border-color: color-mix(in srgb, var(--listen) 35%, transparent);
+  background: none;
+  color: var(--listen);
+}
+/* docs/25 4.8節（V-19）: スクリプト面に--surface-gradを当てる。面＋罫線までで、カラオケ
+   ハイライトの規定（07の6節）・発話中の演出は変更しない（原則3: 発話中は静かに保つ）。
+   面上のコントラスト（機械計算値。上端#1c2339 / 下端#181e31、ライトは#ffffff / #faf9f4）:
+   --ink（読了語・発話中）13.302/14.141・15.766〜16.620、--ink-2（未読語・和訳）
+   7.036/7.480・5.320〜5.608、--gold（発話中の下線=UI部品基準3:1）8.753/9.304・4.682〜4.935 */
+.shadowing-script-surface {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+/* 面に載せた注記のみ--ink-3から--ink-2へ（--ink-3は--surface-grad上端#1c2339に対し
+   4.493:1でAA未達。.vocab-card__rank[C]・.passage-kindと同じ理由・同じ対処） */
+.shadowing-script-surface .karaoke-note {
+  color: var(--ink-2);
+}
 /* T-120: 実施済み素材を表示中の注記 */
 .shadowing-status-done {
   color: var(--ink-2);
@@ -1728,6 +1767,53 @@
   font-size: var(--fs-note);
 }
 
+/* --- ゴースト記録プレビュー（GhostBossResultScreen。docs/25 V-16・4.7節） ---
+   送信の同意確認が主目的の画面なので演出は置かない（優先度「低」・本人が1回だけ見る）。
+   同意判断の材料である「弱点として公開される問題数」を注意カードに収めて数値を明確にし、
+   送信済みは--okのアイコン＋文で完結させる。正誤一覧は刷新済みの.result-listをそのまま使う。
+   誤答が悪いことではないため--ngは使わない（02の5.3節「公開処刑にしない」の方針）。 */
+.ghost-preview-notice {
+  /* 枠は--warn。UI部品基準3:1に対し、ダーク: --bg比10.484:1・面（--surface-grad上端#1c2339）比8.753:1、
+     ライト: --bg比4.524:1・面（#ffffff）比4.935:1（機械計算値） */
+  margin: var(--sp-1) 0 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-card);
+  background: var(--surface-grad);
+}
+.ghost-preview-notice__line {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.ghost-preview-notice__count {
+  /* 数値のみ--warnで拡大する。本文基準4.5:1に対し、ダーク: 面比8.753:1（上端）/9.304:1（下端）、
+     ライト: 面比4.935:1（上端）/4.682:1（下端）（機械計算値）でAA適合 */
+  margin-right: 2px;
+  color: var(--warn);
+  font-family: var(--font-display);
+  font-size: var(--fs-stat);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.ghost-preview-sent {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0 0;
+  color: var(--ink);
+}
+.ghost-preview-sent__icon::before {
+  /* 送信済みの記号。文は--ink（--bg比 ダーク15.934:1／ライト15.234:1）で読ませ、
+     色は記号だけに載せる二重符号化。記号は装飾（aria-hidden）の図形要素として
+     UI部品基準3:1で評価する。--ok の--bg比は ダーク8.751:1／ライト3.995:1（機械計算値）。
+     ライトは本文基準4.5:1に届かないため、--okを文の色には使わない */
+  content: '✓';
+  color: var(--ok);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+}
+
 /* --- 昼バトルの順位表（V-9。docs/25 4.1節）。S7参加者画面・S8ホスト画面の
    途中順位と最終リザルトで共用する（StandingsList）。
    順位は数字バッジ（形）＋色の二重符号化で、グレースケール表示でも数字だけで
@@ -2057,4 +2143,176 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* --- S5レイド画面のゴースト表層（V-15。正本: docs/25 4.6節）---
+   貢献ダメージリストは順位表（V-9）の `.standings*` をそのまま流用するため、ここでは
+   見出しの追加分だけを持つ（構造の流用=4.6節。StandingsListコンポーネント自体を再利用しない
+   理由は RaidContributionList.tsx の冒頭コメント）。
+
+   コントラスト（docs/20 2.3節の式での機械計算値。基準=本文4.5:1／UI部品3:1。
+   面=--surface-grad上端 dark #1c2339 / light #ffffff）:
+     倍率チップの文字 --ink        : dark 13.302 / light 16.620（本文AA適合）
+     チップ枠・バー塗り --ok       : dark 7.306 / light 4.358（対面）、--surface-2上で dark 6.646 / light 3.720
+     チップ枠・バー塗り --ink-3    : dark 4.493 / light 4.929（対面）、--surface-2上で dark 4.088 / light 4.208
+     名誉バッジ枠・数値 --gold     : dark 8.753 / light 4.935（本文AA適合）
+     空状態の文 --ink-2            : dark 7.036 / light 5.608（本文AA適合）
+     英字ラベル --ev-blue          : dark 4.870 / light 6.556（本文AA適合）
+   **--ok / --ink-3 を文字色に使わない**: light の --ok は面に対し4.358で本文基準4.5を満たさず、
+   dark の --ink-3 は4.493で同様に満たさない。そのため倍率チップの文字は --ink 固定とし、
+   --ok / --ink-3 は枠線・バー塗り（UI部品基準3:1）にのみ使う。
+   --warn / --ng は使わない（弱点は攻略の手がかりでボス役の告発ではない=4.6節・02の5.3節）。 */
+.raid-contrib__heading,
+.ghost-weakness__heading,
+.raid-badges__heading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  font-weight: 400;
+}
+.ghost-weakness__eyebrow,
+.raid-badges__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+/* 弱点マップ・バッジ一覧の面（順位表と同じカード言語に揃える） */
+.ghost-weakness,
+.raid-badges {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.ghost-weakness__note {
+  margin: var(--sp-half) 0 var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+.ghost-weakness__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ghost-weakness__row {
+  /* 倍率の強弱色の受け皿。data-strengthで切り替え、配下は--weakness-color経由で参照する
+     （生の16進をここに書かない=トークン経由参照の原則。V-14の--growth-rank-colorと同じ形） */
+  --weakness-color: var(--ink-3);
+  --weakness-chip-border-style: dashed;
+
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.ghost-weakness__row[data-strength='weak'] {
+  --weakness-color: var(--ok);
+  /* 弱点=実線・堅い=破線。色を失っても線種と語（弱点/堅い）と倍率の数値で区別できる（07の原則4） */
+  --weakness-chip-border-style: solid;
+}
+.ghost-weakness__chip {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+  min-width: 74px;
+  padding: 2px var(--sp-1);
+  border: 1px var(--weakness-chip-border-style) var(--weakness-color);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-size: var(--fs-note);
+}
+.ghost-weakness__main {
+  flex: 1;
+  min-width: 0;
+}
+.ghost-weakness__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.ghost-weakness__tag {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ghost-weakness__count {
+  flex: none;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.ghost-weakness__bar {
+  display: block;
+  height: 6px;
+  margin-top: var(--sp-half);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.ghost-weakness__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--weakness-color);
+}
+/* 討伐された回数（名誉表示）。数字を誇示せず小さな金のバッジ形に留める（4.6節・02の5.3節） */
+.raid-honor {
+  /* 「討伐された回数: N回」を1文として読ませるため、flexではなく通常のインライン整形にする
+     （flexにすると数字前後の空白が落ち、単位が数字から離れて読める） */
+  display: inline-block;
+  margin: var(--sp-1) 0;
+  padding: 2px var(--sp-1);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-note);
+}
+.raid-honor__count {
+  color: var(--gold);
+  font-size: var(--fs-sub);
+}
+/* 取得済みバッジ（07の6節: 獲得済みは--gold枠。取得日を併記する） */
+.raid-badges__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  list-style: none;
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+}
+.raid-badges__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  padding: var(--sp-half) var(--sp-1);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-button);
+}
+.raid-badges__name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.raid-badges__date {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+/* 空状態（貢献者0人・弱点0件・バッジ0件）。見出しだけが浮くのを防ぐ枠（4.6節）。
+   煽らないトーンを保つため色は--ink-2のみで、--warn / --ng は使わない */
+.raid-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-1);
+}
+.raid-empty__text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  text-align: center;
 }
