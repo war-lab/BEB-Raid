@@ -642,16 +642,74 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 レイド
               </button>
             )}
-            {/* M4・T-125: 昼バトル参加の入口（isConfigured時のみ。共有API無効時は入口ごと非表示=22の2.3節） */}
+            {/* M4・T-125: 昼バトル参加の入口（isConfigured時のみ。共有API無効時は入口ごと非表示=22の2.3節）。
+                V-13（docs/25 4.8節）: 5導線の中で昼バトルの2つを識別できるよう--raidのアイコンを付ける。
+                アイコンは装飾（aria-hidden）で、識別は文字ラベルでも成立する（07の原則4） */}
             {raidApi.isConfigured() && (
               <button type="button" onClick={() => navigate('battle')}>
-                昼バトルに参加
+                <svg
+                  className="home-grid__icon"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 20 20"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="7"
+                    cy="6"
+                    r="2.6"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M2.6 16.5c0-2.7 2-4.4 4.4-4.4s4.4 1.7 4.4 4.4"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M13.4 9h4.2M15.6 7l2 2-2 2"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>昼バトルに参加</span>
               </button>
             )}
             {/* M4・T-126: 昼バトル主催（ホスト）の入口（isConfigured時のみ。同上） */}
             {raidApi.isConfigured() && (
               <button type="button" onClick={() => navigate('battleHost')}>
-                昼バトルを主催
+                <svg
+                  className="home-grid__icon"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 20 20"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="2.5"
+                    y="3.5"
+                    width="15"
+                    height="10"
+                    rx="1.5"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M10 13.5v3M7 16.5h6"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>昼バトルを主催</span>
               </button>
             )}
           </div>

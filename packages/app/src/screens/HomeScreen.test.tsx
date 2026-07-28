@@ -1473,3 +1473,42 @@ describe('HomeScreen: 昼バトル主催の入口（M4・T-126。22の3.6節）'
     expect(useAppStore.getState().screen).toBe('battleHost')
   })
 })
+
+// V-13（docs/25 4.8節）: .home-gridの表層整備。構造（2列グリッド・素のボタン列）を
+// 変えないことと、アイコン追加でアクセシブルネームが変わらないことを機械的に担保する
+describe('HomeScreen: .home-gridの表層（V-13。docs/25 4.8節）', () => {
+  async function renderConfigured() {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+    const grid = document.querySelector('.home-grid')
+    expect(grid).toBeTruthy()
+    return grid as HTMLElement
+  }
+
+  it('構造は2列グリッドの素のボタン列のまま（直下の子は全てbutton要素）', async () => {
+    const grid = await renderConfigured()
+    // ダッシュボード・設定・レイド・昼バトル参加・昼バトル主催の5導線
+    expect(grid.children).toHaveLength(5)
+    expect(Array.from(grid.children).every((el) => el.tagName === 'BUTTON')).toBe(true)
+  })
+
+  it('昼バトルの2導線だけがアイコンを持ち、アイコンはaria-hiddenでラベルは変わらない', async () => {
+    const grid = await renderConfigured()
+    const withIcon = Array.from(grid.children).filter((el) => el.querySelector('.home-grid__icon'))
+    expect(withIcon.map((el) => el.textContent)).toEqual(['昼バトルに参加', '昼バトルを主催'])
+    for (const el of withIcon) {
+      expect(el.querySelector('.home-grid__icon')?.getAttribute('aria-hidden')).toBe('true')
+    }
+    // アクセシブルネームは文字ラベルのみで成立する（07の原則4: 色・形だけに頼らない）
+    expect(screen.getByRole('button', { name: '昼バトルに参加' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '昼バトルを主催' })).toBeTruthy()
+  })
+})

@@ -13,6 +13,7 @@ import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { FakeBattleSocket } from '../platform/net/BattleSocket'
 import { useAppStore } from '../store/appStore'
 import { BattleScreen } from './BattleScreen'
+import { resolveBattleCloseMessage } from './battleCloseMessage'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -369,5 +370,80 @@ describe('BattleScreen: 切断理由ごとの案内', () => {
     const body = await renderAndClose(1011, 'something_unexpected')
     expect(screen.getByText('接続が切れました')).toBeTruthy()
     expect(body.textContent).toContain('通信が途切れた')
+  })
+})
+
+// V-13（docs/25 4.4節）: 待機系（ルームコード入力・ロビー・切断）の表層整備。
+// 過剰演出を足さないタスクなので、テストは「階層が付いたこと」と
+// 「文言・アクセシビリティが不変であること」を機械的に担保する範囲に留める
+describe('BattleScreen: 待機系画面の表層（V-13。docs/25 4.4節）', () => {
+  async function renderEntry() {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+    return socket
+  }
+
+  it('ルームコード入力はカード内にあり、ワードマークが1つ置かれる', async () => {
+    await renderEntry()
+    // ワードマークは第一印象のための1つだけ（docs/25 4.4節）
+    expect(screen.getAllByRole('heading', { name: 'BEB RAID' })).toHaveLength(1)
+    const input = screen.getByLabelText('ルームコード（4文字）')
+    expect(input.closest('.battle-entry__card')).toBeTruthy()
+  })
+
+  it('ルームコード入力欄はキーボードで操作できるまま（無効化・読み取り専用にしていない）', async () => {
+    await renderEntry()
+    const input = screen.getByLabelText('ルームコード（4文字）') as HTMLInputElement
+    expect(input.tagName).toBe('INPUT')
+    expect(input.disabled).toBe(false)
+    expect(input.readOnly).toBe(false)
+    input.focus()
+    expect(document.activeElement).toBe(input)
+    // キーボード入力が正規化されて反映される
+    fireEvent.change(input, { target: { value: 'ab12' } })
+    expect(input.value).toBe('AB12')
+  })
+
+  it('ロビーの参加者一覧はピル形チップの並びで、10人でも全員が表示される', async () => {
+    const socket = await renderEntry()
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    const names = Array.from({ length: 10 }, (_, i) => `参加者${i + 1}`)
+    socket.emitMessage({
+      type: 'roomState',
+      participants: names.map((displayName) => ({ displayName })),
+    })
+    await screen.findByText('ロビー')
+
+    const chips = document.querySelectorAll('.battle-lobby__chip')
+    expect(chips).toHaveLength(10)
+    expect(Array.from(chips).map((el) => el.textContent)).toEqual(names)
+  })
+
+  it('切断画面は見出しと本文の階層を持つカードになり、文言はbattleCloseMessageの出力と一致する', async () => {
+    const socket = await renderEntry()
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitClose(1008, 'unauthorized')
+
+    const body = await screen.findByTestId('battle-close-reason')
+    const card = body.closest('.battle-closed')
+    expect(card).toBeTruthy()
+    const title = card?.querySelector('.battle-closed__title')
+    // 文言はV-13で1文字も変えない（battleCloseMessage.tsが正本）
+    const expected = resolveBattleCloseMessage('unauthorized', 'participant')
+    expect(title?.textContent).toBe(expected.title)
+    expect(body.textContent).toBe(expected.body)
+    // 見出しの重複表示はしない（ステータス帯からカード内へ移した）
+    expect(screen.getAllByText(expected.title)).toHaveLength(1)
   })
 })
