@@ -50,6 +50,16 @@ function now(): number {
  * リークを防いでいるのと同じ理由で、テキスト側でも漏らしてはならない。
  * question を持たない設問では、DrillScreenの音声問題と同じ趣旨のプロンプトを出す
  */
+/**
+ * 抽選プレビューの1行。ここでも **script は出さない**。
+ * ルーム作成前のホストの下見だが、プレビューを映したまま参加者が居ると正答が漏れる
+ * （V-17のスクリーンショット確認で独立に再指摘された）。
+ * 音声問題は行を区別できる必要があるため、種別とidで示す
+ */
+function lotteryPreviewText(question: Question): string {
+  return question.question ?? `音声問題（${question.id}）`
+}
+
 function projectedQuestionText(question: Question): string {
   if (question.question) return question.question
   return '音声で質問が流れます。応答として正しい選択肢を選んでください'
@@ -244,7 +254,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         <ol className="raid-list" data-testid="battle-host-lottery-preview">
           {questionSet.map((q, i) => (
             <li key={q.id}>
-              {i + 1}. [Part{q.part}] {q.question ?? q.script ?? q.id}
+              {i + 1}. [Part{q.part}] {lotteryPreviewText(q)}
             </li>
           ))}
         </ol>
