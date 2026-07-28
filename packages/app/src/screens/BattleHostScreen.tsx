@@ -12,6 +12,7 @@ import type { AudioPlayer, BattleSocket, RaidApi } from '../platform'
 import { useAppStore } from '../store/appStore'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { StandingsList } from '../components/StandingsList'
 import { resolveBattleCloseMessage } from './battleCloseMessage'
 
 interface Props {
@@ -297,13 +298,11 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
           )
         }
       >
-        <ol className="raid-list" data-testid="battle-host-standings">
-          {standings.map((entry, i) => (
-            <li key={i}>
-              {entry.displayName}: {entry.totalPoints}点
-            </li>
-          ))}
-        </ol>
+        {/* ホストは解答しないため自分の行が無い（selfDisplayNameを渡さない）。
+            投影用のサイズ差は.battle-host配下のCSSで上書きする（docs/25 4.1節） */}
+        <div className="battle-host">
+          <StandingsList entries={standings} listTestId="battle-host-standings" />
+        </div>
       </ScreenLayout>
     )
   }
@@ -314,13 +313,14 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         status={<p>最終リザルト</p>}
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
-        <ol className="raid-list" data-testid="battle-host-result">
-          {resultEntries.map((entry, i) => (
-            <li key={i}>
-              {entry.displayName}: {entry.totalPoints}点
-            </li>
-          ))}
-        </ol>
+        {/* 表彰（表彰台・段階開示）はV-10の担当。ここでは順位表の共通化までに留める */}
+        <div className="battle-host">
+          <StandingsList
+            entries={resultEntries}
+            label="FINAL RESULT"
+            listTestId="battle-host-result"
+          />
+        </div>
         {bestGrowthName && (
           <p data-testid="battle-host-best-growth">ベストグロース賞: {bestGrowthName}</p>
         )}

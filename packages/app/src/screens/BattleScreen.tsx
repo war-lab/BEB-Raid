@@ -15,6 +15,7 @@ import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { StandingsList } from '../components/StandingsList'
 import { resolveBattleCloseMessage } from './battleCloseMessage'
 
 interface Props {
@@ -63,6 +64,8 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const [phase, setPhase] = useState<Phase>('entry')
   const [codeInput, setCodeInput] = useState('')
   const [participants, setParticipants] = useState<string[]>([])
+  /** 自分の表示名（join時に確定）。順位表で自分の行を示すために保持する（V-9） */
+  const [selfDisplayName, setSelfDisplayName] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
@@ -180,6 +183,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         db.ratings.get('total'),
       ])
       const displayName = profile?.displayName ?? '参加者'
+      setSelfDisplayName(displayName)
       const rating = totalRating?.rating ?? DEFAULT_INITIAL_RATING
       ratingRef.current = rating
       const expectedPointsPerQuestion = basePoints(
@@ -360,13 +364,11 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   if (phase === 'standings') {
     return (
       <ScreenLayout status={<p>途中順位</p>} action={<p>次の問題をお待ちください</p>}>
-        <ol className="raid-list" data-testid="battle-standings">
-          {standings.map((entry, i) => (
-            <li key={i}>
-              {entry.displayName}: {entry.totalPoints}点
-            </li>
-          ))}
-        </ol>
+        <StandingsList
+          entries={standings}
+          selfDisplayName={selfDisplayName}
+          listTestId="battle-standings"
+        />
       </ScreenLayout>
     )
   }
@@ -377,13 +379,13 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         status={<p>最終リザルト</p>}
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
-        <ol className="raid-list" data-testid="battle-result">
-          {resultEntries.map((entry, i) => (
-            <li key={i}>
-              {entry.displayName}: {entry.totalPoints}点
-            </li>
-          ))}
-        </ol>
+        {/* 表彰（表彰台・段階開示）はV-10の担当。ここでは順位表の共通化までに留める */}
+        <StandingsList
+          entries={resultEntries}
+          label="FINAL RESULT"
+          selfDisplayName={selfDisplayName}
+          listTestId="battle-result"
+        />
         {bestGrowthName && (
           <p data-testid="battle-best-growth">ベストグロース賞: {bestGrowthName}</p>
         )}
