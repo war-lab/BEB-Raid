@@ -282,6 +282,11 @@ describe('BattleRoomDO', () => {
     const res = await stub.fetch(req)
     const ws = res.webSocket
     if (!ws) throw new Error('websocketが取得できません')
+    // 101応答に要求サブプロトコルが反映されていること。反映されないとブラウザは
+    // ハンドシェイクを失敗させ、接続が確立しないため下のreasonがUIへ届かない
+    // （このアサートが無かったため、実ブラウザで案内文が汎用文に落ちる不具合を
+    //  テストが検出できていなかった）
+    expect(res.headers.get('Sec-WebSocket-Protocol')).toBe('bearer.unregistered-token')
     ws.accept()
     const closed = await nextClose(ws)
     expect(closed.code).toBe(1008)
@@ -300,6 +305,8 @@ describe('BattleRoomDO', () => {
     const res = await stub.fetch(req)
     const ws = res.webSocket
     if (!ws) throw new Error('websocketが取得できません')
+    // 拒否経路でもサブプロトコルを反映すること（上と同じ理由）
+    expect(res.headers.get('Sec-WebSocket-Protocol')).toBe(`bearer.${someToken}`)
     ws.accept()
     const closed = await nextClose(ws)
     expect(closed.code).toBe(1008)
