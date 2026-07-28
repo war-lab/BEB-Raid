@@ -80,8 +80,10 @@ export function StandingsList({
               <span className="visually-hidden">{rank}位</span>
               <span className="standings__main">
                 <span className="standings__head">
-                  <span className="standings__name">{entry.displayName}</span>
-                  {isSelf && <span className="standings__you">YOU</span>}
+                  <span className="standings__who">
+                    <span className="standings__name">{entry.displayName}</span>
+                    {isSelf && <span className="standings__you">YOU</span>}
+                  </span>
                   <span className="standings__points display-num">
                     {entry.totalPoints.toLocaleString('ja-JP')}点
                   </span>

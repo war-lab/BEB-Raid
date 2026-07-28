@@ -1729,8 +1729,15 @@
   align-items: baseline;
   gap: var(--sp-half);
 }
-.standings__name {
+/* 名前と「YOU」は左側でひとかたまりにし、得点を右端へ寄せる */
+.standings__who {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.standings__name {
   min-width: 0;
   overflow-wrap: anywhere;
 }
