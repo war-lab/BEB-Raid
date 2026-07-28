@@ -10,8 +10,18 @@
 - **変更した対象**: UI文言（`packages/app/src`）・ドキュメント本文（`docs/` 配下・`README.md`・`CLAUDE.md`・`docs/00_README.md`）・コード内コメント・テストの日本語テスト名と期待文字列・`BEB-Raid-リリースノート.html`。
 - **変更していない内部識別子**: CSSクラス（`battle-*`）・`data-testid`・ファイル名（`BattleScreen.tsx`・`BattleHostScreen.tsx`・`battleCloseMessage.ts` 等）・型名（`BattleServerMessage` 等）・Durable Object名（`BattleRoomDO`・`BATTLE_ROOM`）。いずれも元から「昼」を含まず新名称と矛盾しない。**とくにDurable Objectのクラス名変更は wrangler の migrations を要し本番のルーム状態に影響するため、意図的に避けている。**
 - **時間帯の前提を説明していた箇所は書き換えた**（名称だけ変えて前提の説明が残ると矛盾するため）。02の6節に「開催時間帯は仕様に含めない」を明記し、01の1節のピボット記述・`README.md` の概要とCore Features・00の1行コンセプト節を、開催時間帯を固定しない書き方へ直した。**開催頻度（週イチ程度）・所要時間（15〜20分）・M4完了条件（2回開催して接戦になること）は不変。**
+- **追加の是正（2026-07-28。発起人判断）**: ①コンセプト文を「電車で削り、週でボスを倒し、**皆で笑う**」に変更（`README.md`・`docs/00_README.md`。「昼で笑う」は対句の一部で機械置換の対象外だったため個別に判断した）。②`docs/02` 5.1節の優先度表「A-sync: 昼同期レイド」を「A-sync: 同期レイド」に（同書1節のmermaidと6.3節では既に「同期レイド」と呼んでおり、表記が揺れていた）。参照している `docs/21` J-62・`docs/02` の注記も追従。③S7/S8の画面名を機械置換の「イベント参加／イベントホスト」から「**イベントバトル参加／イベントバトルホスト**」に（実体はイベントバトルの画面であり、上位概念の「イベント」よりこちらが正確。`docs/25` は当初からこの表記だったため揃えた）。
 - **意図的に残した「昼」**: ①本節より下の過去記録、②`docs/adr/` の承認済みADR本文（[adr/README.md](adr/README.md) の運用ルールにより本文は書き換えない。ただし今回の横断検索では該当なし）、③一般名詞としての「昼休み」「昼の場」「昼の集まり」「昼45分」「昼一部」（実世界の時間帯・学習時間の内訳を指しており機能名ではない）、④コンセプト文「電車で削り、週でボスを倒し、昼で笑う」（`README.md`・00の冒頭。固有の表現なので**発起人の判断待ち**）、⑤02の5.1節の「A-sync: 昼同期レイド」および21のJ-62・02の注記中の「昼同期」（今回の指示範囲外の別名称なので**発起人の判断待ち**）、⑥`BEB-Raid-取説.html`（未コミットの別作業物）。
 - **検証**: `npm run lint`・`npm run format:check`・`npm run build`・`npm test`（api 125・app 895・cli 338・review-ui 15・shared-schema 96）が全通過。Markdownの見出しアンカーリンク（`](#...)`）はリポジトリ内に存在しないため、見出し名の変更でリンクは壊れていない。
+## バグ修正: RaidScreenの投げっぱなし非同期がunhandled rejectionになっていた（2026-07-28。ブランチ `task/fix-raid-unhandled-rejection`。origin/dev起点）
+
+`RaidScreen.test.tsx` の `DatabaseClosedError` unhandled rejection が**CIで顕在化してPRのCIを落とした**（テストは895件全通過だがvitestが終了コード1になる）。これまでローカルで間欠的に観測され「環境要因」として扱われていた事象で、実体は**実装側の投げっぱなし非同期に `.catch` が無いこと**だった。
+
+- **不具合**: `RaidScreen` のボタンは `onClick={() => void handleJoin()}` のように **`void` でpromiseを捨てている**。`handleJoin`・`handleChallenge`・`handleManualSync` の3つは内部にtry/catchを持たないため、失敗が **unhandled rejection** になっていた（`handleRegister`・`handleGhostBossConsentConfirm`・`handleWithdrawGhostBoss` は内部で捕まえており対象外）。
+- **テストで露出した経路**: 「参加すると、raidStateキャッシュにbossType・defenseJson・ghostJsonが保存される」（T-129）が `raidState` の書込を確認した時点で終了し、`afterEach` がDBを閉じる。`handleJoin` はその後も `db.settings.put` と `db.raidState.get` を続けるため、閉じたDBへのアクセスで例外になっていた。実行時間のばらつきで間欠的に見えていた。
+- **実アプリでの影響**: テスト固有の問題ではない。参加ボタンを押した直後に画面を離れた場合や書込が失敗した場合、**利用者には何も伝わらないまま参加できていない状態**になる。原因もログに残らない。
+- **修正**: 上記3関数を try/catch で囲み、`console.warn` でログに残したうえで既存の `syncError` 表示（同じ操作エリアに出る）で利用者に伝える。`handleChallenge`・`handleManualSync` は本体を別関数（`startRaidQuest`・`runManualSync`）へ切り出し、呼び出し側が失敗の扱いを持つ構造にした。
+- **検証**: `RaidScreen.test.tsx` 単体を3回、appスイート全体を2回実行し、**いずれも `Errors` 0・終了コード0**を確認（修正前は間欠的に `1 error` が出ていた）。`npm run lint`・`npm run build` 通過。
 
 ## 修正: 最終リザルトの4位以下のスケールを下げて1080pの縦に収める（2026-07-28。ブランチ `task/fix-host-result-overflow`。origin/dev起点）
 

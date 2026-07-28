@@ -9,7 +9,7 @@ BEB Raid（ビーブレイド）は、通勤・通学中の短時間学習を主
 
 > Working title: **Beat English Boss Raid**  
 > Pronunciation: **ビーブレイド**  
-> Internal concept: **電車で削り、週でボスを倒し、昼で笑う**
+> Internal concept: **電車で削り、週でボスを倒し、皆で笑う**
 
 ## Concept
 

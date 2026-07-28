@@ -292,21 +292,29 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
 
   async function handleJoin() {
     if (!currentBoss) return
-    await db.raidState.put({
-      id: RAID_STATE_ID,
-      bossId: currentBoss.bossId,
-      profileJson: JSON.stringify({ name: currentBoss.name }),
-      hp: currentBoss.hp,
-      maxHp: currentBoss.maxHp,
-      myDamage: currentBoss.myDamage,
-      joined: true,
-      startAt: currentBoss.startAt,
-      endAt: currentBoss.endAt,
-      lastSyncedAt: Date.now(),
-      ...buildRaidStateBossCache(currentBoss),
-    })
-    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
-    setRaidState((await db.raidState.get(RAID_STATE_ID)) ?? null)
+    // 呼び出し側は `void handleJoin()` で投げっぱなしにするため、ここで必ず捕まえる。
+    // 捕まえないと失敗が unhandled rejection になり、利用者には何も伝わらないまま
+    // 参加できていない状態になる（画面遷移や離脱で書込中に閉じた場合も同様）
+    try {
+      await db.raidState.put({
+        id: RAID_STATE_ID,
+        bossId: currentBoss.bossId,
+        profileJson: JSON.stringify({ name: currentBoss.name }),
+        hp: currentBoss.hp,
+        maxHp: currentBoss.maxHp,
+        myDamage: currentBoss.myDamage,
+        joined: true,
+        startAt: currentBoss.startAt,
+        endAt: currentBoss.endAt,
+        lastSyncedAt: Date.now(),
+        ...buildRaidStateBossCache(currentBoss),
+      })
+      await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+      setRaidState((await db.raidState.get(RAID_STATE_ID)) ?? null)
+    } catch (e) {
+      console.warn('[RaidScreen] レイドへの参加の記録に失敗', e)
+      setSyncError('参加の記録に失敗しました。時間をおいて試してください')
+    }
   }
 
   async function handleChallenge() {
@@ -318,6 +326,18 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     )
       return
     setEmptyPackMessage(null)
+    // handleJoinと同じ理由でここでも捕まえる（`void handleChallenge()` で呼ばれる）。
+    // 失敗を放置するとボタンを押しても何も起きない状態になり、原因も伝わらない
+    try {
+      await startRaidQuest()
+    } catch (e) {
+      console.warn('[RaidScreen] レイドクエストの開始に失敗', e)
+      setSyncError('クエストの開始に失敗しました。時間をおいて試してください')
+    }
+  }
+
+  /** レイドクエストの生成〜セッション開始。失敗時の扱いは呼び出し側（handleChallenge）が持つ */
+  async function startRaidQuest() {
     const phase = await getOrInitPhaseState(db)
     const pack = await generateQuickPack(db, {
       duration: RAID_QUEST_DURATION,
@@ -404,6 +424,18 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
 
   async function handleManualSync() {
     setSyncError(null)
+    // `void handleManualSync()` で呼ばれるため、想定外の例外もここで捕まえる
+    // （syncRaidDamage自体は結果オブジェクトを返すが、db操作は投げうる）
+    try {
+      await runManualSync()
+    } catch (e) {
+      console.warn('[RaidScreen] 手動同期に失敗', e)
+      setSyncError('同期に失敗しました。通信を確認してください')
+    }
+  }
+
+  /** 手動同期の本体。失敗時の扱いは呼び出し側（handleManualSync）が持つ */
+  async function runManualSync() {
     const result = await syncRaidDamage(db, raidApi)
     if (!result.ok) {
       const unauthorized = useRaidSyncStore.getState().lastUnauthorized
