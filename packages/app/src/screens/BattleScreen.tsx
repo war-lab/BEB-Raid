@@ -367,6 +367,10 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
                 <ChoiceButton
                   key={choice.key}
                   marker={choice.key}
+                  // V-12（docs/25 4.4節・JV-7=案B）: イベントバトルだけ記号A–Dを形マーカー
+                  // （▲■●◆）に置き換え、ホスト画面の投影と形で対応付ける。ソロ学習の
+                  // ドリルは既定の記号表示のまま。出題中に演出は足さない（07の原則3）
+                  markerVariant="shape"
                   state={state}
                   disabled={selectedKey !== null}
                   onClick={() => handleAnswer(choice.key)}

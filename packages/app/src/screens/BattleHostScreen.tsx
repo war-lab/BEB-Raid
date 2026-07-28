@@ -11,6 +11,7 @@ import { drawBattleQuestionSet } from '../engine/battleLottery'
 import type { AudioPlayer, BattleSocket, RaidApi } from '../platform'
 import { useAppStore } from '../store/appStore'
 import { BattleAward } from '../components/BattleAward'
+import { choiceShapeMarker } from '../components/ChoiceButton'
 import { HostProjectionLayout } from '../components/HostProjectionLayout'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -310,15 +311,17 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         {currentQuestion && (
           <>
             <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
-            {/* 選択肢は「形＋色＋記号」の三重符号化の器。色（キーごとのアクセント）と
-                記号（A–D）は本タスクで、形マーカー（▲■●◆）はV-12が
-                .battle-host-choice__marker の中身として載せる（docs/25 4.4節・JV-7=案B）。
+            {/* 選択肢は「形＋色＋記号」の三重符号化。色（キーごとのアクセント）はV-11が
+                data-choice-key で当て、形マーカー（▲■●◆）はV-12が同じ器の中身として
+                載せた（docs/25 4.4節・JV-7=案B）。形の対応表は ChoiceButton と共有するため、
+                手元画面（S7）と同じ形が同じ選択肢に付く。記号A–Dは投影では形に置き換わり、
+                visually-hidden で支援技術に残す。
                 出題中は演出を足さない（07の原則3・docs/25 4.4節末尾） */}
             <ul className="battle-host-choices">
               {currentQuestion.choices?.map((choice) => (
                 <li key={choice.key} className="battle-host-choice" data-choice-key={choice.key}>
                   <span className="battle-host-choice__marker display-num" aria-hidden="true">
-                    {choice.key}
+                    {choiceShapeMarker(choice.key) ?? choice.key}
                   </span>
                   <span className="battle-host-choice__text">{choice.text}</span>
                   {/* 記号を装飾扱いにしたぶんの読み上げ（投影画面は読み上げ対象外だが、
