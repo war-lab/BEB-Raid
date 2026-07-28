@@ -96,13 +96,24 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
       }
     >
       {sent ? (
-        <p data-testid="ghost-boss-sent">記録を送信しました。今週のゴーストレイドに反映されます</p>
+        // 送信済みは--okのアイコン＋文で完結させる（docs/25 4.7節）
+        <p className="ghost-preview-sent" data-testid="ghost-boss-sent">
+          <span aria-hidden="true" className="ghost-preview-sent__icon" />
+          <span>記録を送信しました。今週のゴーストレイドに反映されます</span>
+        </p>
       ) : (
         <>
           <p>
             正解 {results.length - wrongCount} / {results.length}
           </p>
-          <p data-testid="ghost-boss-weakness-count">弱点として公開される問題数: {wrongCount}問</p>
+          {/* 同意判断の材料になる数値なので--warnの枠を持つ注意カードに収める（docs/25 4.7節）。
+              文言は変えず、数値だけを拡大する */}
+          <div className="ghost-preview-notice">
+            <p className="ghost-preview-notice__line" data-testid="ghost-boss-weakness-count">
+              弱点として公開される問題数:{' '}
+              <span className="ghost-preview-notice__count">{wrongCount}</span>問
+            </p>
+          </div>
           {sendError && <p className="drill-error">{sendError}</p>}
           <ul className="result-list">
             {results.map((r, i) => (
