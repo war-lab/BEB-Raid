@@ -2091,6 +2091,19 @@
 .battle-host .standings__bar {
   height: 12px;
 }
+/* 最終リザルトの4位以下だけ1段小さくする。表彰台（--host-fs-points=6vw）は見せ場なので
+   維持し、下位行の得点は --host-fs-name（3vw）に落として1080pに収まる行数を稼ぐ。
+   それでも溢れる人数のときは .battle-host-stage__body のスクロールで受ける（2段構え）。
+   セレクタは .standings__* に限定しており、children スロットの BattleAward には及ばない */
+.battle-host .battle-host-final .standings__points {
+  font-size: var(--host-fs-name);
+}
+.battle-host .battle-host-final .standings__badge {
+  font-size: var(--host-fs-meta);
+}
+.battle-host .battle-host-final .standings__name {
+  font-size: var(--host-fs-meta);
+}
 
 /* --- 昼バトル最終リザルトの表彰（V-10。docs/25 4.2節・JV-4）。
    地は .standings の --surface-grad をそのまま使い、表彰台・表彰カードには面を敷かない
