@@ -10,6 +10,7 @@ import type { BattleServerMessage, Question } from '@beb-raid/shared-schema'
 import { drawBattleQuestionSet } from '../engine/battleLottery'
 import type { AudioPlayer, BattleSocket, RaidApi } from '../platform'
 import { useAppStore } from '../store/appStore'
+import { BattleAward } from '../components/BattleAward'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { StandingsList } from '../components/StandingsList'
@@ -313,17 +314,23 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         status={<p>最終リザルト</p>}
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
-        {/* 表彰（表彰台・段階開示）はV-10の担当。ここでは順位表の共通化までに留める */}
+        {/* 表彰（表彰台・ベストグロース賞・段階開示）はV-10のBattleAwardが持つ。
+            上位3名は表彰台に載るため順位表は4位以下だけを描く（fromRank=4）。
+            ホストは解答しないためselfDisplayNameは渡さない（docs/25 4.1節・4.2節） */}
         <div className="battle-host">
           <StandingsList
             entries={resultEntries}
             label="FINAL RESULT"
+            fromRank={4}
             listTestId="battle-host-result"
-          />
+          >
+            <BattleAward
+              entries={resultEntries}
+              bestGrowthName={bestGrowthName}
+              bestGrowthTestId="battle-host-best-growth"
+            />
+          </StandingsList>
         </div>
-        {bestGrowthName && (
-          <p data-testid="battle-host-best-growth">ベストグロース賞: {bestGrowthName}</p>
-        )}
       </ScreenLayout>
     )
   }

@@ -1871,6 +1871,182 @@
   height: 10px;
 }
 
+/* --- 昼バトル最終リザルトの表彰（V-10。docs/25 4.2節・JV-4）。
+   地は .standings の --surface-grad をそのまま使い、表彰台・表彰カードには面を敷かない
+   （--surface-2 を敷くとダークの--rank-bronze比が4.104:1、ライトの--gold比が4.213:1で
+   本文基準4.5:1を割るため。以下のコントラストは機械計算値）:
+   ダーク（--surface-grad #1c2339→#181e31）: --gold 8.753/9.304、--rank-silver 7.641/8.122、
+   --rank-bronze 4.511/4.795、--ink 13.302/14.141、--ink-2 7.036/7.480
+   ライト（--surface-grad #ffffff→#faf9f4）: --gold 4.935/4.682、--rank-silver(--steel-mid)
+   8.102/7.686、--rank-bronze 5.727/5.433、--ink 16.620/15.766、--ink-2 5.608/5.320
+   台座の地（--surface-2）に載るのは順位数字（--fs-stat以上の大文字）のみで、
+   大文字基準3:1に対し最小がダークの--rank-bronze 4.104:1・ライトの--gold 4.213:1 --- */
+.battle-award {
+  margin-bottom: var(--sp-2);
+}
+.battle-award__podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+}
+.battle-award__place {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  /* 開示前も枠を確保して、段階開示でレイアウトが動かないようにする */
+  transition: opacity 200ms ease;
+}
+.battle-award__place[data-revealed='false'] {
+  opacity: 0;
+  visibility: hidden;
+}
+/* 視覚上は 2位・1位・3位 の並び（1位を中央・最も高く）。DOMは順位順のまま保つ */
+.battle-award__place[data-rank='1'] {
+  order: 2;
+}
+.battle-award__place[data-rank='2'] {
+  order: 1;
+}
+.battle-award__place[data-rank='3'] {
+  order: 3;
+}
+.battle-award__points {
+  margin: 0;
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+}
+.battle-award__place[data-rank='1'] .battle-award__points {
+  font-size: var(--fs-stat);
+  color: var(--gold);
+  /* JV-4: 1位の得点に光暈を当てる（docs/20 3.1節の「リザルト数字」の適用拡張） */
+  text-shadow: var(--glow-gold);
+}
+.battle-award__place[data-rank='2'] .battle-award__points {
+  color: var(--rank-silver);
+}
+.battle-award__place[data-rank='3'] .battle-award__points {
+  color: var(--rank-bronze);
+}
+.battle-award__name {
+  margin: var(--sp-half) 0;
+  font-size: var(--fs-sub);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.battle-award__you {
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.08em;
+}
+/* 台座の高さが順位の第3の符号（数字・色との三重符号化）。グレースケールでも判別できる */
+.battle-award__pedestal {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 2px solid var(--line);
+  border-bottom: none;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+.battle-award__place[data-rank='1'] .battle-award__pedestal {
+  height: 76px;
+  border-color: var(--gold);
+}
+.battle-award__place[data-rank='2'] .battle-award__pedestal {
+  height: 54px;
+  border-color: var(--rank-silver);
+}
+.battle-award__place[data-rank='3'] .battle-award__pedestal {
+  height: 36px;
+  border-color: var(--rank-bronze);
+}
+.battle-award__rank-num {
+  font-size: var(--fs-stat);
+  line-height: 1;
+  color: var(--ink-2);
+}
+.battle-award__place[data-rank='1'] .battle-award__rank-num {
+  color: var(--gold);
+}
+.battle-award__place[data-rank='2'] .battle-award__rank-num {
+  color: var(--rank-silver);
+}
+.battle-award__place[data-rank='3'] .battle-award__rank-num {
+  color: var(--rank-bronze);
+}
+/* ベストグロース賞は順位と別軸の表彰なので、順位表の外に独立した枠として置く */
+.battle-award__growth {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-card);
+  transition: opacity 200ms ease;
+}
+.battle-award__growth[data-revealed='false'] {
+  opacity: 0;
+  visibility: hidden;
+}
+.battle-award__growth-label {
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.battle-award__growth-name {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-heading);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.battle-award__growth-note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+/* 「すべて表示」は開示中だけ出すが、消えたときに下の順位表がずれないよう高さを確保する */
+.battle-award__skip-slot {
+  min-height: var(--tap-min);
+  margin-top: var(--sp-1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-award__place,
+  .battle-award__growth {
+    transition: none;
+  }
+}
+/* S8ホスト画面（投影）側のサイズ差。投影用の本格的な意匠はV-11の担当 */
+.battle-host .battle-award__points {
+  font-size: var(--fs-heading);
+}
+.battle-host .battle-award__place[data-rank='1'] .battle-award__points {
+  font-size: var(--fs-display);
+}
+.battle-host .battle-award__name {
+  font-size: var(--fs-ui);
+}
+.battle-host .battle-award__place[data-rank='1'] .battle-award__pedestal {
+  height: 110px;
+}
+.battle-host .battle-award__place[data-rank='2'] .battle-award__pedestal {
+  height: 78px;
+}
+.battle-host .battle-award__place[data-rank='3'] .battle-award__pedestal {
+  height: 52px;
+}
+.battle-host .battle-award__rank-num {
+  font-size: var(--fs-display);
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;

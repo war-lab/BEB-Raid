@@ -12,6 +12,7 @@ import type { QuestionLookup } from '../engine/types'
 import type { BattleSocket } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { useAppStore } from '../store/appStore'
+import { BattleAward } from '../components/BattleAward'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -379,16 +380,23 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         status={<p>最終リザルト</p>}
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
-        {/* 表彰（表彰台・段階開示）はV-10の担当。ここでは順位表の共通化までに留める */}
+        {/* 表彰（表彰台・ベストグロース賞・段階開示）はV-10のBattleAwardが持つ。
+            上位3名は表彰台に載るため順位表は4位以下だけを描く（fromRank=4）。
+            得点バーの基準は entries 全体の1位のままなので相対長は変わらない（docs/25 4.2節） */}
         <StandingsList
           entries={resultEntries}
           label="FINAL RESULT"
           selfDisplayName={selfDisplayName}
+          fromRank={4}
           listTestId="battle-result"
-        />
-        {bestGrowthName && (
-          <p data-testid="battle-best-growth">ベストグロース賞: {bestGrowthName}</p>
-        )}
+        >
+          <BattleAward
+            entries={resultEntries}
+            bestGrowthName={bestGrowthName}
+            selfDisplayName={selfDisplayName}
+            bestGrowthTestId="battle-best-growth"
+          />
+        </StandingsList>
         <p data-testid="battle-review-note">誤答{wrongCount}問を復習デッキに登録しました</p>
       </ScreenLayout>
     )
