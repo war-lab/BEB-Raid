@@ -383,11 +383,30 @@ describe('BattleHostScreen: 投影用意匠（V-11）', () => {
       'Please ___ the q-1.',
     )
 
-    // 選択肢はキーごとに色を当てられる器（data-choice-key）と、V-12が形マーカーを載せる
+    // 選択肢はキーごとに色を当てられる器（data-choice-key）と、V-12が形マーカーを載せた
     // マーカー要素を持つ
     const choices = Array.from(view.container.querySelectorAll('.battle-host-choice'))
     expect(choices.map((c) => c.getAttribute('data-choice-key'))).toEqual(['A', 'B'])
-    expect(choices[0]?.querySelector('.battle-host-choice__marker')?.textContent).toBe('A')
+    expect(choices[0]?.querySelector('.battle-host-choice__marker')?.textContent).toBe('▲')
+  })
+
+  // V-12（docs/25 4.4節・JV-7=案B）。防ぐもの: 投影の形マーカーが手元画面（S7）と
+  // ずれること（S7側は BattleScreen.test.tsx が同じ対応表で検証する）と、
+  // 形が装飾でなく読み上げ対象になって記号が伝わらなくなること
+  it('投影の形マーカーは記号A–Dと1対1で対応し、aria-hiddenの装飾として置かれる', async () => {
+    const { view } = await renderToQuestion()
+
+    const markers = Array.from(view.container.querySelectorAll('.battle-host-choice')).map((c) => ({
+      key: c.getAttribute('data-choice-key'),
+      shape: c.querySelector('.battle-host-choice__marker')?.textContent,
+      ariaHidden: c.querySelector('.battle-host-choice__marker')?.getAttribute('aria-hidden'),
+      // 記号は形に置き換わるため、支援技術向けにはvisually-hiddenで残す
+      hiddenText: c.querySelector('.visually-hidden')?.textContent,
+    }))
+    expect(markers).toEqual([
+      { key: 'A', shape: '▲', ariaHidden: 'true', hiddenText: 'A' },
+      { key: 'B', shape: '■', ariaHidden: 'true', hiddenText: 'B' },
+    ])
   })
 
   it('途中順位・最終リザルトも投影レイアウトで、進行ボタンは画面下端の操作帯に置く', async () => {

@@ -447,3 +447,98 @@ describe('BattleScreen: 待機系画面の表層（V-13。docs/25 4.4節）', ()
     expect(screen.getAllByText(expected.title)).toHaveLength(1)
   })
 })
+
+// V-12（docs/25 4.4節・JV-7=案B）。防ぐもの:
+// - 手元画面の形マーカーがホスト画面（S8。BattleHostScreen.test.tsx が同じ対応表を検証）と
+//   ずれ、投影と手元で違う形が同じ選択肢に付くこと
+// - 形が読み上げ対象になって選択肢記号が支援技術に伝わらなくなること
+// - 出題中に演出（アニメーション）が足されること（07の原則3）
+describe('BattleScreen: 4択の形マーカー（V-12。docs/25 4.4節）', () => {
+  /** A–Dの4択を持つ設問（形マーカーの全対応を1画面で確認するため） */
+  function fourChoiceQuestion(): Question {
+    return {
+      ...textBlankQuestion('q-4', 'A'),
+      choices: [
+        { key: 'A', text: 'submit' },
+        { key: 'B', text: 'submits' },
+        { key: 'C', text: 'submitted' },
+        { key: 'D', text: 'submitting' },
+      ],
+    }
+  }
+
+  async function renderToQuestion(question: Question) {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const view = render(<BattleScreen db={db} battleSocket={socket} questionPool={[question]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: question.id,
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByText(question.question!)
+    return { socket, view }
+  }
+
+  it('A–Dが▲■●◆に置き換わり、ホスト画面と同じ形が同じ選択肢に対応する', async () => {
+    const { view } = await renderToQuestion(fourChoiceQuestion())
+
+    const markers = Array.from(view.container.querySelectorAll('.choice-button')).map((btn) => ({
+      key: btn.getAttribute('data-choice-key'),
+      shape: btn.querySelector('.choice-button__marker')?.textContent,
+    }))
+    expect(markers).toEqual([
+      { key: 'A', shape: '▲' },
+      { key: 'B', shape: '■' },
+      { key: 'C', shape: '●' },
+      { key: 'D', shape: '◆' },
+    ])
+  })
+
+  it('形マーカーはaria-hiddenの装飾で、選択肢記号と本文が支援技術に伝わる', async () => {
+    const { view } = await renderToQuestion(fourChoiceQuestion())
+
+    const buttons = Array.from(view.container.querySelectorAll('.choice-button'))
+    expect(
+      buttons.map((btn) =>
+        btn.querySelector('.choice-button__marker')?.getAttribute('aria-hidden'),
+      ),
+    ).toEqual(['true', 'true', 'true', 'true'])
+    // アクセシブル名は「選択肢<記号>＋本文」（形そのものは読み上げられない）
+    expect(screen.getByRole('button', { name: /選択肢C\s*submitted/ })).toBeTruthy()
+  })
+
+  it('正誤フィードバックは枠色＋✓✕のまま（形マーカーは状態で変わらない）', async () => {
+    const { view } = await renderToQuestion(fourChoiceQuestion())
+
+    fireEvent.click(screen.getByRole('button', { name: /選択肢B\s*submits/ }))
+    const buttons = Array.from(view.container.querySelectorAll('.choice-button'))
+    // 正解=A、選んだ誤答=B、残りは減光。形マーカーは4つとも解答前と同じ
+    expect(buttons.map((b) => b.getAttribute('data-state'))).toEqual([
+      'correct',
+      'wrong',
+      'dimmed',
+      'dimmed',
+    ])
+    expect(buttons.map((b) => b.querySelector('.choice-button__marker')?.textContent)).toEqual([
+      '▲',
+      '■',
+      '●',
+      '◆',
+    ])
+    expect(buttons.map((b) => b.querySelector('.choice-button__icon')?.textContent)).toEqual([
+      '✓',
+      '✕',
+      '',
+      '',
+    ])
+  })
+})
