@@ -40,6 +40,20 @@ function now(): number {
   return Date.now()
 }
 
+/**
+ * 投影する問題文。**script は絶対に投影しない**。
+ * 音声問題（Part2等）の script は読み上げ原稿で、質問文と正答の両方を含む
+ * （例: 「When should I submit the expense report? — By the end of this week.」）。
+ * これを投影すると、リスニング問題が読解問題になるだけでなく**正答が画面に出る**。
+ * T-126が audioMeta.questionEndMs で音声を質問部の終端で打ち切って正答読み上げの
+ * リークを防いでいるのと同じ理由で、テキスト側でも漏らしてはならない。
+ * question を持たない設問では、DrillScreenの音声問題と同じ趣旨のプロンプトを出す
+ */
+function projectedQuestionText(question: Question): string {
+  if (question.question) return question.question
+  return '音声で質問が流れます。応答として正しい選択肢を選んでください'
+}
+
 export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionPool, rng }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const [phase, setPhase] = useState<Phase>('setup')
@@ -279,9 +293,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
       >
         <p className="battle-host-stage__phase">音声再生中…</p>
         {currentQuestion && (
-          <p className="battle-host-question">
-            {currentQuestion.question ?? currentQuestion.script ?? ''}
-          </p>
+          <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
         )}
       </HostProjectionLayout>
     )
@@ -297,9 +309,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
       >
         {currentQuestion && (
           <>
-            <p className="battle-host-question">
-              {currentQuestion.question ?? currentQuestion.script ?? ''}
-            </p>
+            <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
             {/* 選択肢は「形＋色＋記号」の三重符号化の器。色（キーごとのアクセント）と
                 記号（A–D）は本タスクで、形マーカー（▲■●◆）はV-12が
                 .battle-host-choice__marker の中身として載せる（docs/25 4.4節・JV-7=案B）。
