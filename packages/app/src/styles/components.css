@@ -1728,6 +1728,149 @@
   font-size: var(--fs-note);
 }
 
+/* --- 昼バトルの順位表（V-9。docs/25 4.1節）。S7参加者画面・S8ホスト画面の
+   途中順位と最終リザルトで共用する（StandingsList）。
+   順位は数字バッジ（形）＋色の二重符号化で、グレースケール表示でも数字だけで
+   1〜3位が判別できる（07の原則4）。
+   コントラストは面=--surface-grad上端（dark #1c2339 / light #ffffff）を基準に
+   docs/20 2.3節の式で実測（機械計算値。基準=本文4.5:1／UI部品3:1）:
+     dark : ev-blue 4.870 / ink 13.302 / ink-2 7.036 / gold 8.753 / silver 7.641 / bronze 4.511
+     light: ev-blue 6.556 / ink 16.620 / ink-2 5.608 / gold 4.935 / silver 8.102 / bronze 5.727
+   いずれもAA=4.5:1適合（darkのbronzeのみ余裕が小さい）。グラデ下端（dark #181e31 /
+   light #faf9f4）側はいずれも上端より高い比になる（例: dark bronze 4.795 / light gold 4.682）。
+   得点バーの塗り--goldは地--surface-2に対し dark 7.963 / light 4.213 でUI部品基準3:1適合。
+   バーは数値の補助表現で、得点は必ず数字でも併記する --- */
+.standings {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.standings__label {
+  margin: 0 0 var(--sp-1);
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.standings__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.standings__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding-left: var(--sp-1);
+  /* 自分の行の左罫線ぶんを全行で確保し、YOU行だけ横位置がずれないようにする */
+  border-left: 3px solid transparent;
+}
+/* 順位バッジ。4位以下は--ink-2で、1〜3位だけランク色を当てる */
+.standings__badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border: 1px solid var(--ink-2);
+  border-radius: var(--radius-button);
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.standings__row[data-rank='1'] .standings__badge {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.standings__row[data-rank='2'] .standings__badge {
+  border-color: var(--rank-silver);
+  color: var(--rank-silver);
+}
+.standings__row[data-rank='3'] .standings__badge {
+  border-color: var(--rank-bronze);
+  color: var(--rank-bronze);
+}
+.standings__row[data-self='true'] {
+  border-left-color: var(--ev-blue);
+}
+.standings__main {
+  flex: 1;
+  min-width: 0;
+}
+.standings__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+/* 名前と「YOU」は左側でひとかたまりにし、得点を右端へ寄せる */
+.standings__who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.standings__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.standings__you {
+  flex: none;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.08em;
+}
+.standings__points {
+  flex: none;
+  color: var(--ink);
+}
+.standings__bar {
+  display: block;
+  height: 6px;
+  margin-top: var(--sp-half);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.standings__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .standings__bar-fill {
+    transition: none;
+  }
+}
+/* --- S8 ホスト画面（投影）側のサイズ差。コンポーネントに分岐を持たせず親クラスで
+   上書きする（docs/25 4.1節）。投影用の本格的な意匠（別テーマ・特大タイポ・
+   外周リング）はV-11の担当で、ここではサイズの引き上げだけに留める --- */
+.battle-host .standings__label {
+  font-size: var(--fs-sub);
+}
+.battle-host .standings__badge {
+  min-width: 40px;
+  height: 40px;
+  font-size: var(--fs-heading);
+}
+.battle-host .standings__name {
+  font-size: var(--fs-heading);
+}
+.battle-host .standings__points {
+  font-size: var(--fs-stat);
+}
+.battle-host .standings__bar {
+  height: 10px;
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;
