@@ -230,6 +230,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           <button type="button" className="drill-abort" onClick={() => navigate('home')}>
             中断
           </button>
+          {/* docs/25 4.8節（V-19）: DrillScreenと同じ英字パートタグ（.drill-part-tagを再利用）。
+              表示のみの追加で、読解は必ずPart6/7なのでVOCAB分岐は持たない */}
+          <span className="drill-part-tag">PART {question.part}</span>
           {!activeAnswer && <p className="reading-pace">目安1問/分（経過{elapsedSec}秒）</p>}
         </>
       }
@@ -291,7 +294,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       }
     >
       {passage && (
-        <>
+        // docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面と罫線だけで、
+        // 光暈・アニメーションは足さない（07の原則3: 読解中は静かであるべき）
+        <div className="reading-passage">
           <p className="passage-kind">{passage.kind}</p>
           <PassageText
             text={passage.text}
@@ -300,7 +305,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
             activeIndex={activeIndex}
             onSelectBlank={handleSelectBlank}
           />
-        </>
+        </div>
       )}
       {activeSub && (
         <p className="question-text" data-testid="reading-question">
