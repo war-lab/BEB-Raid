@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 // vitest の test 設定を型付きで書くため vitest/config を使う（vite の defineConfig と互換）
 import { defineConfig } from 'vitest/config'
 import { contentAssetsPlugin } from './vitePlugins/contentAssets'
+import { screenshotMocksPlugin } from './vitePlugins/screenshotMocks'
 
 // GitHub Pagesはプロジェクトページ（https://war-lab.github.io/BEB-Raid/）のためサブパス配信になる。
 // ローカル開発（npm run dev）やCIのテスト実行では base='/' のままにし、
@@ -19,6 +20,9 @@ export default defineConfig({
   plugins: [
     react(),
     contentAssetsPlugin(contentRoot),
+    // スクリーンショット採取用モックの注入（V-17。JV-8=案A）。プラグイン側が apply:'serve' の
+    // ため vite build には入らず、モック自体もURLクエリ ?screenshotMock=1 の時だけ有効になる
+    screenshotMocksPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],
