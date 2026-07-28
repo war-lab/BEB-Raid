@@ -49,6 +49,24 @@
 
 スクリーンショット確認: `screenshot-tour.mjs` のダーク・ライト全7画面を目視し、レイアウト崩れが無いことと成長ランクの見た目を確認した。実データではブロンズしか出ないため、5段すべてとグレースケール表示はPlaywrightでDOMを複製して確認した。確認者はAIコーディングエージェント（Claude Opus 5）。**発起人の実機確認は本タスクの後**。
 
+## V-9完了: 昼バトルの順位表を共通コンポーネント化（2026-07-28。ブランチ `task/V-9-standings-list`。origin/dev起点）
+
+[25_ビジュアル刷新計画_M4以降の未適用画面](25_ビジュアル刷新計画_M4以降の未適用画面.md) 4.1節に基づき、`components/StandingsList.tsx` を新設し、S7参加者画面・S8ホスト画面の**途中順位（`standings`）と最終リザルト（`result`）の4箇所すべて**を置き換えた。従来は `<li>{displayName}: {totalPoints}点</li>` の素のリストで順位が読み取れなかった。
+
+- **二重符号化**: 順位を数字バッジ（形）＋色で示す。1位=`--gold`・2位=`--rank-silver`・3位=`--rank-bronze`・4位以下=`--ink-2`。数字は全行にあるため**グレースケールでも順位が判別できる**（実機のグレースケール撮影で確認。下記）。バッジは `aria-hidden` の装飾扱いにし、スクリーンリーダーには `visually-hidden` の「N位」を渡す。
+- **得点**: `--font-display`＋`tabular-nums`（既存の `.display-num` ユーティリティ）。得点バーは1位を基準にした相対長だが、**数値を必ず併記**し、バー自体は `aria-hidden` にした（バー単独に情報を依存させない）。
+- **自分の行**: `--ev-blue` の左罫線＋「YOU」。**参加者画面（S7）でのみ有効**（ホストは解答しないため `selfDisplayName` を渡さない）。サーバーは表示名しか返さないため、**同名の参加者がいて一意に定まらない場合は識別を落とす**（誤った行にYOUを付けない）。
+- **ホスト/参加者の差の吸収**: コンポーネントに分岐を持たせず、`.battle-host` 配下のCSSでバッジ・氏名・得点・バーのサイズだけを上書きする（4.1節の明記事項）。投影用の本格的な意匠（別テーマ・特大タイポ・外周リング）はV-11の担当。
+- **V-10の拡張点**: `label`（`STANDINGS` / `FINAL RESULT`）・`fromRank`（表彰台が上位3名を持つとき4位以下だけを描画。**得点バーの基準は常に全体の1位のまま**）・`children`（ラベルとリストの間に表彰台・ベストグロース賞カードを差し込む）・`renderRowAccessory`（行末に受賞マーク）。表彰演出そのもの（段階開示・光暈）はV-10の担当なので本タスクでは実装していない。
+- **コントラスト実測**（20の2.3節の式。面=`--surface-grad` 上端）: dark `--ev-blue` 4.870 / `--ink` 13.302 / `--ink-2` 7.036 / `--gold` 8.753 / `--rank-silver` 7.641 / `--rank-bronze` 4.511、light `--ev-blue` 6.556 / `--ink` 16.620 / `--ink-2` 5.608 / `--gold` 4.935 / `--rank-silver` 8.102 / `--rank-bronze` 5.727。すべてAA=4.5:1適合（darkのbronzeのみ余裕が小さい）。得点バーの塗り `--gold` は地 `--surface-2` に対し dark 7.963 / light 4.213 でUI部品基準3:1適合。値は `components.css` のコメントにも残した。`tokens.css` は変更していない（新規トークンは不要だった）。
+- **触っていないもの**: 出題中（`question` フェーズ）・`ChoiceButton`・`tokens.css`・`packages/api`・`ScreenLayout`。バーの `transition` は `prefers-reduced-motion` で停止する。
+- **検証**: ルート `npm run lint`・`npm run format:check`（対象は `packages/app/src`。`.claude/settings.local.json` の警告は本タスク以前からある環境ローカルのファイル）・`npm run build`・`npm test`（api 125・app 867・cli 338・review-ui 15・shared-schema 96）が全通過。新規テスト `StandingsList.test.tsx` 9件。既存の `BattleScreen.test.tsx`・`BattleHostScreen.test.tsx` は `data-testid` を維持したため無修正で通過。
+- **🟡 実画面確認（Playwrightで4ブラウザコンテキストの実ローカル通し）**: `wrangler dev --local`（`.dev.vars` に `INVITE_CODE`＝ダミー値と検証用ポート向け `ALLOWED_ORIGINS` を一時的に置き、**確認後に削除して api の CORS テスト2件が再通過することを確認済み**）＋ `vite dev`（5173〜5175が並行worktreeで使用中のため5180）を起動し、`browser.newContext()` で分離した**ホスト1・参加者3**の端末をそれぞれ招待コード登録から用意して昼バトルを12問完走させた。表示名は中立なテスト名（進行役・参加者A/B/C）で、招待コード・URL・ポートは画面に写り込んでいない。ホスト端末のみ Playwright の fake clock を使い、各問の `questionOpen` 受信後に締切まで進めて `closeQuestion` を送らせた（アプリ側の変更は無し。累積ずれは出題ごとに実時刻へ戻す）。
+  - 途中順位（Q2終了時）・最終リザルトを、参加者・ホストそれぞれ**ダーク/ライト両テーマ**で確認。順位バッジの色分け・得点バーの相対長・YOU行の左罫線が両テーマで意図どおりに出ること、ホスト側だけサイズが大きくなること、ホスト側にYOU行が出ないことを確認した。
+  - **グレースケール確認**: `filter: grayscale(1)` を掛けた状態でも数字バッジ・YOU・得点の数値から順位が読めることを確認した。
+  - スクリーンショットはローカル一時生成物（リポジトリ外）で、本PRには含めない。
+- **未了**: リザルトの表彰（V-10）・投影用意匠（V-11）・4択の形マーカー（V-12）は本タスクの範囲外のまま。
+
 ## 2026-07-28: docs/25の判断JV-4〜JV-8を承認（ブランチ `task/docs-25-jv-approved`。ドキュメントのみ）
 
 [25_ビジュアル刷新計画_M4以降の未適用画面](25_ビジュアル刷新計画_M4以降の未適用画面.md) の判断事項のうち、JV-4〜JV-8を発起人が承認した。いずれも同書の推奨案どおり。これによりV-9〜V-20の実装着手のブロッカーが外れた。
