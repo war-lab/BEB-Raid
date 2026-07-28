@@ -1767,6 +1767,53 @@
   font-size: var(--fs-note);
 }
 
+/* --- ゴースト記録プレビュー（GhostBossResultScreen。docs/25 V-16・4.7節） ---
+   送信の同意確認が主目的の画面なので演出は置かない（優先度「低」・本人が1回だけ見る）。
+   同意判断の材料である「弱点として公開される問題数」を注意カードに収めて数値を明確にし、
+   送信済みは--okのアイコン＋文で完結させる。正誤一覧は刷新済みの.result-listをそのまま使う。
+   誤答が悪いことではないため--ngは使わない（02の5.3節「公開処刑にしない」の方針）。 */
+.ghost-preview-notice {
+  /* 枠は--warn。UI部品基準3:1に対し、ダーク: --bg比10.484:1・面（--surface-grad上端#1c2339）比8.753:1、
+     ライト: --bg比4.524:1・面（#ffffff）比4.935:1（機械計算値） */
+  margin: var(--sp-1) 0 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-card);
+  background: var(--surface-grad);
+}
+.ghost-preview-notice__line {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.ghost-preview-notice__count {
+  /* 数値のみ--warnで拡大する。本文基準4.5:1に対し、ダーク: 面比8.753:1（上端）/9.304:1（下端）、
+     ライト: 面比4.935:1（上端）/4.682:1（下端）（機械計算値）でAA適合 */
+  margin-right: 2px;
+  color: var(--warn);
+  font-family: var(--font-display);
+  font-size: var(--fs-stat);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.ghost-preview-sent {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0 0;
+  color: var(--ink);
+}
+.ghost-preview-sent__icon::before {
+  /* 送信済みの記号。文は--ink（--bg比 ダーク15.934:1／ライト15.234:1）で読ませ、
+     色は記号だけに載せる二重符号化。記号は装飾（aria-hidden）の図形要素として
+     UI部品基準3:1で評価する。--ok の--bg比は ダーク8.751:1／ライト3.995:1（機械計算値）。
+     ライトは本文基準4.5:1に届かないため、--okを文の色には使わない */
+  content: '✓';
+  color: var(--ok);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+}
+
 /* --- 昼バトルの順位表（V-9。docs/25 4.1節）。S7参加者画面・S8ホスト画面の
    途中順位と最終リザルトで共用する（StandingsList）。
    順位は数字バッジ（形）＋色の二重符号化で、グレースケール表示でも数字だけで
