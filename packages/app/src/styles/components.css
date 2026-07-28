@@ -416,9 +416,22 @@
 }
 
 /* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/24 3.5節） --- */
+/* docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面＋罫線までで、光暈・
+   アニメーション・背景演出は足さない（07の原則3「静かな学習」により読解中は静かに保つ）。
+   面上のコントラスト（機械計算値。上端#1c2339 / 下端#181e31、ライトは#ffffff / #faf9f4）:
+   --ink 13.302/14.141・15.766〜16.620、--ink-2 7.036/7.480・5.320〜5.608 でいずれもAA適合 */
+.reading-passage {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+/* 面に載せたため--ink-3ではなく--ink-2を使う（--ink-3(#7e89ac)は--surface-grad上端
+   #1c2339に対し4.493:1でAA=4.5:1をわずかに下回る。--vocab-card__rank[C]と同じ理由・同じ対処。
+   --ink-2は7.036:1／ライトは5.608:1でAA適合） */
 .passage-kind {
   margin: 0 0 var(--sp-1);
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: var(--fs-note);
   text-transform: uppercase;
 }
@@ -1256,6 +1269,32 @@
 }
 .shadowing-status {
   color: var(--listen);
+}
+/* docs/25 4.8節（V-19）: 英字ラベル「SHADOWING」。形は.drill-part-tagを再利用し、色だけ
+   07の7節S4のアクセント（--listen）へ置き換える（.drill-part-tag の定義自体は変更しない）。
+   .drill-part-tagの6%の淡い塗りは敷かない: --listen 6%を混色した地（ライト#e7edeb）では
+   文字比が4.389:1でAA=4.5:1を下回るため。地を--bgのままにすると--listenの比は
+   ダーク9.064:1・ライト4.770:1（機械計算値）でAA適合する */
+.shadowing-part-tag {
+  border-color: color-mix(in srgb, var(--listen) 35%, transparent);
+  background: none;
+  color: var(--listen);
+}
+/* docs/25 4.8節（V-19）: スクリプト面に--surface-gradを当てる。面＋罫線までで、カラオケ
+   ハイライトの規定（07の6節）・発話中の演出は変更しない（原則3: 発話中は静かに保つ）。
+   面上のコントラスト（機械計算値。上端#1c2339 / 下端#181e31、ライトは#ffffff / #faf9f4）:
+   --ink（読了語・発話中）13.302/14.141・15.766〜16.620、--ink-2（未読語・和訳）
+   7.036/7.480・5.320〜5.608、--gold（発話中の下線=UI部品基準3:1）8.753/9.304・4.682〜4.935 */
+.shadowing-script-surface {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+/* 面に載せた注記のみ--ink-3から--ink-2へ（--ink-3は--surface-grad上端#1c2339に対し
+   4.493:1でAA未達。.vocab-card__rank[C]・.passage-kindと同じ理由・同じ対処） */
+.shadowing-script-surface .karaoke-note {
+  color: var(--ink-2);
 }
 /* T-120: 実施済み素材を表示中の注記 */
 .shadowing-status-done {
