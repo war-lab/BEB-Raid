@@ -17,6 +17,7 @@ import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { StandingsList } from '../components/StandingsList'
+import { Wordmark } from '../components/Wordmark'
 import { resolveBattleCloseMessage } from './battleCloseMessage'
 
 interface Props {
@@ -271,21 +272,32 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           </>
         }
       >
-        <label htmlFor="battle-room-code">ルームコード（4文字）</label>
-        <input
-          id="battle-room-code"
-          className="battle-room-code-input"
-          value={codeInput}
-          maxLength={4}
-          onChange={(e) => setCodeInput(normalizeRoomCode(e.target.value))}
-          autoCapitalize="characters"
-          autoComplete="off"
-        />
-        {errorMessage && (
-          <p className="drill-error" role="alert">
-            {errorMessage}
-          </p>
-        )}
+        {/* V-13（docs/25 4.4節）: 社内で新しい人が最初に触る場面になりやすく、この画面が
+            第一印象になる。ワードマークを1つ置き、入力欄をディスプレイ書体の特大にして
+            --surface-gradのカードに収める。演出（アニメーション・光暈）は足さない */}
+        <div className="battle-entry">
+          <Wordmark />
+          <div className="battle-entry__card">
+            <p className="battle-entry__eyebrow">ROOM CODE</p>
+            <label className="battle-entry__label" htmlFor="battle-room-code">
+              ルームコード（4文字）
+            </label>
+            <input
+              id="battle-room-code"
+              className="battle-room-code-input"
+              value={codeInput}
+              maxLength={4}
+              onChange={(e) => setCodeInput(normalizeRoomCode(e.target.value))}
+              autoCapitalize="characters"
+              autoComplete="off"
+            />
+            {errorMessage && (
+              <p className="drill-error" role="alert">
+                {errorMessage}
+              </p>
+            )}
+          </div>
+        </div>
       </ScreenLayout>
     )
   }
@@ -300,16 +312,23 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           </button>
         }
       >
-        <p>ホストが開始するまでお待ちください</p>
+        {/* V-13（docs/25 4.4節）: 待機中の唯一の情報は「人が増えるのが見える」ことなので、
+            参加者一覧をピル形のチップの並びにする。それ以上の演出は置かない */}
+        <div className="battle-lobby">
+          <p className="battle-lobby__eyebrow">LOBBY</p>
+          <p className="battle-lobby__wait">ホストが開始するまでお待ちください</p>
+          <ul className="battle-lobby__chips">
+            {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
+            {participants.map((name, i) => (
+              <li key={i} className="battle-lobby__chip">
+                {name}
+              </li>
+            ))}
+          </ul>
+        </div>
         <p className="battle-lobby-hint">
           最新パックを取得してから参加してください（未取得の問題は0点で流れます）
         </p>
-        <ul className="raid-list">
-          {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
-          {participants.map((name, i) => (
-            <li key={i}>{name}</li>
-          ))}
-        </ul>
       </ScreenLayout>
     )
   }
@@ -402,14 +421,22 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     )
   }
 
-  // closed（サーバー切断・finish以外のクローズ）。理由ごとに原因と次にとる行動を出す
+  // closed（サーバー切断・finish以外のクローズ）。理由ごとに原因と次にとる行動を出す。
+  // V-13（docs/25 4.4節）: 文言はbattleCloseMessage.tsのまま変えず、面をカード化して
+  // 見出し（title）と本文（body）の階層を付けるだけに留める。見出しはステータス帯から
+  // カード内へ移し、本文と隣り合わせて読めるようにする（重複表示はしない）
   const closeMessage = resolveBattleCloseMessage(closeReason, 'participant')
   return (
     <ScreenLayout
-      status={<p>{closeMessage.title}</p>}
+      status={<p>昼バトル</p>}
       action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
     >
-      <p data-testid="battle-close-reason">{closeMessage.body}</p>
+      <div className="battle-closed">
+        <p className="battle-closed__title">{closeMessage.title}</p>
+        <p className="battle-closed__body" data-testid="battle-close-reason">
+          {closeMessage.body}
+        </p>
+      </div>
     </ScreenLayout>
   )
 }
