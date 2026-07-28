@@ -346,7 +346,8 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   if (phase === 'result') {
     return (
       <HostProjectionLayout
-        meta="FINAL RESULT"
+        // 順位表側の英字ラベルが「FINAL RESULT」なので、メタは進行位置の締めに留める
+        meta={`${questionMeta} FINAL`}
         action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
       >
         {/* 表彰（表彰台・ベストグロース賞・段階開示）はV-10のBattleAwardが持つ。

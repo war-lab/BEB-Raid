@@ -64,7 +64,9 @@ export function HostProjectionLayout({ meta, remainingSec, totalSec, children, a
 /**
  * 画面外周の残り時間リング。`pathLength={100}` で周長を100に正規化し、
  * 残り割合をそのまま stroke-dasharray の実線長に使う（周長が減っていく表現）。
- * 線幅の外側半分は viewBox の外へ出て切り取られるため、CSS側で見た目の2倍の太さを指定する。
+ * viewBox は使わず（使うと非等倍スケールで線幅が歪み、破線長もpathLengthの正規化どおりに
+ * ならない）、矩形を100%指定にしてユーザー単位＝CSSピクセルで描く。
+ * 線幅の外側半分はSVGの外へ出て切り取られるため、CSS側で見た目の2倍の太さを指定する。
  */
 function ProjectionRing({ remainingSec, totalSec }: { remainingSec: number; totalSec: number }) {
   // reduced-motion時は数値表示のみに縮退する（docs/25 4.3節・6.3節のV-11完了条件）
@@ -80,18 +82,16 @@ function ProjectionRing({ remainingSec, totalSec }: { remainingSec: number; tota
       data-testid="battle-host-ring"
       data-remaining-sec={remaining}
       data-low={remaining <= RING_LOW_SEC ? 'true' : undefined}
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
       aria-hidden="true"
       focusable="false"
     >
-      <rect className="battle-host-ring__track" x="0" y="0" width="100" height="100" />
+      <rect className="battle-host-ring__track" x="0" y="0" width="100%" height="100%" />
       <rect
         className="battle-host-ring__fill"
         x="0"
         y="0"
-        width="100"
-        height="100"
+        width="100%"
+        height="100%"
         pathLength={100}
         strokeDasharray={`${dash} 100`}
       />

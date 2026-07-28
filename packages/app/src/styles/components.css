@@ -2132,6 +2132,14 @@
 .battle-host .battle-award__rank-num {
   font-size: var(--host-fs-points);
 }
+/* ベストグロース賞は投影で読ませる表彰なので、注記サイズのままにしない */
+.battle-host .battle-award__growth-label,
+.battle-host .battle-award__growth-note {
+  font-size: var(--host-fs-label);
+}
+.battle-host .battle-award__growth-name {
+  font-size: var(--host-fs-name);
+}
 
 /* --- S8ホスト画面（プロジェクター投影）の意匠（V-11。正本: docs/25 4.3節・JV-5・JV-6）---
    - JV-5（承認済み・案A）: 縦3分割・操作ゾーン下45%を適用しない。適用外はS8ホスト画面の
@@ -2170,7 +2178,9 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: var(--sp-2);
-  min-height: 100dvh;
+  /* 高さを画面に固定する（min-heightだと本文が伸びたときに進行ボタンが画面外へ出る）。
+     はみ出しは本体（__body）側でスクロールさせる */
+  height: 100dvh;
   padding: calc(var(--host-ring-width) + var(--sp-2));
   background: var(--bg);
 }
@@ -2239,7 +2249,6 @@
 .battle-host-ring__fill {
   fill: none;
   stroke-width: calc(var(--host-ring-width) * 2);
-  vector-effect: non-scaling-stroke;
 }
 .battle-host-ring__track {
   stroke: var(--line);
