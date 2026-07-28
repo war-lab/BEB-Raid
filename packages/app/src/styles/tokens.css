@@ -75,11 +75,15 @@
   --chart-crimson: #e8506b;
   --chart-violet: #8b79e8;
 
-  /* 3.5 ランク色 */
+  /* 3.5 ランク色（色だけに頼らず段数刻みと併用する=07の3.5節） */
   --rank-bronze: #b0805b;
   --rank-silver: #aeb6c6;
   --rank-gold: var(--gold);
   --rank-platinum: #7fd6d0;
+  /* --rank-master のダーク値（=--violet #8b79e8）は--surface-grad上端#1c2339に対し
+     4.447:1（機械計算値）で本文基準4.5:1を満たさない。--fs-display（40px）の大文字
+     見出しなら大文字基準3:1に適合するため成長ランク名には使えるが、
+     **注記サイズ（--fs-note/--fs-sub）の文字には使わないこと**（docs/25 4.5節） */
   --rank-master: var(--violet);
 
   /* 4節 タイポグラフィ */
@@ -162,6 +166,11 @@
      bronzeは新規算出（--bg比5.250:1・--surface(白)比5.727:1、機械計算値） */
   --rank-silver: var(--steel-mid);
   --rank-bronze: #8a5c37;
+  /* docs/25 V-14: --rank-platinum のライト値。ダーク値#7fd6d0のままだと--surface（白）比
+     1.689:1（機械計算値）で文字が実質読めないため追加。青緑の色相を保ったまま明度を
+     下げた値で、--surface(白)比6.337:1・--bg比5.809:1・--surface-2(#efede6)比5.410:1
+     （いずれも機械計算値）でAA=4.5:1に適合する */
+  --rank-platinum: #0e6b66;
 }
 
 /* 文字サイズ3段階（設定画面T-23。英文問題文=--fs-questionのみに適用） */

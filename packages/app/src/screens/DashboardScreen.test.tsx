@@ -242,6 +242,33 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
       '次のランク（ゴールド）まで残り 43pt',
     )
   })
+
+  // docs/25 V-14: 色＋台座段数の二重符号化。色を落としても段数でランクが判別できること
+  it('ランクIDが data-rank に載り、台座の線の本数が段数（ブロンズ=1）になる', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} />)
+
+    const rankSection = await screen.findByTestId('growth-rank')
+    expect(rankSection.getAttribute('data-rank')).toBe('bronze')
+    expect(rankSection.querySelectorAll('.dashboard-growth-rank__tier-bar').length).toBe(1)
+  })
+
+  it('シルバーでは台座が2本になり、次ランクまでの進捗バーが表示される', async () => {
+    const db = newDb()
+    await db.ratingHistory.bulkPut([
+      { date: '2026-07-01', section: 'total', rating: 400 },
+      { date: '2026-07-05', section: 'total', rating: 445 },
+    ])
+    await db.ratings.put({ section: 'total', rating: 445, updatedAt: Date.now() })
+    render(<DashboardScreen db={db} />)
+
+    const rankSection = await screen.findByTestId('growth-rank')
+    expect(rankSection.getAttribute('data-rank')).toBe('silver')
+    expect(rankSection.querySelectorAll('.dashboard-growth-rank__tier-bar').length).toBe(2)
+    // rankPoints=45・シルバー(40)→ゴールド(90)なので 5/50 = 10%
+    const fill = rankSection.querySelector<HTMLElement>('.dashboard-growth-rank__progress-fill')
+    expect(fill?.style.width).toBe('10%')
+  })
 })
 
 describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () => {
