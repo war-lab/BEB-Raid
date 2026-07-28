@@ -273,6 +273,52 @@ describe('BattleHostScreen: 音声再生完了前は解答受付が開かない'
   })
 })
 
+describe('BattleHostScreen: 音声問題のscriptを投影しない', () => {
+  // scriptは読み上げ原稿で質問文と正答の両方を含むため、投影すると
+  // リスニングが読解になるだけでなく正答が画面に出る。
+  // T-126がaudioMeta.questionEndMsで音声を打ち切って正答リークを防いでいるのと
+  // 同じ理由で、テキスト側でも漏らしてはならない（実機確認で検出した不具合の回帰防止）
+  it('presenting・question の両フェーズでscriptを表示せず、音声問題のプロンプトを出す', async () => {
+    const leaky = audioQaQuestion('q-leak')
+    leaky.script = 'When should I submit the report? — By the end of this week.'
+    const raidApi = new FakeRaidApi()
+    const socket = new FakeBattleSocket()
+    const audioPlayer = new ControllableAudioPlayer()
+
+    render(
+      <BattleHostScreen
+        raidApi={raidApi}
+        battleSocket={socket}
+        audioPlayer={audioPlayer}
+        questionPool={[leaky]}
+        rng={() => 0.3}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    await waitFor(() => expect(screen.getByText(/音声再生中/)).toBeTruthy())
+
+    // 再生中（投影されている状態）でscriptが出ていないこと
+    expect(screen.queryByText(/By the end of this week/)).toBeNull()
+    expect(screen.getByText(/音声で質問が流れます/)).toBeTruthy()
+
+    // 解答受付中も同様
+    audioPlayer.resolveNextPlay()
+    await waitFor(() => expect(socket.sent.find((m) => m.type === 'openQuestion')).toBeDefined())
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-leak',
+      deadlineAt: Date.now() + 30_000,
+    })
+    await waitFor(() => expect(screen.getByText(/参加者が解答中です/)).toBeTruthy())
+    expect(screen.queryByText(/By the end of this week/)).toBeNull()
+    expect(screen.getByText(/音声で質問が流れます/)).toBeTruthy()
+  })
+})
+
 describe('BattleHostScreen: 離脱時の後始末', () => {
   // 回帰防止: battleSocketはApp.tsxのモジュール単位シングルトンのため、画面を離れても
   // 閉じないとホスト接続が残り続ける
