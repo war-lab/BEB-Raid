@@ -78,6 +78,25 @@ const STANDINGS = [
   { displayName: 'いとう', totalPoints: 610 },
 ]
 
+/** 想定上限（10人前後。docs/25 JV-11）の順位表。V-23の2列化を投影サイズで確認するため。
+ *  既定の5人（STANDINGS）はV-20の確認記録の画像と対応するので置き換えず、別ロスターにする */
+const STANDINGS_CROWDED = [
+  ...STANDINGS,
+  { displayName: 'わたなべ', totalPoints: 540 },
+  { displayName: 'いしかわ', totalPoints: 480 },
+  { displayName: 'やまもとたろう', totalPoints: 420 },
+  { displayName: 'なかむら', totalPoints: 300 },
+  { displayName: 'こばやし', totalPoints: 180 },
+]
+
+/** 現在使う順位表。window.__bebScreenshotMock.setCrowdedStandings() で切り替える */
+const CROWDED_KEY = '__bebScreenshotCrowdedStandings'
+let crowdedStandings =
+  typeof localStorage !== 'undefined' && localStorage.getItem(CROWDED_KEY) === '1'
+function standings() {
+  return crowdedStandings ? STANDINGS_CROWDED : STANDINGS
+}
+
 async function fetchPackQuestions(packId: string): Promise<Question[]> {
   const res = await fetch(`${import.meta.env.BASE_URL}packs/${packId}.json`)
   if (!res.ok) throw new Error(`モック用パックの取得に失敗: ${packId}`)
@@ -231,7 +250,7 @@ class ScreenshotBattleSocket implements BattleSocket {
 
   /** 参加者一覧（自分＝表示名は問わないため固定名で並べる。ロビーのチップの折返し確認も兼ねる） */
   private participants(): { displayName: string }[] {
-    return STANDINGS.map((s) => ({ displayName: s.displayName }))
+    return standings().map((s) => ({ displayName: s.displayName }))
   }
 
   /** ハンドラ登録の直後に呼ばれても取りこぼさないよう、次のタスクで送出する */
@@ -250,13 +269,13 @@ class ScreenshotBattleSocket implements BattleSocket {
   }
 
   emitStandings(): void {
-    this.emitLater({ type: 'standings', entries: STANDINGS })
+    this.emitLater({ type: 'standings', entries: standings() })
   }
 
   emitResult(): void {
     this.emitLater({
       type: 'result',
-      entries: STANDINGS,
+      entries: standings(),
       // 最下位でもスポットライトが当たる余地（docs/02 6.2節）を確認するため、
       // ベストグロース賞は1位以外の参加者にする
       bestGrowth: { displayName: 'いとう' },
@@ -276,6 +295,8 @@ interface ScreenshotMockApi {
   startReadingSession: () => Promise<void>
   /** 現ボスを討伐済み（status='defeated'・HP0）に切り替える。V-21の討伐演出を撮るため */
   setRaidDefeated: (value: boolean) => void
+  /** 順位表を想定上限の10人に切り替える。V-23の2列化を投影サイズで確認するため */
+  setCrowdedStandings: (value: boolean) => void
   battleQuestionOpen: () => void
   battleStandings: () => void
   battleResult: () => void
@@ -304,6 +325,11 @@ function installMockApi(socket: ScreenshotBattleSocket): void {
   const api: ScreenshotMockApi = {
     seedRaid,
     startReadingSession,
+    setCrowdedStandings: (value: boolean) => {
+      crowdedStandings = value
+      if (value) localStorage.setItem(CROWDED_KEY, '1')
+      else localStorage.removeItem(CROWDED_KEY)
+    },
     setRaidDefeated: (value: boolean) => {
       raidDefeated = value
       if (value) localStorage.setItem(RAID_DEFEATED_KEY, '1')
