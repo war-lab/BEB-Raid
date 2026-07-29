@@ -606,10 +606,12 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     await setupSession(db, items, [q])
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
-    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+    // 2026-07-29: 解答前は単語のみ（フレーズは解答後に開示する）
     expect(screen.getByText('この単語の意味は？')).toBeTruthy()
+    expect(screen.queryByText(phraseMatcher('Please submit it.'))).toBeNull()
 
     fireEvent.click(screen.getByText('submit の意味'))
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
 
     fireEvent.click(screen.getByText('OK'))
     // 「正解」表示や「次へ」ボタンを経由せず、1件しかないので即リザルトへ遷移する
@@ -623,7 +625,34 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(attempt.isCorrect).toBe(true)
   })
 
-  it('phraseAudioがあれば既定でフレーズ音声が自動再生される（金フレ型体験。以前DrillScreenだけ欠けていた挙動）', async () => {
+  it('解答前はフレーズがDOMに存在しない（文脈からの推測を防ぐ。2026-07-29）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(container.querySelector('.vocab-card__word')?.textContent).toBe('submit')
+    expect(container.querySelector('.vocab-card__phrase')).toBeNull()
+    expect(container.textContent).not.toContain('Please submit it.')
+
+    // 「わからない」でもフレーズは開示される
+    fireEvent.click(screen.getByText('わからない'))
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+  })
+
+  it('phraseAudioがあれば解答後にフレーズ音声が自動再生される（金フレ型体験。解答前は鳴らさない）', async () => {
     const db = newDb()
     await db.srsCards.put({
       id: 'vocab:submit',
@@ -642,11 +671,14 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    // 解答前に鳴らすと音声から意味を推測できる（VocabScreenと同一仕様）
+    expect(audioPlayer.play).not.toHaveBeenCalled()
 
+    fireEvent.click(screen.getByText('submit の意味'))
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/submit.mp3'))
   })
 
-  it('イヤホンなしモードがONならフレーズ音声は自動再生されない', async () => {
+  it('イヤホンなしモードがONなら解答後もフレーズ音声は自動再生されない', async () => {
     const db = newDb()
     await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
     await db.srsCards.put({
@@ -666,6 +698,7 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('submit の意味'))
     await waitFor(() => expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy())
 
     expect(audioPlayer.play).not.toHaveBeenCalled()
@@ -756,8 +789,9 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const snapshot = await setupSession(db, items, [q, q2])
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
-    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+    expect(screen.getByText('この単語の意味は？')).toBeTruthy()
     fireEvent.click(screen.getByText('submit の意味'))
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
 
     // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする
     await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
