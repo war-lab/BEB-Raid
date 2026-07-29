@@ -195,7 +195,19 @@ function checkAnswerKeyCycle(questions: readonly Question[], packId: string): st
 }
 
 /**
- * パック1件分の6ルール検証。①②③は個別問題ごと、④は問題ごと（警告）、
+ * ⑦audio_qa の音声のみモード対応状況（T-152。警告のみ）。
+ * `audioMeta.responseOffsetsMs` が無い問題は音声のみモード（本試験形式。ADR 0008）で
+ * 出題できない。部分移行の途中でもビルドは止めず、どれが未対応かをログで分かるようにする
+ * （アプリ側はプール抽出時に除外し、混入しても問題単位で従来UIへ落ちる）
+ */
+function checkAudioOnlyReadiness(q: Question): string[] {
+  if (q.format !== 'audio_qa') return []
+  if (q.audioMeta?.responseOffsetsMs) return []
+  return [`[警告] ${q.id}: 音声のみモード非対応（応答音声が未生成）`]
+}
+
+/**
+ * パック1件分の7ルール検証。①②③は個別問題ごと、④⑦は問題ごと（警告）、
  * ⑤⑥はパック全体（警告）。戻り値は修正すべき問題点の一覧（このタスクでは記録のみ。
  * buildPack側ではwarningsとして扱いビルドを失敗させない）
  */
@@ -206,6 +218,7 @@ export function validateContentLint(questions: readonly Question[], packId: stri
     problems.push(...checkKeyVocabAppearance(q))
     problems.push(...checkCasualContractions(q))
     problems.push(...checkTextBlankLength(q))
+    problems.push(...checkAudioOnlyReadiness(q))
   }
   problems.push(...checkOpeningPhraseDiversity(questions, packId))
   problems.push(...checkAnswerKeyCycle(questions, packId))
