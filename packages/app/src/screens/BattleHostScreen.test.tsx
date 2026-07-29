@@ -150,6 +150,59 @@ describe('BattleHostScreen: 出題セット抽選（比率・再抽選）', () =
   })
 })
 
+// V-22（ロビーの投影スケール化。JV-10=案B）。docs/25 6.5節の#1
+describe('BattleHostScreen: ロビーの投影レイアウト（V-22）', () => {
+  it('ロビーは投影レイアウトで、ルームコードは1字ずつ読み上げられる', async () => {
+    const raidApi = new FakeRaidApi()
+    const socket = new FakeBattleSocket()
+    const { container } = render(
+      <BattleHostScreen
+        raidApi={raidApi}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1')]}
+        rng={() => 0.3}
+      />,
+    )
+
+    // 抽選プレビュー（setup）は手元で読む画面なので投影レイアウトにしない（案B）
+    expect(container.querySelector('.battle-host-stage')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    // ロビーは投影に映る（参加者がここのコードを見て入室する）ので投影レイアウトになる
+    expect(container.querySelector('.battle-host-stage')).not.toBeNull()
+    const code = await screen.findByTestId('battle-host-room-code')
+    expect(code.textContent).toContain('ABCD')
+    // 「ラッド」等と読まれると口伝えできないため1字ずつに分ける
+    expect(code.getAttribute('aria-label')).toBe('A B C D')
+  })
+
+  it('参加者一覧はS7と同じチップのクラスで描かれる（見た目が独立に動かないようにする）', async () => {
+    const socket = new FakeBattleSocket()
+    const { container } = render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '花子' }, { displayName: '太郎' }],
+    })
+    await screen.findByText('花子')
+    const chips = container.querySelectorAll('[data-testid="battle-host-participants"] > li')
+    expect(chips).toHaveLength(2)
+    chips.forEach((chip) => expect(chip.className).toContain('battle-lobby__chip'))
+  })
+})
+
 describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
   it('作成→ロビー→出題（Part5は音声無しで即送信）→締切→標準→次問→表彰まで到達する', async () => {
     const pool = [textBlankQuestion('q-1'), textBlankQuestion('q-2')]

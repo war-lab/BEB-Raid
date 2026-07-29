@@ -356,6 +356,32 @@ if (await hostEntry.count()) {
   await drive(hostPage, 'window.__bebScreenshotMock.battleResult()')
   await hostPage.waitForTimeout(1600)
   await shotTall(hostPage, '23-battle-host-result')
+
+  // 想定上限（10人前後。docs/25 JV-11）での順位表。V-23の2列化が効いて全順位が1画面に
+  // 収まるかを確認する。既定の5人（19〜23）はV-20の確認記録の画像と対応するので置き換えず、
+  // 別番号（20c・22c・23c）で追加する
+  await drive(hostPage, 'window.__bebScreenshotMock.setCrowdedStandings(true)')
+  await hostPage.goto(`${origin}/${MOCK_QUERY}`, { waitUntil: 'networkidle' })
+  await hostPage.waitForTimeout(1200)
+  const hostEntry2 = hostPage.getByRole('button', { name: /イベントバトルを主催/ })
+  if (await hostEntry2.count()) {
+    await hostEntry2.first().click()
+    await hostPage.waitForTimeout(900)
+    await hostPage.getByRole('button', { name: /ルームを作成/ }).click()
+    await hostPage.waitForTimeout(1000)
+    await shotOf(hostPage, '20c-battle-host-lobby-10')
+    await hostPage.getByRole('button', { name: /^開始する$/ }).click()
+    await hostPage.waitForTimeout(6000)
+    await drive(hostPage, 'window.__bebScreenshotMock.battleStandings()')
+    await hostPage.waitForTimeout(900)
+    await shotOf(hostPage, '22c-battle-host-standings-10')
+    await drive(hostPage, 'window.__bebScreenshotMock.battleResult()')
+    await hostPage.waitForTimeout(1600)
+    await shotOf(hostPage, '23c-battle-host-result-10')
+  } else {
+    console.log('not reached: 20c/22c/23c（10人ロスターで主催導線が見つからない）')
+  }
+  await drive(hostPage, 'window.__bebScreenshotMock.setCrowdedStandings(false)')
 } else {
   console.log('not reached: 19-23 battle host（ホームの主催導線が見つからない）')
 }

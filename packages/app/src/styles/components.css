@@ -2207,6 +2207,71 @@
 .battle-host .battle-host-final .standings__name {
   font-size: var(--host-fs-meta);
 }
+/* --- 投影の順位表を2列にする（V-23。JV-11=案Cで承認。docs/25 6.5節の#2） ---
+   V-20の点検で、参加者5人でも途中順位は5人目が下端で切れ、最終リザルトは4位の行が切れて
+   いた（1920×1080）。docs/25 4.2節は「4位以下の全順位も同一画面で確認できること」を
+   完了条件にしているので、縦を諦めて横を使う。想定人数は発起人確認で10人前後。
+   - multi-column を使う（grid ではなく）。段組みは**下へ流れてから次の列**へ移るので、
+     順位表を上から順に目で追う動きと一致する。gridの行優先だと 1,2 / 3,4 と横に並び、
+     順位の連続性が読めない
+   - 行数が少ないときに2列にすると片側が空いて不自然なので、**6行以上のときだけ**段組みする
+     （:has() の数量クエリ）。:has() 未対応の環境では段組みが効かず従来どおり
+     .battle-host-stage__body のスクロールで受けるだけなので、情報は失われない
+   - 参加者画面（S7・390×844）は1列のまま。このセレクタは .battle-host 配下に限る */
+.battle-host .standings__list:has(.standings__row:nth-child(6)) {
+  /* .standings__list は既定が display:flex で、flexコンテナには columns が効かない
+     （実画面で段組みされず気づいた）。段組みするときだけ block に戻し、flexのgapの代わりに
+     行のmarginで間隔を作る */
+  display: block;
+  columns: 2;
+  column-gap: var(--sp-3);
+}
+.battle-host .standings__list:has(.standings__row:nth-child(6)) .standings__row {
+  margin-bottom: var(--sp-1);
+}
+/* 最終リザルトは表彰台とベストグロース賞が縦を使うため、2列では10人が収まらない
+   （実測 overflow 204px）。4位以下は既にV-11で1段小さくしてある副次情報なので、
+   6行以上のときは3列にして行も詰める。途中順位（standingsフェーズ）は2列のまま */
+.battle-host .battle-host-final .standings__list:has(.standings__row:nth-child(6)) {
+  columns: 3;
+}
+.battle-host .battle-host-final .standings__list:has(.standings__row:nth-child(6)) .standings__row {
+  margin-bottom: var(--sp-half);
+}
+.battle-host .battle-host-final .standings__bar {
+  height: 8px;
+  margin-top: 2px;
+}
+.battle-host .standings__row {
+  /* 段の境界で1行が上下に割れないようにする */
+  break-inside: avoid;
+  /* 行の高さを詰める。投影では得点が6vw（1920pxで115px）あり、既定の line-height 1.5 だと
+     1行200px近くになって2列でも10人が収まらなかった（実画面で計測して気づいた）。
+     字面を詰めるのではなく行間だけ詰めるので、07の7節S8の「得点6vw以上」は維持する */
+  line-height: 1.15;
+}
+.battle-host .standings__bar {
+  height: 10px;
+  margin-top: 4px;
+}
+/* 表彰台とベストグロース賞の縦の占有を詰めて、4位以下の段組みぶんの高さを確保する（V-23）。
+   文字サイズは落とさず**行間だけ**詰める（07の7節S8の「得点6vw以上」を維持するため）。
+   台座の高さも下げるが、1位・2位・3位の比（高さの三重符号化）は保つ */
+.battle-host .battle-award__podium {
+  margin-bottom: var(--sp-1);
+}
+.battle-host .battle-award__points,
+.battle-host .battle-award__name,
+.battle-host .battle-award__growth-name {
+  line-height: 1.1;
+}
+.battle-host .battle-award__growth {
+  padding: var(--sp-half) var(--sp-2);
+}
+.battle-host .battle-award__growth-label,
+.battle-host .battle-award__growth-note {
+  line-height: 1.15;
+}
 
 /* --- イベントバトル最終リザルトの表彰（V-10。docs/25 4.2節・JV-4）。
    地は .standings の --surface-grad をそのまま使い、表彰台・表彰カードには面を敷かない
@@ -2372,16 +2437,23 @@
   font-size: var(--host-fs-name);
 }
 .battle-host .battle-award__place[data-rank='1'] .battle-award__pedestal {
-  height: max(9vw, 110px);
+  /* V-23で下げた（元は max(9vw,110px)=1920pxで173px）。表彰台の縦が最終リザルトの
+     大半を占め、10人の全順位が1画面に収まらなかった。1位>2位>3位の比は保つ */
+  height: max(4.5vw, 74px);
 }
 .battle-host .battle-award__place[data-rank='2'] .battle-award__pedestal {
-  height: max(6.4vw, 78px);
+  height: max(3.2vw, 56px);
 }
 .battle-host .battle-award__place[data-rank='3'] .battle-award__pedestal {
-  height: max(4.3vw, 52px);
+  /* 1位 4.5vw > 2位 3.2vw > 3位 2.2vw の比を保つ（台座の高さは順位の三重符号化の一要素） */
+  height: max(2.2vw, 40px);
 }
+
 .battle-host .battle-award__rank-num {
-  font-size: var(--host-fs-points);
+  /* 台座の中の順位数字。--host-fs-points（6vw=1920pxで115px）だと数字自体が台座の高さの
+     下限になり、台座の高さ指定が効かなくなる（V-23で実測して気づいた）。順位の数字は
+     台座の高さ・色と合わせた三重符号化の一要素なので、単独で最大である必要はない */
+  font-size: max(3.4vw, 44px);
 }
 /* ベストグロース賞は投影で読ませる表彰なので、注記サイズのままにしない */
 .battle-host .battle-award__growth-label,
@@ -2461,6 +2533,51 @@
   min-width: 0;
   overflow-y: auto;
 }
+/* --- S8ホストのロビー（V-22。JV-10=案Bで承認。docs/25 6.5節の#1） ---
+   ロビーは投影に映る（参加者全員がここのルームコードを見て入室する）ので、投影レイアウトの
+   タイポスケールに乗せる。ルームコードは口伝えの起点なので最大の要素にする。
+   参加者チップはS7（.battle-lobby__chip）と同じクラスを使い、サイズだけ .battle-host
+   スコープで上書きする（別クラスを作ると2箇所の見た目が独立に動く）。
+   抽選プレビュー（setup）はホストが12問を読み比べる画面なので投影スケールにしない（案B）。 */
+.battle-host-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--sp-1);
+  text-align: center;
+}
+.battle-host-lobby__label {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--host-fs-label);
+  letter-spacing: 0.2em;
+}
+.battle-host-lobby__code {
+  /* ルームコードは4文字なので、順位の得点より大きく取れる。字間を開けて読み間違いを防ぐ
+     （投影では 0 / O・1 / I の判別が問題になる。display書体＋広い字間で緩和する） */
+  margin: 0;
+  color: var(--ink);
+  font-size: max(14vw, 64px);
+  line-height: 1.05;
+  letter-spacing: 0.12em;
+}
+.battle-host-lobby__hint {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--host-fs-name);
+}
+.battle-host .battle-lobby__chips {
+  /* 投影では中央寄せにする（左詰めだと広い画面で片側に寄って見える） */
+  justify-content: center;
+  margin-top: var(--sp-2);
+}
+.battle-host .battle-lobby__chip {
+  font-size: var(--host-fs-name);
+  padding: var(--sp-half) var(--sp-2);
+}
 .battle-host-stage__phase {
   margin: 0 0 var(--sp-2);
   color: var(--ink-2);
@@ -2485,6 +2602,13 @@
   min-width: 200px;
   min-height: var(--tap-min);
   margin-left: auto;
+}
+/* ロビーだけは進行ボタンが2つ（開始する・やめる）になる。secondary-action は既定で全幅なので
+   投影では横に伸びきってしまう（V-22の実画面で確認）。主ボタンと同じ扱いに揃えて右端へ寄せる */
+.battle-host-stage__foot .secondary-action {
+  width: auto;
+  min-width: 200px;
+  min-height: var(--tap-min);
 }
 /* 外周リング（残り時間）。周長が減る表現で、SVGの stroke-dasharray を1秒刻みで更新する。
    transition を当てない＝常時アニメーションにならない（07の9節の精神。docs/25 4.3節）。
