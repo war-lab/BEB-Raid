@@ -305,6 +305,108 @@ describe('PiperTtsProvider.synthesizeDialogue（Part2: 設問と応答で別話�
   })
 })
 
+// T-152: 音声のみモード（本試験形式）用。設問＋3応答すべてを1本に連結し応答の開始msを返す
+describe('PiperTtsProvider.synthesizePart2WithResponses（Part2: 設問＋3応答）', () => {
+  /** ffprobeが呼ばれた順に指定の秒数を返すfake（セグメント長を作り分けるため） */
+  function fakeRunProcess(durationsSec: readonly number[]) {
+    const calls: { command: string; args: string[] }[] = []
+    let probeIndex = 0
+    const run: ProcessRunner = vi.fn(async (command, args) => {
+      calls.push({ command, args })
+      if (command === 'ffprobe') {
+        const value = durationsSec[Math.min(probeIndex, durationsSec.length - 1)]!
+        probeIndex++
+        return { stdout: String(value) }
+      }
+      return { stdout: '' }
+    })
+    return { run, calls }
+  }
+
+  it('piperを1+3回呼び、設問はprimary・3応答すべてsecondaryで読む', async () => {
+    // ffprobeの順: 設問(2.5) → 応答0(2.0) → 応答1(2.2) → 応答2(2.4) → 全長(12.0)
+    const { run, calls } = fakeRunProcess([2.5, 2.0, 2.2, 2.4, 12.0])
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+
+    const result = await provider.synthesizePart2WithResponses({
+      questionText: 'When should I submit the report?',
+      responseTexts: ['By Friday.', 'To the accounting office.', 'Yes, I already did.'],
+      accent: 'US',
+      outputPath: '/out/part2-submit.mp3',
+    })
+
+    const piperCalls = calls.filter((c) => c.command === 'piper')
+    expect(piperCalls).toHaveLength(4)
+    expect(piperCalls[0]?.args).toContain('/voices/en_US-lessac-medium.onnx')
+    for (const call of piperCalls.slice(1)) {
+      expect(call.args).toContain('/voices/en_US-ryan-medium.onnx')
+    }
+    // 設問＋3応答＋間の無音3本 = 7本を1本に連結する
+    expect(
+      calls
+        .filter((c) => c.command === 'ffmpeg')
+        .at(-1)
+        ?.args.join(' '),
+    ).toContain('concat=n=7:v=0:a=1[out]')
+    // voice文字列は従来形式（primary+secondary）のまま＝既存パックのvoiceと一致し続ける
+    expect(result.voice).toBe('piper:en_US-lessac-medium+piper:en_US-ryan-medium')
+    expect(result.durationMs).toBe(12000)
+  })
+
+  it('応答の開始msを各セグメントの実測長＋400msギャップから積算する', async () => {
+    const { run } = fakeRunProcess([2.5, 2.0, 2.2, 2.4, 12.0])
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+
+    const result = await provider.synthesizePart2WithResponses({
+      questionText: 'q',
+      responseTexts: ['a', 'b', 'c'],
+      accent: 'US',
+      outputPath: '/out/x.mp3',
+    })
+
+    // 応答0: 2500+400=2900 / 応答1: +2000+400=5300 / 応答2: +2200+400=7900
+    expect(result.responseOffsetsMs).toEqual([2900, 5300, 7900])
+    // questionEndMs は設問終端＋無音の半分（従来と同じ規約）
+    expect(result.questionEndMs).toBe(2700)
+    // バリデータのルール: 先頭は questionEndMs 以降、末尾は durationMs 未満
+    expect(result.responseOffsetsMs![0]).toBeGreaterThanOrEqual(result.questionEndMs!)
+    expect(result.responseOffsetsMs!.at(-1)!).toBeLessThan(result.durationMs)
+  })
+
+  it('mp3の実長がWAV積算より短くても、厳密単調増加と末尾<durationMsを保つ', async () => {
+    // 全長を意図的に短く返す（encoder paddingでWAV積算とずれる状況の模擬）
+    const { run } = fakeRunProcess([2.5, 2.0, 2.2, 2.4, 3.0])
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+
+    const result = await provider.synthesizePart2WithResponses({
+      questionText: 'q',
+      responseTexts: ['a', 'b', 'c'],
+      accent: 'US',
+      outputPath: '/out/x.mp3',
+    })
+
+    const offsets = result.responseOffsetsMs!
+    expect(offsets).toHaveLength(3)
+    expect(offsets.at(-1)!).toBeLessThan(result.durationMs)
+    for (let i = 1; i < offsets.length; i++) {
+      expect(offsets[i]!).toBeGreaterThan(offsets[i - 1]!)
+    }
+  })
+
+  it('responseTextsが空なら例外', async () => {
+    const { run } = fakeRunProcess([1.0])
+    const provider = new PiperTtsProvider({ voicesDir: '/voices', runProcess: run })
+    await expect(
+      provider.synthesizePart2WithResponses({
+        questionText: 'q',
+        responseTexts: [],
+        accent: 'US',
+        outputPath: '/out/x.mp3',
+      }),
+    ).rejects.toThrow(/responseTexts/)
+  })
+})
+
 describe('PiperTtsProvider.synthesizeMultiTurnDialogue（Part3: Nターンの会話。M2・T-64）', () => {
   function fakeRunProcess(): { run: ProcessRunner; calls: { command: string; args: string[] }[] } {
     const calls: { command: string; args: string[] }[] = []

@@ -201,6 +201,11 @@ export function ResultScreen({ db, raidApi }: Props) {
   // docs/20 3.4節リザルト行の統計3タイル用（正解数タイルは既存のcorrectCountを流用）
   const maxStreak = computeMaxStreak(tallyEntries)
   const totalResponseMs = tallyEntries.reduce((sum, a) => sum + a.responseMs, 0)
+  // 解答の質（docs/03 7.2節）。attempts に既に永続化されている値を出すだけで、
+  // 判定ロジックは services/attempts.ts の buildAttempt が正（2秒未満の誤答＝当て勘、
+  // 時間切れ＝速度不足。両者は排他）。統計側では使われていたが学習者には見えていなかった
+  const guessCount = tallyEntries.filter((a) => a.isGuess).length
+  const timeoutCount = tallyEntries.filter((a) => a.isTimeout).length
   const bossHpPercent =
     raidBoss && raidBoss.maxHp > 0
       ? Math.min(100, Math.max(0, (raidBoss.hp / raidBoss.maxHp) * 100))
@@ -295,6 +300,31 @@ export function ResultScreen({ db, raidApi }: Props) {
             学習時間 {formatStudyDuration(totalResponseMs)}
           </li>
         </ul>
+        {/* 解答の質（docs/03 7.2節）。既存3タイルは3列なので、5枚を同じグリッドに入れると
+            2行目が2/3幅で欠けた見た目になる。2列の第2行として分けて置く。
+            0件でも出す（skippedCountのような異常系ではなく、0件は良い知らせ）。
+            色は --ok を使わない（docs/25 5.1節の既知#1: ライトテーマの --ok は --surface 上
+            4.358で本文基準未達）。docs/25 4.7節のトーン（誤答＝悪ではない）にも合わせる */}
+        {tallyEntries.length > 0 && (
+          <ul className="result-quality-tiles">
+            <li
+              className="result-highlight-tile result-quality-tile"
+              style={{ animationDelay: '250ms' }}
+              data-testid="result-guess-count"
+              title="2秒未満の誤答。弱点統計では重みを半分にして数えています"
+            >
+              当て勘 {guessCount}
+            </li>
+            <li
+              className="result-highlight-tile result-quality-tile"
+              style={{ animationDelay: '300ms' }}
+              data-testid="result-timeout-count"
+              title="時間切れ。知識不足とは別に数えています"
+            >
+              速度不足 {timeoutCount}
+            </li>
+          </ul>
+        )}
         <ul className="result-stats">
           {ratingBefore && ratingAfter && (
             <li className="result-stat result-rating" style={{ animationDelay: '300ms' }}>

@@ -46,6 +46,19 @@ export interface AudioMeta {
    * 旧生成分には存在しない（省略時は全長再生=従来挙動）
    */
   questionEndMs?: number | null
+  /**
+   * audio_qa（Part2）の音声が「設問＋3応答すべて」を含む場合の、各応答の開始ms（T-151）。
+   * 並びは choices の key 昇順で、音声の読み上げ順と一致させる。
+   * 省略/ null は従来形式（設問＋正答応答のみ）＝音声のみモード非対応として扱う。
+   */
+  responseOffsetsMs?: number[] | null
+  /**
+   * responseOffsetsMs を生成した時点の choices（key+text）のダイジェスト。
+   * TTS後に選択肢を編集・並び替えすると音声の読み上げ順と key の対応が崩れ、
+   * answer が実質誤りになる（音声では B が正答なのに answer が A のまま等）。
+   * これは無音の正誤バグなのでビルド時に再計算して照合し、不一致はエラーにする。
+   */
+  responsesTextDigest?: string | null
 }
 
 /** 選択肢 */

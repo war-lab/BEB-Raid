@@ -3,6 +3,7 @@
 
 export * from './types.js'
 export * from './validate.js'
+export * from './part2Responses.js'
 export * from './damageSync.js'
 export * from './questionStats.js'
 export * from './ghostRecord.js'

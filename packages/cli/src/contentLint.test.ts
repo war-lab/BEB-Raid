@@ -28,7 +28,15 @@ function part2Question(overrides: Partial<Question> = {}): Question {
     tags: ['疑問詞聞き取り'],
     keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
     audio: 'audio/part2/test.mp3',
-    audioMeta: { accent: 'US', tts: true, voice: 'piper:en_US-lessac-medium', durationMs: 3000 },
+    audioMeta: {
+      accent: 'US',
+      tts: true,
+      voice: 'piper:en_US-lessac-medium',
+      durationMs: 3000,
+      // T-152: 音声のみモード対応済み（未設定だとルール⑦の警告が出る。既定を
+      // 「対応済み」にしておき、非対応の検証は専用テストでoverrideする）
+      responseOffsetsMs: [1000, 2000],
+    },
     script: 'When should I submit it? — By Friday.',
     choices: [
       { key: 'A', text: 'By Friday.' },
@@ -145,6 +153,32 @@ describe('checkKeyVocabAppearance（②）', () => {
     })
     const problems = validateContentLint([q], 'pack-p7s-test')
     expect(problems.some((p) => p.includes('keyVocab「negotiate」'))).toBe(true)
+  })
+})
+
+// T-152: 音声のみモード（本試験形式。ADR 0008）で出題できない問題を列挙する。
+// 部分移行中でもビルドを止めないため警告に留める
+describe('checkAudioOnlyReadiness（⑦）', () => {
+  it('responseOffsetsMs が無い audio_qa を警告する', () => {
+    const problems = validateContentLint(
+      [
+        part2Question({
+          audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 3000 },
+        }),
+      ],
+      'pack-p2-test',
+    )
+    expect(problems).toContain('[警告] part2-test: 音声のみモード非対応（応答音声が未生成）')
+  })
+
+  it('responseOffsetsMs があれば警告しない', () => {
+    const problems = validateContentLint([part2Question()], 'pack-p2-test')
+    expect(problems.some((p) => p.includes('音声のみモード非対応'))).toBe(false)
+  })
+
+  it('audio_qa 以外は対象外', () => {
+    const problems = validateContentLint([part5Question()], 'pack-p5-test')
+    expect(problems.some((p) => p.includes('音声のみモード非対応'))).toBe(false)
   })
 })
 

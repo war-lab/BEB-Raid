@@ -8,6 +8,12 @@
 // いるのか（英文和訳なのか単語の意味なのか）が不明瞭という指摘もあった。これを受け、
 // 意味を見る前に4択（engine/vocabQuiz.ts）を挟み、「この単語の意味は？」という明示的な
 // 問いと客観的な正誤判定を追加した。自己評価3段階（間隔調整用）はその後に残す
+//
+// 【提示順の変更 2026-07-29】上記の4択を導入した後も、対象語を含むフレーズ全文を解答前に
+// 表示しフレーズ音声も自動再生していた。"The first item on the agenda is the budget review."
+// を見せた状態で agenda の意味を問えば文脈から推測できるため、4択の正答率が実力を
+// 過大評価していた。解答前は単語のみを提示し、フレーズと音声は解答後に開示する。
+// 客観正誤（4択）と間隔調整（自己評価3段階）の分離はそのまま維持する
 import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
@@ -134,25 +140,57 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     [reviewQuestion?.id],
   )
 
-  // フレーズ音声自動再生（イヤホンなしモードでなければ、カード表示のたびに1回再生）
-  useEffect(() => {
-    if (!autoPlay) return
-    const phraseAudio = reviewQuestion?.phraseAudio ?? triageQuestion?.phraseAudio
-    if (!phraseAudio) return
+  // 解答済み（4択を選んだ or「わからない」）かどうか。フレーズと音声の開示条件に使う
+  const answered = selectedChoiceKey !== null || dontKnow
+
+  function playPhrase(phraseAudio: string, context: string) {
     void audioPlayer
       .unlock()
       .then(() => audioPlayer.play(phraseAudio))
       .catch((err: unknown) => {
         // 自動再生は失敗しても学習継続可能（4択・スワイプ操作は既に表示されている）なので通知はしない
-        console.warn('[VocabScreen] フレーズ音声の自動再生に失敗', err)
+        console.warn(`[VocabScreen] ${context}に失敗`, err)
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay, reviewQuestion?.phraseAudio, triageQuestion?.phraseAudio])
+  }
 
-  function handleReplay() {
-    audioPlayer.replay().catch((err: unknown) => {
-      console.warn('[VocabScreen] 再生に失敗', err)
-    })
+  // 仕分けフェーズに入っているか（復習キューを消化しきった後）。音声の自動再生を
+  // フェーズで分けるために必要: 復習中に仕分けキュー先頭の音声が鳴ると、復習カードの
+  // 解答前に別の語のフレーズが流れる（復習と仕分けで1つのeffectを共有していた頃は
+  // 復習を優先していたため起きなかった）
+  const inTriagePhase = reviewQueue !== null && reviewIndex >= reviewQueue.length
+
+  // 仕分けモードのフレーズ音声自動再生（イヤホンなしモードでなければカード表示のたびに1回）。
+  // 仕分けには解答段階が無いので従来どおり即再生する
+  useEffect(() => {
+    if (!autoPlay || !inTriagePhase) return
+    const phraseAudio = triageQuestion?.phraseAudio
+    if (!phraseAudio) return
+    playPhrase(phraseAudio, '仕分けカードのフレーズ音声の自動再生')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, inTriagePhase, triageQuestion?.phraseAudio])
+
+  // 復習モードのフレーズ音声自動再生は【解答後】に限る（2026-07-29）。
+  // 解答前にフレーズ音声を流すと、文脈から意味を推測できてリコールテストにならない
+  // （表示側でフレーズを解答後まで隠すのと同じ理由。DrillScreen の questionEndMs による
+  // 正答リーク対策と同じ系列の判断）。カードが変わると answered が false に戻るので
+  // 同じカードで二重に再生されることはない
+  useEffect(() => {
+    if (!autoPlay || !answered) return
+    const phraseAudio = reviewQuestion?.phraseAudio
+    if (!phraseAudio) return
+    playPhrase(phraseAudio, '復習カードのフレーズ音声の自動再生')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, answered, reviewQuestion?.phraseAudio])
+
+  /**
+   * 復習カードのフレーズを再生する（解答後のみ表示するボタン用）。
+   * replay() ではなく play() を使う: イヤホンなしモードでは自動再生していないので
+   * replay() の lastOptions が別カード・別画面の音声を指しうる
+   */
+  function handlePlayPhrase() {
+    const phraseAudio = reviewQuestion?.phraseAudio
+    if (!phraseAudio) return
+    playPhrase(phraseAudio, 'フレーズの再生')
   }
 
   // T-78: 完了カード用の「今日の実施数・ストリーク」は完了到達時に1回だけ取得する
@@ -267,7 +305,6 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   if (reviewIndex < reviewQueue.length && reviewCard) {
     const front = reviewQuestion?.front ?? reviewCard.refId
     const phrase = reviewQuestion?.phrase ?? front
-    const answered = selectedChoiceKey !== null || dontKnow
 
     return (
       <ScreenLayout
@@ -314,9 +351,10 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 </ChoiceButton>
               )
             })}
-            {!answered && reviewQuestion?.phraseAudio && (
-              <button type="button" className="drill-replay" onClick={handleReplay}>
-                もう一度再生
+            {/* フレーズ音声は解答後にのみ出す（解答前に流すと文脈から意味を推測できる） */}
+            {answered && reviewQuestion?.phraseAudio && (
+              <button type="button" className="drill-replay" onClick={handlePlayPhrase}>
+                フレーズを再生
               </button>
             )}
             {!answered && (
@@ -366,7 +404,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
           </>
         }
       >
-        <div className="vocab-card">
+        {/* 解答前は単語のみ、解答後にフレーズを開示する（2026-07-29。docs/02 4節）。
+            フレーズを先に見せると "The first item on the agenda is …" のような例文から
+            意味を推測できてしまい、正答率が実力を過大評価する。未解答時はフレーズ文字列を
+            DOMに出さない（visibility:hidden では退行をテストで検出できない） */}
+        <div className="vocab-card vocab-card--recall">
           {reviewQuestion?.freqRank && (
             <span
               className="vocab-card__rank"
@@ -376,10 +418,14 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
               {reviewQuestion.freqRank}
             </span>
           )}
-          <p className="vocab-card__phrase">
-            <HighlightedPhrase phrase={phrase} word={front} />
-          </p>
-          <p className="vocab-card__prompt">この単語の意味は？</p>
+          <p className="vocab-card__word">{front}</p>
+          {answered ? (
+            <p className="vocab-card__phrase">
+              <HighlightedPhrase phrase={phrase} word={front} />
+            </p>
+          ) : (
+            <p className="vocab-card__prompt">この単語の意味は？</p>
+          )}
         </div>
       </ScreenLayout>
     )

@@ -100,11 +100,12 @@ function q(id: string): Question {
 async function answerAndRecord(
   db: BebRaidDatabase,
   snapshot: SessionSnapshot,
-  input: { isCorrect: boolean; basePoints: number; responseMs?: number },
+  input: { isCorrect: boolean; basePoints: number; responseMs?: number; isTimeout?: boolean },
 ): Promise<SessionSnapshot> {
   const next = await answerCurrentQuestion(db, snapshot, {
     isCorrect: input.isCorrect,
     responseMs: input.responseMs ?? 1000,
+    isTimeout: input.isTimeout,
   })
   const questionId = snapshot.items[snapshot.answeredCount]!.questionId
   useSessionStore.getState().recordAnswer(next, {
@@ -554,6 +555,71 @@ describe('ResultScreen: 統計3タイル（docs/20 3.4節リザルト行）', ()
     expect(screen.getByTestId('result-study-duration').textContent).toBe('学習時間 0:07')
     // 「正解 X / Y」はタイル化してもレビューF5(c)相当の既存文言のまま
     expect(screen.getByText('正解 2 / 3')).toBeTruthy()
+  })
+})
+
+// docs/03 7.2節の「当て勘」「速度不足」は attempts に永続化済みだが、統計側でしか使われず
+// 学習者には見えていなかった。誤答の質が分かると次の行動が変わるため表示する
+describe('ResultScreen: 解答の質（当て勘・速度不足）', () => {
+  it('2秒未満の誤答を当て勘として数える', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, {
+      items: [
+        { questionId: 'q-1', mode: 'solo' },
+        { questionId: 'q-2', mode: 'solo' },
+      ],
+    })
+    useSessionStore.getState().begin(snapshot, [q('q-1'), q('q-2')], { L: 400, R: 400 })
+    // 1.5秒で誤答＝当て勘（GUESS_THRESHOLD_MS=2000）
+    const afterFirst = await answerAndRecord(db, snapshot, {
+      isCorrect: false,
+      basePoints: 0,
+      responseMs: 1500,
+    })
+    // 3秒の誤答は当て勘に数えない（知識不足）
+    await answerAndRecord(db, afterFirst, { isCorrect: false, basePoints: 0, responseMs: 3000 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 1'),
+    )
+    expect(screen.getByTestId('result-timeout-count').textContent).toBe('速度不足 0')
+  })
+
+  it('時間切れを速度不足として数え、当て勘には数えない（buildAttemptの排他を画面側でも固定）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    // 時間切れ。responseMs が2秒未満でも当て勘にはしない
+    await answerAndRecord(db, snapshot, {
+      isCorrect: false,
+      basePoints: 0,
+      responseMs: 1000,
+      isTimeout: true,
+    })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('result-timeout-count').textContent).toBe('速度不足 1'),
+    )
+    expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 0')
+  })
+
+  it('全問正解でも0件のまま表示する（0件は良い知らせなので隠さない）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 80, responseMs: 500 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 0'),
+    )
+    // 500msの正解は当て勘ではない（当て勘は誤答限定）
+    expect(screen.getByTestId('result-timeout-count').textContent).toBe('速度不足 0')
   })
 })
 

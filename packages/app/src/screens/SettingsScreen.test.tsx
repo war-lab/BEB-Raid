@@ -121,6 +121,19 @@ describe('SettingsScreen: 永続化', () => {
     })
   })
 
+  it('誤タップの取り消し猶予のトグルがsettingsストアに永続化される（ADR 0009。既定はON）', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect((screen.getByLabelText(/誤タップの取り消し猶予/) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByLabelText(/誤タップの取り消し猶予/))
+
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('mistapUndoEnabled'))?.value).toBe(false)
+    })
+  })
+
   it('テーマ切替がsettingsストアに永続化され、data-themeが反映される', async () => {
     const db = newDb()
     render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)

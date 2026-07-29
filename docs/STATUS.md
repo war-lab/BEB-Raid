@@ -18,6 +18,130 @@
 - **テスト修正2件**（`DashboardScreen.test.tsx`）: いずれもA-7で意図的に変えた挙動を固定していたもの。「解答0件でも空グリッドを描画する」を空状態の検証へ変更し、「3チャート全てに数表がある」には解答1件を与えて本来の意図を保った。
 - 機械検証: `npm run lint` / `npm run format:check`（変更ファイルは全適合。リポジトリ全体の15件の警告は変更前から存在する worktree 配下と未追跡HTML）/ `npm run build` / `npm test`（全ワークスペース1485件通過）。
 - **未実施**: プロジェクター実機でのA-6の確認。25の6.4節H-14に含める（本件は1920×1080のブラウザ実寸までしか検証していない）。
+## 2026-07-29: T-153 Part2音声150本を「設問＋3応答」の連結に再生成（ブランチ `task/T-153-content-part2-audio-regen`。T-152起点）
+
+Part2音声のみモードの第4弾（コンテンツ）。**バイナリ差分150本なので単独PR**。当初は人間タスク（H-15）としていたが、piper/ffmpeg がPATHにあり受け入れ条件を全て機械判定できるため、発起人の指示でこのセッション内で実行した。
+
+- **手順**: `beb tts content/drafts/part2-s.jsonl content <tmp> 1.15` と `part2-s2.jsonl` を実行（`PIPER_VOICES_DIR=.piper-voices`）。出力ドラフトを `content/drafts/` へ差し替えて `beb build content`。所要は150問で約60分（1問あたり piper 4回＋ffmpeg連結で約24秒）。
+- **実行前の安全確認**: drafts と packs を全20パックで逐一比較し、**差分がPart2の `durationMs`（30件）と `questionEndMs`（150件）だけ**であることを確認した（過去のスクリプトがpackだけ更新した残骸で、今回の再生成が実測値で正しく埋め直す）。他18パックは差分ゼロなので `beb build` の全パック再生成で失われるpack側の修正は無い。
+- **受け入れ条件の結果**:
+  - `verify-part2-response-offsets.mjs`（baseline付き）が **150問すべて「全件一致」**。`accent` と `voice` の不変チェックも同時に通過（`voice` は3応答すべて応答話者で読むため従来と同じ `piper:en_US-lessac-medium+piper:en_US-ryan-medium` のまま）。
+  - `beb build` の contentLint で **音声のみモード非対応の警告が0件**（150問すべてに `responseOffsetsMs` が入った）。
+  - **whisperで3問を抜き取り転写**（submit・audit・mitigate）。いずれも「設問→応答A→応答B→応答C」が **key 昇順どおり**に読み上げられていることを確認した。※`audit` は whisper base モデルが "audit" を "order" と誤認識したが、これは転写側の精度問題で音声の内容ではない。
+- **オフセットの実精度**（計画時に未検証としていた最大のリスク）: 実mp3の無音ギャップ終端との差は**29〜57ms**（許容150ms）。WAV実測の積算方式で問題ないことが実データで裏付けられた。
+- **容量**: Part2の音声が **8.0MB → 13.9MB**（+5.9MB。計画時の見積り+11MBより小さい）。content/audio 全体では約54MB。
+- **検証中に検証スクリプトの欠陥を1件見つけて直した**（T-152のPRに含めた）。当初は「n番目の無音ギャップ＝n番目の応答」と位置で対応させていたため、**発話内の息継ぎ**（`No, everything looked fine.` のカンマ後など）が閾値を超える2問（`part2-audit`・`part2-mitigate`）で誤検出が出た。オフセット自体は29〜57msで正しく、各オフセットに最も近いギャップ終端を順序を保って割り当てる方式に変えて解消した。
+- **変更範囲**: `content/audio/part2/*.mp3` 150本・`content/drafts/part2-s{,2}.jsonl`・`content/packs/pack-p2-s-00{1,2}.json`・`content/manifest.json`（該当2エントリの `sizeBytes`/`hash` のみ）。**他18パックは無変更**（`beb build` が出す改行コードだけの差分は戻した）。
+
+## 2026-07-29: 誤タップの取り消し猶予（ブランチ `task/mistap-undo-window`。dev起点）
+
+出題・回答方式のブラッシュアップの第4弾。**不変条件を意図的に緩める判断なので [ADR 0009](adr/0009-誤タップ救済のための解答永続化の遅延.md) に記録した**。
+
+`DrillScreen` は選択肢をタップした瞬間に解答を確定し（`finalizeAnswer` が同期的に `setResult`）、`attempts` は追記専用で Dexie のフックが削除・更新を実行時に遮断している。つまり揺れる車内での誤タップが**即座に、かつ不可逆に**誤答として記録され、レート・SRS・弱点タグ統計・レイドダメージに残る。
+
+- **`attempts` への書き込みだけを400ms遅らせ、その間だけ「取り消し」を出す**。まだ書いていないので追記専用の不変条件は破らない。視覚フィードバック（色・✓✕・ストリーク・振動）は**即時のまま**なのでテンポは変わらない。
+- **取り消しの意味は「この解答を記録せず次の問題へ進む」**（発起人判断）。同じ問題の再解答を許さないのは、取り消しを押す時点で正解が既に見えており、見た後の再解答で `isCorrect` が偽陽性になる＝同時期に進めた測定精度の改善を自分で壊すため。`advanceSession` で item を消化し、非モーダル通知「この解答は記録しませんでした」を出す。
+- **対象は `text_blank` と `audio_qa` のみ**。`audio_qa` の**時間切れ経路は猶予なしで即記録**する（誤タップではなく、猶予を入れると「タイマー切れを取り消す」抜け道になる）。`audio_set` のサブ設問は `subQuestionResults` と `computeSetResult` の巻き戻しが2系統になるため対象外、`dictation` は「確定」が既に二段確認、`vocab_card` は4択タップの時点でまだ書き込みではない（記録は自己評価タップ時）。
+- **猶予中は解説・「次へ」・「ここで終了して結果を見る」を出さない**。出すと取り消し前に解説と英文全体が読める。「ここで終了して結果を見る」を確定後に限ることで、アンマウント時のflushと `navigate('result')` の競走も同時に防げる。
+- **アンマウント時は破棄せず記録する**（flush）。解答は実際に行われており `attempts` は分析の基盤なので捨てる方が損失が大きい。`answerCurrentQuestion` が attempt と snapshot を同一トランザクションで進めるため、途中離脱でも「解答済みなのに再出題」「未解答なのにスキップ」のどちらも起きない。`beforeunload` は扱わない（同期でIndexedDBに書けないため。未書き込みなら次回再開時に未解答として再出題＝オフライン正常系の既存方針どおり）。
+- **`responseMs` はタップ時刻で確定させた**。commit時刻だと猶予分の400msが乗り、`GUESS_THRESHOLD_MS = 2000` の当て勘判定を跨いで結果が変わる。同日に当て勘をリザルトへ表示するようにしたので、ここがずれると学習者に見える数字が変わる。**改善Cとの唯一の相互作用点なのでテストで固定した**。
+- **`services/` と `db/` は無改修**（安全性の要）。変更は `DrillScreen.tsx`・`SettingsScreen.tsx`・`settingsKeys.ts`・`components.css` のみ。
+- **取り消しボタンは高さを予約したスロット（`.drill-undo-slot`）に置いた**。猶予が終わってボタンが消えるときに2回目のレイアウトシフトが起きないようにするため（解答時に一度だけ動くのは既存の解説カードのせり上がりと同じ）。色は `--ng` を使わず `--ink-2` ＋破線（`.vocab-dontknow-button` と同系の一段控えめな意匠）。
+- **テスト影響の解決が最大の実装リスクだった**。`DrillScreen.test.tsx` の共通ヘルパ `answerAndSettle` は40箇所以上から使われており、400msが入ると全体が遅く不安定になる。既存テストは Dexie のデッドロックを避けるため `setTimeout` を意図的にフェイクしていないので一律フェイクの逃げ道もない。**共通の `setupSession` で設定をOFFにし、猶予そのものの検証だけ専用describeでONにする形**にした（既存テストは無改修・遅延ゼロで通る）。`integration/offlineDrillFlow.test.tsx` にも同じ1行を追加した。
+- **設定 `mistapUndoEnabled`（既定ON）と `SettingsScreen` のトグルを追加した**。導線のない設定は使われないまま腐る（`vocabAutoPlayPhrase` が実際にそうなった）ため、設定を作るなら画面も同時に用意する。
+- **テスト9件を追加**（猶予中は attempts 0件で解説・次へ・途中終了が出ない／猶予経過で記録され解説が出る／取り消しで記録せず次へ進みストリークが戻り通知が出る／最終問での取り消しでリザルトへ遷移し `attemptIds` に余分なIDが入らない／当て勘判定がタップ時刻基準／時間切れは猶予なしで即記録し二重記録しない／猶予中のアンマウントで記録される／設定OFFで従来どおり／vocab_card は対象外）＋ `SettingsScreen.test.tsx` に1件。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 921・api 125・cli 338・review-ui 15・shared-schema 96）全通過。
+- **実機確認で1件バグを見つけて直した**。`mountedRef` を cleanup で `false` にするだけにしていたため、**StrictModeの開発時二重マウント（mount→cleanup→mount）で `false` のまま固定**され、以降 `setPending(null)` が走らず取り消しボタンが消えないまま固まった（解説も出ない）。マウント時に `true` へ戻して解消した。**テストでは検出できない**（`StrictMode` は `main.tsx` にのみあり、テストは素の `render`）。実機確認の価値がそのまま出た事例。
+- **実機実測**（Playwright + IndexedDBの直接カウント）: 猶予中は attempts が42件のまま・解説なし・取り消しボタンあり → 400ms後に43件・解説と「次へ」が出る。取り消しでは attempts が43件のまま変わらず、問題が次に進み（3/10→4/10）、通知「この解答は記録しませんでした」が出る。
+- **マージ前のレビューでもう1件バグを見つけて直した（2問目以降の解答が失われる）**。アンマウント時のflushはクリーンアップ関数から `commitAnswer` を呼ぶが、その関数は**effectを登録したレンダー（=初回）のクロージャ**なので、`question`/`item`/`snapshot` をクロージャから読むと「2問目の解答を1問目のIDで記録しようとして snapshot のずれで保存が失敗し、解答が失われる」。`PendingCommit` に `question`/`item`/`snapshot` を持たせ、`commitAnswer` と `handleUndo` は**ペイロードからのみ読む**ようにした。既存テストは1問目でしか離脱していなかったため差が出ず通っていた（**修正前のコードで新テストが `expected 1 to be 2` で落ちることを確認済み**）。2問目で離脱して `questionId` が `['q-1','q-2']` になることを固定した。
+- **既知のトレードオフ（レイアウト）**: 解答時に取り消しスロットが現れるぶん選択肢が **16px上に動く**（実測677px→661px）。スロットの高さを予約しているので**猶予終了時には動かない**（狙いどおり2回目のシフトは無い）。従来も解答時に解説カードのせり上がりで大きく動いていた（661px→379px）ので、動く回数は変わらず、内訳が「16px＋282px」に分かれる。
+- **未検証**: 400msが実機の親指操作で「気づいて取り消せる」時間かは未確認。ドッグフードのプレイテストで調整する（`PARTIAL_AUDIO_DURATION_MS` と同じ扱い）。
+- **申し送り**: `docs/adr/README.md` の一覧に0009を追記したが、**0008（Part2音声のみモード）は別ブランチ（`task/T-151-...`）にある**。どちらも0007の直後に行を足すのでマージ時にコンフリクトしうる（解消は両行を残すだけ）。
+## 2026-07-29: 診断画面のPart2で正答応答が聞こえていた不具合を修正（ブランチ `task/fix-diagnostic-audio-full-play`。dev起点）
+
+出題・回答方式のブラッシュアップの調査中に見つけた**既存バグ**。ブラッシュアップ4件とは別件なので単独PRにした。
+
+`audio_qa` の音声は「設問＋正答応答」を1ファイルに連結しており、`DrillScreen` は `audioMeta.questionEndMs` で打ち切って正答応答の読み上げを解答後まで遅らせていた。`DiagnosticScreen.tsx` の `handlePlayStart` はこの打ち切りを持たず `audioPlayer.play(question.audio)` で**全長再生していた**ため、初回起動の30問診断で解答前に正答が聞こえていた。
+
+- 影響は診断スコアの推定が甘くなること。診断はレート初期値とカリキュラム開始フェーズを決めるので、実力より高い位置から始まる。
+- 修正は `DrillScreen` と同じ規約に揃えるだけ（`needsAudioGate` かつ `questionEndMs` が数値のときに `durationMs` で打ち切る）。`questionEndMs` を持たない旧生成分は従来どおり全長再生にフォールバックする。
+- **テスト2件を追加**（打ち切りが `{ durationMs: 400 }` で呼ばれる／`questionEndMs` 無しは `{}` で全長再生）。テストの `buildPool()` の `audioMeta` に `questionEndMs` が無かったため、既存テストではこの経路を踏めていなかった（バグを検出できなかった原因）。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 913。dev基準の911＋2件）全通過。
+## 2026-07-29: 解答の質（当て勘・速度不足）をリザルトに表示（ブランチ `task/result-answer-quality`。dev起点）
+
+出題・回答方式のブラッシュアップの第3弾。**表示の追加のみで、判定ロジックは一切変えていない**。
+
+[03_学習ロジック設計](03_学習ロジック設計.md) 7.2節が定義する「当て勘」（2秒未満の誤答）と「速度不足」（時間切れ）は `services/attempts.ts` の `buildAttempt` が `isGuess` / `isTimeout` として**既に永続化していた**が、利用箇所は `engine/tagStats.ts`（弱点統計の重み半減）と `services/questionStats.ts` だけで、**学習者には見えていなかった**。誤答の質が分かると次の行動が変わる（当て勘が多ければ落ち着いて解く、時間切れが多ければ速度訓練）ので可視化した。
+
+- **追加クエリは不要だった**。`ResultScreen.tsx` は `db.attempts.bulkGet(snapshot.attemptIds)` で `AttemptRecord` 全体を `sessionAttempts` に持っているため、`tallyEntries.filter((a) => a.isGuess).length` で数えられる。
+- **既存3タイルの下に2列の第2行として置いた**（`.result-quality-tiles`）。既存タイルは3列グリッドなので、5枚を同じグリッドに入れると2行目が2/3幅で欠けた見た目になる。タイル意匠は `.result-highlight-tile` を再利用した。
+- **0件でも表示する**。`skippedCount` のような異常系ではなく、0件は良い知らせだから隠さない。セッションに解答が1件も無いときだけ行ごと出さない。
+- **色は `--ok` も `--ng` も使わず `--ink`（地の文）にした**。`--ok` はライトテーマで `--surface` 上 4.358 で本文基準未達（[25](25_ビジュアル刷新計画_M4以降の未適用画面.md) 5.1節の既知#1）。25の4.7節のトーン（誤答＝悪ではない）にも合わせ、font-weight も既存タイルの700から400に落として控えめにした。**既存の `.result-highlight-tile--ok` と `tokens.css` は触っていない**。
+- **実測コントラスト**（ブラウザの `getComputedStyle` で計測）: ライト **15.234**（`rgb(33,30,24)` on `rgb(246,245,241)`）・ダーク **15.934**（`rgb(234,237,246)` on `rgb(14,18,32)`）。新規の未達は作っていない。
+- **テスト**: `ResultScreen.test.tsx` に3件追加（2秒未満の誤答を当て勘として数え3秒の誤答は数えない／時間切れは速度不足に数え**当て勘には数えない**＝`buildAttempt` の排他を画面側でも固定／全問正解でも0件表示）。既存ヘルパ `answerAndRecord` に `isTimeout` を通せるようにし、実際の `answerCurrentQuestion` 経由で `buildAttempt` の閾値と画面表示が同基準で動くことを固定した。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 926・他は変更なし）全通過。実機（`npm run dev` + Playwright）でPart5単独モードを即タップ誤答→終了し、「当て勘 1 / 速度不足 0」が出ることと両テーマのコントラストを確認した。
+## 2026-07-29: 語彙リコールの測定精度（提示順とダミーの同質化。ブランチ `task/vocab-recall-precision`。dev起点）
+
+出題・回答方式のブラッシュアップの第2弾。**正本（[02_機能設計](02_機能設計.md) 4節）の改訂を含む**。
+
+改修の動機は2つとも「4択の正答率が実力を過大評価していた」ことである。
+
+- **提示順を「単語のみ→解答後にフレーズ＋音声」に変えた**。`VocabScreen.tsx` は解答前に例文全文（`HighlightedPhrase`）を表示し `phraseAudio` も自動再生していた。実データで確認すると `The first item on the agenda is the budget review.` を見せた状態で `agenda` の意味を問う形になっており、文脈から推測できる。`DrillScreen.tsx` の `vocab_card` 分岐も同一仕様に揃えた。
+- **未解答時はフレーズ文字列をDOMに出さない**（`visibility:hidden` では退行をテストで検出できないため）。`.vocab-card__word` を新設し、解答後に `.vocab-card__phrase` へ差し替える。カード高さの跳ねは `.vocab-card--recall { min-height }` で抑えた（選択肢は `ScreenLayout` の action ゾーンにあるので動かない）。
+- **「もう一度再生」を解答後に移し「フレーズを再生」に改称した**。`audioPlayer.replay()` ではなく `play()` を呼ぶ形にした。イヤホンなしモードでは自動再生していないため、`replay()` の `lastOptions` が別問題の音声を指しうる（`handlePlayFullExchange` と同じ理由）。
+- **ダミー選択肢を tier 方式にした**（`engine/vocabQuiz.ts`）。従来は全語彙プールから無条件ランダムで、860帯のビジネス語に対して600帯の基本語が3つ並ぶことがあり消去法が効いた。tier 0（`freqRank`＋`levelBand` 一致）→ tier 1（`levelBand` 一致）→ tier 2（`levelBand` の差が小さい帯から順）→ tier 3（`levelBand` が引けない）の順に取り、グループ内だけシャッフルする。上位が薄ければ下位へ落ちるので既存の「プール不足時は取れた分だけ」契約は維持される。**関数のシグネチャは変えていない**（呼び出し2箇所を無改修に保つため）。
+- **pack 基準は採らなかった**。`Question` に pack id が無く、取るには `loadPackQuestions` → `loadQuestionPool` → `App.tsx` → `sessionStore` まで配線が波及する。実測で語彙パックは `(freqRank, levelBand)` が一様（s-001/s-002=S/600、a-001=A/730、b-001=B/860）なので tier 0 が実質「同じパックの語」と等価になる。この根拠が content 依存であることはコードのコメントに残した。
+- **副産物として実バグを1件修正した**。音声の自動再生 effect を復習用と仕分け用に分割したところ、新規テストが「復習カードの解答前に仕分けキュー先頭の語のフレーズ音声が鳴る」ことを検出した。分割前は1つの effect が `reviewQuestion ?? triageQuestion` の順で復習を優先していたため露呈していなかった。仕分け側に `inTriagePhase`（復習キューを消化しきったか）の条件を追加した。
+- **テスト**: `vocabQuiz.test.ts` に5件追加（同 rank/band が足りていれば別帯は選ばれない／tier 0 が2件でフォールバック／差の小さい帯を先に選ぶ／`levelBand` が引けない候補は最後／対象語の `levelBand` が無ければ従来挙動）。既存4件は fixture が全て S/600 で tier 0 に入るため**無改修で通る**。`VocabScreen.test.tsx` は提示順3件・音声4件を追加し、解答前にフレーズを待っていた既存6件の待機条件を差し替えた（`waitForReviewCard` ヘルパを追加）。`DrillScreen.test.tsx` も同様に4件を修正し、提示順の1件を追加した。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 923・cli 338・review-ui 15・shared-schema 96・api 125）全通過。
+- **既知**: `packages/app/scripts/screenshot-tour.mjs` の `03-vocab` は解答前の画面を撮るため**刷新済みの画像が陳腐化した**。画像の撮り直しは H-13 と同じ扱いで別タスクとする（本PRでは画像を更新していない）。
+- **既知（環境要因）**: フルスイート実行4回のうち1回だけ、922件全パスのまま未処理の rejection で exit 1 になった。残り3回は exit 0。T-71 で記録済みの非決定的な環境要因（CPU競合・DB切断後の書き込み）と同種と判断した。
+## 2026-07-29: T-151 Part2音声のみモードの応答オフセットをスキーマに追加（ブランチ `task/T-151-schema-part2-response-offsets`。dev起点）
+
+出題・回答方式のブラッシュアップ（全4件）の第1弾。**共有面（パックスキーマ）の変更なので単独PR**とし、TTS生成（T-152）・アプリ実装（T-154）はこのPRの型に依存する。
+
+改修の動機は「課題が見た目より簡単になっており、正答率が実力を過大評価する」ことである。Part2については [14_改善提案](14_改善提案_M2ブラッシュアップとM3基盤.md) 3.6-3 が指摘していた本試験形式との乖離が該当する。実データを確認すると `content/packs/pack-p2-s-*.json` の150問は `choices` 3件がテキストで、`script` は「設問 — 正答応答」のみを持ち、**誤答応答B/Cの音声は存在しない**。本試験のPart2は3応答すべてを音声で流すため、現形式は「設問を聞いて応答は読む」＝リスニングと読解の混成になっている。
+
+- **方針の決着**: 既存のテキスト選択肢形式を残し、**音声のみモードをトグルで併存**させる（発起人判断）。方式と却下案（全面置き換え／応答ごとに別ファイル／別ファイルを追加）は [ADR 0008](adr/0008-Part2音声のみモードの併存と音声形式.md) に記録した。14の3.6-3 と5節の未解決リストにも決着を追記した。
+- **追加した型**（`packages/shared-schema/src/types.ts` の `AudioMeta`）: `responseOffsetsMs?: number[] | null`（各応答の開始ms。並びは `choices` の key 昇順＝読み上げ順）と `responsesTextDigest?: string | null`（生成時の choices のダイジェスト）。どちらも**任意フィールドなので `SCHEMA_VERSION` は 2 のまま**で、既存パックは無改修で valid のままである。
+- **`part2ResponsesDigest` を新設**（`packages/shared-schema/src/part2Responses.ts`）。app（ブラウザ）・cli（Node）・review-ui が同一実装を使う必要があるため `node:crypto` は使わず、依存ゼロの FNV-1a 32bit で8桁hexを返す（暗号強度は要件ではなく、人手編集の検出が目的）。**key 昇順に正規化する**ので表示順のランタイムシャッフル（T-79・J-36）とは独立に決まる。key と text の区切りには制御文字（U+0000 / U+0001）を使った。空白区切りだと `key="A"/text="B x"` と `key="A B"/text="x"` が同じ入力列になるため。
+- **バリデータに7ルールを追加**（`validatePart2ResponseOffsets`）。`validateAudioMeta` は choices を受け取らない設計なので別関数にした。①audio_qa 専用 ②要素は正の整数 ③厳密単調増加 ④件数が choices と一致 ⑤先頭が `questionEndMs` 以降（設問部と重ならない）⑥末尾が `durationMs` 未満 ⑦`responsesTextDigest` 必須かつ一致（片方だけでもエラー）。
+- **digest 不一致を警告ではなくエラーにした**のがこのPRの安全網である。読み上げ順が key 昇順で音声に焼き込まれるため、**TTS後に review-ui で選択肢テキストを編集すると音声と key の対応が崩れ、`answer` が実質誤りになる**（音声ではBが正答なのに `answer` がAのまま）。画面上は正常に見える無音の正誤バグなので `answer_mismatch` と同じ重大度で止める。
+- **両フィールドが無いことはエラーにしない**（部分移行を許す）。未対応の問題の列挙は cli の contentLint が警告する（T-152）。
+- **回帰確認**: 既存の `content/packs` 全20パック（1367問）を新バリデータに通し、**全て valid**（使い捨てスクリプトで確認。パックへの変更なし）。テストにも「`responseOffsetsMs` を持たない従来形式が通る」ケースを明示的に置いた。
+- **検証**: `npm run lint`・`npm run build`・`npm test -w @beb-raid/shared-schema`（117件。追加前は96件）全通過。
+- **残り**: T-152（cli の応答音声生成・contentLint・検証スクリプト・review-ui の区間プレビュー）→ T-153/H-15（音声150本の再生成。piper実行。バイナリ差分のため単独PR）→ T-154（アプリの音声のみモード。T-153 には依存せず、未対応なら空パック案内に縮退する）。
+
+## 2026-07-29: T-154 Part2音声のみモードをアプリに実装（ブランチ `task/T-154-part2-audio-only-mode`。T-151起点）
+
+Part2音声のみモードの第3弾（アプリ側）。**T-151（スキーマ）の型に依存**するため同ブランチを起点にした。**T-153（音声再生成）には依存しない**（未対応なら空パック案内に縮退する）。
+
+- **`engine/audioOnlyPart2.ts` を新設**。`supportsAudioOnlyPart2`（この問題が音声のみモードで出題できるか）・`responseSegment`（解答後の個別リプレイ用の区間）・`audioOnlyChoiceOrder`（key昇順）。壊れたデータ（非単調・件数不一致・範囲外）は非対応に落とし、進行不能を作らない。
+- **二段フォールバック**: ①`HomeScreen.startSingleMode` がプールを `supportsAudioOnlyPart2` で絞る（0件なら「音声のみモードに対応した問題がまだありません」を出してセッションを始めない）②`DrillScreen` はセッションフラグONでも当該問題が未対応なら**その問題だけ従来のテキスト選択肢UIへ落とす**。`noEarphoneFilter` のような差し替え方式は使っていない。
+- **トグルはPart2モーダルの3つ目のボタン**（`showPart2Options`）。「再生方法を1つ選ぶ」セマンティクスなのでチェックボックスにしない（`partialAudioMode` と同時ONに意味がない）。`sessionStore.audioOnlyPart2` は **`partialAudioMode` と同じセッションスコープ（非永続）**にした（同じモーダルに並ぶ兄弟オプションで永続方針を食い違わせない）。
+- **タイマーの意味を変えた**: 音声のみモードは再生自体が約11秒（設問＋3応答）なので「表示から15秒」では再生中に時間切れになる。`AUDIO_ONLY_ANSWER_SECONDS = 6` を**再生終了後**から数える。`handlePlayStart` 末尾に `!result` ガードを追加した（再生中に解答した場合、再生完了で `setRemainingSec` が走りヘッダに止まった秒数が出る）。
+- **再生中の解答を許可した**。記号ボタンには情報が無いのでリークはゼロで、聞き取れた時点で答えられるのが本試験に忠実。解答時に `audioPlayer.stop()` で残りの応答を止める。
+- **選択肢は記号A/B/Cのままラベルを空にした**（`.choice-button.is-marker-only`）。形マーカー（▲■●◆）はJV-7でイベントバトル専用と決めており（[25](25_ビジュアル刷新計画_M4以降の未適用画面.md) 4.4節）、本試験のマークシートも (A)(B)(C) なので記号の方が忠実。ラベルが空でマーカーは `aria-hidden` なので `aria-label`（「選択肢A」）で名前を補った。**解答後はテキストを開示する**（音声だけでは復習にならない）。
+- **表示順のシャッフルを止めた**（音声のみモードのみ）。読み上げ順が key 昇順で音声に焼き込まれているため、シャッフルすると記号と音声が食い違う。丸暗記対策はコンテンツ側の `rotatePart2Choices`（決定的ローテーション）が担っているのでこの制約による後退はない。
+- **解答後に応答ごとのリプレイを出した**（`responseOffsetsMs` の実利用箇所）。解答前には出さない（「Bだけ聞き直す」ができると照合ゲームに戻る）。既存の「もう一度再生」は全体の頭からやり直しとして残した（`replay()` は `lastOptions` を引き継ぐので自動的に打ち切り無しになる）。
+- **音声失敗時の脱出口を差し替えた**: 記号だけでは解答不能なので「音声なしで解答する」を出さず「この問題をスキップ」を出す（忘れると音声404で永久に進めなくなる）。
+- **テスト20件を追加**（`audioOnlyPart2.test.ts` 12件・`DrillScreen.test.tsx` 8件・`HomeScreen.test.tsx` 3件）。とくに「未対応の問題が混ざると従来UIに落ちる」「音声失敗時にスキップが出る」「タイマーが6から始まる」「選択肢がkey昇順」を固定した。
+- **検証**: `npm run lint`・`npm run build`・`npm test` 全通過。
+- **実機通し確認（T-153のマージ後に実施・完了）**: Part2モーダルに3つ目のボタン「音声のみで解答（本試験形式）」と補足文が出る → 開始すると本文が「音声で質問と3つの応答が流れます。正しい応答の記号を選んでください」→ 再生開始で「聞こえた3つの応答から正しいものを選んでください」に変わり、**選択肢が記号A/B/Cのみ（ラベルは空・`aria-label` は「選択肢A」等）で再生中から押せる**ことを確認。再生完了後の**タイマーは6から開始**。時間切れ経路も動作し、解答後は**選択肢テキストが開示され**「全体を再生（質問と3つの応答）」＋「A を再生 / B を再生 / C を再生」の個別リプレイが出る。**console errors なし**。
+## 2026-07-29: T-152 Part2の誤答応答音声をTTSで生成できるようにする（ブランチ `task/T-152-tts-part2-responses`。T-151起点）
+
+Part2音声のみモードの第2弾。**T-151（スキーマ）の型に依存**するため同ブランチを起点にした。コンテンツの再生成（T-153）はこのPRのマージ後。
+
+- **`synthesizePart2WithResponses` を新設**（`packages/cli/src/tts.ts`）。piperを1+3回呼び、**設問は primary・3応答すべて secondary** で合成して `concatTurnsWithGaps`（`TURN_GAP_SECONDS=0.4`）で連結する。`voice` 文字列は従来形式（`primary+secondary`）のままなので**既存パックの voice と一致し続ける**（バリデータ・既存テストへの波及なし）。
+- **オフセットは連結前の各WAVの実測長から積算する**。mp3のencoder paddingで実長がWAV積算より短くなることがあるため、末尾側から「厳密単調増加」「末尾 < durationMs」を満たすように詰めるクランプを入れた（バリデータのルールを機械的に満たす）。
+- **`part2ResponseTexts` を新設**（`ttsBatch.ts`）。応答テキストを **key 昇順**で取り出す。音声のみモードでは `responseOffsetsMs` の並びが key の対応そのものなので、表示順のランタイムシャッフル（T-79）とは独立に固定する。選択肢が2件未満・key/text が空の異常データでは `null` を返し、**従来の `synthesizeDialogue` へフォールバック**する（音声のみモード非対応として扱う）。
+- **contentLint にルール⑦を追加**（警告）。`responseOffsetsMs` が無い `audio_qa` を `[警告] <id>: 音声のみモード非対応（応答音声が未生成）` として列挙する。部分移行中でもビルドを止めず、未対応がログで分かる。
+- **検証スクリプト `packages/cli/scripts/verify-part2-response-offsets.mjs` を新設**。`backfill-question-end.mjs` の `silencedetect` を流用し、①各応答の開始msが実mp3の無音ギャップ終端と ±150ms 以内で一致するか ②末尾が全長未満か ③（引数で再生成前のパックを渡した場合）`accent` と `voice` が変化していないか を全件照合する。**T-153の受け入れ条件**。
+- **review-ui に応答ごとの区間プレビューを追加**（`DraftForm.tsx`）。media fragment（`#t=開始,終了`）で応答区間だけ再生し、読み上げ順と key の対応を聞いて検品できるようにした。既存の全長プレビューはそのまま残した。**実ブラウザでの動作は未検証**（動かない場合は全長プレビューのみに留める）。
+- **テスト11件を追加**（cli 338→349）。`tts.test.ts` 4件（piperを1+3回・設問primary/3応答secondary・7本連結・voice文字列が従来形式／オフセットの積算と `questionEndMs`／mp3が短い場合のクランプ／`responseTexts` 空で例外）、`ttsBatch.test.ts` 4件（key昇順で渡す・2フィールドの書き戻し・digest再計算／`part2ResponseTexts` の3件）、`contentLint.test.ts` 3件。**既存の audio_qa テストは選択肢が1件のfixtureなのでフォールバック経路の回帰確認になっている**ことを明示した（テスト名を「回帰: …フォールバックする」に変更）。
+- **docs**: `docs/11` に「TTS後に選択肢を編集したら応答音声の再生成が必要（digest不一致でビルドが止まる。digestを手で書き換えてはならない）」の運用注意を追記。`docs/04` 5節にPart2の3応答合成を追記（T-151のPRで実施済み）。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（cli 349・review-ui 15・shared-schema 117）全通過。
+- **既知（本PRとは無関係の既存問題）**: `npx tsc --noEmit -p packages/review-ui` は `src/api.test.ts` で4件エラーになるが、**変更前から存在する**（stashして確認済み）。ルートの `npm run build` は review-ui を型検査対象に含まないため露出していなかった。本PRでは触らない。
 
 ## 2026-07-29: H-13 リリースノートのスクリーンショット13枚を撮り直し（ブランチ `task/H-13-release-note-shots`。dev起点）
 

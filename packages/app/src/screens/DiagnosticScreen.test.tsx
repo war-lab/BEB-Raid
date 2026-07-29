@@ -4,7 +4,7 @@
 // - 診断中の解答も attempts に記録される
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
@@ -49,7 +49,14 @@ function buildPool(): Question[] {
       tags: [],
       keyVocab: [],
       audio: '/dev-audio/dummy.mp3',
-      audioMeta: { accent: 'US', tts: false, voice: 'dev', durationMs: 1000 },
+      audioMeta: {
+        accent: 'US',
+        tts: false,
+        voice: 'dev',
+        durationMs: 1000,
+        // 設問部の終端。解答前の再生はここまでで止め、正答応答の読み上げを漏らさない
+        questionEndMs: 400,
+      },
       script: 'dummy',
       choices: [
         { key: 'A', text: 'a' },
@@ -237,6 +244,42 @@ describe('DiagnosticScreen: 完了カード（T-78）', () => {
 
     const card = await screen.findByTestId('completion-card')
     expect(card.textContent).toContain('今日の実施数 0問')
+  })
+})
+
+// 何を防ぐか: audio_qa の音声は「設問＋正答応答」の連結なので、全長再生すると
+// 解答前に正答が聞こえてしまう（診断のスコア推定が甘くなる）。DrillScreen は
+// questionEndMs で打ち切っていたが、DiagnosticScreen はこれを無視していた
+describe('DiagnosticScreen: audio_qa の正答応答リーク防止', () => {
+  it('解答前の再生は questionEndMs で打ち切る', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={buildPool()} />)
+    await startDiagnostic('')
+
+    await screen.findByText('1/30')
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    await waitFor(() =>
+      expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/dummy.mp3', { durationMs: 400 }),
+    )
+  })
+
+  it('questionEndMs が無い旧生成分は従来どおり全長再生する', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const pool = buildPool().map((q) =>
+      q.format === 'audio_qa'
+        ? { ...q, audioMeta: { ...q.audioMeta!, questionEndMs: undefined } }
+        : q,
+    )
+    render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={pool} />)
+    await startDiagnostic('')
+
+    await screen.findByText('1/30')
+    fireEvent.click(screen.getByText('タップして開始'))
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/dummy.mp3', {}))
   })
 })
 
