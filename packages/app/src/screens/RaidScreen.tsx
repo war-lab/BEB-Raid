@@ -766,7 +766,12 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
             </p>
           )}
           <div className="raid-boss-header">
-            <BossSigil seed={currentBoss.bossId} size={56} />
+            {/* 討伐済みなら紋章を割る（V-21。07の7節S5） */}
+            <BossSigil
+              seed={currentBoss.bossId}
+              size={56}
+              defeated={currentBoss.status === 'defeated'}
+            />
             <p className="raid-boss-name">{currentBoss.name}</p>
           </div>
           <div

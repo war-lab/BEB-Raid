@@ -1123,6 +1123,67 @@
 .boss-sigil {
   flex: none;
 }
+/* --- 討伐演出（V-21。JV-9=案Aで承認。正本: docs/07 7節S5・docs/25 4.6節） ---
+   紋章を破断線で2片に割って離し、金の粒子を散らす。総時間800ms（07の9節の600〜900ms）。
+   性能: 動かすのは transform と opacity だけで、box-shadow の多重掛けも要素の量産もしない
+   （docs/20 2.3節6。粒子はSVG円6個の固定）。ずらす向き・距離はコンポーネント側が
+   CSS変数（--shard-dx/dy・--spark-dx/dy）でシードから渡す。 */
+.boss-sigil[data-defeated='true'] {
+  /* 粒子がviewBoxの外まで飛べるようにする（SVGの既定は overflow: hidden）。
+     紋章は56pxしかないので、箱の内側に閉じ込めると粒子の軌跡がほとんど残らない */
+  overflow: visible;
+}
+.boss-sigil__shard {
+  /* fill-box=中身のバウンディングボックス基準。片ごとの微小な回転を中心軸で効かせる */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sigil-shard-break 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.boss-sigil__shard[data-shard='b'] {
+  /* 逆向きに割れる片は回転も逆にする（左右対称に開く） */
+  --shard-rot: -2.5deg;
+}
+@keyframes sigil-shard-break {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(var(--shard-dx), var(--shard-dy)) rotate(var(--shard-rot, 2.5deg));
+  }
+}
+.boss-sigil__spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: sigil-spark 800ms ease-out var(--spark-delay, 0ms) forwards;
+}
+@keyframes sigil-spark {
+  0% {
+    transform: translate(0, 0) scale(0.4);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--spark-dx), var(--spark-dy)) scale(1);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 割れた状態を静止で見せる（討伐の事実は割れた紋章と「討伐成功！」の文が担う）。
+     base.cssの全停止ルール（animation-duration: 0.01ms）でも最終状態には落ち着くが、
+     粒子が一瞬ちらつくため明示的に消す */
+  .boss-sigil__shard {
+    /* アニメーションの最終状態と同一にする（回転も含める）。translateだけにすると
+       56pxでは3px弱のずれしか出ず、割れていることが読み取れない */
+    animation: none;
+    transform: translate(var(--shard-dx), var(--shard-dy)) rotate(var(--shard-rot, 2.5deg));
+  }
+  .boss-sigil__sparks {
+    display: none;
+  }
+}
 .raid-boss-header {
   display: flex;
   align-items: center;

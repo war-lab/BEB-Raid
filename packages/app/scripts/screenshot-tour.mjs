@@ -22,7 +22,8 @@
 //   30問の解答）が前提。ボス役セッションを途中で打ち切ると同意済みの記録が不完全なまま
 //   プレビューへ入るため、モックで飛ばすと実画面と異なる状態を撮ることになる。V-16の確認は
 //   引き続き手動到達で行う。
-// - レイド討伐演出（status='defeated' の紋章割れ）: JV-9が保留で実装自体が未着手。
+// （旧「レイド討伐演出は未着手」の記載はV-21の実装により解消。モックの
+//   setRaidDefeated(true) で到達し、12d として2枚撮る）
 // - イベントバトルの切断画面（closed）: 撮影自体は可能だが、切断理由ごとに4種の文言が
 //   出るため1枚では代表にならない。V-13の確認は文言単位のユニットテストで担保済み。
 
@@ -250,6 +251,26 @@ if (await raidEntry.count()) {
     await page.waitForTimeout(1000)
     await shotTall(page, '12-raid-joined')
   }
+  // 討伐済み（V-21の紋章の割れ＋金の粒子）。モックのボスを status='defeated'・HP0 に
+  // 切り替えて再入場する。演出は総時間800msなので、粒子が出ている途中（約300ms）と
+  // 落ち着いたあと（約1200ms）の2枚を撮る。番号は既存の連番をずらさないため 12d とする
+  await drive(page, 'window.__bebScreenshotMock.setRaidDefeated(true)')
+  await page.goto(`${origin}/${MOCK_QUERY}`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(1200)
+  const raidAgain = page.getByRole('button', { name: /^レイド/ })
+  if (await raidAgain.count()) {
+    await raidAgain.first().click()
+    // 演出の途中を捕まえるため shotOf の既定待ち(400ms)を使わず直接撮る
+    await page.waitForTimeout(300)
+    await page.screenshot({ path: `${outDir}/12d-raid-defeated-mid-${colorScheme}.png` })
+    console.log(`shot: 12d-raid-defeated-mid-${colorScheme}`)
+    await page.waitForTimeout(1200)
+    await page.screenshot({ path: `${outDir}/12d-raid-defeated-${colorScheme}.png` })
+    console.log(`shot: 12d-raid-defeated-${colorScheme}`)
+  } else {
+    console.log('not reached: 12d-raid-defeated（レイド導線が見つからない）')
+  }
+  await drive(page, 'window.__bebScreenshotMock.setRaidDefeated(false)')
 } else {
   console.log('not reached: 11-raid（ホームのレイド導線が見つからない）')
 }

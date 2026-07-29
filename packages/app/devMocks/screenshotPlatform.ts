@@ -98,6 +98,14 @@ async function buildDefense(): Promise<GhostDefenseEntry[]> {
     .map((q) => ({ questionId: q.id, multiplier: 2 }))
 }
 
+/** 討伐済み（status='defeated'）のボスを返すモードか。V-21の討伐演出を撮るために
+ *  window.__bebScreenshotMock.setRaidDefeated() から切り替える。既定は false（進行中）。
+ *  **localStorageに持つ**: レイド画面へはホームからの遷移で入るためスクリプトが間に
+ *  page.goto を挟み、モジュール変数だと再読み込みで既定へ戻ってしまう */
+const RAID_DEFEATED_KEY = '__bebScreenshotRaidDefeated'
+let raidDefeated =
+  typeof localStorage !== 'undefined' && localStorage.getItem(RAID_DEFEATED_KEY) === '1'
+
 /** スクリーンショット用のRaidApi。通信は一切行わず固定値を返す */
 class ScreenshotRaidApi implements RaidApi {
   private defense: GhostDefenseEntry[] | null = null
@@ -116,11 +124,12 @@ class ScreenshotRaidApi implements RaidApi {
     return {
       bossId: GHOST_BOSS_ID,
       name: 'ゴースト: さとう',
-      hp: 18_400,
+      hp: raidDefeated ? 0 : 18_400,
       maxHp: 42_000,
       startAt: now - 2 * DAY_MS,
       endAt: now + 3 * DAY_MS,
-      status: 'active',
+      // 討伐済みモードではHPを0・status='defeated'にする（V-21の紋章の割れの撮影用）
+      status: raidDefeated ? 'defeated' : 'active',
       participantCount: 5,
       myDamage: 3_180,
       contributions: [
@@ -265,6 +274,8 @@ interface ScreenshotMockApi {
   seedRaid: () => Promise<void>
   /** 読解パックでセッションを作り、読解画面へ遷移する（通常はドリル内の遷移でしか到達しない） */
   startReadingSession: () => Promise<void>
+  /** 現ボスを討伐済み（status='defeated'・HP0）に切り替える。V-21の討伐演出を撮るため */
+  setRaidDefeated: (value: boolean) => void
   battleQuestionOpen: () => void
   battleStandings: () => void
   battleResult: () => void
@@ -293,6 +304,11 @@ function installMockApi(socket: ScreenshotBattleSocket): void {
   const api: ScreenshotMockApi = {
     seedRaid,
     startReadingSession,
+    setRaidDefeated: (value: boolean) => {
+      raidDefeated = value
+      if (value) localStorage.setItem(RAID_DEFEATED_KEY, '1')
+      else localStorage.removeItem(RAID_DEFEATED_KEY)
+    },
     battleQuestionOpen: () => socket.emitQuestionOpen(),
     battleStandings: () => socket.emitStandings(),
     battleResult: () => socket.emitResult(),
