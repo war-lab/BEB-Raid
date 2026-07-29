@@ -268,9 +268,13 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   }
 
   if (phase === 'lobby') {
+    // ロビーは投影に映る（参加者全員がルームコードを見て入室する）ため、投影レイアウトで組む
+    // （V-22。JV-10=案Bで承認。抽選プレビュー=setupはホストが手元で読む画面なので対象外）。
+    // 従来はモバイル用の ScreenLayout で、1920px幅にルームコードが小さな見出しで出るため
+    // 後方の席から読めなかった（V-20の指摘#1）
     return (
-      <ScreenLayout
-        status={<p>ロビー（ルームコード: {roomCode}）</p>}
+      <HostProjectionLayout
+        meta="LOBBY"
         action={
           <>
             <PrimaryButton onClick={handleStart}>開始する</PrimaryButton>
@@ -280,17 +284,27 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
           </>
         }
       >
-        <p data-testid="battle-host-room-code" className="drill-timer display-num">
-          {roomCode}
-        </p>
-        <p>参加者にルームコードを伝えてください</p>
-        <ul className="raid-list" data-testid="battle-host-participants">
-          {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
-          {participants.map((name, i) => (
-            <li key={i}>{name}</li>
-          ))}
-        </ul>
-      </ScreenLayout>
+        <div className="battle-host-lobby">
+          <p className="battle-host-lobby__label">ROOM CODE</p>
+          <p
+            data-testid="battle-host-room-code"
+            className="battle-host-lobby__code display-num"
+            /* 4文字を1字ずつ読み上げさせる（RA1D を「ラッド」と読まれると口伝えできない） */
+            aria-label={roomCode ? roomCode.split('').join(' ') : undefined}
+          >
+            {roomCode}
+          </p>
+          <p className="battle-host-lobby__hint">参加者にルームコードを伝えてください</p>
+          <ul className="battle-lobby__chips" data-testid="battle-host-participants">
+            {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
+            {participants.map((name, i) => (
+              <li key={i} className="battle-lobby__chip">
+                {name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </HostProjectionLayout>
     )
   }
 
