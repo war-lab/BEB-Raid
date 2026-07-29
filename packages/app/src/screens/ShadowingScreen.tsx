@@ -235,6 +235,10 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
 
   return (
     <ScreenLayout
+      // docs/26 A-1: シャドーイングは操作ゾーンの中身が固定（再生・速度・表示切替）で、
+      // 原稿カードを上寄せにすると帯の下半分が空く。原稿の高さは素材ごとに変わるが、
+      // 解答という概念が無くフィードバックでの再配置が起きないため中央寄せしてよい
+      align="center"
       status={
         <>
           {/* docs/25 4.8節（V-19）: 英字ラベル。色は07の7節S4「画面は--listenのアクセント」に

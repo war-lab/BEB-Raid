@@ -35,8 +35,10 @@ describe('DashboardScreen: データ0件・1件でも壊れない', () => {
 
     expect(await screen.findByText(/まだデータが足りない/)).toBeTruthy()
     expect(await screen.findByText(/対象タグがまだない/)).toBeTruthy()
-    // ヒートマップは0件でも15週分の空グリッドとして描画される（クラッシュしない）
-    expect(document.querySelector('.chart-heatmap svg')).not.toBeNull()
+    // docs/26 A-7: 全日0のときは枠だけの空マスを並べず、次の行動が分かる空状態にする
+    // （以前は「15週分の空グリッドを描画する」ことを固定していた）
+    expect(document.querySelector('.chart-heatmap svg')).toBeNull()
+    expect(await screen.findByText(/まだ記録がありません/)).toBeTruthy()
   })
 
   it('T-75: 「ホームへ」ボタンでホーム画面へ戻れる', async () => {
@@ -183,6 +185,20 @@ describe('DashboardScreen: 実データからの描画', () => {
       { date: '2026-07-02', section: 'total', rating: 410 },
     ])
     await db.tagStats.put({ tag: '品詞', windowCorrect: 1, windowTotal: 10 })
+    // docs/26 A-7: ヒートマップは解答が1件も無いと空状態になり数表を持たない。本テストの
+    // 意図は「データがある3チャートすべてに数表がある」ことなので、解答を1件与える
+    await db.attempts.bulkPut([
+      {
+        id: 'recent',
+        questionId: 'q-1',
+        mode: 'solo',
+        isCorrect: true,
+        responseMs: 1000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: Date.now(),
+      },
+    ])
     render(<DashboardScreen db={db} />)
 
     const summaries = await screen.findAllByText('数表で見る')

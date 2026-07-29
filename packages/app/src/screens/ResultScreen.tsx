@@ -297,10 +297,32 @@ export function ResultScreen({ db, raidApi }: Props) {
         </ul>
         <ul className="result-stats">
           {ratingBefore && ratingAfter && (
-            <li className="result-stat" style={{ animationDelay: '300ms' }}>
-              L: {Math.round(ratingBefore.L)} → {Math.round(ratingAfter.L)}
-              <br />
-              R: {Math.round(ratingBefore.R)} → {Math.round(ratingAfter.R)}
+            <li className="result-stat result-rating" style={{ animationDelay: '300ms' }}>
+              {/* docs/26 A-8: 素のテキスト2行で、上がったか下がったかが数字の読み比べでしか
+                  分からなかった。増減を符号付きで併記する。色だけに頼らないため▲▼の形を
+                  必ず添える（07の原則4）。下降は --ng を使わない（誤答＝悪ではないのと同じ理由で、
+                  レートの上下は煽る対象ではない。トーンは docs/25 4.7節に合わせる） */}
+              {(['L', 'R'] as const).map((section) => {
+                const before = Math.round(ratingBefore[section])
+                const after = Math.round(ratingAfter[section])
+                const delta = after - before
+                return (
+                  <span className="result-rating__row" key={section}>
+                    <span className="result-rating__label">
+                      {section === 'L' ? 'LISTENING' : 'READING'}
+                    </span>
+                    <span className="result-rating__value">
+                      {section}: {before} → {after}
+                    </span>
+                    <span
+                      className="result-rating__delta"
+                      data-dir={delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}
+                    >
+                      {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : '± 0'}
+                    </span>
+                  </span>
+                )
+              })}
             </li>
           )}
           {wrongCount > 0 && (

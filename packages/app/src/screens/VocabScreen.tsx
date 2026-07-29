@@ -408,6 +408,9 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   if (triageIndex < triageQueue.length && triageQuestion) {
     return (
       <ScreenLayout
+        // docs/26 A-1: 仕分けは操作ゾーンの中身が固定（知らない/知ってるの2つ）で、カードを
+        // 上寄せにすると帯の下半分が空く。復習モード（選択肢＋正誤フィードバック）には付けない
+        align="center"
         status={
           <>
             <p>

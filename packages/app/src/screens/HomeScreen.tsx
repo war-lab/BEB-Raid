@@ -758,20 +758,30 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         phase && (
           <div className="home-hero">
             <div className="home-season" data-testid="home-season">
-              <p>{SEASON_LABELS[phase.season]}</p>
+              {/* docs/26 A-2: シーズン名と空の進捗バーだけで高さ190pxのカードが空いていた。
+                  英字ラベル（WEEKLY BOSS 側と同じ .home-hero-eyebrow）と達成率の数値を足して
+                  階層を作る。数値は既に progressbar の aria-valuenow が持っている情報の可視化で、
+                  情報を増やしていない（07の原則4: バーだけに頼らない） */}
+              <span className="home-hero-eyebrow">SEASON</span>
+              <p className="home-season-name">{SEASON_LABELS[phase.season]}</p>
               {phaseProgress !== null && (
-                <div
-                  className="home-season-progress"
-                  role="progressbar"
-                  aria-valuenow={Math.round(phaseProgress * 100)}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
+                <>
                   <div
-                    className="home-season-progress-bar"
-                    style={{ width: `${Math.round(phaseProgress * 100)}%` }}
-                  />
-                </div>
+                    className="home-season-progress"
+                    role="progressbar"
+                    aria-valuenow={Math.round(phaseProgress * 100)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="home-season-progress-bar"
+                      style={{ width: `${Math.round(phaseProgress * 100)}%` }}
+                    />
+                  </div>
+                  <p className="home-season-progress-value">
+                    このシーズンの達成度 {Math.round(phaseProgress * 100)}%
+                  </p>
+                </>
               )}
             </div>
           </div>
