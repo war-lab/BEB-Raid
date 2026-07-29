@@ -2,6 +2,22 @@
 
 **最終更新: 2026-07-29**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 2026-07-29: 語彙リコールの測定精度（提示順とダミーの同質化。ブランチ `task/vocab-recall-precision`。dev起点）
+
+出題・回答方式のブラッシュアップの第2弾。**正本（[02_機能設計](02_機能設計.md) 4節）の改訂を含む**。
+
+改修の動機は2つとも「4択の正答率が実力を過大評価していた」ことである。
+
+- **提示順を「単語のみ→解答後にフレーズ＋音声」に変えた**。`VocabScreen.tsx` は解答前に例文全文（`HighlightedPhrase`）を表示し `phraseAudio` も自動再生していた。実データで確認すると `The first item on the agenda is the budget review.` を見せた状態で `agenda` の意味を問う形になっており、文脈から推測できる。`DrillScreen.tsx` の `vocab_card` 分岐も同一仕様に揃えた。
+- **未解答時はフレーズ文字列をDOMに出さない**（`visibility:hidden` では退行をテストで検出できないため）。`.vocab-card__word` を新設し、解答後に `.vocab-card__phrase` へ差し替える。カード高さの跳ねは `.vocab-card--recall { min-height }` で抑えた（選択肢は `ScreenLayout` の action ゾーンにあるので動かない）。
+- **「もう一度再生」を解答後に移し「フレーズを再生」に改称した**。`audioPlayer.replay()` ではなく `play()` を呼ぶ形にした。イヤホンなしモードでは自動再生していないため、`replay()` の `lastOptions` が別問題の音声を指しうる（`handlePlayFullExchange` と同じ理由）。
+- **ダミー選択肢を tier 方式にした**（`engine/vocabQuiz.ts`）。従来は全語彙プールから無条件ランダムで、860帯のビジネス語に対して600帯の基本語が3つ並ぶことがあり消去法が効いた。tier 0（`freqRank`＋`levelBand` 一致）→ tier 1（`levelBand` 一致）→ tier 2（`levelBand` の差が小さい帯から順）→ tier 3（`levelBand` が引けない）の順に取り、グループ内だけシャッフルする。上位が薄ければ下位へ落ちるので既存の「プール不足時は取れた分だけ」契約は維持される。**関数のシグネチャは変えていない**（呼び出し2箇所を無改修に保つため）。
+- **pack 基準は採らなかった**。`Question` に pack id が無く、取るには `loadPackQuestions` → `loadQuestionPool` → `App.tsx` → `sessionStore` まで配線が波及する。実測で語彙パックは `(freqRank, levelBand)` が一様（s-001/s-002=S/600、a-001=A/730、b-001=B/860）なので tier 0 が実質「同じパックの語」と等価になる。この根拠が content 依存であることはコードのコメントに残した。
+- **副産物として実バグを1件修正した**。音声の自動再生 effect を復習用と仕分け用に分割したところ、新規テストが「復習カードの解答前に仕分けキュー先頭の語のフレーズ音声が鳴る」ことを検出した。分割前は1つの effect が `reviewQuestion ?? triageQuestion` の順で復習を優先していたため露呈していなかった。仕分け側に `inTriagePhase`（復習キューを消化しきったか）の条件を追加した。
+- **テスト**: `vocabQuiz.test.ts` に5件追加（同 rank/band が足りていれば別帯は選ばれない／tier 0 が2件でフォールバック／差の小さい帯を先に選ぶ／`levelBand` が引けない候補は最後／対象語の `levelBand` が無ければ従来挙動）。既存4件は fixture が全て S/600 で tier 0 に入るため**無改修で通る**。`VocabScreen.test.tsx` は提示順3件・音声4件を追加し、解答前にフレーズを待っていた既存6件の待機条件を差し替えた（`waitForReviewCard` ヘルパを追加）。`DrillScreen.test.tsx` も同様に4件を修正し、提示順の1件を追加した。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 923・cli 338・review-ui 15・shared-schema 96・api 125）全通過。
+- **既知**: `packages/app/scripts/screenshot-tour.mjs` の `03-vocab` は解答前の画面を撮るため**刷新済みの画像が陳腐化した**。画像の撮り直しは H-13 と同じ扱いで別タスクとする（本PRでは画像を更新していない）。
+- **既知（環境要因）**: フルスイート実行4回のうち1回だけ、922件全パスのまま未処理の rejection で exit 1 になった。残り3回は exit 0。T-71 で記録済みの非決定的な環境要因（CPU競合・DB切断後の書き込み）と同種と判断した。
 ## 2026-07-29: T-151 Part2音声のみモードの応答オフセットをスキーマに追加（ブランチ `task/T-151-schema-part2-response-offsets`。dev起点）
 
 出題・回答方式のブラッシュアップ（全4件）の第1弾。**共有面（パックスキーマ）の変更なので単独PR**とし、TTS生成（T-152）・アプリ実装（T-154）はこのPRの型に依存する。
