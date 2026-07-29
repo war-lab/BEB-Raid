@@ -6,8 +6,10 @@
 // ずれが許容範囲内かを全件確認する。T-153（音声再生成）の受け入れ条件。
 //
 // 検証内容:
-//   ①「設問＋応答A＋応答B＋応答C」なら応答の数だけギャップ（各400ms）が検出できる
-//   ② 各 responseOffsetsMs が対応するギャップの終端付近（±TOLERANCE_MS）にある
+//   ①「設問＋応答A＋応答B＋応答C」なら応答の数以上のギャップが検出できる
+//   ② 各 responseOffsetsMs がいずれかのギャップ終端付近（±TOLERANCE_MS）にある。
+//      位置での対応（n番目のギャップ＝n番目の応答）はしない: 発話内の息継ぎが
+//      MIN_GAP_MS を超えることがあり、その分ギャップが増えて対応がずれるため
 //   ③ accent と voice が期待値（引数で渡した比較用パック）から変わっていない
 //
 // 前提: ffmpeg が PATH にあること。
@@ -106,15 +108,29 @@ for (const packName of PACK_NAMES) {
       )
       continue
     }
-    // 応答nの開始 ≒ n番目のギャップの終端
+    // 応答nの開始 ≒ どれかのギャップの終端。「n番目のギャップ」と位置で対応させてはならない:
+    // 発話そのものに MIN_GAP_MS 以上の息継ぎが入ることがあり（例: "No, everything looked fine."
+    // のカンマ後）、その分だけギャップの数が応答数より多くなって対応がずれる。
+    // 各オフセットに最も近いギャップ終端を、前から順序を保って割り当てる
+    let searchFrom = 0
     for (let i = 0; i < offsets.length; i++) {
-      const gapEnd = gaps[i][1]
-      const diff = Math.abs(offsets[i] - gapEnd)
-      if (diff > TOLERANCE_MS) {
-        problems.push(
-          `${q.id}: 応答${i}のオフセット${offsets[i]}msが実測ギャップ終端${Math.round(gapEnd)}msから${Math.round(diff)}msずれている（許容${TOLERANCE_MS}ms）`,
-        )
+      let bestIndex = -1
+      let bestDiff = Number.POSITIVE_INFINITY
+      for (let g = searchFrom; g < gaps.length; g++) {
+        const diff = Math.abs(offsets[i] - gaps[g][1])
+        if (diff < bestDiff) {
+          bestDiff = diff
+          bestIndex = g
+        }
       }
+      if (bestIndex < 0 || bestDiff > TOLERANCE_MS) {
+        problems.push(
+          `${q.id}: 応答${i}のオフセット${offsets[i]}msに対応する無音ギャップが見つからない（最も近い終端との差${Math.round(bestDiff)}ms・許容${TOLERANCE_MS}ms。検出ギャップ終端=${JSON.stringify(gaps.map(([, e]) => Math.round(e)))}）`,
+        )
+        break
+      }
+      // 同じギャップを2つの応答に割り当てない（読み上げ順を保つ）
+      searchFrom = bestIndex + 1
     }
     // バリデータと同じ不変条件も念のため実ファイル基準で確認する
     if (offsets.at(-1) >= q.audioMeta.durationMs) {
