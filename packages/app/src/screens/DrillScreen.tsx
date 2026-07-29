@@ -8,6 +8,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
+import {
+  audioOnlyChoiceOrder,
+  responseSegment,
+  supportsAudioOnlyPart2,
+} from '../engine/audioOnlyPart2'
 import { computeSetResult } from '../engine/audioSet'
 import { buildWordBank, judgeDictation } from '../engine/dictation'
 import { formatQuickPackReason } from '../engine/reason'
@@ -72,6 +77,14 @@ interface AnswerResult {
 
 /** audio_qa の解答受付タイマー（02の3.1: 1問15秒完結） */
 const ANSWER_TIMER_SECONDS = 15
+
+/**
+ * 音声のみモード（T-154。ADR 0008）の解答受付秒数。**再生終了後**から数える。
+ * 再生自体が「設問＋3応答」で約11秒あるため、通常の「表示から15秒」では再生中に
+ * 時間切れになってしまう。本試験の応答後の間隔（約5秒）＋片手操作の余裕1秒。
+ * 推定値でドッグフード実測での調整前提（PARTIAL_AUDIO_DURATION_MS と同じ扱い）
+ */
+const AUDIO_ONLY_ANSWER_SECONDS = 6
 
 /**
  * 誤タップの取り消し猶予（2026-07-29。正本: ADR 0009）。
@@ -181,6 +194,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const questions = useSessionStore((s) => s.questions)
   const recordAnswer = useSessionStore((s) => s.recordAnswer)
   const partialAudioMode = useSessionStore((s) => s.partialAudioMode)
+  const audioOnlyPart2 = useSessionStore((s) => s.audioOnlyPart2)
   const navigate = useAppStore((s) => s.navigate)
 
   // 表示中の item インデックス（snapshot.answeredCount とは独立に持つ:
@@ -284,6 +298,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const isVocabCard = question?.format === 'vocab_card'
   // vocab_card の解答済み判定（4択を選んだ or「わからない」）。フレーズと音声の開示条件に使う
   const answeredVocab = selectedChoiceKey !== null || dontKnowVocab
+  // T-154: 音声のみモード（本試験形式）。セッションフラグがONでも、当該問題が
+  // 未対応（応答音声が未生成）なら従来のテキスト選択肢UIへ落とす二段構えにする
+  // （HomeScreen側でプールを絞っているが、混入しても進行不能にしないための自衛）
+  const isAudioOnlyMode =
+    audioOnlyPart2 && isAudioQa && question !== undefined && supportsAudioOnlyPart2(question)
+  // T-154: 音声のみモードでは**再生中も解答できる**。記号ボタンには情報が無いので
+  // リークはゼロで、聞き取れた時点で答えられるのが本試験に忠実（本試験も応答の途中で
+  // マークできる）。従来形式（テキスト選択肢）は再生完了までゲートしたまま
+  const choicesInteractive =
+    !needsAudioGate || playState === 'played' || (isAudioOnlyMode && playState === 'playing')
   const currentSubQuestion = isAudioSet
     ? (question?.subQuestions ?? [])[subQuestionIndex]
     : undefined
@@ -303,11 +327,19 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
   // T-79（J-36）: 選択肢は問題が変わるたびに1回だけシャッフルする（丸暗記防止。
   // 正誤判定はchoice.key参照のため順序に依存しない。vocab_cardはbuildVocabQuizChoices側で
-  // 既にシャッフル済みのため対象外）
+  // 既にシャッフル済みのため対象外）。
+  // T-154: 音声のみモードではシャッフルしない（key昇順）。読み上げ順が key 昇順で音声に
+  // 焼き込まれているため、表示順を混ぜると記号と音声が食い違う。丸暗記対策はコンテンツ側の
+  // 決定的ローテーション（rotatePart2Choices）が担っているのでこの制約による後退はない
   const shuffledChoices = useMemo(
-    () => (question?.choices ? shuffle(question.choices) : []),
+    () =>
+      isAudioOnlyMode
+        ? (audioOnlyChoiceOrder(question!) ?? [])
+        : question?.choices
+          ? shuffle(question.choices)
+          : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [question?.id],
+    [question?.id, isAudioOnlyMode],
   )
   const shuffledSubQuestionChoices = useMemo(
     () => (currentSubQuestion?.choices ? shuffle(currentSubQuestion.choices) : []),
@@ -628,7 +660,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   function handleSelect(choiceKey: string) {
-    if (needsAudioGate && playState !== 'played') return
+    if (!choicesInteractive) return
+    // T-154: 再生中に解答したら音声を止める（残りの応答を流し続けない）
+    if (isAudioOnlyMode && playState === 'playing') {
+      audioPlayer.stop()
+      setPlayState('played')
+    }
     void finalizeAnswer(choiceKey, choiceKey === question!.answer, false)
   }
 
@@ -778,8 +815,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       // questionEndMs無しは従来どおり全長再生）。replay()はlastOptionsを引き継ぐため
       // 「もう一度再生」も自動的に質問部のみになる。全体は解答後の「全体を再生」で聞ける。
       // 冒頭再生モード時も、質問部が2500msより短い場合は短い方を採る（リーク防止が優先）
+      // T-154: 音声のみモードでは3応答すべてを聞かせるので打ち切らない（全長再生）。
+      // partialAudioMode とは排他（モーダルが単一選択）だが、念のため音声のみモードを優先する
       const questionEndMs = question!.audioMeta?.questionEndMs
-      if (isAudioQa && typeof questionEndMs === 'number') {
+      if (isAudioOnlyMode) {
+        delete options.durationMs
+      } else if (isAudioQa && typeof questionEndMs === 'number') {
         options.durationMs =
           options.durationMs !== undefined
             ? Math.min(options.durationMs, questionEndMs)
@@ -800,7 +841,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
     hasPlayedOnceRef.current = true
     setPlayState('played')
-    if (isAudioQa) setRemainingSec(ANSWER_TIMER_SECONDS)
+    // T-154: 音声のみモードは再生自体が約11秒（設問＋3応答）なので「表示から15秒」では
+    // 再生中に時間切れになる。タイマーの意味を「再生終了後N秒」に変える。
+    // !result ガードが必須: 再生中に解答した場合、再生完了でここが走ると
+    // ヘッダに止まった秒数が出てしまう
+    if (isAudioQa && !result) {
+      setRemainingSec(isAudioOnlyMode ? AUDIO_ONLY_ANSWER_SECONDS : ANSWER_TIMER_SECONDS)
+    }
   }
 
   /** audio_qa: 音声再生に失敗した際、音声なしで解答へ進むフォールバック（タイマーは開始しない） */
@@ -849,6 +896,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       await audioPlayer.play(question.phraseAudio)
     } catch (err) {
       console.warn('[DrillScreen] フレーズの再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
+  }
+
+  /**
+   * T-154: 解答後に特定の応答だけを聞き直す（音声のみモード）。
+   * responseOffsetsMs から区間を引いて部分再生する
+   */
+  async function handlePlayResponse(choiceKey: string) {
+    if (!question?.audio) return
+    const segment = responseSegment(question, choiceKey)
+    if (!segment) return
+    try {
+      await audioPlayer.play(question.audio, segment)
+    } catch (err) {
+      console.warn('[DrillScreen] 応答の再生に失敗', err)
       setAudioError('音声を再生できませんでした')
     }
   }
@@ -1000,8 +1063,6 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }
 
-  const choicesInteractive = !needsAudioGate || playState === 'played'
-
   return (
     <ScreenLayout
       status={
@@ -1151,9 +1212,20 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               >
                 {playState === 'playing' ? '再生中…' : audioError ? 'もう一度試す' : '音声を再生'}
               </PrimaryButton>
-              {audioError && isAudioQa && (
+              {/* T-154: 音声のみモードでは記号だけでは解答不能なので「音声なしで解答する」を
+                  出さない（出すと音声404で永久に進めなくなる）。代わりにスキップを出す */}
+              {audioError && isAudioQa && !isAudioOnlyMode && (
                 <button type="button" className="secondary-action" onClick={handlePlayWithoutAudio}>
                   音声なしで解答する
+                </button>
+              )}
+              {audioError && isAudioOnlyMode && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => void handleSkipUnplayable()}
+                >
+                  この問題をスキップ
                 </button>
               )}
               {audioError && isDictation && (
@@ -1234,6 +1306,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 else if (choice.key === result.selectedKey) state = 'wrong'
                 else state = 'dimmed'
               }
+              // T-154: 音声のみモードは解答前はテキストを出さない（記号のみ）。解答後は
+              // 開示する（音声だけでは復習にならない）。形マーカー（▲■●◆）は
+              // JV-7でイベントバトル専用と決めているので使わず、記号A/B/Cのまま
+              // ラベルを空にする（本試験のマークシートも (A)(B)(C)）
+              const hideLabel = isAudioOnlyMode && result === null
               return (
                 <ChoiceButton
                   key={choice.key}
@@ -1241,8 +1318,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   state={state}
                   disabled={result !== null}
                   onClick={() => handleSelect(choice.key)}
+                  className={hideLabel ? 'is-marker-only' : undefined}
+                  // ラベルが空でマーカーはaria-hiddenなので、支援技術向けに名前を補う
+                  aria-label={hideLabel ? `選択肢${choice.key}` : undefined}
                 >
-                  {choice.text}
+                  {hideLabel ? '' : choice.text}
                 </ChoiceButton>
               )
             })}
@@ -1323,8 +1403,24 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   className="drill-replay"
                   onClick={() => void handlePlayFullExchange()}
                 >
-                  全体を再生（質問と応答）
+                  {isAudioOnlyMode ? '全体を再生（質問と3つの応答）' : '全体を再生（質問と応答）'}
                 </button>
+              )}
+              {/* T-154: 解答後の個別応答リプレイ（responseOffsetsMs の実利用箇所）。
+                  解答前には出さない: 「Bだけ聞き直す」ができると照合ゲームに戻ってしまう */}
+              {isAudioOnlyMode && (
+                <div className="drill-response-replays">
+                  {shuffledChoices.map((choice) => (
+                    <button
+                      key={choice.key}
+                      type="button"
+                      className="drill-replay"
+                      onClick={() => void handlePlayResponse(choice.key)}
+                    >
+                      {choice.key} を再生
+                    </button>
+                  ))}
+                </div>
               )}
               <ExplanationCard
                 question={question}
@@ -1407,11 +1503,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         <p className="question-text">
           {result
             ? (question.script ?? '')
-            : playState === 'playing'
-              ? '再生中…'
-              : playState === 'played'
-                ? '聞こえた質問への応答として正しいものを選んでください'
-                : '音声で質問が流れます。応答として正しい選択肢を選んでください'}
+            : isAudioOnlyMode
+              ? // T-154: 音声のみモードは再生中も解答できるので「再生中…」で塞がない
+                playState === 'idle'
+                ? '音声で質問と3つの応答が流れます。正しい応答の記号を選んでください'
+                : '聞こえた3つの応答から正しいものを選んでください'
+              : playState === 'playing'
+                ? '再生中…'
+                : playState === 'played'
+                  ? '聞こえた質問への応答として正しいものを選んでください'
+                  : '音声で質問が流れます。応答として正しい選択肢を選んでください'}
         </p>
       ) : (
         <p className="question-text">{question.question}</p>
