@@ -394,6 +394,47 @@
 .result-stat {
   animation: result-stat-in 300ms ease-out both;
 }
+/* --- docs/26 A-8: レート増減。英字ラベル／実値／増減チップの3列で階層を作る --- */
+.result-rating {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  padding: var(--sp-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-grad);
+}
+.result-rating__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: var(--sp-1);
+}
+.result-rating__label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ev-blue);
+}
+.result-rating__value {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.result-rating__delta {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+/* 上昇のみ --ok で強調する。下降は --ink-2 のまま（▼の形で判別できるので色は足さない）。
+   機械計算値（20の2.3節の式）: dark --ok #3dc97e on --surface-grad上端#1c2339 = 8.286:1 /
+   light --ok #1e8a54 on --surface-grad下端#faf9f4 = 4.300:1 で本文基準未達のため、
+   ライトでは文字色に使わず --ink へ落とす（docs/25 5.1節の既知#1と同じ扱い） */
+.result-rating__delta[data-dir='up'] {
+  color: var(--ok);
+}
+:root[data-theme='light'] .result-rating__delta[data-dir='up'] {
+  color: var(--ink);
+}
 /* 巨大な「+N」が何の数値かを示すラベル（レビューF5(c)） */
 .result-points-label {
   margin: 0;
@@ -616,6 +657,17 @@
   padding-left: calc(var(--sp-2) + env(safe-area-inset-left));
   padding-right: calc(var(--sp-2) + env(safe-area-inset-right));
   overflow-y: auto;
+}
+/* docs/26 A-1: align='center' の画面だけコンテンツを帯の中央へ寄せる。
+   justify-content: center は使わない（スクロールコンテナで中身が溢れたとき上端へ
+   スクロールできなくなる既知の挙動があるため）。flex の auto マージンは溢れた時点で
+   0 に解決されるので、短いときだけ中央・長いときは従来どおり上寄せになる。 */
+.screen-layout__content--center {
+  display: flex;
+  flex-direction: column;
+}
+.screen-layout__center {
+  margin-block: auto;
 }
 .screen-layout__action {
   /* 操作ゾーンは画面下 約45%（親指リーチ内）。ただし横長タブレット等では45%が
@@ -1029,6 +1081,16 @@
   width: min(72%, 280px);
   height: auto;
 }
+/* docs/26 A-4: 診断ウェルカムの読み仮名。ロゴ直下に中央で敷く（旧 .diagnostic-wordmark__sub） */
+.wordmark {
+  flex-direction: column;
+  align-items: center;
+}
+.wordmark-sub {
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+}
 
 /* --- S1ホームのヒーローカード（docs/20 3.1・3.4節・V-3新設）
    --hero-sky/--hero-line は両テーマ共通（夜の車窓を維持する意匠判断=07決定済み）。
@@ -1089,13 +1151,28 @@
   color: var(--home-hero-accent);
 }
 .home-season {
+  /* docs/26 A-2: 英字ラベル→シーズン名→バー→達成率の4段。縦の間隔をgapで一定にする */
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
   margin: var(--sp-1) 0;
 }
 /* home-seasonは常に.home-hero配下（hero-sky地）でのみ使うため、
    固定のhome-hero-ink-2で色を出す（テーマ追従の--ink-2は使わない） */
 .home-season p {
+  margin: 0;
   color: var(--home-hero-ink-2);
   font-size: var(--fs-sub);
+}
+/* docs/26 A-2: シーズン名はカード内の主役なので見出しサイズ＋固定のダーク基準インクへ
+   （地は両テーマ共通の--hero-sky。機械計算値: #eaedf6 と --hero-sky最明部#16204a で13.394:1） */
+.home-season .home-season-name {
+  color: var(--home-hero-ink);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+}
+.home-season .home-season-progress-value {
+  font-size: var(--fs-note);
 }
 .home-season-progress {
   height: 6px;
@@ -1859,31 +1936,8 @@
    暗色地に暗色文字が乗りAA未達になるため。機械計算値: 固定#eaedf6は--hero-sky最明部
    #16204a比13.394:1、固定#a6aec6は7.085:1でAA適合）。ワードマークはhero外（画面地=
    テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で両テーマ追従させる */
-.diagnostic-wordmark {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-1);
-  margin: 0 0 var(--sp-2);
-}
-.diagnostic-wordmark__mark {
-  font-family: var(--font-display);
-  font-size: var(--fs-heading);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  background: var(--wordmark-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 10px rgba(77, 141, 255, 0.35));
-}
-:root[data-theme='light'] .diagnostic-wordmark__mark {
-  filter: none;
-}
-.diagnostic-wordmark__sub {
-  font-size: var(--fs-note);
-  color: var(--ink-3);
-  letter-spacing: 0.1em;
-}
+/* docs/26 A-4: 旧 .diagnostic-wordmark（鋼グラデのテキストワードマーク）は Wordmark
+   コンポーネント（ロゴ画像）へ統一したため削除した。読み仮名は .wordmark-sub が持つ */
 .diagnostic-hero {
   padding: var(--sp-3) var(--sp-2) var(--sp-2);
   margin-bottom: var(--sp-2);
@@ -2340,6 +2394,16 @@
 .battle-host .battle-award__podium {
   margin-bottom: var(--sp-1);
 }
+/* docs/26 A-6: 1920pxでは台座1つが約600px幅の帯になり、「台」ではなく横棒に見えていた。
+   さらに3位の低い台座が全幅に伸びるため、直下のベストグロース賞カードの罫線と融合して
+   見えていた。**台座だけ**を絞ってブロックとして読ませる。
+   列そのもの（.battle-award__place）を絞る案は採らない: 1位の得点は --host-fs-points（6vw）
+   で「1,240点」が約430pxあり、列幅を詰めると折り返して縦に伸び、V-23が実測で成立させた
+   10人の1画面収まりを壊す（実際に一度壊して差し戻した）。台座だけなら縦は動かない */
+.battle-host .battle-award__pedestal {
+  max-width: min(18vw, 340px);
+  margin-inline: auto;
+}
 .battle-host .battle-award__points,
 .battle-host .battle-award__name,
 .battle-host .battle-award__growth-name {
@@ -2351,6 +2415,64 @@
 .battle-host .battle-award__growth-label,
 .battle-host .battle-award__growth-note {
   line-height: 1.15;
+}
+
+/* --- docs/26 A-5: S8ホストの抽選プレビュー（setup）。JV-10=案Bにより投影対象ではなく
+   「ホストが手元で読む画面」だが、ScreenLayout のまま1920pxのPCで開かれるため一覧が
+   全幅に間延びしていた。読み幅を止めて面と行の階層を付けるだけに留める（--host-fs-* の
+   投影スケールは使わない）。地・インクは通常のテーマ追従トークンで、V-20で検証済みの
+   組み合わせ（--ink / --ink-2 / --ev-blue on --surface-grad）しか使っていない --- */
+.battle-lottery {
+  max-width: 72ch;
+  margin-inline: auto;
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-grad);
+}
+.battle-lottery__label {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  color: var(--ev-blue);
+}
+.battle-lottery__summary {
+  margin: var(--sp-half) 0 var(--sp-2);
+  color: var(--ink);
+}
+.battle-lottery__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.battle-lottery__item {
+  display: grid;
+  grid-template-columns: 2.5ch auto 1fr;
+  align-items: baseline;
+  gap: var(--sp-1);
+  padding: var(--sp-half) 0;
+  border-top: 1px solid var(--line);
+}
+.battle-lottery__num {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* Partラベルは .drill-part-tag と同じ意匠にはしない（あれは学習中のパート表示で意味が違う）。
+   一覧の中の分類チップとして --ink-2 の枠だけを持たせる */
+.battle-lottery__part {
+  padding: 0 var(--sp-half);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.battle-lottery__text {
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 /* --- イベントバトル最終リザルトの表彰（V-10。docs/25 4.2節・JV-4）。

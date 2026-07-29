@@ -248,16 +248,26 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
           </>
         }
       >
-        <p data-testid="battle-host-lottery-summary">
-          出題セット: Part2 {part2Count}問 / Part5 {part5Count}問（計{questionSet.length}問）
-        </p>
-        <ol className="raid-list" data-testid="battle-host-lottery-preview">
-          {questionSet.map((q, i) => (
-            <li key={q.id}>
-              {i + 1}. [Part{q.part}] {lotteryPreviewText(q)}
-            </li>
-          ))}
-        </ol>
+        {/* docs/26 A-5: この画面は ScreenLayout（モバイル用）のまま1920pxのPCで開かれるため、
+            12行の一覧が全幅に間延びして注記サイズの文字で並んでいた。JV-10=案Bの決定
+            （抽選プレビューは投影せず、ホストが手元で読む画面）は変えず、読み物としての
+            体裁だけ整える: 読み幅を人の可読幅で止め、面と行の階層を付ける。
+            投影スケール（--host-fs-*）は使わない＝投影対象に格上げしていない */}
+        <div className="battle-lottery">
+          <p className="battle-lottery__label">QUESTION SET</p>
+          <p data-testid="battle-host-lottery-summary" className="battle-lottery__summary">
+            出題セット: Part2 {part2Count}問 / Part5 {part5Count}問（計{questionSet.length}問）
+          </p>
+          <ol className="battle-lottery__list" data-testid="battle-host-lottery-preview">
+            {questionSet.map((q, i) => (
+              <li key={q.id} className="battle-lottery__item">
+                <span className="battle-lottery__num display-num">{i + 1}</span>
+                <span className="battle-lottery__part">Part{q.part}</span>
+                <span className="battle-lottery__text">{lotteryPreviewText(q)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
         {errorMessage && (
           <p className="drill-error" role="alert">
             {errorMessage}
