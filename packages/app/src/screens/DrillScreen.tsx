@@ -282,6 +282,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // 15秒タイマー（isCountingDown）はaudio_qa固有のため対象外
   const needsAudioGate = isAudioQa || isDictation || isAudioSet
   const isVocabCard = question?.format === 'vocab_card'
+  // vocab_card の解答済み判定（4択を選んだ or「わからない」）。フレーズと音声の開示条件に使う
+  const answeredVocab = selectedChoiceKey !== null || dontKnowVocab
   const currentSubQuestion = isAudioSet
     ? (question?.subQuestions ?? [])[subQuestionIndex]
     : undefined
@@ -330,9 +332,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     sortedBlanks.length > 0 && sortedBlanks.every((b) => blankFillsByIndex.has(b.index))
 
   // vocab_card: フレーズ音声を自動再生する（カードが変わるたびに1回。金フレ型体験=02の4節の
-  // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）
+  // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）。
+  // 【2026-07-29】再生は解答後に限る。解答前にフレーズ音声を流すと文脈から意味を推測でき
+  // リコールテストにならない（VocabScreen と同一仕様。docs/02 4節）
   useEffect(() => {
     if (!settingsLoaded || !isVocabCard || noEarphoneMode || !question?.phraseAudio) return
+    if (!answeredVocab) return
     void audioPlayer
       .unlock()
       .then(() => audioPlayer.play(question.phraseAudio!))
@@ -341,7 +346,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         console.warn('[DrillScreen] フレーズ音声の自動再生に失敗', err)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
+  }, [settingsLoaded, isVocabCard, noEarphoneMode, answeredVocab, question?.phraseAudio])
   // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら（hasPlayedOnceRef）、
   // 以降の音声ゲート付き問題（audio_qa/dictation/audio_set）は自動再生する。
   // handlePlayStart は関数宣言（hoisted）のため、この時点で呼び出して問題ない。
@@ -832,6 +837,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }
 
+  /**
+   * vocab_card: 解答後にフレーズを再生する。
+   * replay() を使わないのは、イヤホンなしモードでは自動再生していないため
+   * lastOptions が別問題の音声を指しうるから（VocabScreen.handlePlayPhrase と同じ理由）
+   */
+  async function handlePlayPhrase() {
+    if (!question?.phraseAudio) return
+    try {
+      await audioPlayer.unlock()
+      await audioPlayer.play(question.phraseAudio)
+    } catch (err) {
+      console.warn('[DrillScreen] フレーズの再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
+  }
+
   /** audio_qa: 解答後に「質問＋応答」の全体を聞き直す（正答リーク対策で解答前は質問部のみのため） */
   async function handlePlayFullExchange() {
     if (!question?.audio) return
@@ -1053,9 +1074,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 </ChoiceButton>
               )
             })}
-          {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && question.phraseAudio && (
-            <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
-              もう一度再生
+          {/* フレーズ音声は解答後にのみ出す（解答前に流すと文脈から意味を推測できる）。
+              replay() ではなく play() を使う: イヤホンなしモードでは自動再生していないので
+              replay() の lastOptions が別問題の音声を指しうる */}
+          {isVocabCard && answeredVocab && question.phraseAudio && (
+            <button type="button" className="drill-replay" onClick={() => void handlePlayPhrase()}>
+              フレーズを再生
             </button>
           )}
           {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && (
@@ -1337,19 +1361,24 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       }
     >
       {isVocabCard ? (
-        <div className="vocab-card">
+        // 解答前は単語のみ、解答後にフレーズを開示する（2026-07-29。VocabScreen と同一仕様）
+        <div className="vocab-card vocab-card--recall">
           {question.freqRank && (
             <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
               {question.freqRank}
             </span>
           )}
-          <p className="vocab-card__phrase">
-            <HighlightedPhrase
-              phrase={question.phrase ?? question.front ?? ''}
-              word={question.front ?? ''}
-            />
-          </p>
-          <p className="vocab-card__prompt">この単語の意味は？</p>
+          <p className="vocab-card__word">{question.front ?? ''}</p>
+          {answeredVocab ? (
+            <p className="vocab-card__phrase">
+              <HighlightedPhrase
+                phrase={question.phrase ?? question.front ?? ''}
+                word={question.front ?? ''}
+              />
+            </p>
+          ) : (
+            <p className="vocab-card__prompt">この単語の意味は？</p>
+          )}
         </div>
       ) : isDictation ? (
         <p className="question-text dictation-script">

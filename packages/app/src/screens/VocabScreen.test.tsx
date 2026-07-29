@@ -23,6 +23,15 @@ function phraseMatcher(phrase: string) {
     element.textContent === phrase
 }
 
+/**
+ * 復習カードの表示を待つ（2026-07-29以降、解答前にフレーズは出ないため
+ * フレーズ待ちは使えない）。「この単語の意味は？」は解答後に消える
+ */
+async function waitForReviewCard(word: string) {
+  await waitFor(() => expect(screen.getByText('この単語の意味は？')).toBeTruthy())
+  expect(screen.getByText(word)).toBeTruthy()
+}
+
 let seq = 0
 const dbs: BebRaidDatabase[] = []
 
@@ -131,8 +140,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
-    await waitFor(() => expect(screen.getByText(phraseMatcher('I will delta it.'))).toBeTruthy())
-    expect(screen.getByText('この単語の意味は？')).toBeTruthy()
+    await waitForReviewCard('delta')
     fireEvent.click(screen.getByText('delta の意味'))
     fireEvent.click(screen.getByText('OK'))
 
@@ -155,7 +163,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
-    await waitFor(() => expect(screen.getByText(phraseMatcher('I will epsilon it.'))).toBeTruthy())
+    await waitForReviewCard('epsilon')
     fireEvent.click(screen.getByText('decoy の意味')) // わざと不正解を選ぶ
     fireEvent.click(screen.getByText('もう一回'))
 
@@ -173,7 +181,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
-    await waitFor(() => expect(screen.getByText(phraseMatcher('I will iota it.'))).toBeTruthy())
+    await waitForReviewCard('iota')
 
     fireEvent.click(screen.getByText('わからない'))
     // 正解（iota の意味）がcorrect表示になっている＝答えを提示している
@@ -199,7 +207,7 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
-    await waitFor(() => expect(screen.getByText(phraseMatcher('I will theta it.'))).toBeTruthy())
+    await waitForReviewCard('theta')
     fireEvent.click(screen.getByText('theta の意味'))
     fireEvent.click(screen.getByText('decoy の意味')) // 選択済みなので無視されるはず
     fireEvent.click(screen.getByText('OK'))
@@ -217,30 +225,114 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
   })
 })
 
-describe('VocabScreen: フレーズ音声自動再生（既定ON。イヤホンなしモードでのみ止める）', () => {
-  it('既定（イヤホンなしモード未設定）では自動再生される', async () => {
+// 2026-07-29: 解答前に例文を見せると文脈から意味が推測でき、4択の正答率が実力を過大評価する。
+// 単語のみを提示し、フレーズと音声は解答後に開示する
+describe('VocabScreen: 復習カードの提示順（単語のみ→解答後にフレーズ）', () => {
+  it('解答前は単語とプロンプトだけで、フレーズはDOMに存在しない', async () => {
     const db = newDb()
-    await seedDueCard(db, 'eta')
-    const questions = [vocabQuestion('eta')]
+    await seedDueCard(db, 'kappa')
+    const questions = [vocabQuestion('kappa'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    const { container } = render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
+    )
+    await waitForReviewCard('kappa')
+
+    expect(container.querySelector('.vocab-card__word')?.textContent).toBe('kappa')
+    // visibility:hidden ではなくDOMから出さない（残すとtextContent一致で退行を検出できない）
+    expect(container.querySelector('.vocab-card__phrase')).toBeNull()
+    expect(container.textContent).not.toContain('I will kappa it.')
+  })
+
+  it('4択を選ぶとフレーズが開示される', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'lambda')
+    const questions = [vocabQuestion('lambda'), vocabQuestion('decoy')]
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('lambda')
+    fireEvent.click(screen.getByText('lambda の意味'))
 
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will lambda it.'))).toBeTruthy())
+    // 解答後はプロンプトを出さない（既に答えを見せているため）
+    expect(screen.queryByText('この単語の意味は？')).toBeNull()
+  })
+
+  it('「わからない」でもフレーズが開示される', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'mu')
+    const questions = [vocabQuestion('mu'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('mu')
+    fireEvent.click(screen.getByText('わからない'))
+
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will mu it.'))).toBeTruthy())
+  })
+})
+
+describe('VocabScreen: フレーズ音声自動再生（既定ON。解答後のみ。イヤホンなしモードでは止める）', () => {
+  it('解答前は自動再生されず、解答後に再生される', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'eta')
+    const questions = [vocabQuestion('eta'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('eta')
+    // 解答前に鳴らすと音声から意味を推測できる
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('eta の意味'))
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/eta.mp3'))
   })
 
-  it('イヤホンなしモードがONなら play は呼ばれない', async () => {
+  it('仕分けモードは従来どおり即再生する（解答段階が無いため）', async () => {
     const db = newDb()
-    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
-    await seedDueCard(db, 'zeta')
-    const questions = [vocabQuestion('zeta')]
+    const questions = [vocabQuestion('nu')]
     const audioPlayer = new FakeAudioPlayer()
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/nu.mp3'))
+  })
+
+  it('イヤホンなしモードがONなら解答後も play は呼ばれない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
+    await seedDueCard(db, 'zeta')
+    const questions = [vocabQuestion('zeta'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('zeta')
+    fireEvent.click(screen.getByText('zeta の意味'))
     await waitFor(() => expect(screen.getByText(phraseMatcher('I will zeta it.'))).toBeTruthy())
 
     expect(audioPlayer.play).not.toHaveBeenCalled()
     expect(audioPlayer.unlock).not.toHaveBeenCalled()
+  })
+
+  it('解答後の「フレーズを再生」は replay() ではなく play() を呼ぶ（別問題の音声を指さないため）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
+    await seedDueCard(db, 'xi')
+    const questions = [vocabQuestion('xi'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('xi')
+    // 解答前は再生ボタンを出さない
+    expect(screen.queryByText('フレーズを再生')).toBeNull()
+
+    fireEvent.click(screen.getByText('xi の意味'))
+    fireEvent.click(await screen.findByText('フレーズを再生'))
+
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/xi.mp3'))
+    expect(audioPlayer.replay).not.toHaveBeenCalled()
   })
 })
 

@@ -26,6 +26,45 @@
 - **既知のトレードオフ（レイアウト）**: 解答時に取り消しスロットが現れるぶん選択肢が **16px上に動く**（実測677px→661px）。スロットの高さを予約しているので**猶予終了時には動かない**（狙いどおり2回目のシフトは無い）。従来も解答時に解説カードのせり上がりで大きく動いていた（661px→379px）ので、動く回数は変わらず、内訳が「16px＋282px」に分かれる。
 - **未検証**: 400msが実機の親指操作で「気づいて取り消せる」時間かは未確認。ドッグフードのプレイテストで調整する（`PARTIAL_AUDIO_DURATION_MS` と同じ扱い）。
 - **申し送り**: `docs/adr/README.md` の一覧に0009を追記したが、**0008（Part2音声のみモード）は別ブランチ（`task/T-151-...`）にある**。どちらも0007の直後に行を足すのでマージ時にコンフリクトしうる（解消は両行を残すだけ）。
+## 2026-07-29: 診断画面のPart2で正答応答が聞こえていた不具合を修正（ブランチ `task/fix-diagnostic-audio-full-play`。dev起点）
+
+出題・回答方式のブラッシュアップの調査中に見つけた**既存バグ**。ブラッシュアップ4件とは別件なので単独PRにした。
+
+`audio_qa` の音声は「設問＋正答応答」を1ファイルに連結しており、`DrillScreen` は `audioMeta.questionEndMs` で打ち切って正答応答の読み上げを解答後まで遅らせていた。`DiagnosticScreen.tsx` の `handlePlayStart` はこの打ち切りを持たず `audioPlayer.play(question.audio)` で**全長再生していた**ため、初回起動の30問診断で解答前に正答が聞こえていた。
+
+- 影響は診断スコアの推定が甘くなること。診断はレート初期値とカリキュラム開始フェーズを決めるので、実力より高い位置から始まる。
+- 修正は `DrillScreen` と同じ規約に揃えるだけ（`needsAudioGate` かつ `questionEndMs` が数値のときに `durationMs` で打ち切る）。`questionEndMs` を持たない旧生成分は従来どおり全長再生にフォールバックする。
+- **テスト2件を追加**（打ち切りが `{ durationMs: 400 }` で呼ばれる／`questionEndMs` 無しは `{}` で全長再生）。テストの `buildPool()` の `audioMeta` に `questionEndMs` が無かったため、既存テストではこの経路を踏めていなかった（バグを検出できなかった原因）。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 913。dev基準の911＋2件）全通過。
+## 2026-07-29: 解答の質（当て勘・速度不足）をリザルトに表示（ブランチ `task/result-answer-quality`。dev起点）
+
+出題・回答方式のブラッシュアップの第3弾。**表示の追加のみで、判定ロジックは一切変えていない**。
+
+[03_学習ロジック設計](03_学習ロジック設計.md) 7.2節が定義する「当て勘」（2秒未満の誤答）と「速度不足」（時間切れ）は `services/attempts.ts` の `buildAttempt` が `isGuess` / `isTimeout` として**既に永続化していた**が、利用箇所は `engine/tagStats.ts`（弱点統計の重み半減）と `services/questionStats.ts` だけで、**学習者には見えていなかった**。誤答の質が分かると次の行動が変わる（当て勘が多ければ落ち着いて解く、時間切れが多ければ速度訓練）ので可視化した。
+
+- **追加クエリは不要だった**。`ResultScreen.tsx` は `db.attempts.bulkGet(snapshot.attemptIds)` で `AttemptRecord` 全体を `sessionAttempts` に持っているため、`tallyEntries.filter((a) => a.isGuess).length` で数えられる。
+- **既存3タイルの下に2列の第2行として置いた**（`.result-quality-tiles`）。既存タイルは3列グリッドなので、5枚を同じグリッドに入れると2行目が2/3幅で欠けた見た目になる。タイル意匠は `.result-highlight-tile` を再利用した。
+- **0件でも表示する**。`skippedCount` のような異常系ではなく、0件は良い知らせだから隠さない。セッションに解答が1件も無いときだけ行ごと出さない。
+- **色は `--ok` も `--ng` も使わず `--ink`（地の文）にした**。`--ok` はライトテーマで `--surface` 上 4.358 で本文基準未達（[25](25_ビジュアル刷新計画_M4以降の未適用画面.md) 5.1節の既知#1）。25の4.7節のトーン（誤答＝悪ではない）にも合わせ、font-weight も既存タイルの700から400に落として控えめにした。**既存の `.result-highlight-tile--ok` と `tokens.css` は触っていない**。
+- **実測コントラスト**（ブラウザの `getComputedStyle` で計測）: ライト **15.234**（`rgb(33,30,24)` on `rgb(246,245,241)`）・ダーク **15.934**（`rgb(234,237,246)` on `rgb(14,18,32)`）。新規の未達は作っていない。
+- **テスト**: `ResultScreen.test.tsx` に3件追加（2秒未満の誤答を当て勘として数え3秒の誤答は数えない／時間切れは速度不足に数え**当て勘には数えない**＝`buildAttempt` の排他を画面側でも固定／全問正解でも0件表示）。既存ヘルパ `answerAndRecord` に `isTimeout` を通せるようにし、実際の `answerCurrentQuestion` 経由で `buildAttempt` の閾値と画面表示が同基準で動くことを固定した。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 926・他は変更なし）全通過。実機（`npm run dev` + Playwright）でPart5単独モードを即タップ誤答→終了し、「当て勘 1 / 速度不足 0」が出ることと両テーマのコントラストを確認した。
+## 2026-07-29: 語彙リコールの測定精度（提示順とダミーの同質化。ブランチ `task/vocab-recall-precision`。dev起点）
+
+出題・回答方式のブラッシュアップの第2弾。**正本（[02_機能設計](02_機能設計.md) 4節）の改訂を含む**。
+
+改修の動機は2つとも「4択の正答率が実力を過大評価していた」ことである。
+
+- **提示順を「単語のみ→解答後にフレーズ＋音声」に変えた**。`VocabScreen.tsx` は解答前に例文全文（`HighlightedPhrase`）を表示し `phraseAudio` も自動再生していた。実データで確認すると `The first item on the agenda is the budget review.` を見せた状態で `agenda` の意味を問う形になっており、文脈から推測できる。`DrillScreen.tsx` の `vocab_card` 分岐も同一仕様に揃えた。
+- **未解答時はフレーズ文字列をDOMに出さない**（`visibility:hidden` では退行をテストで検出できないため）。`.vocab-card__word` を新設し、解答後に `.vocab-card__phrase` へ差し替える。カード高さの跳ねは `.vocab-card--recall { min-height }` で抑えた（選択肢は `ScreenLayout` の action ゾーンにあるので動かない）。
+- **「もう一度再生」を解答後に移し「フレーズを再生」に改称した**。`audioPlayer.replay()` ではなく `play()` を呼ぶ形にした。イヤホンなしモードでは自動再生していないため、`replay()` の `lastOptions` が別問題の音声を指しうる（`handlePlayFullExchange` と同じ理由）。
+- **ダミー選択肢を tier 方式にした**（`engine/vocabQuiz.ts`）。従来は全語彙プールから無条件ランダムで、860帯のビジネス語に対して600帯の基本語が3つ並ぶことがあり消去法が効いた。tier 0（`freqRank`＋`levelBand` 一致）→ tier 1（`levelBand` 一致）→ tier 2（`levelBand` の差が小さい帯から順）→ tier 3（`levelBand` が引けない）の順に取り、グループ内だけシャッフルする。上位が薄ければ下位へ落ちるので既存の「プール不足時は取れた分だけ」契約は維持される。**関数のシグネチャは変えていない**（呼び出し2箇所を無改修に保つため）。
+- **pack 基準は採らなかった**。`Question` に pack id が無く、取るには `loadPackQuestions` → `loadQuestionPool` → `App.tsx` → `sessionStore` まで配線が波及する。実測で語彙パックは `(freqRank, levelBand)` が一様（s-001/s-002=S/600、a-001=A/730、b-001=B/860）なので tier 0 が実質「同じパックの語」と等価になる。この根拠が content 依存であることはコードのコメントに残した。
+- **副産物として実バグを1件修正した**。音声の自動再生 effect を復習用と仕分け用に分割したところ、新規テストが「復習カードの解答前に仕分けキュー先頭の語のフレーズ音声が鳴る」ことを検出した。分割前は1つの effect が `reviewQuestion ?? triageQuestion` の順で復習を優先していたため露呈していなかった。仕分け側に `inTriagePhase`（復習キューを消化しきったか）の条件を追加した。
+- **テスト**: `vocabQuiz.test.ts` に5件追加（同 rank/band が足りていれば別帯は選ばれない／tier 0 が2件でフォールバック／差の小さい帯を先に選ぶ／`levelBand` が引けない候補は最後／対象語の `levelBand` が無ければ従来挙動）。既存4件は fixture が全て S/600 で tier 0 に入るため**無改修で通る**。`VocabScreen.test.tsx` は提示順3件・音声4件を追加し、解答前にフレーズを待っていた既存6件の待機条件を差し替えた（`waitForReviewCard` ヘルパを追加）。`DrillScreen.test.tsx` も同様に4件を修正し、提示順の1件を追加した。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 923・cli 338・review-ui 15・shared-schema 96・api 125）全通過。
+- **既知**: `packages/app/scripts/screenshot-tour.mjs` の `03-vocab` は解答前の画面を撮るため**刷新済みの画像が陳腐化した**。画像の撮り直しは H-13 と同じ扱いで別タスクとする（本PRでは画像を更新していない）。
+- **既知（環境要因）**: フルスイート実行4回のうち1回だけ、922件全パスのまま未処理の rejection で exit 1 になった。残り3回は exit 0。T-71 で記録済みの非決定的な環境要因（CPU競合・DB切断後の書き込み）と同種と判断した。
 ## 2026-07-29: T-151 Part2音声のみモードの応答オフセットをスキーマに追加（ブランチ `task/T-151-schema-part2-response-offsets`。dev起点）
 
 出題・回答方式のブラッシュアップ（全4件）の第1弾。**共有面（パックスキーマ）の変更なので単独PR**とし、TTS生成（T-152）・アプリ実装（T-154）はこのPRの型に依存する。

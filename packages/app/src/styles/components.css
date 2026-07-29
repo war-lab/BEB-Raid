@@ -354,6 +354,22 @@
 .result-highlight-tile--listen {
   color: var(--listen);
 }
+/* 解答の質の第2行（当て勘・速度不足。docs/03 7.2節）。3列グリッドに5枚入れると2行目が
+   欠けた見た目になるため2列で分けて置く。タイル意匠は .result-highlight-tile を共有する */
+.result-quality-tiles {
+  list-style: none;
+  margin: var(--sp-half) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1);
+}
+/* 誤答＝悪ではない（docs/25 4.7節）ので --ng も --ok も使わず地の文の色にする
+   （--ok はライトテーマで --surface 上4.358＝本文基準未達。docs/25 5.1節の既知#1） */
+.result-quality-tile {
+  color: var(--ink);
+  font-weight: 400;
+}
 .result-stats {
   list-style: none;
   margin: var(--sp-1) 0;
@@ -736,6 +752,19 @@
 .vocab-card__phrase {
   font-size: var(--fs-heading);
   line-height: 1.5;
+}
+/* 復習モードで解答前に出す単語単体（2026-07-29。フレーズは解答後に開示する）。
+   フレーズより1段大きくして「今問われているのはこの語」を明示する */
+.vocab-card__word {
+  font-size: var(--fs-question);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--gold);
+}
+/* 解答でフレーズが増えるぶんカード高さが伸びる。解答前後の跳ねを抑えるため下限を確保する
+   （選択肢はScreenLayoutのactionゾーンにあるので動かない。厳密な高さ一致は不要） */
+.vocab-card--recall {
+  min-height: 7.5rem;
 }
 /* フレーズ中の暗記対象語（HighlightedPhrase）。フレーズと単語のつながりを視覚的に示す */
 .vocab-card__target {
