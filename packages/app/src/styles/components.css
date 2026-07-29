@@ -248,7 +248,11 @@
   padding: var(--sp-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: var(--surface);
+  /* docs/25 4.8節「面を --surface-grad に揃える」（V-18）。カード内の前景は3つだけで、
+     ダークの --surface-grad 上端 #1c2339 に対し --ink 13.302 / --gold 8.753 /
+     --ink-2 7.036（機械計算値）でいずれも本文基準4.5:1を満たす。ライトは上端が
+     --surface と同値（#ffffff）で下端 #faf9f4 でも --ink-2 5.320 と適合 */
+  background: var(--surface-grad);
   text-align: center;
   animation: result-scale-in 250ms ease-out;
 }
@@ -556,7 +560,12 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   min-height: 100dvh;
-  background: var(--bg);
+  /* docs/20 3.1節「--bg-grad は ScreenLayout の地に適用」（V-18で適用。V-1でトークンだけ
+     作られて参照0件だった不整合の解消）。両テーマで上端28%だけが地から振れ、いずれも本文
+     コントラストが上がる方向（値と実測比は tokens.css の --bg-grad のコメント）。
+     body 側の背景（base.css）は --bg のまま残す。ScreenLayout を使わない画面
+     （.battle-host-stage の投影レイアウト・.error-boundary）の地を変えないため */
+  background: var(--bg-grad);
 }
 .screen-layout__status {
   padding: var(--sp-1) var(--sp-2);
