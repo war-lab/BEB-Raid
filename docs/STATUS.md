@@ -2,6 +2,16 @@
 
 **最終更新: 2026-07-29**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 2026-07-29: 診断画面のPart2で正答応答が聞こえていた不具合を修正（ブランチ `task/fix-diagnostic-audio-full-play`。dev起点）
+
+出題・回答方式のブラッシュアップの調査中に見つけた**既存バグ**。ブラッシュアップ4件とは別件なので単独PRにした。
+
+`audio_qa` の音声は「設問＋正答応答」を1ファイルに連結しており、`DrillScreen` は `audioMeta.questionEndMs` で打ち切って正答応答の読み上げを解答後まで遅らせていた。`DiagnosticScreen.tsx` の `handlePlayStart` はこの打ち切りを持たず `audioPlayer.play(question.audio)` で**全長再生していた**ため、初回起動の30問診断で解答前に正答が聞こえていた。
+
+- 影響は診断スコアの推定が甘くなること。診断はレート初期値とカリキュラム開始フェーズを決めるので、実力より高い位置から始まる。
+- 修正は `DrillScreen` と同じ規約に揃えるだけ（`needsAudioGate` かつ `questionEndMs` が数値のときに `durationMs` で打ち切る）。`questionEndMs` を持たない旧生成分は従来どおり全長再生にフォールバックする。
+- **テスト2件を追加**（打ち切りが `{ durationMs: 400 }` で呼ばれる／`questionEndMs` 無しは `{}` で全長再生）。テストの `buildPool()` の `audioMeta` に `questionEndMs` が無かったため、既存テストではこの経路を踏めていなかった（バグを検出できなかった原因）。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（app 913。dev基準の911＋2件）全通過。
 ## 2026-07-29: 解答の質（当て勘・速度不足）をリザルトに表示（ブランチ `task/result-answer-quality`。dev起点）
 
 出題・回答方式のブラッシュアップの第3弾。**表示の追加のみで、判定ロジックは一切変えていない**。
