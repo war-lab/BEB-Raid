@@ -3,6 +3,7 @@
 // - license欠落 / answer不整合 / keyVocab欠落 の各異常データが全件列挙付きで拒否される
 import { describe, expect, it } from 'vitest'
 
+import { part2ResponsesDigest } from './part2Responses.js'
 import type { Question, QuestionPack } from './types.js'
 import { validatePack } from './validate.js'
 
@@ -128,6 +129,179 @@ describe('validatePack: audioMeta.questionEndMs の異常系', () => {
     const pack = docsSamplePack()
     firstQuestion(pack).audioMeta!.questionEndMs = null
     expect(validatePack(pack).ok).toBe(true)
+  })
+})
+
+describe('validatePack: audioMeta.responseOffsetsMs（Part2音声のみモード。T-151）', () => {
+  /** 設問終端3100ms・全長12000ms の3応答連結音声を想定したパック */
+  function offsetsPack(): QuestionPack {
+    const pack = docsSamplePack()
+    const q = firstQuestion(pack)
+    q.audioMeta!.durationMs = 12000
+    q.audioMeta!.questionEndMs = 3100
+    q.audioMeta!.responseOffsetsMs = [3500, 6200, 9000]
+    q.audioMeta!.responsesTextDigest = part2ResponsesDigest(q.choices!)
+    return pack
+  }
+
+  it('正常系（3応答＋digest一致）が通る', () => {
+    const result = validatePack(offsetsPack())
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+  })
+
+  it('回帰: responseOffsetsMs を持たない従来形式は従来どおり通る', () => {
+    expect(validatePack(docsSamplePack()).ok).toBe(true)
+  })
+
+  it('null は「未設定」として通る（旧生成分との互換）', () => {
+    const pack = docsSamplePack()
+    firstQuestion(pack).audioMeta!.responseOffsetsMs = null
+    firstQuestion(pack).audioMeta!.responsesTextDigest = null
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('件数が choices と一致しないと invalid_value', () => {
+    const pack = offsetsPack()
+    firstQuestion(pack).audioMeta!.responseOffsetsMs = [3500, 6200]
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(
+      result.errors.some((e) => e.path.endsWith('responseOffsetsMs') && e.message.includes('件数')),
+    ).toBe(true)
+  })
+
+  it.each([
+    ['非単調（同値）', [3500, 6200, 6200]],
+    ['非単調（減少）', [3500, 9000, 6200]],
+    ['0を含む', [0, 6200, 9000]],
+    ['負値を含む', [3500, -1, 9000]],
+    ['非整数を含む', [3500, 6200.5, 9000]],
+  ])('%s なら invalid_value', (_label, value) => {
+    const pack = offsetsPack()
+    firstQuestion(pack).audioMeta!.responseOffsetsMs = value
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((e) => e.path.endsWith('responseOffsetsMs'))).toBe(true)
+  })
+
+  it('最初の応答が questionEndMs より前（設問部と重なる）なら invalid_value', () => {
+    const pack = offsetsPack()
+    firstQuestion(pack).audioMeta!.responseOffsetsMs = [3000, 6200, 9000]
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((e) => e.message.includes('設問部と重なっている'))).toBe(true)
+  })
+
+  it('最後の応答が durationMs 以上なら invalid_value', () => {
+    const pack = offsetsPack()
+    firstQuestion(pack).audioMeta!.responseOffsetsMs = [3500, 6200, 12000]
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((e) => e.message.includes('durationMs'))).toBe(true)
+  })
+
+  it('audio_qa 以外に付与すると invalid_value', () => {
+    const pack = docsSamplePack()
+    const shadow: Question = {
+      id: 'q-shadow',
+      part: 3,
+      format: 'shadowing',
+      difficulty: 2,
+      tags: ['シャドーイング'],
+      keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+      audio: 'audio/q-shadow.mp3',
+      audioMeta: {
+        accent: 'US',
+        tts: true,
+        voice: 'en-US-Andrew',
+        durationMs: 12000,
+        responseOffsetsMs: [3500, 6200, 9000],
+        responsesTextDigest: 'deadbeef',
+      },
+      script: 'Please submit the report.',
+      timing: [0, 500, 1000, 1500],
+    }
+    pack.questions.push(shadow)
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((e) => e.message.includes('audio_qa 専用'))).toBe(true)
+  })
+
+  it('responseOffsetsMs があるのに responsesTextDigest が無いと missing_field', () => {
+    const pack = offsetsPack()
+    delete firstQuestion(pack).audioMeta!.responsesTextDigest
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(
+      result.errors.some(
+        (e) => e.path.endsWith('responsesTextDigest') && e.code === 'missing_field',
+      ),
+    ).toBe(true)
+  })
+
+  it('responsesTextDigest だけあると missing_field', () => {
+    const pack = docsSamplePack()
+    firstQuestion(pack).audioMeta!.responsesTextDigest = 'deadbeef'
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(
+      result.errors.some((e) => e.path.endsWith('responseOffsetsMs') && e.code === 'missing_field'),
+    ).toBe(true)
+  })
+
+  it('TTS後に選択肢テキストを編集すると digest 不一致で拒否する（音声と key の対応崩れ）', () => {
+    const pack = offsetsPack()
+    firstQuestion(pack).choices![1]!.text = 'By Monday morning.'
+    const result = validatePack(pack)
+    expect(result.ok).toBe(false)
+    expect(
+      result.errors.some(
+        (e) =>
+          e.path.endsWith('responsesTextDigest') && e.message.includes('応答音声の再生成が必要'),
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('part2ResponsesDigest', () => {
+  const choices = [
+    { key: 'A', text: 'To the accounting portal.' },
+    { key: 'B', text: 'By Friday afternoon.' },
+    { key: 'C', text: 'Yes, I reported it.' },
+  ]
+
+  it('同じ入力で同じ値を返す', () => {
+    expect(part2ResponsesDigest(choices)).toBe(part2ResponsesDigest(choices))
+  })
+
+  it('8桁のhexを返す', () => {
+    expect(part2ResponsesDigest(choices)).toMatch(/^[0-9a-f]{8}$/)
+  })
+
+  it('配列順を入れ替えても値は変わらない（key昇順に正規化するため）', () => {
+    const reordered = [choices[2]!, choices[0]!, choices[1]!]
+    expect(part2ResponsesDigest(reordered)).toBe(part2ResponsesDigest(choices))
+  })
+
+  it('text が変わると値が変わる', () => {
+    const edited = [choices[0]!, { key: 'B', text: 'By Monday morning.' }, choices[2]!]
+    expect(part2ResponsesDigest(edited)).not.toBe(part2ResponsesDigest(choices))
+  })
+
+  it('key が変わると値が変わる（正答キーの付け替えを検出する）', () => {
+    const swapped = [
+      { key: 'A', text: 'By Friday afternoon.' },
+      { key: 'B', text: 'To the accounting portal.' },
+      choices[2]!,
+    ]
+    expect(part2ResponsesDigest(swapped)).not.toBe(part2ResponsesDigest(choices))
+  })
+
+  it('区切りが曖昧でない（key と text の境界移動を検出する）', () => {
+    const a = [{ key: 'A', text: 'B x' }]
+    const b = [{ key: 'A B', text: 'x' }]
+    expect(part2ResponsesDigest(a)).not.toBe(part2ResponsesDigest(b))
   })
 })
 
