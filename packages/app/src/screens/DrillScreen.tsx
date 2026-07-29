@@ -445,6 +445,10 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // beforeunload は扱わない（IndexedDBへの同期書き込みができないため。未書き込みなら
   // 次回セッション再開時に未解答として再出題される＝オフライン正常系の既存方針どおり）
   useEffect(() => {
+    // マウント時に true へ戻すのが必須。StrictModeの開発時二重マウント
+    // （mount→cleanup→mount）でcleanupがfalseにしたまま再マウントすると、
+    // 以降 setPending(null) が走らず取り消しボタンが消えないまま固まる（実機で発見）
+    mountedRef.current = true
     return () => {
       mountedRef.current = false
       const p = pendingRef.current
