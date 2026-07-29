@@ -5,6 +5,7 @@
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
 import { computeSetResult } from '../engine/audioSet'
@@ -18,7 +19,12 @@ import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AiClient, AudioPlayer, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
-import { advanceSession, resumeSession } from '../services/session'
+import {
+  advanceSession,
+  resumeSession,
+  type SessionItem,
+  type SessionSnapshot,
+} from '../services/session'
 import {
   HAPTICS_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
@@ -100,6 +106,18 @@ interface PendingCommit {
   streakBefore: number
   /** 取り違え防止の検証用（この解答がどのitemに対するものか） */
   itemIndex: number
+  /**
+   * 解答対象そのもの（question / item / snapshot）もペイロードに持たせる。
+   * アンマウント時のflushはクリーンアップ関数から commitAnswer を呼ぶが、その関数は
+   * **effectを登録したレンダー（=初回）のクロージャ**なので、クロージャ側の
+   * question / item / snapshot は「1問目」のまま固定されている。5問目の猶予中に
+   * 離脱すると1問目のIDで記録しようとして snapshot のずれで保存が失敗し、
+   * 解答そのものが失われる。可変な入力は全てこのペイロードから読む
+   */
+  question: Question
+  item: SessionItem
+  /** recordAnswerPipeline / advanceSession へ渡すスナップショット（未取得なら undefined） */
+  snapshot: SessionSnapshot | undefined
 }
 
 /**
@@ -330,7 +348,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // 自動再生が拒否された場合はhandlePlayStart内のcatchが従来のタップ開始UIへ戻す
   useEffect(() => {
     if (!needsAudioGate || playState !== 'idle' || !hasPlayedOnceRef.current) return
-    // eslint-disable-next-line react-hooks/immutability
+
     void handlePlayStart()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question?.id])
@@ -361,7 +379,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   useEffect(() => {
     if (playState === 'prereading' && preReadingSecondsLeft === 0) {
       // startAudioSetPlayback は関数宣言（hoisted）のため、この時点で呼び出して問題ない
-      // eslint-disable-next-line react-hooks/immutability
+
       void startAudioSetPlayback()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,7 +390,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   useEffect(() => {
     if (remainingSec === 0 && !result && !pendingRef.current) {
       // finalizeAnswer は関数宣言（hoisted）のため、この時点で呼び出して問題ない
-      // eslint-disable-next-line react-hooks/immutability
+
       void finalizeAnswer(null, false, true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -455,7 +473,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       if (undoTimerRef.current !== null) clearTimeout(undoTimerRef.current)
       undoTimerRef.current = null
       // commitAnswer は関数宣言（hoisted）のため、この時点で呼び出して問題ない
-      // eslint-disable-next-line react-hooks/immutability
+
       if (p) void commitAnswer(p)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- アンマウント時に1回だけ
@@ -540,6 +558,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       responseMs,
       streakBefore: streak,
       itemIndex: displayIndex,
+      question,
+      item,
+      snapshot,
     }
     if (undoable) {
       pendingRef.current = payload
@@ -557,8 +578,17 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
    * アンマウント後（flush経路）でも呼ばれるため、setStateは mountedRef で守る
    */
   async function commitAnswer(payload: PendingCommit) {
-    if (!question || !item) return
-    const { isCorrect, isTimeout, responseMs } = payload
+    // question / item / snapshot は**ペイロードから読む**（クロージャからは読まない）。
+    // アンマウント時のflushは初回レンダーのクロージャを呼ぶため、そちらを使うと
+    // 5問目の解答を1問目のIDで記録しようとして保存が失敗し、解答が失われる
+    const {
+      isCorrect,
+      isTimeout,
+      responseMs,
+      question: q,
+      item: sessionItem,
+      snapshot: snap,
+    } = payload
     clearUndoTimer()
     pendingRef.current = null
     if (mountedRef.current) setPending(null)
@@ -568,22 +598,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）。
       // mode='battle'（ボス役セッション=M4・T-128）はレート更新の対象外（docs/22 3.5節・3.2節と同じ扱い）
       const { nextSnapshot, ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
-        snapshot,
-        questionId: question.id,
-        question,
+        snapshot: snap,
+        questionId: q.id,
+        question: q,
         lookup: questions,
         isCorrect,
         responseMs,
         isTimeout,
-        mode: item.mode,
-        srsCardId: item.srsCardId,
-        skip: { rating: item.mode === 'battle' },
+        mode: sessionItem.mode,
+        srsCardId: sessionItem.srsCardId,
+        skip: { rating: sessionItem.mode === 'battle' },
       })
       // M4・T-129: 堅い/弱点バッジ・実ダメージ表示用（該当なしならraidDamageはundefinedのまま）
       if (raidDamage && mountedRef.current) setResult((r) => (r ? { ...r, raidDamage } : r))
 
       recordAnswer(nextSnapshot!, {
-        questionId: question.id,
+        questionId: q.id,
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
@@ -606,14 +636,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
    */
   async function handleUndo() {
     const payload = pendingRef.current
-    if (!payload || !snapshot) return
+    if (!payload || !payload.snapshot) return
     clearUndoTimer()
     pendingRef.current = null
     setPending(null)
     setResult(null)
     setStreak(payload.streakBefore)
     try {
-      const nextSnapshot = await advanceSession(db, snapshot)
+      // commitAnswer と同じ理由でペイロードの snapshot を使う（取り違え防止）
+      const nextSnapshot = await advanceSession(db, payload.snapshot)
       useSessionStore.setState({ snapshot: nextSnapshot })
       setUndoNotice(true)
       advanceToNext()

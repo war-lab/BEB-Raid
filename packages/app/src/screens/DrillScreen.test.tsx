@@ -593,6 +593,36 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1)
   })
 
+  // 何を防ぐか: アンマウント時のflushはクリーンアップ関数から commitAnswer を呼ぶが、その関数は
+  // effectを登録したレンダー（=初回）のクロージャなので、question/item/snapshot をクロージャから
+  // 読むと「2問目の解答を1問目のIDで記録しようとして保存が失敗し、解答が失われる」。
+  // 1問目で離脱するテストだけでは差が出ないため、2問目で離脱して questionId を確認する
+  it('2問目の猶予中にアンマウントしても、2問目のIDで正しく記録される', async () => {
+    const db = newDb()
+    await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    const view = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 1問目を確定させてから2問目へ進む
+    fireEvent.click(await screen.findByText('a'))
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    fireEvent.click(await screen.findByText('次へ'))
+
+    // 2問目（q-2。正解はB）を猶予中のまま離脱する
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    fireEvent.click(screen.getByText('b'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    view.unmount()
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(2))
+    const logs = (await db.attempts.toArray()).sort((x, y) => x.answeredAt - y.answeredAt)
+    expect(logs.map((l) => l.questionId)).toEqual(['q-1', 'q-2'])
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(2)
+  })
+
   it('設定OFFなら従来どおり即記録する（回帰）', async () => {
     const db = newDb()
     // setupSession が OFF にするのでそのまま使う
