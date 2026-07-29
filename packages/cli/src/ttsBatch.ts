@@ -12,7 +12,7 @@
 
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import type { Question } from '@beb-raid/shared-schema'
+import { part2ResponsesDigest, type Question } from '@beb-raid/shared-schema'
 import type { GeneratedItemDraft } from './review.js'
 import { rotateAccent, type DialogueTurn, type TtsProvider } from './tts.js'
 import { estimateWordTimings } from './timing.js'
@@ -24,6 +24,22 @@ export function splitDialogueScript(script: string): [string, string] {
     throw new Error(`scriptに区切り文字(—)が無い（"設問 — 応答"形式である必要がある）: ${script}`)
   }
   return [script.slice(0, idx).trim(), script.slice(idx + 1).trim()]
+}
+
+/**
+ * Part2の3応答を読み上げ順（choices の key 昇順）で取り出す（T-152）。
+ * 音声のみモードでは responseOffsetsMs の並びが key の対応そのものになるため、
+ * 表示順のシャッフルとは独立に key 昇順で固定する。
+ * 選択肢が2件未満・key/text が欠けている異常データでは null を返し、
+ * 呼び出し側は従来の「設問＋正答応答」合成へフォールバックする
+ */
+export function part2ResponseTexts(payload: Question): readonly string[] | null {
+  const choices = payload.choices
+  if (!choices || choices.length < 2) return null
+  if (!choices.every((c) => c.key.trim() !== '' && c.text.trim() !== '')) return null
+  return [...choices]
+    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+    .map((c) => c.text)
 }
 
 /** 話者ラベル（"A: ... B: ..."）の直前で区切る境界検出（ラベル文字自体は含めない） */
@@ -107,12 +123,18 @@ export async function synthesizeDraftsAudio(
       const [questionText, answerText] = splitDialogueScript(payload.script)
       const outputPath = join(audioRoot, payload.audio)
       await mkdir(dirname(outputPath), { recursive: true })
-      const result = await provider.synthesizeDialogue({
-        questionText,
-        answerText,
-        accent,
-        outputPath,
-      })
+      // T-152: 選択肢が揃っていれば「設問＋3応答すべて」を連結する（音声のみモード用）。
+      // 揃っていない異常データは従来の「設問＋正答応答」へフォールバックし、
+      // 音声のみモード非対応（responseOffsetsMs 無し）として扱う
+      const responseTexts = part2ResponseTexts(payload)
+      const result = responseTexts
+        ? await provider.synthesizePart2WithResponses({
+            questionText,
+            responseTexts,
+            accent,
+            outputPath,
+          })
+        : await provider.synthesizeDialogue({ questionText, answerText, accent, outputPath })
       synthesized++
       updatedDrafts.push({
         ...draft,
@@ -127,6 +149,13 @@ export async function synthesizeDraftsAudio(
             durationMs: result.durationMs,
             // 質問部終端（正答リーク対策）。synthesizeDialogueが実測して返す
             questionEndMs: result.questionEndMs,
+            // 音声のみモード用（T-152）。digestは選択肢の後編集を検出するための対
+            ...(result.responseOffsetsMs
+              ? {
+                  responseOffsetsMs: result.responseOffsetsMs,
+                  responsesTextDigest: part2ResponsesDigest(payload.choices!),
+                }
+              : {}),
           },
         },
       })

@@ -197,10 +197,38 @@ function VocabCardForm({ payload, onChange }: Props) {
   )
 }
 
+/**
+ * 応答ごとの区間プレビュー用のセグメント（T-152）。
+ * audioMeta.responseOffsetsMs は読み上げ順（key昇順）の開始msなので、
+ * 各応答の終端は「次の応答の開始」または「全長」になる。
+ * 音声のみモード非対応（オフセット無し）や整合しないデータでは null を返す
+ */
+function part2ResponseSegments(
+  payload: Record<string, unknown>,
+  choices: readonly Choice[],
+): { key: string; text: string; startMs: number; endMs: number }[] | null {
+  const meta = payload.audioMeta
+  if (typeof meta !== 'object' || meta === null) return null
+  const { responseOffsetsMs, durationMs } = meta as {
+    responseOffsetsMs?: unknown
+    durationMs?: unknown
+  }
+  if (!Array.isArray(responseOffsetsMs) || typeof durationMs !== 'number') return null
+  if (responseOffsetsMs.length !== choices.length) return null
+  const sorted = [...choices].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+  return sorted.map((choice, i) => ({
+    key: choice.key,
+    text: choice.text,
+    startMs: responseOffsetsMs[i] as number,
+    endMs: (responseOffsetsMs[i + 1] as number | undefined) ?? durationMs,
+  }))
+}
+
 function ChoiceBasedForm({ kind, payload, onChange }: Props) {
   const isAudioQa = kind === 'audio_qa'
   const audio = str(payload, 'audio')
   const choices = (Array.isArray(payload.choices) ? (payload.choices as Choice[]) : []) as Choice[]
+  const responseSegments = isAudioQa ? part2ResponseSegments(payload, choices) : null
   const keyVocab = (
     Array.isArray(payload.keyVocab) ? (payload.keyVocab as KeyVocab[]) : []
   ) as KeyVocab[]
@@ -264,6 +292,30 @@ function ChoiceBasedForm({ kind, payload, onChange }: Props) {
         <div className="draft-audio-preview">
           <p>音声プレビュー（{audio}）</p>
           <audio controls src={`/content-assets/${audio}`} />
+          {responseSegments && (
+            <>
+              {/* T-152: 音声のみモード用に「設問＋3応答」を連結した音声は、応答ごとの
+                  区間を聞き分けないと読み上げ順と key の対応を検品できない。
+                  media fragment（#t=開始,終了）で区間だけ再生する */}
+              <p className="draft-form__note">
+                応答ごとの区間プレビュー（読み上げ順＝key昇順。**選択肢テキストを編集したら
+                応答音声の再生成が必要**で、そのままではビルドがdigest不一致で止まる）
+              </p>
+              <ul className="draft-response-previews">
+                {responseSegments.map((seg) => (
+                  <li key={seg.key}>
+                    <span>
+                      {seg.key}: {seg.text}
+                    </span>
+                    <audio
+                      controls
+                      src={`/content-assets/${audio}#t=${(seg.startMs / 1000).toFixed(2)},${(seg.endMs / 1000).toFixed(2)}`}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
     </div>

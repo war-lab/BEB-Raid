@@ -10,14 +10,21 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { part2ResponsesDigest, type Question } from '@beb-raid/shared-schema'
 import type { GeneratedItemDraft } from './review.js'
 import type {
   SynthesizeDialogueInput,
   SynthesizeInput,
   SynthesizeMultiTurnInput,
+  SynthesizePart2WithResponsesInput,
   TtsProvider,
 } from './tts.js'
-import { parseDialogueTurns, splitDialogueScript, synthesizeDraftsAudio } from './ttsBatch.js'
+import {
+  parseDialogueTurns,
+  part2ResponseTexts,
+  splitDialogueScript,
+  synthesizeDraftsAudio,
+} from './ttsBatch.js'
 
 describe('parseDialogueTurns（M2・T-64）', () => {
   it('Part3の"A: ... B: ..."形式を交互ターン（primary/secondary）に分解する', () => {
@@ -36,6 +43,48 @@ describe('parseDialogueTurns（M2・T-64）', () => {
     expect(turns).toEqual([
       { text: 'Attention all passengers, the gate has changed.', role: 'primary' },
     ])
+  })
+})
+
+describe('part2ResponseTexts（T-152）', () => {
+  function q(choices: Question['choices']): Question {
+    return {
+      id: 'q',
+      part: 2,
+      format: 'audio_qa',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [],
+      choices,
+    }
+  }
+
+  it('key 昇順で応答テキストを返す（配列順に依存しない）', () => {
+    expect(
+      part2ResponseTexts(
+        q([
+          { key: 'C', text: 'c' },
+          { key: 'A', text: 'a' },
+          { key: 'B', text: 'b' },
+        ]),
+      ),
+    ).toEqual(['a', 'b', 'c'])
+  })
+
+  it('選択肢が2件未満なら null（従来合成へフォールバックさせる）', () => {
+    expect(part2ResponseTexts(q([{ key: 'A', text: 'a' }]))).toBeNull()
+    expect(part2ResponseTexts(q(null))).toBeNull()
+  })
+
+  it('key か text が空の異常データなら null', () => {
+    expect(
+      part2ResponseTexts(
+        q([
+          { key: 'A', text: 'a' },
+          { key: 'B', text: '  ' },
+        ]),
+      ),
+    ).toBeNull()
   })
 })
 
@@ -58,12 +107,14 @@ describe('synthesizeDraftsAudio', () => {
   let synthesizeCalls: SynthesizeInput[]
   let dialogueCalls: SynthesizeDialogueInput[]
   let multiTurnCalls: SynthesizeMultiTurnInput[]
+  let part2Calls: SynthesizePart2WithResponsesInput[]
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'beb-tts-batch-'))
     synthesizeCalls = []
     dialogueCalls = []
     multiTurnCalls = []
+    part2Calls = []
     fakeProvider = {
       synthesize: vi.fn(async (input: SynthesizeInput) => {
         synthesizeCalls.push(input)
@@ -76,6 +127,15 @@ describe('synthesizeDraftsAudio', () => {
       synthesizeMultiTurnDialogue: vi.fn(async (input: SynthesizeMultiTurnInput) => {
         multiTurnCalls.push(input)
         return { voice: 'fake-voice-multi', durationMs: 9999 }
+      }),
+      synthesizePart2WithResponses: vi.fn(async (input: SynthesizePart2WithResponsesInput) => {
+        part2Calls.push(input)
+        return {
+          voice: 'fake-voice-q+fake-voice-a',
+          durationMs: 12000,
+          questionEndMs: 2500,
+          responseOffsetsMs: [2700, 5400, 8100],
+        }
       }),
     }
   })
@@ -256,7 +316,7 @@ describe('synthesizeDraftsAudio', () => {
     expect(synthesizeCalls[0]?.outputPath).toBe(join(dir, 'audio/vocab/submit.mp3'))
   })
 
-  it('audio_qaはscriptを設問/応答に分割してsynthesizeDialogueへ渡し、audioMetaを実測値で更新する', async () => {
+  it('回帰: 選択肢が1件しかないaudio_qaは従来のsynthesizeDialogueへフォールバックする', async () => {
     const drafts = [part2Draft('part2-submit')]
     const result = await synthesizeDraftsAudio(drafts, fakeProvider, dir)
 
@@ -276,6 +336,44 @@ describe('synthesizeDraftsAudio', () => {
     // 生成時のプレースホルダaccent('AU')は実合成に使ったaccentで上書きされる
     expect(updated.audioMeta.accent).not.toBe('AU')
     expect(['US', 'UK']).toContain(updated.audioMeta.accent)
+    // 音声のみモード非対応（応答音声が無い）ため、両フィールドを付けない
+    expect(part2Calls).toHaveLength(0)
+    expect((updated.audioMeta as { responseOffsetsMs?: unknown }).responseOffsetsMs).toBeUndefined()
+    expect(
+      (updated.audioMeta as { responsesTextDigest?: unknown }).responsesTextDigest,
+    ).toBeUndefined()
+  })
+
+  // T-152: 音声のみモード（本試験形式）用に3応答すべてを連結する
+  it('選択肢が3件あるaudio_qaは3応答を連結し、responseOffsetsMs と digest を書き戻す', async () => {
+    const draft = part2Draft('part2-submit')
+    const payload = draft.payload as Question
+    // key の並びをわざと逆順にして、読み上げ順が key 昇順で固定されることを確かめる
+    payload.choices = [
+      { key: 'C', text: 'Yes, I already did.' },
+      { key: 'B', text: 'To the accounting office.' },
+      { key: 'A', text: 'By Friday.' },
+    ]
+    const result = await synthesizeDraftsAudio([draft], fakeProvider, dir)
+
+    expect(result.synthesized).toBe(1)
+    expect(dialogueCalls).toHaveLength(0)
+    expect(part2Calls).toHaveLength(1)
+    expect(part2Calls[0]?.questionText).toBe('When should I submit?')
+    // key 昇順（A→B→C）で渡す
+    expect(part2Calls[0]?.responseTexts).toEqual([
+      'By Friday.',
+      'To the accounting office.',
+      'Yes, I already did.',
+    ])
+    expect(part2Calls[0]?.outputPath).toBe(join(dir, 'audio/part2/submit.mp3'))
+
+    const updated = result.updatedDrafts[0]!.payload as Question
+    expect(updated.audioMeta?.durationMs).toBe(12000)
+    expect(updated.audioMeta?.questionEndMs).toBe(2500)
+    expect(updated.audioMeta?.responseOffsetsMs).toEqual([2700, 5400, 8100])
+    // digestは choices から再計算される（後編集の検出に使う）
+    expect(updated.audioMeta?.responsesTextDigest).toBe(part2ResponsesDigest(payload.choices!))
   })
 
   it('shadowingはscriptをprimaryで合成し、audioMetaとtiming（単語開始ms配列）を実測値から更新する', async () => {

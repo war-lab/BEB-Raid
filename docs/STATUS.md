@@ -18,6 +18,21 @@
 - **検証**: `npm run lint`・`npm run build`・`npm test -w @beb-raid/shared-schema`（117件。追加前は96件）全通過。
 - **残り**: T-152（cli の応答音声生成・contentLint・検証スクリプト・review-ui の区間プレビュー）→ T-153/H-15（音声150本の再生成。piper実行。バイナリ差分のため単独PR）→ T-154（アプリの音声のみモード。T-153 には依存せず、未対応なら空パック案内に縮退する）。
 
+## 2026-07-29: T-152 Part2の誤答応答音声をTTSで生成できるようにする（ブランチ `task/T-152-tts-part2-responses`。T-151起点）
+
+Part2音声のみモードの第2弾。**T-151（スキーマ）の型に依存**するため同ブランチを起点にした。コンテンツの再生成（T-153）はこのPRのマージ後。
+
+- **`synthesizePart2WithResponses` を新設**（`packages/cli/src/tts.ts`）。piperを1+3回呼び、**設問は primary・3応答すべて secondary** で合成して `concatTurnsWithGaps`（`TURN_GAP_SECONDS=0.4`）で連結する。`voice` 文字列は従来形式（`primary+secondary`）のままなので**既存パックの voice と一致し続ける**（バリデータ・既存テストへの波及なし）。
+- **オフセットは連結前の各WAVの実測長から積算する**。mp3のencoder paddingで実長がWAV積算より短くなることがあるため、末尾側から「厳密単調増加」「末尾 < durationMs」を満たすように詰めるクランプを入れた（バリデータのルールを機械的に満たす）。
+- **`part2ResponseTexts` を新設**（`ttsBatch.ts`）。応答テキストを **key 昇順**で取り出す。音声のみモードでは `responseOffsetsMs` の並びが key の対応そのものなので、表示順のランタイムシャッフル（T-79）とは独立に固定する。選択肢が2件未満・key/text が空の異常データでは `null` を返し、**従来の `synthesizeDialogue` へフォールバック**する（音声のみモード非対応として扱う）。
+- **contentLint にルール⑦を追加**（警告）。`responseOffsetsMs` が無い `audio_qa` を `[警告] <id>: 音声のみモード非対応（応答音声が未生成）` として列挙する。部分移行中でもビルドを止めず、未対応がログで分かる。
+- **検証スクリプト `packages/cli/scripts/verify-part2-response-offsets.mjs` を新設**。`backfill-question-end.mjs` の `silencedetect` を流用し、①各応答の開始msが実mp3の無音ギャップ終端と ±150ms 以内で一致するか ②末尾が全長未満か ③（引数で再生成前のパックを渡した場合）`accent` と `voice` が変化していないか を全件照合する。**T-153の受け入れ条件**。
+- **review-ui に応答ごとの区間プレビューを追加**（`DraftForm.tsx`）。media fragment（`#t=開始,終了`）で応答区間だけ再生し、読み上げ順と key の対応を聞いて検品できるようにした。既存の全長プレビューはそのまま残した。**実ブラウザでの動作は未検証**（動かない場合は全長プレビューのみに留める）。
+- **テスト11件を追加**（cli 338→349）。`tts.test.ts` 4件（piperを1+3回・設問primary/3応答secondary・7本連結・voice文字列が従来形式／オフセットの積算と `questionEndMs`／mp3が短い場合のクランプ／`responseTexts` 空で例外）、`ttsBatch.test.ts` 4件（key昇順で渡す・2フィールドの書き戻し・digest再計算／`part2ResponseTexts` の3件）、`contentLint.test.ts` 3件。**既存の audio_qa テストは選択肢が1件のfixtureなのでフォールバック経路の回帰確認になっている**ことを明示した（テスト名を「回帰: …フォールバックする」に変更）。
+- **docs**: `docs/11` に「TTS後に選択肢を編集したら応答音声の再生成が必要（digest不一致でビルドが止まる。digestを手で書き換えてはならない）」の運用注意を追記。`docs/04` 5節にPart2の3応答合成を追記（T-151のPRで実施済み）。
+- **検証**: `npm run lint`・`npm run build`・`npm test`（cli 349・review-ui 15・shared-schema 117）全通過。
+- **既知（本PRとは無関係の既存問題）**: `npx tsc --noEmit -p packages/review-ui` は `src/api.test.ts` で4件エラーになるが、**変更前から存在する**（stashして確認済み）。ルートの `npm run build` は review-ui を型検査対象に含まないため露出していなかった。本PRでは触らない。
+
 ## 2026-07-29: H-13 リリースノートのスクリーンショット13枚を撮り直し（ブランチ `task/H-13-release-note-shots`。dev起点）
 
 ビジュアル刷新（V-9〜V-23）がdevへ合流したのを受けて、[25_ビジュアル刷新計画_M4以降の未適用画面](25_ビジュアル刷新計画_M4以降の未適用画面.md) 6.4節H-13を実施した。発起人が決めた順序は「刷新 → 撮り直し → dev→mainリリース → 配布」で、**刷新前のスクリーンショットで配布しない**ことが要件である。

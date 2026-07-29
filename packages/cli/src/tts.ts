@@ -103,6 +103,13 @@ export interface SynthesizeResult {
    * 応答（=正答）の読み上げリークを防ぐ
    */
   questionEndMs?: number
+  /**
+   * audioMeta.responseOffsetsMs に記録する値（audio_qa の音声のみモード用＝
+   * synthesizePart2WithResponses のみ）。各応答の開始ms（読み上げ順）。
+   * 実測は連結前の各WAVから積算するため、mp3のencoder paddingぶんの誤差が乗りうる
+   * （scripts/verify-part2-response-offsets.mjs が silencedetect で全件照合する）
+   */
+  responseOffsetsMs?: number[]
 }
 
 export interface SynthesizeDialogueInput {
@@ -129,10 +136,30 @@ export interface SynthesizeMultiTurnInput {
   outputPath: string
 }
 
+/**
+ * Part2の音声のみモード用（T-152。正本: ADR 0008・docs/04 2節）。
+ * 「設問＋応答A＋応答B＋応答C」を1本のmp3に連結し、各応答の開始msを返す
+ */
+export interface SynthesizePart2WithResponsesInput {
+  /** 設問部分（primary話者で読む） */
+  questionText: string
+  /**
+   * 応答テキスト。**choices の key 昇順**で渡す（音声の読み上げ順と key の対応が
+   * responseOffsetsMs の意味そのものなので、呼び出し側で並びを保証する）。
+   * 全応答を secondary 話者で読む（本試験も3応答は同一話者）
+   */
+  responseTexts: readonly string[]
+  accent: SupportedAccent
+  /** 出力先mp3パス */
+  outputPath: string
+}
+
 export interface TtsProvider {
   synthesize(input: SynthesizeInput): Promise<SynthesizeResult>
   /** Part2用: 設問と応答を別話者で読み上げ、1本のmp3に連結する（実装指示2） */
   synthesizeDialogue(input: SynthesizeDialogueInput): Promise<SynthesizeResult>
+  /** Part2音声のみモード用: 設問＋3応答すべてを連結し応答の開始msを返す（T-152） */
+  synthesizePart2WithResponses(input: SynthesizePart2WithResponsesInput): Promise<SynthesizeResult>
   /** Part3用: 2話者以上・N ターンの会話を発話順どおりに連結する（M2・T-64） */
   synthesizeMultiTurnDialogue(input: SynthesizeMultiTurnInput): Promise<SynthesizeResult>
 }
@@ -386,6 +413,72 @@ export class PiperTtsProvider implements TtsProvider {
       voice: `${questionVoice.voiceName}+${answerVoice.voiceName}`,
       durationMs,
       questionEndMs: Math.min(questionDurationMs + (TURN_GAP_SECONDS * 1000) / 2, durationMs - 1),
+    }
+  }
+
+  async synthesizePart2WithResponses(
+    input: SynthesizePart2WithResponsesInput,
+  ): Promise<SynthesizeResult> {
+    if (input.responseTexts.length === 0) {
+      throw new Error('synthesizePart2WithResponsesにはresponseTextsが1件以上必要')
+    }
+    const tmpQuestionWav = `${input.outputPath}.q.tmp.wav`
+    const tmpResponseWavs = input.responseTexts.map((_, i) => `${input.outputPath}.r${i}.tmp.wav`)
+
+    const questionVoice = await this.synthesizeToWav(
+      input.questionText,
+      input.accent,
+      'primary',
+      tmpQuestionWav,
+    )
+    // 3応答はすべて応答話者（secondary）で読む。voice文字列を従来形式
+    // （primary+secondary）に保つことで、既存パックの voice と一致し続ける
+    const responseVoices: VoiceSpec[] = []
+    for (let i = 0; i < input.responseTexts.length; i++) {
+      responseVoices.push(
+        await this.synthesizeToWav(
+          input.responseTexts[i]!,
+          input.accent,
+          'secondary',
+          tmpResponseWavs[i]!,
+        ),
+      )
+    }
+
+    // 連結前に各セグメントの実測長を取る（オフセットの積算に使う）
+    const questionDurationMs = await this.probeDurationMs(tmpQuestionWav)
+    const responseDurationsMs: number[] = []
+    for (const path of tmpResponseWavs) {
+      responseDurationsMs.push(await this.probeDurationMs(path))
+    }
+
+    const durationMs = await this.concatTurnsWithGaps(
+      [tmpQuestionWav, ...tmpResponseWavs],
+      input.outputPath,
+    )
+    await rm(tmpQuestionWav, { force: true })
+    await Promise.all(tmpResponseWavs.map((p) => rm(p, { force: true })))
+
+    const gapMs = TURN_GAP_SECONDS * 1000
+    const offsets: number[] = []
+    let cursor = questionDurationMs + gapMs
+    for (const responseDurationMs of responseDurationsMs) {
+      offsets.push(Math.round(cursor))
+      cursor += responseDurationMs + gapMs
+    }
+    // mp3のencoder paddingで実長がWAV積算より短くなることがある。バリデータの
+    // 「厳密単調増加」「末尾 < durationMs」を満たすよう末尾側から詰める
+    for (let i = offsets.length - 1; i >= 0; i--) {
+      const upperBound = durationMs - (offsets.length - i)
+      if (offsets[i]! > upperBound) offsets[i] = upperBound
+      if (i > 0 && offsets[i - 1]! >= offsets[i]!) offsets[i - 1] = offsets[i]! - 1
+    }
+
+    return {
+      voice: `${questionVoice.voiceName}+${responseVoices[0]!.voiceName}`,
+      durationMs,
+      questionEndMs: Math.min(questionDurationMs + gapMs / 2, durationMs - 1),
+      responseOffsetsMs: offsets,
     }
   }
 
