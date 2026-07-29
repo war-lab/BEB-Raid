@@ -2,6 +2,21 @@
 
 **最終更新: 2026-07-29**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
+## 2026-07-29: T-153 Part2音声150本を「設問＋3応答」の連結に再生成（ブランチ `task/T-153-content-part2-audio-regen`。T-152起点）
+
+Part2音声のみモードの第4弾（コンテンツ）。**バイナリ差分150本なので単独PR**。当初は人間タスク（H-15）としていたが、piper/ffmpeg がPATHにあり受け入れ条件を全て機械判定できるため、発起人の指示でこのセッション内で実行した。
+
+- **手順**: `beb tts content/drafts/part2-s.jsonl content <tmp> 1.15` と `part2-s2.jsonl` を実行（`PIPER_VOICES_DIR=.piper-voices`）。出力ドラフトを `content/drafts/` へ差し替えて `beb build content`。所要は150問で約60分（1問あたり piper 4回＋ffmpeg連結で約24秒）。
+- **実行前の安全確認**: drafts と packs を全20パックで逐一比較し、**差分がPart2の `durationMs`（30件）と `questionEndMs`（150件）だけ**であることを確認した（過去のスクリプトがpackだけ更新した残骸で、今回の再生成が実測値で正しく埋め直す）。他18パックは差分ゼロなので `beb build` の全パック再生成で失われるpack側の修正は無い。
+- **受け入れ条件の結果**:
+  - `verify-part2-response-offsets.mjs`（baseline付き）が **150問すべて「全件一致」**。`accent` と `voice` の不変チェックも同時に通過（`voice` は3応答すべて応答話者で読むため従来と同じ `piper:en_US-lessac-medium+piper:en_US-ryan-medium` のまま）。
+  - `beb build` の contentLint で **音声のみモード非対応の警告が0件**（150問すべてに `responseOffsetsMs` が入った）。
+  - **whisperで3問を抜き取り転写**（submit・audit・mitigate）。いずれも「設問→応答A→応答B→応答C」が **key 昇順どおり**に読み上げられていることを確認した。※`audit` は whisper base モデルが "audit" を "order" と誤認識したが、これは転写側の精度問題で音声の内容ではない。
+- **オフセットの実精度**（計画時に未検証としていた最大のリスク）: 実mp3の無音ギャップ終端との差は**29〜57ms**（許容150ms）。WAV実測の積算方式で問題ないことが実データで裏付けられた。
+- **容量**: Part2の音声が **8.0MB → 13.9MB**（+5.9MB。計画時の見積り+11MBより小さい）。content/audio 全体では約54MB。
+- **検証中に検証スクリプトの欠陥を1件見つけて直した**（T-152のPRに含めた）。当初は「n番目の無音ギャップ＝n番目の応答」と位置で対応させていたため、**発話内の息継ぎ**（`No, everything looked fine.` のカンマ後など）が閾値を超える2問（`part2-audit`・`part2-mitigate`）で誤検出が出た。オフセット自体は29〜57msで正しく、各オフセットに最も近いギャップ終端を順序を保って割り当てる方式に変えて解消した。
+- **変更範囲**: `content/audio/part2/*.mp3` 150本・`content/drafts/part2-s{,2}.jsonl`・`content/packs/pack-p2-s-00{1,2}.json`・`content/manifest.json`（該当2エントリの `sizeBytes`/`hash` のみ）。**他18パックは無変更**（`beb build` が出す改行コードだけの差分は戻した）。
+
 ## 2026-07-29: T-151 Part2音声のみモードの応答オフセットをスキーマに追加（ブランチ `task/T-151-schema-part2-response-offsets`。dev起点）
 
 出題・回答方式のブラッシュアップ（全4件）の第1弾。**共有面（パックスキーマ）の変更なので単独PR**とし、TTS生成（T-152）・アプリ実装（T-154）はこのPRの型に依存する。
