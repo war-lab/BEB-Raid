@@ -108,12 +108,32 @@ async function fetchPackQuestions(packId: string): Promise<Question[]> {
  * ゴーストボスの defense（questionId別倍率）を実パックのidから組む。
  * buildGhostWeaknessMap は lookup で解決できないidを捨てるため、実在のidを使う必要がある
  */
+/** 弱点の網羅モード。既定（false）はパック先頭9問ずつで、弱点マップが数行に収まる量にする。
+ *  true にするとDEFENSE_PACK_IDSの全問を弱点にする。リリースノートの「弱点を突いたときの
+ *  解説カード」（H-13の#12）は、レイドセッションが実際に弱点つきの問題を引かないと撮れないため、
+ *  その撮影時だけ網羅する。**既定を変えないのは、screenshot-tour の 11/12 の画像がV-20の
+ *  確認記録と対応しており、弱点マップの行数が変わると記録と一致しなくなるため。** */
+const WIDE_DEFENSE_KEY = '__bebScreenshotWideDefense'
+let wideDefense =
+  typeof localStorage !== 'undefined' && localStorage.getItem(WIDE_DEFENSE_KEY) === '1'
+
+/** manifestに載っている全パックのIDを返す（網羅モードで使う） */
+async function allPackIds(): Promise<string[]> {
+  const res = await fetch(`${import.meta.env.BASE_URL}manifest.json`)
+  if (!res.ok) return DEFENSE_PACK_IDS
+  const manifest = (await res.json()) as { packs?: { id: string }[] }
+  return (manifest.packs ?? []).map((p) => p.id)
+}
+
 async function buildDefense(): Promise<GhostDefenseEntry[]> {
+  // 網羅モードでは全パックの全問を弱点にする。単独モードやレイドのセッションが
+  // どのパックから引いても弱点バッジが出るようにするため（H-13の#12）
+  const packIds = wideDefense ? await allPackIds() : DEFENSE_PACK_IDS
   const perPack = await Promise.all(
-    DEFENSE_PACK_IDS.map((id) => fetchPackQuestions(id).catch(() => [] as Question[])),
+    packIds.map((id) => fetchPackQuestions(id).catch(() => [] as Question[])),
   )
   return perPack
-    .flatMap((questions) => questions.slice(0, 9))
+    .flatMap((questions) => (wideDefense ? questions : questions.slice(0, 9)))
     .map((q) => ({ questionId: q.id, multiplier: 2 }))
 }
 
@@ -297,6 +317,8 @@ interface ScreenshotMockApi {
   setRaidDefeated: (value: boolean) => void
   /** 順位表を想定上限の10人に切り替える。V-23の2列化を投影サイズで確認するため */
   setCrowdedStandings: (value: boolean) => void
+  /** 弱点をDEFENSE_PACK_IDSの全問へ広げる。H-13の「弱点を突いたときの解説カード」用 */
+  setWideDefense: (value: boolean) => void
   battleQuestionOpen: () => void
   battleStandings: () => void
   battleResult: () => void
@@ -325,6 +347,11 @@ function installMockApi(socket: ScreenshotBattleSocket): void {
   const api: ScreenshotMockApi = {
     seedRaid,
     startReadingSession,
+    setWideDefense: (value: boolean) => {
+      wideDefense = value
+      if (value) localStorage.setItem(WIDE_DEFENSE_KEY, '1')
+      else localStorage.removeItem(WIDE_DEFENSE_KEY)
+    },
     setCrowdedStandings: (value: boolean) => {
       crowdedStandings = value
       if (value) localStorage.setItem(CROWDED_KEY, '1')
