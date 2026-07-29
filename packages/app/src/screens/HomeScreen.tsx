@@ -9,6 +9,7 @@ import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { RaidStateRecord } from '../db/schema'
 import { RAID_STATE_ID } from '../db/schema'
+import { supportsAudioOnlyPart2 } from '../engine/audioOnlyPart2'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
 import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { buildHeatmapCells } from '../engine/heatmapCells'
@@ -292,11 +293,16 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
 
   async function startSingleMode(
     format: 'audio_qa' | 'text_blank',
-    options?: { partialAudioMode?: boolean },
+    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
   ) {
     // T-121: 単独モード開始時は「今日のクエスト」の空パック案内が残っていればクリアする
     setEmptyPackMessage(null)
-    const filtered = questionPool.filter((q) => q.format === format)
+    // T-154: 音声のみモードは応答音声が生成済みの問題しか出題できない（ADR 0008）。
+    // 未対応の問題を混ぜると記号だけ出て解答できないため、プールの段階で絞る
+    // （それでも混入した場合はDrillScreen側が問題単位で従来UIへ落とす二段構え）
+    const filtered = questionPool.filter(
+      (q) => q.format === format && (!options?.audioOnlyPart2 || supportsAudioOnlyPart2(q)),
+    )
     // J-57: 各層内をシャッフルして先頭N問を取る（プール順固定だと後半に永遠に到達しない問題への対処）。
     // プールがN問未満のときはある分だけで開始する。
     // レート連動(orderByRating): 実力相応/以下の問題を先に、過度に難しい問題を後ろに並べる。
@@ -312,7 +318,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     const selected = ordered.slice(0, singleModeCount)
     const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
     if (items.length === 0) {
-      setEmptyPackMessage(EMPTY_PACK_MESSAGE)
+      setEmptyPackMessage(
+        options?.audioOnlyPart2
+          ? `${EMPTY_PACK_MESSAGE}（音声のみモードに対応した問題がまだありません）`
+          : EMPTY_PACK_MESSAGE,
+      )
       return
     }
     await startSessionAndNavigate(items, options)
@@ -320,7 +330,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
 
   async function startSessionAndNavigate(
     items: SessionItem[],
-    options?: { partialAudioMode?: boolean },
+    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
   ) {
     if (items.length === 0) return
     if (
@@ -474,6 +484,21 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                   冒頭だけ再生（特訓）
                 </button>
                 <p className="home-part2-options-hint">音声の冒頭だけで答える特訓モードです</p>
+                {/* T-154: 本試験形式（3応答すべてを音声で流す）。ADR 0008でトグル併存と決定。
+                    再生方法を1つ選ぶモーダルなのでチェックボックスにはしない
+                    （partialAudioModeと同時ONに意味がない） */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPart2Options(false)
+                    void startSingleMode('audio_qa', { audioOnlyPart2: true })
+                  }}
+                >
+                  音声のみで解答（本試験形式）
+                </button>
+                <p className="home-part2-options-hint">
+                  選択肢も音声で読み上げられ、記号だけが表示されます（TOEIC本試験と同じ形式）
+                </p>
                 <button type="button" onClick={() => setShowPart2Options(false)}>
                   キャンセル
                 </button>

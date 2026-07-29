@@ -75,6 +75,19 @@
   flex: 1;
   min-width: 0;
 }
+/* T-154: Part2音声のみモードの解答前（記号だけを出す。ADR 0008）。
+   ラベルが空でもボタン高さが潰れないよう最小高さを保ち、記号を中央に置く。
+   形マーカー（▲■●◆）はJV-7でイベントバトル専用なので使わず、記号A/B/Cのまま
+   （本試験のマークシートも (A)(B)(C) なのでそちらの方が忠実） */
+.choice-button.is-marker-only {
+  justify-content: center;
+}
+.choice-button.is-marker-only .choice-button__label {
+  flex: none;
+}
+.choice-button.is-marker-only .choice-button__marker {
+  font-size: var(--fs-question);
+}
 /* アイコン枠は常時確保（空でも幅を占有し、✓✕出現でレイアウトが動かない） */
 .choice-button__icon {
   flex: none;
@@ -527,6 +540,15 @@
 .drill-replay:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+/* T-154: 解答後の応答ごとのリプレイ（音声のみモード）。3つ横並びにして縦を食わない */
+.drill-response-replays {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-1);
+}
+.drill-response-replays .drill-replay {
+  margin-bottom: 0;
 }
 
 /* --- 副次アクション（PrimaryButtonと並ぶテキスト寄りのボタン。P0診断のスキップ等） --- */

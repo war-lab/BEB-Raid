@@ -282,6 +282,181 @@ function audioQaQuestion(id: string, answer: string): Question {
   }
 }
 
+/** 音声のみモード対応のPart2問題（応答音声が生成済み＝responseOffsetsMs あり。T-154） */
+function audioOnlyQuestion(id: string, answer: string): Question {
+  const q = audioQaQuestion(id, answer)
+  q.audioMeta = {
+    accent: 'US',
+    tts: false,
+    voice: 'dev',
+    durationMs: 12000,
+    questionEndMs: 2700,
+    responseOffsetsMs: [2900, 5300, 7900],
+  }
+  return q
+}
+
+/** 音声のみモードでセッションを開始する（sessionStoreのフラグを立てる） */
+async function setupAudioOnlySession(
+  db: BebRaidDatabase,
+  items: SessionItem[],
+  questions: Question[],
+) {
+  const snapshot = await startSession(db, { items })
+  useSessionStore
+    .getState()
+    .begin(snapshot, questions, { L: 400, R: 400 }, { audioOnlyPart2: true })
+  return snapshot
+}
+
+// T-154: 本試験のPart2は3応答すべてを音声で流す。従来形式（設問だけ音声・応答はテキスト）は
+// リスニングと読解の混成になっていた（docs/14 3.6-3）。ADR 0008でトグル併存と決定
+describe('DrillScreen: Part2音声のみモード（ADR 0008・T-154）', () => {
+  it('解答前は記号だけを出し、選択肢テキストをDOMに出さない', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(container.querySelectorAll('.is-marker-only').length).toBe(3))
+
+    // 記号は見えるがテキストは無い（見えていたらリスニングにならない）
+    expect(container.textContent).not.toContain('Yesterday.')
+    expect(container.textContent).not.toContain('In the meeting room.')
+    // 支援技術には記号を名前として伝える
+    expect(screen.getByLabelText('選択肢A')).toBeTruthy()
+  })
+
+  it('解答前の再生は打ち切らない（3応答すべてを聞かせる）', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+
+    // questionEndMs による打ち切り（durationMs オプション）を付けない
+    await waitFor(() =>
+      expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/p2-1.mp3', undefined),
+    )
+  })
+
+  it('再生中でも解答できる（記号には情報が無いのでリークしない）', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    // 再生完了させないFakeにする（playを解決させない＝playing状態を維持）
+    const audioPlayer = new FakeAudioPlayer()
+    // オブジェクトに入れて保持する（let + コールバック内代入では TS が null に絞り込む）
+    const pending: { resolve?: () => void } = {}
+    audioPlayer.play.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          pending.resolve = resolve
+        }),
+    )
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    // 再生中でも記号ボタンが押せる
+    const choice = await screen.findByLabelText('選択肢A')
+    fireEvent.click(choice)
+
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    // 解答したら残りの応答を流し続けない
+    expect(audioPlayer.stop).toHaveBeenCalled()
+    pending.resolve?.()
+  })
+
+  it('タイマーは再生終了後6秒から始まり、0で時間切れとして記録される', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    // 再生完了後にタイマーが出る（従来の15秒ではなく6秒）
+    await vi.waitFor(() => expect(screen.getByText('6')).toBeTruthy())
+
+    await vi.advanceTimersByTimeAsync(6000)
+    await vi.waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    const logs = await db.attempts.toArray()
+    expect(logs[0]!.isTimeout).toBe(true)
+  })
+
+  it('解答後はテキストを開示し、応答ごとのリプレイが区間指定で呼ばれる', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    fireEvent.click(await screen.findByLabelText('選択肢A'))
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+
+    // 音声だけでは復習にならないので解答後はテキストを出す
+    expect(screen.getByText('Yesterday.')).toBeTruthy()
+    fireEvent.click(screen.getByText('B を再生'))
+    await waitFor(() =>
+      expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/p2-1.mp3', {
+        startMs: 5300,
+        durationMs: 2600,
+      }),
+    )
+  })
+
+  it('選択肢はkey昇順で表示する（読み上げ順が音声に焼き込まれているためシャッフルしない）', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(container.querySelectorAll('.is-marker-only').length).toBe(3))
+
+    const markers = [...container.querySelectorAll('.choice-button__marker')].map(
+      (el) => el.textContent,
+    )
+    expect(markers).toEqual(['A', 'B', 'C'])
+  })
+
+  it('未対応の問題（応答音声なし）が混ざると、その問題だけ従来のテキスト選択肢に落ちる', async () => {
+    const db = newDb()
+    // 音声のみモードのセッションに従来形式の問題を入れる（プール抽出漏れ・混入時の自衛）
+    const q = audioQaQuestion('p2-legacy', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+
+    // 従来どおり questionEndMs 無しで全長再生され、テキスト選択肢が出る
+    expect(await screen.findByText('Yesterday.')).toBeTruthy()
+    expect(document.querySelectorAll('.is-marker-only').length).toBe(0)
+  })
+
+  it('音声エラー時は「音声なしで解答する」ではなく「この問題をスキップ」を出す', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.play.mockRejectedValue(new Error('boom'))
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+
+    // 記号だけでは解答できないので「音声なしで解答する」は出さない（永久に進めなくなる）
+    expect(await screen.findByText('この問題をスキップ')).toBeTruthy()
+    expect(screen.queryByText('音声なしで解答する')).toBeNull()
+  })
+})
+
 describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
   it('開始タップでunlock→playが呼ばれ、再生後に3択が解答可能になる', async () => {
     const db = newDb()

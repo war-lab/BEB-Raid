@@ -553,6 +553,78 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
     expect(useSessionStore.getState().partialAudioMode).toBe(true)
   })
 
+  // T-154: 本試験形式（3応答すべてを音声で流す）。ADR 0008でトグル併存と決定
+  it('「音声のみで解答（本試験形式）」で audioOnlyPart2 が true・partialAudioMode は false で始まる', async () => {
+    const db = newDb()
+    // 応答音声が生成済み（responseOffsetsMs あり）の問題を混ぜる
+    const audioOnlyQ = part2Question('p2-audio-only')
+    audioOnlyQ.audioMeta = {
+      accent: 'US',
+      tts: false,
+      voice: 'dev',
+      durationMs: 12000,
+      questionEndMs: 2700,
+      responseOffsetsMs: [2900, 5300],
+    }
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={[...QUESTION_POOL, audioOnlyQ]}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(screen.getByText('音声のみで解答（本試験形式）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().audioOnlyPart2).toBe(true)
+    expect(useSessionStore.getState().partialAudioMode).toBe(false)
+    // 未対応の問題（応答音声なし）はプールから除外される
+    const items = useSessionStore.getState().snapshot?.items ?? []
+    expect(items.map((i) => i.questionId)).toEqual(['p2-audio-only'])
+  })
+
+  it('音声のみモードに対応した問題が無ければセッションを始めず案内を出す', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(screen.getByText('音声のみで解答（本試験形式）'))
+
+    expect(await screen.findByText(/音声のみモードに対応した問題がまだありません/)).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('通常・冒頭だけ再生では audioOnlyPart2 は false のまま（回帰）', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(screen.getByText('冒頭だけ再生（特訓）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().audioOnlyPart2).toBe(false)
+  })
+
   it('今日のクエスト開始では partialAudioMode が false のまま（回帰確認）', async () => {
     const db = newDb()
     render(
