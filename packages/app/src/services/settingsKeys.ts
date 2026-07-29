@@ -11,6 +11,11 @@ export const BYOK_API_KEY_KEY = 'byokApiKey'
 export const BYOK_MODEL_KEY = 'byokModel'
 /** ハプティクス（正解確定時の振動）の有効/無効。既定ON（T-78・14の2.4節） */
 export const HAPTICS_ENABLED_KEY = 'hapticsEnabled'
+/**
+ * 誤タップの取り消し猶予の有効/無効。既定ON（2026-07-29・ADR 0009）。
+ * 選択肢をタップしてから短時間だけ「取り消し」を出し、その間は attempts を書かない
+ */
+export const MISTAP_UNDO_ENABLED_KEY = 'mistapUndoEnabled'
 /** 前回HomeScreen表示時のストリーク日数（T-78: パルス演出を「増えた回だけ」にするための記憶） */
 export const LAST_SEEN_STREAK_KEY = 'lastSeenStreak'
 /**
