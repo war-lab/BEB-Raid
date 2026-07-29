@@ -12,6 +12,7 @@ import { loadQuestionPool, PACK_IDS, syncPacksAndReload } from '../App'
 import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer, PackCache, RaidApi } from '../platform'
 import { createProfile } from '../services/profile'
+import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
 import { DrillScreen } from '../screens/DrillScreen'
 import { HomeScreen } from '../screens/HomeScreen'
 import { useAppStore } from '../store/appStore'
@@ -116,6 +117,9 @@ describe('オフライン結合通し: packSync→loadQuestionPool→HomeScreen�
   it('fetchが全rejectでも、ピン留め済みキャッシュだけでクエスト開始→解答→リザルトまで完走する', async () => {
     const db = newDb()
     await createProfile(db, { displayName: 'てすと', initialToeic: null })
+    // 誤タップの取り消し猶予（ADR 0009。既定ON）はOFFにする。この結合テストは
+    // 解答→記録の完了を answeredCount で待つため、猶予が入ると待ち条件が変わる
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const packCache = offlinePinnedPackCache()
 
     const originalFetch = global.fetch

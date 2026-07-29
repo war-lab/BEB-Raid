@@ -21,7 +21,11 @@ import {
   startSession,
   type SessionItem,
 } from '../services/session'
-import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import {
+  HAPTICS_ENABLED_KEY,
+  MISTAP_UNDO_ENABLED_KEY,
+  NO_EARPHONE_MODE_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { DrillScreen } from './DrillScreen'
@@ -91,6 +95,10 @@ function part5Question(
 const QUESTIONS = [part5Question('q-1', 'A', 'submit'), part5Question('q-2', 'B', 'attend')]
 
 async function setupSession(db: BebRaidDatabase, items: SessionItem[], questions: Question[]) {
+  // 誤タップの取り消し猶予（ADR 0009。既定ON）をOFFにする。ONだと解答から記録まで
+  // 400ms入り、answerAndSettle を使う既存テスト40箇所以上が一律に遅く・不安定になる。
+  // 猶予そのものの検証は専用describeで明示的にONにして行う
+  await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
   const snapshot = await startSession(db, { items })
   useSessionStore.getState().begin(snapshot, questions, { L: 400, R: 400 })
   return snapshot
@@ -439,6 +447,222 @@ describe('DrillScreen: audio_qa（Part2瞬発。T-17）', () => {
   })
 })
 
+// 誤タップの取り消し猶予（ADR 0009）。何を防ぐか: 揺れる車内での誤タップが即・不可逆に
+// 誤答として記録され、レート・SRS・弱点統計・レイドダメージに残ること。
+// attempts は追記専用なので「書く前に遅らせる」以外の取り消し手段は無い
+describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
+  /** 猶予をONにしたセッション（setupSessionが既定OFFにするため上書きする） */
+  async function setupWithUndo(db: BebRaidDatabase, items: SessionItem[], questions: Question[]) {
+    const snapshot = await setupSession(db, items, questions)
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: true })
+    return snapshot
+  }
+
+  it('猶予中は attempts を書かず、色と✓✕だけ出して解説・次へ・途中終了を出さない', async () => {
+    const db = newDb()
+    await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a')) // q-1の正解
+    // 視覚フィードバックは即時（テンポを変えない）
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(screen.getByText('a').closest('button')?.dataset.state).toBe('correct')
+    // 猶予中は記録しない
+    expect(await db.attempts.count()).toBe(0)
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(0)
+    // 取り消し前に解説・全文を読ませない
+    expect(screen.queryByText('解説テキスト')).toBeNull()
+    expect(screen.queryByText('次へ')).toBeNull()
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+  })
+
+  it('猶予が過ぎると記録され、解説と「次へ」が出る', async () => {
+    const db = newDb()
+    await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a'))
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+
+    expect(await db.attempts.count()).toBe(1)
+    expect(screen.getByText('解説テキスト')).toBeTruthy()
+    expect(screen.getByText('次へ')).toBeTruthy()
+    expect(screen.queryByText('取り消し')).toBeNull()
+  })
+
+  it('取り消しで記録せず次の問題へ進み、ストリークが戻り通知が出る', async () => {
+    const db = newDb()
+    await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a')) // 正解＝ストリークが1になる
+    expect(screen.getByText('🔥1')).toBeTruthy()
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // attemptは作らないが、itemは消化して次の問題へ進む（同じ問題の再解答は許さない:
+    // 正解が既に見えているため isCorrect が偽陽性になる）
+    await waitFor(() => expect(screen.getByTestId('drill-undo-notice')).toBeTruthy())
+    expect(await db.attempts.count()).toBe(0)
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1)
+    expect(screen.getByText(/attend/)).toBeTruthy()
+    // 即時に進めたストリークは戻す
+    expect(screen.queryByText('🔥1')).toBeNull()
+  })
+
+  it('最終問での取り消しでリザルトへ遷移し、attemptIds に余分なIDが入らない', async () => {
+    const db = newDb()
+    const q = QUESTIONS[0]!
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    expect(await db.attempts.count()).toBe(0)
+    expect(useSessionStore.getState().snapshot?.attemptIds).toEqual([])
+  })
+
+  it('当て勘判定はタップ時刻基準（猶予分の400msが乗って判定が変わらない）', async () => {
+    const db = newDb()
+    await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 即タップの誤答＝当て勘（GUESS_THRESHOLD_MS=2000）。commit時刻で responseMs を
+    // 計算していると猶予分が乗り、閾値付近で判定が変わる
+    fireEvent.click(await screen.findByText('b')) // q-1の正解はA
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+
+    const logs = await db.attempts.toArray()
+    expect(logs[0]!.isGuess).toBe(true)
+    expect(logs[0]!.responseMs).toBeLessThan(2000)
+  })
+
+  it('audio_qa の時間切れは猶予なしで即記録する（タイマー切れの抜け道にしない）', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await vi.waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+
+    await vi.advanceTimersByTimeAsync(15_000)
+    await vi.waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+
+    // 時間切れは猶予を挟まないので取り消しボタンは出ず、二重記録もしない
+    expect(screen.queryByText('取り消し')).toBeNull()
+    expect(await db.attempts.count()).toBe(1)
+    expect(screen.getByText('時間切れ')).toBeTruthy()
+  })
+
+  it('猶予中にアンマウントすると記録される（解答は実際に行われたため捨てない）', async () => {
+    const db = newDb()
+    await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    const view = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+
+    view.unmount()
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1)
+  })
+
+  // 何を防ぐか: アンマウント時のflushはクリーンアップ関数から commitAnswer を呼ぶが、その関数は
+  // effectを登録したレンダー（=初回）のクロージャなので、question/item/snapshot をクロージャから
+  // 読むと「2問目の解答を1問目のIDで記録しようとして保存が失敗し、解答が失われる」。
+  // 1問目で離脱するテストだけでは差が出ないため、2問目で離脱して questionId を確認する
+  it('2問目の猶予中にアンマウントしても、2問目のIDで正しく記録される', async () => {
+    const db = newDb()
+    await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    const view = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 1問目を確定させてから2問目へ進む
+    fireEvent.click(await screen.findByText('a'))
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    fireEvent.click(await screen.findByText('次へ'))
+
+    // 2問目（q-2。正解はB）を猶予中のまま離脱する
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    fireEvent.click(screen.getByText('b'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    view.unmount()
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(2))
+    const logs = (await db.attempts.toArray()).sort((x, y) => x.answeredAt - y.answeredAt)
+    expect(logs.map((l) => l.questionId)).toEqual(['q-1', 'q-2'])
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(2)
+  })
+
+  it('設定OFFなら従来どおり即記録する（回帰）', async () => {
+    const db = newDb()
+    // setupSession が OFF にするのでそのまま使う
+    await setupSession(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a'))
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+    expect(screen.queryByText('取り消し')).toBeNull()
+    expect(screen.getByText('解説テキスト')).toBeTruthy()
+  })
+
+  it('vocab_card は対象外（4択タップの時点でまだ書き込みではない）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }], [q])
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('submit の意味'))
+    // 自己評価3段階が出て、取り消しは出ない
+    expect(screen.getByText('OK')).toBeTruthy()
+    expect(screen.queryByText('取り消し')).toBeNull()
+  })
+})
+
 describe('DrillScreen: リスニングの自動再生（T-110）', () => {
   it('2問目以降は自動再生される（「音声を再生」の再タップ不要）', async () => {
     const db = newDb()
@@ -606,10 +830,12 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     await setupSession(db, items, [q])
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
-    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+    // 2026-07-29: 解答前は単語のみ（フレーズは解答後に開示する）
     expect(screen.getByText('この単語の意味は？')).toBeTruthy()
+    expect(screen.queryByText(phraseMatcher('Please submit it.'))).toBeNull()
 
     fireEvent.click(screen.getByText('submit の意味'))
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
 
     fireEvent.click(screen.getByText('OK'))
     // 「正解」表示や「次へ」ボタンを経由せず、1件しかないので即リザルトへ遷移する
@@ -623,7 +849,34 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(attempt.isCorrect).toBe(true)
   })
 
-  it('phraseAudioがあれば既定でフレーズ音声が自動再生される（金フレ型体験。以前DrillScreenだけ欠けていた挙動）', async () => {
+  it('解答前はフレーズがDOMに存在しない（文脈からの推測を防ぐ。2026-07-29）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(container.querySelector('.vocab-card__word')?.textContent).toBe('submit')
+    expect(container.querySelector('.vocab-card__phrase')).toBeNull()
+    expect(container.textContent).not.toContain('Please submit it.')
+
+    // 「わからない」でもフレーズは開示される
+    fireEvent.click(screen.getByText('わからない'))
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+  })
+
+  it('phraseAudioがあれば解答後にフレーズ音声が自動再生される（金フレ型体験。解答前は鳴らさない）', async () => {
     const db = newDb()
     await db.srsCards.put({
       id: 'vocab:submit',
@@ -642,11 +895,14 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    // 解答前に鳴らすと音声から意味を推測できる（VocabScreenと同一仕様）
+    expect(audioPlayer.play).not.toHaveBeenCalled()
 
+    fireEvent.click(screen.getByText('submit の意味'))
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/submit.mp3'))
   })
 
-  it('イヤホンなしモードがONならフレーズ音声は自動再生されない', async () => {
+  it('イヤホンなしモードがONなら解答後もフレーズ音声は自動再生されない', async () => {
     const db = newDb()
     await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: true })
     await db.srsCards.put({
@@ -666,6 +922,7 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const audioPlayer = new FakeAudioPlayer()
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('submit の意味'))
     await waitFor(() => expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy())
 
     expect(audioPlayer.play).not.toHaveBeenCalled()
@@ -756,8 +1013,9 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const snapshot = await setupSession(db, items, [q, q2])
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
-    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
+    expect(screen.getByText('この単語の意味は？')).toBeTruthy()
     fireEvent.click(screen.getByText('submit の意味'))
+    expect(screen.getByText(phraseMatcher('Please submit it.'))).toBeTruthy()
 
     // 画面が持つsnapshot(answeredCount=0)を裏でstaleにする
     await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })

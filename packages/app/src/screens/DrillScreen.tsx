@@ -5,6 +5,7 @@
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
 import { computeSetResult } from '../engine/audioSet'
@@ -18,8 +19,17 @@ import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AiClient, AudioPlayer, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
-import { advanceSession, resumeSession } from '../services/session'
-import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import {
+  advanceSession,
+  resumeSession,
+  type SessionItem,
+  type SessionSnapshot,
+} from '../services/session'
+import {
+  HAPTICS_ENABLED_KEY,
+  MISTAP_UNDO_ENABLED_KEY,
+  NO_EARPHONE_MODE_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -62,6 +72,54 @@ interface AnswerResult {
 
 /** audio_qa の解答受付タイマー（02の3.1: 1問15秒完結） */
 const ANSWER_TIMER_SECONDS = 15
+
+/**
+ * 誤タップの取り消し猶予（2026-07-29。正本: ADR 0009）。
+ * 選択肢をタップしてからこの時間だけ attempts への書き込みを遅らせ、その間だけ
+ * 「取り消し」を出す。まだ書いていないので attempts 追記専用の不変条件は破らない。
+ * 視覚フィードバック（色・✓✕）は即時のままなのでテンポは変わらない。
+ * 400msは推定値でドッグフード実測での調整前提（PARTIAL_AUDIO_DURATION_MS と同じ扱い）
+ */
+const UNDO_WINDOW_MS = 400
+
+/**
+ * 取り消し猶予の対象format。
+ * text_blank: 制限時間が無く片手タップの誤タップが最も多い。
+ * audio_qa: 誤タップの主戦場（ただし時間切れ経路は猶予なし。タイマー切れの抜け道になる）。
+ * audio_set のサブ設問は subQuestionResults と computeSetResult の巻き戻しが2系統になり
+ * 効果より複雑さが勝つため対象外。dictation は「確定」が既に二段確認。
+ * vocab_card は4択タップの時点でまだ書き込みではない（記録は自己評価タップ時）ため対象外
+ */
+const UNDO_TARGET_FORMATS = new Set<string>(['text_blank', 'audio_qa'])
+
+/** 猶予中の未確定解答。attemptsへの書き込みに必要な値をタップ時点で確定させて保持する */
+interface PendingCommit {
+  selectedKey: string | null
+  isCorrect: boolean
+  isTimeout: boolean
+  /**
+   * タップ時点で確定させた応答時間。commit時刻で計算すると猶予分（+400ms）が乗り、
+   * GUESS_THRESHOLD_MS=2000 の当て勘判定を跨いで結果が変わる
+   */
+  responseMs: number
+  /** 取り消し時に戻すストリーク（表示は即時に進めているため） */
+  streakBefore: number
+  /** 取り違え防止の検証用（この解答がどのitemに対するものか） */
+  itemIndex: number
+  /**
+   * 解答対象そのもの（question / item / snapshot）もペイロードに持たせる。
+   * アンマウント時のflushはクリーンアップ関数から commitAnswer を呼ぶが、その関数は
+   * **effectを登録したレンダー（=初回）のクロージャ**なので、クロージャ側の
+   * question / item / snapshot は「1問目」のまま固定されている。5問目の猶予中に
+   * 離脱すると1問目のIDで記録しようとして snapshot のずれで保存が失敗し、
+   * 解答そのものが失われる。可変な入力は全てこのペイロードから読む
+   */
+  question: Question
+  item: SessionItem
+  /** recordAnswerPipeline / advanceSession へ渡すスナップショット（未取得なら undefined） */
+  snapshot: SessionSnapshot | undefined
+}
+
 /**
  * 冒頭だけ再生モード（J-5）の再生長。疑問詞＋数語を捉えられる長さの初期値
  * （docsに明記なし。ドッグフード実測で調整する前提のチューニング値）
@@ -172,16 +230,28 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [hapticsEnabled, setHapticsEnabled] = useState(true)
   // T-108: 表示不能スキップの非モーダル通知（数秒で自動的に消える）
   const [skipNotice, setSkipNotice] = useState(false)
+  // 誤タップの取り消し猶予（2026-07-29・ADR 0009）。設定は既定ON
+  const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
+  // 猶予中の未確定解答（attemptsにはまだ書いていない）。null なら猶予中ではない
+  const [pending, setPending] = useState<PendingCommit | null>(null)
+  // アンマウント時のflushとタイマー解除に使う（stateはクリーンアップ関数から読めない）
+  const pendingRef = useRef<PendingCommit | null>(null)
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(true)
+  // 取り消し実行の非モーダル通知（skipNoticeと同型。4秒で消える）
+  const [undoNotice, setUndoNotice] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     void Promise.all([
       db.settings.get(NO_EARPHONE_MODE_KEY),
       db.settings.get(HAPTICS_ENABLED_KEY),
-    ]).then(([earphoneSetting, hapticsSetting]) => {
+      db.settings.get(MISTAP_UNDO_ENABLED_KEY),
+    ]).then(([earphoneSetting, hapticsSetting, undoSetting]) => {
       if (cancelled) return
       setNoEarphoneMode(earphoneSetting?.value === true)
       setHapticsEnabled(hapticsSetting?.value !== false)
+      setMistapUndoEnabled(undoSetting?.value !== false)
       setSettingsLoaded(true)
     })
     return () => {
@@ -212,6 +282,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // 15秒タイマー（isCountingDown）はaudio_qa固有のため対象外
   const needsAudioGate = isAudioQa || isDictation || isAudioSet
   const isVocabCard = question?.format === 'vocab_card'
+  // vocab_card の解答済み判定（4択を選んだ or「わからない」）。フレーズと音声の開示条件に使う
+  const answeredVocab = selectedChoiceKey !== null || dontKnowVocab
   const currentSubQuestion = isAudioSet
     ? (question?.subQuestions ?? [])[subQuestionIndex]
     : undefined
@@ -260,9 +332,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     sortedBlanks.length > 0 && sortedBlanks.every((b) => blankFillsByIndex.has(b.index))
 
   // vocab_card: フレーズ音声を自動再生する（カードが変わるたびに1回。金フレ型体験=02の4節の
-  // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）
+  // 「聞き流し周回」。DrillScreenは元々これを欠いておりVocabScreenとの機能差だった）。
+  // 【2026-07-29】再生は解答後に限る。解答前にフレーズ音声を流すと文脈から意味を推測でき
+  // リコールテストにならない（VocabScreen と同一仕様。docs/02 4節）
   useEffect(() => {
     if (!settingsLoaded || !isVocabCard || noEarphoneMode || !question?.phraseAudio) return
+    if (!answeredVocab) return
     void audioPlayer
       .unlock()
       .then(() => audioPlayer.play(question.phraseAudio!))
@@ -271,14 +346,14 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         console.warn('[DrillScreen] フレーズ音声の自動再生に失敗', err)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsLoaded, isVocabCard, noEarphoneMode, question?.phraseAudio])
+  }, [settingsLoaded, isVocabCard, noEarphoneMode, answeredVocab, question?.phraseAudio])
   // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら（hasPlayedOnceRef）、
   // 以降の音声ゲート付き問題（audio_qa/dictation/audio_set）は自動再生する。
   // handlePlayStart は関数宣言（hoisted）のため、この時点で呼び出して問題ない。
   // 自動再生が拒否された場合はhandlePlayStart内のcatchが従来のタップ開始UIへ戻す
   useEffect(() => {
     if (!needsAudioGate || playState !== 'idle' || !hasPlayedOnceRef.current) return
-    // eslint-disable-next-line react-hooks/immutability
+
     void handlePlayStart()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question?.id])
@@ -309,17 +384,18 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   useEffect(() => {
     if (playState === 'prereading' && preReadingSecondsLeft === 0) {
       // startAudioSetPlayback は関数宣言（hoisted）のため、この時点で呼び出して問題ない
-      // eslint-disable-next-line react-hooks/immutability
+
       void startAudioSetPlayback()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preReadingSecondsLeft])
 
-  // タイマーが0に達したら自動的にタイムアウト（誤答）として確定する
+  // タイマーが0に達したら自動的にタイムアウト（誤答）として確定する。
+  // pendingRef も見るのは多層防御（猶予中は result が既にあるので通常は到達しない）
   useEffect(() => {
-    if (remainingSec === 0 && !result) {
+    if (remainingSec === 0 && !result && !pendingRef.current) {
       // finalizeAnswer は関数宣言（hoisted）のため、この時点で呼び出して問題ない
-      // eslint-disable-next-line react-hooks/immutability
+
       void finalizeAnswer(null, false, true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -378,6 +454,36 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     return () => clearTimeout(timeout)
   }, [skipNotice])
 
+  // 取り消し通知も同型（非モーダル・4秒）
+  useEffect(() => {
+    if (!undoNotice) return
+    const timeout = setTimeout(() => setUndoNotice(false), 4000)
+    return () => clearTimeout(timeout)
+  }, [undoNotice])
+
+  // アンマウント時（中断・途中終了・reading画面への切替・タブ閉じ）に猶予中の解答が残っていたら
+  // 記録する（ADR 0009）。解答は実際に行われており、attempts は分析の基盤なので捨てる方が損失が
+  // 大きい。answerCurrentQuestion が attempt と snapshot を同一トランザクションで進めるため、
+  // 途中離脱でも「解答済みなのに再出題」「未解答なのにスキップ」のどちらも起きない。
+  // beforeunload は扱わない（IndexedDBへの同期書き込みができないため。未書き込みなら
+  // 次回セッション再開時に未解答として再出題される＝オフライン正常系の既存方針どおり）
+  useEffect(() => {
+    // マウント時に true へ戻すのが必須。StrictModeの開発時二重マウント
+    // （mount→cleanup→mount）でcleanupがfalseにしたまま再マウントすると、
+    // 以降 setPending(null) が走らず取り消しボタンが消えないまま固まる（実機で発見）
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      const p = pendingRef.current
+      if (undoTimerRef.current !== null) clearTimeout(undoTimerRef.current)
+      undoTimerRef.current = null
+      // commitAnswer は関数宣言（hoisted）のため、この時点で呼び出して問題ない
+
+      if (p) void commitAnswer(p)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- アンマウント時に1回だけ
+  }, [])
+
   // セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を必ず出す
   if (sessionError) {
     return (
@@ -428,6 +534,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }
 
+  function clearUndoTimer() {
+    if (undoTimerRef.current !== null) {
+      clearTimeout(undoTimerRef.current)
+      undoTimerRef.current = null
+    }
+  }
+
   async function finalizeAnswer(
     selectedKey: string | null,
     isCorrect: boolean,
@@ -435,31 +548,77 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   ) {
     if (result || !question || !item) return
     const responseMs = now() - startedAt
+    // 視覚フィードバック（色・✓✕・ストリーク・振動）は猶予の有無にかかわらず即時
     setResult({ selectedKey, isCorrect, isTimeout })
     setStreak((s) => (isCorrect ? s + 1 : 0))
     triggerCorrectHaptics(hapticsEnabled, isCorrect)
+
+    // 時間切れは猶予なしで即記録する（誤タップではないため。猶予を入れると
+    // 「タイマー切れを取り消す」抜け道になる）
+    const undoable = mistapUndoEnabled && !isTimeout && UNDO_TARGET_FORMATS.has(question.format)
+    const payload: PendingCommit = {
+      selectedKey,
+      isCorrect,
+      isTimeout,
+      responseMs,
+      streakBefore: streak,
+      itemIndex: displayIndex,
+      question,
+      item,
+      snapshot,
+    }
+    if (undoable) {
+      pendingRef.current = payload
+      setPending(payload)
+      clearUndoTimer()
+      undoTimerRef.current = setTimeout(() => void commitAnswer(payload), UNDO_WINDOW_MS)
+      return
+    }
+    await commitAnswer(payload)
+  }
+
+  /**
+   * 猶予を抜けた解答を確定して永続化する（従来の finalizeAnswer の後半）。
+   * 猶予OFF・時間切れ・対象外formatの場合は finalizeAnswer から直接呼ばれる。
+   * アンマウント後（flush経路）でも呼ばれるため、setStateは mountedRef で守る
+   */
+  async function commitAnswer(payload: PendingCommit) {
+    // question / item / snapshot は**ペイロードから読む**（クロージャからは読まない）。
+    // アンマウント時のflushは初回レンダーのクロージャを呼ぶため、そちらを使うと
+    // 5問目の解答を1問目のIDで記録しようとして保存が失敗し、解答が失われる
+    const {
+      isCorrect,
+      isTimeout,
+      responseMs,
+      question: q,
+      item: sessionItem,
+      snapshot: snap,
+    } = payload
+    clearUndoTimer()
+    pendingRef.current = null
+    if (mountedRef.current) setPending(null)
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
       // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）。
       // mode='battle'（ボス役セッション=M4・T-128）はレート更新の対象外（docs/22 3.5節・3.2節と同じ扱い）
       const { nextSnapshot, ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
-        snapshot,
-        questionId: question.id,
-        question,
+        snapshot: snap,
+        questionId: q.id,
+        question: q,
         lookup: questions,
         isCorrect,
         responseMs,
         isTimeout,
-        mode: item.mode,
-        srsCardId: item.srsCardId,
-        skip: { rating: item.mode === 'battle' },
+        mode: sessionItem.mode,
+        srsCardId: sessionItem.srsCardId,
+        skip: { rating: sessionItem.mode === 'battle' },
       })
       // M4・T-129: 堅い/弱点バッジ・実ダメージ表示用（該当なしならraidDamageはundefinedのまま）
-      if (raidDamage) setResult((r) => (r ? { ...r, raidDamage } : r))
+      if (raidDamage && mountedRef.current) setResult((r) => (r ? { ...r, raidDamage } : r))
 
       recordAnswer(nextSnapshot!, {
-        questionId: question.id,
+        questionId: q.id,
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
@@ -471,6 +630,33 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   function handleSelect(choiceKey: string) {
     if (needsAudioGate && playState !== 'played') return
     void finalizeAnswer(choiceKey, choiceKey === question!.answer, false)
+  }
+
+  /**
+   * 誤タップの取り消し（ADR 0009）。attemptsをまだ書いていないので「記録せずに次の問題へ進む」。
+   * 同じ問題を再解答させないのは、視覚フィードバックが即時＝正解が既に見えているため
+   * （見た後の再解答を許すと isCorrect が偽陽性になり、測定精度の改善を自分で壊す）。
+   * advanceToNext がタイマー・playState・startedAt を全てリセットするので、
+   * 15秒タイマーを途中から復活させる必要が構造的に生じない
+   */
+  async function handleUndo() {
+    const payload = pendingRef.current
+    if (!payload || !payload.snapshot) return
+    clearUndoTimer()
+    pendingRef.current = null
+    setPending(null)
+    setResult(null)
+    setStreak(payload.streakBefore)
+    try {
+      // commitAnswer と同じ理由でペイロードの snapshot を使う（取り違え防止）
+      const nextSnapshot = await advanceSession(db, payload.snapshot)
+      useSessionStore.setState({ snapshot: nextSnapshot })
+      setUndoNotice(true)
+      advanceToNext()
+    } catch (err) {
+      console.warn('[DrillScreen] 取り消し後にセッションを進められませんでした', err)
+      setSessionError('セッションを進められませんでした')
+    }
   }
 
   /**
@@ -651,6 +837,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }
 
+  /**
+   * vocab_card: 解答後にフレーズを再生する。
+   * replay() を使わないのは、イヤホンなしモードでは自動再生していないため
+   * lastOptions が別問題の音声を指しうるから（VocabScreen.handlePlayPhrase と同じ理由）
+   */
+  async function handlePlayPhrase() {
+    if (!question?.phraseAudio) return
+    try {
+      await audioPlayer.unlock()
+      await audioPlayer.play(question.phraseAudio)
+    } catch (err) {
+      console.warn('[DrillScreen] フレーズの再生に失敗', err)
+      setAudioError('音声を再生できませんでした')
+    }
+  }
+
   /** audio_qa: 解答後に「質問＋応答」の全体を聞き直す（正答リーク対策で解答前は質問部のみのため） */
   async function handlePlayFullExchange() {
     if (!question?.audio) return
@@ -712,6 +914,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   function advanceToNext() {
+    // 猶予中の解答が残っていたら記録してから進む（「次へ」は確定後にしか出ないので
+    // 通常は到達しない防御。取り消し経路は handleUndo が pendingRef をクリア済み）
+    const stillPending = pendingRef.current
+    if (stillPending) {
+      clearUndoTimer()
+      void commitAnswer(stillPending)
+    }
     if (displayIndex + 1 >= total) {
       navigate('result')
       return
@@ -806,6 +1015,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               表示できない問題を1件スキップしました
             </p>
           )}
+          {undoNotice && (
+            <p className="drill-skip-notice" role="status" data-testid="drill-undo-notice">
+              この解答は記録しませんでした
+            </p>
+          )}
           {/* docs/20 3.4節S2: パート名の英字タグ（--font-display・--goldの淡い枠）。
               表示のみの追加で、下の出題理由表示の内容は変えない */}
           <span className="drill-part-tag">{partTagLabel(question.part)}</span>
@@ -860,9 +1074,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 </ChoiceButton>
               )
             })}
-          {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && question.phraseAudio && (
-            <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
-              もう一度再生
+          {/* フレーズ音声は解答後にのみ出す（解答前に流すと文脈から意味を推測できる）。
+              replay() ではなく play() を使う: イヤホンなしモードでは自動再生していないので
+              replay() の lastOptions が別問題の音声を指しうる */}
+          {isVocabCard && answeredVocab && question.phraseAudio && (
+            <button type="button" className="drill-replay" onClick={() => void handlePlayPhrase()}>
+              フレーズを再生
             </button>
           )}
           {isVocabCard && selectedChoiceKey === null && !dontKnowVocab && (
@@ -1083,7 +1300,21 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               </PrimaryButton>
             </>
           )}
+          {/* 猶予中は「取り消し」だけを出す（ADR 0009）。高さを予約したスロットにして
+              猶予終了でボタンが消えるときに2回目のレイアウトシフトが起きないようにする */}
           {!isVocabCard && !isAudioSet && result && (
+            <div className="drill-undo-slot">
+              {pending !== null && (
+                <button type="button" className="drill-undo" onClick={() => void handleUndo()}>
+                  取り消し
+                </button>
+              )}
+            </div>
+          )}
+          {/* 猶予中は解説・次へ・途中終了を出さない。出すと取り消し前に解説と全文が読める。
+              「ここで終了して結果を見る」を確定後に限ることで、アンマウント時のflushと
+              navigate('result') の競走も同時に防げる */}
+          {!isVocabCard && !isAudioSet && result && pending === null && (
             <>
               {result.isTimeout && <p>時間切れ</p>}
               {isAudioQa && question.audio && (
@@ -1130,19 +1361,24 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       }
     >
       {isVocabCard ? (
-        <div className="vocab-card">
+        // 解答前は単語のみ、解答後にフレーズを開示する（2026-07-29。VocabScreen と同一仕様）
+        <div className="vocab-card vocab-card--recall">
           {question.freqRank && (
             <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
               {question.freqRank}
             </span>
           )}
-          <p className="vocab-card__phrase">
-            <HighlightedPhrase
-              phrase={question.phrase ?? question.front ?? ''}
-              word={question.front ?? ''}
-            />
-          </p>
-          <p className="vocab-card__prompt">この単語の意味は？</p>
+          <p className="vocab-card__word">{question.front ?? ''}</p>
+          {answeredVocab ? (
+            <p className="vocab-card__phrase">
+              <HighlightedPhrase
+                phrase={question.phrase ?? question.front ?? ''}
+                word={question.front ?? ''}
+              />
+            </p>
+          ) : (
+            <p className="vocab-card__prompt">この単語の意味は？</p>
+          )}
         </div>
       ) : isDictation ? (
         <p className="question-text dictation-script">

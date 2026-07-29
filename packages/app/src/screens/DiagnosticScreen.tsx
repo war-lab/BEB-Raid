@@ -318,7 +318,13 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     try {
       await audioPlayer.unlock()
       if (question!.audio) {
-        await audioPlayer.play(question!.audio)
+        // audio_qa の音声は「設問＋正答応答」を1ファイルに連結しているため、
+        // questionEndMs で打ち切って正答応答の読み上げを漏らさない（DrillScreen と同じ規約）。
+        // 旧生成分（questionEndMs 無し）は従来どおり全長再生にフォールバックする
+        const questionEndMs = question!.audioMeta?.questionEndMs
+        const options =
+          needsAudioGate && typeof questionEndMs === 'number' ? { durationMs: questionEndMs } : {}
+        await audioPlayer.play(question!.audio, options)
       }
     } catch (err) {
       console.warn('[DiagnosticScreen] 音声再生に失敗', err)
