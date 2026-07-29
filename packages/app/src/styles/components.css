@@ -354,6 +354,22 @@
 .result-highlight-tile--listen {
   color: var(--listen);
 }
+/* 解答の質の第2行（当て勘・速度不足。docs/03 7.2節）。3列グリッドに5枚入れると2行目が
+   欠けた見た目になるため2列で分けて置く。タイル意匠は .result-highlight-tile を共有する */
+.result-quality-tiles {
+  list-style: none;
+  margin: var(--sp-half) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1);
+}
+/* 誤答＝悪ではない（docs/25 4.7節）ので --ng も --ok も使わず地の文の色にする
+   （--ok はライトテーマで --surface 上4.358＝本文基準未達。docs/25 5.1節の既知#1） */
+.result-quality-tile {
+  color: var(--ink);
+  font-weight: 400;
+}
 .result-stats {
   list-style: none;
   margin: var(--sp-1) 0;
