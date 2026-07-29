@@ -18,3 +18,9 @@ docs/design/
 # コンテンツパイプライン（CLI）の生成物。手で編集する正本ではないため整形対象外
 # （T-32でJSON.stringifyそのままの出力とPrettierの配列整形が食い違うため除外）
 content/
+
+# 配布用の単一HTML成果物（リリースノート・取説）。スクリーンショットをWebPのdata URIで
+# 埋め込んだ700KB超の生成物で、手で編集する正本ではない。Prettierで整形すると差分が
+# ノイズになるため対象外にする（docs/design/ と同じ理由）。
+# 2026-07-29: 未整形のまま追跡されたことで dev のCI（format:check）が赤になっていたため明示的に除外した
+BEB-Raid-*.html
