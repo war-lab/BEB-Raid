@@ -17,6 +17,7 @@ import {
   BYOK_MODEL_KEY,
   FONT_SIZE_KEY,
   HAPTICS_ENABLED_KEY,
+  MISTAP_UNDO_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
   QUESTION_STATS_ENABLED_KEY,
   RAID_REGISTERED_AT_KEY,
@@ -60,6 +61,8 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
   const [noEarphoneMode, setNoEarphoneModeState] = useState(false)
   // T-78: ハプティクス（正解確定時の振動）。既定ON（14の2.4節）
   const [hapticsEnabled, setHapticsEnabledState] = useState(true)
+  // 誤タップの取り消し猶予（ADR 0009）。既定ON
+  const [mistapUndoEnabled, setMistapUndoEnabledState] = useState(true)
   // T-96: レイドダメージ送信の有効/無効。既定OFF（レイド参加中のみ有効にする想定）
   const [raidSyncEnabled, setRaidSyncEnabledState] = useState(false)
   // T-100: questionStats（匿名問題別正誤集計）送信の有効/無効。既定OFF
@@ -100,6 +103,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       raidSyncSetting,
       questionStatsSetting,
       raidRegisteredSetting,
+      mistapUndoSetting,
     ] = await Promise.all([
       db.profile.get(PROFILE_ID),
       db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -114,11 +118,13 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       db.settings.get(RAID_SYNC_ENABLED_KEY),
       db.settings.get(QUESTION_STATS_ENABLED_KEY),
       db.settings.get(RAID_REGISTERED_AT_KEY),
+      db.settings.get(MISTAP_UNDO_ENABLED_KEY),
     ])
     if (cancelledRef.current) return
     setDisplayName(profile ? profile.displayName : '')
     setNoEarphoneModeState(earphoneSetting?.value === true)
     setHapticsEnabledState(hapticsSetting?.value !== false)
+    setMistapUndoEnabledState(mistapUndoSetting?.value !== false)
     setRaidSyncEnabledState(raidSyncSetting?.value === true)
     setQuestionStatsEnabledState(questionStatsSetting?.value === true)
     setRaidRegistered(raidRegisteredSetting?.value != null)
@@ -166,6 +172,12 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     const next = !hapticsEnabled
     setHapticsEnabledState(next)
     await db.settings.put({ key: HAPTICS_ENABLED_KEY, value: next })
+  }
+
+  async function handleToggleMistapUndo() {
+    const next = !mistapUndoEnabled
+    setMistapUndoEnabledState(next)
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: next })
   }
 
   async function handleToggleRaidSync() {
@@ -295,6 +307,17 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               onChange={() => void handleToggleHaptics()}
             />
             ハプティクス（正解確定時に振動する）
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <input
+              type="checkbox"
+              checked={mistapUndoEnabled}
+              onChange={() => void handleToggleMistapUndo()}
+            />
+            誤タップの取り消し猶予（選択直後に取り消せるようにする）
           </label>
         </section>
 
