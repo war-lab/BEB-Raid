@@ -1,6 +1,50 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-29**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-30**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+
+## 🔴 2026-07-30: 本番の週次ボスが生成されていない／本番APIがM3世代のまま（未解決。ブランチ `task/status-record-production-api-gap`）
+
+発起人の「公開版でボスが生成されていないのでは」という指摘を受けて本番環境を調査した。**指摘は正しく、2件の未解決問題が確定した**。コードは変更していない（調査と記録のみ）。
+
+### 確認できた事実（すべて実測）
+
+| 項目 | 結果 |
+|---|---|
+| 本番Workerの生存 | `GET /health` → **200** `{"ok":true}` |
+| 今週のボス | `GET /raid/current` → **404 `boss_not_found`** |
+| cronトリガーの登録 | **登録済み** `0 0 * * 1`（Cloudflare API `/workers/scripts/beb-raid-api/schedules`。created 2026-07-22T01:00Z・modified 2026-07-22T01:51Z） |
+| 本番の最終デプロイ | **2026-07-22T01:51:01Z**。それ以降なし（`wrangler deployments list --env production`） |
+| 本番KVの登録メンバー | **7件**（`member:*`。登録経路は機能している） |
+| `GET /raid/summary` | **404 `not_found`**（`boss_not_found` とは本文が異なる＝**ルート自体が無い**） |
+| `POST /ghosts` | **404 `not_found`**（同上） |
+
+調査は読み取り専用で行った。認証が必要な `GET` は本番KVに登録済みの `deviceToken` を1件 Bearer に使った（`authenticateRequest` は KV の `member:<token>` 照合のみ）。**本番への書き込み・デプロイ・cron手動実行はしていない**。
+
+### 問題① 今週（`boss-2026-W31`）のボスが生成されていない
+
+原因として最初に疑った経路はすべて否定された。
+
+- **登録者が0人だから**ではない: `generateWeeklyBoss` は `maxHp = Math.max(MIN_BOSS_HP, …)` で下限を持ち、メンバー0件でもボスを生成する。実際にKVには7件ある。
+- **前週DOが未初期化で例外**ではない: `RaidBossDO` のコンストラクタが `CREATE TABLE IF NOT EXISTS` を実行するため、未初期化DOに対する `totalDamageByDeviceToken()` は空オブジェクトを返すだけで throw しない。
+- **bossIdの不一致**ではない: `handleRaidCurrent` の `currentBossId(now)` は `bossIdFor(isoWeekInfo(now))` で、`generateWeeklyBoss` が使う式と同一（本番デプロイ版のコードで確認）。
+- **cronトリガーの登録漏れ**ではない: 上表のとおり本番Workerに登録されている。
+
+したがって残る可能性は **(a) cronが発火していない** か **(b) 発火して `generateWeeklyBoss` が失敗している** のどちらかである。**この切り分けは未完了**。
+
+重要な前提として、2026-07-22の「H-1続き」で確認した `boss-2026-W30` は**一時デバッグエンドポイントによる手動生成**であり（本書1279〜1287行）、cronは「登録されたこと」しか確認していない。**cronによる自動発火の初回は 2026-07-27 00:00 UTC で、その結果が今回の404**という位置づけになる。つまり自動発火は一度も成功が確認されていない。
+
+### 問題② 本番APIがM3世代のまま（公開アプリとの不整合）
+
+`api-deploy.yml` は **production を手動 `workflow_dispatch` のみ**とし、`main` への push では **dev環境だけ**を更新する（誤った本番自動デプロイを避ける意図的な設計）。一方 GitHub Pages は `main` への push で自動配信される。
+
+その結果、**公開アプリ（2026-07-30 01:16 に f88b0ae で配信済み）はM4以降のUIを持つのに、本番APIは2026-07-22のM3世代**という状態になっている。`/raid/summary`・`/ghosts` が本番に存在しないのは上表で確認済みで、ゴーストレイド・イベントバトル・週次サマリはブラウザから叩いても404になる。
+
+### 未確認（次にやること）
+
+- **cronが発火したのか失敗したのかの切り分け**。`[observability] enabled = true` なのでWorkers Logsに記録は残っているはず（成功時は `週次ボス生成完了: bossId=… maxHp=… members=…`、失敗時は `週次ボス生成に失敗しました`）。ローカルのwrangler OAuthトークンでは Observability の照会APIが **403 Authentication error** で拒否されるため、**ダッシュボード（Workers → beb-raid-api → Logs）で見るか、Observability権限付きAPIトークンを発行する**必要がある。
+- **2026-08-03（月）00:00 UTC = 09:00 JST のcron発火の確認**。発起人の判断で今週分の手動生成は行わず（残り約1日で参加余地が小さいため）、来週のcronを待つ方針。発火後に `GET /raid/current` が `boss-2026-W32` を返すかで自動発火の成否が確定する。**返らなければ問題①は「cronが発火しない」で確定**するので、その時点で原因調査を再開する。
+- **本番へのデプロイ**は発起人の判断で保留（このセッションでは実施しない）。実施する場合は `gh workflow run api-deploy.yml -f environment=production`（デプロイ前に tsc・テストのゲートが走る）。
+
 
 ## 2026-07-29: A-1〜A-8 ビジュアル改修（レイアウトとブランド整合）（ブランチ `task/V-24-A群レイアウト整合`。dev起点）
 
