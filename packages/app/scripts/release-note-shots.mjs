@@ -1,4 +1,5 @@
-// リリースノート（BEB-Raid-リリースノート.html）の埋め込みスクリーンショット13枚の採取（H-13）。
+// リリースノート（BEB-Raid-リリースノート.html）の埋め込みスクリーンショットの採取（H-13）。
+// 13枚で始まり、2026-07-29にPart2音声のみモード（#14）を追加して14枚になった。
 //   前提: 別ターミナルで `npm run dev -w @beb-raid/app` が起動済み
 //   使い方: node scripts/release-note-shots.mjs [出力ディレクトリ] [--port=5173]
 //
@@ -209,6 +210,40 @@ if (await toRaid()) {
 }
 
 await page.evaluate('window.__bebScreenshotMock.setWideDefense(false)')
+
+// 14. Part2 音声のみモード（本試験形式。T-154）。選択肢が記号だけになる状態を撮る。
+// 音声のみモードは「再生中も解答できる」ため、再生完了を待たずに記号が押せる状態になる
+// （ヘッドレスでは音声の再生完了が来ないことがあるが、この画面はそれに依存しない）。
+await page.goto(`${origin}/${MOCK}`, { waitUntil: 'networkidle' })
+await page.waitForTimeout(1200)
+const part2Entry = page.getByRole('button', { name: /^Part2/ })
+if (await part2Entry.count()) {
+  await part2Entry.first().click()
+  await page.waitForTimeout(400)
+  await page.getByRole('button', { name: '10問' }).first().click()
+  await page
+    .getByRole('button', { name: /音声のみで解答/ })
+    .first()
+    .click()
+  await page.waitForTimeout(1400)
+  const playBtn = page.getByRole('button', { name: /^音声を再生$/ })
+  if (await playBtn.count()) {
+    await playBtn.first().click()
+    // 記号のみの選択肢（.is-marker-only）が出るまで待つ
+    await page
+      .locator('.is-marker-only')
+      .first()
+      .waitFor({ timeout: 5000 })
+      .catch(() => {})
+  }
+  if (await page.locator('.is-marker-only').count()) {
+    await capture(page, '14-audio-only-part2')
+  } else {
+    console.log('not reached: 14-audio-only-part2（記号のみの選択肢が出なかった）')
+  }
+} else {
+  console.log('not reached: 14-audio-only-part2（Part2の導線が見つからない）')
+}
 
 // 6〜9. イベントバトル参加（S7）
 await page.goto(`${origin}/${MOCK}`, { waitUntil: 'networkidle' })
