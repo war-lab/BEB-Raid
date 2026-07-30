@@ -23,6 +23,12 @@ interface Props {
   raidApi?: RaidApi
   /** raidRegisteredAt照会用（未注入ならraidApiがあっても報告ボタンは出さない） */
   db?: BebRaidDatabase
+  /**
+   * M4・T-129: ゴースト週でこの問題がdefenseに該当した場合のみ渡す（該当なし・synthetic週・
+   * API無効時はundefined/null。docs/22 3.4節）。「堅い×0.5」「弱点×2.0」バッジと
+   * 今回の実ダメージ（倍率適用後にpendingSyncへ積んだ値）を表示する
+   */
+  ghostDefense?: { multiplier: number; damage: number } | null
 }
 
 // 理由ラベルは「何を報告するのか」が一目で分かる文にする（レビューF4(b)）
@@ -47,7 +53,14 @@ function errorMessage(error: unknown): string {
   return 'エラーが発生しました。再試行してください'
 }
 
-export function ExplanationCard({ question, isCorrect, aiClient, raidApi, db }: Props) {
+export function ExplanationCard({
+  question,
+  isCorrect,
+  aiClient,
+  raidApi,
+  db,
+  ghostDefense,
+}: Props) {
   const [configured, setConfigured] = useState(false)
   const [online, setOnline] = useState(() => navigator.onLine)
   const [expanded, setExpanded] = useState(false)
@@ -136,6 +149,16 @@ export function ExplanationCard({ question, isCorrect, aiClient, raidApi, db }: 
   return (
     <div className="explanation-card" data-correct={isCorrect}>
       <p className="explanation-card__verdict">{isCorrect ? '正解' : '不正解'}</p>
+      {/* M4・T-129: ゴースト週の堅い/弱点バッジ（docs/22 3.4節。事前開示は禁止だが解答後は
+          その1問限りの結果として表示してよい）。damageは倍率適用後の実ダメージ */}
+      {ghostDefense && (
+        <p className="explanation-card__ghost-defense" data-testid="ghost-defense-badge">
+          {ghostDefense.multiplier > 1
+            ? `弱点 ×${ghostDefense.multiplier}`
+            : `堅い ×${ghostDefense.multiplier}`}
+          （今回のダメージ: <span className="display-num">{ghostDefense.damage}</span>）
+        </p>
+      )}
       {question.explanation && <p className="explanation-card__body">{question.explanation}</p>}
       {question.translation && (
         <p className="explanation-card__translation">{question.translation}</p>

@@ -15,10 +15,31 @@
 
 import type { DamageSyncPayload, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
+import type { RaidBossTypeCache } from '../db/schema'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from './settingsKeys'
+
+/**
+ * RaidBossStateからraidStateキャッシュ用の3フィールド（M4・T-129。docs/22 3.4節）を組み立てる。
+ * bossState.defense（questionId別の配列）はO(1)引きのためRecordへ変換してJSON化する。
+ * サーバー未送出（synthetic週・旧クライアント互換の省略）はいずれもundefined/nullを維持し、
+ * answerPipelineの倍率解決がsynthetic/API無効時と完全に同一挙動になるようにする
+ */
+export function buildRaidStateBossCache(boss: RaidBossState): {
+  bossType: RaidBossTypeCache
+  defenseJson: string | null
+  ghostJson: string | null
+} {
+  return {
+    bossType: boss.bossType ?? 'synthetic',
+    defenseJson: boss.defense
+      ? JSON.stringify(Object.fromEntries(boss.defense.map((d) => [d.questionId, d.multiplier])))
+      : null,
+    ghostJson: boss.ghost ? JSON.stringify(boss.ghost) : null,
+  }
+}
 
 /** 初回討伐参加バッジ（週を問わず1回のみ） */
 export const RAID_FIRST_CLEAR_BADGE_ID = 'raid-first-clear'
@@ -131,6 +152,7 @@ export async function syncRaidDamage(
     startAt: boss.startAt,
     endAt: boss.endAt,
     lastSyncedAt: Date.now(),
+    ...buildRaidStateBossCache(boss),
   })
 
   await grantRaidBadgesIfDefeated(db, boss)

@@ -11,6 +11,11 @@ export const BYOK_API_KEY_KEY = 'byokApiKey'
 export const BYOK_MODEL_KEY = 'byokModel'
 /** ハプティクス（正解確定時の振動）の有効/無効。既定ON（T-78・14の2.4節） */
 export const HAPTICS_ENABLED_KEY = 'hapticsEnabled'
+/**
+ * 誤タップの取り消し猶予の有効/無効。既定ON（2026-07-29・ADR 0009）。
+ * 選択肢をタップしてから短時間だけ「取り消し」を出し、その間は attempts を書かない
+ */
+export const MISTAP_UNDO_ENABLED_KEY = 'mistapUndoEnabled'
 /** 前回HomeScreen表示時のストリーク日数（T-78: パルス演出を「増えた回だけ」にするための記憶） */
 export const LAST_SEEN_STREAK_KEY = 'lastSeenStreak'
 /**
@@ -50,3 +55,9 @@ export const DIAGNOSTIC_PROGRESS_KEY = 'diagnosticProgress'
  * 「今日のクエスト」には作用しない。Part2/Part5で共通の1キーでよい（同節）
  */
 export const SINGLE_MODE_COUNT_KEY = 'singleModeCount'
+/**
+ * ボス役記録（POST /ghosts）を送信済みか（epoch ms。M4・T-128）。
+ * RaidScreenがこれを見て「撤回する」導線の表示要否を判断する（サーバー側KVの
+ * 有無を都度問い合わせない端末内キャッシュ。撤回=DELETE成功時に削除する）
+ */
+export const GHOST_BOSS_SUBMITTED_AT_KEY = 'ghostBossSubmittedAt'

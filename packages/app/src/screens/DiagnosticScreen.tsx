@@ -26,6 +26,7 @@ import { CompletionCard } from '../components/CompletionCard'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
+import { Wordmark } from '../components/Wordmark'
 
 interface Props {
   db: BebRaidDatabase
@@ -181,14 +182,11 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     // T-113: 途中経過の有無を確認するまでは何も出さない（settingsの1回読み込みのみで即完了する）
     if (!progressChecked) return null
 
-    // docs/20 V-6: 診断ウェルカムの第一印象改善。ワードマークは画面地（テーマ追従の--bg）上に
-    // 置くため通常どおりvar(--wordmark-grad)で両テーマ追従させる（components.css参照）
-    const wordmark = (
-      <p className="diagnostic-wordmark">
-        <span className="diagnostic-wordmark__mark">BEB RAID</span>
-        <span className="diagnostic-wordmark__sub">ビーブレイド</span>
-      </p>
-    )
+    // docs/20 V-6: 診断ウェルカムの第一印象改善。
+    // docs/26 A-4: 当初はテキストワードマーク（鋼グラデ）だったが、ホーム以降のロゴ画像と
+    // 別マークになっていたため Wordmark へ統一した。診断側には別に h1 があるので as="plain"
+    // で見出しにはしない（aria-level=1 の重複回避）。
+    const wordmark = <Wordmark as="plain" sub="ビーブレイド" />
 
     if (savedProgress) {
       return (
@@ -318,7 +316,13 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     try {
       await audioPlayer.unlock()
       if (question!.audio) {
-        await audioPlayer.play(question!.audio)
+        // audio_qa の音声は「設問＋正答応答」を1ファイルに連結しているため、
+        // questionEndMs で打ち切って正答応答の読み上げを漏らさない（DrillScreen と同じ規約）。
+        // 旧生成分（questionEndMs 無し）は従来どおり全長再生にフォールバックする
+        const questionEndMs = question!.audioMeta?.questionEndMs
+        const options =
+          needsAudioGate && typeof questionEndMs === 'number' ? { durationMs: questionEndMs } : {}
+        await audioPlayer.play(question!.audio, options)
       }
     } catch (err) {
       console.warn('[DiagnosticScreen] 音声再生に失敗', err)

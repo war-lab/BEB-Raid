@@ -22,6 +22,7 @@ import {
   RAID_DAYS,
 } from './raidConfig'
 import { bossIdFor, isoWeekInfo, previousWeekInfo, weekEndAt } from './raidWeek'
+import { raidSummaryKey } from './raidSummaryStore'
 
 const MEMBER_KEY_PREFIX = 'member:'
 
@@ -52,6 +53,21 @@ async function closeOutPreviousGhost(
   await previousStub.markGhostCloseoutHandled()
 }
 
+/**
+ * 前週ボスの週次サマリをKVへ書き込む（正本: docs/22 3.8節）。
+ * 個人別データ（貢献者一覧・表示名等）は含めない集計のみを保存する。
+ * 前週ボスが未初期化（サービス開始直後で前週分が存在しない）の場合は何もしない
+ */
+async function writeRaidSummary(
+  env: Env,
+  previousBossId: string,
+  previousStub: DurableObjectStub<RaidBossDO>,
+): Promise<void> {
+  const summary = await previousStub.getSummary()
+  if (!summary) return
+  await env.MEMBERS.put(raidSummaryKey(previousBossId), JSON.stringify(summary))
+}
+
 function estimatedDailyDamage(member: MemberRecord): number {
   return member.emaDailyDamage ?? DAILY_GOAL_QUESTIONS[member.dailyGoal] * DAMAGE_PER_QUESTION
 }
@@ -71,6 +87,9 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<void> {
 
   // ゴースト週クローズ処理（docs/22 3.3節）: 前週がghost週かつ討伐成立していればdefeatedCountを+1
   await closeOutPreviousGhost(env, previousStub)
+
+  // 週次サマリ書込（docs/22 3.8節）: 前週ボスの集計（個人別データ非含有）をKVへ保存する
+  await writeRaidSummary(env, previousBossId, previousStub)
 
   const memberKeys = await env.MEMBERS.list({ prefix: MEMBER_KEY_PREFIX })
 

@@ -28,17 +28,36 @@ interface SessionStore {
    */
   partialAudioMode: boolean
   /**
+   * Part2 音声のみモード（本試験形式。T-154。正本: ADR 0008・docs/02 3.1節）。
+   * 3応答すべてを音声で流し、選択肢は記号のみ表示する。partialAudioMode と同じく
+   * Part2単独モードの起動時オプションで、永続化しない（同じモーダルに並ぶ兄弟
+   * オプションで永続方針を食い違わせないため）。QuickPack経由では常に false
+   */
+  audioOnlyPart2: boolean
+  /**
    * 表示できずスキップした問題数（T-108。docs/18 3.6節）。questionId未解決・描画分岐の無い
    * formatが混入した際にDrillScreenがカウントし、ResultScreenの「表示できなかった問題: N件」
    * 行に使う。スナップショットのスキーマは変えない（アプリ再起動を跨ぐ持続は不要）
    */
   skippedCount: number
+  /**
+   * ボス役セッション中か（M4・T-128。docs/22 3.5節）。true の間はApp.tsxが
+   * 'result' 画面をResultScreenではなくGhostBossResultScreen（記録プレビュー・送信/破棄）へ
+   * 振り分ける。RaidScreenの同意画面確定後にのみ true でbegin()が呼ばれる
+   * （同意なしにこのフラグが立つ経路は無い＝GhostBossResultScreenの送信ボタンが
+   * 到達不能になる構造的強制の一部）
+   */
+  isGhostBossSession: boolean
 
   begin: (
     snapshot: SessionSnapshot,
     questions: readonly Question[],
     ratingBefore: { L: number; R: number } | null,
-    options?: { partialAudioMode?: boolean },
+    options?: {
+      partialAudioMode?: boolean
+      audioOnlyPart2?: boolean
+      isGhostBossSession?: boolean
+    },
   ) => void
   /** 1問の解答結果を記録し、スナップショットを進める（DB書き込み後に呼ぶ） */
   recordAnswer: (snapshot: SessionSnapshot, entry: SessionResultEntry) => void
@@ -53,7 +72,9 @@ export const useSessionStore = create<SessionStore>((set) => ({
   results: [],
   ratingBefore: null,
   partialAudioMode: false,
+  audioOnlyPart2: false,
   skippedCount: 0,
+  isGhostBossSession: false,
 
   begin: (snapshot, questions, ratingBefore, options) =>
     set({
@@ -62,7 +83,9 @@ export const useSessionStore = create<SessionStore>((set) => ({
       results: [],
       ratingBefore,
       partialAudioMode: options?.partialAudioMode ?? false,
+      audioOnlyPart2: options?.audioOnlyPart2 ?? false,
       skippedCount: 0,
+      isGhostBossSession: options?.isGhostBossSession ?? false,
     }),
 
   recordAnswer: (snapshot, entry) =>
@@ -77,6 +100,8 @@ export const useSessionStore = create<SessionStore>((set) => ({
       results: [],
       ratingBefore: null,
       partialAudioMode: false,
+      audioOnlyPart2: false,
       skippedCount: 0,
+      isGhostBossSession: false,
     }),
 }))

@@ -13,6 +13,7 @@ import type { PackCache } from './cache/PackCache'
 import { CacheStoragePackCache } from './cache/CacheStoragePackCache'
 import { type DeviceTokenProvider, FetchRaidApi, RaidApiError } from './net/FetchRaidApi'
 import type { RaidApi } from './net/RaidApi'
+import { WebSocketBattleSocket, type BattleSocket } from './net/BattleSocket'
 
 export type { AudioPlayer, PlayOptions } from './audio/AudioPlayer'
 export type { PackCache, CacheUsage } from './cache/PackCache'
@@ -23,6 +24,11 @@ export { AiClientError }
 export type { RaidApi } from './net/RaidApi'
 export type { DeviceTokenProvider, RaidApiErrorKind } from './net/FetchRaidApi'
 export { RaidApiError }
+export type {
+  BattleSocket,
+  BattleSocketCloseHandler,
+  BattleSocketMessageHandler,
+} from './net/BattleSocket'
 
 /** 音声再生の実装を返す（現状は Web 実装のみ） */
 export function createAudioPlayer(): AudioPlayer {
@@ -53,4 +59,15 @@ export function createRaidApi(
   getDeviceToken: DeviceTokenProvider,
 ): RaidApi {
   return new FetchRaidApi(baseUrl, getDeviceToken)
+}
+
+/**
+ * イベントバトル（M4・T-125）のWebSocketクライアントの実装を返す。
+ * baseUrlはRaidApiと同じ VITE_RAID_API_BASE_URL（http/httpsをws/wssへ変換して使う）
+ */
+export function createBattleSocket(
+  baseUrl: string | undefined,
+  getDeviceToken: DeviceTokenProvider,
+): BattleSocket {
+  return new WebSocketBattleSocket(baseUrl, getDeviceToken)
 }

@@ -2,24 +2,39 @@
 // 未登録（招待コード入力）→登録済み（現ボス表示・参加・挑戦・手動同期）→討伐演出の一連。
 // 「レイドに挑む」は既存のstartSession系統にmode='raid'を渡すだけで、DrillScreen側は変更しない
 // （answerPipelineがmodeを透過するため=3.3節）。
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { DailyGoal, Question, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID, RAID_STATE_ID, type BadgeRecord, type RaidStateRecord } from '../db/schema'
+import { toDateString } from '../engine/date'
 import { generateQuickPack } from '../engine/quickPack'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { formatRelativeTime } from '../engine/relativeTime'
+import { selectGhostBossQuestions } from '../engine/ghostBossSelection'
+import { buildFullQuestionLookup, buildGhostWeaknessMap } from '../engine/ghostWeaknessMap'
 import type { RaidApi } from '../platform'
 import { RaidApiError } from '../platform'
+import { withdrawGhostBossRecord } from '../services/ghostBoss'
 import { getOrInitPhaseState } from '../services/phase'
-import { RAID_FIRST_CLEAR_BADGE_ID, syncRaidDamage } from '../services/raidSync'
-import { startSession, type SessionSnapshot } from '../services/session'
-import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from '../services/settingsKeys'
+import {
+  buildRaidStateBossCache,
+  RAID_FIRST_CLEAR_BADGE_ID,
+  syncRaidDamage,
+} from '../services/raidSync'
+import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
+import {
+  GHOST_BOSS_SUBMITTED_AT_KEY,
+  RAID_REGISTERED_AT_KEY,
+  RAID_SYNC_ENABLED_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BossSigil } from '../components/BossSigil'
+import { GhostWeaknessMap } from '../components/GhostWeaknessMap'
 import { PrimaryButton } from '../components/PrimaryButton'
+import { RaidContributionList } from '../components/RaidContributionList'
+import { RaidEmptyNote } from '../components/RaidEmptyNote'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { confirmDiscardMessage, toSessionItems } from './HomeScreen'
 
@@ -128,6 +143,16 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   // T-121(J-60): 生成パックが0問だったときの案内。自動では消さず、セッション開始成功でクリアする
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
 
+  // M4・T-128: ボス役セッション（docs/22 3.5節）
+  const [showGhostBossConsent, setShowGhostBossConsent] = useState(false)
+  const [ghostBossConsentChecked, setGhostBossConsentChecked] = useState(false)
+  const [ghostBossError, setGhostBossError] = useState<string | null>(null)
+  const [ghostBossStarting, setGhostBossStarting] = useState(false)
+  // 送信済み記録があるか（撤回導線の表示要否。端末内キャッシュ=settingsKeys.ts参照）
+  const [ghostBossSubmitted, setGhostBossSubmitted] = useState(false)
+  const [ghostBossWithdrawing, setGhostBossWithdrawing] = useState(false)
+  const [ghostBossWithdrawError, setGhostBossWithdrawError] = useState<string | null>(null)
+
   // レイド機能が利用可能な間だけ60秒tickで現在時刻を進める（raidEnded・残り日数・最終同期表示に使う）
   useEffect(() => {
     if (!raidApi.isConfigured()) return
@@ -139,12 +164,14 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     let cancelled = false
     async function load() {
       try {
-        const [profile, registeredSetting, raidStateRecord, badges] = await Promise.all([
-          db.profile.get(PROFILE_ID),
-          db.settings.get(RAID_REGISTERED_AT_KEY),
-          db.raidState.get(RAID_STATE_ID),
-          loadRaidBadges(db),
-        ])
+        const [profile, registeredSetting, raidStateRecord, badges, ghostBossSubmittedSetting] =
+          await Promise.all([
+            db.profile.get(PROFILE_ID),
+            db.settings.get(RAID_REGISTERED_AT_KEY),
+            db.raidState.get(RAID_STATE_ID),
+            loadRaidBadges(db),
+            db.settings.get(GHOST_BOSS_SUBMITTED_AT_KEY),
+          ])
         if (cancelled) return
         if (profile) {
           setDeviceToken(profile.deviceToken)
@@ -158,6 +185,7 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
         setRegistered(isRegistered)
         setRaidState(raidStateRecord ?? null)
         setRaidBadges(badges)
+        setGhostBossSubmitted(ghostBossSubmittedSetting?.value !== undefined)
 
         if (isRegistered && raidApi.isConfigured()) {
           try {
@@ -209,6 +237,15 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     }
   }, [db, raidSyncCount])
 
+  // M4・T-129: ゴースト週の弱点マップ（docs/22 3.4節）。フックはearly returnより前に置く
+  // 必要がある（React hooksのルール）ため、後段の条件分岐より前にここで計算する。
+  // 個別questionIdはUIへ渡さず、Part・タグ単位の集計結果のみをJSXで使う
+  const ghostWeaknessMap = useMemo(() => {
+    if (!currentBoss?.defense) return []
+    const lookup = buildFullQuestionLookup(questionPool)
+    return buildGhostWeaknessMap(currentBoss.defense, lookup)
+  }, [currentBoss, questionPool])
+
   async function handleRegister() {
     setRegisterError(null)
     // issue #43: プロフィール未作成（初期診断を完了/スキップしていない）だとdeviceTokenが空のまま。
@@ -255,20 +292,29 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
 
   async function handleJoin() {
     if (!currentBoss) return
-    await db.raidState.put({
-      id: RAID_STATE_ID,
-      bossId: currentBoss.bossId,
-      profileJson: JSON.stringify({ name: currentBoss.name }),
-      hp: currentBoss.hp,
-      maxHp: currentBoss.maxHp,
-      myDamage: currentBoss.myDamage,
-      joined: true,
-      startAt: currentBoss.startAt,
-      endAt: currentBoss.endAt,
-      lastSyncedAt: Date.now(),
-    })
-    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
-    setRaidState((await db.raidState.get(RAID_STATE_ID)) ?? null)
+    // 呼び出し側は `void handleJoin()` で投げっぱなしにするため、ここで必ず捕まえる。
+    // 捕まえないと失敗が unhandled rejection になり、利用者には何も伝わらないまま
+    // 参加できていない状態になる（画面遷移や離脱で書込中に閉じた場合も同様）
+    try {
+      await db.raidState.put({
+        id: RAID_STATE_ID,
+        bossId: currentBoss.bossId,
+        profileJson: JSON.stringify({ name: currentBoss.name }),
+        hp: currentBoss.hp,
+        maxHp: currentBoss.maxHp,
+        myDamage: currentBoss.myDamage,
+        joined: true,
+        startAt: currentBoss.startAt,
+        endAt: currentBoss.endAt,
+        lastSyncedAt: Date.now(),
+        ...buildRaidStateBossCache(currentBoss),
+      })
+      await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+      setRaidState((await db.raidState.get(RAID_STATE_ID)) ?? null)
+    } catch (e) {
+      console.warn('[RaidScreen] レイドへの参加の記録に失敗', e)
+      setSyncError('参加の記録に失敗しました。時間をおいて試してください')
+    }
   }
 
   async function handleChallenge() {
@@ -280,6 +326,18 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     )
       return
     setEmptyPackMessage(null)
+    // handleJoinと同じ理由でここでも捕まえる（`void handleChallenge()` で呼ばれる）。
+    // 失敗を放置するとボタンを押しても何も起きない状態になり、原因も伝わらない
+    try {
+      await startRaidQuest()
+    } catch (e) {
+      console.warn('[RaidScreen] レイドクエストの開始に失敗', e)
+      setSyncError('クエストの開始に失敗しました。時間をおいて試してください')
+    }
+  }
+
+  /** レイドクエストの生成〜セッション開始。失敗時の扱いは呼び出し側（handleChallenge）が持つ */
+  async function startRaidQuest() {
     const phase = await getOrInitPhaseState(db)
     const pack = await generateQuickPack(db, {
       duration: RAID_QUEST_DURATION,
@@ -308,8 +366,76 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     navigate('drill')
   }
 
+  /**
+   * ボス役セッションの開始（M4・T-128。docs/22 3.5節）。
+   * 同意チェックボックスが確定していない限りこの関数は呼ばれない（handleGhostBossConsentConfirm
+   * からのみ呼ぶ。ボタン自体もconsentCheckedがfalseの間はdisabled=UI・呼び出し経路の両面で防ぐ）。
+   * beginSession に isGhostBossSession: true を渡すのはこの経路のみ
+   * （GhostBossResultScreenの送信ボタンが到達可能になる唯一の入口）
+   */
+  async function handleGhostBossConsentConfirm() {
+    if (!ghostBossConsentChecked || ghostBossStarting) return
+    setGhostBossError(null)
+    setGhostBossStarting(true)
+    try {
+      const selection = selectGhostBossQuestions(questionPool)
+      if (!selection) {
+        setGhostBossError(
+          '出題できる高難度問題の在庫が不足しています。運営に増産を相談してください',
+        )
+        return
+      }
+      const items: SessionItem[] = selection.questions.map((q) => ({
+        questionId: q.id,
+        mode: 'battle' as const,
+      }))
+      const snapshot = await startSession(db, { items })
+      // ボス役セッションはレート対象外（3.5節・3.2節と同じ扱い）のため、ratingBeforeは
+      // 使わない（GhostBossResultScreenがレート変動を表示しないため null で足りる）
+      beginSession(snapshot, questionPool, null, { isGhostBossSession: true })
+      setShowGhostBossConsent(false)
+      setGhostBossConsentChecked(false)
+      navigate('drill')
+    } catch (e) {
+      // startSession（既存の中断セッションが残っている等）で例外が出ても
+      // 画面が無反応にならないようにする（catchが無いとvoid呼び出しのため握り潰される）
+      console.error('[RaidScreen] ボス役セッションの開始に失敗', e)
+      setGhostBossError('セッションを開始できませんでした。時間をおいて再度お試しください')
+    } finally {
+      setGhostBossStarting(false)
+    }
+  }
+
+  /** 送信済みボス役記録の撤回（J-67の開示事項。DELETE /ghosts/ownは記録が無くても200・冪等） */
+  async function handleWithdrawGhostBoss() {
+    setGhostBossWithdrawError(null)
+    setGhostBossWithdrawing(true)
+    try {
+      await withdrawGhostBossRecord(raidApi)
+      await db.settings.delete(GHOST_BOSS_SUBMITTED_AT_KEY)
+      setGhostBossSubmitted(false)
+    } catch (e) {
+      console.warn('[RaidScreen] ボス役記録の撤回に失敗', e)
+      setGhostBossWithdrawError('撤回に失敗しました。通信を確認してください')
+    } finally {
+      setGhostBossWithdrawing(false)
+    }
+  }
+
   async function handleManualSync() {
     setSyncError(null)
+    // `void handleManualSync()` で呼ばれるため、想定外の例外もここで捕まえる
+    // （syncRaidDamage自体は結果オブジェクトを返すが、db操作は投げうる）
+    try {
+      await runManualSync()
+    } catch (e) {
+      console.warn('[RaidScreen] 手動同期に失敗', e)
+      setSyncError('同期に失敗しました。通信を確認してください')
+    }
+  }
+
+  /** 手動同期の本体。失敗時の扱いは呼び出し側（handleManualSync）が持つ */
+  async function runManualSync() {
     const result = await syncRaidDamage(db, raidApi)
     if (!result.ok) {
       const unauthorized = useRaidSyncStore.getState().lastUnauthorized
@@ -454,6 +580,60 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     )
   }
 
+  // M4・T-128: ボス役の同意画面（docs/22 3.5節。共有される内容を明示してから同意を取る）。
+  // 「同意して開始」はconsentCheckedがtrueでない限りdisabled。ハンドラ側
+  // （handleGhostBossConsentConfirm）も未チェックなら即returnする二重防御
+  if (showGhostBossConsent) {
+    return (
+      <ScreenLayout
+        status={<p>ボス役に立候補</p>}
+        action={
+          <>
+            <PrimaryButton
+              onClick={() => void handleGhostBossConsentConfirm()}
+              disabled={!ghostBossConsentChecked || ghostBossStarting}
+            >
+              同意して開始
+            </PrimaryButton>
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={() => {
+                setShowGhostBossConsent(false)
+                setGhostBossConsentChecked(false)
+                setGhostBossError(null)
+              }}
+            >
+              やめる
+            </button>
+          </>
+        }
+      >
+        <div className="settings-list" data-testid="ghost-boss-consent">
+          <p className="settings-note">
+            ボス役は高難度の問題セットを解き、その正誤記録を今週のゴーストレイドのボスに変換します。
+            開始前に次の内容を確認してください。
+          </p>
+          <ul className="result-list">
+            <li>自分の問題別の正誤が、レイド参加者全員に「堅い/弱点」として見えます</li>
+            <li>表示名（{displayName || '（未設定）'}）がボス名として全員に見えます</li>
+            <li>いつでも撤回でき、撤回すると記録はサーバーから即時削除されます</li>
+          </ul>
+          <label>
+            <input
+              type="checkbox"
+              checked={ghostBossConsentChecked}
+              onChange={(e) => setGhostBossConsentChecked(e.target.checked)}
+              data-testid="ghost-boss-consent-checkbox"
+            />
+            上記の内容に同意します
+          </label>
+          {ghostBossError && <p className="drill-error">{ghostBossError}</p>}
+        </div>
+      </ScreenLayout>
+    )
+  }
+
   const hpPercent =
     currentBoss && currentBoss.maxHp > 0
       ? Math.round((currentBoss.hp / currentBoss.maxHp) * 100)
@@ -514,6 +694,29 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               再登録する
             </button>
           )}
+          {/* M4・T-128: ボス役立候補（isConfigured かつ登録済みのときのみ=3.5節） */}
+          {!ghostBossSubmitted && (
+            <button
+              type="button"
+              className="secondary-action"
+              data-testid="ghost-boss-candidate"
+              onClick={() => setShowGhostBossConsent(true)}
+            >
+              ボス役に立候補
+            </button>
+          )}
+          {ghostBossSubmitted && (
+            <button
+              type="button"
+              className="secondary-action"
+              data-testid="ghost-boss-withdraw"
+              onClick={() => void handleWithdrawGhostBoss()}
+              disabled={ghostBossWithdrawing}
+            >
+              ボス役記録を撤回する
+            </button>
+          )}
+          {ghostBossWithdrawError && <p className="drill-error">{ghostBossWithdrawError}</p>}
           <button type="button" className="secondary-action" onClick={() => navigate('home')}>
             ホームへ
           </button>
@@ -563,7 +766,12 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
             </p>
           )}
           <div className="raid-boss-header">
-            <BossSigil seed={currentBoss.bossId} size={56} />
+            {/* 討伐済みなら紋章を割る（V-21。07の7節S5） */}
+            <BossSigil
+              seed={currentBoss.bossId}
+              size={56}
+              defeated={currentBoss.status === 'defeated'}
+            />
             <p className="raid-boss-name">{currentBoss.name}</p>
           </div>
           <div
@@ -587,14 +795,31 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               自分の貢献ダメージ: <span className="display-num">{currentBoss.myDamage}</span>
             </p>
           )}
-          <p>貢献ダメージ</p>
-          <ul className="raid-list">
-            {currentBoss.contributions.map((c, i) => (
-              <li key={i}>
-                {c.displayName}: <span className="display-num">{c.damage}</span>
-              </li>
-            ))}
-          </ul>
+          {/* V-15（docs/25 4.6節）: 順位表（V-9）と同じ構造の貢献リスト。空状態は
+              コンポーネント側が持つ（見出しだけが浮く状態を作らない） */}
+          <RaidContributionList
+            entries={currentBoss.contributions}
+            selfDisplayName={displayName}
+            sigilSeed={currentBoss.bossId}
+          />
+          {/* M4・T-129: ゴースト週の弱点可視化（docs/22 3.4節）。個別questionIdは出さず
+              Part・タグ単位の集計のみ表示する（正答の狙い撃ち防止）。
+              V-15: 0件でも見出しだけが浮かないよう、空状態はコンポーネント側で出す */}
+          {/* シルエットは貢献リストの空状態にだけ置く（同一画面に紋章が並ぶと過剰なため
+              弱点マップ・バッジの空状態は文だけにする） */}
+          {currentBoss.bossType === 'ghost' && <GhostWeaknessMap entries={ghostWeaknessMap} />}
+          {/* M4・T-129: 討伐された回数の名誉表示（02の5.3節。公開処刑にしない演出方針）。
+              V-15: 数字を誇示せず --gold の小さなバッジ形に留める（4.6節。過度な強調は
+              ボス役の心理的コストを上げる） */}
+          {currentBoss.bossType === 'ghost' && currentBoss.ghost && (
+            <p className="raid-honor" data-testid="ghost-defeated-count">
+              討伐された回数:{' '}
+              <span className="raid-honor__count display-num">
+                {currentBoss.ghost.defeatedCount}
+              </span>
+              回
+            </p>
+          )}
           {lastSyncedLabel !== null && (
             <p
               className={syncFailed ? 'raid-sync-label is-stale' : 'raid-sync-label'}
@@ -606,16 +831,27 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
           <p>討伐の成立は同期時にサーバーで確定します（表示は最終同期時点のものです）</p>
         </div>
       )}
-      {raidBadges.length > 0 && (
-        <div data-testid="raid-badges">
-          <p>獲得バッジ</p>
-          <ul className="raid-list">
+      {/* V-15（docs/25 4.6節）: 取得済みバッジは --gold 枠＋取得日の併記（07の6節）。
+          未取得バッジのシルエット表示は全バッジ定義の列挙（T-150）が必要なため本タスクでは扱わない。
+          0件でもセクションを出し、空状態の文で「どうすれば増えるか」を示す（4.6節の完了条件） */}
+      <section className="raid-badges" data-testid="raid-badges">
+        <p className="raid-badges__eyebrow">Badges</p>
+        <h2 className="raid-badges__heading">獲得バッジ</h2>
+        {raidBadges.length === 0 ? (
+          <RaidEmptyNote testId="raid-badges-empty">
+            まだバッジはありません。ボスを討伐すると、その週のバッジがここに並びます
+          </RaidEmptyNote>
+        ) : (
+          <ul className="raid-badges__list">
             {raidBadges.map((b) => (
-              <li key={b.badgeId}>{raidBadgeLabel(b.badgeId)}</li>
+              <li key={b.badgeId} className="raid-badges__item">
+                <span className="raid-badges__name">{raidBadgeLabel(b.badgeId)}</span>
+                <span className="raid-badges__date display-num">{toDateString(b.earnedAt)}</span>
+              </li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </section>
     </ScreenLayout>
   )
 }

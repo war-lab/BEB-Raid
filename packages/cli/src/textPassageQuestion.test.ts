@@ -2,7 +2,7 @@
 // - Part6×30セット・Part7単一×40セットがtext_passage Questionとして正しく組み立てられる
 // - バリデータ（shared-schema validatePack。T-103でtext_passage対応済み）を通過する
 // - Part6の空所マーカー[[1]]〜[[4]]と設問数の整合が取れている（マーカー4個・設問4問）
-// - Part7単一のsubQuestionsが2〜4問の範囲に収まる（docs/18 3.1節）
+// - Part7単一のsubQuestionsが2〜4問の範囲に収まる（docs/24 3.1節）
 // - keyVocabWordsがS/A/B語彙カード（600語）に実在し、passages本文またはsubQuestionsの
 //   question/choicesに文字列として含まれる
 // - 各設問（subQuestions）が4択（A〜D）で正答キーが決定的ローテーションで分散する
@@ -90,14 +90,14 @@ describe('PART7_SINGLE_ENTRIES_S（データ本体）', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('全セットのsubQuestionsが2〜4問（docs/18 3.1節「Part7単一」）', () => {
+  it('全セットのsubQuestionsが2〜4問（docs/24 3.1節「Part7単一」）', () => {
     for (const entry of PART7_SINGLE_ENTRIES_S) {
       expect(entry.subQuestions.length).toBeGreaterThanOrEqual(2)
       expect(entry.subQuestions.length).toBeLessThanOrEqual(4)
     }
   })
 
-  it('設問数の合計がおよそ120問（docs/18 3.6節の初期在庫目標）', () => {
+  it('設問数の合計がおよそ120問（docs/24 3.6節の初期在庫目標）', () => {
     const total = PART7_SINGLE_ENTRIES_S.reduce((sum, e) => sum + e.subQuestions.length, 0)
     expect(total).toBeGreaterThanOrEqual(110)
     expect(total).toBeLessThanOrEqual(130)
@@ -224,7 +224,7 @@ describe('buildPart7SingleQuestions / validatePart7SingleQuestions', () => {
     expect(new Set(subIds).size).toBe(subIds.length)
   })
 
-  it('subQuestionsが2問未満・4問超だと検出する（docs/18 3.1節「Part7単一」の業務ルール）', () => {
+  it('subQuestionsが2問未満・4問超だと検出する（docs/24 3.1節「Part7単一」の業務ルール）', () => {
     const questions = buildPart7SingleQuestions()
     const tampered = [...questions.slice(1)]
     const first = { ...questions[0]! }

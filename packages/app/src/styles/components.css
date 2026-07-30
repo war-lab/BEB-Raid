@@ -75,6 +75,19 @@
   flex: 1;
   min-width: 0;
 }
+/* T-154: Part2音声のみモードの解答前（記号だけを出す。ADR 0008）。
+   ラベルが空でもボタン高さが潰れないよう最小高さを保ち、記号を中央に置く。
+   形マーカー（▲■●◆）はJV-7でイベントバトル専用なので使わず、記号A/B/Cのまま
+   （本試験のマークシートも (A)(B)(C) なのでそちらの方が忠実） */
+.choice-button.is-marker-only {
+  justify-content: center;
+}
+.choice-button.is-marker-only .choice-button__label {
+  flex: none;
+}
+.choice-button.is-marker-only .choice-button__marker {
+  font-size: var(--fs-question);
+}
 /* アイコン枠は常時確保（空でも幅を占有し、✓✕出現でレイアウトが動かない） */
 .choice-button__icon {
   flex: none;
@@ -97,6 +110,39 @@
 }
 .choice-button.is-dimmed {
   opacity: 0.45;
+}
+
+/* --- 選択肢の形マーカー（イベントバトル専用。docs/25 4.4節・JV-7=案B・07の7節S7/S8） ---
+   S7手元画面とS8ホスト画面で同じ形（▲■●◆）と同じ色を同じ選択肢に当て、投影の色ずれと
+   色覚多様性の両方に耐えさせる（07の原則4）。ソロ学習は記号A–Dのままなので、
+   既定の .choice-button__marker は変えず、[data-marker-variant='shape'] のときだけ着色する。
+   枠色は正誤フィードバック（--ok/--ng）専用のまま残し、キーごとの色はマーカーだけに当てる
+   （枠に当てると解答前の枠色が正誤表示と混ざって読める）。
+   形マーカーは文字ではなく図形（aria-hidden。記号はvisually-hiddenで伝える）なので
+   WCAG 1.4.11の3:1が基準。実測比（--surface-grad の上端/下端。20の2.3節の式・機械計算値）:
+     dark  A --ev-blue 4.870/5.177・B --gold 8.753/9.304・C --listen 7.567/8.043・D --violet 4.447/4.727
+     light A --ev-blue 6.556/6.219・B --gold 4.935/4.682・C --listen 5.204/4.937・D --violet 5.379/5.103
+   D（--violet）のダークのみ本文基準4.5:1を0.053下回るが図形基準3:1は満たす（同じ判断は
+   --rank-master の注記に既出）。減光状態（.is-dimmed。opacity 0.45）では地との混色で
+   実効比が1.9〜2.8:1まで落ちるが、これは解答後に未選択の選択肢を弱める既存挙動で、
+   このときの情報は枠色＋✓✕が担う（V-12で変更しない） */
+.choice-button[data-marker-variant='shape'] .choice-button__marker.is-shape {
+  /* 器の寸法（28px角・ピル）は記号表示と同じままにしてレイアウトを動かさない */
+  border-color: currentcolor;
+  font-size: var(--fs-heading);
+  line-height: 1;
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='A'] .choice-button__marker {
+  color: var(--ev-blue);
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='B'] .choice-button__marker {
+  color: var(--gold);
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='C'] .choice-button__marker {
+  color: var(--listen);
+}
+.choice-button[data-marker-variant='shape'][data-choice-key='D'] .choice-button__marker {
+  color: var(--violet);
 }
 
 /* --- セッション進捗: 最上部のバー＋残数 --- */
@@ -215,7 +261,11 @@
   padding: var(--sp-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: var(--surface);
+  /* docs/25 4.8節「面を --surface-grad に揃える」（V-18）。カード内の前景は3つだけで、
+     ダークの --surface-grad 上端 #1c2339 に対し --ink 13.302 / --gold 8.753 /
+     --ink-2 7.036（機械計算値）でいずれも本文基準4.5:1を満たす。ライトは上端が
+     --surface と同値（#ffffff）で下端 #faf9f4 でも --ink-2 5.320 と適合 */
+  background: var(--surface-grad);
   text-align: center;
   animation: result-scale-in 250ms ease-out;
 }
@@ -317,6 +367,22 @@
 .result-highlight-tile--listen {
   color: var(--listen);
 }
+/* 解答の質の第2行（当て勘・速度不足。docs/03 7.2節）。3列グリッドに5枚入れると2行目が
+   欠けた見た目になるため2列で分けて置く。タイル意匠は .result-highlight-tile を共有する */
+.result-quality-tiles {
+  list-style: none;
+  margin: var(--sp-half) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1);
+}
+/* 誤答＝悪ではない（docs/25 4.7節）ので --ng も --ok も使わず地の文の色にする
+   （--ok はライトテーマで --surface 上4.358＝本文基準未達。docs/25 5.1節の既知#1） */
+.result-quality-tile {
+  color: var(--ink);
+  font-weight: 400;
+}
 .result-stats {
   list-style: none;
   margin: var(--sp-1) 0;
@@ -327,6 +393,47 @@
 }
 .result-stat {
   animation: result-stat-in 300ms ease-out both;
+}
+/* --- docs/26 A-8: レート増減。英字ラベル／実値／増減チップの3列で階層を作る --- */
+.result-rating {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  padding: var(--sp-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-grad);
+}
+.result-rating__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: var(--sp-1);
+}
+.result-rating__label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ev-blue);
+}
+.result-rating__value {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.result-rating__delta {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+/* 上昇のみ --ok で強調する。下降は --ink-2 のまま（▼の形で判別できるので色は足さない）。
+   機械計算値（20の2.3節の式）: dark --ok #3dc97e on --surface-grad上端#1c2339 = 8.286:1 /
+   light --ok #1e8a54 on --surface-grad下端#faf9f4 = 4.300:1 で本文基準未達のため、
+   ライトでは文字色に使わず --ink へ落とす（docs/25 5.1節の既知#1と同じ扱い） */
+.result-rating__delta[data-dir='up'] {
+  color: var(--ok);
+}
+:root[data-theme='light'] .result-rating__delta[data-dir='up'] {
+  color: var(--ink);
 }
 /* 巨大な「+N」が何の数値かを示すラベル（レビューF5(c)） */
 .result-points-label {
@@ -415,10 +522,23 @@
   color: var(--listen);
 }
 
-/* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/18 3.5節） --- */
+/* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/24 3.5節） --- */
+/* docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面＋罫線までで、光暈・
+   アニメーション・背景演出は足さない（07の原則3「静かな学習」により読解中は静かに保つ）。
+   面上のコントラスト（機械計算値。上端#1c2339 / 下端#181e31、ライトは#ffffff / #faf9f4）:
+   --ink 13.302/14.141・15.766〜16.620、--ink-2 7.036/7.480・5.320〜5.608 でいずれもAA適合 */
+.reading-passage {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+/* 面に載せたため--ink-3ではなく--ink-2を使う（--ink-3(#7e89ac)は--surface-grad上端
+   #1c2339に対し4.493:1でAA=4.5:1をわずかに下回る。--vocab-card__rank[C]と同じ理由・同じ対処。
+   --ink-2は7.036:1／ライトは5.608:1でAA適合） */
 .passage-kind {
   margin: 0 0 var(--sp-1);
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: var(--fs-note);
   text-transform: uppercase;
 }
@@ -478,6 +598,15 @@
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+/* T-154: 解答後の応答ごとのリプレイ（音声のみモード）。3つ横並びにして縦を食わない */
+.drill-response-replays {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-1);
+}
+.drill-response-replays .drill-replay {
+  margin-bottom: 0;
+}
 
 /* --- 副次アクション（PrimaryButtonと並ぶテキスト寄りのボタン。P0診断のスキップ等） --- */
 .secondary-action {
@@ -510,7 +639,12 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   min-height: 100dvh;
-  background: var(--bg);
+  /* docs/20 3.1節「--bg-grad は ScreenLayout の地に適用」（V-18で適用。V-1でトークンだけ
+     作られて参照0件だった不整合の解消）。両テーマで上端28%だけが地から振れ、いずれも本文
+     コントラストが上がる方向（値と実測比は tokens.css の --bg-grad のコメント）。
+     body 側の背景（base.css）は --bg のまま残す。ScreenLayout を使わない画面
+     （.battle-host-stage の投影レイアウト・.error-boundary）の地を変えないため */
+  background: var(--bg-grad);
 }
 .screen-layout__status {
   padding: var(--sp-1) var(--sp-2);
@@ -523,6 +657,17 @@
   padding-left: calc(var(--sp-2) + env(safe-area-inset-left));
   padding-right: calc(var(--sp-2) + env(safe-area-inset-right));
   overflow-y: auto;
+}
+/* docs/26 A-1: align='center' の画面だけコンテンツを帯の中央へ寄せる。
+   justify-content: center は使わない（スクロールコンテナで中身が溢れたとき上端へ
+   スクロールできなくなる既知の挙動があるため）。flex の auto マージンは溢れた時点で
+   0 に解決されるので、短いときだけ中央・長いときは従来どおり上寄せになる。 */
+.screen-layout__content--center {
+  display: flex;
+  flex-direction: column;
+}
+.screen-layout__center {
+  margin-block: auto;
 }
 .screen-layout__action {
   /* 操作ゾーンは画面下 約45%（親指リーチ内）。ただし横長タブレット等では45%が
@@ -682,6 +827,19 @@
   font-size: var(--fs-heading);
   line-height: 1.5;
 }
+/* 復習モードで解答前に出す単語単体（2026-07-29。フレーズは解答後に開示する）。
+   フレーズより1段大きくして「今問われているのはこの語」を明示する */
+.vocab-card__word {
+  font-size: var(--fs-question);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--gold);
+}
+/* 解答でフレーズが増えるぶんカード高さが伸びる。解答前後の跳ねを抑えるため下限を確保する
+   （選択肢はScreenLayoutのactionゾーンにあるので動かない。厳密な高さ一致は不要） */
+.vocab-card--recall {
+  min-height: 7.5rem;
+}
 /* フレーズ中の暗記対象語（HighlightedPhrase）。フレーズと単語のつながりを視覚的に示す */
 .vocab-card__target {
   color: var(--gold);
@@ -716,6 +874,35 @@
 }
 /* 「わからない」ボタン（ドッグフィードバック 2026-07-22）。回答選択肢A–Dより一段控えめにし、
    当てずっぽうより正直な申告を選びやすくする。破線＋淡色で選択肢とは別物であることを示す */
+/* --- 誤タップの取り消し猶予（ADR 0009） --- */
+/* 高さを予約したスロット。猶予が終わってボタンが消えるときに選択肢が動かないようにする
+   （解答時に一度だけ動くのは既存の解説カードのせり上がりと同じ挙動） */
+.drill-undo-slot {
+  min-height: var(--tap-min);
+  margin-top: var(--sp-1);
+}
+/* 一段控えめな意匠（.vocab-dontknow-button と同系）。--ng は使わない
+   （誤タップの訂正であって「間違い」の強調ではない。docs/25 4.7節のトーン） */
+.drill-undo {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-2);
+  background: transparent;
+  color: var(--ink-2);
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.drill-undo:active {
+  background: var(--surface-2);
+}
+.drill-undo:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
 .vocab-dontknow-button {
   display: block;
   width: 100%;
@@ -894,6 +1081,16 @@
   width: min(72%, 280px);
   height: auto;
 }
+/* docs/26 A-4: 診断ウェルカムの読み仮名。ロゴ直下に中央で敷く（旧 .diagnostic-wordmark__sub） */
+.wordmark {
+  flex-direction: column;
+  align-items: center;
+}
+.wordmark-sub {
+  font-size: var(--fs-note);
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+}
 
 /* --- S1ホームのヒーローカード（docs/20 3.1・3.4節・V-3新設）
    --hero-sky/--hero-line は両テーマ共通（夜の車窓を維持する意匠判断=07決定済み）。
@@ -954,13 +1151,28 @@
   color: var(--home-hero-accent);
 }
 .home-season {
+  /* docs/26 A-2: 英字ラベル→シーズン名→バー→達成率の4段。縦の間隔をgapで一定にする */
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
   margin: var(--sp-1) 0;
 }
 /* home-seasonは常に.home-hero配下（hero-sky地）でのみ使うため、
    固定のhome-hero-ink-2で色を出す（テーマ追従の--ink-2は使わない） */
 .home-season p {
+  margin: 0;
   color: var(--home-hero-ink-2);
   font-size: var(--fs-sub);
+}
+/* docs/26 A-2: シーズン名はカード内の主役なので見出しサイズ＋固定のダーク基準インクへ
+   （地は両テーマ共通の--hero-sky。機械計算値: #eaedf6 と --hero-sky最明部#16204a で13.394:1） */
+.home-season .home-season-name {
+  color: var(--home-hero-ink);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+}
+.home-season .home-season-progress-value {
+  font-size: var(--fs-note);
 }
 .home-season-progress {
   height: 6px;
@@ -1067,6 +1279,67 @@
    紋章は対象外のため付与しない --- */
 .boss-sigil {
   flex: none;
+}
+/* --- 討伐演出（V-21。JV-9=案Aで承認。正本: docs/07 7節S5・docs/25 4.6節） ---
+   紋章を破断線で2片に割って離し、金の粒子を散らす。総時間800ms（07の9節の600〜900ms）。
+   性能: 動かすのは transform と opacity だけで、box-shadow の多重掛けも要素の量産もしない
+   （docs/20 2.3節6。粒子はSVG円6個の固定）。ずらす向き・距離はコンポーネント側が
+   CSS変数（--shard-dx/dy・--spark-dx/dy）でシードから渡す。 */
+.boss-sigil[data-defeated='true'] {
+  /* 粒子がviewBoxの外まで飛べるようにする（SVGの既定は overflow: hidden）。
+     紋章は56pxしかないので、箱の内側に閉じ込めると粒子の軌跡がほとんど残らない */
+  overflow: visible;
+}
+.boss-sigil__shard {
+  /* fill-box=中身のバウンディングボックス基準。片ごとの微小な回転を中心軸で効かせる */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sigil-shard-break 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.boss-sigil__shard[data-shard='b'] {
+  /* 逆向きに割れる片は回転も逆にする（左右対称に開く） */
+  --shard-rot: -2.5deg;
+}
+@keyframes sigil-shard-break {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(var(--shard-dx), var(--shard-dy)) rotate(var(--shard-rot, 2.5deg));
+  }
+}
+.boss-sigil__spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: sigil-spark 800ms ease-out var(--spark-delay, 0ms) forwards;
+}
+@keyframes sigil-spark {
+  0% {
+    transform: translate(0, 0) scale(0.4);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--spark-dx), var(--spark-dy)) scale(1);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 割れた状態を静止で見せる（討伐の事実は割れた紋章と「討伐成功！」の文が担う）。
+     base.cssの全停止ルール（animation-duration: 0.01ms）でも最終状態には落ち着くが、
+     粒子が一瞬ちらつくため明示的に消す */
+  .boss-sigil__shard {
+    /* アニメーションの最終状態と同一にする（回転も含める）。translateだけにすると
+       56pxでは3px弱のずれしか出ず、割れていることが読み取れない */
+    animation: none;
+    transform: translate(var(--shard-dx), var(--shard-dy)) rotate(var(--shard-rot, 2.5deg));
+  }
+  .boss-sigil__sparks {
+    display: none;
+  }
 }
 .raid-boss-header {
   display: flex;
@@ -1225,15 +1498,31 @@
   gap: var(--sp-1);
   margin-top: var(--sp-2);
 }
+/* V-13（docs/25 4.8節）: 面をカード言語（--surface-grad＋罫線）に揃える。
+   **構造（2列グリッド・素のボタン列）は変えない**（V-3の判断を尊重＝4.8節の明記事項）。
+   アイコンを持つボタン（イベントバトルの2導線）と持たないボタンで横位置が揃うよう
+   inline-flexの中央寄せにする。コントラスト（docs/20 2.3節の式・機械計算値。
+   面=--surface-grad上端 dark #1c2339 / light #ffffff、下端 dark #181e31 / light #faf9f4）:
+     文字 --ink : dark 13.302 / 14.141、light 16.620 / 15.766（本文基準4.5:1適合）
+     アイコン --raid : dark 4.293 / 4.564、light 5.531 / 5.247（UI部品基準3:1適合。
+       ダークは本文基準4.5:1を下回るが、アイコンは装飾＝aria-hiddenのUI部品で
+       文字色には使わないため基準は3:1でよい） */
 .home-grid button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-half);
   min-height: var(--tap-min);
   padding: 0 var(--sp-1);
-  background: var(--surface);
+  background: var(--surface-grad);
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: var(--radius-button);
   font-size: var(--fs-sub);
   cursor: pointer;
+}
+.home-grid__icon {
+  flex: none;
 }
 
 /* --- S9 BYOK設定の注記（M2・T-55。05の5節: 平文保存・支出上限推奨） --- */
@@ -1256,6 +1545,32 @@
 }
 .shadowing-status {
   color: var(--listen);
+}
+/* docs/25 4.8節（V-19）: 英字ラベル「SHADOWING」。形は.drill-part-tagを再利用し、色だけ
+   07の7節S4のアクセント（--listen）へ置き換える（.drill-part-tag の定義自体は変更しない）。
+   .drill-part-tagの6%の淡い塗りは敷かない: --listen 6%を混色した地（ライト#e7edeb）では
+   文字比が4.389:1でAA=4.5:1を下回るため。地を--bgのままにすると--listenの比は
+   ダーク9.064:1・ライト4.770:1（機械計算値）でAA適合する */
+.shadowing-part-tag {
+  border-color: color-mix(in srgb, var(--listen) 35%, transparent);
+  background: none;
+  color: var(--listen);
+}
+/* docs/25 4.8節（V-19）: スクリプト面に--surface-gradを当てる。面＋罫線までで、カラオケ
+   ハイライトの規定（07の6節）・発話中の演出は変更しない（原則3: 発話中は静かに保つ）。
+   面上のコントラスト（機械計算値。上端#1c2339 / 下端#181e31、ライトは#ffffff / #faf9f4）:
+   --ink（読了語・発話中）13.302/14.141・15.766〜16.620、--ink-2（未読語・和訳）
+   7.036/7.480・5.320〜5.608、--gold（発話中の下線=UI部品基準3:1）8.753/9.304・4.682〜4.935 */
+.shadowing-script-surface {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+/* 面に載せた注記のみ--ink-3から--ink-2へ（--ink-3は--surface-grad上端#1c2339に対し
+   4.493:1でAA未達。.vocab-card__rank[C]・.passage-kindと同じ理由・同じ対処） */
+.shadowing-script-surface .karaoke-note {
+  color: var(--ink-2);
 }
 /* T-120: 実施済み素材を表示中の注記 */
 .shadowing-status-done {
@@ -1369,14 +1684,93 @@
   font-size: var(--fs-note);
 }
 
-/* ダッシュボードの成長ランク（M4・T-130。既存カード面言語の範囲。光暈・新規アニメーションは追加しない） */
+/* ダッシュボードの成長ランク（M4・T-130。既存カード面言語の範囲。光暈・新規アニメーションは追加しない）
+   docs/25 V-14: ランク色（data-rank）＋台座の線の本数による二重符号化を追加した。
+   ダッシュボードは「区切り」ではなく「確認」の画面なので演出は足さない（4.5節）。
+   コントラスト（機械計算値。前景=ランク色 / 背景=--surface）:
+     dark  bronze 4.795 / silver 8.122 / gold 9.304 / platinum 9.797 / master 4.727（対#181e31）
+     light bronze 5.727 / silver 8.102 / gold 4.935 / platinum 6.337 / master 5.379（対#ffffff）
+   **--rank-master の使用制限**: ダーク値#8b79e8は--surface-grad上端#1c2339に対し4.447:1で
+   本文基準を満たさない。ここでの用途は--fs-display（40px）のランク名＝大文字基準3:1のみで、
+   注記（--fs-note/--fs-sub）や本文にランク色を使ってはならない。注記は--ink-2のままとする */
 .dashboard-growth-rank {
+  /* ランク色の受け皿。data-rankで切り替え、配下は--growth-rank-color経由で参照する
+     （生の16進をここに書かない=トークン経由参照の原則） */
+  --growth-rank-color: var(--rank-bronze);
+
   padding: var(--sp-2);
   margin-bottom: var(--sp-2);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   text-align: center;
+}
+.dashboard-growth-rank[data-rank='bronze'] {
+  --growth-rank-color: var(--rank-bronze);
+}
+.dashboard-growth-rank[data-rank='silver'] {
+  --growth-rank-color: var(--rank-silver);
+}
+.dashboard-growth-rank[data-rank='gold'] {
+  --growth-rank-color: var(--rank-gold);
+}
+.dashboard-growth-rank[data-rank='platinum'] {
+  --growth-rank-color: var(--rank-platinum);
+}
+.dashboard-growth-rank[data-rank='master'] {
+  --growth-rank-color: var(--rank-master);
+}
+/* 英字ラベル（docs/25 4.5節。.result-eyebrowと同じ書式で--ev-blue） */
+.dashboard-growth-rank__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+/* 日本語見出しは残す（英字ラベルだけにすると何の数値か読み取れない） */
+.dashboard-growth-rank__heading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  font-weight: 400;
+}
+/* ランク名。ランク色を使ってよいのはこのディスプレイ書体40pxの見出しだけ（上記の使用制限） */
+.dashboard-growth-rank__name {
+  margin: var(--sp-half) 0 0;
+  color: var(--growth-rank-color);
+  font-size: var(--fs-display);
+  line-height: 1.15;
+}
+/* 台座。線の本数＝ランク段数（ブロンズ1・シルバー2・ゴールド3・プラチナ4・マスター5）。
+   色を失っても本数でランクが判別できるので、色単独の符号化にならない（07の原則4） */
+.dashboard-growth-rank__pedestal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin: var(--sp-1) 0 var(--sp-2);
+}
+.dashboard-growth-rank__tier-bar {
+  width: 96px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--growth-rank-color);
+}
+/* 次ランクまでの進捗バー（pointsToNextの視覚化のみ。数値は直上の行に既出） */
+.dashboard-growth-rank__progress {
+  height: 6px;
+  margin-top: var(--sp-1);
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.dashboard-growth-rank__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--growth-rank-color);
+  border-radius: var(--radius-pill);
 }
 
 /* ディクテーションのスクリプト表示（question-textと併用。空欄記号を見やすくする） */
@@ -1542,31 +1936,8 @@
    暗色地に暗色文字が乗りAA未達になるため。機械計算値: 固定#eaedf6は--hero-sky最明部
    #16204a比13.394:1、固定#a6aec6は7.085:1でAA適合）。ワードマークはhero外（画面地=
    テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で両テーマ追従させる */
-.diagnostic-wordmark {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-1);
-  margin: 0 0 var(--sp-2);
-}
-.diagnostic-wordmark__mark {
-  font-family: var(--font-display);
-  font-size: var(--fs-heading);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  background: var(--wordmark-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 10px rgba(77, 141, 255, 0.35));
-}
-:root[data-theme='light'] .diagnostic-wordmark__mark {
-  filter: none;
-}
-.diagnostic-wordmark__sub {
-  font-size: var(--fs-note);
-  color: var(--ink-3);
-  letter-spacing: 0.1em;
-}
+/* docs/26 A-4: 旧 .diagnostic-wordmark（鋼グラデのテキストワードマーク）は Wordmark
+   コンポーネント（ロゴ画像）へ統一したため削除した。読み仮名は .wordmark-sub が持つ */
 .diagnostic-hero {
   padding: var(--sp-3) var(--sp-2) var(--sp-2);
   margin-bottom: var(--sp-2);
@@ -1629,6 +2000,914 @@
   color: var(--ink-2);
 }
 
+/* --- S7 イベントバトル参加画面（M4・T-125。docs/22 3.6節） ---
+   待機系（ルームコード入力・ロビー・切断）の表層はV-13（正本: docs/25 4.4節）。
+   待機は報酬ではないので過剰演出はしない: アニメーション・光暈・背景演出は一切足さず、
+   カード面（--surface-grad＋罫線）とタイポの階層付けだけを行う。
+   出題中（questionフェーズ）は学習中と同じ扱いで何も足さない（2.2.1節・07の原則3）。
+
+   コントラスト（docs/20 2.3節の式での機械計算値。基準=本文4.5:1／UI部品3:1。
+   半透明の塗りは使わないため混色地は発生しない＝すべてトークンの実色どうしの比）:
+     面=--surface-grad 上端 dark #1c2339 / light #ffffff、下端 dark #181e31 / light #faf9f4
+     入力欄の地=--surface-2 dark #222a44 / light #efede6
+       文字 --ink on --surface-2      : dark 12.102 / light 14.187（本文AA適合）
+       文字 --ink on 面              : dark 13.302 / 14.141、light 16.620 / 15.766（本文AA適合）
+       補助 --ink-2 on 面            : dark 7.036 / 7.480、light 5.608 / 5.320（本文AA適合）
+       英字ラベル --ev-blue on 面    : dark 4.870 / 5.177、light 6.556 / 6.219（本文AA適合）
+       入力欄の枠・チップ枠 --ink-3  : 面に対し dark 4.493 / light 4.929、
+                                       --surface-2に対し dark 4.088 / light 4.208（UI部品AA適合）
+       フォーカスリング --ev-blue    : 面に対し dark 4.870 / light 6.556、
+                                       --surface-2に対し dark 4.431 / light 5.596（UI部品AA適合。
+                                       ダークは本文基準4.5:1を割るため文字色には使わない） */
+.battle-entry {
+  display: flex;
+  flex-direction: column;
+}
+/* 入力欄が操作ゾーンに押し出されないよう、この画面のロゴはホームより小さく表示する
+   （.battle-host配下で.standings*のサイズを上書きするのと同じ、親クラス側での調整） */
+.battle-entry .wordmark-logo {
+  width: min(52%, 200px);
+}
+.battle-entry__card {
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.battle-entry__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.battle-entry__label {
+  display: block;
+  margin-top: var(--sp-half);
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+.battle-room-code-input {
+  width: 100%;
+  /* --fs-display（40px）の1行が収まる高さ。--tap-min（48px）は当然満たす */
+  min-height: 72px;
+  margin: var(--sp-1) 0 0;
+  padding: 0 var(--sp-1);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 2px solid var(--ink-3);
+  border-radius: var(--radius-button);
+  /* 4文字だけの入力なのでディスプレイ書体の特大にする（docs/25 4.4節） */
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+/* キーボード操作でフォーカスリングが可視であること（V-13の完了条件）。
+   outlineは枠の外側に出すので入力欄の2px枠と重ならない */
+.battle-room-code-input:focus-visible {
+  outline: 2px solid var(--ev-blue);
+  outline-offset: 2px;
+}
+.battle-lobby-hint {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+/* ロビー: 待機中の唯一の情報は参加者が増えることなので、一覧をピル形のチップの並びにする。
+   チップは--surface-2の塗りだけでは面（--surface-grad）との差が小さく境界が読めないため
+   （dark #222a44 対 #1c2339 は1.246）、枠を--ink-3にしてUI部品基準3:1を確保する */
+.battle-lobby {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.battle-lobby__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.battle-lobby__wait {
+  margin: var(--sp-half) 0 0;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.battle-lobby__chips {
+  /* 10人程度でも崩れないよう折り返す（V-13の完了条件） */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+}
+.battle-lobby__chip {
+  max-width: 100%;
+  padding: var(--sp-half) var(--sp-2);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sub);
+  overflow-wrap: anywhere;
+}
+/* 切断（closed）: 文言はbattleCloseMessage.tsのまま変えず、面をカード化して
+   見出しと本文の階層を付けるだけに留める（docs/25 4.4節）。
+   原因を利用者のせいにしない方針のため--ng / --warnは使わない */
+.battle-closed {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.battle-closed__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-heading);
+}
+.battle-closed__body {
+  margin: var(--sp-1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  line-height: 1.7;
+}
+
+/* --- ゴースト記録プレビュー（GhostBossResultScreen。docs/25 V-16・4.7節） ---
+   送信の同意確認が主目的の画面なので演出は置かない（優先度「低」・本人が1回だけ見る）。
+   同意判断の材料である「弱点として公開される問題数」を注意カードに収めて数値を明確にし、
+   送信済みは--okのアイコン＋文で完結させる。正誤一覧は刷新済みの.result-listをそのまま使う。
+   誤答が悪いことではないため--ngは使わない（02の5.3節「公開処刑にしない」の方針）。 */
+.ghost-preview-notice {
+  /* 枠は--warn。UI部品基準3:1に対し、ダーク: --bg比10.484:1・面（--surface-grad上端#1c2339）比8.753:1、
+     ライト: --bg比4.524:1・面（#ffffff）比4.935:1（機械計算値） */
+  margin: var(--sp-1) 0 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-card);
+  background: var(--surface-grad);
+}
+.ghost-preview-notice__line {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.ghost-preview-notice__count {
+  /* 数値のみ--warnで拡大する。本文基準4.5:1に対し、ダーク: 面比8.753:1（上端）/9.304:1（下端）、
+     ライト: 面比4.935:1（上端）/4.682:1（下端）（機械計算値）でAA適合 */
+  margin-right: 2px;
+  color: var(--warn);
+  font-family: var(--font-display);
+  font-size: var(--fs-stat);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.ghost-preview-sent {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0 0;
+  color: var(--ink);
+}
+.ghost-preview-sent__icon::before {
+  /* 送信済みの記号。文は--ink（--bg比 ダーク15.934:1／ライト15.234:1）で読ませ、
+     色は記号だけに載せる二重符号化。記号は装飾（aria-hidden）の図形要素として
+     UI部品基準3:1で評価する。--ok の--bg比は ダーク8.751:1／ライト3.995:1（機械計算値）。
+     ライトは本文基準4.5:1に届かないため、--okを文の色には使わない */
+  content: '✓';
+  color: var(--ok);
+  font-size: var(--fs-heading);
+  font-weight: 700;
+}
+
+/* --- イベントバトルの順位表（V-9。docs/25 4.1節）。S7参加者画面・S8ホスト画面の
+   途中順位と最終リザルトで共用する（StandingsList）。
+   順位は数字バッジ（形）＋色の二重符号化で、グレースケール表示でも数字だけで
+   1〜3位が判別できる（07の原則4）。
+   コントラストは面=--surface-grad上端（dark #1c2339 / light #ffffff）を基準に
+   docs/20 2.3節の式で実測（機械計算値。基準=本文4.5:1／UI部品3:1）:
+     dark : ev-blue 4.870 / ink 13.302 / ink-2 7.036 / gold 8.753 / silver 7.641 / bronze 4.511
+     light: ev-blue 6.556 / ink 16.620 / ink-2 5.608 / gold 4.935 / silver 8.102 / bronze 5.727
+   いずれもAA=4.5:1適合（darkのbronzeのみ余裕が小さい）。グラデ下端（dark #181e31 /
+   light #faf9f4）側はいずれも上端より高い比になる（例: dark bronze 4.795 / light gold 4.682）。
+   得点バーの塗り--goldは地--surface-2に対し dark 7.963 / light 4.213 でUI部品基準3:1適合。
+   バーは数値の補助表現で、得点は必ず数字でも併記する --- */
+.standings {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.standings__label {
+  margin: 0 0 var(--sp-1);
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.standings__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.standings__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding-left: var(--sp-1);
+  /* 自分の行の左罫線ぶんを全行で確保し、YOU行だけ横位置がずれないようにする */
+  border-left: 3px solid transparent;
+}
+/* 順位バッジ。4位以下は--ink-2で、1〜3位だけランク色を当てる */
+.standings__badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border: 1px solid var(--ink-2);
+  border-radius: var(--radius-button);
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+}
+.standings__row[data-rank='1'] .standings__badge {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.standings__row[data-rank='2'] .standings__badge {
+  border-color: var(--rank-silver);
+  color: var(--rank-silver);
+}
+.standings__row[data-rank='3'] .standings__badge {
+  border-color: var(--rank-bronze);
+  color: var(--rank-bronze);
+}
+.standings__row[data-self='true'] {
+  border-left-color: var(--ev-blue);
+}
+.standings__main {
+  flex: 1;
+  min-width: 0;
+}
+.standings__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+/* 名前と「YOU」は左側でひとかたまりにし、得点を右端へ寄せる */
+.standings__who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.standings__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.standings__you {
+  flex: none;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.08em;
+}
+.standings__points {
+  flex: none;
+  color: var(--ink);
+}
+.standings__bar {
+  display: block;
+  height: 6px;
+  margin-top: var(--sp-half);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.standings__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .standings__bar-fill {
+    transition: none;
+  }
+}
+/* --- S8 ホスト画面（投影）側のサイズ差。コンポーネントに分岐を持たせず親クラスで
+   上書きする（docs/25 4.1節）。V-11でホスト画面専用の投影用スケール（--host-fs-*）に
+   置き換え、順位の得点を6vw以上にした（docs/25 4.3節） --- */
+.battle-host .standings__label {
+  font-size: var(--host-fs-label);
+}
+.battle-host .standings__badge {
+  min-width: 2em;
+  height: 2em;
+  font-size: var(--host-fs-name);
+}
+.battle-host .standings__name {
+  font-size: var(--host-fs-name);
+}
+.battle-host .standings__points {
+  font-size: var(--host-fs-points);
+}
+.battle-host .standings__bar {
+  height: 12px;
+}
+/* 最終リザルトの4位以下だけ1段小さくする。表彰台（--host-fs-points=6vw）は見せ場なので
+   維持し、下位行の得点は --host-fs-name（3vw）に落として1080pに収まる行数を稼ぐ。
+   それでも溢れる人数のときは .battle-host-stage__body のスクロールで受ける（2段構え）。
+   セレクタは .standings__* に限定しており、children スロットの BattleAward には及ばない */
+.battle-host .battle-host-final .standings__points {
+  font-size: var(--host-fs-name);
+}
+.battle-host .battle-host-final .standings__badge {
+  font-size: var(--host-fs-meta);
+}
+.battle-host .battle-host-final .standings__name {
+  font-size: var(--host-fs-meta);
+}
+/* --- 投影の順位表を2列にする（V-23。JV-11=案Cで承認。docs/25 6.5節の#2） ---
+   V-20の点検で、参加者5人でも途中順位は5人目が下端で切れ、最終リザルトは4位の行が切れて
+   いた（1920×1080）。docs/25 4.2節は「4位以下の全順位も同一画面で確認できること」を
+   完了条件にしているので、縦を諦めて横を使う。想定人数は発起人確認で10人前後。
+   - multi-column を使う（grid ではなく）。段組みは**下へ流れてから次の列**へ移るので、
+     順位表を上から順に目で追う動きと一致する。gridの行優先だと 1,2 / 3,4 と横に並び、
+     順位の連続性が読めない
+   - 行数が少ないときに2列にすると片側が空いて不自然なので、**6行以上のときだけ**段組みする
+     （:has() の数量クエリ）。:has() 未対応の環境では段組みが効かず従来どおり
+     .battle-host-stage__body のスクロールで受けるだけなので、情報は失われない
+   - 参加者画面（S7・390×844）は1列のまま。このセレクタは .battle-host 配下に限る */
+.battle-host .standings__list:has(.standings__row:nth-child(6)) {
+  /* .standings__list は既定が display:flex で、flexコンテナには columns が効かない
+     （実画面で段組みされず気づいた）。段組みするときだけ block に戻し、flexのgapの代わりに
+     行のmarginで間隔を作る */
+  display: block;
+  columns: 2;
+  column-gap: var(--sp-3);
+}
+.battle-host .standings__list:has(.standings__row:nth-child(6)) .standings__row {
+  margin-bottom: var(--sp-1);
+}
+/* 最終リザルトは表彰台とベストグロース賞が縦を使うため、2列では10人が収まらない
+   （実測 overflow 204px）。4位以下は既にV-11で1段小さくしてある副次情報なので、
+   6行以上のときは3列にして行も詰める。途中順位（standingsフェーズ）は2列のまま */
+.battle-host .battle-host-final .standings__list:has(.standings__row:nth-child(6)) {
+  columns: 3;
+}
+.battle-host .battle-host-final .standings__list:has(.standings__row:nth-child(6)) .standings__row {
+  margin-bottom: var(--sp-half);
+}
+.battle-host .battle-host-final .standings__bar {
+  height: 8px;
+  margin-top: 2px;
+}
+.battle-host .standings__row {
+  /* 段の境界で1行が上下に割れないようにする */
+  break-inside: avoid;
+  /* 行の高さを詰める。投影では得点が6vw（1920pxで115px）あり、既定の line-height 1.5 だと
+     1行200px近くになって2列でも10人が収まらなかった（実画面で計測して気づいた）。
+     字面を詰めるのではなく行間だけ詰めるので、07の7節S8の「得点6vw以上」は維持する */
+  line-height: 1.15;
+}
+.battle-host .standings__bar {
+  height: 10px;
+  margin-top: 4px;
+}
+/* 表彰台とベストグロース賞の縦の占有を詰めて、4位以下の段組みぶんの高さを確保する（V-23）。
+   文字サイズは落とさず**行間だけ**詰める（07の7節S8の「得点6vw以上」を維持するため）。
+   台座の高さも下げるが、1位・2位・3位の比（高さの三重符号化）は保つ */
+.battle-host .battle-award__podium {
+  margin-bottom: var(--sp-1);
+}
+/* docs/26 A-6: 1920pxでは台座1つが約600px幅の帯になり、「台」ではなく横棒に見えていた。
+   さらに3位の低い台座が全幅に伸びるため、直下のベストグロース賞カードの罫線と融合して
+   見えていた。**台座だけ**を絞ってブロックとして読ませる。
+   列そのもの（.battle-award__place）を絞る案は採らない: 1位の得点は --host-fs-points（6vw）
+   で「1,240点」が約430pxあり、列幅を詰めると折り返して縦に伸び、V-23が実測で成立させた
+   10人の1画面収まりを壊す（実際に一度壊して差し戻した）。台座だけなら縦は動かない */
+.battle-host .battle-award__pedestal {
+  max-width: min(18vw, 340px);
+  margin-inline: auto;
+}
+.battle-host .battle-award__points,
+.battle-host .battle-award__name,
+.battle-host .battle-award__growth-name {
+  line-height: 1.1;
+}
+.battle-host .battle-award__growth {
+  padding: var(--sp-half) var(--sp-2);
+}
+.battle-host .battle-award__growth-label,
+.battle-host .battle-award__growth-note {
+  line-height: 1.15;
+}
+
+/* --- docs/26 A-5: S8ホストの抽選プレビュー（setup）。JV-10=案Bにより投影対象ではなく
+   「ホストが手元で読む画面」だが、ScreenLayout のまま1920pxのPCで開かれるため一覧が
+   全幅に間延びしていた。読み幅を止めて面と行の階層を付けるだけに留める（--host-fs-* の
+   投影スケールは使わない）。地・インクは通常のテーマ追従トークンで、V-20で検証済みの
+   組み合わせ（--ink / --ink-2 / --ev-blue on --surface-grad）しか使っていない --- */
+.battle-lottery {
+  max-width: 72ch;
+  margin-inline: auto;
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-grad);
+}
+.battle-lottery__label {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  color: var(--ev-blue);
+}
+.battle-lottery__summary {
+  margin: var(--sp-half) 0 var(--sp-2);
+  color: var(--ink);
+}
+.battle-lottery__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.battle-lottery__item {
+  display: grid;
+  grid-template-columns: 2.5ch auto 1fr;
+  align-items: baseline;
+  gap: var(--sp-1);
+  padding: var(--sp-half) 0;
+  border-top: 1px solid var(--line);
+}
+.battle-lottery__num {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* Partラベルは .drill-part-tag と同じ意匠にはしない（あれは学習中のパート表示で意味が違う）。
+   一覧の中の分類チップとして --ink-2 の枠だけを持たせる */
+.battle-lottery__part {
+  padding: 0 var(--sp-half);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.battle-lottery__text {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* --- イベントバトル最終リザルトの表彰（V-10。docs/25 4.2節・JV-4）。
+   地は .standings の --surface-grad をそのまま使い、表彰台・表彰カードには面を敷かない
+   （--surface-2 を敷くとダークの--rank-bronze比が4.104:1、ライトの--gold比が4.213:1で
+   本文基準4.5:1を割るため。以下のコントラストは機械計算値）:
+   ダーク（--surface-grad #1c2339→#181e31）: --gold 8.753/9.304、--rank-silver 7.641/8.122、
+   --rank-bronze 4.511/4.795、--ink 13.302/14.141、--ink-2 7.036/7.480
+   ライト（--surface-grad #ffffff→#faf9f4）: --gold 4.935/4.682、--rank-silver(--steel-mid)
+   8.102/7.686、--rank-bronze 5.727/5.433、--ink 16.620/15.766、--ink-2 5.608/5.320
+   台座の地（--surface-2）に載るのは順位数字（--fs-stat以上の大文字）のみで、
+   大文字基準3:1に対し最小がダークの--rank-bronze 4.104:1・ライトの--gold 4.213:1 --- */
+.battle-award {
+  margin-bottom: var(--sp-2);
+}
+.battle-award__podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+}
+.battle-award__place {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  /* 開示前も枠を確保して、段階開示でレイアウトが動かないようにする */
+  transition: opacity 200ms ease;
+}
+.battle-award__place[data-revealed='false'] {
+  opacity: 0;
+  visibility: hidden;
+}
+/* 視覚上は 2位・1位・3位 の並び（1位を中央・最も高く）。DOMは順位順のまま保つ */
+.battle-award__place[data-rank='1'] {
+  order: 2;
+}
+.battle-award__place[data-rank='2'] {
+  order: 1;
+}
+.battle-award__place[data-rank='3'] {
+  order: 3;
+}
+.battle-award__points {
+  margin: 0;
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+}
+.battle-award__place[data-rank='1'] .battle-award__points {
+  font-size: var(--fs-stat);
+  color: var(--gold);
+  /* JV-4: 1位の得点に光暈を当てる（docs/20 3.1節の「リザルト数字」の適用拡張） */
+  text-shadow: var(--glow-gold);
+}
+.battle-award__place[data-rank='2'] .battle-award__points {
+  color: var(--rank-silver);
+}
+.battle-award__place[data-rank='3'] .battle-award__points {
+  color: var(--rank-bronze);
+}
+.battle-award__name {
+  margin: var(--sp-half) 0;
+  font-size: var(--fs-sub);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.battle-award__you {
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.08em;
+}
+/* 台座の高さが順位の第3の符号（数字・色との三重符号化）。グレースケールでも判別できる */
+.battle-award__pedestal {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.battle-award__place[data-rank='1'] .battle-award__pedestal {
+  height: 76px;
+  border-color: var(--gold);
+}
+.battle-award__place[data-rank='2'] .battle-award__pedestal {
+  height: 54px;
+  border-color: var(--rank-silver);
+}
+.battle-award__place[data-rank='3'] .battle-award__pedestal {
+  height: 36px;
+  border-color: var(--rank-bronze);
+}
+.battle-award__rank-num {
+  font-size: var(--fs-stat);
+  line-height: 1;
+  color: var(--ink-2);
+}
+.battle-award__place[data-rank='1'] .battle-award__rank-num {
+  color: var(--gold);
+}
+.battle-award__place[data-rank='2'] .battle-award__rank-num {
+  color: var(--rank-silver);
+}
+.battle-award__place[data-rank='3'] .battle-award__rank-num {
+  color: var(--rank-bronze);
+}
+/* ベストグロース賞は順位と別軸の表彰なので、順位表の外に独立した枠として置く */
+.battle-award__growth {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-card);
+  transition: opacity 200ms ease;
+}
+.battle-award__growth[data-revealed='false'] {
+  opacity: 0;
+  visibility: hidden;
+}
+.battle-award__growth-label {
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.battle-award__growth-name {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-heading);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.battle-award__growth-note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+/* 「すべて表示」は開示中だけ出すが、消えたときに下の順位表がずれないよう高さを確保する */
+.battle-award__skip-slot {
+  min-height: var(--tap-min);
+  margin-top: var(--sp-1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-award__place,
+  .battle-award__growth {
+    transition: none;
+  }
+}
+/* S8ホスト画面（投影）側のサイズ差。V-11で投影用スケール（--host-fs-*）に置き換えた。
+   台座の高さも vw 基準にして、投影サイズでも順位差（高さ）が離れて見えるようにする */
+.battle-host .battle-award__points {
+  font-size: var(--host-fs-name);
+}
+.battle-host .battle-award__place[data-rank='1'] .battle-award__points {
+  font-size: var(--host-fs-points);
+}
+.battle-host .battle-award__name {
+  font-size: var(--host-fs-name);
+}
+.battle-host .battle-award__place[data-rank='1'] .battle-award__pedestal {
+  /* V-23で下げた（元は max(9vw,110px)=1920pxで173px）。表彰台の縦が最終リザルトの
+     大半を占め、10人の全順位が1画面に収まらなかった。1位>2位>3位の比は保つ */
+  height: max(4.5vw, 74px);
+}
+.battle-host .battle-award__place[data-rank='2'] .battle-award__pedestal {
+  height: max(3.2vw, 56px);
+}
+.battle-host .battle-award__place[data-rank='3'] .battle-award__pedestal {
+  /* 1位 4.5vw > 2位 3.2vw > 3位 2.2vw の比を保つ（台座の高さは順位の三重符号化の一要素） */
+  height: max(2.2vw, 40px);
+}
+
+.battle-host .battle-award__rank-num {
+  /* 台座の中の順位数字。--host-fs-points（6vw=1920pxで115px）だと数字自体が台座の高さの
+     下限になり、台座の高さ指定が効かなくなる（V-23で実測して気づいた）。順位の数字は
+     台座の高さ・色と合わせた三重符号化の一要素なので、単独で最大である必要はない */
+  font-size: max(3.4vw, 44px);
+}
+/* ベストグロース賞は投影で読ませる表彰なので、注記サイズのままにしない */
+.battle-host .battle-award__growth-label,
+.battle-host .battle-award__growth-note {
+  font-size: var(--host-fs-label);
+}
+.battle-host .battle-award__growth-name {
+  font-size: var(--host-fs-name);
+}
+
+/* --- S8ホスト画面（プロジェクター投影）の意匠（V-11。正本: docs/25 4.3節・JV-5・JV-6）---
+   - JV-5（承認済み・案A）: 縦3分割・操作ゾーン下45%を適用しない。適用外はS8ホスト画面の
+     PC表示のみで、他画面には及ばない（docs/20 1節の「変えないもの」に明記済み）
+   - JV-6（承認済み・案A）: プロジェクターは黒を投影できないため明地固定。地色はライトテーマの
+     トークンをそのまま使う（画面表示中だけ data-theme をライトへ固定する=BattleHostScreen.tsx）。
+     したがって以下の実効値はライト値で、コントラストは docs/20 2.3節の式での機械計算値:
+       --ink #211e18 on --bg #f6f5f1 = 15.234:1（問題文・選択肢本文・得点。最大コントラスト）
+       --ink on --surface-grad #ffffff→#faf9f4 = 16.620/15.766:1（選択肢カード・順位表の面）
+       --ink-2 #6d675c on --bg = 5.140:1（メタ表示・注記）
+       --ev-blue #2456c4 on --bg = 6.009:1（英字ラベル・外周リング・選択肢A）
+       --raid #c42b4c on --bg = 5.070:1（残り5秒以下のリングと残秒数）
+       --gold #996600 on --surface-grad = 4.935/4.682:1（選択肢B）
+       --listen #00778f on --surface-grad = 5.204/4.937:1（選択肢C）
+       --violet #6a55d8 on --surface-grad = 5.379/5.103:1（選択肢D）
+     いずれも本文基準4.5:1に適合する。リングの軌道（--line #ddd9ce on --bg = 1.293:1）だけは
+     基準を満たさないが、残り時間は数値（--ink / --raid）で必ず併記するためリングは装飾扱い
+     （aria-hidden）で、情報は色・線長に依存しない
+   - タイポは vw 基準（問題文5vw以上・選択肢4vw以上・順位の得点6vw以上）。--fs-* はモバイルの
+     px固定なので、ホスト画面専用のスケールをここ（.battle-host スコープ）に持つ。
+     グローバルトークンは増やさない（docs/25 5節） --- */
+.battle-host {
+  /* max() で vw 側を下限に固定する。狭いウィンドウでも px 下限で崩れないようにしつつ、
+     ビューポート幅に対する比は常に規定値以上になる */
+  --host-fs-label: max(1.6vw, 14px);
+  --host-fs-meta: max(2.2vw, 18px);
+  --host-fs-name: max(3vw, 20px);
+  --host-fs-choice: max(4vw, 24px);
+  --host-fs-question: max(5vw, 28px);
+  --host-fs-points: max(6vw, 32px);
+  /* 外周リングの見た目の太さ。投影レイアウトの余白はこの分を足して確保する */
+  --host-ring-width: 12px;
+}
+.battle-host-stage {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--sp-2);
+  /* 高さを画面に固定する（min-heightだと本文が伸びたときに進行ボタンが画面外へ出る）。
+     はみ出しは本体（__body）側でスクロールさせる */
+  height: 100dvh;
+  padding: calc(var(--host-ring-width) + var(--sp-2));
+  background: var(--bg);
+}
+.battle-host-stage__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.battle-host-stage__meta {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--host-fs-meta);
+  letter-spacing: 0.12em;
+}
+.battle-host-stage__timer {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--host-fs-meta);
+}
+/* 残り時間の警告はリングの色と数値の色を同時に変える（色単独に頼らず数値も併記する） */
+.battle-host-stage__timer[data-low='true'] {
+  color: var(--raid);
+}
+.battle-host-stage__body {
+  min-width: 0;
+  overflow-y: auto;
+}
+/* --- S8ホストのロビー（V-22。JV-10=案Bで承認。docs/25 6.5節の#1） ---
+   ロビーは投影に映る（参加者全員がここのルームコードを見て入室する）ので、投影レイアウトの
+   タイポスケールに乗せる。ルームコードは口伝えの起点なので最大の要素にする。
+   参加者チップはS7（.battle-lobby__chip）と同じクラスを使い、サイズだけ .battle-host
+   スコープで上書きする（別クラスを作ると2箇所の見た目が独立に動く）。
+   抽選プレビュー（setup）はホストが12問を読み比べる画面なので投影スケールにしない（案B）。 */
+.battle-host-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--sp-1);
+  text-align: center;
+}
+.battle-host-lobby__label {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--host-fs-label);
+  letter-spacing: 0.2em;
+}
+.battle-host-lobby__code {
+  /* ルームコードは4文字なので、順位の得点より大きく取れる。字間を開けて読み間違いを防ぐ
+     （投影では 0 / O・1 / I の判別が問題になる。display書体＋広い字間で緩和する） */
+  margin: 0;
+  color: var(--ink);
+  font-size: max(14vw, 64px);
+  line-height: 1.05;
+  letter-spacing: 0.12em;
+}
+.battle-host-lobby__hint {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--host-fs-name);
+}
+.battle-host .battle-lobby__chips {
+  /* 投影では中央寄せにする（左詰めだと広い画面で片側に寄って見える） */
+  justify-content: center;
+  margin-top: var(--sp-2);
+}
+.battle-host .battle-lobby__chip {
+  font-size: var(--host-fs-name);
+  padding: var(--sp-half) var(--sp-2);
+}
+.battle-host-stage__phase {
+  margin: 0 0 var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--host-fs-meta);
+}
+/* 進行ボタンは投影に映る必要がないため画面下端に小さく置く（docs/25 4.3節）。
+   注記は左、ボタンは右に寄せる */
+.battle-host-stage__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.battle-host-stage__note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--host-fs-label);
+}
+/* 全幅・56pxの主ボタンを投影用に縮める。ただしタップ目標48px（docs/20 2.3節5）は維持する */
+.battle-host-stage__foot .primary-button {
+  width: auto;
+  min-width: 200px;
+  min-height: var(--tap-min);
+  margin-left: auto;
+}
+/* ロビーだけは進行ボタンが2つ（開始する・やめる）になる。secondary-action は既定で全幅なので
+   投影では横に伸びきってしまう（V-22の実画面で確認）。主ボタンと同じ扱いに揃えて右端へ寄せる */
+.battle-host-stage__foot .secondary-action {
+  width: auto;
+  min-width: 200px;
+  min-height: var(--tap-min);
+}
+/* 外周リング（残り時間）。周長が減る表現で、SVGの stroke-dasharray を1秒刻みで更新する。
+   transition を当てない＝常時アニメーションにならない（07の9節の精神。docs/25 4.3節）。
+   線幅の外側半分は viewBox の外へ出て切り取られるため、見た目の2倍の太さを指定する */
+.battle-host-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.battle-host-ring__track,
+.battle-host-ring__fill {
+  fill: none;
+  stroke-width: calc(var(--host-ring-width) * 2);
+}
+.battle-host-ring__track {
+  stroke: var(--line);
+}
+.battle-host-ring__fill {
+  stroke: var(--ev-blue);
+}
+.battle-host-ring[data-low='true'] .battle-host-ring__fill {
+  stroke: var(--raid);
+}
+/* 問題文は最小5vw（--host-fs-question）。07の4.2節に従い行間1.65・最大幅34em */
+.battle-host-question {
+  max-width: 34em;
+  margin: 0 0 var(--sp-3);
+  color: var(--ink);
+  font-size: var(--host-fs-question);
+  line-height: 1.65;
+}
+/* 選択肢は最小4vw（--host-fs-choice）。手元画面（S7）と同じ4択を2列で並べる */
+.battle-host-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.battle-host-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface-grad);
+  border: 3px solid var(--line);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  font-size: var(--host-fs-choice);
+}
+/* 形マーカーの器。V-12で中身を記号A–Dから形マーカー（▲■●◆）へ置き換え、キーごとの色
+   （下の [data-choice-key]）と併せて三重符号化を成立させた。S7の手元画面も同じ対応
+   （A=--ev-blue / B=--gold / C=--listen / D=--violet）で、形の対応表は ChoiceButton と共有する。
+   この画面は明地固定（JV-6）なのでライト値のみで判定する。実測比（--surface-grad 上端/下端・
+   機械計算値）: A 6.556/6.219・B 4.935/4.682・C 5.204/4.937・D 5.379/5.103 で全てAA適合 */
+.battle-host-choice__marker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  border: 3px solid currentcolor;
+  border-radius: var(--radius-pill);
+}
+.battle-host-choice__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.battle-host-choice[data-choice-key='A'] {
+  border-color: var(--ev-blue);
+}
+.battle-host-choice[data-choice-key='A'] .battle-host-choice__marker {
+  color: var(--ev-blue);
+}
+.battle-host-choice[data-choice-key='B'] {
+  border-color: var(--gold);
+}
+.battle-host-choice[data-choice-key='B'] .battle-host-choice__marker {
+  color: var(--gold);
+}
+.battle-host-choice[data-choice-key='C'] {
+  border-color: var(--listen);
+}
+.battle-host-choice[data-choice-key='C'] .battle-host-choice__marker {
+  color: var(--listen);
+}
+.battle-host-choice[data-choice-key='D'] {
+  border-color: var(--violet);
+}
+.battle-host-choice[data-choice-key='D'] .battle-host-choice__marker {
+  color: var(--violet);
+}
+
 /* --- ユーティリティ --- */
 .visually-hidden {
   position: absolute;
@@ -1640,4 +2919,176 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* --- S5レイド画面のゴースト表層（V-15。正本: docs/25 4.6節）---
+   貢献ダメージリストは順位表（V-9）の `.standings*` をそのまま流用するため、ここでは
+   見出しの追加分だけを持つ（構造の流用=4.6節。StandingsListコンポーネント自体を再利用しない
+   理由は RaidContributionList.tsx の冒頭コメント）。
+
+   コントラスト（docs/20 2.3節の式での機械計算値。基準=本文4.5:1／UI部品3:1。
+   面=--surface-grad上端 dark #1c2339 / light #ffffff）:
+     倍率チップの文字 --ink        : dark 13.302 / light 16.620（本文AA適合）
+     チップ枠・バー塗り --ok       : dark 7.306 / light 4.358（対面）、--surface-2上で dark 6.646 / light 3.720
+     チップ枠・バー塗り --ink-3    : dark 4.493 / light 4.929（対面）、--surface-2上で dark 4.088 / light 4.208
+     名誉バッジ枠・数値 --gold     : dark 8.753 / light 4.935（本文AA適合）
+     空状態の文 --ink-2            : dark 7.036 / light 5.608（本文AA適合）
+     英字ラベル --ev-blue          : dark 4.870 / light 6.556（本文AA適合）
+   **--ok / --ink-3 を文字色に使わない**: light の --ok は面に対し4.358で本文基準4.5を満たさず、
+   dark の --ink-3 は4.493で同様に満たさない。そのため倍率チップの文字は --ink 固定とし、
+   --ok / --ink-3 は枠線・バー塗り（UI部品基準3:1）にのみ使う。
+   --warn / --ng は使わない（弱点は攻略の手がかりでボス役の告発ではない=4.6節・02の5.3節）。 */
+.raid-contrib__heading,
+.ghost-weakness__heading,
+.raid-badges__heading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  font-weight: 400;
+}
+.ghost-weakness__eyebrow,
+.raid-badges__eyebrow {
+  margin: 0;
+  color: var(--ev-blue);
+  font-family: var(--font-display);
+  font-size: var(--fs-note);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+/* 弱点マップ・バッジ一覧の面（順位表と同じカード言語に揃える） */
+.ghost-weakness,
+.raid-badges {
+  margin: var(--sp-1) 0;
+  padding: var(--sp-2);
+  background: var(--surface-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.ghost-weakness__note {
+  margin: var(--sp-half) 0 var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+.ghost-weakness__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ghost-weakness__row {
+  /* 倍率の強弱色の受け皿。data-strengthで切り替え、配下は--weakness-color経由で参照する
+     （生の16進をここに書かない=トークン経由参照の原則。V-14の--growth-rank-colorと同じ形） */
+  --weakness-color: var(--ink-3);
+  --weakness-chip-border-style: dashed;
+
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.ghost-weakness__row[data-strength='weak'] {
+  --weakness-color: var(--ok);
+  /* 弱点=実線・堅い=破線。色を失っても線種と語（弱点/堅い）と倍率の数値で区別できる（07の原則4） */
+  --weakness-chip-border-style: solid;
+}
+.ghost-weakness__chip {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+  min-width: 74px;
+  padding: 2px var(--sp-1);
+  border: 1px var(--weakness-chip-border-style) var(--weakness-color);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-size: var(--fs-note);
+}
+.ghost-weakness__main {
+  flex: 1;
+  min-width: 0;
+}
+.ghost-weakness__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-half);
+}
+.ghost-weakness__tag {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ghost-weakness__count {
+  flex: none;
+  color: var(--ink);
+  font-size: var(--fs-sub);
+}
+.ghost-weakness__bar {
+  display: block;
+  height: 6px;
+  margin-top: var(--sp-half);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.ghost-weakness__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--weakness-color);
+}
+/* 討伐された回数（名誉表示）。数字を誇示せず小さな金のバッジ形に留める（4.6節・02の5.3節） */
+.raid-honor {
+  /* 「討伐された回数: N回」を1文として読ませるため、flexではなく通常のインライン整形にする
+     （flexにすると数字前後の空白が落ち、単位が数字から離れて読める） */
+  display: inline-block;
+  margin: var(--sp-1) 0;
+  padding: 2px var(--sp-1);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-note);
+}
+.raid-honor__count {
+  color: var(--gold);
+  font-size: var(--fs-sub);
+}
+/* 取得済みバッジ（07の6節: 獲得済みは--gold枠。取得日を併記する） */
+.raid-badges__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  list-style: none;
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+}
+.raid-badges__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  padding: var(--sp-half) var(--sp-1);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-button);
+}
+.raid-badges__name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.raid-badges__date {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
+/* 空状態（貢献者0人・弱点0件・バッジ0件）。見出しだけが浮くのを防ぐ枠（4.6節）。
+   煽らないトーンを保つため色は--ink-2のみで、--warn / --ng は使わない */
+.raid-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-1);
+}
+.raid-empty__text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  text-align: center;
 }

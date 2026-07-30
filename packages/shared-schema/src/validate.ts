@@ -4,13 +4,14 @@
 // （検査対象フィールドは format 毎に定義: audio系=script、text_blank=question＋choices、
 // text_passage=passages本文＋subQuestions、vocab_card=phrase）/ 音声存在チェック
 // （audioFiles オプション指定時のみ）。text_passage（Part6/7）は audio_set と同じ
-// 「1刺激＋subQuestions」構造で、刺激は音声でなく passages（本文）になる（ADR 0006・docs/18 3.1節）。
+// 「1刺激＋subQuestions」構造で、刺激は音声でなく passages（本文）になる（ADR 0006・docs/24 3.1節）。
 //
 // エラーはパック単位で全件レポートし、部分取込はしない（1件でもエラーがあれば ok=false）。
 // ファイルシステムには触れない設計: 実ファイルの列挙はビルド側（T-32）が行い、
 // audioFiles として渡す。app（ブラウザ）からも同じバリデータを使えるようにするため。
 
-import type { FreqRank, PackLicense, QuestionFormat } from './types.js'
+import { part2ResponsesDigest } from './part2Responses.js'
+import type { Choice, FreqRank, PackLicense, QuestionFormat } from './types.js'
 
 export type ValidationErrorCode =
   | 'invalid_structure' // JSONの構造自体が不正（型違い・必須オブジェクト欠落）
@@ -70,7 +71,7 @@ const AUDIO_FORMATS: readonly QuestionFormat[] = [
 const TEXT_FORMATS: readonly QuestionFormat[] = ['text_blank']
 /** 単独の choices + answer を持つ format（audio_set / text_passage は subQuestions 側で持つ） */
 const CHOICE_FORMATS: readonly QuestionFormat[] = ['audio_qa', 'audio_photo', 'text_blank']
-/** text_passage の subQuestions 件数上限（Part7複数パッセージ=5問。docs/18 3.1節） */
+/** text_passage の subQuestions 件数上限（Part7複数パッセージ=5問。docs/24 3.1節） */
 const MAX_SUB_QUESTIONS = 5
 /** Part6 の空所マーカー（本文中の [[1]]…[[4]]）。数字を1グループで捕捉する */
 const PASSAGE_MARKER_RE = /\[\[(\d+)\]\]/g
@@ -305,6 +306,10 @@ function validateQuestion(
     validateChoicesAndAnswer(q.choices, q.answer, path, err)
   }
 
+  // 応答オフセット（音声のみモード用）は choices と audioMeta の両方を見るため、
+  // validateAudioMeta（choices を受け取らない）とは別に検証する
+  validatePart2ResponseOffsets(q, format, path, err)
+
   if (format === 'audio_photo') {
     if (!isNonEmptyString(q.image)) {
       err(`${path}.image`, 'missing_field', 'audio_photo には image が必要')
@@ -392,6 +397,132 @@ function validateAudioMeta(
     ) {
       err(`${path}.questionEndMs`, 'invalid_value', 'questionEndMs は durationMs 未満の正の整数')
     }
+  }
+}
+
+/**
+ * audioMeta.responseOffsetsMs / responsesTextDigest を検証する（T-151。正本: docs/04 2節）。
+ *
+ * この2フィールドは「設問＋3応答すべて」を1ファイルに連結した音声（音声のみモード用）の
+ * 各応答の開始位置を指す。省略時は従来形式＝音声のみモード非対応として扱うので、
+ * 「無い」ことはエラーにしない（部分移行を許す。未対応の列挙は cli の contentLint が警告する）。
+ *
+ * digest 不一致をエラー（警告ではなく）にするのは、TTS後に選択肢を編集すると音声の
+ * 読み上げ順と key の対応が崩れ、answer が実質誤りになるため。answer_mismatch と同じ重大度。
+ */
+function validatePart2ResponseOffsets(
+  q: Record<string, unknown>,
+  format: QuestionFormat,
+  path: string,
+  err: (path: string, code: ValidationErrorCode, message: string) => void,
+): void {
+  const meta = isRecord(q.audioMeta) ? q.audioMeta : null
+  const offsets = meta?.responseOffsetsMs
+  const digest = meta?.responsesTextDigest
+  const hasOffsets = offsets !== undefined && offsets !== null
+  const hasDigest = digest !== undefined && digest !== null
+
+  if (!hasOffsets && !hasDigest) return
+
+  const offsetsPath = `${path}.audioMeta.responseOffsetsMs`
+  const digestPath = `${path}.audioMeta.responsesTextDigest`
+
+  if (format !== 'audio_qa') {
+    err(
+      offsetsPath,
+      'invalid_value',
+      `responseOffsetsMs / responsesTextDigest は audio_qa 専用（実際: ${format}）`,
+    )
+    return
+  }
+
+  if (!hasOffsets) {
+    err(
+      offsetsPath,
+      'missing_field',
+      'responsesTextDigest があるのに responseOffsetsMs が無い（応答音声の再生成が必要）',
+    )
+    return
+  }
+
+  if (!Array.isArray(offsets) || offsets.length === 0) {
+    err(offsetsPath, 'invalid_value', 'responseOffsetsMs は1件以上の数値配列')
+    return
+  }
+
+  if (!offsets.every((v) => isInt(v) && v > 0)) {
+    err(offsetsPath, 'invalid_value', 'responseOffsetsMs の要素は正の整数')
+    return
+  }
+
+  const values = offsets as number[]
+  for (let i = 1; i < values.length; i++) {
+    if (values[i]! <= values[i - 1]!) {
+      err(offsetsPath, 'invalid_value', 'responseOffsetsMs は厳密単調増加でなければならない')
+      return
+    }
+  }
+
+  const choices = Array.isArray(q.choices) ? q.choices : null
+  if (!choices) {
+    // choices 自体の不備は validateChoicesAndAnswer が報告済み。ここでは件数照合だけ諦める
+    return
+  }
+  if (values.length !== choices.length) {
+    err(
+      offsetsPath,
+      'invalid_value',
+      `responseOffsetsMs の件数(${values.length})が choices の件数(${choices.length})と一致しない`,
+    )
+  }
+
+  const questionEndMs = meta?.questionEndMs
+  if (isInt(questionEndMs) && values[0]! < (questionEndMs as number)) {
+    err(
+      offsetsPath,
+      'invalid_value',
+      `最初の応答の開始(${values[0]}ms)が questionEndMs(${questionEndMs}ms)より前＝設問部と重なっている`,
+    )
+  }
+
+  const durationMs = meta?.durationMs
+  const last = values[values.length - 1]!
+  if (isInt(durationMs) && last >= (durationMs as number)) {
+    err(
+      offsetsPath,
+      'invalid_value',
+      `最後の応答の開始(${last}ms)が durationMs(${durationMs}ms)以上`,
+    )
+  }
+
+  if (!hasDigest) {
+    err(
+      digestPath,
+      'missing_field',
+      'responseOffsetsMs があるなら responsesTextDigest も必要（選択肢の後編集を検出できない）',
+    )
+    return
+  }
+
+  if (!isNonEmptyString(digest)) {
+    err(digestPath, 'invalid_value', 'responsesTextDigest は文字列')
+    return
+  }
+
+  // choices の要素が { key, text } でない場合は validateChoicesAndAnswer 側でエラー済み
+  const wellFormed = choices.every(
+    (c) => isRecord(c) && isNonEmptyString(c.key) && isNonEmptyString(c.text),
+  )
+  if (!wellFormed) return
+
+  const expected = part2ResponsesDigest(choices as Choice[])
+  if (digest !== expected) {
+    err(
+      digestPath,
+      'invalid_value',
+      `responsesTextDigest が choices と一致しない（期待: ${expected} / 実際: ${digest}）。` +
+        'TTS後に選択肢を編集したため音声の読み上げ順と key の対応が崩れている。応答音声の再生成が必要',
+    )
   }
 }
 

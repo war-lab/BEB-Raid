@@ -8,6 +8,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import { toDateString } from '../engine/date'
 import { PROFILE_ID, RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { syncRaidDamage } from '../services/raidSync'
@@ -78,6 +79,9 @@ class FakeRaidApi implements RaidApi {
   syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: this.currentBoss ?? ACTIVE_BOSS }))
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
+  sendGhostRecord = vi.fn(async () => {})
+  deleteOwnGhostRecord = vi.fn(async () => {})
 }
 
 function textBlankQuestion(id: string): Question {
@@ -100,6 +104,22 @@ function textBlankQuestion(id: string): Question {
 }
 
 const QUESTION_POOL: Question[] = Array.from({ length: 10 }, (_, i) => textBlankQuestion(`q-${i}`))
+
+/** M4・T-128: ボス役セッションの抽選対象（difficulty>=4）フィクスチャ */
+function hardQuestion(id: string): Question {
+  return { ...textBlankQuestion(id), difficulty: 4 }
+}
+
+/** difficulty>=4が30問以上ある在庫プール（正常系: 抽選が成立する） */
+const GHOST_BOSS_READY_POOL: Question[] = [
+  ...QUESTION_POOL,
+  ...Array.from({ length: 32 }, (_, i) => hardQuestion(`hard-${i}`)),
+]
+
+/** difficulty>=3の合計が10問未満の在庫プール（停止条件: 抽選不成立） */
+const GHOST_BOSS_INSUFFICIENT_POOL: Question[] = Array.from({ length: 3 }, (_, i) =>
+  hardQuestion(`hard-${i}`),
+)
 
 async function putProfile(db: BebRaidDatabase) {
   await db.profile.put({
@@ -488,6 +508,9 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     expect(list.textContent).toContain('初回討伐')
     // レビューF1(h): bossIdは人が読める形式に整形する
     expect(list.textContent).toContain('討伐: 2026年 第29週')
+    // V-15（docs/25 4.6節・07の6節）: 取得済みバッジは取得日を併記する
+    expect(list.textContent).toContain(toDateString(1000))
+    expect(screen.queryByTestId('raid-badges-empty')).toBeNull()
   })
 
   it('raidBadgeLabel: 規約外のbossIdはID表示にフォールバックする（レビューF1(h)）', () => {
@@ -495,7 +518,10 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     expect(raidBadgeLabel('raid-clear:special-event')).toBe('討伐: special-event')
   })
 
-  it('レイド系バッジが無ければ一覧セクション自体が出ない', async () => {
+  // V-15（docs/25 4.6節・6.3節）で「0件ならセクションを出さない」から
+  // 「0件でもセクションを出し空状態の文を見せる」へ変更した（見出しだけが浮く状態を作らない方針の
+  // 適用範囲がバッジ0件にも及ぶため）。バッジの列挙条件（レイド系のみ）は変えていない
+  it('レイド系バッジが無ければ一覧の代わりに空状態が出る', async () => {
     const db = newDb()
     await putProfile(db)
     await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
@@ -506,7 +532,12 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     )
     await screen.findByTestId('raid-boss')
 
-    expect(screen.queryByTestId('raid-badges')).toBeNull()
+    const section = screen.getByTestId('raid-badges')
+    expect(section.querySelector('.raid-badges__list')).toBeNull()
+    const empty = screen.getByTestId('raid-badges-empty')
+    expect(empty.textContent).toContain('まだバッジはありません')
+    // 煽らない・責めないトーン（4.6節）: 次の行動が分かる文になっている
+    expect(empty.textContent).toContain('ボスを討伐すると')
   })
 
   it('レイド系以外のバッジ（badgeIdがraid-*でない）は一覧に含めない', async () => {
@@ -521,7 +552,10 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     )
     await screen.findByTestId('raid-boss')
 
-    expect(screen.queryByTestId('raid-badges')).toBeNull()
+    // セクションは出るが一覧は空（=レイド系以外は列挙されない）
+    expect(screen.getByTestId('raid-badges').querySelector('.raid-badges__list')).toBeNull()
+    expect(screen.getByTestId('raid-badges-empty')).toBeTruthy()
+    expect(screen.getByTestId('raid-badges').textContent).not.toContain('first-session')
   })
 })
 
@@ -921,9 +955,67 @@ describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）',
     const boss = await screen.findByTestId('raid-boss')
 
     expect(screen.getByText('貢献ダメージ')).toBeTruthy()
-    const list = boss.querySelector('ul.raid-list')
+    // V-15（docs/25 4.6節）でリストの構造を順位表（V-9）と同じ`.standings*`へ変更したため、
+    // 参照先を`ul.raid-list`から貢献リストのdata-testidへ機械的に追従させた（表示情報は同じ）
+    const list = boss.querySelector('[data-testid="raid-contributions-list"]')
     expect(list).toBeTruthy()
-    expect(list!.querySelector('.display-num')?.textContent).toBe('100')
+    expect(list!.querySelector('.standings__points.display-num')?.textContent).toBe('100')
+  })
+
+  it('貢献リストは順位・相対バー・自分の行の識別を持ち、正答率は表示しない（V-15・プライバシー境界）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = {
+      ...ACTIVE_BOSS,
+      participantCount: 2,
+      contributions: [
+        { displayName: '花子', damage: 400 },
+        // putProfileの表示名と一致する行が自分の行になる
+        { displayName: '太郎', damage: 100 },
+      ],
+    }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    const rows = Array.from(
+      screen.getByTestId('raid-contributions-list').querySelectorAll('.standings__row'),
+    )
+    expect(rows.length).toBe(2)
+    // 順位は数字バッジ（形）＋色の二重符号化。1〜3位だけdata-rankが付く
+    expect(rows.map((li) => li.getAttribute('data-rank'))).toEqual(['1', '2'])
+    expect(rows.map((li) => li.querySelector('.standings__badge')!.textContent)).toEqual(['1', '2'])
+    // バーは最大ダメージ基準の相対長。数値は必ず併記される
+    expect(
+      rows.map((li) => li.querySelector<HTMLElement>('.standings__bar-fill')!.style.width),
+    ).toEqual(['100%', '25%'])
+    expect(rows.map((li) => li.getAttribute('data-self'))).toEqual([null, 'true'])
+    expect(screen.getByText('YOU')).toBeTruthy()
+    // 正答率（%表記）は貢献リストに出さない
+    expect(screen.getByTestId('raid-contributions').textContent).not.toContain('%')
+  })
+
+  it('貢献者0人でも見出しだけが浮かず、次の行動が分かる空状態が出る（V-15。docs/25 4.6節）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = { ...ACTIVE_BOSS, participantCount: 0, myDamage: 0, contributions: [] }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.getByText('貢献ダメージ')).toBeTruthy()
+    expect(screen.queryByTestId('raid-contributions-list')).toBeNull()
+    const empty = screen.getByTestId('raid-contributions-empty')
+    expect(empty.textContent).toContain('まだ誰も挑戦していません')
+    expect(empty.textContent).toContain('最初の一撃')
   })
 
   it('討伐確定の注記が「同期時にサーバーで確定」の表現になっている', async () => {
@@ -979,5 +1071,271 @@ describe('RaidScreen: 時刻追従（T-105）', () => {
     await screen.findByText('レイド機能は現在利用できません')
 
     expect(() => vi.advanceTimersByTime(5 * 60_000)).not.toThrow()
+  })
+})
+
+describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）', () => {
+  async function registeredSetup(pool: Question[] = GHOST_BOSS_READY_POOL) {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    return { db, raidApi, pool }
+  }
+
+  it('登録済みビューに「ボス役に立候補」ボタンが表示される', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.getByTestId('ghost-boss-candidate')).toBeTruthy()
+  })
+
+  it('未登録（登録フォーム表示中）では立候補ボタンが出ない', async () => {
+    const db = newDb()
+    await putProfile(db)
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-register-form')
+
+    expect(screen.queryByTestId('ghost-boss-candidate')).toBeNull()
+  })
+
+  it('立候補ボタンを押すと同意画面が表示され、共有される内容3点が明示される', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+
+    const consent = await screen.findByTestId('ghost-boss-consent')
+    expect(consent.textContent).toContain('堅い/弱点')
+    expect(consent.textContent).toContain('ボス名として全員に見えます')
+    expect(consent.textContent).toContain('撤回すると記録はサーバーから即時削除')
+  })
+
+  it('同意チェック無しでは「同意して開始」がdisabledで、開始できない（構造的強制のUI側担保）', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    const startButton = screen.getByText('同意して開始') as HTMLButtonElement
+    expect(startButton.disabled).toBe(true)
+
+    fireEvent.click(startButton)
+    expect(useAppStore.getState().screen).not.toBe('drill')
+  })
+
+  it('同意チェックの上で開始すると、全itemがmode="battle"のセッションでdrill画面へ遷移する', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-consent-checkbox'))
+    fireEvent.click(screen.getByText('同意して開始'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    const snapshot = useSessionStore.getState().snapshot
+    expect(snapshot).not.toBeNull()
+    expect(snapshot!.items.every((item) => item.mode === 'battle')).toBe(true)
+    expect(useSessionStore.getState().isGhostBossSession).toBe(true)
+  })
+
+  it('difficulty>=3まで含めても在庫が10問未満なら開始せずエラーを表示する（停止条件）', async () => {
+    const { db, raidApi, pool } = await registeredSetup(GHOST_BOSS_INSUFFICIENT_POOL)
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-consent-checkbox'))
+    fireEvent.click(screen.getByText('同意して開始'))
+
+    expect(await screen.findByText(/在庫が不足しています/)).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+  })
+
+  // 回帰防止: startSession失敗時にcatchが無いと、void呼び出しのため例外が握り潰され
+  // 画面が無反応になる（在庫不足以外の失敗が利用者に一切伝わらない）
+  it('セッション開始に失敗した場合はエラーを表示し、drillへ遷移しない', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+    const putSpy = vi
+      .spyOn(db.settings, 'put')
+      .mockRejectedValueOnce(new Error('セッション保存に失敗'))
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByTestId('ghost-boss-consent-checkbox'))
+    fireEvent.click(screen.getByText('同意して開始'))
+
+    expect(await screen.findByText(/セッションを開始できませんでした/)).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+    putSpy.mockRestore()
+  })
+
+  it('「やめる」で同意画面を離れ、通常のレイド画面へ戻る', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+    fireEvent.click(screen.getByTestId('ghost-boss-candidate'))
+    await screen.findByTestId('ghost-boss-consent')
+
+    fireEvent.click(screen.getByText('やめる'))
+
+    expect(await screen.findByTestId('raid-boss')).toBeTruthy()
+  })
+
+  it('送信済み記録がある場合は「ボス役記録を撤回する」ボタンが立候補ボタンの代わりに出て、撤回するとdeleteOwnGhostRecordが呼ばれる', async () => {
+    const { db, raidApi, pool } = await registeredSetup()
+    const { GHOST_BOSS_SUBMITTED_AT_KEY } = await import('../services/settingsKeys')
+    await db.settings.put({ key: GHOST_BOSS_SUBMITTED_AT_KEY, value: Date.now() })
+
+    render(<RaidScreen db={db} raidApi={raidApi} questionPool={pool} resumeSnapshot={null} />)
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.queryByTestId('ghost-boss-candidate')).toBeNull()
+    const withdrawButton = await screen.findByTestId('ghost-boss-withdraw')
+
+    fireEvent.click(withdrawButton)
+
+    await waitFor(() => expect(raidApi.deleteOwnGhostRecord).toHaveBeenCalledTimes(1))
+    await waitFor(async () => {
+      expect(await db.settings.get(GHOST_BOSS_SUBMITTED_AT_KEY)).toBeUndefined()
+    })
+    expect(await screen.findByTestId('ghost-boss-candidate')).toBeTruthy()
+  })
+})
+
+describe('RaidScreen: ゴースト週の弱点マップ・名誉表示（M4・T-129。docs/22 3.4節）', () => {
+  const GHOST_BOSS: RaidBossState = {
+    ...ACTIVE_BOSS,
+    bossId: 'boss-2026-w31',
+    name: 'ゴースト・上級者A',
+    bossType: 'ghost',
+    defense: [
+      { questionId: 'q-0', multiplier: 2.0 },
+      { questionId: 'q-1', multiplier: 2.0 },
+      { questionId: 'q-2', multiplier: 0.5 },
+    ],
+    ghost: { displayName: '上級者A', defeatedCount: 3 },
+  }
+
+  it('弱点マップがPart・タグ単位で表示され、questionIdは表示に出ない（正答の狙い撃ち防止）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = GHOST_BOSS
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const weaknessMap = await screen.findByTestId('ghost-weakness-map')
+    // QUESTION_POOLのtextBlankQuestionは全てpart:5・tags:['品詞']（q-0/q-1がmultiplier2.0=弱点）。
+    // V-15（docs/25 4.6節）でチップ＋横棒の構造にしたため、1文の一致から要素単位の一致へ
+    // 機械的に追従させた（表示する情報＝Part・タグ・倍率・問数は同じ）
+    expect(weaknessMap.textContent).toContain('Part5 品詞')
+    expect(weaknessMap.textContent).toContain('×2')
+    expect(weaknessMap.textContent).toContain('2問')
+    // 倍率は色だけでなく数値と語の両方で示す（07の原則4）
+    expect(weaknessMap.textContent).toContain('弱点')
+    expect(weaknessMap.querySelector('.ghost-weakness__row')?.getAttribute('data-strength')).toBe(
+      'weak',
+    )
+    expect(weaknessMap.textContent).not.toContain('q-0')
+    expect(weaknessMap.textContent).not.toContain('q-1')
+    expect(weaknessMap.textContent).not.toContain('q-2') // 堅い（0.5）は挑戦前に見せない
+  })
+
+  it('「討伐された回数」が名誉表示として出る（公開処刑にしない演出方針=02の5.3節）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = GHOST_BOSS
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const defeatedCount = await screen.findByTestId('ghost-defeated-count')
+    expect(defeatedCount.textContent).toContain('討伐された回数: 3回')
+    // V-15: 数字を誇示せず小さな金のバッジ形に留める（4.6節）。--ng/--warn系のクラスは使わない
+    expect(defeatedCount.className).toBe('raid-honor')
+  })
+
+  it('弱点が0件でも見出しだけが浮かず、空状態が出る（V-15。docs/25 4.6節）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    // パック未取得等でdefenseが解決できない状態（集計0件）を模す
+    raidApi.currentBoss = { ...GHOST_BOSS, defense: [] }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    const weaknessMap = await screen.findByTestId('ghost-weakness-map')
+    expect(weaknessMap.querySelector('.ghost-weakness__list')).toBeNull()
+    const empty = screen.getByTestId('ghost-weakness-map-empty')
+    expect(empty.textContent).toContain('弱点の傾向はまだ表示できません')
+    expect(empty.textContent).toContain('問題パックを取得すると')
+  })
+
+  it('synthetic週（bossType省略。従来のRaidBossState）では弱点マップ・討伐回数のいずれも表示されない（回帰）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    // ACTIVE_BOSSはbossType/defense/ghostを持たない（M3までの既存レスポンス相当）
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.queryByTestId('ghost-weakness-map')).toBeNull()
+    expect(screen.queryByTestId('ghost-defeated-count')).toBeNull()
+  })
+
+  it('参加すると、raidStateキャッシュにbossType・defenseJson・ghostJsonが保存される（answerPipelineの倍率適用の入力）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = GHOST_BOSS
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    fireEvent.click(await screen.findByText('参加する'))
+
+    await waitFor(async () => {
+      const raidState = await db.raidState.get(RAID_STATE_ID)
+      expect(raidState?.bossType).toBe('ghost')
+      expect(JSON.parse(raidState!.defenseJson!)).toEqual({ 'q-0': 2.0, 'q-1': 2.0, 'q-2': 0.5 })
+      expect(JSON.parse(raidState!.ghostJson!)).toEqual({
+        displayName: '上級者A',
+        defeatedCount: 3,
+      })
+    })
   })
 })

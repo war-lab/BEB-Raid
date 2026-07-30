@@ -1,4 +1,4 @@
-// 昼バトルの進行DO（正本: docs/22_M4実装計画.md 3.2節、docs/05 4.2節。T-124）。
+// イベントバトルの進行DO（正本: docs/22_M4実装計画.md 3.2節、docs/05 4.2節。T-124）。
 // 1ルーム=1DO（idFromName(code)で解決）。BattleRoomDOはコンテンツ非依存
 // （questionIdと換算点のみを扱い、問題文・選択肢・正解は一切持たない）。
 //
@@ -15,6 +15,7 @@ import { DurableObject } from 'cloudflare:workers'
 
 import type {
   BattleAnswerMessage,
+  BattleCloseReason,
   BattleJoinMessage,
   BattleOpenQuestionMessage,
   BattleServerMessage,
@@ -88,6 +89,17 @@ function cloneMeta(meta: RoomMeta): RoomMeta {
   }
 }
 
+/**
+ * close frame の reason を shared-schema の BattleCloseReason に限定して接続を閉じる。
+ * reason 文字列の正本は shared-schema 側の型ひとつであり、api側で任意の文字列を
+ * 直接渡せないようにすることで、api↔app間の理由文字列のドリフトをtscで検出できる状態にする
+ * （型に無い値を渡すとコンパイルエラーになる）。
+ * close code は用途ごとに使い分けるため引数で受ける（1008=ポリシー違反、1000=正常終了）
+ */
+function closeWithReason(ws: WebSocket, code: number, reason: BattleCloseReason): void {
+  ws.close(code, reason)
+}
+
 export class BattleRoomDO extends DurableObject<Env> {
   private meta: RoomMeta | null = null
   private connections = new Map<string, Connection>()
@@ -141,6 +153,14 @@ export class BattleRoomDO extends DurableObject<Env> {
     const protocolHeader = request.headers.get('Sec-WebSocket-Protocol')
     const deviceToken = extractBearerFromProtocol(protocolHeader)
 
+    // 101応答には要求されたサブプロトコルを必ず反映する。反映しないとブラウザは
+    // ハンドシェイクを失敗させ、接続が確立しないためcloseフレームのreasonが
+    // クライアントへ届かない（拒否経路でこれを落としており、unauthorized /
+    // room_not_found の案内が実ブラウザで汎用文に落ちていた）。
+    // 成功経路・拒否経路の両方で同じヘッダを返す
+    const upgradeHeaders = new Headers()
+    if (protocolHeader) upgradeHeaders.set('Sec-WebSocket-Protocol', protocolHeader)
+
     const pair = new WebSocketPair()
     const client = pair[0]
     const server = pair[1]
@@ -151,8 +171,8 @@ export class BattleRoomDO extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server)
 
     if (!deviceToken || !registered || !roomAvailable) {
-      server.close(1008, !roomAvailable ? 'room_not_found' : 'unauthorized')
-      return new Response(null, { status: 101, webSocket: client })
+      closeWithReason(server, 1008, !roomAvailable ? 'room_not_found' : 'unauthorized')
+      return new Response(null, { status: 101, webSocket: client, headers: upgradeHeaders })
     }
 
     const role: ConnectionRole = this.meta!.hostToken === deviceToken ? 'host' : 'participant'
@@ -171,9 +191,7 @@ export class BattleRoomDO extends DurableObject<Env> {
       meta: cloneMeta(this.meta!),
     } satisfies ConnectionAttachment)
 
-    const headers = new Headers()
-    if (protocolHeader) headers.set('Sec-WebSocket-Protocol', protocolHeader)
-    return new Response(null, { status: 101, webSocket: client, headers })
+    return new Response(null, { status: 101, webSocket: client, headers: upgradeHeaders })
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
@@ -366,7 +384,7 @@ export class BattleRoomDO extends DurableObject<Env> {
 
     for (const conn of this.connections.values()) {
       try {
-        conn.ws.close(1000, 'room_closed')
+        closeWithReason(conn.ws, 1000, 'room_closed')
       } catch {
         // 既にクローズ済みの接続への close() 呼び出しは無視する
       }

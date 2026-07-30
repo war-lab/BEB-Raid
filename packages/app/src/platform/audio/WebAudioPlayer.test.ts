@@ -285,6 +285,94 @@ describe('WebAudioPlayer: onPosition（T-45・3.7節）', () => {
     vi.useRealTimers()
   })
 
+  // 何を防ぐか: 問題パックの timing（単語開始ms）はファイル先頭からの絶対msなので、
+  // onPosition が区間相対位置を返すとシャドーイングの3秒戻し・文タップの区間リピート
+  // （startMs>0）でカラオケハイライトが先頭語に戻り、音声とずれる
+  it('AudioBuffer経路で startMs>0 のとき絶対位置（startMs起点）を通知する', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const { player, ctx } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+    const onPosition = vi.fn()
+
+    const done = player.play('a.mp3', { startMs: 2000, onPosition })
+    await tick()
+
+    ctx.currentTime = 0.1
+    await vi.advanceTimersByTimeAsync(100)
+    ctx.currentTime = 0.2
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(onPosition.mock.calls.map((c) => c[0])).toEqual([2100, 2200])
+
+    ctx.createdSources[0]!.end()
+    await done
+    vi.useRealTimers()
+  })
+
+  it('rate経路（HTMLAudioElement）で startMs>0 のとき絶対位置を通知する', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    const onPosition = vi.fn()
+
+    const done = player.play('a.mp3', { rate: 0.85, startMs: 2000, onPosition })
+    await tick()
+    const audio = audioElements[0]!
+    expect(audio.currentTime).toBeCloseTo(2) // startMs へシークされている
+
+    audio.currentTime = 2.1
+    await vi.advanceTimersByTimeAsync(100)
+    audio.currentTime = 2.2
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(onPosition.mock.calls.map((c) => c[0])).toEqual([2100, 2200])
+
+    audio.end()
+    await done
+    vi.useRealTimers()
+  })
+
+  // 何を防ぐか: 2経路の座標系の食い違い（片方が絶対位置・片方が区間相対位置）の再発
+  it('同一 startMs に対して両経路が同じ座標系（絶対位置）を返す', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const startMs = 1500
+
+    // AudioBuffer経路: 再生開始から300ms経過
+    const bufferPath = createPlayer({ 'a.mp3': 5 })
+    await bufferPath.player.unlock()
+    bufferPath.ctx.createdSources = []
+    const bufferPositions: number[] = []
+    const bufferDone = bufferPath.player.play('a.mp3', {
+      startMs,
+      onPosition: (ms) => bufferPositions.push(ms),
+    })
+    await tick()
+    bufferPath.ctx.currentTime = 0.3
+    await vi.advanceTimersByTimeAsync(100)
+    bufferPath.ctx.createdSources[0]!.end()
+    await bufferDone
+
+    // rate経路: 同じく再生開始から300ms相当（メディア時間で startMs+300ms）
+    const ratePath = createPlayer({ 'a.mp3': 5 })
+    await ratePath.player.unlock()
+    const ratePositions: number[] = []
+    const rateDone = ratePath.player.play('a.mp3', {
+      startMs,
+      rate: 0.85,
+      onPosition: (ms) => ratePositions.push(ms),
+    })
+    await tick()
+    ratePath.audioElements[0]!.currentTime = startMs / 1000 + 0.3
+    await vi.advanceTimersByTimeAsync(100)
+    ratePath.audioElements[0]!.end()
+    await rateDone
+
+    expect(bufferPositions[0]).toBeCloseTo(1800)
+    expect(ratePositions[0]).toBeCloseTo(1800)
+    vi.useRealTimers()
+  })
+
   it('停止すると位置通知タイマーも止まる', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     const { player, ctx } = createPlayer({ 'a.mp3': 5 })

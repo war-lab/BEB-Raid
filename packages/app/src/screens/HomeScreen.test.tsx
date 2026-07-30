@@ -59,6 +59,9 @@ class FakeRaidApi implements RaidApi {
   }))
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
+  sendGhostRecord = vi.fn(async () => {})
+  deleteOwnGhostRecord = vi.fn(async () => {})
 }
 
 beforeEach(() => {
@@ -548,6 +551,78 @@ describe('HomeScreen: Part2単独モードの再生バリエーション選択�
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(useSessionStore.getState().partialAudioMode).toBe(true)
+  })
+
+  // T-154: 本試験形式（3応答すべてを音声で流す）。ADR 0008でトグル併存と決定
+  it('「音声のみで解答（本試験形式）」で audioOnlyPart2 が true・partialAudioMode は false で始まる', async () => {
+    const db = newDb()
+    // 応答音声が生成済み（responseOffsetsMs あり）の問題を混ぜる
+    const audioOnlyQ = part2Question('p2-audio-only')
+    audioOnlyQ.audioMeta = {
+      accent: 'US',
+      tts: false,
+      voice: 'dev',
+      durationMs: 12000,
+      questionEndMs: 2700,
+      responseOffsetsMs: [2900, 5300],
+    }
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={[...QUESTION_POOL, audioOnlyQ]}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(screen.getByText('音声のみで解答（本試験形式）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().audioOnlyPart2).toBe(true)
+    expect(useSessionStore.getState().partialAudioMode).toBe(false)
+    // 未対応の問題（応答音声なし）はプールから除外される
+    const items = useSessionStore.getState().snapshot?.items ?? []
+    expect(items.map((i) => i.questionId)).toEqual(['p2-audio-only'])
+  })
+
+  it('音声のみモードに対応した問題が無ければセッションを始めず案内を出す', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(screen.getByText('音声のみで解答（本試験形式）'))
+
+    expect(await screen.findByText(/音声のみモードに対応した問題がまだありません/)).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('通常・冒頭だけ再生では audioOnlyPart2 は false のまま（回帰）', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(screen.getByText('冒頭だけ再生（特訓）'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().audioOnlyPart2).toBe(false)
   })
 
   it('今日のクエスト開始では partialAudioMode が false のまま（回帰確認）', async () => {
@@ -1400,5 +1475,115 @@ describe('HomeScreen: 空パック時のフィードバック（T-121・J-60）'
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(screen.queryByText(/今は出題できる問題がありません/)).toBeNull()
+  })
+})
+
+describe('HomeScreen: イベントバトル参加の入口（M4・T-125。22の3.6節）', () => {
+  it('raidApi.isConfigured()=falseなら入口ボタンが表示されない（縮退設計）', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(false)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByRole('button', { name: 'イベントバトルに参加' })).toBeNull()
+  })
+
+  it('raidApi.isConfigured()=trueなら入口ボタンが表示され、タップでbattle画面へ遷移する', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const button = screen.getByRole('button', { name: 'イベントバトルに参加' })
+    fireEvent.click(button)
+    expect(useAppStore.getState().screen).toBe('battle')
+  })
+})
+
+describe('HomeScreen: イベントバトル主催の入口（M4・T-126。22の3.6節）', () => {
+  it('raidApi.isConfigured()=falseなら入口ボタンが表示されない（縮退設計）', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(false)}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByRole('button', { name: 'イベントバトルを主催' })).toBeNull()
+  })
+
+  it('raidApi.isConfigured()=trueなら入口ボタンが表示され、タップでbattleHost画面へ遷移する', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+
+    const button = screen.getByRole('button', { name: 'イベントバトルを主催' })
+    fireEvent.click(button)
+    expect(useAppStore.getState().screen).toBe('battleHost')
+  })
+})
+
+// V-13（docs/25 4.8節）: .home-gridの表層整備。構造（2列グリッド・素のボタン列）を
+// 変えないことと、アイコン追加でアクセシブルネームが変わらないことを機械的に担保する
+describe('HomeScreen: .home-gridの表層（V-13。docs/25 4.8節）', () => {
+  async function renderConfigured() {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi(true)}
+      />,
+    )
+    await flushLoad()
+    const grid = document.querySelector('.home-grid')
+    expect(grid).toBeTruthy()
+    return grid as HTMLElement
+  }
+
+  it('構造は2列グリッドの素のボタン列のまま（直下の子は全てbutton要素）', async () => {
+    const grid = await renderConfigured()
+    // ダッシュボード・設定・レイド・イベントバトル参加・イベントバトル主催の5導線
+    expect(grid.children).toHaveLength(5)
+    expect(Array.from(grid.children).every((el) => el.tagName === 'BUTTON')).toBe(true)
+  })
+
+  it('イベントバトルの2導線だけがアイコンを持ち、アイコンはaria-hiddenでラベルは変わらない', async () => {
+    const grid = await renderConfigured()
+    const withIcon = Array.from(grid.children).filter((el) => el.querySelector('.home-grid__icon'))
+    expect(withIcon.map((el) => el.textContent)).toEqual([
+      'イベントバトルに参加',
+      'イベントバトルを主催',
+    ])
+    for (const el of withIcon) {
+      expect(el.querySelector('.home-grid__icon')?.getAttribute('aria-hidden')).toBe('true')
+    }
+    // アクセシブルネームは文字ラベルのみで成立する（07の原則4: 色・形だけに頼らない）
+    expect(screen.getByRole('button', { name: 'イベントバトルに参加' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'イベントバトルを主催' })).toBeTruthy()
   })
 })

@@ -182,6 +182,12 @@ export interface ExamScoreRecord {
  * 単一レコード運用（id は固定値 RAID_STATE_ID）。S1のHPバー・S5画面のオフライン表示の受け皿で、
  * 討伐確定等の正はサーバー（Durable Object）側にあり、ここはその最終同期時点のキャッシュに過ぎない
  */
+/**
+ * M4: ボス種別のraidStateキャッシュ用ローカル型（shared-schemaのBossTypeと同一値。
+ * db/schema.tsは他モジュール非依存で完結させる既存方針のため、importせず複製する）
+ */
+export type RaidBossTypeCache = 'synthetic' | 'ghost'
+
 export interface RaidStateRecord {
   id: string
   bossId: string
@@ -196,6 +202,18 @@ export interface RaidStateRecord {
   endAt: number
   /** 最終同期時刻（epoch ms）。「最終同期: N分前」表示に使う（T-99） */
   lastSyncedAt: number
+  /**
+   * M4・T-129: ボス種別キャッシュ（docs/22 3.4節。非インデックスフィールド追加・
+   * スキーマversionは上げない）。省略時はsynthetic相当として扱う
+   */
+  bossType?: RaidBossTypeCache
+  /**
+   * M4・T-129: ghost週のみ設定。questionId→multiplierのJSON文字列
+   * （`Record<string, number>`。answerPipelineの倍率適用で参照する）
+   */
+  defenseJson?: string | null
+  /** M4・T-129: ghost週のみ設定。S5の名誉表示（討伐された回数）用JSON文字列 */
+  ghostJson?: string | null
 }
 
 /** raidState ストアの固定キー */

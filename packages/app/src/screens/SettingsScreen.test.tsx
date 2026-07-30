@@ -60,6 +60,9 @@ class FakeRaidApi implements RaidApi {
   syncDamage = vi.fn(async () => ({ acceptedIds: [], boss: FAKE_BOSS }))
   sendQuestionStats = vi.fn(async () => 0)
   sendReport = vi.fn(async () => {})
+  createBattleRoom = vi.fn(async () => 'ABCD')
+  sendGhostRecord = vi.fn(async () => {})
+  deleteOwnGhostRecord = vi.fn(async () => {})
 }
 
 const flushLoad = () => screen.findByTestId('settings-loaded')
@@ -115,6 +118,19 @@ describe('SettingsScreen: 永続化', () => {
 
     await vi.waitFor(async () => {
       expect((await db.settings.get('hapticsEnabled'))?.value).toBe(false)
+    })
+  })
+
+  it('誤タップの取り消し猶予のトグルがsettingsストアに永続化される（ADR 0009。既定はON）', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect((screen.getByLabelText(/誤タップの取り消し猶予/) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByLabelText(/誤タップの取り消し猶予/))
+
+    await vi.waitFor(async () => {
+      expect((await db.settings.get('mistapUndoEnabled'))?.value).toBe(false)
     })
   })
 

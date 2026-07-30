@@ -2,7 +2,7 @@
 // セッション（SessionItem/attempts記録）の枠外で独立に動く画面（VocabScreenと同様、
 // HomeScreenから直接遷移）。1素材の再生完了（最後まで到達 or 3周）で実施ログを記録し、
 // レート・tagStats・SRSの対象外にする（J-13）。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { ListeningStage } from '../db/schema'
@@ -53,6 +53,12 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   // 音声再生（メインの「再生」ボタン）失敗フラグ。音声404等ではlapsが増えず素材完了に
   // 到達できないため、trueならスキップ導線を出す（この画面から出られなくなるのを防ぐ）
   const [audioError, setAudioError] = useState(false)
+  // 利用者が素材を移動したかどうか。マウント時の開始位置決定（下のuseEffect）は
+  // attemptsの非同期読み込み完了後にsetIndexするため、読み込みが遅い端末では
+  // 「利用者が次の素材へ移動した後に開始位置が確定してindexが巻き戻る」ことが起きる。
+  // 巻き戻ると表示が飛ぶうえ、handlePrevのガードが古いindexを見て負値まで減算しうる。
+  // 一度でも移動したら開始位置の自動決定は行わない
+  const userMovedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -79,6 +85,8 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
         if (cancelled) return
         const ids = new Set(records.map((r) => r.questionId.slice(SHADOW_ATTEMPT_PREFIX.length)))
         setCompletedIds(ids)
+        // 読み込み完了前に利用者が素材を移動していたら、その位置を尊重して上書きしない
+        if (userMovedRef.current) return
         const firstUnfinished = shadowingQuestions.findIndex((q) => !ids.has(q.id))
         setIndex(firstUnfinished === -1 ? 0 : firstUnfinished)
       })
@@ -175,6 +183,7 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
 
   /** 次の素材へ（T-120・J-59: 3周完了前でも常時移動可。移動時は素材固有stateをリセットする） */
   function handleNext() {
+    userMovedRef.current = true
     setIndex((i) => i + 1)
     setLaps(0)
     setCompleted(false)
@@ -182,10 +191,15 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     setAudioError(false)
   }
 
-  /** 前の素材へ（T-120・J-59。index===0のときは呼ばれない想定=呼び出し側でガードする） */
+  /**
+   * 前の素材へ（T-120・J-59。index===0のときはボタン自体を出さない）。
+   * 下限のガードは更新関数の中で最新のindexに対して行う——レンダー時にキャプチャした
+   * indexで判定すると、開始位置の非同期確定などで表示中のindexが変わった直後に
+   * 古い値で通過してしまい、負のindexになって画面が壊れる
+   */
   function handlePrev() {
-    if (index === 0) return
-    setIndex((i) => i - 1)
+    userMovedRef.current = true
+    setIndex((i) => (i > 0 ? i - 1 : i))
     setLaps(0)
     setCompleted(false)
     setPositionMs(0)
@@ -221,14 +235,23 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
 
   return (
     <ScreenLayout
+      // docs/26 A-1: シャドーイングは操作ゾーンの中身が固定（再生・速度・表示切替）で、
+      // 原稿カードを上寄せにすると帯の下半分が空く。原稿の高さは素材ごとに変わるが、
+      // 解答という概念が無くフィードバックでの再配置が起きないため中央寄せしてよい
+      align="center"
       status={
-        <p className="shadowing-status">
-          素材 {index + 1}/{shadowingQuestions.length}（{laps}/{COMPLETION_LAPS}周）
-          {/* T-120: 実施済み素材を表示中であることの注記（3周未満で「前へ」戻った場合等） */}
-          {completedIds.has(question.id) && (
-            <span className="shadowing-status-done"> 実施済み</span>
-          )}
-        </p>
+        <>
+          {/* docs/25 4.8節（V-19）: 英字ラベル。色は07の7節S4「画面は--listenのアクセント」に
+              合わせ、.drill-part-tagの形を再利用して--listenへ置換する（定義自体は変えない） */}
+          <span className="drill-part-tag shadowing-part-tag">SHADOWING</span>
+          <p className="shadowing-status">
+            素材 {index + 1}/{shadowingQuestions.length}（{laps}/{COMPLETION_LAPS}周）
+            {/* T-120: 実施済み素材を表示中であることの注記（3周未満で「前へ」戻った場合等） */}
+            {completedIds.has(question.id) && (
+              <span className="shadowing-status-done"> 実施済み</span>
+            )}
+          </p>
+        </>
       }
       action={
         <>
@@ -306,7 +329,9 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     >
       <div className="shadowing-accent-line" />
       {scriptMode !== 'hidden' && question.script && (
-        <>
+        // docs/25 4.8節（V-19）: スクリプト面に--surface-gradを当てる。カラオケハイライトの
+        // 規定（07の6節）と発話中の演出は一切変更しない（原則3: 発話中は静かであるべき）
+        <div className="shadowing-script-surface">
           <KaraokeScript
             script={question.script}
             timing={question.timing ?? null}
@@ -317,7 +342,7 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
           {scriptMode === 'en_ja' && question.translation && (
             <p className="shadowing-translation">{question.translation}</p>
           )}
-        </>
+        </div>
       )}
     </ScreenLayout>
   )

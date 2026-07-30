@@ -50,6 +50,21 @@ export function Heatmap({ cells }: Props) {
 
   const realCells = cells.filter((c) => c.count >= 0)
   const maxCount = Math.max(...realCells.map((c) => c.count))
+
+  // docs/26 A-7: セルはあるが全日0のとき（＝初回起動直後の全員が通る状態）、枠だけの
+  // 空マスが28個並び、凡例「薄い=少、濃い=多」も数表も意味を成していなかった。
+  // docs/25 4.6節の空状態の方針（見出しだけ浮かせず次の行動が分かる文にする・煽らない）に
+  // 揃え、cells.length===0 と同じ扱いへ寄せる
+  if (maxCount <= 0) {
+    return (
+      <div className="chart-empty">
+        <div className="chart-empty-sigil">
+          <BossSigil seed="dashboard-empty-heatmap" size={64} />
+        </div>
+        <p>まだ記録がありません。1回解くと、この場所に日ごとの学習量が積み上がります。</p>
+      </div>
+    )
+  }
   const columns = Math.ceil(cells.length / ROWS)
   const width = columns * (CELL_SIZE + CELL_GAP)
   const height = ROWS * (CELL_SIZE + CELL_GAP)

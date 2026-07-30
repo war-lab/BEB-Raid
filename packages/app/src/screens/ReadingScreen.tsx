@@ -1,20 +1,20 @@
-// 読解（Part6/7単一）専用画面（T-104。正本: docs/18 3.5節・02の2.2節）。
+// 読解（Part6/7単一）専用画面（T-104。正本: docs/24 3.5節・02の2.2節）。
 // DrillScreenに分岐追加ではなく専用画面にする理由: 本文＋設問の2ペインが
 // 既存4択UI（1問1画面）と別レイアウトのため（3.5節）。
 // Part7複数パッセージ（タブ切替・相互参照）はT-108のスコープでここでは扱わない
 // （passages[0]のみを描画する）。
 //
-// 採点方針（ADR 0006 判断4・docs/18 3.2節）: audio_setの2/3セット正解ルールは使わず、
+// 採点方針（ADR 0006 判断4・docs/24 3.2節）: audio_setの2/3セット正解ルールは使わず、
 // 各subQuestionを独立採点対象とする。レートはRセクションへ1問ごとに反映
 // （question.part=6/7→engine/rating.tsのsectionForPartが自動でRへ振る）。
 // SRSレビューは本文まるごと再出題しない（3.4節）ため、audio_setと違いセット完了時の
 // reviewSrsCard呼び出しは行わない。
 //
 // Part6は本文に空所マーカー [[1]]…[[n]] を持つ（subQuestions[i]がマーカー[[i+1]]に対応。
-// docs/18 3.1節）。空所は非線形にタップして該当設問へジャンプできる（3.5節）。
+// docs/24 3.1節）。空所は非線形にタップして該当設問へジャンプできる（3.5節）。
 // Part7単一はマーカーを持たず、設問は「次へ」で順番に進める。
 //
-// 画面切替（T-105。docs/18 3.3節・3.5節）: 7分/15分パックにPart6・Part7単一が弱点配分で
+// 画面切替（T-105。docs/24 3.3節・3.5節）: 7分/15分パックにPart6・Part7単一が弱点配分で
 // 混在するようになったため、セッション内の現在item（useSessionStoreで共有）の
 // question.formatを見て、text_passageならこの画面、それ以外ならDrillScreenへ自動的に
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
@@ -24,7 +24,7 @@ import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import { shuffle } from '../engine/shuffle'
 import type { AiClient, RaidApi } from '../platform'
-import { recordAnswerPipeline } from '../services/answerPipeline'
+import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { advanceSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -59,6 +59,11 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const [displayIndex, setDisplayIndex] = useState(() => snapshot?.answeredCount ?? 0)
   // サブ設問インデックス（0始まり）→ 解答済みの結果。Part6は非線形にタップされうるためMapで持つ
   const [answers, setAnswers] = useState<Map<number, PassageAnswer>>(new Map())
+  // M4・T-129: サブ設問インデックス→レイドダメージ結果（該当時のみ設定。ExplanationCardの
+  // 堅い/弱点バッジ・実ダメージ表示に使う。answersと同じライフサイクルでitem切替時にクリアする）
+  const [ghostDefenseByIndex, setGhostDefenseByIndex] = useState<Map<number, RaidDamageResult>>(
+    new Map(),
+  )
   // 現在選択肢を表示しているサブ設問（空所タップ・「次へ」で切り替わる）
   const [activeIndex, setActiveIndex] = useState(0)
   const [startedAt, setStartedAt] = useState(() => now())
@@ -95,7 +100,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     return () => clearInterval(interval)
   }, [activeAnswer, startedAt])
 
-  // T-105（18の3.3節・3.5節）: 7分/15分パックに読解以外のitem（Part2音声・Part5等）が
+  // T-105（24の3.3節・3.5節）: 7分/15分パックに読解以外のitem（Part2音声・Part5等）が
   // 混在するようになったため、現在itemがtext_passageでなければDrillScreenへ切り替える
   // （DrillScreen側の対の効果と合わせ、item.question.formatに応じて2画面を往復する）
   useEffect(() => {
@@ -151,16 +156,20 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     try {
       // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
       // 本文まるごと再出題しないため呼ばない（skip.srs）。レート・tagStats・
-      // keyVocab循環は通常どおり（skipしない）
-      const { ratingUpdate } = await recordAnswerPipeline(db, {
+      // keyVocab循環は通常どおり（skipしない）。ただしmode='battle'（ボス役セッション=
+      // M4・T-128）はレート更新の対象外（docs/22 3.5節・DrillScreenと同じ扱い）
+      const { ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
         questionId: sub.id,
         question,
         lookup: subQuestionLookup,
         isCorrect,
         responseMs,
         mode: item.mode,
-        skip: { srs: true },
+        skip: { srs: true, rating: item.mode === 'battle' },
       })
+      if (raidDamage) {
+        setGhostDefenseByIndex((prev) => new Map(prev).set(index, raidDamage))
+      }
       recordAnswer(snapshot, {
         questionId: sub.id,
         isCorrect,
@@ -201,6 +210,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       }
       setDisplayIndex((i) => i + 1)
       setAnswers(new Map())
+      setGhostDefenseByIndex(new Map())
       setActiveIndex(0)
       setStartedAt(now())
       return
@@ -220,6 +230,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           <button type="button" className="drill-abort" onClick={() => navigate('home')}>
             中断
           </button>
+          {/* docs/25 4.8節（V-19）: DrillScreenと同じ英字パートタグ（.drill-part-tagを再利用）。
+              表示のみの追加で、読解は必ずPart6/7なのでVOCAB分岐は持たない */}
+          <span className="drill-part-tag">PART {question.part}</span>
           {!activeAnswer && <p className="reading-pace">目安1問/分（経過{elapsedSec}秒）</p>}
         </>
       }
@@ -265,6 +278,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                 aiClient={aiClient}
                 raidApi={raidApi}
                 db={db}
+                ghostDefense={
+                  ghostDefenseByIndex.get(activeIndex)?.ghostDefenseMultiplier !== undefined
+                    ? {
+                        multiplier: ghostDefenseByIndex.get(activeIndex)!.ghostDefenseMultiplier!,
+                        damage: ghostDefenseByIndex.get(activeIndex)!.damage,
+                      }
+                    : null
+                }
               />
               <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>
             </>
@@ -273,7 +294,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       }
     >
       {passage && (
-        <>
+        // docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面と罫線だけで、
+        // 光暈・アニメーションは足さない（07の原則3: 読解中は静かであるべき）
+        <div className="reading-passage">
           <p className="passage-kind">{passage.kind}</p>
           <PassageText
             text={passage.text}
@@ -282,7 +305,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
             activeIndex={activeIndex}
             onSelectBlank={handleSelectBlank}
           />
-        </>
+        </div>
       )}
       {activeSub && (
         <p className="question-text" data-testid="reading-question">

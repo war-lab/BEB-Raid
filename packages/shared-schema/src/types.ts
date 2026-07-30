@@ -46,6 +46,19 @@ export interface AudioMeta {
    * 旧生成分には存在しない（省略時は全長再生=従来挙動）
    */
   questionEndMs?: number | null
+  /**
+   * audio_qa（Part2）の音声が「設問＋3応答すべて」を含む場合の、各応答の開始ms（T-151）。
+   * 並びは choices の key 昇順で、音声の読み上げ順と一致させる。
+   * 省略/ null は従来形式（設問＋正答応答のみ）＝音声のみモード非対応として扱う。
+   */
+  responseOffsetsMs?: number[] | null
+  /**
+   * responseOffsetsMs を生成した時点の choices（key+text）のダイジェスト。
+   * TTS後に選択肢を編集・並び替えすると音声の読み上げ順と key の対応が崩れ、
+   * answer が実質誤りになる（音声では B が正答なのに answer が A のまま等）。
+   * これは無音の正誤バグなのでビルド時に再計算して照合し、不一致はエラーにする。
+   */
+  responsesTextDigest?: string | null
 }
 
 /** 選択肢 */
@@ -68,12 +81,12 @@ export interface SubQuestion {
   answer: string
   explanation?: string | null
   translation?: string | null
-  /** 設問単位の解法タグ（例: text_passage の 'cross-reference'）。弱点集計の粒度を上げる用（docs/18 3.4節） */
+  /** 設問単位の解法タグ（例: text_passage の 'cross-reference'）。弱点集計の粒度を上げる用（docs/24 3.4節） */
   tags?: string[] | null
 }
 
 /**
- * text_passage（Part6/7）の刺激文書（正本: docs/18 3.1節・ADR 0006 判断3）。
+ * text_passage（Part6/7）の刺激文書（正本: docs/24 3.1節・ADR 0006 判断3）。
  * Part6・Part7単一は1件、Part7複数パッセージは2〜3件。
  * Part6は text に空所マーカー [[1]]…[[4]] を埋め込み、subQuestions の n 番目が [[n]] に対応する。
  */
@@ -113,7 +126,7 @@ export interface Question {
   blanks?: DictationBlank[] | null
   /** audio_set（Part3/4）・text_passage（Part6/7）用。1刺激にぶら下がる設問 */
   subQuestions?: SubQuestion[] | null
-  /** text_passage（Part6/7）用。刺激文書。Part7複数パッセージは2〜3件（docs/18 3.1節） */
+  /** text_passage（Part6/7）用。刺激文書。Part7複数パッセージは2〜3件（docs/24 3.1節） */
   passages?: Passage[] | null
 
   // --- vocab_card 用（02の4節: 1語1フレーズ・フレーズ音声必須） ---
@@ -350,7 +363,7 @@ export interface RaidSummary {
 }
 
 // ---------------------------------------------------------------------------
-// 昼バトルWebSocketメッセージ（正本: docs/22 3.2節。T-123）
+// イベントバトルWebSocketメッセージ（正本: docs/22 3.2節。T-123）
 // BattleRoomDOはコンテンツ非依存（questionIdと換算点のみを扱い、問題文・選択肢・正解は持たない）。
 // 認証は Sec-WebSocket-Protocol: `bearer.<deviceToken>`（3.1節。ブラウザWebSocketは
 // Authorizationヘッダを付けられないため）
@@ -396,7 +409,7 @@ export interface BattleFinishMessage {
   type: 'finish'
 }
 
-/** 昼バトルWebSocketのClient→Serverメッセージ（discriminated union。正本: docs/22 3.2節） */
+/** イベントバトルWebSocketのClient→Serverメッセージ（discriminated union。正本: docs/22 3.2節） */
 export type BattleClientMessage =
   | BattleJoinMessage
   | BattleAnswerMessage
@@ -451,10 +464,20 @@ export interface BattleErrorMessage {
   code: string
 }
 
-/** 昼バトルWebSocketのServer→Clientメッセージ（discriminated union。正本: docs/22 3.2節） */
+/** イベントバトルWebSocketのServer→Clientメッセージ（discriminated union。正本: docs/22 3.2節） */
 export type BattleServerMessage =
   | BattleRoomStateMessage
   | BattleQuestionOpenMessage
   | BattleStandingsMessage
   | BattleResultMessage
   | BattleErrorMessage
+
+/**
+ * イベントバトルWebSocketのクローズ理由（Server→Client。WebSocket close frame の reason 文字列）。
+ * サーバー（BattleRoomDO）が切断時に付与し、クライアントは理由ごとに案内文を出し分ける。
+ * - unauthorized: この端末がレイド未登録（招待コードでの登録が未了）
+ * - room_not_found: ルームが存在しない、またはすでに利用不可
+ * - room_closed: ホストがバトルを終了した（異常ではない正常終了）
+ * 上記以外（空文字を含む）は通信断等の想定外クローズとして扱う
+ */
+export type BattleCloseReason = 'unauthorized' | 'room_not_found' | 'room_closed'

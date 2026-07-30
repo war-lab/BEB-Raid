@@ -9,6 +9,7 @@ import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { RaidStateRecord } from '../db/schema'
 import { RAID_STATE_ID } from '../db/schema'
+import { supportsAudioOnlyPart2 } from '../engine/audioOnlyPart2'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
 import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { buildHeatmapCells } from '../engine/heatmapCells'
@@ -292,11 +293,16 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
 
   async function startSingleMode(
     format: 'audio_qa' | 'text_blank',
-    options?: { partialAudioMode?: boolean },
+    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
   ) {
     // T-121: 単独モード開始時は「今日のクエスト」の空パック案内が残っていればクリアする
     setEmptyPackMessage(null)
-    const filtered = questionPool.filter((q) => q.format === format)
+    // T-154: 音声のみモードは応答音声が生成済みの問題しか出題できない（ADR 0008）。
+    // 未対応の問題を混ぜると記号だけ出て解答できないため、プールの段階で絞る
+    // （それでも混入した場合はDrillScreen側が問題単位で従来UIへ落とす二段構え）
+    const filtered = questionPool.filter(
+      (q) => q.format === format && (!options?.audioOnlyPart2 || supportsAudioOnlyPart2(q)),
+    )
     // J-57: 各層内をシャッフルして先頭N問を取る（プール順固定だと後半に永遠に到達しない問題への対処）。
     // プールがN問未満のときはある分だけで開始する。
     // レート連動(orderByRating): 実力相応/以下の問題を先に、過度に難しい問題を後ろに並べる。
@@ -312,7 +318,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     const selected = ordered.slice(0, singleModeCount)
     const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
     if (items.length === 0) {
-      setEmptyPackMessage(EMPTY_PACK_MESSAGE)
+      setEmptyPackMessage(
+        options?.audioOnlyPart2
+          ? `${EMPTY_PACK_MESSAGE}（音声のみモードに対応した問題がまだありません）`
+          : EMPTY_PACK_MESSAGE,
+      )
       return
     }
     await startSessionAndNavigate(items, options)
@@ -320,7 +330,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
 
   async function startSessionAndNavigate(
     items: SessionItem[],
-    options?: { partialAudioMode?: boolean },
+    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
   ) {
     if (items.length === 0) return
     if (
@@ -474,6 +484,21 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                   冒頭だけ再生（特訓）
                 </button>
                 <p className="home-part2-options-hint">音声の冒頭だけで答える特訓モードです</p>
+                {/* T-154: 本試験形式（3応答すべてを音声で流す）。ADR 0008でトグル併存と決定。
+                    再生方法を1つ選ぶモーダルなのでチェックボックスにはしない
+                    （partialAudioModeと同時ONに意味がない） */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPart2Options(false)
+                    void startSingleMode('audio_qa', { audioOnlyPart2: true })
+                  }}
+                >
+                  音声のみで解答（本試験形式）
+                </button>
+                <p className="home-part2-options-hint">
+                  選択肢も音声で読み上げられ、記号だけが表示されます（TOEIC本試験と同じ形式）
+                </p>
                 <button type="button" onClick={() => setShowPart2Options(false)}>
                   キャンセル
                 </button>
@@ -642,6 +667,76 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 レイド
               </button>
             )}
+            {/* M4・T-125: イベントバトル参加の入口（isConfigured時のみ。共有API無効時は入口ごと非表示=22の2.3節）。
+                V-13（docs/25 4.8節）: 5導線の中でイベントバトルの2つを識別できるよう--raidのアイコンを付ける。
+                アイコンは装飾（aria-hidden）で、識別は文字ラベルでも成立する（07の原則4） */}
+            {raidApi.isConfigured() && (
+              <button type="button" onClick={() => navigate('battle')}>
+                <svg
+                  className="home-grid__icon"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 20 20"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="7"
+                    cy="6"
+                    r="2.6"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M2.6 16.5c0-2.7 2-4.4 4.4-4.4s4.4 1.7 4.4 4.4"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M13.4 9h4.2M15.6 7l2 2-2 2"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>イベントバトルに参加</span>
+              </button>
+            )}
+            {/* M4・T-126: イベントバトル主催（ホスト）の入口（isConfigured時のみ。同上） */}
+            {raidApi.isConfigured() && (
+              <button type="button" onClick={() => navigate('battleHost')}>
+                <svg
+                  className="home-grid__icon"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 20 20"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="2.5"
+                    y="3.5"
+                    width="15"
+                    height="10"
+                    rx="1.5"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M10 13.5v3M7 16.5h6"
+                    fill="none"
+                    stroke="var(--raid)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>イベントバトルを主催</span>
+              </button>
+            )}
           </div>
         </>
       }
@@ -688,20 +783,30 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         phase && (
           <div className="home-hero">
             <div className="home-season" data-testid="home-season">
-              <p>{SEASON_LABELS[phase.season]}</p>
+              {/* docs/26 A-2: シーズン名と空の進捗バーだけで高さ190pxのカードが空いていた。
+                  英字ラベル（WEEKLY BOSS 側と同じ .home-hero-eyebrow）と達成率の数値を足して
+                  階層を作る。数値は既に progressbar の aria-valuenow が持っている情報の可視化で、
+                  情報を増やしていない（07の原則4: バーだけに頼らない） */}
+              <span className="home-hero-eyebrow">SEASON</span>
+              <p className="home-season-name">{SEASON_LABELS[phase.season]}</p>
               {phaseProgress !== null && (
-                <div
-                  className="home-season-progress"
-                  role="progressbar"
-                  aria-valuenow={Math.round(phaseProgress * 100)}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
+                <>
                   <div
-                    className="home-season-progress-bar"
-                    style={{ width: `${Math.round(phaseProgress * 100)}%` }}
-                  />
-                </div>
+                    className="home-season-progress"
+                    role="progressbar"
+                    aria-valuenow={Math.round(phaseProgress * 100)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="home-season-progress-bar"
+                      style={{ width: `${Math.round(phaseProgress * 100)}%` }}
+                    />
+                  </div>
+                  <p className="home-season-progress-value">
+                    このシーズンの達成度 {Math.round(phaseProgress * 100)}%
+                  </p>
+                </>
               )}
             </div>
           </div>

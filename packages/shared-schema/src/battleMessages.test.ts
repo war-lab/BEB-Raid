@@ -1,8 +1,12 @@
-// T-123完了条件③: 昼バトルWebSocketメッセージのJSON往復＋未知typeの判別テスト
+// T-123完了条件③: イベントバトルWebSocketメッセージのJSON往復＋未知typeの判別テスト
 // （docs/22 3.1節・3.2節）
 import { describe, expect, it } from 'vitest'
 
-import { isBattleClientMessage, isBattleServerMessage } from './battleMessages.js'
+import {
+  isBattleClientMessage,
+  isBattleCloseReason,
+  isBattleServerMessage,
+} from './battleMessages.js'
 import type {
   BattleAnswerMessage,
   BattleClientMessage,
@@ -150,5 +154,18 @@ describe('未知typeの判別（discriminated unionの受信側ガード）', ()
     expect(isBattleClientMessage(null)).toBe(false)
     expect(isBattleClientMessage('join')).toBe(false)
     expect(isBattleServerMessage(undefined)).toBe(false)
+  })
+})
+
+describe('isBattleCloseReason', () => {
+  it('サーバーが付与する既知の切断理由はtrueになる', () => {
+    expect(isBattleCloseReason('unauthorized')).toBe(true)
+    expect(isBattleCloseReason('room_not_found')).toBe(true)
+    expect(isBattleCloseReason('room_closed')).toBe(true)
+  })
+
+  it('通信断（理由なし＝空文字）や未知の理由はfalseになる', () => {
+    expect(isBattleCloseReason('')).toBe(false)
+    expect(isBattleCloseReason('something_unexpected')).toBe(false)
   })
 })
