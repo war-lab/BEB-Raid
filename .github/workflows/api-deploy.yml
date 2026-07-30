@@ -1,9 +1,19 @@
 # 共有API（Cloudflare Workers）デプロイ（T-93。正本: docs/17_M3実装計画.md 3.10節・T-93シート）
 #
 # トリガー:
-#   - main への push で packages/api/** に変更があれば dev 環境へ自動デプロイ
-#   - workflow_dispatch（手動実行）で環境を選択。production は手動実行のみ（誤って本番へ
-#     自動デプロイしないための安全側の設計。docs/17 T-93「本番は手動dispatchのみ」）
+#   - main への push で dev と production の両方へ自動デプロイする（承認ゲートは置かない）
+#   - workflow_dispatch（手動実行）で環境を選択（従来どおり）
+#
+# 【2026-07-30変更】以前は「production は手動dispatchのみ」だった（誤った本番自動デプロイを
+# 避ける意図）。しかしGitHub Pagesは main への push で自動配信されるため、APIだけが取り残され、
+# 本番APIがM3世代のまま公開アプリがM4のUIを持つ不整合が実際に発生した（イベントバトルの
+# ルーム作成が404 not_found。docs/STATUS.md 2026-07-30の節）。**mainは常に本番と同じ内容である**
+# を不変条件とし、APIもPagesと同じく main への push で本番へ出す設計へ変えた。
+# 誤った本番反映の防止は main への直pushではなくPRレビューが担う。
+# 正本は docs/17_M3実装計画.md 3.10節。
+#
+# `environment:` は Environment 保護のためではなく、GitHubのEnvironmentsタブに
+# 環境別のデプロイ履歴を残すために付けている（保護ルールは意図的に設定していない）。
 #
 # 【前提=人間タスク H-1】このワークフローは以下を GitHub Secrets に要求する:
 # CLOUDFLARE_API_TOKEN（権限=「Edit Cloudflare Workers」）・CLOUDFLARE_ACCOUNT_ID。
@@ -19,10 +29,15 @@ on:
     branches: [main]
     paths:
       - 'packages/api/**'
+      # api は shared-schema の型・バリデータ・API契約型に依存するため、shared-schema だけが
+      # 変わった push でもデプロイが必要（含めないと契約変更が本番に反映されず取り残される）
+      - 'packages/shared-schema/**'
+      # このワークフロー自体の変更（デプロイ方針の変更）もデプロイ経路の検証対象にする
+      - '.github/workflows/api-deploy.yml'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'デプロイ先環境（production は手動実行時のみ選択可）'
+        description: 'デプロイ先環境'
         type: choice
         options:
           - dev
@@ -33,6 +48,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      # push（main）時は dev と production の両方を走らせる。workflow_dispatch 時は選択環境のみ。
+      # fail-fast: false は片方の失敗でもう片方を打ち切らないため（dev だけ失敗しても本番の
+      # デプロイは進めたい／逆に本番が失敗しても dev の状態は確定させたい）
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.environment) || '["dev","production"]') }}
+    # Environmentsタブに環境別のデプロイ履歴を残す（保護ルールは設定していない。冒頭コメント参照）
+    environment: ${{ matrix.environment }}
+    # 連続pushで古いコミットのデプロイが後着して本番を巻き戻すのを防ぐ
+    # （古い実行を打ち切り、常に最新コミットの内容が本番に残るようにする）
+    concurrency:
+      group: api-deploy-${{ matrix.environment }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -71,5 +100,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: packages/api
           wranglerVersion: '4'
-          # push（main）は常に dev。手動実行時のみ選択環境（dev/production）へ。
-          command: deploy --env ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+          command: deploy --env ${{ matrix.environment }}

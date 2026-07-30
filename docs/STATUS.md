@@ -65,8 +65,30 @@
 
 - **cronが発火したのか失敗したのかの切り分け**。`[observability] enabled = true` なのでWorkers Logsに記録は残っているはず（成功時は `週次ボス生成完了: bossId=… maxHp=… members=…`、失敗時は `週次ボス生成に失敗しました`）。ローカルのwrangler OAuthトークンでは Observability の照会APIが **403 Authentication error** で拒否されるため、**ダッシュボード（Workers → beb-raid-api → Logs）で見るか、Observability権限付きAPIトークンを発行する**必要がある。
 - **2026-08-03（月）00:00 UTC = 09:00 JST のcron発火の確認**。発起人の判断で今週分の手動生成は行わず（残り約1日で参加余地が小さいため）、来週のcronを待つ方針。発火後に `GET /raid/current` が `boss-2026-W32` を返すかで自動発火の成否が確定する。**返らなければ問題①は「cronが発火しない」で確定**するので、その時点で原因調査を再開する。
-- 本番デプロイは**実施済み**（上記「問題②の解消」）。以後 `main` の内容を本番へ出すには手動 `workflow_dispatch` が必要な設計は変えていないため、M4以降の変更をmainへ入れた後は**本番デプロイを忘れると再び同じ不整合が起きる**。
+- 本番デプロイは**実施済み**（上記「問題②の解消」）。再発防止としてデプロイ方針を改訂した（下記「再発防止」）。
 - 本番デプロイ後もボス生成は起きない（`generateWeeklyBoss` はcron発火時のみ走り、デプロイでは呼ばれない）。問題①の切り分けは引き続き 2026-08-03 のcron待ち。
+
+### 問題②の再発防止（2026-07-30。ブランチ `task/api-deploy-production-gate`）
+
+手順の遵守に依存する設計では再発を防げないため、`api-deploy.yml` の本番デプロイ方針を改訂した。正本は [17_M3実装計画](17_M3実装計画.md) 3.10節「デプロイ方針の改訂」。
+
+- main への push で dev と production の両方へ自動デプロイする。**「mainの内容は常に本番と同じ」を不変条件にする**判断で、GitHub Pages（`deploy.yml`）と同じ扱いに揃えた。承認ゲート（Environment の必須レビュアー）は置かない（発起人の判断。2026-07-30）。
+- paths に `packages/shared-schema/**` を追加した。**api は shared-schema の型・バリデータに依存するのに、shared-schema だけが変わった push ではデプロイが起きない穴が残っていた**（今回の障害とは別経路の同種の取り残し）。
+- job単位の `concurrency` で、連続pushの際に古いコミットのデプロイが後着して本番を巻き戻すのを防ぐ。
+- デプロイ前ゲート（shared-schemaビルド → `tsc --noEmit` → apiテスト）は従来どおり。壊れたコードが本番へ出る経路はここで塞ぐ。
+
+**代償として、`packages/api` または `packages/shared-schema` を含むPRを main へマージした時点で本番APIが切り替わる。** 互換性のない契約変更を公開アプリより先に出さないよう、マージ前に本番へ出して差し支えない状態かを確認する（詳細は17の3.10節）。
+
+### 調査で追加確認した事項（同種の不整合が他に無いかの棚卸し。2026-07-30）
+
+| 確認軸 | 結果 |
+|---|---|
+| アプリが呼ぶAPI経路と本番実装の一致 | **一致**。`FetchRaidApi`・`WebSocketBattleSocket` が呼ぶ9経路すべてが `index.ts` に存在する。契約ドリフトなし |
+| アプリのAPI接続先 | 本番Worker（リポジトリ変数 `RAID_API_BASE_URL`）。dev Workerを向く事故はない |
+| 公開サイトのコンテンツ世代 | 最新。`manifest.json` はローカル（main相当）と一致、`pack-p2-s-001.json` の `responseOffsetsMs` は50件、再生成後のmp3もサイズ一致（`audio/part2/submit.mp3` 81807 bytes）。音声のみモードは公開版で成立する |
+| Workerシークレット | `INVITE_CODE` が production・dev 双方に存在（デプロイで消えていない） |
+| 本番のログ設定 | `[env.production.observability]` は2026-07-22のデプロイ版（`d5dae38`）で既に有効（`e5011fe` で追加済み）。**2026-07-27のcronログが見えないのは設定漏れではなく無料プランの保持期間切れ**。2026-08-03の発火は記録される |
+| PWAの更新方式 | `registerType: 'autoUpdate'`。インストール済み端末が旧アプリに取り残される経路はない |
 
 
 ## 2026-07-29: A-1〜A-8 ビジュアル改修（レイアウトとブランド整合）（ブランチ `task/V-24-A群レイアウト整合`。dev起点）
