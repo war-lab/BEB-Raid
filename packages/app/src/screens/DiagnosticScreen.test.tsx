@@ -436,3 +436,85 @@ describe('DiagnosticScreen: 解答の連打防止（T-159。docs/27 のS-3）', 
     expect(nextChoiceA.closest('button')?.disabled).toBe(false)
   })
 })
+
+describe('DiagnosticScreen: 完了画面の振り返り（T-174。J-95。docs/27 のS-25）', () => {
+  // 何を防ぐか: 30問すべて「当たったか外れたか分からないまま」答えるだけの初回体験。
+  // 一方で診断中に正誤を出すと後続問題に学習効果が乗り、レートの測定精度が落ちる（J-95）。
+  // そこで「診断中は出さず、完了画面でまとめて開示する」を両方まとめて固定する
+  it('診断中は正誤を出さず、その旨の注記を出す', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    expect(screen.getByText('正誤は最後にまとめて表示します')).toBeTruthy()
+
+    const startButton = screen.queryByText('タップして開始')
+    if (startButton) fireEvent.click(startButton)
+    fireEvent.click(await screen.findByText('a'))
+    await screen.findByText('2/30')
+
+    // 解答しても正誤の状態は付かない（ChoiceButtonにstateを渡していない）
+    expect(document.querySelector('.choice-button.is-correct')).toBeNull()
+    expect(document.querySelector('.choice-button.is-wrong')).toBeNull()
+  })
+
+  it('完了画面に30問の振り返り一覧が出て、誤答には選択と正解が併記される', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+
+    // 全問「b」を選ぶ（buildPoolの正解は 'A' = 'a' なので全問誤答になる）
+    for (let i = 1; i <= 30; i++) {
+      await screen.findByText(`${i}/30`)
+      const startButton = screen.queryByText('タップして開始')
+      if (startButton) fireEvent.click(startButton)
+      fireEvent.click(await screen.findByText('b'))
+      if (i < 30) await screen.findByText(`${i + 1}/30`)
+    }
+    await screen.findByText('診断完了')
+
+    const list = await screen.findByTestId('diagnostic-review-list')
+    expect(list.querySelectorAll('.result-list__item').length).toBe(30)
+    expect(screen.getByText(/解答の振り返り（正解 0\/30）/)).toBeTruthy()
+    // 誤答なので選択と正解の併記が出る
+    expect(list.querySelectorAll('.result-list__note').length).toBe(30)
+    expect(list.textContent).toContain('選択: b')
+    expect(list.textContent).toContain('正解: a')
+  })
+
+  it('正解した問題には選択と正解の併記を出さない（一覧が読めなくなるため）', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+
+    for (let i = 1; i <= 30; i++) {
+      await answerOneTurn(i) // 常に正解（'a'）を選ぶ
+    }
+    await screen.findByText('診断完了')
+
+    const list = await screen.findByTestId('diagnostic-review-list')
+    expect(list.querySelectorAll('.result-list__item').length).toBe(30)
+    expect(screen.getByText(/解答の振り返り（正解 30\/30）/)).toBeTruthy()
+    expect(list.querySelectorAll('.result-list__note').length).toBe(0)
+  })
+
+  it('自己申告スキップでは振り返り一覧を出さない（解答がないため）', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '650' } })
+    fireEvent.click(screen.getByText('自己申告スコアで診断をスキップ'))
+
+    await screen.findByText('診断完了')
+    expect(screen.queryByTestId('diagnostic-review-list')).toBeNull()
+  })
+})

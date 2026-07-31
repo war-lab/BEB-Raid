@@ -426,3 +426,28 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
     expect(screen.queryByText(/経過\d+秒/)).toBeNull()
   })
 })
+
+describe('ReadingScreen: 中断の確認（T-162。docs/27 のS-7）', () => {
+  // 何を防ぐか: 中断は画面最上部にあり、上端のスクロール・スワイプ時の誤タップで
+  // セッションから抜けていた（進捗は保存されるが、読んでいた長文の文脈は失われる）
+  it('「中断」は確認を経てホームへ戻る', async () => {
+    const db = newDb()
+    const q = part7Question('p7-abort', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    useAppStore.setState({ screen: 'reading' })
+
+    fireEvent.click(screen.getByText('中断'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('reading')
+
+    fireEvent.click(screen.getByText('読解を続ける'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(useAppStore.getState().screen).toBe('reading')
+
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('中断してホームへ'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+})

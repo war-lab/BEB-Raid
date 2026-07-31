@@ -424,7 +424,9 @@ describe('VocabScreen: 出題不能なSRSカードの除外と脱出導線（レ
     await db.open() // afterEachのdelete()が失敗しないよう復旧する
   })
 
-  it('復習の進行中に「中断」でホームへ戻れる', async () => {
+  // T-162（docs/27 のS-7）で中断に確認を挟むようにした。
+  // beforeEach が screen='vocab' に置いているので、遷移の有無はそのまま観測できる
+  it('復習の進行中に「中断」→確認でホームへ戻れる', async () => {
     const db = newDb()
     await seedDueCard(db, 'alpha')
     const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
@@ -434,10 +436,32 @@ describe('VocabScreen: 出題不能なSRSカードの除外と脱出導線（レ
     await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
 
     fireEvent.click(screen.getByText('中断'))
+    // 確認が出るだけでまだ遷移しない
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('vocab')
+
+    fireEvent.click(screen.getByText('中断してホームへ'))
     expect(useAppStore.getState().screen).toBe('home')
   })
 
-  it('仕分けの進行中にも「中断」でホームへ戻れる', async () => {
+  it('確認で「学習を続ける」を選ぶと中断しない', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('学習を続ける'))
+
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(useAppStore.getState().screen).toBe('vocab')
+    // カードはそのまま残る
+    expect(screen.getByText('復習 1/1')).toBeTruthy()
+  })
+
+  it('仕分けの進行中にも「中断」→確認でホームへ戻れる', async () => {
     const db = newDb()
     // SRSカードなし→復習キュー空→仕分けモードから始まる
     const questions = [vocabQuestion('alpha')]
@@ -447,6 +471,7 @@ describe('VocabScreen: 出題不能なSRSカードの除外と脱出導線（レ
     await waitFor(() => expect(screen.getByText('仕分け 1/1')).toBeTruthy())
 
     fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('中断してホームへ'))
     expect(useAppStore.getState().screen).toBe('home')
   })
 })

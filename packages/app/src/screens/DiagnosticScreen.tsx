@@ -53,6 +53,14 @@ function now(): number {
   return Date.now()
 }
 
+/** T-174: 完了画面の振り返り1件分 */
+interface DiagnosticAnswerLog {
+  section: 'L' | 'R'
+  question: Question
+  selectedKey: string
+  isCorrect: boolean
+}
+
 export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   const navigate = useAppStore((s) => s.navigate)
 
@@ -73,6 +81,12 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
 
   const [resultL, setResultL] = useState(DEFAULT_INITIAL_RATING)
   const [resultR, setResultR] = useState(DEFAULT_INITIAL_RATING)
+  /**
+   * T-174（J-95。docs/27 のS-25）: 30問の振り返り用の解答履歴。
+   * **診断中は正誤を出さない**（測定が目的で、途中でフィードバックを与えると後続問題に
+   * 学習効果が乗りレートの測定精度が落ちる）。代わりに完了画面でまとめて開示する
+   */
+  const [answerLog, setAnswerLog] = useState<DiagnosticAnswerLog[]>([])
   // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4。DrillScreenと同じパターン）
   const [audioError, setAudioError] = useState<string | null>(null)
   // T-78: 完了カード用の「今日の実施数・ストリーク」は診断完了到達時に1回だけ取得する
@@ -289,6 +303,44 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
             message="ここから伸ばしていきましょう"
           />
         )}
+        {/* T-174（J-95。docs/27 のS-25）: 診断中は正誤を出さない代わりに、ここで
+            まとめて振り返れるようにする。従来は30問すべて「当たったか外れたか分からない
+            まま」連続で答えるだけで、学習アプリの初回体験として離脱要因になっていた。
+            測定精度を守るため、途中でのフィードバックは追加していない */}
+        {answerLog.length > 0 && (
+          <>
+            <h2 style={{ fontSize: 'var(--fs-sub)' }}>
+              解答の振り返り（正解 {answerLog.filter((a) => a.isCorrect).length}/{answerLog.length}
+              ）
+            </h2>
+            <ul className="result-list" data-testid="diagnostic-review-list">
+              {answerLog.map((entry, i) => {
+                const correctChoice = entry.question.choices?.find(
+                  (c) => c.key === entry.question.answer,
+                )
+                const selectedChoice = entry.question.choices?.find(
+                  (c) => c.key === entry.selectedKey,
+                )
+                return (
+                  <li key={i} className="result-list__item" data-correct={entry.isCorrect}>
+                    <span aria-hidden="true" className="result-list__icon" />
+                    <span className="result-list__question">
+                      {i + 1}. [{entry.section}] {entry.question.question ?? '音声問題'}
+                    </span>
+                    {/* 誤答のときだけ「何を選んで何が正解だったか」を出す。
+                        正解した問題に同じ量の情報を出すと一覧が読めなくなる */}
+                    {!entry.isCorrect && (
+                      <span className="result-list__note">
+                        選択: {selectedChoice?.text ?? entry.selectedKey} / 正解:{' '}
+                        {correctChoice?.text ?? entry.question.answer}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
       </ScreenLayout>
     )
   }
@@ -376,6 +428,11 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   async function submitAnswer(choiceKey: string) {
     const isCorrect = choiceKey === question!.answer
     const responseMs = now() - startedAt
+    // T-174: 振り返り用に保持する（画面には出さない。完了画面でまとめて開示する）
+    setAnswerLog((prev) => [
+      ...prev,
+      { section, question: question!, selectedKey: choiceKey, isCorrect },
+    ])
 
     await recordAttempt(db, {
       questionId: question!.id,
@@ -439,6 +496,9 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
             中断
           </button>
           <p>{section === 'L' ? 'リスニング' : 'リーディング'}</p>
+          {/* T-174（J-95）: 正誤が出ないのが意図的であることを伝える。無表示だと
+              「壊れているのか」「当たったのか外れたのか」が分からないまま30問続く */}
+          <p className="diagnostic-note">正誤は最後にまとめて表示します</p>
         </>
       }
       action={

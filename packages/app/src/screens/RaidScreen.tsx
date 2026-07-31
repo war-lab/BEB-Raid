@@ -32,6 +32,7 @@ import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BossSigil } from '../components/BossSigil'
 import { GhostWeaknessMap } from '../components/GhostWeaknessMap'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { RaidContributionList } from '../components/RaidContributionList'
 import { RaidEmptyNote } from '../components/RaidEmptyNote'
@@ -142,6 +143,8 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   const [nowMs, setNowMs] = useState(now())
   // T-121(J-60): 生成パックが0問だったときの案内。自動では消さず、セッション開始成功でクリアする
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
+  // T-162（docs/27 のS-38）: 進行中セッションを破棄してレイドに挑むときの確認（3択）
+  const [discardConfirm, setDiscardConfirm] = useState(false)
 
   // M4・T-128: ボス役セッション（docs/22 3.5節）
   const [showGhostBossConsent, setShowGhostBossConsent] = useState(false)
@@ -318,14 +321,21 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   }
 
   async function handleChallenge() {
-    if (
-      resumeSnapshot &&
-      !window.confirm(
-        // T-175: 残りは実解答回数で数える（ドリル画面の進捗表示と揃える）
-        confirmDiscardMessage(remainingAnswerSlots(resumeSnapshot, questionPool)),
-      )
-    )
+    // T-162（docs/27 のS-38）: HomeScreenと同じ3択ダイアログにする。
+    // 「続きから再開する」はホーム側の導線なので、ここでは案内だけを出して
+    // ホームへ戻す（レイド画面から他モードのセッションを再開させない）
+    if (resumeSnapshot) {
+      setDiscardConfirm(true)
       return
+    }
+    await challengeAfterDiscard()
+  }
+
+  /**
+   * レイドクエストの開始（T-162で handleChallenge から切り出した）。
+   * 破棄の確認を経た場合はダイアログからここへ直接入る
+   */
+  async function challengeAfterDiscard() {
     setEmptyPackMessage(null)
     // handleJoinと同じ理由でここでも捕まえる（`void handleChallenge()` で呼ばれる）。
     // 失敗を放置するとボタンを押しても何も起きない状態になり、原因も伝わらない
@@ -661,7 +671,38 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
 
   return (
     <ScreenLayout
-      status={<p>レイド</p>}
+      status={
+        <>
+          <p>レイド</p>
+          {/* T-162（docs/27 のS-38）: 3択にする。「続きから再開する」はホーム側の導線なので、
+              ここではホームへ戻す選択肢として出す（レイド画面から他モードのセッションを
+              再開させない）。ダイアログは position:fixed なのでDOM上の位置は問わない */}
+          {discardConfirm && resumeSnapshot && (
+            <ConfirmDialog
+              message={confirmDiscardMessage(remainingAnswerSlots(resumeSnapshot, questionPool))}
+              onDismiss={() => setDiscardConfirm(false)}
+              actions={[
+                {
+                  label: '破棄してレイドに挑む',
+                  primary: true,
+                  onSelect: () => {
+                    setDiscardConfirm(false)
+                    void challengeAfterDiscard()
+                  },
+                },
+                {
+                  label: 'ホームへ戻って続きから再開する',
+                  onSelect: () => {
+                    setDiscardConfirm(false)
+                    navigate('home')
+                  },
+                },
+                { label: 'やめる', onSelect: () => setDiscardConfirm(false) },
+              ]}
+            />
+          )}
+        </>
+      }
       action={
         <>
           {!joined && currentBoss && (

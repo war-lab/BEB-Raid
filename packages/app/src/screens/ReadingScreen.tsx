@@ -30,6 +30,7 @@ import { advanceSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ExplanationCard } from '../components/ExplanationCard'
 import { PassageText, type PassageAnswer } from '../components/PassageText'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -79,6 +80,8 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null)
   // T-176: 保存に失敗した解答をやり直すための保持（関数はオブジェクトで包む）
   const [retrySave, setRetrySave] = useState<{ run: () => Promise<void> } | null>(null)
+  // T-162（docs/27 のS-7）: 中断の確認
+  const [abortConfirm, setAbortConfirm] = useState(false)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
@@ -244,8 +247,27 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     <ScreenLayout
       status={
         <>
+          {/* T-162（docs/27 のS-7）: 中断は画面最上部にあり、誤タップでセッションから
+              抜けていた。ダイアログは position:fixed なのでDOM上の位置は問わない */}
+          {abortConfirm && (
+            <ConfirmDialog
+              message="読解を中断してホームへ戻りますか？（解答済みの分は保存されます）"
+              onDismiss={() => setAbortConfirm(false)}
+              actions={[
+                {
+                  label: '中断してホームへ',
+                  primary: true,
+                  onSelect: () => {
+                    setAbortConfirm(false)
+                    navigate('home')
+                  },
+                },
+                { label: '読解を続ける', onSelect: () => setAbortConfirm(false) },
+              ]}
+            />
+          )}
           <SessionProgress current={current} total={total} />
-          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+          <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
             中断
           </button>
           {/* docs/25 4.8節（V-19）: DrillScreenと同じ英字パートタグ（.drill-part-tagを再利用）。

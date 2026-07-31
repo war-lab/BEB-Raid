@@ -35,6 +35,7 @@ import {
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -119,6 +120,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null)
   // T-161: 誤タップの取り消し猶予の有効/無効（既定ON。ADR 0009 + 2026-07-31 Amendment）
   const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
+  // T-162（docs/27 のS-7）: 中断の確認。復習・仕分けの両フェーズで共用する
+  const [abortConfirm, setAbortConfirm] = useState(false)
   // 「わからない」を選んだ状態（ドッグフィードバック 2026-07-22）。当てずっぽうの正解で
   // isCorrectが偽陽性になるのを防ぐため、正解は提示しつつ isCorrect=false・SRSはagain扱いにする
   const [dontKnow, setDontKnow] = useState(false)
@@ -430,6 +433,28 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   }
 
   /**
+   * 中断の確認ダイアログ（T-162）。復習・仕分けの両フェーズで同じものを出す。
+   * 進捗はカードごとにSRSへ反映済みなので「失われない」ことを明示する
+   */
+  const abortDialog = abortConfirm ? (
+    <ConfirmDialog
+      message="語彙学習を中断してホームへ戻りますか？（ここまでの記録は保存されます）"
+      onDismiss={() => setAbortConfirm(false)}
+      actions={[
+        {
+          label: '中断してホームへ',
+          primary: true,
+          onSelect: () => {
+            setAbortConfirm(false)
+            navigate('home')
+          },
+        },
+        { label: '学習を続ける', onSelect: () => setAbortConfirm(false) },
+      ]}
+    />
+  ) : null
+
+  /**
    * 仕分け1件を永続化する（T-161で猶予の対象になった実処理）。
    * J-58: 「知ってる」は卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ
    * 出ないようにするためで、既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ
@@ -553,8 +578,10 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 仕分けへ
               </button>
             )}
-            {/* 進行中の脱出導線（DrillScreenの中断ボタンと同じパターン。進捗はSRS上更新済みのため失われない） */}
-            <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            {/* 進行中の脱出導線（DrillScreenの中断ボタンと同じパターン。進捗はSRS上更新済みのため失われない）。
+                T-162: 誤タップ対策で確認を挟む */}
+            {abortDialog}
+            <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
               中断
             </button>
           </>
@@ -701,8 +728,9 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
             <p>
               仕分け {triageIndex + 1}/{triageQueue.length}
             </p>
-            {/* 進行中の脱出導線（復習モードと同様） */}
-            <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            {/* 進行中の脱出導線（復習モードと同様。T-162で確認を挟む） */}
+            {abortDialog}
+            <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
               中断
             </button>
           </>

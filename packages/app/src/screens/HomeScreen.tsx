@@ -37,6 +37,7 @@ import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BossSigil } from '../components/BossSigil'
 import { Heatmap } from '../components/charts/Heatmap'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { Wordmark } from '../components/Wordmark'
@@ -131,6 +132,15 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   // T-121(J-60): 生成パックが0問だったときの案内（今日のクエスト・単独モード共通）。
   // セッション開始成功時・単独モード開始時にクリアする。自動では消さない
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
+  /**
+   * T-162（docs/27 のS-38）: 進行中セッションがある状態で新規開始したときの確認。
+   * 選択が決まるまで開始要求を保持しておく（window.confirm を置き換えたため、
+   * 判断を待つ間の状態を画面側で持つ必要がある）
+   */
+  const [discardConfirm, setDiscardConfirm] = useState<{
+    items: SessionItem[]
+    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean }
+  } | null>(null)
   // T-54: 現フェーズ（シーズン表示・クイックパックのフェーズ駆動化に使う）
   const [phase, setPhase] = useState<PhaseState | null>(null)
   // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
@@ -347,11 +357,20 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
   ) {
     if (items.length === 0) return
-    if (
-      resumeSnapshot &&
-      !window.confirm(confirmDiscardMessage(remainingAnswerSlots(resumeSnapshot, questionPool)))
-    )
+    // T-162（docs/27 のS-38）: window.confirm のYes/Noでは「続きから再開する」を
+    // その場で選べず、ホームへ戻って別のボタンを探させることになっていた。
+    // 3択のアプリ内ダイアログへ置き換える（開始要求を保持して選択後に続行する）
+    if (resumeSnapshot) {
+      setDiscardConfirm({ items, options })
       return
+    }
+    await beginNewSession(items, options)
+  }
+
+  async function beginNewSession(
+    items: SessionItem[],
+    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
+  ) {
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
     beginSession(
@@ -390,6 +409,34 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     <ScreenLayout
       status={
         <>
+          {/* T-162（docs/27 のS-38）: 破棄の確認を3択にする。window.confirm のYes/Noでは
+              「続きから再開する」をその場で選べず、ホームへ戻って別のボタンを探す必要があった。
+              ダイアログは position:fixed なのでDOM上の位置は問わない */}
+          {discardConfirm && resumeSnapshot && (
+            <ConfirmDialog
+              message={confirmDiscardMessage(remainingAnswerSlots(resumeSnapshot, questionPool))}
+              onDismiss={() => setDiscardConfirm(null)}
+              actions={[
+                {
+                  label: '続きから再開する',
+                  primary: true,
+                  onSelect: () => {
+                    setDiscardConfirm(null)
+                    void handleResume()
+                  },
+                },
+                {
+                  label: '破棄して新しく始める',
+                  onSelect: () => {
+                    const pending = discardConfirm
+                    setDiscardConfirm(null)
+                    void beginNewSession(pending.items, pending.options)
+                  },
+                },
+                { label: 'やめる', onSelect: () => setDiscardConfirm(null) },
+              ]}
+            />
+          )}
           {brokenSinceDays !== null ? (
             <p>途切れ（前回{brokenSinceDays}日）</p>
           ) : (

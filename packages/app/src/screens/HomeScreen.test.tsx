@@ -774,10 +774,12 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
     expect(useSessionStore.getState().snapshot).toEqual(snapshot)
   })
 
-  it('進行中セッションがある状態で「今日のクエスト」を開始しようとするとconfirmが出て、キャンセルすると開始しない', async () => {
+  // T-162（docs/27 のS-38）で window.confirm を3択のアプリ内ダイアログへ置き換えた。
+  // Yes/Noでは「続きから再開する」をその場で選べず、ホームへ戻って別のボタンを探す
+  // 必要があったため（従来のテストは confirm の呼び出しを見ていたので書き換える）
+  it('進行中セッションがある状態で開始しようとすると3択の確認が出る（残り問数入り）', async () => {
     const db = newDb()
     const snapshot = snapshotOf()
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     render(
       <HomeScreen
         db={db}
@@ -789,18 +791,22 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
     await flushLoad()
 
     fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
-    await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
-    // T-122(J-61): 何を破棄するのか分かるよう、確認メッセージに残り問数を含める
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('残り1問'))
 
+    // ダイアログ自体の出現を待つ（/残り1問/ は常設の「続きから再開（残り1問）」にも
+    // 一致してしまい、状態更新の反映前に次のアサーションへ進んでしまう）
+    const overlay = await screen.findByTestId('confirm-overlay')
+    // T-122(J-61): 何を破棄するのか分かるよう、確認メッセージに残り問数を含める
+    expect(overlay.textContent).toContain('残り1問')
+    expect(screen.getByText('続きから再開する')).toBeTruthy()
+    expect(screen.getByText('破棄して新しく始める')).toBeTruthy()
+    expect(screen.getByText('やめる')).toBeTruthy()
+    // まだ何も起きていない
     expect(useAppStore.getState().screen).toBe('home')
-    confirmSpy.mockRestore()
   })
 
-  it('進行中セッションがある状態でconfirmを承諾すると新規セッションが開始する', async () => {
+  it('「やめる」なら開始しない', async () => {
     const db = newDb()
     const snapshot = snapshotOf()
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(
       <HomeScreen
         db={db}
@@ -812,9 +818,52 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
     await flushLoad()
 
     fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
+    fireEvent.click(await screen.findByText('やめる'))
+
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('「破棄して新しく始める」で新規セッションが開始する', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
+    fireEvent.click(await screen.findByText('破棄して新しく始める'))
+
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(useSessionStore.getState().snapshot!.sessionId).not.toBe(snapshot.sessionId)
-    confirmSpy.mockRestore()
+  })
+
+  // 何を防ぐか: window.confirm の2択では選べなかった第3の選択肢が、実際に再開へ繋がること
+  it('「続きから再開する」で中断していたセッションが再開する', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /今日のクエスト/ }))
+    fireEvent.click(await screen.findByText('続きから再開する'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    // 新規ではなく中断していたセッションが復帰する
+    expect(useSessionStore.getState().snapshot!.sessionId).toBe(snapshot.sessionId)
   })
 })
 

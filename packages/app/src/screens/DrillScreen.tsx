@@ -42,6 +42,7 @@ import {
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ExplanationCard } from '../components/ExplanationCard'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -297,6 +298,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
    * 関数をstateに直接入れると更新関数として解釈されるためオブジェクトで包む
    */
   const [retrySave, setRetrySave] = useState<{ run: () => Promise<void> } | null>(null)
+  // T-162（docs/27 のS-7）: 中断の確認。画面最上部にあり誤タップでセッションから抜けていた
+  const [abortConfirm, setAbortConfirm] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -1175,8 +1178,28 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     <ScreenLayout
       status={
         <>
+          {/* T-162（docs/27 のS-7）: 中断は画面最上部にあり、上端のスクロール・スワイプ時の
+              誤タップでセッションから抜けていた。何が保存されるのかを添えて確認する。
+              ダイアログは position:fixed のオーバーレイなのでDOM上の位置は問わない */}
+          {abortConfirm && (
+            <ConfirmDialog
+              message="学習を中断してホームへ戻りますか？（解答済みの分は保存されます）"
+              onDismiss={() => setAbortConfirm(false)}
+              actions={[
+                {
+                  label: '中断してホームへ',
+                  primary: true,
+                  onSelect: () => {
+                    setAbortConfirm(false)
+                    navigate('home')
+                  },
+                },
+                { label: '学習を続ける', onSelect: () => setAbortConfirm(false) },
+              ]}
+            />
+          )}
           <SessionProgress current={current} total={total} />
-          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+          <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
             中断
           </button>
           {/* T-177: 自動では消さない。ResultScreenの「表示できなかった問題: N件」と
@@ -1607,7 +1630,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               {current < total && (
                 <button
                   type="button"
-                  className="secondary-action"
+                  // T-162（docs/27 のS-6）: 「次へ」と隣接していると、狙った指が
+                  // セッション終了に当たる。罫線と余白で離す
+                  className="secondary-action drill-exit-separated"
                   onClick={() => navigate('result')}
                 >
                   ここで終了して結果を見る

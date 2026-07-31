@@ -3144,3 +3144,68 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* T-174（J-95）: 診断中に正誤を出さないことの注記。測定が目的であることを伝える */
+.diagnostic-note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
+/* --- 確認ダイアログ（T-162。docs/27 のS-6・S-7・S-38） --- */
+/* window.confirm の置き換え。演出は置かない（07の原則3）。
+   z-indexは他に使っていないため単一の値で足りる */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-2);
+  background: rgb(0 0 0 / 55%);
+}
+.confirm-dialog {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.confirm-dialog__message {
+  margin: 0 0 var(--sp-2);
+  color: var(--ink);
+}
+.confirm-dialog__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+/* 主要な選択肢。PrimaryButtonと同じ地色・高さに揃える（別コンポーネント化はしない） */
+.confirm-dialog__primary {
+  width: 100%;
+  min-height: var(--answer-height);
+  padding: var(--sp-1) var(--sp-2);
+  border: none;
+  border-radius: var(--radius-button);
+  background: var(--gold);
+  color: var(--on-gold);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-dialog__primary:focus-visible,
+.confirm-dialog .secondary-action:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* T-162（docs/27 のS-6）: 「ここで終了して結果を見る」を「次へ」から離す。
+   隣接していると「次へ」を狙った指がセッション終了に当たる */
+.drill-exit-separated {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}

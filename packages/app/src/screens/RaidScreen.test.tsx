@@ -327,9 +327,11 @@ describe('RaidScreen: レイドに挑む（T-98）', () => {
     expect(snapshot!.items.every((item) => item.mode === 'raid')).toBe(true)
   })
 
-  it('進行中セッションがあるとき、確認メッセージに残り問数が含まれる（T-122・J-61）', async () => {
+  // T-162（docs/27 のS-38）で window.confirm を3択のアプリ内ダイアログへ置き換えた。
+  // レイド画面では「続きから再開する」の代わりに「ホームへ戻って続きから再開する」を出す
+  // （他モードのセッションをこの画面から再開させない）
+  it('進行中セッションがあるとき、3択の確認が出て残り問数が含まれる（T-122・J-61）', async () => {
     const { db, raidApi } = await joinedSetup()
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
 
     render(
       <RaidScreen
@@ -353,11 +355,46 @@ describe('RaidScreen: レイドに挑む（T-98）', () => {
     await screen.findByTestId('raid-boss')
 
     fireEvent.click(screen.getByText('レイドに挑む'))
-    await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('残り2問'))
+
+    const overlay = await screen.findByTestId('confirm-overlay')
+    expect(overlay.textContent).toContain('残り2問')
+    expect(screen.getByText('破棄してレイドに挑む')).toBeTruthy()
+    expect(screen.getByText('ホームへ戻って続きから再開する')).toBeTruthy()
     expect(useAppStore.getState().screen).not.toBe('drill')
 
-    confirmSpy.mockRestore()
+    // 「やめる」で閉じるだけ（レイドは始まらない）
+    fireEvent.click(screen.getByText('やめる'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(useAppStore.getState().screen).not.toBe('drill')
+  })
+
+  it('「破棄してレイドに挑む」でレイドセッションが始まる（T-162）', async () => {
+    const { db, raidApi } = await joinedSetup()
+
+    render(
+      <RaidScreen
+        db={db}
+        raidApi={raidApi}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={{
+          sessionId: 'resume-1',
+          items: [
+            { questionId: 'q-0', mode: 'solo' },
+            { questionId: 'q-1', mode: 'solo' },
+          ],
+          answeredCount: 1,
+          attemptIds: ['a-1'],
+          startedAt: 0,
+          updatedAt: 0,
+        }}
+      />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    fireEvent.click(screen.getByText('レイドに挑む'))
+    fireEvent.click(await screen.findByText('破棄してレイドに挑む'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
   })
 
   it('生成パックが0問なら案内文を表示し、drillへ遷移しない（T-121・J-60）', async () => {
