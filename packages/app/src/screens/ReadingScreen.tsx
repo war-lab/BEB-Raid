@@ -22,6 +22,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
+import { answerSlotsBefore, totalAnswerSlots } from '../engine/answerSlots'
 import { shuffle } from '../engine/shuffle'
 import type { AiClient, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
@@ -76,6 +77,8 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // T-176: 保存に失敗した解答をやり直すための保持（関数はオブジェクトで包む）
+  const [retrySave, setRetrySave] = useState<{ run: () => Promise<void> } | null>(null)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
@@ -145,17 +148,24 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // 切り替え完了までの1レンダーは何も描画しない
   if (question.format !== 'text_passage') return null
 
-  const total = snapshot.items.length
-  const current = displayIndex + 1
+  // T-175（docs/27 のS-26）: 進捗の分母を実際の解答回数にする。text_passage は1itemで
+  // サブ設問全問を要求するため、item数だと進捗が実態と合わない
+  const total = totalAnswerSlots(snapshot.items, questions)
+  const current = answerSlotsBefore(snapshot.items, questions, displayIndex) + answers.size + 1
 
   /** 空所タップ・設問切替（該当設問へジャンプ。3.5節）。解答済み設問も閲覧のため切替可 */
   function handleSelectBlank(index: number) {
     setActiveIndex(index)
   }
 
-  async function finalizeSubQuestionAnswer(index: number, choiceKey: string) {
+  async function finalizeSubQuestionAnswer(
+    index: number,
+    choiceKey: string,
+    options?: { isRetry?: boolean },
+  ) {
     const sub = subQuestions[index]
-    if (!question || !item || !sub || answers.has(index)) return
+    // 再試行時は answers に残っている（正誤表示を保持しているため）ので二重解答ガードを通す
+    if (!question || !item || !sub || (answers.has(index) && !options?.isRetry)) return
     const isCorrect = choiceKey === sub.answer
     const responseMs = now() - startedAt
     setAnswers((prev) => new Map(prev).set(index, { selectedKey: choiceKey, isCorrect }))
@@ -183,14 +193,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
+      setRetrySave(null)
     } catch (err) {
       console.error('[ReadingScreen] 解答の保存に失敗', err)
       setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
-      setAnswers((prev) => {
-        const next = new Map(prev)
-        next.delete(index)
-        return next
-      })
+      // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
+      // 従来は answers から該当indexを消して選び直させていたが、正解が既に見えている
+      // 状態で選び直させることになり操作の意味がなかった
+      setRetrySave({ run: () => finalizeSubQuestionAnswer(index, choiceKey, { isRetry: true }) })
     }
   }
 
@@ -256,9 +266,20 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       action={
         <>
           {saveError && (
-            <p className="drill-error" role="alert">
-              {saveError}
-            </p>
+            <>
+              <p className="drill-error" role="alert">
+                {saveError}
+              </p>
+              {retrySave && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => void retrySave.run()}
+                >
+                  保存を再試行する
+                </button>
+              )}
+            </>
           )}
           {activeSub &&
             shuffledChoices.map((choice) => {

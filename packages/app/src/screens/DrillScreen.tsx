@@ -13,6 +13,7 @@ import {
   responseSegment,
   supportsAudioOnlyPart2,
 } from '../engine/audioOnlyPart2'
+import { answerSlotsBefore, totalAnswerSlots } from '../engine/answerSlots'
 import { computeSetResult } from '../engine/audioSet'
 import { buildWordBank, judgeDictation } from '../engine/dictation'
 import { formatQuickPackReason } from '../engine/reason'
@@ -28,6 +29,7 @@ import { getOrInitPhaseState } from '../services/phase'
 import {
   advanceSession,
   resumeSession,
+  StaleSnapshotError,
   type SessionItem,
   type SessionSnapshot,
 } from '../services/session'
@@ -285,6 +287,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [undoNotice, setUndoNotice] = useState(false)
   // T-166（J-93）: 2問目以降の音声自動再生の有効/無効。既定ON（T-110の意図は変えない）
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
+  /**
+   * T-176（docs/27 のS-27）: 保存に失敗した確定をやり直すための保持。
+   * 関数をstateに直接入れると更新関数として解釈されるためオブジェクトで包む
+   */
+  const [retrySave, setRetrySave] = useState<{ run: () => Promise<void> } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -568,8 +575,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // 切り替え完了までの1レンダーは何も描画しない（choices空の中途半端な描画を避ける）
   if (question.format === 'text_passage') return null
 
-  const total = snapshot.items.length
-  const current = displayIndex + 1
+  // T-175（docs/27 のS-26）: 進捗の分母を item 数から実際の解答回数へ変える。
+  // audio_set は1itemで3サブ設問あるため、item数だと「20問」と出して実際は数十回になり、
+  // 1item内で答えても進捗バーが動かなかった。セッションのitem構成自体は変えていない
+  const total = totalAnswerSlots(snapshot.items, questions)
+  const current =
+    answerSlotsBefore(snapshot.items, questions, displayIndex) +
+    // audio_set は answeredSubCount 分だけ進む。他formatは1item=1回
+    (isAudioSet ? subQuestionResults.length : 0) +
+    1
 
   /**
    * 解答保存（recordAnswerPipeline）失敗時の共通リカバリ（J-35・T-76）。
@@ -577,9 +591,21 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
    * 経路ではDBの実際の状態をresumeSessionで読み直してstateを再同期する
    * （途中まで書き込みが成立していた場合、answeredCountのずれを解消するため）
    */
-  async function recoverFromSaveError(err: unknown, options?: { resyncSnapshot?: boolean }) {
+  async function recoverFromSaveError(
+    err: unknown,
+    options?: { resyncSnapshot?: boolean; retry?: () => Promise<void> },
+  ) {
     console.error('[DrillScreen] 解答の保存に失敗', err)
     setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
+    // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
+    // 従来は setResult(null) で正誤表示を取り消して再解答を求めていたが、正解が既に
+    // 見えている状態で選び直させることになり、操作の意味がなかった。
+    // ただしスナップショット不整合（二重解答・複数タブ・終了済みセッション）は
+    // やり直しても同じ検知で弾かれるため、従来どおり再同期へ回す
+    if (options?.retry && !(err instanceof StaleSnapshotError)) {
+      setRetrySave({ run: options.retry })
+      return
+    }
     setResult(null)
     if (options?.resyncSnapshot ?? true) {
       // リカバリ自体の失敗（DBクローズ済み等）はここで握る。呼び出し元は
@@ -649,6 +675,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     } = payload
     clearUndoTimer()
     clearPending()
+    setRetrySave(null)
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
@@ -674,8 +701,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
+      setSaveError(null)
     } catch (err) {
-      await recoverFromSaveError(err)
+      // 再試行はペイロードから同じ確定をやり直す（クロージャではなく payload を使うのは
+      // commitAnswer と同じ理由＝取り違え防止）
+      await recoverFromSaveError(err, { retry: () => commitAnswer(payload) })
     }
   }
 
@@ -1112,6 +1142,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     const { grade, isCorrect, responseMs, question: q, item: sessionItem, snapshot: snap } = payload
     clearVocabUndoTimer()
     clearVocabPending()
+    setRetrySave(null)
 
     try {
       // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
@@ -1136,8 +1167,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       })
       advanceToNext()
     } catch (err) {
-      // vocab_cardはresultを使わないため、選択済みの4択表示はそのまま残し再試行できるようにする
-      await recoverFromSaveError(err)
+      // vocab_cardはresultを使わないため、選択済みの4択表示はそのまま残る。
+      // T-176: 再試行導線も出す（同じ評価をやり直す）
+      await recoverFromSaveError(err, { retry: () => commitVocabGrade(payload) })
     }
   }
 
@@ -1193,9 +1225,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       action={
         <>
           {saveError && (
-            <p className="drill-error" role="alert">
-              {saveError}
-            </p>
+            <>
+              <p className="drill-error" role="alert">
+                {saveError}
+              </p>
+              {/* T-176（docs/27 のS-27）: 正誤表示を取り消して再解答させる代わりに、
+                  同じ解答の保存をやり直す。正解が見えている状態で選び直させても意味がない */}
+              {retrySave && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => void retrySave.run()}
+                >
+                  保存を再試行する
+                </button>
+              )}
+            </>
           )}
           {audioError && (
             <p className="drill-error" role="alert">

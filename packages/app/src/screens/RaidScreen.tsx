@@ -36,7 +36,7 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { RaidContributionList } from '../components/RaidContributionList'
 import { RaidEmptyNote } from '../components/RaidEmptyNote'
 import { ScreenLayout } from '../components/ScreenLayout'
-import { confirmDiscardMessage, toSessionItems } from './HomeScreen'
+import { confirmDiscardMessage, remainingAnswerSlots, toSessionItems } from './HomeScreen'
 
 interface Props {
   db: BebRaidDatabase
@@ -321,7 +321,8 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     if (
       resumeSnapshot &&
       !window.confirm(
-        confirmDiscardMessage(resumeSnapshot.items.length - resumeSnapshot.answeredCount),
+        // T-175: 残りは実解答回数で数える（ドリル画面の進捗表示と揃える）
+        confirmDiscardMessage(remainingAnswerSlots(resumeSnapshot, questionPool)),
       )
     )
       return

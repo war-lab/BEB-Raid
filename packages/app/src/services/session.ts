@@ -94,6 +94,21 @@ export async function startSession(
 }
 
 /**
+ * DB上のスナップショットと引数が食い違ったときのエラー（二度押し・複数タブ・終了済みセッション）。
+ *
+ * T-176: 保存失敗の扱いを「同じ解答の保存をやり直す」に変えたが、この失敗だけは
+ * やり直しても直らない（引数の snapshot が古いままなので同じ検知でまた弾かれる）。
+ * 呼び出し側がこのエラーだけを見分けて `resumeSession` での再同期へ回すため、
+ * メッセージ照合ではなく型で判別できるようにする
+ */
+export class StaleSnapshotError extends Error {
+  constructor() {
+    super('スナップショットが古い（二重解答か、セッションは終了済み）')
+    this.name = 'StaleSnapshotError'
+  }
+}
+
+/**
  * 現在の問題への解答を記録し、スナップショットを1問進める。
  * attempts への追記とスナップショット更新は同一トランザクション
  * （中断がどのタイミングで起きても「解答済みなのに再出題」「未解答なのにスキップ」
@@ -124,7 +139,7 @@ export async function answerCurrentQuestion(
       stored.sessionId !== snapshot.sessionId ||
       stored.answeredCount !== snapshot.answeredCount
     ) {
-      throw new Error('スナップショットが古い（二重解答か、セッションは終了済み）')
+      throw new StaleSnapshotError()
     }
     await db.attempts.add(attempt)
     await db.settings.put({ key: ACTIVE_SESSION_KEY, value: next })
@@ -157,7 +172,7 @@ export async function advanceSession(
       stored.sessionId !== snapshot.sessionId ||
       stored.answeredCount !== snapshot.answeredCount
     ) {
-      throw new Error('スナップショットが古い（二重解答か、セッションは終了済み）')
+      throw new StaleSnapshotError()
     }
     await db.settings.put({ key: ACTIVE_SESSION_KEY, value: next })
   })

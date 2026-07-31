@@ -2257,3 +2257,90 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     await vi.waitFor(() => expect(screen.getByText('14')).toBeTruthy())
   })
 })
+
+describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試行（T-175・T-176）', () => {
+  // 何を防ぐか（T-175・docs/27 のS-26）: 進捗の分母がitem数のままで、audio_setを含む
+  // セッションで「表示より実際の解答回数がずっと多い」「1item内で答えても進捗が動かない」
+  // 状態が続くこと
+  it('audio_setを含むセッションの分母がサブ設問数の合計になり、サブ設問ごとに進む', async () => {
+    const db = newDb()
+    const single = part5Question('q-single', 'A', 'submit')
+    const set = audioSetQuestion('s-1', 3)
+    await setupSession(
+      db,
+      [
+        { questionId: single.id, mode: 'solo' },
+        { questionId: set.id, mode: 'solo' },
+      ],
+      [single, set],
+    )
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // item数は2だが、解答回数は 1（Part5）+ 3（サブ設問）= 4
+    expect(await screen.findByLabelText('進捗 1/4')).toBeTruthy()
+
+    await answerAndSettle('a', 1) // Part5に解答
+    fireEvent.click(screen.getByText('次へ'))
+
+    // audio_setの1問目。前のitemが1回消費しているので 2/4
+    await waitFor(() => expect(screen.getByLabelText('進捗 2/4')).toBeTruthy())
+  })
+
+  // 何を防ぐか（T-176・docs/27 のS-27）: 正解を見せた後に解答を取り消して選び直させること。
+  // 選び直しは正解が見えている状態で行われるため操作の意味がない
+  it('保存失敗時は正誤表示を保持して再試行導線を出し、再試行の成功で次へ進める', async () => {
+    const db = newDb()
+    const q = part5Question('q-retry', 'A', 'submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 1回だけ保存を失敗させる（ストレージ側の一時的な異常の模擬）
+    const original = db.attempts.add.bind(db.attempts)
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new Error('boom（模擬）'))
+      .mockImplementation(original)
+
+    fireEvent.click(await screen.findByText('a'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // 正誤表示は保持する（再解答を求めない）
+    expect(screen.getByText('a').closest('button')?.dataset.state).toBe('correct')
+    expect(await db.attempts.count()).toBe(0)
+
+    fireEvent.click(screen.getByText('保存を再試行する'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    await waitFor(() =>
+      expect(
+        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      ).toBeNull(),
+    )
+    expect(screen.queryByText('保存を再試行する')).toBeNull()
+    addSpy.mockRestore()
+  })
+
+  it('スナップショット不整合は再試行導線を出さず、従来どおり再同期する（二重解答は直せない）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const snapshot = await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    // 画面のsnapshotを裏でstaleにする（複数タブ・二重解答と同じ状況）
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    fireEvent.click(screen.getByText('b'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // やり直しても同じ検知で弾かれるため再試行は出さない
+    expect(screen.queryByText('保存を再試行する')).toBeNull()
+    // 従来どおり再同期して次の問題へ進む
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+  })
+})

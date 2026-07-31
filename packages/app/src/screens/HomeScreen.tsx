@@ -9,6 +9,7 @@ import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { RaidStateRecord } from '../db/schema'
 import { RAID_STATE_ID } from '../db/schema'
+import { totalAnswerSlots } from '../engine/answerSlots'
 import { supportsAudioOnlyPart2 } from '../engine/audioOnlyPart2'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
 import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
@@ -56,6 +57,19 @@ interface Props {
  */
 export function confirmDiscardMessage(remaining: number): string {
   return `進行中のセッション（残り${remaining}問）を破棄して新しく始めますか？`
+}
+
+/**
+ * 中断セッションの残り解答回数（T-175。docs/27 のS-26）。
+ * item数で数えると audio_set（1itemで3サブ設問）を1回と数えてしまい、
+ * ドリル画面の進捗表示（実解答回数）と食い違う
+ */
+export function remainingAnswerSlots(
+  snapshot: SessionSnapshot,
+  questionPool: readonly Question[],
+): number {
+  const lookup = new Map(questionPool.map((q) => [q.id, q]))
+  return totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
 }
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
@@ -335,9 +349,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     if (items.length === 0) return
     if (
       resumeSnapshot &&
-      !window.confirm(
-        confirmDiscardMessage(resumeSnapshot.items.length - resumeSnapshot.answeredCount),
-      )
+      !window.confirm(confirmDiscardMessage(remainingAnswerSlots(resumeSnapshot, questionPool)))
     )
       return
     const snapshot = await startSession(db, { items })
@@ -398,7 +410,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         <>
           {resumeSnapshot && (
             <button type="button" className="secondary-action" onClick={() => void handleResume()}>
-              続きから再開（残り{resumeSnapshot.items.length - resumeSnapshot.answeredCount}問）
+              続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
             </button>
           )}
           {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
