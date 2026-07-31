@@ -4,6 +4,7 @@ import type { Question } from '@beb-raid/shared-schema'
 import { describe, expect, it } from 'vitest'
 import {
   applyRatingDifficultyFilter,
+  HARD_MIX_RATIO,
   orderByRating,
   type SectionRatings,
 } from './ratingDifficultyFilter'
@@ -195,5 +196,46 @@ describe('orderByRating（単独モードの並べ替え）', () => {
     // D5だけが過度に難しい（後ろ）。D1/D2は前方
     expect(ordered[ordered.length - 1]!.id).toBe('d5')
     expect(ordered.slice(0, 2).map((q) => q.id)).toEqual(expect.arrayContaining(['d1', 'd2']))
+  })
+
+  // 何を防ぐか（T-170・docs/27 のS-20）: 過度に難しい層を丸ごと末尾へ回すと、プールが
+  // 選択問数を超えるユーザーはレートが上がるまでその層に一生出会わない（50問選んでも
+  // 同じ易しい層を周回する）
+  it('プールが大きいときは高難度を先頭側に少数混ぜる（末尾に固定しない）', () => {
+    const easy = Array.from({ length: 20 }, (_, i) => textQuestion(`easy-${i}`, 1))
+    const hard = Array.from({ length: 10 }, (_, i) => textQuestion(`hard-${i}`, 5))
+    const ordered = orderByRating([...easy, ...hard], LOW, () => 0)
+
+    // 件数と重複なしは保つ（並べ替えなので取りこぼさない）
+    expect(ordered).toHaveLength(30)
+    expect(new Set(ordered.map((q) => q.id)).size).toBe(30)
+
+    // 混率2割（易しい20問 → 高難度4問）が先頭側に入る
+    const mixCount = Math.round(easy.length * HARD_MIX_RATIO)
+    expect(mixCount).toBe(4)
+    const headHardCount = ordered
+      .slice(0, easy.length + mixCount)
+      .filter((q) => q.id.startsWith('hard-')).length
+    expect(headHardCount).toBe(mixCount)
+
+    // 1問目は高難度にしない（開始直後の離脱に直結するため）
+    expect(ordered[0]!.id.startsWith('hard-')).toBe(false)
+
+    // 20問だけ選抜しても高難度に到達できる（S-20の本題）
+    expect(ordered.slice(0, 20).some((q) => q.id.startsWith('hard-'))).toBe(true)
+  })
+
+  it('高難度が無い、または混率で0件になる小さいプールでは従来どおり（回帰）', () => {
+    // shuffle が入るので順序は問わない（取りこぼさないことを見る）
+    const onlyEasy = [textQuestion('e1', 1), textQuestion('e2', 1)]
+    expect(
+      orderByRating(onlyEasy, LOW, () => 0)
+        .map((q) => q.id)
+        .sort(),
+    ).toEqual(['e1', 'e2'])
+
+    // 易しい2問なら mixCount=round(0.4)=0 なので高難度は末尾のまま
+    const small = [textQuestion('e1', 1), textQuestion('e2', 1), textQuestion('h1', 5)]
+    expect(orderByRating(small, LOW, () => 0).at(-1)!.id).toBe('h1')
   })
 })

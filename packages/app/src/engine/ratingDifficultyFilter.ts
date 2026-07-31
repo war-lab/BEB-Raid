@@ -18,6 +18,14 @@ import { difficultyToRatingSpace, sectionForPart } from './rating'
  */
 export const RATING_DIFFICULTY_MARGIN = 170
 
+/**
+ * 単独モードの選抜に混ぜる「過度に難しい」問題の割合（T-170・docs/27 のS-20）。
+ * 2割は docs/28 のT-170が挙げた候補（1〜2割）の上限側で、実装セッションの判断として採った。
+ * 根拠: 20問選択で高難度4問。「たまに歯が立たない問題が来る」程度に収まり、
+ * かつプール後半へ到達する経路を確実に作れる。実機の体感で調整する前提の値
+ */
+export const HARD_MIX_RATIO = 0.2
+
 export interface SectionRatings {
   L: number
   R: number
@@ -99,7 +107,29 @@ export function orderByRating(
   ratings: SectionRatings,
   rng: () => number = Math.random,
 ): Question[] {
-  const appropriate = pool.filter((q) => !isTooHard(q, ratings))
-  const tooHard = pool.filter((q) => isTooHard(q, ratings))
-  return [...shuffle(appropriate, rng), ...shuffle(tooHard, rng)]
+  const appropriate = shuffle(
+    pool.filter((q) => !isTooHard(q, ratings)),
+    rng,
+  )
+  const tooHard = shuffle(
+    pool.filter((q) => isTooHard(q, ratings)),
+    rng,
+  )
+  // T-170（docs/27 のS-20）: 過度に難しい層を丸ごと末尾へ回すと、プールが選択問数を
+  // 超えるユーザーはレートが上がるまでその層に一生出会わない（50問選んでも同じ易しい層を
+  // 周回する）。難易度ゲートは維持したまま、先頭側に高難度を少数だけ混ぜる。
+  // 混率が小さいので「難しすぎて進めない」状態には戻らない
+  const mixCount = Math.round(appropriate.length * HARD_MIX_RATIO)
+  if (mixCount === 0 || tooHard.length === 0) return [...appropriate, ...tooHard]
+
+  const mixed = tooHard.slice(0, mixCount)
+  const rest = tooHard.slice(mixCount)
+  // 混ぜる位置も乱数で決める（常に同じ位置だと「N問目は難しい」と学習されてしまう）
+  const head = [...appropriate]
+  for (const q of mixed) {
+    // 先頭は避ける（1問目が過度に難しいと開始直後の離脱に直結する）
+    const at = 1 + Math.floor(rng() * Math.max(1, head.length))
+    head.splice(Math.min(at, head.length), 0, q)
+  }
+  return [...head, ...rest]
 }

@@ -1,8 +1,12 @@
 // 読解（Part6/7単一）専用画面（T-104。正本: docs/24 3.5節・02の2.2節）。
 // DrillScreenに分岐追加ではなく専用画面にする理由: 本文＋設問の2ペインが
 // 既存4択UI（1問1画面）と別レイアウトのため（3.5節）。
-// Part7複数パッセージ（タブ切替・相互参照）はT-108のスコープでここでは扱わない
-// （passages[0]のみを描画する）。
+// Part7複数パッセージ（相互参照）はT-165でタブ切替を実装した（docs/27 のS-32）。
+// 従来は passages[0] のみを描画しており、相互参照型の設問が出ると2通目を読めないまま
+// 解答不能になっていた。通常パック配分からの除外（isReadingAllocatable）は維持する——
+// あれは「じっくり読解モード専用」という長さの判断（docs/24 3.3節・ADR 0006 判断2）で、
+// 表示できるかどうかの話ではない。一方でSRS復習item経由の混入は**許してよくなった**
+// （タブで全通を読めるので解答不能にならない）ため、isServable 側にフィルタは足していない。
 //
 // 採点方針（ADR 0006 判断4・docs/24 3.2節）: audio_setの2/3セット正解ルールは使わず、
 // 各subQuestionを独立採点対象とする。レートはRセクションへ1問ごとに反映
@@ -82,11 +86,19 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const [retrySave, setRetrySave] = useState<{ run: () => Promise<void> } | null>(null)
   // T-162（docs/27 のS-7）: 中断の確認
   const [abortConfirm, setAbortConfirm] = useState(false)
+  /**
+   * T-165（docs/27 のS-32）: 表示中のパッセージ（複数文書のPart7用）。
+   * 従来は passages[0] しか描画せず、相互参照型の設問が出ると2通目を読めないまま
+   * 解答不能になっていた
+   */
+  const [activePassageIndex, setActivePassageIndex] = useState(0)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
   const subQuestions = question?.subQuestions ?? []
-  const passage = question?.passages?.[0]
+  const passages = question?.passages ?? []
+  // 範囲外（item切替直後にindexが残っている等）は先頭へ落とす
+  const passage = passages[activePassageIndex] ?? passages[0]
   const activeSub = subQuestions[activeIndex]
   const activeAnswer = answers.get(activeIndex) ?? null
 
@@ -233,6 +245,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       setAnswers(new Map())
       setGhostDefenseByIndex(new Map())
       setActiveIndex(0)
+      setActivePassageIndex(0)
       setStartedAt(now())
       return
     }
@@ -366,6 +379,24 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         </>
       }
     >
+      {/* T-165（docs/27 のS-32）: 複数文書のときだけタブを出す。1件のときは従来の表示を
+          変えない（タブが常に出ると単一文書の読解に無用な要素が増える） */}
+      {passages.length >= 2 && (
+        <div className="reading-passage-tabs" role="tablist" aria-label="文書の切り替え">
+          {passages.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              role="tab"
+              aria-selected={i === activePassageIndex}
+              className={i === activePassageIndex ? 'is-selected' : ''}
+              onClick={() => setActivePassageIndex(i)}
+            >
+              文書{i + 1}（{p.kind}）
+            </button>
+          ))}
+        </div>
+      )}
       {passage && (
         // docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面と罫線だけで、
         // 光暈・アニメーションは足さない（07の原則3: 読解中は静かであるべき）

@@ -1674,17 +1674,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   blankFillsByIndex,
                   dictationBank.words,
                 )
-              : playState === 'playing'
-                ? '再生中…'
+              : // T-167: 通常形式のaudio_qaは設問文そのものを持たない（question は未定義で、
+                // script は正答を含むため解答前には出せない）。再生中に「再生中…」へ
+                // 差し替えると文字が入れ替わるだけノイズになるので、指示文を据え置く
+                playState === 'playing'
+                ? '音声を聞いて、正しい応答を選んでください'
                 : '音声を聞いて空欄を埋めてください'}
         </p>
       ) : isAudioSet ? (
         <p className="question-text">
-          {playState === 'played' || playState === 'prereading'
+          {/* T-167（docs/27 のS-15）: 再生中もサブ設問文を出す。「音声を聞きながら設問を
+              目で追う」がPart3/4の基本動作なのに、従来は再生中だけ「再生中…」に
+              置き換わり、先読みフェーズで読んだ内容を記憶で保持させていた。
+              設問文は音声の答えではないので、出しても解答が容易になるわけではない */}
+          {playState === 'played' || playState === 'prereading' || playState === 'playing'
             ? (currentSubQuestion?.question ?? '')
-            : playState === 'playing'
-              ? '再生中…'
-              : '音声を聞いて解答してください'}
+            : '音声を聞いて解答してください'}
         </p>
       ) : question.format === 'audio_qa' ? (
         <p className="question-text">
@@ -1695,8 +1700,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 playState === 'idle'
                 ? '音声で質問と3つの応答が流れます。正しい応答の記号を選んでください'
                 : '聞こえた3つの応答から正しいものを選んでください'
-              : playState === 'playing'
-                ? '再生中…'
+              : // T-167: 通常形式のaudio_qaは設問文そのものを持たない（question は未定義で、
+                // script は正答を含むため解答前には出せない）。再生中に「再生中…」へ
+                // 差し替えると文字が入れ替わるだけノイズになるので、指示文を据え置く
+                playState === 'playing'
+                ? '音声を聞いて、正しい応答を選んでください'
                 : playState === 'played'
                   ? '聞こえた質問への応答として正しいものを選んでください'
                   : '音声で質問が流れます。応答として正しい選択肢を選んでください'}

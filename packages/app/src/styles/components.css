@@ -3209,3 +3209,30 @@
   padding-top: var(--sp-2);
   border-top: 1px solid var(--line);
 }
+
+/* T-165（docs/27 のS-32）: Part7複数文書のタブ。文書が2件以上のときだけ出す。
+   演出は置かない（07の原則3: 読解中は静かに保つ） */
+.reading-passage-tabs {
+  display: flex;
+  gap: var(--sp-half);
+  margin-bottom: var(--sp-1);
+}
+.reading-passage-tabs button {
+  flex: 1;
+  min-height: var(--tap-min);
+  padding: var(--sp-half) var(--sp-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+  cursor: pointer;
+}
+.reading-passage-tabs button.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.reading-passage-tabs button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}

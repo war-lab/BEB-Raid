@@ -451,3 +451,63 @@ describe('ReadingScreen: 中断の確認（T-162。docs/27 のS-7）', () => {
     expect(useAppStore.getState().screen).toBe('home')
   })
 })
+
+describe('ReadingScreen: Part7複数文書のタブ切替（T-165。docs/27 のS-32）', () => {
+  /** 複数文書のPart7（相互参照型）。従来は1通目しか読めず解答不能になりえた */
+  function part7MultiQuestion(id: string): Question {
+    return {
+      ...part7Question(id, 2),
+      passages: [
+        { id: `${id}-p1`, kind: 'email', text: '1通目の本文です。請求書の件。' },
+        { id: `${id}-p2`, kind: 'email', text: '2通目の本文です。返信の内容。' },
+      ],
+    }
+  }
+
+  it('文書が2件以上のときタブが出て、切替で本文が変わる', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-multi')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    // 初期表示は1通目
+    expect(screen.getByTestId('passage-text').textContent).toBe('1通目の本文です。請求書の件。')
+
+    fireEvent.click(screen.getByRole('tab', { name: /文書2/ }))
+    await waitFor(() =>
+      expect(screen.getByTestId('passage-text').textContent).toBe('2通目の本文です。返信の内容。'),
+    )
+
+    // 1通目へ戻れる
+    fireEvent.click(screen.getByRole('tab', { name: /文書1/ }))
+    await waitFor(() =>
+      expect(screen.getByTestId('passage-text').textContent).toBe('1通目の本文です。請求書の件。'),
+    )
+  })
+
+  it('文書が1件のときはタブを出さない（単一文書の読解に無用な要素を増やさない）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-single', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.queryByRole('tablist')).toBeNull()
+  })
+
+  it('タブを切り替えても解答は継続できる（設問は文書と独立）', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-multi-answer')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    fireEvent.click(screen.getByRole('tab', { name: /文書2/ }))
+    fireEvent.click(screen.getByText('a'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 2通目を表示したままでも解答が記録される
+    expect(screen.getByTestId('passage-text').textContent).toBe('2通目の本文です。返信の内容。')
+  })
+})

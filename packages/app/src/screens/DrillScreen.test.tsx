@@ -2376,3 +2376,42 @@ describe('DrillScreen: スキップ通知の持続と累計（T-177。docs/27 �
     expect(screen.getByText('表示できない問題を2件スキップしました')).toBeTruthy()
   })
 })
+
+describe('DrillScreen: 再生中の設問文表示（T-167。docs/27 のS-15）', () => {
+  // 何を防ぐか: 「音声を聞きながら設問を目で追う」がPart3/4の基本動作なのに、再生中だけ
+  // 設問文が「再生中…」に置き換わり、先読みフェーズで読んだ内容を記憶で保持させていたこと
+  it('audio_set は再生中もサブ設問文を表示する', async () => {
+    const db = newDb()
+    const set = audioSetQuestion('s-visible', 3)
+    await setupSession(db, [{ questionId: set.id, mode: 'solo' }], [set])
+    const audioPlayer = new FakeAudioPlayer()
+    const pending: { resolve?: (outcome: PlaybackOutcome) => void } = {}
+    audioPlayer.playSequence.mockImplementation(
+      () =>
+        new Promise<PlaybackOutcome>((resolve) => {
+          pending.resolve = resolve
+        }),
+    )
+    audioPlayer.play.mockImplementation(
+      () =>
+        new Promise<PlaybackOutcome>((resolve) => {
+          pending.resolve = resolve
+        }),
+    )
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    // 先読みフェーズを飛ばして再生フェーズへ入る
+    fireEvent.click(await screen.findByText('音声を再生'))
+    fireEvent.click(await screen.findByText('もう再生する'))
+
+    // 再生中（操作ゾーンに「再生中…」が出ている状態）でもサブ設問文が読める
+    await waitFor(() => expect(screen.getByText('再生中…')).toBeTruthy())
+    expect(screen.getByText(set.subQuestions![0]!.question)).toBeTruthy()
+
+    await act(async () => {
+      pending.resolve?.('ended')
+      await Promise.resolve()
+    })
+  })
+})
