@@ -14,7 +14,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
-import type { AudioPlayer } from '../platform'
+import type { AudioPlayer, PlaybackOutcome } from '../platform'
 import {
   advanceSession,
   answerCurrentQuestion,
@@ -50,9 +50,9 @@ function newDb(): BebRaidDatabase {
 /** AudioPlayer のフェイク（テスト用に呼び出しを記録する） */
 class FakeAudioPlayer implements AudioPlayer {
   unlock = vi.fn(async () => {})
-  play = vi.fn(async () => {})
-  playSequence = vi.fn(async () => {})
-  replay = vi.fn(async () => {})
+  play = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  playSequence = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  replay = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
   stop = vi.fn(() => {})
 }
 
@@ -359,10 +359,10 @@ describe('DrillScreen: Part2音声のみモード（ADR 0008・T-154）', () => 
     // 再生完了させないFakeにする（playを解決させない＝playing状態を維持）
     const audioPlayer = new FakeAudioPlayer()
     // オブジェクトに入れて保持する（let + コールバック内代入では TS が null に絞り込む）
-    const pending: { resolve?: () => void } = {}
+    const pending: { resolve?: (outcome: PlaybackOutcome) => void } = {}
     audioPlayer.play.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<PlaybackOutcome>((resolve) => {
           pending.resolve = resolve
         }),
     )
@@ -376,7 +376,8 @@ describe('DrillScreen: Part2音声のみモード（ADR 0008・T-154）', () => 
     await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
     // 解答したら残りの応答を流し続けない
     expect(audioPlayer.stop).toHaveBeenCalled()
-    pending.resolve?.()
+    // 解答による stop() で打ち切られた再生なので中断として解決する（T-155の契約）
+    pending.resolve?.('interrupted')
   })
 
   it('タイマーは再生終了後6秒から始まり、0で時間切れとして記録される', async () => {
@@ -894,7 +895,7 @@ describe('DrillScreen: 音声再生失敗リカバリ（T-70）', () => {
     const q = audioQaQuestion('p2-1', 'A')
     await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
     const audioPlayer = new FakeAudioPlayer()
-    audioPlayer.play.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined)
+    audioPlayer.play.mockRejectedValueOnce(new Error('boom')).mockResolvedValue('ended')
 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))

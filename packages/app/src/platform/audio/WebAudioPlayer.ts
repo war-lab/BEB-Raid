@@ -2,7 +2,7 @@
 // セッション開始タップでの AudioContext 解放（iOS Safari の自動再生制限対策）＋
 // Web Audio API による連結スケジュール再生を行う。
 
-import type { AudioPlayer, PlayOptions } from './AudioPlayer'
+import type { AudioPlayer, PlaybackOutcome, PlayOptions } from './AudioPlayer'
 import type { PackCache } from '../cache/PackCache'
 
 /** テスト用に AudioContext の生成を差し替え可能にする */
@@ -40,8 +40,11 @@ export class WebAudioPlayer implements AudioPlayer {
   private lastSrcs: string[] = []
   private lastOptions: PlayOptions | undefined
   private stopped = false
-  /** 再生中の startSequence を stop() から即時解決するためのハンドル */
-  private pendingResolve: (() => void) | null = null
+  /**
+   * 再生中の startSequence を stop() から即時解決するためのハンドル。
+   * stop() は `'interrupted'`、自然終了は `'ended'` で解決する（T-155）
+   */
+  private pendingResolve: ((outcome: PlaybackOutcome) => void) | null = null
   /**
    * startSequence の呼び出し世代。バッファ/Blob 読込 await 中に次の startSequence が
    * 始まると、stopped=false のリセットにより両方が再生をスケジュールして二重再生になり、
@@ -75,17 +78,18 @@ export class WebAudioPlayer implements AudioPlayer {
     source.start(0)
   }
 
-  async play(src: string, options?: PlayOptions): Promise<void> {
-    await this.startSequence([src], options)
+  async play(src: string, options?: PlayOptions): Promise<PlaybackOutcome> {
+    return this.startSequence([src], options)
   }
 
-  async playSequence(srcs: string[], options?: PlayOptions): Promise<void> {
-    await this.startSequence(srcs, options)
+  async playSequence(srcs: string[], options?: PlayOptions): Promise<PlaybackOutcome> {
+    return this.startSequence(srcs, options)
   }
 
-  async replay(): Promise<void> {
-    if (this.lastSrcs.length === 0) return
-    await this.startSequence(this.lastSrcs, this.lastOptions, true)
+  async replay(): Promise<PlaybackOutcome> {
+    // 再生対象が無い場合は完走していないため 'interrupted' を返す（契約=AudioPlayer.ts）
+    if (this.lastSrcs.length === 0) return 'interrupted'
+    return this.startSequence(this.lastSrcs, this.lastOptions, true)
   }
 
   stop(): void {
@@ -116,7 +120,7 @@ export class WebAudioPlayer implements AudioPlayer {
     if (this.pendingResolve) {
       const resolve = this.pendingResolve
       this.pendingResolve = null
-      resolve()
+      resolve('interrupted')
     }
   }
 
@@ -138,7 +142,7 @@ export class WebAudioPlayer implements AudioPlayer {
     srcs: string[],
     options: PlayOptions | undefined,
     isReplay = false,
-  ): Promise<void> {
+  ): Promise<PlaybackOutcome> {
     const ctx = this.ctx
     if (!ctx || ctx.state !== 'running') {
       throw new Error('AudioPlayer が unlock されていません（unlock() をユーザー操作内で呼ぶこと）')
@@ -159,10 +163,11 @@ export class WebAudioPlayer implements AudioPlayer {
 
     const buffers = await Promise.all(srcs.map((src) => this.loadBuffer(src)))
     // 読み込み待ちの間に stop() された場合、または後続の startSequence に追い越された場合は
-    // 再生しない（後続呼び出しが再生を引き継いでいるため、ここは正常終了でよい）
-    if (this.stopped || generation !== this.playGeneration) return
+    // 再生しない。いずれも「この呼び出しは完走しなかった」ので 'interrupted' を返す
+    // （後続呼び出しが再生を引き継ぐケースを含む。呼び出し側が周回を数えてはいけない）
+    if (this.stopped || generation !== this.playGeneration) return 'interrupted'
 
-    return new Promise((resolve) => {
+    return new Promise<PlaybackOutcome>((resolve) => {
       this.pendingResolve = resolve
       const sources: AudioBufferSourceNode[] = []
       let remaining = buffers.length
@@ -180,7 +185,7 @@ export class WebAudioPlayer implements AudioPlayer {
         if (remaining <= 0) {
           this.clearPositionTimer()
           this.pendingResolve = null
-          resolve()
+          resolve('ended')
         }
       }
       for (const buffer of buffers) {
@@ -213,14 +218,14 @@ export class WebAudioPlayer implements AudioPlayer {
     srcs: string[],
     options: PlayOptions,
     generation: number,
-  ): Promise<void> {
+  ): Promise<PlaybackOutcome> {
     const rate = options.rate!
     const blobs = await Promise.all(srcs.map((src) => this.loadBlob(src)))
     // 読み込み待ちの間に stop() された場合、または後続の startSequence に追い越された場合は
-    // 再生しない（AudioBuffer経路と同じ世代チェック）
-    if (this.stopped || generation !== this.playGeneration) return
+    // 再生しない（AudioBuffer経路と同じ世代チェック。同じく 'interrupted' を返す）
+    if (this.stopped || generation !== this.playGeneration) return 'interrupted'
 
-    return new Promise((resolve, reject) => {
+    return new Promise<PlaybackOutcome>((resolve, reject) => {
       this.pendingResolve = resolve
       let remaining = blobs.length
       let index = 0
@@ -250,7 +255,9 @@ export class WebAudioPlayer implements AudioPlayer {
           remaining -= 1
           if (remaining <= 0 || this.stopped) {
             this.pendingResolve = null
-            resolve()
+            // stopped 経由なら stop() が既に 'interrupted' で解決しているが（Promiseの解決は
+            // 先着のみ有効）、経路として正しい値を渡しておく
+            resolve(this.stopped ? 'interrupted' : 'ended')
           } else {
             playNext()
           }

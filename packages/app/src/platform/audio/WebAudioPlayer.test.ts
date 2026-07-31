@@ -207,7 +207,7 @@ describe('WebAudioPlayer', () => {
     await done
   })
 
-  it('stop で連結再生の残りを打ち切り、play の Promise は解決する', async () => {
+  it("stop で連結再生の残りを打ち切り、play の Promise は 'interrupted' で解決する", async () => {
     const { player, ctx } = createPlayer({ 'a.mp3': 2, 'b.mp3': 3 })
     await player.unlock()
     ctx.createdSources = []
@@ -217,7 +217,7 @@ describe('WebAudioPlayer', () => {
     expect(ctx.createdSources.length).toBe(2)
 
     player.stop()
-    await expect(done).resolves.toBeUndefined()
+    await expect(done).resolves.toBe('interrupted')
     expect(ctx.createdSources[0]!.stopped).toBe(true)
     expect(ctx.createdSources[1]!.stopped).toBe(true)
   })
@@ -242,10 +242,11 @@ describe('WebAudioPlayer', () => {
     expect(packCache.getCalls.filter((url) => url === 'a.mp3').length).toBe(1)
   })
 
-  it('replay は再生履歴がなければ何もしない', async () => {
+  it("replay は再生履歴がなければ何もせず 'interrupted' を返す", async () => {
     const { player } = createPlayer()
     await player.unlock()
-    await expect(player.replay()).resolves.toBeUndefined()
+    // 何も再生していない＝完走していないため 'interrupted'（契約=AudioPlayer.ts）
+    await expect(player.replay()).resolves.toBe('interrupted')
   })
 
   it('PackCache がキャッシュmissの場合は fetch にフォールバックする', async () => {
@@ -440,7 +441,7 @@ describe('WebAudioPlayer: rate（T-45・J-27・3.7節）', () => {
     expect(audio.pauseCalls).toBe(1)
   })
 
-  it('stop で rate経路の再生を打ち切り、play の Promise は解決する', async () => {
+  it("stop で rate経路の再生を打ち切り、play の Promise は 'interrupted' で解決する", async () => {
     const { player, audioElements } = createPlayer({ 'a.mp3': 5 })
     await player.unlock()
 
@@ -448,7 +449,7 @@ describe('WebAudioPlayer: rate（T-45・J-27・3.7節）', () => {
     await tick()
 
     player.stop()
-    await expect(done).resolves.toBeUndefined()
+    await expect(done).resolves.toBe('interrupted')
     expect(audioElements[0]!.pauseCalls).toBeGreaterThanOrEqual(1)
   })
 
@@ -526,8 +527,8 @@ describe('WebAudioPlayer: 並行startSequenceの競合とAudioContext状態（�
     const second = player.play('b.mp3') // 読込await中の割り込み（tickを挟まず即時）
     await tick()
 
-    // 先行呼び出しは再生せず正常終了する（永遠に未解決にならない）
-    await expect(first).resolves.toBeUndefined()
+    // 先行呼び出しは再生せず解決する（永遠に未解決にならない）。完走していないので 'interrupted'
+    await expect(first).resolves.toBe('interrupted')
     // 後続のb.mp3のみがスケジュールされる（二重再生しない）
     expect(ctx.createdSources.length).toBe(1)
 
@@ -543,7 +544,7 @@ describe('WebAudioPlayer: 並行startSequenceの競合とAudioContext状態（�
     const second = player.play('b.mp3', { rate: 0.85 })
     await tick()
 
-    await expect(first).resolves.toBeUndefined()
+    await expect(first).resolves.toBe('interrupted')
     expect(audioElements.length).toBe(1) // 後続分のHTMLAudioElementだけが生成される
 
     audioElements[0]!.end()
@@ -559,5 +560,93 @@ describe('WebAudioPlayer: 並行startSequenceの競合とAudioContext状態（�
     await player.unlock()
 
     expect(ctx.state).toBe('running')
+  })
+})
+
+describe('WebAudioPlayer: 完走と中断の区別（T-155）', () => {
+  // 何を防ぐか: 呼び出し側が await の解決を「完走」と誤認すること。シャドーイングが
+  // 3秒戻し（=中断）で周回を加算していた不具合（docs/27 のS-1）の再発防止で、
+  // 契約側（戻り値）が完走と中断を区別できることを担保する
+  it("最後まで再生し切ると 'ended' を返す", async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 2 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3')
+    await tick()
+    ctx.createdSources[0]!.end()
+
+    await expect(done).resolves.toBe('ended')
+  })
+
+  it("再生中に stop() を呼ぶと 'interrupted' を返す", async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3')
+    await tick()
+    player.stop()
+
+    await expect(done).resolves.toBe('interrupted')
+  })
+
+  it("playSequence を全ソース再生し切ると 'ended' を返す", async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 1, 'b.mp3': 1 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.playSequence(['a.mp3', 'b.mp3'])
+    await tick()
+    ctx.createdSources[0]!.end()
+    ctx.createdSources[1]!.end()
+
+    await expect(done).resolves.toBe('ended')
+  })
+
+  it("連結再生の途中で stop() を呼ぶと 'interrupted' を返し、残りを再生しない", async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 1, 'b.mp3': 3 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.playSequence(['a.mp3', 'b.mp3'])
+    await tick()
+    ctx.createdSources[0]!.end() // 1本目だけ再生し終える
+    player.stop()
+
+    await expect(done).resolves.toBe('interrupted')
+    expect(ctx.createdSources[1]!.stopped).toBe(true)
+  })
+
+  it("rate経路でも最後まで再生し切ると 'ended' を返す", async () => {
+    const { player, audioElements } = createPlayer({ 'a.mp3': 2 })
+    await player.unlock()
+
+    const done = player.play('a.mp3', { rate: 0.85 })
+    await tick()
+    audioElements[0]!.end()
+
+    await expect(done).resolves.toBe('ended')
+  })
+
+  it("replay の完走は 'ended'、途中の stop() は 'interrupted' を返す", async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 2 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const first = player.play('a.mp3')
+    await tick()
+    ctx.createdSources[0]!.end()
+    await first
+
+    const replayed = player.replay()
+    await tick()
+    ctx.createdSources[1]!.end()
+    await expect(replayed).resolves.toBe('ended')
+
+    const interrupted = player.replay()
+    await tick()
+    player.stop()
+    await expect(interrupted).resolves.toBe('interrupted')
   })
 })

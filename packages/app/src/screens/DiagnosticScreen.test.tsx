@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
-import type { AudioPlayer } from '../platform'
+import type { AudioPlayer, PlaybackOutcome } from '../platform'
 import { DIAGNOSTIC_PROGRESS_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { DiagnosticScreen } from './DiagnosticScreen'
@@ -25,9 +25,9 @@ function newDb(): BebRaidDatabase {
 
 class FakeAudioPlayer implements AudioPlayer {
   unlock = vi.fn(async () => {})
-  play = vi.fn(async () => {})
-  playSequence = vi.fn(async () => {})
-  replay = vi.fn(async () => {})
+  play = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  playSequence = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  replay = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
   stop = vi.fn(() => {})
 }
 

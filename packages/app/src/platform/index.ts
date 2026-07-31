@@ -15,7 +15,7 @@ import { type DeviceTokenProvider, FetchRaidApi, RaidApiError } from './net/Fetc
 import type { RaidApi } from './net/RaidApi'
 import { WebSocketBattleSocket, type BattleSocket } from './net/BattleSocket'
 
-export type { AudioPlayer, PlayOptions } from './audio/AudioPlayer'
+export type { AudioPlayer, PlaybackOutcome, PlayOptions } from './audio/AudioPlayer'
 export type { PackCache, CacheUsage } from './cache/PackCache'
 export type { Notifier, ScheduledNotification } from './notifications/Notifier'
 export type { AiAskContext, AiChatTurn, AiClient } from './ai/AiClient'

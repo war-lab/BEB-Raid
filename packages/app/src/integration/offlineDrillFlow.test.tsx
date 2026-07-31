@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { loadQuestionPool, PACK_IDS, syncPacksAndReload } from '../App'
 import { BebRaidDatabase } from '../db/database'
-import type { AudioPlayer, PackCache, RaidApi } from '../platform'
+import type { AudioPlayer, PackCache, PlaybackOutcome, RaidApi } from '../platform'
 import { createProfile } from '../services/profile'
 import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
 import { DrillScreen } from '../screens/DrillScreen'
@@ -35,9 +35,9 @@ afterEach(async () => {
 
 class FakeAudioPlayer implements AudioPlayer {
   unlock = vi.fn(async () => {})
-  play = vi.fn(async () => {})
-  playSequence = vi.fn(async () => {})
-  replay = vi.fn(async () => {})
+  play = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  playSequence = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  replay = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
   stop = vi.fn(() => {})
 }
 

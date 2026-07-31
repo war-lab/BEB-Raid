@@ -1,6 +1,6 @@
 # STATUS — 現在地（進捗正本）
 
-**最終更新: 2026-07-30**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
+**最終更新: 2026-07-31**（更新ルール: [09_開発体制](09_開発体制.md) 7節。タスクの着手・完了・ブロッカー変化のたびに同じPRで更新する）
 
 ## 🔴 2026-07-30: 本番の週次ボスが生成されていない（問題①は未解決／問題②は本番デプロイで解消）
 
@@ -90,6 +90,36 @@
 | 本番のログ設定 | `[env.production.observability]` は2026-07-22のデプロイ版（`d5dae38`）で既に有効（`e5011fe` で追加済み）。**2026-07-27のcronログが見えないのは設定漏れではなく無料プランの保持期間切れ**。2026-08-03の発火は記録される |
 | PWAの更新方式 | `registerType: 'autoUpdate'`。インストール済み端末が旧アプリに取り残される経路はない |
 
+
+## 2026-07-31: T-155 AudioPlayerに完走/中断の区別を導入（ブランチ `task/T-155-audio-playback-outcome`）
+
+[28](28_改修計画_出題と回答のUXストレス.md) の基盤タスク1件目。**共有面の変更のため単独PR**（09の規則）。ブランチは `task/docs-27-28-uxstress` の上に積んでいる（STATUS.mdの追記先が同ブランチにあるため）。
+
+### 変更内容
+
+`AudioPlayer` に `PlaybackOutcome = 'ended' | 'interrupted'` を追加し、`play()` / `playSequence()` / `replay()` の戻り値を `Promise<void>` から `Promise<PlaybackOutcome>` へ変えた。
+
+| 経路 | 戻り値 |
+|---|---|
+| 最後まで再生し切った（`durationMs` 指定時はその長さを再生し切った） | `'ended'` |
+| `stop()` で打ち切られた | `'interrupted'` |
+| 後続の `startSequence` に追い越された（世代チェック） | `'interrupted'` |
+| `replay()` で再生履歴が無い | `'interrupted'`（完走していないため） |
+
+**呼び出し側のロジックは一切変えていない**。S-1（シャドーイングの周回誤カウント）とS-2（残秒固着）の修正はT-157・T-158で行う。本タスクは契約と実装のみを変え、既存の全呼び出し元が無改修で通ることを確認した。
+
+### 検証結果
+
+| 項目 | 結果 |
+|---|---|
+| `tsc --noEmit`（app） | exit 0 |
+| `npm test` | **1573件パス / 0件失敗**（api 125・app 967・cli 349・review-ui 15・shared-schema 117） |
+| `npm run lint` | クリーン |
+| `npm run build` | 成功（PWA precache 16 entries・api の `tsc --noEmit` も通過） |
+
+新規テストは `WebAudioPlayer.test.ts` に「完走と中断の区別（T-155）」のdescribeで6件追加した（完走で `'ended'`・再生中の `stop()` で `'interrupted'`・連結再生の全完走・連結再生の途中 `stop()` で残りを再生しない・rate経路の完走・`replay()` の完走と中断）。既存アサーション5件を `toBeUndefined()` から具体値へ変えた（うち3件は中断経路であることが従来は表現されていなかった）。
+
+テストダブルは共有ファクトリが無く6ファイルに重複定義されていたため個別に修正した。`ShadowingScreen.test.tsx` の `resolveLatest()` と `BattleHostScreen.test.tsx` の `resolveNextPlay()` は既定 `'ended'` の省略可引数にしたため、既存の呼び出し箇所は無改修で通る。T-157が `'interrupted'` を渡して中断を模擬できる。
 
 ## 2026-07-30: 出題と回答のUXストレス点検（所見のみ。コード変更なし）
 

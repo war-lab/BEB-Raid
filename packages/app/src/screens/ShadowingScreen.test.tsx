@@ -9,7 +9,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
-import type { PlayOptions } from '../platform/audio/AudioPlayer'
+import type { PlaybackOutcome, PlayOptions } from '../platform/audio/AudioPlayer'
 import type { AudioPlayer } from '../platform'
 import { useAppStore } from '../store/appStore'
 import { ShadowingScreen } from './ShadowingScreen'
@@ -29,23 +29,27 @@ class FakeAudioPlayer implements AudioPlayer {
   playCalls: Array<{ src: string; options: PlayOptions | undefined }> = []
   /** trueならplay()が拒否される（音声404・自動再生制限等の失敗の模擬） */
   playShouldFail = false
-  private pendingResolves: Array<() => void> = []
+  private pendingResolves: Array<(outcome: PlaybackOutcome) => void> = []
 
   play = vi.fn((src: string, options?: PlayOptions) => {
     this.playCalls.push({ src, options })
     if (this.playShouldFail) return Promise.reject(new Error('音声の取得に失敗（模擬）'))
-    return new Promise<void>((resolve) => {
+    return new Promise<PlaybackOutcome>((resolve) => {
       this.pendingResolves.push(resolve)
     })
   })
-  playSequence = vi.fn(async () => {})
-  replay = vi.fn(async () => {})
+  playSequence = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  replay = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
   stop = vi.fn(() => {})
 
-  /** 直近のplay()呼び出しをまだ解決していなければ解決する（再生完了=onendedの模擬） */
-  resolveLatest(): void {
+  /**
+   * 直近のplay()呼び出しをまだ解決していなければ解決する。
+   * 既定は 'ended'（再生完了=onendedの模擬）。'interrupted' を渡すと
+   * stop()・別再生による打ち切りを模擬できる（T-155の契約）
+   */
+  resolveLatest(outcome: PlaybackOutcome = 'ended'): void {
     const resolve = this.pendingResolves.pop()
-    resolve?.()
+    resolve?.(outcome)
   }
 
   notifyPosition(positionMs: number): void {
