@@ -528,3 +528,79 @@ describe('VocabScreen: 完了カード（T-78）', () => {
     expect(card.textContent).toContain('🔥')
   })
 })
+
+describe('VocabScreen: 連打防止と保存失敗の表示（T-159。docs/27 のS-3・S-28）', () => {
+  // 何を防ぐか: 反応が遅い端末での連打で setReviewIndex が2回走り、未評価のカードが
+  // 1枚無言でスキップされること（SRS間隔も更新されないまま残る）
+  it('自己評価を連打してもカードは1枚しか進まない', async () => {
+    const db = newDb()
+    const words = ['alpha', 'bravo', 'charlie']
+    for (const w of words) await seedDueCard(db, w)
+    const questions = words.map((w) => vocabQuestion(w))
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/3')).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+
+    const ok = screen.getByText('OK')
+    fireEvent.click(ok)
+    fireEvent.click(ok)
+    fireEvent.click(ok)
+
+    await waitFor(() => expect(screen.getByText('復習 2/3')).toBeTruthy())
+    // 3枚目まで飛んでいない＝1回分しか処理されていない
+    expect(screen.queryByText('復習 3/3')).toBeNull()
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+  })
+
+  it('仕分けのスワイプ相当の操作を連打しても1語しか進まない', async () => {
+    const db = newDb()
+    const questions = ['alpha', 'bravo', 'charlie'].map((w) => vocabQuestion(w))
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/3')).toBeTruthy())
+
+    const known = screen.getByText('知ってる')
+    fireEvent.click(known)
+    fireEvent.click(known)
+
+    await waitFor(() => expect(screen.getByText('仕分け 2/3')).toBeTruthy())
+    expect(screen.queryByText('仕分け 3/3')).toBeNull()
+    // 卒業済みカードは1件だけ作られる
+    expect(await db.srsCards.count()).toBe(1)
+  })
+
+  // 何を防ぐか: ストレージ枯渇時に「押しても何も起きない」画面になり、原因も次の行動も
+  // 分からなくなること（DrillScreenにはsaveErrorバナーがあるのに不統一だった）
+  it('復習の記録が失敗するとエラーを表示し、カードを進めない', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+
+    // 記録の書き込みを失敗させる（DBクローズ＝ストレージ側の異常の模擬）
+    db.close()
+    fireEvent.click(screen.getByText('OK'))
+
+    await screen.findByText(/記録を保存できませんでした/)
+    // 進めていない（カードが残っている＝解答が記録されないまま次へ流れない）
+    expect(screen.getByText('復習 1/1')).toBeTruthy()
+  })
+
+  it('仕分けの記録が失敗するとエラーを表示し、語を進めない', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+
+    db.close()
+    fireEvent.click(screen.getByText('知ってる'))
+
+    await screen.findByText(/記録を保存できませんでした/)
+    expect(screen.getByText('仕分け 1/2')).toBeTruthy()
+  })
+})

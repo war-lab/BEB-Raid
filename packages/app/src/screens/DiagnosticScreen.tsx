@@ -3,7 +3,7 @@
 // 完了画面（L/R初期レート＋「ここから伸ばす」。予測スコア帯は出さない=J-1）。
 // 診断は独立したレートキャリブレーションのフローのため、通常ドリルの
 // tagStats・SRS・processWrongAnswer 等の副作用は起こさない。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import {
@@ -67,6 +67,9 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   const [askedR, setAskedR] = useState<ReadonlySet<string>>(new Set())
   const [startedAt, setStartedAt] = useState(() => now())
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'played'>('idle')
+  // T-159: 解答処理中フラグ。refは連打の同期的な遮断用、stateはボタンの無効化用
+  const submittingRef = useRef(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const [resultL, setResultL] = useState(DEFAULT_INITIAL_RATING)
   const [resultR, setResultR] = useState(DEFAULT_INITIAL_RATING)
@@ -348,7 +351,29 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     }
   }
 
+  /**
+   * 解答の多重発火を防ぐ（T-159。docs/27 のS-3）。
+   * 従来はボタンが常に有効で解答済みフラグも無く、反応待ちで連打すると
+   * recordAttempt が2件・updateDiagnosticRating が2回走った。turn は同じ値から
+   * 計算されるため進むのは1問分で、レートだけが二重に動く（＝以降のすべての
+   * 出題難易度が実力と乖離する）。
+   * refで持つのは、同一バッチ内の2クリックに対してstateの更新が間に合わないため
+   */
   async function handleSelect(choiceKey: string) {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    try {
+      await submitAnswer(choiceKey)
+    } finally {
+      // 失敗時もフラグを戻す（戻さないと画面が操作不能のまま固まる）。
+      // 保存失敗の表示自体はこの画面の既存挙動を変えない
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }
+
+  async function submitAnswer(choiceKey: string) {
     const isCorrect = choiceKey === question!.answer
     const responseMs = now() - startedAt
 
@@ -452,6 +477,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
               <ChoiceButton
                 key={choice.key}
                 marker={choice.key}
+                disabled={submitting}
                 onClick={() => void handleSelect(choice.key)}
               >
                 {choice.text}

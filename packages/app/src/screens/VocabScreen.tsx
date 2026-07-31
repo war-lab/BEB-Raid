@@ -14,7 +14,7 @@
 // を見せた状態で agenda の意味を問えば文脈から推測できるため、4択の正答率が実力を
 // 過大評価していた。解答前は単語のみを提示し、フレーズと音声は解答後に開示する。
 // 客観正誤（4択）と間隔調整（自己評価3段階）の分離はそのまま維持する
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
@@ -78,6 +78,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [triagePaused, setTriagePaused] = useState(false)
   // 復習モード専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
+  // T-159: 記録処理中フラグ。refは連打の同期的な遮断用、stateはボタンの無効化用
+  const busyRef = useRef(false)
+  const [busy, setBusy] = useState(false)
+  // T-159: 記録の保存失敗の表示（DrillScreenのsaveErrorと同じ様式）
+  const [saveError, setSaveError] = useState<string | null>(null)
   // 「わからない」を選んだ状態（ドッグフィードバック 2026-07-22）。当てずっぽうの正解で
   // isCorrectが偽陽性になるのを防ぐため、正解は提示しつつ isCorrect=false・SRSはagain扱いにする
   const [dontKnow, setDontKnow] = useState(false)
@@ -244,7 +249,40 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     setDontKnow(true)
   }
 
+  /**
+   * 記録を伴う操作の共通ラッパ（T-159。docs/27 のS-3・S-28）。
+   *
+   * 連打防止: 従来はどのハンドラも多重発火を防いでおらず、反応が遅い端末で連打すると
+   * `setReviewIndex` が2回走って**未評価のカードが1枚無言でスキップ**された
+   * （SRS間隔も更新されないまま残る）。refで見るのは、同一バッチ内の2クリックに対して
+   * stateの更新が間に合わないため。
+   *
+   * 保存失敗の表示: 従来はtry/catchが無く、ストレージ枯渇時に「押しても何も起きない」
+   * 画面になり原因も次の行動も分からなかった（DrillScreenにはsaveErrorバナーがある）。
+   * 失敗時はインデックスを進めない（進めると解答が記録されないまま次へ流れる）
+   */
+  async function runRecording(action: () => Promise<void>) {
+    if (busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
+    try {
+      await action()
+      setSaveError(null)
+    } catch (err) {
+      console.error('[VocabScreen] 記録に失敗', err)
+      setSaveError('記録を保存できませんでした。通信状態と空き容量を確認してください')
+    } finally {
+      busyRef.current = false
+      setBusy(false)
+    }
+  }
+
   async function handleGrade(grade: SrsGrade) {
+    if (!reviewCard) return
+    await runRecording(() => gradeCard(grade))
+  }
+
+  async function gradeCard(grade: SrsGrade) {
     if (!reviewCard) return
     const responseMs = now() - startedAt
     // isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更）。
@@ -289,17 +327,23 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   }
 
   async function handleKnown() {
-    if (!triageQuestion?.front) return
-    // J-58: 卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ出ないようにする
-    // （既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ編入される=意図した相互作用）
-    await markVocabKnown(db, triageQuestion.front)
-    advanceTriage()
+    const word = triageQuestion?.front
+    if (!word) return
+    await runRecording(async () => {
+      // J-58: 卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ出ないようにする
+      // （既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ編入される=意図した相互作用）
+      await markVocabKnown(db, word)
+      advanceTriage()
+    })
   }
 
   async function handleUnknown() {
-    if (!triageQuestion?.front) return
-    await addSrsCard(db, { refType: 'vocab', refId: triageQuestion.front })
-    advanceTriage()
+    const word = triageQuestion?.front
+    if (!word) return
+    await runRecording(async () => {
+      await addSrsCard(db, { refType: 'vocab', refId: word })
+      advanceTriage()
+    })
   }
 
   if (reviewIndex < reviewQueue.length && reviewCard) {
@@ -332,6 +376,12 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         }
         action={
           <>
+            {/* T-159: 記録の保存失敗を明示する（従来は押しても何も起きない画面になっていた） */}
+            {saveError && (
+              <p className="drill-error" role="alert">
+                {saveError}
+              </p>
+            )}
             {quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (answered) {
@@ -368,6 +418,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                disabled={busy}
                 onClick={() => void handleGrade('again')}
               >
                 次へ
@@ -379,6 +430,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                   type="button"
                   className="vocab-grade-button"
                   title="間隔を短くしてすぐに復習します"
+                  disabled={busy}
                   onClick={() => void handleGrade('again')}
                 >
                   もう一回
@@ -387,6 +439,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                   type="button"
                   className="vocab-grade-button"
                   title="通常の間隔で復習します"
+                  disabled={busy}
                   onClick={() => void handleGrade('good')}
                 >
                   OK
@@ -395,6 +448,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                   type="button"
                   className="vocab-grade-button"
                   title="間隔を大きく広げて復習します"
+                  disabled={busy}
                   onClick={() => void handleGrade('easy')}
                 >
                   余裕
@@ -470,14 +524,26 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         }
         action={
           <>
+            {/* T-159: 仕分けの記録失敗も明示する（スワイプが無反応になる状態を避ける） */}
+            {saveError && (
+              <p className="drill-error" role="alert">
+                {saveError}
+              </p>
+            )}
             <button
               type="button"
               className="vocab-grade-button"
+              disabled={busy}
               onClick={() => void handleUnknown()}
             >
               知らない
             </button>
-            <button type="button" className="vocab-grade-button" onClick={() => void handleKnown()}>
+            <button
+              type="button"
+              className="vocab-grade-button"
+              disabled={busy}
+              onClick={() => void handleKnown()}
+            >
               知ってる
             </button>
           </>

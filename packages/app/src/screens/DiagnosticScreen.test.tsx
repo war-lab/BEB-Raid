@@ -389,3 +389,50 @@ describe('DiagnosticScreen: 途中保存・離脱確認（T-113）', () => {
     expect(await db.profile.get(PROFILE_ID)).toBeUndefined()
   })
 })
+
+describe('DiagnosticScreen: 解答の連打防止（T-159。docs/27 のS-3）', () => {
+  // 何を防ぐか: 反応待ちの連打で recordAttempt が2件・updateDiagnosticRating が2回走ること。
+  // turn は同じ値から計算されるため進むのは1問分で、レートだけが二重に動く
+  // （＝診断結果が実力と乖離し、以降のすべての出題難易度に影響する）
+  it('同一問題で連打してもattemptsは1件だけ記録される', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    const startButton = screen.queryByText('タップして開始')
+    if (startButton) fireEvent.click(startButton)
+    const choiceA = await screen.findByText('a')
+    fireEvent.click(choiceA)
+    fireEvent.click(choiceA)
+    fireEvent.click(choiceA)
+
+    await screen.findByText('2/30')
+    // 3問目まで飛んでいない＝1回分しか処理されていない
+    expect(screen.queryByText('3/30')).toBeNull()
+    expect(await db.attempts.count()).toBe(1)
+  })
+
+  it('解答処理中は選択肢が無効化される', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    const startButton = screen.queryByText('タップして開始')
+    if (startButton) fireEvent.click(startButton)
+    const choiceA = await screen.findByText('a')
+    // 解答前は有効
+    expect(choiceA.closest('button')?.disabled).toBe(false)
+
+    fireEvent.click(choiceA)
+    // 次の問題へ進んだ後は再び有効に戻る（処理中フラグが解放される）
+    await screen.findByText('2/30')
+    const nextChoiceA = await screen.findByText('a')
+    expect(nextChoiceA.closest('button')?.disabled).toBe(false)
+  })
+})
