@@ -8,6 +8,7 @@
 // - 各設問（subQuestions）が4択（A〜D）で正答キーが決定的ローテーションで分散する
 import { describe, expect, it } from 'vitest'
 import { PART6_ENTRIES_S } from './data/part6PassagesS.js'
+import { PART7_MULTI_ENTRIES_S } from './data/part7MultiPassagesS.js'
 import { PART7_SINGLE_ENTRIES_S } from './data/part7SinglePassagesS.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
@@ -15,13 +16,18 @@ import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
 import {
   buildPart6Drafts,
   buildPart6Questions,
+  buildPart7MultiDrafts,
+  buildPart7MultiQuestions,
   buildPart7SingleDrafts,
   buildPart7SingleQuestions,
+  CROSS_REFERENCE_TAG,
   part6Question,
   part7SingleQuestion,
   rotateTextPassageChoices,
   validatePart6Questions,
+  validatePart7MultiQuestions,
   validatePart7SingleQuestions,
+  type Part7MultiRawEntry,
 } from './textPassageQuestion.js'
 
 const VOCAB_POOL = new Set([
@@ -263,5 +269,74 @@ describe('buildPart6Drafts / buildPart7SingleDrafts', () => {
       expect(d.preview.length).toBeGreaterThan(0)
       expect((d.payload as { format: string }).format).toBe('text_passage')
     }
+  })
+})
+
+describe('Part7複数パッセージ（T-144。docs/24 3.1節・3.6節）', () => {
+  // 何を防ぐか: 複数文書にしたのに突き合わせを要求する設問が無い（＝単一で足りる）セットや、
+  // タブ表示のkeyが壊れる文書IDの不整合を配信前に見逃すこと
+  it('初期在庫が構造検証とパック検証を通る', () => {
+    const questions = buildPart7MultiQuestions()
+
+    expect(questions.length).toBeGreaterThan(0)
+    expect(validatePart7MultiQuestions(questions)).toEqual([])
+  })
+
+  it('各セットが2〜3文書・5問で、相互参照タグ付きの設問を持つ', () => {
+    for (const q of buildPart7MultiQuestions()) {
+      expect(q.passages!.length).toBeGreaterThanOrEqual(2)
+      expect(q.passages!.length).toBeLessThanOrEqual(3)
+      expect(q.subQuestions).toHaveLength(5)
+      const crossRefs = q.subQuestions!.filter((s) => s.tags?.includes(CROSS_REFERENCE_TAG))
+      expect(crossRefs.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('文書idは <setId>-docN の連番になる（タブ表示のkeyに使う）', () => {
+    for (const q of buildPart7MultiQuestions()) {
+      expect(q.passages!.map((p) => p.id)).toEqual(q.passages!.map((_, i) => `${q.id}-doc${i + 1}`))
+    }
+  })
+
+  it('4択は決定的にローテーションされ、正解が同じ記号に偏らない', () => {
+    const answers = buildPart7MultiQuestions().flatMap((q) => q.subQuestions!.map((s) => s.answer))
+    // 全問が同じ記号になっていない（丸暗記対策のローテーションが効いている）
+    expect(new Set(answers).size).toBeGreaterThan(1)
+    // 同じ入力から同じ結果が出る（決定的）
+    expect(buildPart7MultiQuestions().flatMap((q) => q.subQuestions!.map((s) => s.answer))).toEqual(
+      answers,
+    )
+  })
+
+  it('相互参照タグが1問も無いセットは検証で弾く', () => {
+    const [entry] = PART7_MULTI_ENTRIES_S
+    const withoutCrossRef: Part7MultiRawEntry = {
+      ...entry!,
+      subQuestions: entry!.subQuestions.map((s) => ({ ...s, crossReference: false })),
+    }
+
+    const problems = validatePart7MultiQuestions(buildPart7MultiQuestions([withoutCrossRef]))
+
+    expect(problems.some((p) => p.includes('cross-reference'))).toBe(true)
+  })
+
+  it('文書が1件だけのセットは検証で弾く（複数パッセージの形式ではない）', () => {
+    const [entry] = PART7_MULTI_ENTRIES_S
+    const single: Part7MultiRawEntry = {
+      ...entry!,
+      passages: [entry!.passages[0]!],
+    }
+
+    const problems = validatePart7MultiQuestions(buildPart7MultiQuestions([single]))
+
+    expect(problems.some((p) => p.includes('passagesは2〜3件'))).toBe(true)
+  })
+
+  it('レビュー往復用ドラフトに包める（配信はH-R1のレビュー後）', () => {
+    const drafts = buildPart7MultiDrafts()
+
+    expect(drafts).toHaveLength(PART7_MULTI_ENTRIES_S.length)
+    expect(drafts[0]!.kind).toBe('text_passage')
+    expect(drafts[0]!.preview).toContain('[Part7複数/')
   })
 })
