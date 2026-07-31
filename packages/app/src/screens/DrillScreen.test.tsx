@@ -10,7 +10,7 @@
 // - 15秒タイマー中に解答すると残り時間に関係なく即確定する
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
@@ -1962,5 +1962,143 @@ describe('DrillScreen: 読解（text_passage）混在時のreading画面への�
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
     expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1) // q2はまだ未解答
+  })
+})
+
+describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）', () => {
+  // 何を防ぐか: 解答済みなのにヘッダに残秒が固着し、時間切れだったのか判別できなくなること。
+  // 従来のガードは再生開始時レンダーのクロージャ値（result=null）を見ていたため機能せず、
+  // 再生中に解答すると停止した秒数が表示されたまま残っていた
+  it('再生中に解答すると、確定後にタイマーが表示されない', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    const pending: { resolve?: (outcome: PlaybackOutcome) => void } = {}
+    audioPlayer.play.mockImplementation(
+      () =>
+        new Promise<PlaybackOutcome>((resolve) => {
+          pending.resolve = resolve
+        }),
+    )
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    fireEvent.click(await screen.findByLabelText('選択肢A'))
+    await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
+
+    // 解答による stop() で再生が打ち切られる（T-155の契約で 'interrupted'）
+    expect(audioPlayer.stop).toHaveBeenCalled()
+    await act(async () => {
+      pending.resolve?.('interrupted')
+      await Promise.resolve()
+    })
+
+    expect(document.querySelector('.drill-timer')).toBeNull()
+  })
+
+  it('再生が完走した場合はタイマーが始まる（中断ガードが完走を巻き込まない）', async () => {
+    const db = newDb()
+    const q = audioOnlyQuestion('p2-1', 'A')
+    await setupAudioOnlySession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+
+    await waitFor(() => expect(screen.getByText('6')).toBeTruthy())
+  })
+
+  // 何を防ぐか: 聞き直しが解答時間の減少というペナルティになること（J-91）
+  it('もう一度再生の再生中はカウントダウンが止まり、終了後に残り時間から再開する', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    const pending: { resolve?: (outcome: PlaybackOutcome) => void } = {}
+    audioPlayer.replay.mockImplementation(
+      () =>
+        new Promise<PlaybackOutcome>((resolve) => {
+          pending.resolve = resolve
+        }),
+    )
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+
+    await vi.advanceTimersByTimeAsync(3000)
+    await vi.waitFor(() => expect(screen.getByText('12')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('もう一度再生'))
+    await vi.waitFor(() => expect(screen.getByText('再生中は停止')).toBeTruthy())
+
+    // リプレイ中は何秒経ってもカウントが進まない
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(screen.getByText('12')).toBeTruthy()
+
+    await act(async () => {
+      pending.resolve?.('ended')
+      await Promise.resolve()
+    })
+    // 再生終了後は残り時間（12秒）から再開する。リセットされて15秒に戻ることはない
+    await vi.waitFor(() => expect(screen.queryByText('再生中は停止')).toBeNull())
+    await vi.advanceTimersByTimeAsync(2000)
+    await vi.waitFor(() => expect(screen.getByText('10')).toBeTruthy())
+  })
+
+  it('リプレイを複数回してもタイマーはリセットされない', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+
+    await vi.advanceTimersByTimeAsync(4000)
+    await vi.waitFor(() => expect(screen.getByText('11')).toBeTruthy())
+
+    // replay は即座に 'ended' で解決するフェイクなので、押した分だけ停止→再開が起きる。
+    // 再開（setIsReplaying(false)）はawait後＝act外で起きるため、actで囲んで
+    // 再レンダーとタイマーeffectの張り直しまでを確定させる
+    for (let i = 1; i <= 2; i++) {
+      await act(async () => {
+        fireEvent.click(screen.getByText('もう一度再生'))
+        await Promise.resolve()
+      })
+      expect(audioPlayer.replay).toHaveBeenCalledTimes(i)
+      expect(screen.queryByText('再生中は停止')).toBeNull()
+    }
+
+    // 残り時間は据え置き（15秒に巻き戻らない）
+    expect(screen.getByText('11')).toBeTruthy()
+    // 再開後はカウントが進む。なおリプレイのたびにintervalを張り直すため1秒未満の端数は
+    // 切り捨てられる（学習者に有利な方向のずれなので許容する）
+    await vi.advanceTimersByTimeAsync(1000)
+    await vi.waitFor(() => expect(screen.getByText('10')).toBeTruthy())
+  })
+
+  it('リプレイが失敗してもタイマーは再開する（停止したまま固まらない）', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    audioPlayer.replay.mockRejectedValue(new Error('boom'))
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('もう一度再生'))
+    await vi.waitFor(() => expect(screen.getByText('音声を再生できませんでした')).toBeTruthy())
+
+    expect(screen.queryByText('再生中は停止')).toBeNull()
+    await vi.advanceTimersByTimeAsync(1000)
+    await vi.waitFor(() => expect(screen.getByText('14')).toBeTruthy())
   })
 })

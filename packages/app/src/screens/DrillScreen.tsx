@@ -22,7 +22,7 @@ import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import type { DictationAnswer, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import { usePendingCommit } from '../hooks/usePendingCommit'
-import type { AiClient, AudioPlayer, RaidApi } from '../platform'
+import type { AiClient, AudioPlayer, PlaybackOutcome, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
 import {
@@ -199,6 +199,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // 'playing'=再生中 / 'played'=再生済み(解答受付可)
   const [playState, setPlayState] = useState<'idle' | 'prereading' | 'playing' | 'played'>('idle')
   const [remainingSec, setRemainingSec] = useState<number | null>(null)
+  // T-158（J-91）: 「もう一度再生」の再生中はタイマーを止める。リプレイ回数の上限は設けない
+  const [isReplaying, setIsReplaying] = useState(false)
   // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら、以降の問題は
   // 自動再生する（毎問「タップして開始」を要求しない）。DrillScreenの再マウント＝新規セッション
   // でリセットされればよいためrefでよい（stateにすると再生成功のたびに無駄な再レンダーが増える）
@@ -388,8 +390,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }, [question?.id])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
   // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）。
-  // 15秒タイマーは audio_qa 固有（dictation は未タイマー=03の8節）
-  const isCountingDown = isAudioQa && playState === 'played' && !result
+  // 15秒タイマーは audio_qa 固有（dictation は未タイマー=03の8節）。
+  // T-158（J-91）: 「もう一度再生」の再生中は止める。従来はリプレイが playState を
+  // 変えないためカウントが進み続け、聞き取れずに聞き直すと解答時間が削られた
+  // （＝聞き直しがペナルティになっていた。docs/27 のS-9）。
+  // remainingSec は据え置くので、再生終了後は残り時間から再開する
+  const isCountingDown = isAudioQa && playState === 'played' && !result && !isReplaying
 
   // audio_qa: 15秒タイマーの秒針を進める（開始のsetStateはイベントハンドラ側=handlePlayStartで行う）
   useEffect(() => {
@@ -772,6 +778,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
     setPlayState('playing')
     setAudioError(null)
+    // 音声を持たない audio_qa（データ不整合時のフォールバック）は再生せずに解答へ進めるため、
+    // 既定は完走扱いにする（従来どおりタイマーを開始する）
+    let outcome: PlaybackOutcome = 'ended'
     try {
       await audioPlayer.unlock()
       const options: { durationMs?: number; rate?: number } = {}
@@ -794,7 +803,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       }
       if (isDictation && dictationRate !== 1) options.rate = dictationRate
       if (question!.audio) {
-        await audioPlayer.play(
+        outcome = await audioPlayer.play(
           question!.audio,
           Object.keys(options).length > 0 ? options : undefined,
         )
@@ -809,9 +818,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setPlayState('played')
     // T-154: 音声のみモードは再生自体が約11秒（設問＋3応答）なので「表示から15秒」では
     // 再生中に時間切れになる。タイマーの意味を「再生終了後N秒」に変える。
-    // !result ガードが必須: 再生中に解答した場合、再生完了でここが走ると
-    // ヘッダに止まった秒数が出てしまう
-    if (isAudioQa && !result) {
+    // T-158: 中断（再生中の解答による stop 等）で戻った場合はタイマーを開始しない。
+    // 従来の `!result` ガードは再生開始時レンダーのクロージャ値を見ていたため機能せず、
+    // 解答済みなのにヘッダに残秒が固着していた（docs/27 のS-2）。
+    // 戻り値による判定は再生開始後の状態変化を正しく捉える（契約は T-155）
+    if (isAudioQa && outcome === 'ended') {
       setRemainingSec(isAudioOnlyMode ? AUDIO_ONLY_ANSWER_SECONDS : ANSWER_TIMER_SECONDS)
     }
   }
@@ -842,11 +853,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   async function handleReplay() {
+    // 再生中はタイマーを止める（T-158・J-91）。失敗しても必ず再開させるため finally で戻す
+    setIsReplaying(true)
     try {
       await audioPlayer.replay()
     } catch (err) {
       console.warn('[DrillScreen] 再生に失敗', err)
       setAudioError('音声を再生できませんでした')
+    } finally {
+      setIsReplaying(false)
     }
   }
 
@@ -959,6 +974,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setResult(null)
     setPlayState('idle')
     setRemainingSec(null)
+    setIsReplaying(false)
     setBlankFillsByIndex(new Map())
     setDictationRate(1)
     setSelectedChoiceKey(null)
@@ -1065,7 +1081,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
             </p>
           )}
           {needsAudioGate && playState === 'played' && remainingSec !== null && (
-            <p className="drill-timer display-num">{remainingSec}</p>
+            <p
+              className={
+                isReplaying ? 'drill-timer display-num is-paused' : 'drill-timer display-num'
+              }
+            >
+              {remainingSec}
+              {/* T-158（J-91）: 止まっていることを明示する。無表示だとタイマーが
+                  壊れたのか意図的に止めているのか判別できない */}
+              {isReplaying && <span className="drill-timer-paused">再生中は停止</span>}
+            </p>
           )}
         </>
       }

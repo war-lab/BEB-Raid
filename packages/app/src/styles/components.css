@@ -522,6 +522,18 @@
   color: var(--listen);
 }
 
+/* T-158（J-91）: 「もう一度再生」中はタイマーを止める。止まっていることが分かるように
+   数字を沈め、注記を添える（数字だけ固まると壊れたのか意図的なのか判別できない） */
+.drill-timer.is-paused {
+  color: var(--ink-2);
+}
+
+.drill-timer-paused {
+  margin-left: var(--sp-half);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
 /* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/24 3.5節） --- */
 /* docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面＋罫線までで、光暈・
    アニメーション・背景演出は足さない（07の原則3「静かな学習」により読解中は静かに保つ）。
