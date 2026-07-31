@@ -634,7 +634,11 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     return snapshot
   }
 
-  it('猶予中は attempts を書かず、色と✓✕だけ出して解説・次へ・途中終了を出さない', async () => {
+  // T-160で意図的に変更した挙動: 猶予中も解説は出す（従来は解説・次へ・途中終了のすべてを
+  // 出さず、対象formatの全問に400msの空白待ちが入っていた=docs/27 のS-8）。
+  // 取り消しは「記録せずに次の問題へ進む」なので、解説を先に見せても正誤の測定精度は変わらない。
+  // 「次へ」と途中終了は据え置き（未確定のまま進む・flushとnavigateの競走を防ぐ）
+  it('猶予中は attempts を書かず、解説は出すが「次へ」と途中終了は出さない', async () => {
     const db = newDb()
     await setupWithUndo(
       db,
@@ -650,8 +654,9 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     // 猶予中は記録しない
     expect(await db.attempts.count()).toBe(0)
     expect(useSessionStore.getState().snapshot?.answeredCount).toBe(0)
-    // 取り消し前に解説・全文を読ませない
-    expect(screen.queryByText('解説テキスト')).toBeNull()
+    // T-160: 解説は猶予中も即時に出す（空白待ちを作らない）
+    expect(screen.getByText('解説テキスト')).toBeTruthy()
+    // 未確定のまま進める導線は出さない
     expect(screen.queryByText('次へ')).toBeNull()
     expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
   })
@@ -815,19 +820,11 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     expect(screen.getByText('解説テキスト')).toBeTruthy()
   })
 
-  it('vocab_card は対象外（4択タップの時点でまだ書き込みではない）', async () => {
+  // vocab_card の猶予の起点は**自己評価タップ**（T-160）。4択タップの時点ではまだ
+  // 書き込みではないため、ここで取り消しを出す必要はない
+  it('vocab_card の4択タップでは猶予に入らない（記録は自己評価タップ時）', async () => {
     const db = newDb()
-    await db.srsCards.put({
-      id: 'vocab:submit',
-      refType: 'vocab',
-      refId: 'submit',
-      stage: 0,
-      dueAt: Date.now() - 1000,
-      lapses: 0,
-      introducedDate: '2026-07-01',
-      graduatedAt: null,
-      sourceQuestionId: null,
-    })
+    await seedVocabSrsCard(db)
     const q = vocabCardQuestion('submit')
     await setupWithUndo(db, [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }], [q])
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
@@ -835,6 +832,106 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     fireEvent.click(await screen.findByText('submit の意味'))
     // 自己評価3段階が出て、取り消しは出ない
     expect(screen.getByText('OK')).toBeTruthy()
+    expect(screen.queryByText('取り消し')).toBeNull()
+  })
+})
+
+/** vocab_card の猶予テスト用に、期限到来のSRSカードを1件仕込む */
+async function seedVocabSrsCard(db: BebRaidDatabase) {
+  await db.srsCards.put({
+    id: 'vocab:submit',
+    refType: 'vocab',
+    refId: 'submit',
+    stage: 0,
+    dueAt: Date.now() - 1000,
+    lapses: 0,
+    introducedDate: '2026-07-01',
+    graduatedAt: null,
+    sourceQuestionId: null,
+  })
+}
+
+describe('DrillScreen: 語彙カード自己評価の取り消し猶予（T-160。docs/27 のS-5）', () => {
+  async function setupVocab(db: BebRaidDatabase) {
+    await seedVocabSrsCard(db)
+    const q = vocabCardQuestion('submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }], [q])
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: true })
+  }
+
+  // 何を防ぐか: フレーズや正解を読む前に評価ボタンを押すと即カードが消え、戻る手段が
+  // なかったこと（操作ゾーンに評価3段階＋フレーズ再生＋わからないが縦積みで誤タップしやすい）
+  it('自己評価タップで猶予に入り、記録もカード送りもまだ起きない', async () => {
+    const db = newDb()
+    await setupVocab(db)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('submit の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(0)
+    // 猶予中は評価ボタンを引っ込める（二重評価を防ぐ）
+    expect(screen.queryByText('OK')).toBeNull()
+    // SRSの間隔もまだ動かさない
+    expect((await db.srsCards.get('vocab:submit'))?.stage).toBe(0)
+  })
+
+  it('猶予が過ぎると記録され、SRSの間隔が動く', async () => {
+    const db = newDb()
+    await setupVocab(db)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('submit の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect((await db.srsCards.get('vocab:submit'))?.stage).toBe(1) // stage0→OK(+1)
+  })
+
+  it('取り消すと記録せずSRSも動かさないまま、次へ進む', async () => {
+    const db = newDb()
+    await setupVocab(db)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('submit の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // 1問セッションなのでリザルトへ抜ける（itemは消化するが記録は作らない）
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    expect(await db.attempts.count()).toBe(0)
+    expect((await db.srsCards.get('vocab:submit'))?.stage).toBe(0)
+  })
+
+  it('猶予中にアンマウントされると記録される（解答は実際に行われたため捨てない）', async () => {
+    const db = newDb()
+    await setupVocab(db)
+    const view = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('submit の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+
+    view.unmount()
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+  })
+
+  it('設定OFFなら従来どおり即記録して次へ進む（回帰）', async () => {
+    const db = newDb()
+    await seedVocabSrsCard(db)
+    const q = vocabCardQuestion('submit')
+    // setupSession が猶予設定をOFFにする
+    await setupSession(db, [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }], [q])
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('submit の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     expect(screen.queryByText('取り消し')).toBeNull()
   })
 })

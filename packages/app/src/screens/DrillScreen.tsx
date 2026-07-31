@@ -93,9 +93,11 @@ const AUDIO_ONLY_ANSWER_SECONDS = 6
  * audio_qa: 誤タップの主戦場（ただし時間切れ経路は猶予なし。タイマー切れの抜け道になる）。
  * audio_set のサブ設問は subQuestionResults と computeSetResult の巻き戻しが2系統になり
  * 効果より複雑さが勝つため対象外。dictation は「確定」が既に二段確認。
- * vocab_card は4択タップの時点でまだ書き込みではない（記録は自己評価タップ時）ため対象外
+ * vocab_card は T-160 で追加した（4択タップではなく**自己評価タップ**が猶予の対象。
+ * 評価3段階＋フレーズ再生＋わからないが縦積みで誤タップの被害が大きく、
+ * 従来は評価と同時に即座に次のカードへ進んで戻れなかった=docs/27 のS-5）
  */
-const UNDO_TARGET_FORMATS = new Set<string>(['text_blank', 'audio_qa'])
+const UNDO_TARGET_FORMATS = new Set<string>(['text_blank', 'audio_qa', 'vocab_card'])
 
 /** 猶予中の未確定解答。attemptsへの書き込みに必要な値をタップ時点で確定させて保持する */
 interface PendingCommit {
@@ -122,6 +124,19 @@ interface PendingCommit {
   question: Question
   item: SessionItem
   /** recordAnswerPipeline / advanceSession へ渡すスナップショット（未取得なら undefined） */
+  snapshot: SessionSnapshot | undefined
+}
+
+/**
+ * 猶予中の未確定な語彙カード評価（T-160）。解答経路（PendingCommit）とは
+ * 記録の形が違う（自己評価grade付き・resultを使わない）ため別の型にする
+ */
+interface VocabPendingCommit {
+  grade: SrsGrade
+  isCorrect: boolean
+  responseMs: number
+  question: Question
+  item: SessionItem
   snapshot: SessionSnapshot | undefined
 }
 
@@ -251,6 +266,20 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     clearTimer: clearUndoTimer,
     clearPending,
   } = usePendingCommit<PendingCommit>((payload) => commitAnswer(payload))
+  /**
+   * vocab_card の自己評価にも猶予を付ける（T-160。docs/27 のS-5）。
+   * 従来は評価タップで即座に次のカードへ進み、フレーズや正解を読む前に押すと戻れなかった
+   * （操作ゾーンに評価3段階＋フレーズ再生＋わからないが縦積みで誤タップの被害が大きい）。
+   * 解答経路とペイロードの形が違うためフックを別インスタンスで持つ。
+   * 同一問題が vocab_card と他formatを兼ねることはないので、2つの猶予が同時に立つことはない
+   */
+  const {
+    pending: vocabPending,
+    schedule: scheduleVocabCommit,
+    cancel: cancelVocabCommit,
+    clearTimer: clearVocabUndoTimer,
+    clearPending: clearVocabPending,
+  } = usePendingCommit<VocabPendingCommit>((payload) => commitVocabGrade(payload))
   // 取り消し実行の非モーダル通知（skipNoticeと同型。4秒で消える）
   const [undoNotice, setUndoNotice] = useState(false)
 
@@ -669,6 +698,25 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   /**
+   * 語彙カード評価の取り消し（T-160）。解答経路の handleUndo と同じ思想で
+   * 「記録せずに次のカードへ進む」。同じカードを再評価させないのは、評価前に
+   * 4択の正誤と正解が既に見えているため（再評価を許すとSRS間隔の申告が形骸化する）
+   */
+  async function handleVocabUndo() {
+    const payload = cancelVocabCommit()
+    if (!payload || !payload.snapshot) return
+    try {
+      const nextSnapshot = await advanceSession(db, payload.snapshot)
+      useSessionStore.setState({ snapshot: nextSnapshot })
+      setUndoNotice(true)
+      advanceToNext()
+    } catch (err) {
+      console.warn('[DrillScreen] 取り消し後にセッションを進められませんでした', err)
+      setSessionError('セッションを進められませんでした')
+    }
+  }
+
+  /**
    * audio_set: サブ設問1問の解答を確定する（3.6節）。attemptsは
    * subQuestion.id単位で記録し、tagStats・レート更新は通常どおり（選択式）。
    * SRSレビューはセット完了時に1回だけ行う（finalizeSetCompletion）
@@ -1009,32 +1057,54 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
   /**
    * vocab_card の自己評価3段階（VocabScreenと同じ挙動）。
-   * 正誤確認のポーズを挟まず、評価と同時に即座に次のカードへ進む。
-   * isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更。VocabScreen参照）
+   * isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更。VocabScreen参照）。
+   * T-160: 猶予を挟んでから確定する（従来は即座に次のカードへ進み、フレーズや正解を
+   * 読む前に押すと戻れなかった＝docs/27 のS-5）。猶予OFF時は従来どおり即確定する
    */
   async function handleVocabGrade(grade: SrsGrade) {
     if (!question || !item) return
     const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
     const responseMs = now() - startedAt
+    const payload: VocabPendingCommit = {
+      grade,
+      isCorrect,
+      responseMs,
+      question,
+      item,
+      snapshot,
+    }
+    if (mistapUndoEnabled && UNDO_TARGET_FORMATS.has(question.format)) {
+      scheduleVocabCommit(payload)
+      return
+    }
+    await commitVocabGrade(payload)
+  }
+
+  /** 猶予を抜けた語彙カード評価を確定して永続化する（T-160。従来の handleVocabGrade の後半） */
+  async function commitVocabGrade(payload: VocabPendingCommit) {
+    // question / item / snapshot はペイロードから読む（commitAnswer と同じ理由=取り違え防止）
+    const { grade, isCorrect, responseMs, question: q, item: sessionItem, snapshot: snap } = payload
+    clearVocabUndoTimer()
+    clearVocabPending()
 
     try {
       // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
       // tagStats（tags=[]）・レート（part=0）はpipeline内部でno-opになる
       const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
-        snapshot,
-        questionId: question.id,
-        question,
+        snapshot: snap,
+        questionId: q.id,
+        question: q,
         lookup: questions,
         isCorrect,
         responseMs,
         isTimeout: false,
-        mode: item.mode,
-        srsCardId: item.srsCardId,
+        mode: sessionItem.mode,
+        srsCardId: sessionItem.srsCardId,
         srsGrade: grade,
         skip: { wrongAnswer: true },
       })
       recordAnswer(nextSnapshot!, {
-        questionId: question.id,
+        questionId: q.id,
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
@@ -1140,7 +1210,14 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
             </button>
           )}
           {/* 「わからない」提示後は自己評価3段階を出さず「次へ」だけ（間隔はagain固定） */}
-          {isVocabCard && dontKnowVocab && (
+          {/* T-160: 猶予中は評価ボタンを引っ込めて「取り消し」だけを出す（解答経路と同じ思想）。
+              二重評価の防止も兼ねる */}
+          {isVocabCard && vocabPending !== null && (
+            <button type="button" className="drill-undo" onClick={() => void handleVocabUndo()}>
+              取り消し
+            </button>
+          )}
+          {isVocabCard && dontKnowVocab && vocabPending === null && (
             <button
               type="button"
               className="vocab-grade-button"
@@ -1149,7 +1226,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               次へ
             </button>
           )}
-          {isVocabCard && selectedChoiceKey !== null && (
+          {isVocabCard && selectedChoiceKey !== null && vocabPending === null && (
             <>
               <button
                 type="button"
@@ -1371,21 +1448,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               </PrimaryButton>
             </>
           )}
-          {/* 猶予中は「取り消し」だけを出す（ADR 0009）。高さを予約したスロットにして
-              猶予終了でボタンが消えるときに2回目のレイアウトシフトが起きないようにする */}
-          {!isVocabCard && !isAudioSet && result && (
-            <div className="drill-undo-slot">
-              {pending !== null && (
-                <button type="button" className="drill-undo" onClick={() => void handleUndo()}>
-                  取り消し
-                </button>
-              )}
-            </div>
+          {/* 猶予中は「取り消し」を解説の上に出す（ADR 0009 + T-160のAmendment）。
+              T-160で解説を猶予中も出すようにしたため、高さ予約の空スロットは廃止した
+              （残すと確定後に48pxの空白が恒久的に居座る。ボタンの出入りに伴う移動は
+              解説カードの出現と同時に起きるので回数は増えない） */}
+          {!isVocabCard && !isAudioSet && pending !== null && (
+            <button type="button" className="drill-undo" onClick={() => void handleUndo()}>
+              取り消し
+            </button>
           )}
-          {/* 猶予中は解説・次へ・途中終了を出さない。出すと取り消し前に解説と全文が読める。
-              「ここで終了して結果を見る」を確定後に限ることで、アンマウント時のflushと
-              navigate('result') の競走も同時に防げる */}
-          {!isVocabCard && !isAudioSet && result && pending === null && (
+          {/* T-160（docs/27 のS-8）: 解説は猶予中も即時に出す。従来は猶予が明けるまで
+              解説・次へ・途中終了のすべてを出さず、対象formatの全問に400msの空白待ちが
+              入ってテンポが崩れていた（かつformat間でテンポが不統一だった）。
+              取り消しは記録せず次の問題へ進む挙動なので（ADR 0009。見た後の再解答は
+              isCorrect の偽陽性になるため許さない）、解説を先に見せても正誤の測定精度は
+              変わらない。失うのはレイドダメージと記録の方である */}
+          {!isVocabCard && !isAudioSet && result && (
             <>
               {result.isTimeout && <p>時間切れ</p>}
               {isAudioQa && question.audio && (
@@ -1428,6 +1506,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                     : null
                 }
               />
+            </>
+          )}
+          {/* 「次へ」と途中終了は猶予が明けてから出す（T-160でも据え置き）。猶予中に出すと
+              未確定のまま次の問題へ進める・アンマウント時のflushと navigate('result') が
+              競走する、の2つが起きる */}
+          {!isVocabCard && !isAudioSet && result && pending === null && (
+            <>
               <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
               {/* T-122(J-61): 途中で電車を降りるとき等、全問完走以外でリザルトへ到達する手段が
                   無かったための副次導線。確認なしで遷移する（ResultScreenはT-109でattemptIds基準の

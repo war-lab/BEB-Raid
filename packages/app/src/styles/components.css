@@ -887,17 +887,12 @@
 /* 「わからない」ボタン（ドッグフィードバック 2026-07-22）。回答選択肢A–Dより一段控えめにし、
    当てずっぽうより正直な申告を選びやすくする。破線＋淡色で選択肢とは別物であることを示す */
 /* --- 誤タップの取り消し猶予（ADR 0009） --- */
-/* 高さを予約したスロット。猶予が終わってボタンが消えるときに選択肢が動かないようにする
-   （解答時に一度だけ動くのは既存の解説カードのせり上がりと同じ挙動） */
-.drill-undo-slot {
-  min-height: var(--tap-min);
-  margin-top: var(--sp-1);
-}
 /* 一段控えめな意匠（.vocab-dontknow-button と同系）。--ng は使わない
    （誤タップの訂正であって「間違い」の強調ではない。docs/25 4.7節のトーン） */
 .drill-undo {
   display: block;
   width: 100%;
+  margin-top: var(--sp-1);
   min-height: var(--tap-min);
   padding: var(--sp-1) var(--sp-2);
   background: transparent;
