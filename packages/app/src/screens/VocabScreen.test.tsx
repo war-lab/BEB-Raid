@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { evaluateStreak } from '../engine/streak'
 import type { AudioPlayer, PlaybackOutcome } from '../platform'
-import { NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import { MISTAP_UNDO_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { VocabScreen } from './VocabScreen'
 
@@ -467,6 +467,9 @@ describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）'
 
   it('20語仕分けるごとに中間画面が出て、「続けて仕分ける」で再開できる', async () => {
     const db = newDb()
+    // T-161の取り消し猶予をOFFにする（ADR 0009の先例と同じ扱い）。このテストの対象は
+    // 20語区切りであって猶予ではなく、ONのままだと20回×400msでタイムアウトする
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = Array.from({ length: 21 }, (_, i) => `word${i}`)
     const questions = words.map((w) => vocabQuestion(w))
     const audioPlayer = new FakeAudioPlayer()
@@ -526,6 +529,108 @@ describe('VocabScreen: 完了カード（T-78）', () => {
     const card = await screen.findByTestId('completion-card')
     expect(card.textContent).toContain(`今日の実施数 ${words.length}問`)
     expect(card.textContent).toContain('🔥')
+  })
+})
+
+describe('VocabScreen: 仕分けスワイプの取り消し猶予（T-161。docs/27 のS-4）', () => {
+  // 何を防ぐか: 「知ってる」は markVocabKnown で卒業済みカードを作り、その語を仕分け候補からも
+  // 復習キューからも恒久的に外す。ドリルの選択肢タップより不可逆なのに、従来はスワイプ1回で
+  // 即確定し取り消せなかった
+  it('「知ってる」タップで猶予に入り、まだ永続化されない', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    fireEvent.click(screen.getByText('知ってる'))
+
+    expect(await screen.findByText('取り消し（知ってる）')).toBeTruthy()
+    expect(await db.srsCards.count()).toBe(0)
+    // 猶予中は仕分けボタンを引っ込める（二重確定の防止）
+    expect(screen.queryByText('知らない')).toBeNull()
+    // カードは保持されたまま（次のカードへ進めない）
+    expect(screen.getByText('仕分け 1/2')).toBeTruthy()
+  })
+
+  it('取り消すと永続化されず、同じカードを選び直せる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    fireEvent.click(screen.getByText('知ってる'))
+    fireEvent.click(await screen.findByText('取り消し（知ってる）'))
+
+    // 正解を見せる画面ではないので、同じカードへの再操作を許す
+    expect(await screen.findByText('知らない')).toBeTruthy()
+    expect(screen.getByText('仕分け 1/2')).toBeTruthy()
+    expect(await db.srsCards.count()).toBe(0)
+
+    // 選び直して「知らない」で確定すると、未卒業カードになる
+    fireEvent.click(screen.getByText('知らない'))
+    await waitFor(async () => expect(await db.srsCards.count()).toBe(1))
+    expect((await db.srsCards.get('vocab:alpha'))?.graduatedAt).toBeNull()
+  })
+
+  it('猶予が過ぎると永続化され、次のカードへ進む', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    fireEvent.click(screen.getByText('知ってる'))
+
+    await waitFor(() => expect(screen.getByText('仕分け 2/2')).toBeTruthy())
+    expect((await db.srsCards.get('vocab:alpha'))?.graduatedAt).not.toBeNull()
+  })
+
+  it('スワイプでも猶予に入る（ボタンと同じ扱い）', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    const { container } = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+
+    const card = container.querySelector('.swipe-card')!
+    fireEvent.pointerDown(card, { clientX: 200, clientY: 100 })
+    fireEvent.pointerMove(card, { clientX: 80, clientY: 105 }) // dx=-120 → 左（知らない）
+    fireEvent.pointerUp(card, { clientX: 80, clientY: 105 })
+
+    expect(await screen.findByText('取り消し（知らない）')).toBeTruthy()
+    expect(await db.srsCards.count()).toBe(0)
+  })
+
+  it('猶予中にアンマウントされると永続化される（操作は実際に行われたため捨てない）', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    const view = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    fireEvent.click(screen.getByText('知ってる'))
+    expect(await screen.findByText('取り消し（知ってる）')).toBeTruthy()
+    expect(await db.srsCards.count()).toBe(0)
+
+    view.unmount()
+
+    await waitFor(async () => expect(await db.srsCards.count()).toBe(1))
+    expect((await db.srsCards.get('vocab:alpha'))?.graduatedAt).not.toBeNull()
+  })
+
+  it('設定OFFなら従来どおり即確定する（回帰）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    fireEvent.click(screen.getByText('知ってる'))
+
+    await waitFor(async () => expect(await db.srsCards.count()).toBe(1))
+    expect(screen.queryByText('取り消し（知ってる）')).toBeNull()
   })
 })
 

@@ -26,13 +26,18 @@ import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { countAttemptsToday } from '../services/dailyStats'
-import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import {
+  HAPTICS_ENABLED_KEY,
+  MISTAP_UNDO_ENABLED_KEY,
+  NO_EARPHONE_MODE_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { usePendingCommit } from '../hooks/usePendingCommit'
 import { SwipeCard } from '../components/SwipeCard'
 
 interface Props {
@@ -47,6 +52,13 @@ const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→S�
 
 /** 仕分けの区切り単位（T-119・J-58）。600語を前に「終わりが見えない」圧を緩和する */
 const TRIAGE_BATCH_SIZE = 20
+
+/** 猶予中の未確定な仕分け（T-161）。確定に必要な値をタップ時点で確定させて保持する */
+interface TriagePendingCommit {
+  word: string
+  /** true=知ってる（卒業済みカード化）／false=知らない（SRS学習カード化） */
+  known: boolean
+}
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 function now(): number {
@@ -83,6 +95,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [busy, setBusy] = useState(false)
   // T-159: 記録の保存失敗の表示（DrillScreenのsaveErrorと同じ様式）
   const [saveError, setSaveError] = useState<string | null>(null)
+  // T-161: 誤タップの取り消し猶予の有効/無効（既定ON。ADR 0009 + 2026-07-31 Amendment）
+  const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
   // 「わからない」を選んだ状態（ドッグフィードバック 2026-07-22）。当てずっぽうの正解で
   // isCorrectが偽陽性になるのを防ぐため、正解は提示しつつ isCorrect=false・SRSはagain扱いにする
   const [dontKnow, setDontKnow] = useState(false)
@@ -110,15 +124,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         (q) =>
           q.format === 'vocab_card' && q.front && !existingIds.has(srsCardId('vocab', q.front)),
       )
-      const [noEarphoneSetting, hapticsSetting] = await Promise.all([
+      const [noEarphoneSetting, hapticsSetting, mistapUndoSetting] = await Promise.all([
         db.settings.get(NO_EARPHONE_MODE_KEY),
         db.settings.get(HAPTICS_ENABLED_KEY),
+        db.settings.get(MISTAP_UNDO_ENABLED_KEY),
       ])
       if (!cancelled) {
         setReviewQueue(reviewCards)
         setTriageQueue(candidates)
         setAutoPlay(noEarphoneSetting?.value !== true)
         setHapticsEnabled(hapticsSetting?.value !== false)
+        setMistapUndoEnabled(mistapUndoSetting?.value !== false)
       }
     }
     // 失敗（DB切断・破損等）を握りつぶすと reviewQueue/triageQueue が null のまま
@@ -147,6 +163,19 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
 
   // 解答済み（4択を選んだ or「わからない」）かどうか。フレーズと音声の開示条件に使う
   const answered = selectedChoiceKey !== null || dontKnow
+
+  /**
+   * 仕分けの猶予付き確定（T-161）。復習の評価とは別インスタンスで持つ
+   * （仕分けフェーズと復習フェーズは同時に表示されないため競合しない）。
+   * **早期returnより前に置くこと**——後ろに置くとレンダーごとにフック数が変わる
+   */
+  const {
+    pending: triagePending,
+    schedule: scheduleTriageCommit,
+    cancel: cancelTriageCommit,
+    clearTimer: clearTriageTimer,
+    clearPending: clearTriagePending,
+  } = usePendingCommit<TriagePendingCommit>((payload) => commitTriage(payload))
 
   function playPhrase(phraseAudio: string, context: string) {
     void audioPlayer
@@ -326,24 +355,70 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     }
   }
 
-  async function handleKnown() {
-    const word = triageQuestion?.front
-    if (!word) return
+  /**
+   * 仕分け1件を永続化する（T-161で猶予の対象になった実処理）。
+   * J-58: 「知ってる」は卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ
+   * 出ないようにするためで、既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ
+   * 編入される（意図した相互作用）
+   */
+  async function writeTriage(payload: TriagePendingCommit) {
+    if (payload.known) await markVocabKnown(db, payload.word)
+    else await addSrsCard(db, { refType: 'vocab', refId: payload.word })
+  }
+
+  /**
+   * 仕分けの確定（T-161）。猶予タイマーとアンマウント時のflushの両方から呼ばれる。
+   * 書き込みが成功してから次のカードへ進める（失敗時に進めると記録なしで流れてしまう）
+   */
+  async function commitTriage(payload: TriagePendingCommit) {
+    clearTriageTimer()
+    clearTriagePending()
     await runRecording(async () => {
-      // J-58: 卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ出ないようにする
-      // （既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ編入される=意図した相互作用）
-      await markVocabKnown(db, word)
+      await writeTriage(payload)
       advanceTriage()
     })
   }
 
-  async function handleUnknown() {
+  /**
+   * 仕分けの確定を予約する（T-161。docs/27 のS-4）。
+   *
+   * 「知ってる」は `markVocabKnown` で卒業済みカードを作り、その語を仕分け候補からも
+   * 復習キューからも恒久的に外す。**ドリルの選択肢タップより不可逆**なのに、従来は
+   * スワイプ1回で即確定し取り消せなかった。
+   *
+   * 猶予中はカードを保持する（楽観的に次のカードへ進めない）。進めてしまうと、
+   * 猶予内に次をスワイプしたときに前の予約が破棄されて1件書き込まれないまま消えるうえ、
+   * 取り消し時のインデックス巻き戻しが20語区切りの中間画面と干渉する。
+   * 解答経路（ADR 0009）・語彙カード評価（T-160）と挙動も揃う
+   */
+  async function handleTriage(known: boolean) {
     const word = triageQuestion?.front
     if (!word) return
-    await runRecording(async () => {
-      await addSrsCard(db, { refType: 'vocab', refId: word })
-      advanceTriage()
-    })
+    // 予約済みなら二重に受け付けない（スワイプとボタンの同時発火・連打の防止）
+    if (busyRef.current || triagePending !== null) return
+    const payload: TriagePendingCommit = { word, known }
+    if (mistapUndoEnabled) {
+      scheduleTriageCommit(payload)
+      return
+    }
+    await commitTriage(payload)
+  }
+
+  /**
+   * 仕分けの取り消し（T-161）。まだ何も書いていないので予約を捨てるだけでよく、
+   * カードは表示されたまま残るので選び直せる（解答経路と違い、正解を見せていないため
+   * 同じカードへの再操作を許して問題ない）
+   */
+  function handleTriageUndo() {
+    cancelTriageCommit()
+  }
+
+  async function handleKnown() {
+    await handleTriage(true)
+  }
+
+  async function handleUnknown() {
+    await handleTriage(false)
   }
 
   if (reviewIndex < reviewQueue.length && reviewCard) {
@@ -530,22 +605,32 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 {saveError}
               </p>
             )}
-            <button
-              type="button"
-              className="vocab-grade-button"
-              disabled={busy}
-              onClick={() => void handleUnknown()}
-            >
-              知らない
-            </button>
-            <button
-              type="button"
-              className="vocab-grade-button"
-              disabled={busy}
-              onClick={() => void handleKnown()}
-            >
-              知ってる
-            </button>
+            {/* T-161: 猶予中は仕分けボタンを引っ込めて「取り消し」だけを出す。
+                「知ってる」は語を恒久的に候補から外すため、ドリルの選択肢タップより不可逆である */}
+            {triagePending !== null ? (
+              <button type="button" className="drill-undo" onClick={handleTriageUndo}>
+                取り消し（{triagePending.known ? '知ってる' : '知らない'}）
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="vocab-grade-button"
+                  disabled={busy}
+                  onClick={() => void handleUnknown()}
+                >
+                  知らない
+                </button>
+                <button
+                  type="button"
+                  className="vocab-grade-button"
+                  disabled={busy}
+                  onClick={() => void handleKnown()}
+                >
+                  知ってる
+                </button>
+              </>
+            )}
           </>
         }
       >
