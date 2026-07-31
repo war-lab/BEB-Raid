@@ -91,6 +91,42 @@
 | PWAの更新方式 | `registerType: 'autoUpdate'`。インストール済み端末が旧アプリに取り残される経路はない |
 
 
+## 2026-07-31: T-156 猶予付き確定の共通化（ブランチ `task/T-156-pending-commit-hook`）
+
+[28](28_改修計画_出題と回答のUXストレス.md) の基盤タスク2件目。DrillScreenの猶予付き確定を `hooks/usePendingCommit.ts` へ抽出した**純粋なリファクタリング**で、UIの見た目と永続化のタイミングは変えていない。
+
+### 抽出したもの
+
+フックの責務は「猶予付きで確定を予約する」「猶予中の取り消し」「アンマウント時のflush」に限った。対象formatの判定（`UNDO_TARGET_FORMATS`）と時間切れの除外は呼び出し側に残している。
+
+| 公開API | 用途 |
+|---|---|
+| `pending` / `pendingRef` | 猶予中ペイロード（描画用 / レンダーを待たずに読む経路用） |
+| `mountedRef` | commit 側の setState をアンマウント後から守る |
+| `schedule(payload)` | 猶予付きで確定を予約する（前の予約は破棄される） |
+| `cancel()` | 予約を破棄してペイロードを返す（取り消し導線用） |
+| `clearTimer()` / `clearPending()` | commit の冒頭から呼ぶ |
+
+`UNDO_WINDOW_MS = 400` もフック側へ移した（T-160・T-161が同じ値を使うため）。値は変えていない。
+
+元実装との差分が1点ある。commit をレンダー時の関数として `setTimeout` に焼き付けず、毎レンダーで最新のものを参照するようにした。**アンマウント時のflushが初回レンダーのクロージャを呼ぶ**という元実装の落とし穴（元コードのコメントが警告していたもの）を構造的に無くすためで、確定に必要な値をすべてペイロードに載せる規律は維持しているため挙動は変わらない。
+
+### 検証結果
+
+| 項目 | 結果 |
+|---|---|
+| DrillScreenの既存テスト | **80件パス。テストファイルは1行も変更していない**（T-156の完了条件） |
+| フック単体テスト | 新規10件パス |
+| `npm test` | **1583件パス / 0件失敗**（api 125・app 977・cli 349・review-ui 15・shared-schema 117） |
+| `npm run lint` | クリーン |
+| `npm run build` | 成功 |
+
+lintで `react-hooks/refs`（レンダー中のref更新）に触れたため、commitの同期をeffectへ移した。`schedule` はイベントハンドラからのみ呼ばれるので、予約時点で最新のcommitが入っていることは保証される。
+
+### 補足: ルートでの `npx vitest run` は使えない
+
+リポジトリに古いエージェント用worktree（`.claude/worktrees/agent-adb74ae68af1e7e9b/`）が残っており、ルートで `npx vitest run <pattern>` を実行するとその複製を拾って `document is not defined` で全件失敗する。`npm test`（workspace単位）か `packages/app` 内での実行なら影響しない。**このworktreeは本タスクの成果物ではない**ため削除していない。
+
 ## 2026-07-31: T-155 AudioPlayerに完走/中断の区別を導入（ブランチ `task/T-155-audio-playback-outcome`）
 
 [28](28_改修計画_出題と回答のUXストレス.md) の基盤タスク1件目。**共有面の変更のため単独PR**（09の規則）。ブランチは `task/docs-27-28-uxstress` の上に積んでいる（STATUS.mdの追記先が同ブランチにあるため）。

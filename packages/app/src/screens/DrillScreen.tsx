@@ -21,6 +21,7 @@ import { reviewSrsCard } from '../engine/srs'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import type { DictationAnswer, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
+import { usePendingCommit } from '../hooks/usePendingCommit'
 import type { AiClient, AudioPlayer, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
@@ -85,15 +86,6 @@ const ANSWER_TIMER_SECONDS = 15
  * 推定値でドッグフード実測での調整前提（PARTIAL_AUDIO_DURATION_MS と同じ扱い）
  */
 const AUDIO_ONLY_ANSWER_SECONDS = 6
-
-/**
- * 誤タップの取り消し猶予（2026-07-29。正本: ADR 0009）。
- * 選択肢をタップしてからこの時間だけ attempts への書き込みを遅らせ、その間だけ
- * 「取り消し」を出す。まだ書いていないので attempts 追記専用の不変条件は破らない。
- * 視覚フィードバック（色・✓✕）は即時のままなのでテンポは変わらない。
- * 400msは推定値でドッグフード実測での調整前提（PARTIAL_AUDIO_DURATION_MS と同じ扱い）
- */
-const UNDO_WINDOW_MS = 400
 
 /**
  * 取り消し猶予の対象format。
@@ -246,12 +238,17 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [skipNotice, setSkipNotice] = useState(false)
   // 誤タップの取り消し猶予（2026-07-29・ADR 0009）。設定は既定ON
   const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
-  // 猶予中の未確定解答（attemptsにはまだ書いていない）。null なら猶予中ではない
-  const [pending, setPending] = useState<PendingCommit | null>(null)
-  // アンマウント時のflushとタイマー解除に使う（stateはクリーンアップ関数から読めない）
-  const pendingRef = useRef<PendingCommit | null>(null)
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const mountedRef = useRef(true)
+  // 猶予付き確定（T-156でフックへ抽出）。猶予中の未確定解答の保持・タイマー・
+  // アンマウント時のflushはフック側の責務で、対象formatの判定はこの画面に残る
+  const {
+    pending,
+    pendingRef,
+    mountedRef,
+    schedule: schedulePendingCommit,
+    cancel: cancelPendingCommit,
+    clearTimer: clearUndoTimer,
+    clearPending,
+  } = usePendingCommit<PendingCommit>((payload) => commitAnswer(payload))
   // 取り消し実行の非モーダル通知（skipNoticeと同型。4秒で消える）
   const [undoNotice, setUndoNotice] = useState(false)
 
@@ -493,28 +490,10 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     return () => clearTimeout(timeout)
   }, [undoNotice])
 
-  // アンマウント時（中断・途中終了・reading画面への切替・タブ閉じ）に猶予中の解答が残っていたら
-  // 記録する（ADR 0009）。解答は実際に行われており、attempts は分析の基盤なので捨てる方が損失が
-  // 大きい。answerCurrentQuestion が attempt と snapshot を同一トランザクションで進めるため、
-  // 途中離脱でも「解答済みなのに再出題」「未解答なのにスキップ」のどちらも起きない。
-  // beforeunload は扱わない（IndexedDBへの同期書き込みができないため。未書き込みなら
-  // 次回セッション再開時に未解答として再出題される＝オフライン正常系の既存方針どおり）
-  useEffect(() => {
-    // マウント時に true へ戻すのが必須。StrictModeの開発時二重マウント
-    // （mount→cleanup→mount）でcleanupがfalseにしたまま再マウントすると、
-    // 以降 setPending(null) が走らず取り消しボタンが消えないまま固まる（実機で発見）
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      const p = pendingRef.current
-      if (undoTimerRef.current !== null) clearTimeout(undoTimerRef.current)
-      undoTimerRef.current = null
-      // commitAnswer は関数宣言（hoisted）のため、この時点で呼び出して問題ない
-
-      if (p) void commitAnswer(p)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- アンマウント時に1回だけ
-  }, [])
+  // アンマウント時（中断・途中終了・reading画面への切替・タブ閉じ）の猶予中解答のflushは
+  // usePendingCommit が担う。answerCurrentQuestion が attempt と snapshot を同一
+  // トランザクションで進めるため、途中離脱でも「解答済みなのに再出題」「未解答なのに
+  // スキップ」のどちらも起きない。
 
   // セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を必ず出す
   if (sessionError) {
@@ -566,13 +545,6 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }
 
-  function clearUndoTimer() {
-    if (undoTimerRef.current !== null) {
-      clearTimeout(undoTimerRef.current)
-      undoTimerRef.current = null
-    }
-  }
-
   async function finalizeAnswer(
     selectedKey: string | null,
     isCorrect: boolean,
@@ -600,10 +572,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       snapshot,
     }
     if (undoable) {
-      pendingRef.current = payload
-      setPending(payload)
-      clearUndoTimer()
-      undoTimerRef.current = setTimeout(() => void commitAnswer(payload), UNDO_WINDOW_MS)
+      schedulePendingCommit(payload)
       return
     }
     await commitAnswer(payload)
@@ -627,8 +596,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       snapshot: snap,
     } = payload
     clearUndoTimer()
-    pendingRef.current = null
-    if (mountedRef.current) setPending(null)
+    clearPending()
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
@@ -677,11 +645,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
    * 15秒タイマーを途中から復活させる必要が構造的に生じない
    */
   async function handleUndo() {
-    const payload = pendingRef.current
+    // cancel() が予約タイマーの解除と猶予状態のクリアまで行う（T-156）
+    const payload = cancelPendingCommit()
     if (!payload || !payload.snapshot) return
-    clearUndoTimer()
-    pendingRef.current = null
-    setPending(null)
     setResult(null)
     setStreak(payload.streakBefore)
     try {
