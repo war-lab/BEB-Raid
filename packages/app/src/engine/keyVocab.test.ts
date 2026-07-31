@@ -204,4 +204,13 @@ describe('出題理由ラベル', () => {
     expect(formatQuickPackReason({ type: 'weakTag', tag: '品詞' })).toBe('弱点: 品詞')
     expect(formatQuickPackReason({ type: 'srsDue' })).toBe('復習: 期限が来たカード')
   })
+
+  // 何を防ぐか（T-169・docs/27 のS-19）: 類題在庫ゼロで発生元の問題そのものが再出題される
+  // ケースを「類題」と同じラベルで見せること。keyVocab 271語のうち68%は類題が1問しか
+  // 無いため頻発し、答えを覚えている問題が「類題」として出てくるように見えていた
+  it('類題在庫ゼロの同一問題再出題は、同じ問題であることが分かるラベルにする', () => {
+    expect(
+      formatQuickPackReason({ type: 'keyVocabReview', word: 'submit', isSameQuestion: true }),
+    ).toBe('復習: 前回間違えた問題（submit）')
+  })
 })

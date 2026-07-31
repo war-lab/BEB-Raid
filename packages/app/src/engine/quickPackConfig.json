@@ -1,5 +1,5 @@
 {
-  "$comment": "クイックパック生成の設定（J-2: M1はP1相当の固定配分を外出しJSONで持つ。正本: docs/03 1.2-1.3・docs/08 1.1節 J-2）。totalItems は 語彙8秒/Part2 18秒/Part5 30秒 程度の想定から置いた初期値で、ドッグフード実測で調整する。readingはT-105（docs/24 3.3節）でP1相当の少量導入として追加（vocabから0.1移した暫定値。ドッグフード実測で調整する）",
+  "$comment": "クイックパック生成の設定（J-2: M1はP1相当の固定配分を外出しJSONで持つ。正本: docs/03 1.2-1.3・docs/08 1.1節 J-2）。totalItems は 語彙8秒/Part2 18秒/Part5 30秒 程度の想定から置いた初期値で、ドッグフード実測で調整する。readingはT-105（docs/24 3.3節）でP1相当の少量導入として追加（vocabから0.1移した暫定値。ドッグフード実測で調整する） recentlyCorrectWeight/recentlyCorrectWindowHours はT-168（J-94）: 直近に正解した問題の抽選重みを下げる（除外はしない＝小さいプールで候補が枯れるため）。値はドッグフード実測で調整する前提の初期値。",
   "allocation": {
     "vocab": 0.4,
     "part2": 0.25,
@@ -7,11 +7,22 @@
     "reading": 0.1
   },
   "durations": {
-    "3": { "totalItems": 10, "includeDrills": false },
-    "7": { "totalItems": 20, "includeDrills": true },
-    "15": { "totalItems": 40, "includeDrills": true }
+    "3": {
+      "totalItems": 10,
+      "includeDrills": false
+    },
+    "7": {
+      "totalItems": 20,
+      "includeDrills": true
+    },
+    "15": {
+      "totalItems": 40,
+      "includeDrills": true
+    }
   },
   "srsCapPerPack": 15,
   "newCardShare": 0.25,
-  "priorityWeight": 1.5
+  "priorityWeight": 1.5,
+  "recentlyCorrectWeight": 0.2,
+  "recentlyCorrectWindowHours": 24
 }

@@ -15,6 +15,7 @@ import {
   computeAllocationCounts,
   drillCategoryOf,
   generateQuickPack,
+  getRecentlyCorrectQuestionIds,
   isReadingAllocatable,
   QUICK_PACK_CONFIG,
   validateQuickPackConfig,
@@ -265,6 +266,118 @@ describe('T-11 との通し: 誤答→key語彙SRS→類題の優先出題', () 
     const src = candidates.find((c) => c.question.id === 'q-src')
     expect(src?.reason).toEqual({ type: 'keyVocabReview', word: 'rare-word', isSameQuestion: true })
     expect(src?.weight).toBe(QUICK_PACK_CONFIG.priorityWeight)
+  })
+})
+
+describe('T-168: 直近に正解した問題の再出題抑制（J-94。docs/27 のS-18）', () => {
+  /** 指定の問題に「正解した」attemptを1件仕込む */
+  async function seedCorrectAttempt(
+    db: BebRaidDatabase,
+    questionId: string,
+    answeredAt: number,
+  ): Promise<void> {
+    await db.attempts.add({
+      id: `a-${questionId}-${answeredAt}`,
+      questionId,
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 5000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt,
+    })
+  }
+
+  it('直近24時間に正解した問題を集める（誤答・24時間より前は含めない）', async () => {
+    const db = newDb()
+    await seedCorrectAttempt(db, 'q-recent', NOW - 60 * 60 * 1000) // 1時間前
+    await seedCorrectAttempt(db, 'q-old', NOW - 30 * 60 * 60 * 1000) // 30時間前
+    await db.attempts.add({
+      id: 'a-wrong',
+      questionId: 'q-wrong',
+      mode: 'solo',
+      isCorrect: false,
+      responseMs: 5000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: NOW - 60 * 60 * 1000,
+    })
+
+    const ids = await getRecentlyCorrectQuestionIds(db, NOW)
+
+    expect([...ids]).toEqual(['q-recent'])
+  })
+
+  // 何を防ぐか: 前のセッションで正解した問題が次のセッションでまた出ること。
+  // 除外にしないのは、小さいプール（Part2は150問）で候補が枯れるため（J-94）
+  it('直近に正解した問題は重みが下がる（候補からは外れない）', async () => {
+    const db = newDb()
+    const target = part5Question('q-target')
+    const pool = [target, ...bigPool()]
+    await seedCorrectAttempt(db, 'q-target', NOW - 60 * 60 * 1000)
+
+    const recentlyCorrect = await getRecentlyCorrectQuestionIds(db, NOW)
+    const candidates = await buildDrillCandidates(db, pool, new Set(), undefined, recentlyCorrect)
+
+    const targetCandidate = candidates.find((c) => c.question.id === 'q-target')
+    // 候補には残る（除外ではない）
+    expect(targetCandidate).toBeDefined()
+    expect(targetCandidate!.weight).toBeCloseTo(QUICK_PACK_CONFIG.recentlyCorrectWeight)
+    // 直近に解いていない問題は重み1のまま
+    const other = candidates.find((c) => c.question.id !== 'q-target' && c.category === 'part5')
+    expect(other!.weight).toBe(1)
+  })
+
+  it('誤答した問題は抑制しない（SRS・類題の経路で意図的に再出題するため）', async () => {
+    const db = newDb()
+    const target = part5Question('q-wrong-target')
+    const pool = [target, ...bigPool()]
+    await db.attempts.add({
+      id: 'a-wrong-1',
+      questionId: 'q-wrong-target',
+      mode: 'solo',
+      isCorrect: false,
+      responseMs: 5000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: NOW - 60 * 60 * 1000,
+    })
+
+    const recentlyCorrect = await getRecentlyCorrectQuestionIds(db, NOW)
+    const candidates = await buildDrillCandidates(db, pool, new Set(), undefined, recentlyCorrect)
+
+    expect(candidates.find((c) => c.question.id === 'q-wrong-target')!.weight).toBe(1)
+  })
+
+  it('直近正解が空なら重みは従来どおり（回帰）', async () => {
+    const db = newDb()
+    const pool = bigPool()
+    const candidates = await buildDrillCandidates(db, pool, new Set(), undefined, new Set())
+
+    expect(candidates.every((c) => c.weight === 1)).toBe(true)
+  })
+
+  it('候補が要求問数に足りないときは直近に正解した問題も出る', async () => {
+    const db = newDb()
+    // part5が1問しかないプール。その1問を直近に正解している
+    const only = part5Question('q-only')
+    await seedCorrectAttempt(db, 'q-only', NOW - 60 * 60 * 1000)
+
+    const pack = await generateQuickPack(db, {
+      duration: 7,
+      questions: [only],
+      now: NOW,
+      rng: firstPick,
+    })
+
+    // 重みが下がっていても、他に候補が無ければ出題される（除外していないことの担保）
+    expect(pack.items.some((i) => i.questionId === 'q-only')).toBe(true)
+  })
+
+  it('recentlyCorrectWeight が0以下の設定は読み込み時に弾く（事実上の除外を防ぐ）', () => {
+    expect(() =>
+      validateQuickPackConfig({ ...QUICK_PACK_CONFIG, recentlyCorrectWeight: 0 }),
+    ).toThrow(/recentlyCorrectWeight/)
   })
 })
 
