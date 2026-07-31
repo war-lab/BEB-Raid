@@ -8,7 +8,7 @@
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
@@ -32,6 +32,8 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  // フェイクタイマーを使ったテストの後始末（未解除だと後続テストのwaitForが進まない）
+  vi.useRealTimers()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -359,5 +361,68 @@ describe('ReadingScreen: 中断復帰（T-104）', () => {
 
     expect(screen.getByTestId('passage-text').textContent).toBe('2問目のパッセージ本文。')
     expect(screen.getByTestId('reading-question').textContent).toContain('設問1/2')
+  })
+})
+
+describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 のS-31・S-13）', () => {
+  // 何を防ぐか: 全サブ設問を解き切るまでリザルトへ到達できず、抜ける手段が「中断」
+  // （ホーム直行）だけだったこと。Part7の長文を全問解く覚悟がないと入れない状態だった
+  it('未解答が残っている間だけ途中終了導線が出て、タップでリザルトへ遷移する', async () => {
+    const db = newDb()
+    const q = part7Question('p7-exit', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    // 解答前は解説ゾーンごと出ないので導線も出ない
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+
+    // 1問目を解答すると、未解答が2問残っているので導線が出る
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+    expect(screen.getByText('ここで終了して結果を見る')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('ここで終了して結果を見る'))
+    expect(useAppStore.getState().screen).toBe('result')
+  })
+
+  it('最終サブ設問を解答した後は途中終了導線を出さない（「次へ」がitemを進める）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-exit-last', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+    fireEvent.click(screen.getByText('次へ'))
+
+    // 2問目（最終）を解答すると全問解答済みになり、導線は消える
+    await waitFor(() => expect(screen.getByText('a')).toBeTruthy())
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+  })
+
+  // 何を防ぐか: 制限時間ではないのに「経過180秒」と出続けて心理的な圧だけが増えること
+  it('目安の1分を超えると経過秒数の表示が「1分超」に切り替わる', async () => {
+    const db = newDb()
+    const q = part7Question('p7-pace', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // Date も含めてフェイクにする（elapsedSec は now() - startedAt で計算するため、
+    // setInterval だけ進めても経過時間が変わらない）。setTimeout・Promise は
+    // Dexie/fake-indexeddb のデッドロックを避けるためリアルタイムのまま残す
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    render(<ReadingScreen db={db} />)
+
+    // 初期表示は経過秒数つき
+    expect(screen.getByText(/目安1問\/分（経過\d+秒）/)).toBeTruthy()
+
+    await vi.advanceTimersByTimeAsync(61_000)
+
+    await vi.waitFor(() => expect(screen.getByText('目安1問/分（1分超）')).toBeTruthy())
+    // 数値のカウントアップは止まる（「経過61秒」等は出さない）
+    expect(screen.queryByText(/経過\d+秒/)).toBeNull()
   })
 })

@@ -479,6 +479,15 @@
 .result-list__icon::before {
   font-weight: 700;
 }
+/* T-163（J-92）: 時間切れの注記。知識不足の誤答と区別して振り返れるようにする。
+   --ng は使わない（時間切れは「間違い」の強調ではない。docs/25 4.7節のトーン） */
+.result-list__note {
+  flex-shrink: 0;
+  margin-left: var(--sp-1);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
 .result-list__item[data-correct='true'] .result-list__icon::before {
   content: '✓';
   color: var(--ok);

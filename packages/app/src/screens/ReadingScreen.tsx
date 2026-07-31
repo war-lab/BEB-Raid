@@ -43,6 +43,12 @@ interface Props {
   raidApi?: RaidApi
 }
 
+/**
+ * ペース表示の目安（3.5節: 1問1分）。T-164でこの秒数を超えたら数値のカウントアップを止める
+ * （制限時間ではないので自動確定はしない）
+ */
+const PACE_GUIDE_SECONDS = 60
+
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 // （DrillScreenと同じ回避策）、別関数越しに呼ぶ
 function now(): number {
@@ -91,14 +97,16 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     [question?.id, activeIndex],
   )
 
-  // ペース表示の秒針を進める。解答済みなら止める（速答を煽らないため自動確定はしない）
+  // ペース表示の秒針を進める。解答済みなら止める（速答を煽らないため自動確定はしない）。
+  // T-164: 目安（PACE_GUIDE_SECONDS）を超えたら更新自体を止める（表示が「1分超」に切り替わり
+  // 数値を出さなくなるため、進め続ける意味がない）
   useEffect(() => {
-    if (activeAnswer) return
+    if (activeAnswer || elapsedSec >= PACE_GUIDE_SECONDS) return
     const interval = setInterval(() => {
       setElapsedSec(Math.floor((now() - startedAt) / 1000))
     }, 1000)
     return () => clearInterval(interval)
-  }, [activeAnswer, startedAt])
+  }, [activeAnswer, startedAt, elapsedSec])
 
   // T-105（24の3.3節・3.5節）: 7分/15分パックに読解以外のitem（Part2音声・Part5等）が
   // 混在するようになったため、現在itemがtext_passageでなければDrillScreenへ切り替える
@@ -233,7 +241,16 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           {/* docs/25 4.8節（V-19）: DrillScreenと同じ英字パートタグ（.drill-part-tagを再利用）。
               表示のみの追加で、読解は必ずPart6/7なのでVOCAB分岐は持たない */}
           <span className="drill-part-tag">PART {question.part}</span>
-          {!activeAnswer && <p className="reading-pace">目安1問/分（経過{elapsedSec}秒）</p>}
+          {/* T-164（docs/27 のS-13）: 目安の1分を超えたら数値のカウントアップを止める。
+              制限時間ではないのに「経過180秒」と出続けると、機能的な影響なしに心理的な圧だけが
+              増える。自動確定は従来どおり行わない（速答を煽らない=3.5節） */}
+          {!activeAnswer && (
+            <p className="reading-pace">
+              {elapsedSec >= PACE_GUIDE_SECONDS
+                ? '目安1問/分（1分超）'
+                : `目安1問/分（経過${elapsedSec}秒）`}
+            </p>
+          )}
         </>
       }
       action={
@@ -288,6 +305,19 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                 }
               />
               <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>
+              {/* T-164（docs/27 のS-31）: T-122でドリルに入れた途中終了導線を読解にも適用する。
+                  従来は全サブ設問を解き切るまでリザルトへ到達できず、抜ける手段は「中断」
+                  （ホーム直行）だけだったため、Part7の長文を全問解く覚悟がないと入れなかった。
+                  解答済みが1問以上あり、かつ未解答が残っているときだけ出す */}
+              {answers.size < subQuestions.length && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => navigate('result')}
+                >
+                  ここで終了して結果を見る
+                </button>
+              )}
             </>
           )}
         </>
