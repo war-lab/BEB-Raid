@@ -3236,3 +3236,10 @@
   outline: 2px solid var(--gold);
   outline-offset: 2px;
 }
+
+/* T-143（J-80）: 読解モードの時間目安。着席・自宅想定なので所要の見積りを先に出す */
+.home-reading-estimate {
+  margin: var(--sp-half) 0 var(--sp-1);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}

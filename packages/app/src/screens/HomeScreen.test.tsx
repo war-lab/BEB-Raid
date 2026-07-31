@@ -131,6 +131,30 @@ function part5Question(id: string): Question {
   }
 }
 
+/** T-143: 読解（Part7単一）。1パッセージが複数設問を持つ点がPart2/5と違う */
+function part7Question(id: string, subCount = 3): Question {
+  return {
+    id,
+    part: 7,
+    format: 'text_passage',
+    difficulty: 2,
+    tags: ['パラフレーズ照合'],
+    keyVocab: [{ word: 'invoice', sense: '請求書', freqRank: 'S' }],
+    passages: [{ id: `${id}-p1`, kind: 'email', text: `${id}の本文。` }],
+    subQuestions: Array.from({ length: subCount }, (_, i) => ({
+      id: `${id}-q${i}`,
+      question: `設問${i}`,
+      choices: [
+        { key: 'A', text: 'a' },
+        { key: 'B', text: 'b' },
+      ],
+      answer: 'A',
+      explanation: '解説',
+      translation: '和訳',
+    })),
+  }
+}
+
 /**
  * HomeScreen の起動時データ読み込み（evaluateStreak/getStreak/getSrsQueue）の完了を待つ。
  * 0件データ時は表示上の変化がなく検出できないため、専用の非表示マーカーで判定する
@@ -1634,5 +1658,118 @@ describe('HomeScreen: .home-gridの表層（V-13。docs/25 4.8節）', () => {
     // アクセシブルネームは文字ラベルのみで成立する（07の原則4: 色・形だけに頼らない）
     expect(screen.getByRole('button', { name: 'イベントバトルに参加' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'イベントバトルを主催' })).toBeTruthy()
+  })
+})
+
+describe('HomeScreen: Part7読解モード（T-143・J-80）', () => {
+  const READING_POOL: Question[] = [
+    ...QUESTION_POOL,
+    part7Question('p7-1', 3),
+    part7Question('p7-2', 2),
+    part7Question('p7-3', 4),
+    part7Question('p7-4', 3),
+  ]
+
+  // 何を防ぐか（J-80）: Part7のコンテンツがあるのに、通勤クエストのパック配分経由でしか
+  // 出会えない状態。着席・自宅で読解だけをやる導線が無かった
+  it('モードグリッドに独立入口があり、パッセージ数と時間目安を選んで開始できる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={READING_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+
+    // 問数ではなくパッセージ数で選ばせる（1パッセージが2〜4設問を要求するため）
+    expect(await screen.findByText('読解（Part7）のパッセージ数を選んでください')).toBeTruthy()
+    expect(screen.getByText('パッセージ数')).toBeTruthy()
+    // J-80: 着席想定なので時間目安を出す（既定2本 → シャッフル前の先頭2本ぶんの設問数）
+    expect(screen.getByText(/設問（目安/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('開始'))
+
+    // 読解なのでdrillを経由せずreadingへ直行する
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
+    const snapshot = useSessionStore.getState().snapshot!
+    // 既定は2パッセージ
+    expect(snapshot.items).toHaveLength(2)
+    // Part7のitemだけが選ばれる（語彙・Part2・Part5は混ざらない）
+    const lookup = new Map(READING_POOL.map((q) => [q.id, q]))
+    expect(snapshot.items.every((i) => lookup.get(i.questionId)?.part === 7)).toBe(true)
+  })
+
+  it('パッセージ数の選択が保存され、次回に復元される', async () => {
+    const db = newDb()
+    const view = render(
+      <HomeScreen
+        db={db}
+        questionPool={READING_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    fireEvent.click(await screen.findByText('3本'))
+    await waitFor(async () => expect((await db.settings.get('readingSetCount'))?.value).toBe(3))
+    view.unmount()
+
+    // 再マウントで復元される
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={READING_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    await waitFor(() => expect(screen.getByText('3本').className).toContain('is-selected'))
+  })
+
+  it('プールにPart7が無ければ案内文を出して開始しない（T-121と同じ扱い）', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    fireEvent.click(await screen.findByText('開始'))
+
+    expect(await screen.findByText('今は出題できる問題がありません')).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('プールが選択パッセージ数より少なければある分だけで開始する', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={[...QUESTION_POOL, part7Question('p7-only', 2)]}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    fireEvent.click(await screen.findByText('開始'))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
+    expect(useSessionStore.getState().snapshot!.items).toHaveLength(1)
   })
 })
