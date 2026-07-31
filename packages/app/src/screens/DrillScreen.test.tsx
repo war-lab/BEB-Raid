@@ -1868,6 +1868,7 @@ describe('DrillScreen: 描画分岐の無いformatのスキップと脱出導線
     expect(await db.attempts.count()).toBe(0) // スキップはattemptを記録しない
     // T-108: 非モーダル通知が出て、セッションストアのskippedCountが増える
     expect(screen.getByTestId('drill-skip-notice')).toBeTruthy()
+    // T-177で件数入りの文言になった（4秒で消さず累計を出し続ける）
     expect(screen.getByText('表示できない問題を1件スキップしました')).toBeTruthy()
     expect(useSessionStore.getState().skippedCount).toBe(1)
   })
@@ -2342,5 +2343,36 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     expect(screen.queryByText('保存を再試行する')).toBeNull()
     // 従来どおり再同期して次の問題へ進む
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+  })
+})
+
+describe('DrillScreen: スキップ通知の持続と累計（T-177。docs/27 のS-30）', () => {
+  // 何を防ぐか: 通知が4秒で消えるため、選んだ問数より少ない問題数で終わっても
+  // その場では理由に気づけなかったこと（累計はResultScreenまで見えなかった）
+  it('スキップ通知は時間経過で消えず、複数スキップで累計が増える', async () => {
+    const db = newDb()
+    const shadow1 = shadowingFormatQuestion('shadow-x1')
+    const shadow2 = shadowingFormatQuestion('shadow-x2')
+    const items: SessionItem[] = [
+      { questionId: shadow1.id, mode: 'solo' },
+      { questionId: shadow2.id, mode: 'solo' },
+      { questionId: 'q-2', mode: 'solo' },
+    ]
+    await setupSession(db, items, [shadow1, shadow2, QUESTIONS[1]!])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    // 2件スキップして3問目へ進む
+    await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByText('表示できない問題を2件スキップしました')).toBeTruthy(),
+    )
+    expect(useSessionStore.getState().skippedCount).toBe(2)
+
+    // 4秒経っても消えない（ResultScreenの「表示できなかった問題: N件」と同じ数え方で
+    // セッション中も件数が分かる）
+    await new Promise((resolve) => setTimeout(resolve, 4200))
+    expect(screen.getByTestId('drill-skip-notice')).toBeTruthy()
+    expect(screen.getByText('表示できない問題を2件スキップしました')).toBeTruthy()
   })
 })

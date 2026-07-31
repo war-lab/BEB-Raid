@@ -3132,3 +3132,15 @@
   font-size: var(--fs-note);
   color: var(--ink-2);
 }
+
+/* T-177（docs/27 のS-29）: 高速チップのゲート理由。チップを隠さず無効で見せるので、
+   なぜ選べないのかを注記で補う（--ng は使わない。制限の説明であって警告ではない） */
+.shadowing-speed-note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+.shadowing-speed-chips button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

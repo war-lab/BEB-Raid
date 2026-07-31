@@ -255,7 +255,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // T-78: ハプティクス設定（既定ON）。正解確定時のnavigator.vibrateに使う
   const [hapticsEnabled, setHapticsEnabled] = useState(true)
   // T-108: 表示不能スキップの非モーダル通知（数秒で自動的に消える）
-  const [skipNotice, setSkipNotice] = useState(false)
+  /**
+   * T-177（docs/27 のS-30）: 表示不能スキップの通知。従来は真偽値で4秒後に消していたため、
+   * 選んだ問数より少ない問題数で終わっても、その場では理由に気づけなかった
+   * （累計はResultScreenまで見えない）。セッション中は累計件数を出し続ける
+   */
+  const [skipCount, setSkipCount] = useState(0)
   // 誤タップの取り消し猶予（2026-07-29・ADR 0009）。設定は既定ON
   const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
   // 猶予付き確定（T-156でフックへ抽出）。猶予中の未確定解答の保持・タイマー・
@@ -506,7 +511,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       .then((nextSnapshot) => {
         if (cancelled) return
         useSessionStore.setState({ snapshot: nextSnapshot })
-        setSkipNotice(true)
+        setSkipCount((n) => n + 1)
         if (displayIndex + 1 >= snapshot.items.length) {
           navigate('result')
         } else {
@@ -534,13 +539,6 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     if (!snapshot || !item || question?.format !== 'text_passage') return
     navigate('reading')
   }, [item, question, snapshot, navigate])
-
-  // T-108: スキップ通知は数秒で自動的に消える（非モーダル。累計件数はResultScreen側で表示する）
-  useEffect(() => {
-    if (!skipNotice) return
-    const timeout = setTimeout(() => setSkipNotice(false), 4000)
-    return () => clearTimeout(timeout)
-  }, [skipNotice])
 
   // 取り消し通知も同型（非モーダル・4秒）
   useEffect(() => {
@@ -1181,9 +1179,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           <button type="button" className="drill-abort" onClick={() => navigate('home')}>
             中断
           </button>
-          {skipNotice && (
+          {/* T-177: 自動では消さない。ResultScreenの「表示できなかった問題: N件」と
+              同じ数え方で、セッション中もその場で件数が分かるようにする */}
+          {skipCount > 0 && (
             <p className="drill-skip-notice" role="status" data-testid="drill-skip-notice">
-              表示できない問題を1件スキップしました
+              表示できない問題を{skipCount}件スキップしました
             </p>
           )}
           {undoNotice && (

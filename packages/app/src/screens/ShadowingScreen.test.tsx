@@ -214,15 +214,21 @@ describe('ShadowingScreen: スクリプト表示トグル', () => {
 })
 
 describe('ShadowingScreen: 速度チップのL4ゲート（3.5節）', () => {
-  it('listeningStageが4未満なら1.15x/1.3xは表示されない', async () => {
+  // T-177（docs/27 のS-29）で挙動を変えた: 従来はチップ自体を消していたため「選択肢が
+  // 無いように見える」だけで、なぜ出ないのかが画面から分からなかった。無効状態で見せて
+  // 理由の注記を添える
+  it('listeningStageが4未満なら1.15x/1.3xは無効状態で表示され、理由の注記が出る', async () => {
     const db = newDb()
     const audioPlayer = new FakeAudioPlayer()
     const question = shadowingQuestion()
     render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[question]} />)
 
     await waitFor(() => expect(screen.getByText('0.7x')).toBeTruthy())
-    expect(screen.queryByText('1.15x')).toBeNull()
-    expect(screen.queryByText('1.3x')).toBeNull()
+    expect(screen.getByText('1.15x').closest('button')?.disabled).toBe(true)
+    expect(screen.getByText('1.3x').closest('button')?.disabled).toBe(true)
+    // 選べる範囲のチップは有効なまま
+    expect(screen.getByText('1x').closest('button')?.disabled).toBe(false)
+    expect(screen.getByText(/1\.15x以上はリスニング段階4から選べます/)).toBeTruthy()
   })
 
   it('listeningStageが4なら1.15x/1.3xも表示される', async () => {
@@ -232,8 +238,10 @@ describe('ShadowingScreen: 速度チップのL4ゲート（3.5節）', () => {
     const question = shadowingQuestion()
     render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[question]} />)
 
-    await waitFor(() => expect(screen.getByText('1.15x')).toBeTruthy())
-    expect(screen.getByText('1.3x')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('1.15x').closest('button')?.disabled).toBe(false))
+    expect(screen.getByText('1.3x').closest('button')?.disabled).toBe(false)
+    // ゲートが解けているので注記は出さない
+    expect(screen.queryByText(/1\.15x以上はリスニング段階/)).toBeNull()
   })
 })
 

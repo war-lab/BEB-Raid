@@ -244,9 +244,10 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     )
   }
 
-  const availableSpeeds = SPEED_CHIPS.filter(
-    (s) => s < 1.15 || listeningStage >= HIGH_SPEED_MIN_STAGE,
-  )
+  // T-177（docs/27 のS-29）: 高速チップは隠さずに無効状態で見せる。従来はfilterで
+  // 消していたため「選択肢が無いように見える」だけで、なぜ出ないのかが画面から
+  // 分からなかった（listeningStage=4 未満というゲートの存在自体が伝わらない）
+  const highSpeedLocked = listeningStage < HIGH_SPEED_MIN_STAGE
 
   return (
     <ScreenLayout
@@ -310,17 +311,32 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
             中断してホームへ
           </button>
           <div className="shadowing-speed-chips">
-            {availableSpeeds.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={s === rate ? 'is-selected' : ''}
-                onClick={() => setRate(s)}
-              >
-                {s}x
-              </button>
-            ))}
+            {SPEED_CHIPS.map((s) => {
+              const locked = s >= 1.15 && highSpeedLocked
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  className={s === rate ? 'is-selected' : ''}
+                  disabled={locked}
+                  title={
+                    locked
+                      ? `リスニング段階${HIGH_SPEED_MIN_STAGE}から選べます（現在は${listeningStage}）`
+                      : undefined
+                  }
+                  onClick={() => setRate(s)}
+                >
+                  {s}x
+                </button>
+              )
+            })}
           </div>
+          {highSpeedLocked && (
+            <p className="shadowing-speed-note">
+              1.15x以上はリスニング段階{HIGH_SPEED_MIN_STAGE}から選べます（現在は
+              {listeningStage}）
+            </p>
+          )}
           <div className="shadowing-script-toggle">
             <button
               type="button"

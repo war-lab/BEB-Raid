@@ -14,6 +14,7 @@ import { recordAnswerPipeline } from '../services/answerPipeline'
 import { useAppStore } from '../store/appStore'
 import { BattleAward } from '../components/BattleAward'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
+import { ExplanationCard } from '../components/ExplanationCard'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { StandingsList } from '../components/StandingsList'
@@ -42,6 +43,8 @@ interface AnsweredRecord {
   question: Question
   isCorrect: boolean
   responseMs: number
+  /** T-178: 未解答のまま締切を迎えた分（ソロ側の isTimeout と同じ扱いで記録する） */
+  isTimeout?: boolean
 }
 
 interface StandingRow {
@@ -59,6 +62,16 @@ export function normalizeRoomCode(input: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 4)
+}
+
+/**
+ * 参加者の手元に出す設問文（T-178。docs/27 のS-34）。
+ * audio_qa は `question` を持たない（音声で流れる）ため、空文字ではなく指示文を出す。
+ * ホスト投影側の projectedQuestionText と同じ扱いに揃える
+ */
+export function participantQuestionText(question: Question): string {
+  if (question.question) return question.question
+  return '音声で質問が流れます。応答として正しい選択肢を選んでください'
 }
 
 export function BattleScreen({ db, battleSocket, questionPool }: Props) {
@@ -99,6 +112,11 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const ratingRef = useRef(DEFAULT_INITIAL_RATING)
   /** questionOpen受信時刻（responseMs算出用） */
   const questionOpenedAtRef = useRef(0)
+  /**
+   * T-178: 1問の制限時間（秒）。最初の questionOpen の deadlineAt から実測して覚える。
+   * クライアント側に定数を置かない（秒数はDO側が正＝22の3.2節。J-97でDOは変更対象外）
+   */
+  const [questionSeconds, setQuestionSeconds] = useState<number | null>(null)
 
   useEffect(() => {
     battleSocket.onMessage((message: BattleServerMessage) => {
@@ -114,6 +132,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         setOwnPoints(null)
         setCurrentQuestionIndex(message.questionIndex)
         setDeadlineAt(message.deadlineAt)
+        setQuestionSeconds((prev) => prev ?? Math.round((message.deadlineAt - now()) / 1000))
         const question = questionLookup.current.get(message.questionId) ?? null
         setCurrentQuestion(question)
         setPackMissing(question === null)
@@ -150,6 +169,43 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     const id = window.setInterval(tick, 250)
     return () => window.clearInterval(id)
   }, [phase, deadlineAt])
+
+  /**
+   * T-178（docs/27 のS-36後半）: 未解答のまま締切を迎えた分を記録する。
+   * 従来は handleAnswer が呼ばれないので attempts に何も残らず、ソロ側が isTimeout を
+   * 記録・可視化しているのに対してバトルの時間切れだけが統計にも復習にも出てこなかった。
+   * 記録規則はソロ側に揃える（isCorrect=false・selectedIndex相当なし・isTimeout=true）。
+   * 締切の検知は remainingSec が0に達したことで行う（DO側の standings 受信より先に、
+   * 参加者の手元で確定させる。二重記録は answeredThisQuestion で防ぐ）
+   */
+  useEffect(() => {
+    if (phase !== 'question' || deadlineAt === null || currentQuestion === null) return
+    // 表示用の remainingSec は見ない——初期値0のまま同じコミットでこのeffectが走るため、
+    // 出題直後に「締切」と誤判定して解答前に時間切れを記録してしまう（実装時に踏んだ）。
+    // deadlineAt から残り時間を直接計算し、その時刻に1回だけ発火させる
+    const question = currentQuestion
+    const record = () => {
+      if (answeredThisQuestion.current) return
+      answeredThisQuestion.current = true
+      const entry: AnsweredRecord = {
+        questionId: question.id,
+        question,
+        isCorrect: false,
+        responseMs: questionOpenedAtRef.current > 0 ? now() - questionOpenedAtRef.current : 0,
+        isTimeout: true,
+      }
+      answerRecords.current.push(entry)
+      persistAnswer(entry)
+    }
+    const msLeft = deadlineAt - now()
+    if (msLeft <= 0) {
+      record()
+      return
+    }
+    const id = window.setTimeout(record, msLeft)
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- persistAnswerは関数宣言（hoisted）
+  }, [phase, deadlineAt, currentQuestion])
 
   // 画面を離れるときは必ずWebSocketを閉じる（battleSocketはApp.tsxのモジュール単位
   // シングルトンのため、閉じ忘れるとホーム遷移後も接続とルーム内の参加者枠が残る）
@@ -215,6 +271,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           lookup: questionLookup.current,
           isCorrect: record.isCorrect,
           responseMs: record.responseMs,
+          isTimeout: record.isTimeout,
           mode: 'battle',
           skip: { rating: true },
         })
@@ -255,6 +312,16 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   function handleLeave() {
     battleSocket.close()
     navigate('home')
+  }
+
+  /**
+   * 出題中・順位表示中の退出（T-178。docs/27 のS-33）。
+   * 抜けると自分の得点が伸びなくなるだけでなくルーム内の参加者枠も空くため、
+   * ロビーの退出（確認なし）とは別に確認を挟む
+   */
+  function handleLeaveWithConfirm() {
+    if (!window.confirm('バトルから退出しますか？（このバトルの続きには戻れません）')) return
+    handleLeave()
   }
 
   if (phase === 'entry' || phase === 'connecting') {
@@ -329,6 +396,15 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         <p className="battle-lobby-hint">
           最新パックを取得してから参加してください（未取得の問題は0点で流れます）
         </p>
+        {/* T-178（docs/27 のS-35のうちクライアント側で解消できる部分）: 1問の制限時間を
+            事前に知らせる。従来は questionOpen 受信時にいきなり「残り30秒」が出ていた。
+            秒数はクライアント側に定数を持たず、最初の questionOpen の deadlineAt から
+            算出した実測値を使う（サーバー=DOが正という関係を崩さない） */}
+        <p className="battle-lobby-hint">
+          {questionSeconds === null
+            ? '1問あたりの制限時間はホストの設定に従います'
+            : `1問あたり約${questionSeconds}秒です`}
+        </p>
       </ScreenLayout>
     )
   }
@@ -342,20 +418,47 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           </p>
         }
         action={
-          selectedKey !== null ? (
-            <p data-testid="battle-own-points">
-              {ownPoints !== null ? `獲得点: ${ownPoints}点` : '結果を待っています'}
-            </p>
-          ) : (
-            <p>選択肢をタップして解答してください</p>
-          )
+          <>
+            {selectedKey !== null ? (
+              <p data-testid="battle-own-points">
+                {ownPoints !== null ? `獲得点: ${ownPoints}点` : '結果を待っています'}
+              </p>
+            ) : (
+              <p>選択肢をタップして解答してください</p>
+            )}
+            {/* T-178（docs/27 のS-36前半）: 解答後は解説を出す。従来は選択肢の色と獲得点だけで、
+                間違えた理由がその場で分からず、最終リザルトも誤答件数しか出さなかった */}
+            {selectedKey !== null && currentQuestion !== null && (
+              <ExplanationCard
+                question={currentQuestion}
+                isCorrect={selectedKey === currentQuestion.answer}
+                // aiClient / raidApi はこの画面に注入されていない（BattleScreenのPropsは
+                // db・battleSocket・questionPoolのみ）。どちらも任意なので、AI解説と
+                // 「問題がおかしい」は出さず、解説・和訳の表示だけを行う。
+                // propsを増やすとApp.tsxの配線に及ぶため、J-97のクライアント側限定の
+                // 範囲に収める判断で据え置く
+                db={db}
+                ghostDefense={null}
+              />
+            )}
+            {/* T-178（docs/27 のS-33）: 出題が始まると退出手段が無かった（退出ボタンは
+                ロビーのみ）。会議・電車の都合で抜けたいときの逃げ道を出す。
+                他の参加者に影響するので確認を挟む */}
+            <button type="button" className="secondary-action" onClick={handleLeaveWithConfirm}>
+              退出する
+            </button>
+          </>
         }
       >
         {packMissing || currentQuestion === null ? (
           <p data-testid="battle-pack-missing">パック未取得（0点で進行します）</p>
         ) : (
           <>
-            <p>{currentQuestion.question}</p>
+            {/* T-178（docs/27 のS-34）: audio_qa は question が未定義のため、従来は手元に
+                空白＋選択肢だけが並び、投影を見られない位置の参加者は何を問われているか
+                分からないまま制限時間が減っていた。ホスト投影側（BattleHostScreen の
+                projectedQuestionText）と同じ補完をする */}
+            <p>{participantQuestionText(currentQuestion)}</p>
             {currentQuestion.choices?.map((choice) => {
               let state: ChoiceState = 'idle'
               if (selectedKey !== null) {
@@ -387,7 +490,17 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
 
   if (phase === 'standings') {
     return (
-      <ScreenLayout status={<p>途中順位</p>} action={<p>次の問題をお待ちください</p>}>
+      <ScreenLayout
+        status={<p>途中順位</p>}
+        action={
+          <>
+            <p>次の問題をお待ちください</p>
+            <button type="button" className="secondary-action" onClick={handleLeaveWithConfirm}>
+              退出する
+            </button>
+          </>
+        }
+      >
         <StandingsList
           entries={standings}
           selfDisplayName={selfDisplayName}
