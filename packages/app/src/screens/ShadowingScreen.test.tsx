@@ -432,3 +432,169 @@ describe('ShadowingScreen: 開始位置と素材間移動（T-120・J-59）', ()
     expect(screen.queryByText('前の素材へ')).toBeNull()
   })
 })
+
+describe('ShadowingScreen: 中断は周回に数えない（T-157。docs/27 のS-1・S-17・S-37）', () => {
+  /** 「再生」を1回押し、指定の終わり方で解決する */
+  async function playOnce(audioPlayer: FakeAudioPlayer, outcome: PlaybackOutcome) {
+    const before = audioPlayer.play.mock.calls.length
+    fireEvent.click(screen.getByText('再生'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(before + 1))
+    await act(async () => {
+      audioPlayer.resolveLatest(outcome)
+      await Promise.resolve()
+    })
+  }
+
+  // 何を防ぐか: 練習していないのに「3周完了」で実施ログが記録されること。
+  // 3秒戻し・文タップ・停止はいずれも進行中の再生を打ち切るため、従来は打ち切られた
+  // play() の await が解決して周回が加算され、3秒戻しを3回押すだけで完了扱いになっていた
+  it('中断で解決した再生は周回に数えない（3回中断しても実施ログが記録されない）', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(
+      <ShadowingScreen
+        db={db}
+        audioPlayer={audioPlayer}
+        shadowingQuestions={[shadowingQuestion()]}
+      />,
+    )
+
+    for (let i = 0; i < 3; i++) {
+      await playOnce(audioPlayer, 'interrupted')
+    }
+
+    expect(screen.getByText(/0\/3周/)).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+    // 完了していないので「次へ」は出ず、「再生」のまま
+    expect(screen.queryByText('次へ')).toBeNull()
+    expect(screen.getByText('再生')).toBeTruthy()
+  })
+
+  it('完走した再生だけが周回に数えられる（中断を挟んでも完走分だけ進む）', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(
+      <ShadowingScreen
+        db={db}
+        audioPlayer={audioPlayer}
+        shadowingQuestions={[shadowingQuestion()]}
+      />,
+    )
+
+    await playOnce(audioPlayer, 'ended')
+    expect(screen.getByText(/1\/3周/)).toBeTruthy()
+
+    await playOnce(audioPlayer, 'interrupted')
+    expect(screen.getByText(/1\/3周/)).toBeTruthy()
+
+    await playOnce(audioPlayer, 'ended')
+    expect(screen.getByText(/2\/3周/)).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+
+    await playOnce(audioPlayer, 'ended')
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempts = await db.attempts.toArray()
+    expect(attempts[0]!.questionId).toBe('shadow:shadow-1')
+  })
+
+  it('3秒戻しは進行中の再生を打ち切るが、周回は増えない', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(
+      <ShadowingScreen
+        db={db}
+        audioPlayer={audioPlayer}
+        shadowingQuestions={[shadowingQuestion()]}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('再生'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(1))
+    // 3秒戻しが新しい再生を始め、進行中の再生は中断として解決される
+    fireEvent.click(screen.getByText('3秒戻し'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(2))
+    await act(async () => {
+      audioPlayer.resolveLatest('interrupted')
+      await Promise.resolve()
+    })
+
+    expect(screen.getByText(/0\/3周/)).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('停止ボタンで再生を止められ、周回は増えない', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(
+      <ShadowingScreen
+        db={db}
+        audioPlayer={audioPlayer}
+        shadowingQuestions={[shadowingQuestion()]}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('再生'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByText('停止'))
+    expect(audioPlayer.stop).toHaveBeenCalled()
+
+    await act(async () => {
+      audioPlayer.resolveLatest('interrupted')
+      await Promise.resolve()
+    })
+    expect(screen.getByText(/0\/3周/)).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  // 何を防ぐか: 2周した素材を確認のため離れると0周からやり直しになること（S-37）
+  it('素材を移動して戻ると周回が保持されている', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion({ id: 'shadow-1' })
+    const q2 = shadowingQuestion({ id: 'shadow-2' })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    await playOnce(audioPlayer, 'ended')
+    await playOnce(audioPlayer, 'ended')
+    expect(screen.getByText(/2\/3周/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('次の素材へ'))
+    await waitFor(() => expect(screen.getByText(/素材 2\/2/)).toBeTruthy())
+    // 移動先の素材は0周から始まる（周回は素材ごとに独立）
+    expect(screen.getByText(/0\/3周/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('前の素材へ'))
+    await waitFor(() => expect(screen.getByText(/素材 1\/2/)).toBeTruthy())
+    expect(screen.getByText(/2\/3周/)).toBeTruthy()
+
+    // 保持された2周に続けて3周目を完走すると、そこで実施ログが記録される
+    await playOnce(audioPlayer, 'ended')
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempts = await db.attempts.toArray()
+    expect(attempts[0]!.questionId).toBe('shadow:shadow-1')
+  })
+
+  it('3周完了した素材へ戻っても実施ログが二重に記録されない', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion({ id: 'shadow-1' })
+    const q2 = shadowingQuestion({ id: 'shadow-2' })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    for (let i = 0; i < 3; i++) {
+      await playOnce(audioPlayer, 'ended')
+    }
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+
+    // 完了後は「次へ」に変わる
+    fireEvent.click(screen.getByText('次へ'))
+    await waitFor(() => expect(screen.getByText(/素材 2\/2/)).toBeTruthy())
+    fireEvent.click(screen.getByText('前の素材へ'))
+    await waitFor(() => expect(screen.getByText(/素材 1\/2/)).toBeTruthy())
+
+    // 3周が保持されているので「次へ」のままで、記録も増えない
+    expect(screen.getByText(/3\/3周/)).toBeTruthy()
+    expect(screen.getByText('次へ')).toBeTruthy()
+    expect(await db.attempts.count()).toBe(1)
+  })
+})
