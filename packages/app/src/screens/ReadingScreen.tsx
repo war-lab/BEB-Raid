@@ -40,6 +40,7 @@ import { PassageText, type PassageAnswer } from '../components/PassageText'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
+import { useRetrySave } from '../hooks/useRetrySave'
 
 interface Props {
   db: BebRaidDatabase
@@ -97,8 +98,8 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
-  // T-176: 保存に失敗した解答をやり直すための保持（関数はオブジェクトで包む）
-  const [retrySave, setRetrySave] = useState<{ run: () => Promise<void> } | null>(null)
+  // T-176: 保存に失敗した解答をやり直す導線（多重実行のガードはフック側）
+  const retrySave = useRetrySave()
   // T-162（docs/27 のS-7）: 中断の確認
   const [abortConfirm, setAbortConfirm] = useState(false)
   /**
@@ -193,18 +194,28 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     setActiveIndex(index)
   }
 
+  /**
+   * サブ設問1問の解答を確定して永続化する。
+   *
+   * `retryOf` は保存失敗からの再試行（レビュー指摘、2026-07-31）。
+   * **初回選択時の値をそのまま持ち回す**のが要点で、再試行時刻から回答時間を再計算すると、
+   * エラーバナーを見てから押すまでの時間・保存エラー中に「次へ」を押して startedAt が
+   * 更新された分がそのまま responseMs に乗り、速答判定（isGuess）まで壊れる
+   */
   async function finalizeSubQuestionAnswer(
     index: number,
     choiceKey: string,
-    options?: { isRetry?: boolean },
+    retryOf?: { responseMs: number },
   ) {
     const sub = subQuestions[index]
     // 再試行時は answers に残っている（正誤表示を保持しているため）ので二重解答ガードを通す
-    if (!question || !item || !sub || (answers.has(index) && !options?.isRetry)) return
+    if (!question || !item || !sub || (answers.has(index) && !retryOf)) return
     const isCorrect = choiceKey === sub.answer
-    const responseMs = now() - startedAt
+    const responseMs = retryOf?.responseMs ?? now() - startedAt
     setAnswers((prev) => new Map(prev).set(index, { selectedKey: choiceKey, isCorrect }))
     setSaveError(null)
+    // 保存を始めた時点で古い再試行の登録を捨てる（同期。これ自体が再入ガードにもなる）
+    retrySave.clear()
 
     try {
       // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
@@ -228,14 +239,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
-      setRetrySave(null)
+      retrySave.clear()
     } catch (err) {
       console.error('[ReadingScreen] 解答の保存に失敗', err)
       setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
       // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
       // 従来は answers から該当indexを消して選び直させていたが、正解が既に見えている
       // 状態で選び直させることになり操作の意味がなかった
-      setRetrySave({ run: () => finalizeSubQuestionAnswer(index, choiceKey, { isRetry: true }) })
+      retrySave.offer(() => finalizeSubQuestionAnswer(index, choiceKey, { responseMs }))
     }
   }
 
@@ -257,7 +268,11 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     if (answers.size >= subQuestions.length) {
       const nextSnapshot = await advanceSession(db, snapshot!)
       useSessionStore.setState({ snapshot: nextSnapshot })
-      if (displayIndex + 1 >= total) {
+      // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
+      // total（T-175）はサブ設問を展開した解答数なので、複数設問を含むセッションでは
+      // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
+      // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
+      if (displayIndex + 1 >= snapshot!.items.length) {
         navigate('result')
         return
       }
@@ -319,10 +334,12 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
               <p className="drill-error" role="alert">
                 {saveError}
               </p>
-              {retrySave && (
+              {retrySave.shown && (
                 <button
                   type="button"
                   className="secondary-action"
+                  disabled={retrySave.busy}
+                  aria-busy={retrySave.busy}
                   onClick={() => void retrySave.run()}
                 >
                   保存を再試行する

@@ -7,7 +7,7 @@
 // - ペース表示（15秒タイマーではない柔らかい目安）が出る
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
@@ -576,6 +576,111 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
       ).toBeNull(),
     )
     spy.mockRestore()
+  })
+
+  /** ratings への最初の1回だけ失敗させる（①attempt記録より後の段の失敗を作る） */
+  function failRatingsOnce(db: BebRaidDatabase) {
+    const original = db.ratings.put.bind(db.ratings)
+    let failed = false
+    return vi.spyOn(db.ratings, 'put').mockImplementation(((...args: unknown[]) => {
+      if (!failed) {
+        failed = true
+        return Promise.reject(new Error('ratings書き込み失敗（模擬）'))
+      }
+      return original(...(args as Parameters<typeof original>))
+    }) as typeof db.ratings.put)
+  }
+
+  // 何を防ぐか: 再試行ボタンの連打で attempt・レートが二重に書かれること（レビュー指摘のP1）。
+  // 単一トランザクション化（ADR 0010）は「失敗した書き込みが部分的に残らない」ことしか
+  // 保証しないので、成功する保存を2回走らせる操作は useRetrySave 側で弾く必要がある
+  it('再試行ボタンを連打しても attempt は1件だけになる', async () => {
+    const db = newDb()
+    const q = part7Question('p7-retry-double', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const spy = failRatingsOnce(db)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+
+    // 2回のクリックを**同じ act 内で**発火させる。fireEvent を2回呼ぶとその間に
+    // 再レンダーが挟まり disabled が効いてしまうため、それでは同期ガード（busyRef）を
+    // 通らない。実機の連打は再レンダーを待たないので、この形で再現する
+    const retryButton = screen.getByText('保存を再試行する')
+    await act(async () => {
+      retryButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      retryButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 1件目の再試行が完了した後も増えない（2件目が遅れて走らない）
+    await waitFor(() =>
+      expect(
+        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      ).toBeNull(),
+    )
+    expect(await db.attempts.count()).toBe(1)
+    // レートも1回分しか進んでいない（attemptだけでなくレート更新の二重実行も防ぐ）
+    expect((await db.ratings.get('R'))?.answerCount).toBe(1)
+    spy.mockRestore()
+  })
+
+  // 何を防ぐか: 再試行時に回答時間を再計算すること（レビュー指摘のP2）。
+  // エラーバナーを見てから押すまでの時間がそのまま responseMs に乗ると、
+  // 速答判定（isGuess）まで巻き込んで壊れる
+  it('再試行しても回答時間は初回選択時の値を使う', async () => {
+    const db = newDb()
+    const q = part7Question('p7-retry-elapsed', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const spy = failRatingsOnce(db)
+
+    // フェイクタイマーではなく Date.now だけをずらす（タイマーを止めると同一ファイルの
+    // 他テストのwaitForが進まなくなるため。前進のみなのでDexie側への影響はない）
+    const realNow = Date.now.bind(Date)
+    let offsetMs = 0
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => realNow() + offsetMs)
+    try {
+      render(<ReadingScreen db={db} />)
+      fireEvent.click(screen.getByText('a'))
+      expect(
+        await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      ).toBeTruthy()
+
+      // エラー表示のまま10分放置してから再試行する
+      offsetMs = 600_000
+      fireEvent.click(screen.getByText('保存を再試行する'))
+      await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+
+      const attempts = await db.attempts.toArray()
+      expect(attempts[0]?.responseMs).toBeLessThan(60_000)
+    } finally {
+      nowSpy.mockRestore()
+      spy.mockRestore()
+    }
+  })
+
+  // 何を防ぐか: 終了判定に解答スロット数（total）を使うこと（レビュー指摘のP2）。
+  // displayIndex は item 単位なので、サブ設問を持つセッションでは最終itemでも判定が
+  // 成立せず、範囲外のindexへ進んだ次のレンダーのフォールバックに拾われていた。
+  // 到達先は同じ（リザルト）だが、範囲外の状態を一度作るのに依存していた
+  it('最終itemの全サブ設問を解答して「次へ」を押すとリザルトへ進む', async () => {
+    const db = newDb()
+    const q = part7Question('p7-finish', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+      if (i < 2) fireEvent.click(screen.getByText('次へ'))
+    }
+    await waitFor(async () => expect(await db.attempts.count()).toBe(3))
+
+    fireEvent.click(screen.getByText('次へ'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
   })
 })
 

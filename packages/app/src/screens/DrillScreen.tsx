@@ -23,6 +23,7 @@ import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import type { DictationAnswer, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import { usePendingCommit } from '../hooks/usePendingCommit'
+import { useRetrySave } from '../hooks/useRetrySave'
 import type { AiClient, AudioPlayer, PlaybackOutcome, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
@@ -293,11 +294,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [undoNotice, setUndoNotice] = useState(false)
   // T-166（J-93）: 2問目以降の音声自動再生の有効/無効。既定ON（T-110の意図は変えない）
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
-  /**
-   * T-176（docs/27 のS-27）: 保存に失敗した確定をやり直すための保持。
-   * 関数をstateに直接入れると更新関数として解釈されるためオブジェクトで包む
-   */
-  const [retrySave, setRetrySave] = useState<{ run: () => Promise<void> } | null>(null)
+  // T-176（docs/27 のS-27）: 保存に失敗した確定をやり直す導線（多重実行のガードはフック側）
+  const retrySave = useRetrySave()
   // T-162（docs/27 のS-7）: 中断の確認。画面最上部にあり誤タップでセッションから抜けていた
   const [abortConfirm, setAbortConfirm] = useState(false)
 
@@ -609,7 +607,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     // ただしスナップショット不整合（二重解答・複数タブ・終了済みセッション）は
     // やり直しても同じ検知で弾かれるため、従来どおり再同期へ回す
     if (options?.retry && !(err instanceof StaleSnapshotError)) {
-      setRetrySave({ run: options.retry })
+      retrySave.offer(options.retry)
       return
     }
     setResult(null)
@@ -681,7 +679,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     } = payload
     clearUndoTimer()
     clearPending()
-    setRetrySave(null)
+    retrySave.clear()
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
@@ -1075,7 +1073,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       clearUndoTimer()
       void commitAnswer(stillPending)
     }
-    if (displayIndex + 1 >= total) {
+    // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
+    // total（T-175）はサブ設問を展開した解答数なので、audio_set を含むセッションでは
+    // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
+    // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた。
+    // snapshot が無ければこの関数へ到達しない（描画前に早期returnしている）
+    if (displayIndex + 1 >= snapshot!.items.length) {
       navigate('result')
       return
     }
@@ -1148,7 +1151,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     const { grade, isCorrect, responseMs, question: q, item: sessionItem, snapshot: snap } = payload
     clearVocabUndoTimer()
     clearVocabPending()
-    setRetrySave(null)
+    retrySave.clear()
 
     try {
       // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
@@ -1259,10 +1262,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               </p>
               {/* T-176（docs/27 のS-27）: 正誤表示を取り消して再解答させる代わりに、
                   同じ解答の保存をやり直す。正解が見えている状態で選び直させても意味がない */}
-              {retrySave && (
+              {retrySave.shown && (
                 <button
                   type="button"
                   className="secondary-action"
+                  disabled={retrySave.busy}
+                  aria-busy={retrySave.busy}
                   onClick={() => void retrySave.run()}
                 >
                   保存を再試行する
