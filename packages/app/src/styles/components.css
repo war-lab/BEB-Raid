@@ -3125,3 +3125,10 @@
   font-size: var(--fs-note);
   color: var(--ink-2);
 }
+
+/* T-172（J-98）: 同一セッション内に再投入されたカードの注記。
+   --ng は使わない（間違いの強調ではなく、もう一度やる合図） */
+.vocab-retry-note {
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}

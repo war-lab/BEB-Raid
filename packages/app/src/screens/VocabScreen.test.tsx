@@ -171,7 +171,9 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     fireEvent.click(screen.getByText('decoy の意味')) // わざと不正解を選ぶ
     fireEvent.click(screen.getByText('もう一回'))
 
-    await screen.findByText(/仕分け \d/)
+    // T-172(J-98)以降、「もう一回」はカードを同一セッション内へ再投入するため
+    // 仕分けフェーズへは移らない。記録の完了はattemptsの件数で待つ
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
     const card = await db.srsCards.get('vocab:epsilon')
@@ -197,7 +199,8 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     expect(screen.queryByText('余裕')).toBeNull()
     fireEvent.click(screen.getByText('次へ'))
 
-    await screen.findByText(/仕分け \d/)
+    // T-172(J-98): 「わからない」はagain固定なのでカードが再投入され、仕分けへは移らない
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
     // 「わからない」は間隔をagain（stage0リセット）にする
@@ -770,5 +773,124 @@ describe('VocabScreen: 自動再生のopt-outと画面内の音声コントロ�
     )
     // ONの間は停止ボタンを出さない（鳴らないので不要）
     expect(screen.queryByText('音声を止める')).toBeNull()
+  })
+})
+
+describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦（T-171・T-172）', () => {
+  /**
+   * 表示中のカードを1件、指定の評価で消化する。
+   * カードの順序は getSrsQueue（dueAt順）が決めるので、seedした配列の順とは一致しない。
+   * 表示中の単語をDOMから読んで、その正解選択肢をタップする
+   */
+  async function gradeCurrentCard(grade: 'もう一回' | 'OK' | '余裕') {
+    const word = document.querySelector('.vocab-card__word')?.textContent ?? ''
+    expect(word).not.toBe('')
+    fireEvent.click(screen.getByText(`${word} の意味`))
+    fireEvent.click(screen.getByText(grade))
+    return word
+  }
+
+  // 何を防ぐか（T-171・J-96）: 数日空けると「復習 1/137」のような件数を突きつけられること。
+  // 仕分け側は20語で区切る配慮があるのに復習側には無く、非対称だった
+  it('20件復習するごとに中間画面が出て、「続ける」で再開できる', async () => {
+    const db = newDb()
+    const words = Array.from({ length: 21 }, (_, i) => `w${i}`)
+    for (const w of words) await seedDueCard(db, w)
+    const questions = words.map((w) => vocabQuestion(w))
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+
+    for (let i = 0; i < 20; i++) {
+      await waitFor(() => expect(screen.getByText(`復習 ${i + 1}/21`)).toBeTruthy())
+      await gradeCurrentCard('OK') // againにしないので再投入されない
+    }
+
+    expect(await screen.findByText('復習を20件終えました')).toBeTruthy()
+    expect(screen.getByText('続ける（残り1件）')).toBeTruthy()
+    // キューの件数自体は変えない（21件目は消化されずに残っている）
+    expect(await db.attempts.count()).toBe(20)
+
+    fireEvent.click(screen.getByText('続ける（残り1件）'))
+    await waitFor(() => expect(screen.getByText('復習 21/21')).toBeTruthy())
+  })
+
+  it('中間画面から仕分けへ直行できる', async () => {
+    const db = newDb()
+    const words = Array.from({ length: 21 }, (_, i) => `w${i}`)
+    for (const w of words) await seedDueCard(db, w)
+    const questions = [...words, 'newword'].map((w) => vocabQuestion(w))
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+
+    for (let i = 0; i < 20; i++) {
+      await waitFor(() => expect(screen.getByText(`復習 ${i + 1}/21`)).toBeTruthy())
+      await gradeCurrentCard('OK')
+    }
+    await screen.findByText('復習を20件終えました')
+
+    fireEvent.click(screen.getByText('仕分けへ'))
+    await waitFor(() => expect(screen.getByText(/仕分け 1\//)).toBeTruthy())
+  })
+
+  // 何を防ぐか（T-172・J-98）: 覚えられなかった語をその場で数分後に再確認する導線が無く、
+  // 「もう一回」でも最短で翌日までかかっていたこと
+  it('「もう一回」でカードがキュー末尾へ再投入され、注記が出る', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    await seedDueCard(db, 'bravo')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/2')).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('もう一回'))
+
+    // 総数が3件に増える（再投入分）
+    await waitFor(() => expect(screen.getByText(/復習 2\/3/)).toBeTruthy())
+    fireEvent.click(screen.getByText('bravo の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    // 3件目が再投入されたalpha。注記が出る
+    await waitFor(() => expect(screen.getByText(/復習 3\/3/)).toBeTruthy())
+    expect(screen.getByText('もう一度')).toBeTruthy()
+    expect(screen.getByText('alpha')).toBeTruthy()
+  })
+
+  it('DB上の間隔は変えない（再投入はセッション内キューだけの話）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('もう一回'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const card = await db.srsCards.get('vocab:alpha')
+    // again は stage0 リセット＋翌日0時（applyGradeの既存仕様。間隔テーブルは不変）
+    expect(card?.stage).toBe(0)
+    expect(card!.dueAt).toBeGreaterThan(Date.now())
+  })
+
+  it('再投入されたカードで再度「もう一回」を選んでも再投入しない（1周のみ）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('もう一回'))
+
+    // 再投入された2件目
+    await waitFor(() => expect(screen.getByText(/復習 2\/2/)).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('もう一回'))
+
+    // 3件目は作られず、仕分けフェーズ（候補なしなので終了画面）へ抜ける
+    await screen.findByText('語彙SRSが終了しました')
+    // 再投入分も通常どおり記録する（attempts は追記のみ）
+    expect(await db.attempts.count()).toBe(2)
   })
 })

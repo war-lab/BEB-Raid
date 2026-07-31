@@ -54,6 +54,14 @@ const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→S�
 /** 仕分けの区切り単位（T-119・J-58）。600語を前に「終わりが見えない」圧を緩和する */
 const TRIAGE_BATCH_SIZE = 20
 
+/**
+ * 復習の区切り単位（T-171・J-96）。仕分け側（TRIAGE_BATCH_SIZE）と**同じ値にするのが意図**で、
+ * 「仕分けは20語で区切るのに復習は区切らない」という非対称を解消するためのもの。
+ * キュー自体は期限到来分の全件を保持し続ける（上限は設けない＝SRSの「期限が来たものは
+ * 全部やる」思想を維持する。19の6節）
+ */
+const REVIEW_BATCH_SIZE = 20
+
 /** 猶予中の未確定な仕分け（T-161）。確定に必要な値をタップ時点で確定させて保持する */
 interface TriagePendingCommit {
   word: string
@@ -93,6 +101,15 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [triageIndex, setTriageIndex] = useState(0)
   // T-119: 20語仕分けるごとに立てる中断フラグ（「続けて仕分ける」タップでfalseに戻す）
   const [triagePaused, setTriagePaused] = useState(false)
+  // T-171: 20件復習するごとに立てる中断フラグ（仕分け側と対称。「続ける」タップでfalseに戻す）
+  const [reviewPaused, setReviewPaused] = useState(false)
+  /**
+   * T-172（J-98）: 同一セッション内に再投入したカードの位置。
+   * 「もう一回」を選んだカードをキュー末尾へ1周だけ戻す（DB上の dueAt=翌日0時は変えない）。
+   * 再投入位置を持つのは (a) 表示に「もう一度」の注記を出す (b) 再投入されたカードで
+   * 再度「もう一回」を選んでも二重に戻さない、の2つの判定に使うため
+   */
+  const [retryIndices, setRetryIndices] = useState<Set<number>>(new Set())
   // 復習モード専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
   // T-159: 記録処理中フラグ。refは連打の同期的な遮断用、stateはボタンの無効化用
@@ -366,10 +383,41 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
       skip: { wrongAnswer: true, tagStats: true, rating: true },
     })
     await evaluateStreak(db)
-    setReviewIndex((i) => i + 1)
+    advanceReview(grade)
     setSelectedChoiceKey(null)
     setDontKnow(false)
     setStartedAt(now())
+  }
+
+  /**
+   * 復習1件の消化後の進行（T-171・T-172）。
+   *
+   * T-172（J-98）: 「もう一回」を選んだカードは同一セッション内のキュー末尾へ再投入する。
+   * 従来は最短でも翌日（`applyGrade` の again = stage0 → 翌日0時）まで再確認できず、
+   * その場で数分後に確かめる導線が無かった。**DB上の dueAt は変えない**（間隔テーブルと
+   * applyGrade には触らない＝28の1.3節の不変条件）。再投入は1周のみで、再投入された
+   * カードで再度「もう一回」を選んでも戻さない（無限ループを避ける）。
+   *
+   * T-171（J-96）: 20件ごとに中間画面を挟む。キューの件数自体は変えない
+   */
+  function advanceReview(grade: SrsGrade) {
+    const current = reviewIndex
+    const isRetryCard = retryIndices.has(current)
+    const shouldRequeue = grade === 'again' && !isRetryCard && reviewCard !== undefined
+    if (shouldRequeue) {
+      setReviewQueue((queue) => {
+        if (!queue) return queue
+        setRetryIndices((prev) => new Set(prev).add(queue.length))
+        return [...queue, reviewCard]
+      })
+    }
+    const next = current + 1
+    setReviewIndex(next)
+    // 再投入した分は「残り」に含まれるので、区切り判定は再投入後の総数で見る
+    const total = (reviewQueue?.length ?? 0) + (shouldRequeue ? 1 : 0)
+    if (next < total && next % REVIEW_BATCH_SIZE === 0) {
+      setReviewPaused(true)
+    }
   }
 
   /** 仕分け1件の消化後、20語区切りに達していたら中断フラグを立てる（T-119） */
@@ -447,6 +495,39 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     await handleTriage(false)
   }
 
+  // T-171(J-96): 20件区切りの中間画面。仕分け側（T-119）と対称にし、「終わりが見えない」
+  // 圧だけを外す。キューの件数自体は変えない（期限到来分は全部やる思想を維持する）
+  if (reviewPaused && reviewIndex < reviewQueue.length) {
+    return (
+      <ScreenLayout
+        action={
+          <>
+            <PrimaryButton onClick={() => setReviewPaused(false)}>
+              続ける（残り{reviewQueue.length - reviewIndex}件）
+            </PrimaryButton>
+            {triageQueue.length > 0 && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => {
+                  setReviewPaused(false)
+                  setReviewIndex(reviewQueue.length)
+                }}
+              >
+                仕分けへ
+              </button>
+            )}
+            <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+              ホームへ
+            </button>
+          </>
+        }
+      >
+        <p>復習を{REVIEW_BATCH_SIZE}件終えました</p>
+      </ScreenLayout>
+    )
+  }
+
   if (reviewIndex < reviewQueue.length && reviewCard) {
     const front = reviewQuestion?.front ?? reviewCard.refId
     const phrase = reviewQuestion?.phrase ?? front
@@ -457,6 +538,9 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
           <>
             <p>
               復習 {reviewIndex + 1}/{reviewQueue.length}
+              {/* T-172(J-98): 同一セッション内に戻ってきたカードであることを示す
+                  （同じ語が2回出る理由が分からないと不信になる） */}
+              {retryIndices.has(reviewIndex) && <span className="vocab-retry-note"> もう一度</span>}
             </p>
             {/* T-119(J-58): 復習が溜まった日でも仕分けに到達できるよう、消化せず仕分けへ直行する導線。
                 DB上の復習キューは未消化のまま=次回入店時にまた復習から始まる */}
