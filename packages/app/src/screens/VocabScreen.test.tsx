@@ -11,7 +11,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { evaluateStreak } from '../engine/streak'
 import type { AudioPlayer, PlaybackOutcome } from '../platform'
-import { MISTAP_UNDO_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import {
+  AUTO_PLAY_ENABLED_KEY,
+  MISTAP_UNDO_ENABLED_KEY,
+  NO_EARPHONE_MODE_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { VocabScreen } from './VocabScreen'
 
@@ -611,8 +615,9 @@ describe('VocabScreen: 仕分けスワイプの取り消し猶予（T-161。docs
     )
     await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
     fireEvent.click(screen.getByText('知ってる'))
+    // DB往復を挟まない（挟むと400msの猶予が経過し、flushではなくタイマー確定を
+    // 検証してしまう。猶予中に書かないことは上のテストが担保する）
     expect(await screen.findByText('取り消し（知ってる）')).toBeTruthy()
-    expect(await db.srsCards.count()).toBe(0)
 
     view.unmount()
 
@@ -707,5 +712,63 @@ describe('VocabScreen: 連打防止と保存失敗の表示（T-159。docs/27 �
 
     await screen.findByText(/記録を保存できませんでした/)
     expect(screen.getByText('仕分け 1/2')).toBeTruthy()
+  })
+})
+
+describe('VocabScreen: 自動再生のopt-outと画面内の音声コントロール（T-166。docs/27 のS-16）', () => {
+  // 何を防ぐか: 仕分けはカード表示のたびに自動再生するため、公共の場で音が鳴り続ける状態から
+  // その場で逃げられなかったこと（イヤホンなしモードのトグルは設定画面にしか無かった）
+  it('autoPlayEnabled=false なら仕分けカードのフレーズ音声を自動再生しない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: AUTO_PLAY_ENABLED_KEY, value: false })
+    const audioPlayer = new FakeAudioPlayer()
+    const questions = [vocabQuestion('alpha')]
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/1')).toBeTruthy())
+
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+  })
+
+  it('既定では自動再生される（T-166は既定を変えない＝回帰）', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const questions = [vocabQuestion('alpha')]
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+  })
+
+  it('「音声を止める」で再生中のフレーズ音声を止められる', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const questions = [vocabQuestion('alpha')]
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/1')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('音声を止める'))
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
+  it('画面内のイヤホンなしモードトグルで音を止め、設定にも永続化する', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+
+    const toggle = screen.getByLabelText('イヤホンなしモード（音声を鳴らさない）')
+    fireEvent.click(toggle)
+
+    // 鳴っている音を即座に止める（公共の場での事故を止める用途）
+    await waitFor(() => expect(audioPlayer.stop).toHaveBeenCalled())
+    // 設定画面と同じキーに永続化する
+    await waitFor(async () =>
+      expect((await db.settings.get(NO_EARPHONE_MODE_KEY))?.value).toBe(true),
+    )
+    // ONの間は停止ボタンを出さない（鳴らないので不要）
+    expect(screen.queryByText('音声を止める')).toBeNull()
   })
 })

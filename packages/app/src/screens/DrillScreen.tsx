@@ -33,6 +33,7 @@ import {
 } from '../services/session'
 import {
   HAPTICS_ENABLED_KEY,
+  AUTO_PLAY_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
 } from '../services/settingsKeys'
@@ -282,6 +283,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   } = usePendingCommit<VocabPendingCommit>((payload) => commitVocabGrade(payload))
   // 取り消し実行の非モーダル通知（skipNoticeと同型。4秒で消える）
   const [undoNotice, setUndoNotice] = useState(false)
+  // T-166（J-93）: 2問目以降の音声自動再生の有効/無効。既定ON（T-110の意図は変えない）
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -289,11 +292,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       db.settings.get(NO_EARPHONE_MODE_KEY),
       db.settings.get(HAPTICS_ENABLED_KEY),
       db.settings.get(MISTAP_UNDO_ENABLED_KEY),
-    ]).then(([earphoneSetting, hapticsSetting, undoSetting]) => {
+      db.settings.get(AUTO_PLAY_ENABLED_KEY),
+    ]).then(([earphoneSetting, hapticsSetting, undoSetting, autoPlaySetting]) => {
       if (cancelled) return
       setNoEarphoneMode(earphoneSetting?.value === true)
       setHapticsEnabled(hapticsSetting?.value !== false)
       setMistapUndoEnabled(undoSetting?.value !== false)
+      setAutoPlayEnabled(autoPlaySetting?.value !== false)
       setSettingsLoaded(true)
     })
     return () => {
@@ -397,6 +402,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // リコールテストにならない（VocabScreen と同一仕様。docs/02 4節）
   useEffect(() => {
     if (!settingsLoaded || !isVocabCard || noEarphoneMode || !question?.phraseAudio) return
+    // T-166（J-93）: 自動再生のopt-outはフレーズ音声にも効かせる
+    if (!autoPlayEnabled) return
     if (!answeredVocab) return
     void audioPlayer
       .unlock()
@@ -406,17 +413,27 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         console.warn('[DrillScreen] フレーズ音声の自動再生に失敗', err)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsLoaded, isVocabCard, noEarphoneMode, answeredVocab, question?.phraseAudio])
+  }, [
+    settingsLoaded,
+    isVocabCard,
+    noEarphoneMode,
+    answeredVocab,
+    question?.phraseAudio,
+    autoPlayEnabled,
+  ])
   // T-110: セッション内で一度ユーザージェスチャー起点の再生に成功したら（hasPlayedOnceRef）、
   // 以降の音声ゲート付き問題（audio_qa/dictation/audio_set）は自動再生する。
   // handlePlayStart は関数宣言（hoisted）のため、この時点で呼び出して問題ない。
   // 自動再生が拒否された場合はhandlePlayStart内のcatchが従来のタップ開始UIへ戻す
+  // T-166（J-93。docs/27 のS-14）: 設定でopt-outできる。既定ONのままなので
+  // T-110の意図（一度タップに成功したら以降は自動）は保たれる。OFFなら従来のタップ開始UIに戻る
   useEffect(() => {
+    if (!settingsLoaded || !autoPlayEnabled) return
     if (!needsAudioGate || playState !== 'idle' || !hasPlayedOnceRef.current) return
 
     void handlePlayStart()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question?.id])
+  }, [question?.id, settingsLoaded, autoPlayEnabled])
   // 再生済み・未解答の間だけタイマーを走らせる（開始値の設定は handlePlayStart 側で行う。
   // ここでは「今ティックすべきか」だけを見る真偽値にし、setInterval の再生成を毎秒起こさない）。
   // 15秒タイマーは audio_qa 固有（dictation は未タイマー=03の8節）。
@@ -875,6 +892,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }
 
+  /**
+   * 再生を止める（T-166。docs/27 のS-14）。中断として扱われるので、
+   * audio_qa のタイマーは開始しない（T-158の outcome 判定に乗る）
+   */
+  function handleStopPlayback() {
+    audioPlayer.stop()
+    setPlayState('played')
+  }
+
   /** audio_qa: 音声再生に失敗した際、音声なしで解答へ進むフォールバック（タイマーは開始しない） */
   function handlePlayWithoutAudio() {
     setAudioError(null)
@@ -1280,6 +1306,14 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               >
                 {playState === 'playing' ? '再生中…' : audioError ? 'もう一度試す' : '音声を再生'}
               </PrimaryButton>
+              {/* T-166（docs/27 のS-14）: 再生中の停止導線。audioPlayer.stop() は実装済みで
+                  UIに露出していなかっただけ。自動再生で流れ始めた音声を止める手段が無いと、
+                  公共の場や音量調整前の再生から逃げられない */}
+              {playState === 'playing' && (
+                <button type="button" className="secondary-action" onClick={handleStopPlayback}>
+                  停止
+                </button>
+              )}
               {/* T-154: 音声のみモードでは記号だけでは解答不能なので「音声なしで解答する」を
                   出さない（出すと音声404で永久に進めなくなる）。代わりにスキップを出す */}
               {audioError && isAudioQa && !isAudioOnlyMode && (
@@ -1335,7 +1369,14 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               </button>
             </>
           )}
-          {isAudioSet && playState === 'playing' && <p>再生中…</p>}
+          {isAudioSet && playState === 'playing' && (
+            <>
+              <p>再生中…</p>
+              <button type="button" className="secondary-action" onClick={handleStopPlayback}>
+                停止
+              </button>
+            </>
+          )}
           {!isVocabCard && needsAudioGate && playState === 'played' && !result && (
             <button type="button" className="drill-replay" onClick={() => void handleReplay()}>
               もう一度再生

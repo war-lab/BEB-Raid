@@ -22,6 +22,7 @@ import {
   type SessionItem,
 } from '../services/session'
 import {
+  AUTO_PLAY_ENABLED_KEY,
   HAPTICS_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
@@ -765,8 +766,11 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     const view = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
 
     fireEvent.click(await screen.findByText('a'))
+    // 猶予中であることの確認はDOMだけで行う。ここで await db.attempts.count() を挟むと
+    // DB往復の間に400msの猶予が経過し、「まだ書いていない」という前提自体が崩れて
+    // 並列実行時にflushではなくタイマー確定を検証してしまう（猶予中に書かないことは
+    // 「猶予中は attempts を書かず…」のテストが担保する）
     expect(await screen.findByText('取り消し')).toBeTruthy()
-    expect(await db.attempts.count()).toBe(0)
 
     view.unmount()
 
@@ -870,10 +874,10 @@ describe('DrillScreen: 語彙カード自己評価の取り消し猶予（T-160�
     fireEvent.click(screen.getByText('OK'))
 
     expect(await screen.findByText('取り消し')).toBeTruthy()
-    expect(await db.attempts.count()).toBe(0)
-    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(0)
     // 猶予中は評価ボタンを引っ込める（二重評価を防ぐ）
     expect(screen.queryByText('OK')).toBeNull()
+    expect(useSessionStore.getState().snapshot?.answeredCount).toBe(0)
+    expect(await db.attempts.count()).toBe(0)
     // SRSの間隔もまだ動かさない
     expect((await db.srsCards.get('vocab:submit'))?.stage).toBe(0)
   })
@@ -912,8 +916,8 @@ describe('DrillScreen: 語彙カード自己評価の取り消し猶予（T-160�
 
     fireEvent.click(await screen.findByText('submit の意味'))
     fireEvent.click(screen.getByText('OK'))
+    // DB往復を挟まない（挟むと400msが経過してflushではなくタイマー確定を検証してしまう）
     expect(await screen.findByText('取り消し')).toBeTruthy()
-    expect(await db.attempts.count()).toBe(0)
 
     view.unmount()
 
@@ -957,6 +961,60 @@ describe('DrillScreen: リスニングの自動再生（T-110）', () => {
     // 2問目は自動再生され、「音声を再生」ボタンをタップしなくても選択肢が表示される
     await waitFor(() => expect(screen.getByText('In the meeting room.')).toBeTruthy())
     expect(audioPlayer.play).toHaveBeenCalledTimes(2)
+  })
+
+  // T-166（J-93。docs/27 のS-14）: 自動再生は既定ONのままopt-outできる。従来は準備の間も
+  // 停止手段も無く、設定でOFFにもできなかった
+  it('autoPlayEnabled=false なら2問目以降も自動再生しない（タップ開始UIに戻る）', async () => {
+    const db = newDb()
+    const questions = [audioQaQuestion('p2-1', 'A'), audioQaQuestion('p2-2', 'A')]
+    await setupSession(
+      db,
+      questions.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      questions,
+    )
+    await db.settings.put({ key: AUTO_PLAY_ENABLED_KEY, value: false })
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+
+    fireEvent.click(await screen.findByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    await answerAndSettle('Yesterday.', 1)
+    fireEvent.click(screen.getByText('次へ'))
+
+    // 2問目はタップ開始UIのまま（自動再生されない）
+    await waitFor(() => expect(screen.getByText('音声を再生')).toBeTruthy())
+    expect(audioPlayer.play).toHaveBeenCalledTimes(1)
+  })
+
+  it('再生中は停止ボタンが出て、押すと再生が止まり解答へ進める', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-1', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+    const pending: { resolve?: (outcome: PlaybackOutcome) => void } = {}
+    audioPlayer.play.mockImplementation(
+      () =>
+        new Promise<PlaybackOutcome>((resolve) => {
+          pending.resolve = resolve
+        }),
+    )
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+
+    const stopButton = await screen.findByText('停止')
+    fireEvent.click(stopButton)
+    expect(audioPlayer.stop).toHaveBeenCalled()
+
+    await act(async () => {
+      pending.resolve?.('interrupted')
+      await Promise.resolve()
+    })
+    // 停止後は解答できる（音声ゲートを抜ける）
+    expect(await screen.findByText('Yesterday.')).toBeTruthy()
+    // 中断なのでタイマーは開始しない（T-158の判定に乗る）
+    expect(document.querySelector('.drill-timer')).toBeNull()
   })
 
   it('自動再生が拒否された場合は、その問題からタップ開始UIへフォールバックする', async () => {

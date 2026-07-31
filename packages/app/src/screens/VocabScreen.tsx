@@ -27,6 +27,7 @@ import type { AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { countAttemptsToday } from '../services/dailyStats'
 import {
+  AUTO_PLAY_ENABLED_KEY,
   HAPTICS_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
@@ -84,6 +85,10 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   // 一度も無く常にOFF固定＝聞き流し周回が機能していなかったため、既存のイヤホンなし
   // モード設定に統合した）
   const [autoPlay, setAutoPlay] = useState(true)
+  // T-166（docs/27 のS-16）: イヤホンなしモードを画面内で切り替えられるようにする。
+  // 従来は設定画面へ移動しないと切り替えられず、公共の場でカードごとに音が鳴る状態から
+  // その場で逃げられなかった。新キーは作らず既存の NO_EARPHONE_MODE_KEY を読み書きする
+  const [noEarphoneMode, setNoEarphoneMode] = useState(false)
   const [reviewIndex, setReviewIndex] = useState(0)
   const [triageIndex, setTriageIndex] = useState(0)
   // T-119: 20語仕分けるごとに立てる中断フラグ（「続けて仕分ける」タップでfalseに戻す）
@@ -124,15 +129,19 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         (q) =>
           q.format === 'vocab_card' && q.front && !existingIds.has(srsCardId('vocab', q.front)),
       )
-      const [noEarphoneSetting, hapticsSetting, mistapUndoSetting] = await Promise.all([
-        db.settings.get(NO_EARPHONE_MODE_KEY),
-        db.settings.get(HAPTICS_ENABLED_KEY),
-        db.settings.get(MISTAP_UNDO_ENABLED_KEY),
-      ])
+      const [noEarphoneSetting, hapticsSetting, mistapUndoSetting, autoPlaySetting] =
+        await Promise.all([
+          db.settings.get(NO_EARPHONE_MODE_KEY),
+          db.settings.get(HAPTICS_ENABLED_KEY),
+          db.settings.get(MISTAP_UNDO_ENABLED_KEY),
+          db.settings.get(AUTO_PLAY_ENABLED_KEY),
+        ])
       if (!cancelled) {
         setReviewQueue(reviewCards)
         setTriageQueue(candidates)
-        setAutoPlay(noEarphoneSetting?.value !== true)
+        // T-166（J-93）: イヤホンなしモードに加えて、自動再生のopt-out設定でも止める
+        setNoEarphoneMode(noEarphoneSetting?.value === true)
+        setAutoPlay(noEarphoneSetting?.value !== true && autoPlaySetting?.value !== false)
         setHapticsEnabled(hapticsSetting?.value !== false)
         setMistapUndoEnabled(mistapUndoSetting?.value !== false)
       }
@@ -185,6 +194,23 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         // 自動再生は失敗しても学習継続可能（4択・スワイプ操作は既に表示されている）なので通知はしない
         console.warn(`[VocabScreen] ${context}に失敗`, err)
       })
+  }
+
+  /**
+   * イヤホンなしモードの画面内トグル（T-166。docs/27 のS-16）。
+   * 設定画面と同じキーに書くので、切り替えは設定画面にもそのまま反映される
+   */
+  async function handleToggleNoEarphone() {
+    const next = !noEarphoneMode
+    setNoEarphoneMode(next)
+    setAutoPlay(!next)
+    if (next) audioPlayer.stop() // 鳴っている音を即座に止める（公共の場での事故を止める用途）
+    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: next })
+  }
+
+  /** 再生中のフレーズ音声を止める（T-166。docs/27 のS-16） */
+  function handleStopPhrase() {
+    audioPlayer.stop()
   }
 
   // 仕分けフェーズに入っているか（復習キューを消化しきった後）。音声の自動再生を
@@ -607,6 +633,24 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
             )}
             {/* T-161: 猶予中は仕分けボタンを引っ込めて「取り消し」だけを出す。
                 「知ってる」は語を恒久的に候補から外すため、ドリルの選択肢タップより不可逆である */}
+            {/* T-166（docs/27 のS-16）: 仕分けはカード表示のたびに自動再生するため、
+                この場で止める手段とイヤホンなしモードの切り替えを置く（従来は設定画面へ
+                移動しないと切り替えられず、公共の場で音が鳴り続ける状態から逃げられなかった） */}
+            <div className="vocab-audio-controls">
+              {!noEarphoneMode && (
+                <button type="button" className="secondary-action" onClick={handleStopPhrase}>
+                  音声を止める
+                </button>
+              )}
+              <label className="vocab-earphone-toggle">
+                <input
+                  type="checkbox"
+                  checked={noEarphoneMode}
+                  onChange={() => void handleToggleNoEarphone()}
+                />
+                イヤホンなしモード（音声を鳴らさない）
+              </label>
+            </div>
             {triagePending !== null ? (
               <button type="button" className="drill-undo" onClick={handleTriageUndo}>
                 取り消し（{triagePending.known ? '知ってる' : '知らない'}）

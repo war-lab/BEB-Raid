@@ -3108,3 +3108,20 @@
   font-size: var(--fs-sub);
   text-align: center;
 }
+
+/* T-166（docs/27 のS-16）: 語彙仕分けの音声コントロール（停止＋イヤホンなしモード）。
+   カードごとの自動再生をその場で止められるようにするための最小限の並び */
+.vocab-audio-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  margin-bottom: var(--sp-1);
+}
+.vocab-earphone-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  min-height: var(--tap-min);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}

@@ -56,6 +56,14 @@ export const DIAGNOSTIC_PROGRESS_KEY = 'diagnosticProgress'
  */
 export const SINGLE_MODE_COUNT_KEY = 'singleModeCount'
 /**
+ * 2問目以降の音声自動再生を有効にするか（T-166・J-93。既定ON）。
+ * 自動再生自体は18のT-110で意図的に入れた挙動で、既定は変えない。OFFにすると
+ * ドリルの音声ゲート問題と語彙仕分けのフレーズ音声がタップ起点に戻る
+ * （心の準備・音量調整・イヤホン装着直しの間が要る場合の逃げ道。docs/27 のS-14・S-16）
+ */
+export const AUTO_PLAY_ENABLED_KEY = 'autoPlayEnabled'
+
+/**
  * ボス役記録（POST /ghosts）を送信済みか（epoch ms。M4・T-128）。
  * RaidScreenがこれを見て「撤回する」導線の表示要否を判断する（サーバー側KVの
  * 有無を都度問い合わせない端末内キャッシュ。撤回=DELETE成功時に削除する）
