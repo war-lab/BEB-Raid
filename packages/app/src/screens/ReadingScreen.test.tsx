@@ -15,7 +15,7 @@ import { applyRatingUpdate } from '../engine/rating'
 import { advanceSession, startSession, type SessionItem } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
-import { ReadingScreen } from './ReadingScreen'
+import { readingPaceLabel, ReadingScreen } from './ReadingScreen'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -404,26 +404,19 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
     expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
   })
 
-  // 何を防ぐか: 制限時間ではないのに「経過180秒」と出続けて心理的な圧だけが増えること
-  it('目安の1分を超えると経過秒数の表示が「1分超」に切り替わる', async () => {
+  // 何を防ぐか: 制限時間ではないのに「経過180秒」と出続けて心理的な圧だけが増えること。
+  // **60秒の経過そのものは readingPaceLabel の単体テストで固定している**——画面テストで
+  // 経過を作るには Date をフェイクにする必要があり、同一ファイル内の実データテストと
+  // 干渉して不安定だった。ここでは「ラベル関数が配線されている」ことだけを見る
+  it('ペース表示はreadingPaceLabelの結果を出す（初期は経過秒数つき）', async () => {
     const db = newDb()
     const q = part7Question('p7-pace', 2)
     await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
 
-    // Date も含めてフェイクにする（elapsedSec は now() - startedAt で計算するため、
-    // setInterval だけ進めても経過時間が変わらない）。setTimeout・Promise は
-    // Dexie/fake-indexeddb のデッドロックを避けるためリアルタイムのまま残す
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
     render(<ReadingScreen db={db} />)
 
-    // 初期表示は経過秒数つき
+    expect(screen.getByText(readingPaceLabel(0))).toBeTruthy()
     expect(screen.getByText(/目安1問\/分（経過\d+秒）/)).toBeTruthy()
-
-    await vi.advanceTimersByTimeAsync(61_000)
-
-    await vi.waitFor(() => expect(screen.getByText('目安1問/分（1分超）')).toBeTruthy())
-    // 数値のカウントアップは止まる（「経過61秒」等は出さない）
-    expect(screen.queryByText(/経過\d+秒/)).toBeNull()
   })
 })
 
@@ -509,5 +502,89 @@ describe('ReadingScreen: Part7複数文書のタブ切替（T-165。docs/27 のS
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     // 2通目を表示したままでも解答が記録される
     expect(screen.getByTestId('passage-text').textContent).toBe('2通目の本文です。返信の内容。')
+  })
+})
+
+describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビュー指摘）', () => {
+  // 何を防ぐか: 「解答済み+1」のままだと最終解答後に 6/5 と出る。バー幅はSessionProgress内で
+  // 100%に丸められるが、表示文字とaria-valuenowは超過したままになる
+  it('最終サブ設問を解答しても進捗が総数を超えない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-progress', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByLabelText('進捗 1/3')).toBeTruthy()
+
+    // 3問すべて解答する（最後の1問を解答した時点でも 3/3 を超えない）
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+      if (i < 2) {
+        fireEvent.click(screen.getByText('次へ'))
+        await waitFor(() => expect(screen.getByLabelText(`進捗 ${i + 2}/3`)).toBeTruthy())
+      }
+    }
+
+    const bar = screen.getByRole('progressbar')
+    expect(bar.getAttribute('aria-valuenow')).toBe('3')
+    expect(bar.getAttribute('aria-label')).toBe('進捗 3/3')
+
+    // 3件すべての記録完了を待ってから終わる。**待たないと後続テストを壊す**——
+    // useSessionStore はモジュール単位の共有ストアなので、在職中のパイプラインが
+    // 次のテストのセットアップ後に recordAnswer で上書きしてしまう
+    await waitFor(async () => expect(await db.attempts.count()).toBe(3))
+  })
+
+  // 何を防ぐか: 保存の後段（レート・タグ統計等）が失敗した後に再試行すると、
+  // パイプライン全体が再実行されて attempt が二重に記録されること（レビュー指摘のP1）。
+  // 単一トランザクション化（ADR 0010）により、失敗時は何も書かれないので再試行が冪等になる
+  it('後段の失敗後に再試行しても attempt は1件だけになる', async () => {
+    const db = newDb()
+    const q = part7Question('p7-retry', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // ratings への書き込みを1回だけ失敗させる（①attempt記録より後の段の失敗）
+    const original = db.ratings.put.bind(db.ratings)
+    let failed = false
+    const spy = vi.spyOn(db.ratings, 'put').mockImplementation(((...args: unknown[]) => {
+      if (!failed) {
+        failed = true
+        return Promise.reject(new Error('ratings書き込み失敗（模擬）'))
+      }
+      return original(...(args as Parameters<typeof original>))
+    }) as typeof db.ratings.put)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // 正誤表示は保持され、attemptは書かれていない（ロールバック済み）
+    expect(await db.attempts.count()).toBe(0)
+
+    fireEvent.click(screen.getByText('保存を再試行する'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 二重記録しない
+    expect(await db.attempts.count()).toBe(1)
+    await waitFor(() =>
+      expect(
+        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      ).toBeNull(),
+    )
+    spy.mockRestore()
+  })
+})
+
+describe('readingPaceLabel（T-164。docs/27 のS-13）', () => {
+  // 何を防ぐか: 目安を超えても数値が増え続けること（制限時間ではないのに圧だけが増える）
+  it('目安（60秒）未満は経過秒数を出し、以降は「1分超」に切り替える', () => {
+    expect(readingPaceLabel(0)).toBe('目安1問/分（経過0秒）')
+    expect(readingPaceLabel(59)).toBe('目安1問/分（経過59秒）')
+    expect(readingPaceLabel(60)).toBe('目安1問/分（1分超）')
+    expect(readingPaceLabel(180)).toBe('目安1問/分（1分超）')
   })
 })

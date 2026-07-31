@@ -2415,3 +2415,35 @@ describe('DrillScreen: 再生中の設問文表示（T-167。docs/27 のS-15）'
     })
   })
 })
+
+describe('DrillScreen: 進捗の上限（レビュー指摘）', () => {
+  // 何を防ぐか: 3問セット（audio_set）の最終解答後に 4/3 と出ること。
+  // バー幅はSessionProgress内で100%に丸められるが、表示文字とaria-valuenowは超過する
+  it('audio_setの最終サブ設問を解答しても進捗が総数を超えない', async () => {
+    const db = newDb()
+    const set = audioSetQuestion('s-progress', 3)
+    await setupSession(db, [{ questionId: set.id, mode: 'solo' }], [set])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    expect(await screen.findByLabelText('進捗 1/3')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('音声を再生'))
+    fireEvent.click(await screen.findByText('もう再生する'))
+    await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
+
+    // 3問のサブ設問を順に解答する（既存のaudio_setテストと同じ操作）
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      await waitFor(() => expect(screen.getByText(`設問${i}の解説`)).toBeTruthy())
+      if (i < 2) {
+        fireEvent.click(screen.getByText('次の設問へ'))
+        await waitFor(() => expect(screen.getByLabelText(`進捗 ${i + 2}/3`)).toBeTruthy())
+      }
+    }
+
+    const bar = screen.getByRole('progressbar')
+    expect(bar.getAttribute('aria-valuenow')).toBe('3')
+    expect(bar.getAttribute('aria-label')).toBe('進捗 3/3')
+  })
+})

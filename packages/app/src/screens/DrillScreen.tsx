@@ -580,11 +580,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   // audio_set は1itemで3サブ設問あるため、item数だと「20問」と出して実際は数十回になり、
   // 1item内で答えても進捗バーが動かなかった。セッションのitem構成自体は変えていない
   const total = totalAnswerSlots(snapshot.items, questions)
-  const current =
+  // レビュー指摘: 「解答済み+1」のままだと3問セットの最終解答後に 4/3 と出る
+  // （バー幅はSessionProgress内で100%に丸められるが、表示文字とaria-valuenowは超過する）。
+  // 総数で丸める
+  const current = Math.min(
     answerSlotsBefore(snapshot.items, questions, displayIndex) +
-    // audio_set は answeredSubCount 分だけ進む。他formatは1item=1回
-    (isAudioSet ? subQuestionResults.length : 0) +
-    1
+      // audio_set は answeredSubCount 分だけ進む。他formatは1item=1回
+      (isAudioSet ? subQuestionResults.length : 0) +
+      1,
+    total,
+  )
 
   /**
    * 解答保存（recordAnswerPipeline）失敗時の共通リカバリ（J-35・T-76）。

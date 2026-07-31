@@ -55,6 +55,21 @@ interface Props {
  */
 const PACE_GUIDE_SECONDS = 60
 
+/**
+ * ペース表示のラベル（T-164。docs/27 のS-13）。
+ * 目安を超えたら数値のカウントアップをやめる——制限時間ではないのに「経過180秒」と
+ * 出続けると、機能的な影響なしに心理的な圧だけが増える。
+ *
+ * 判定規則を純関数に切り出しているのは、画面テストで60秒の経過を作るには `Date` を
+ * フェイクにする必要があり、同一ファイル内の他テスト（実データのDexie操作）と干渉して
+ * 不安定になったため。規則はこの関数の単体テストで固定し、画面側は配線だけを見る
+ */
+export function readingPaceLabel(elapsedSec: number): string {
+  return elapsedSec >= PACE_GUIDE_SECONDS
+    ? '目安1問/分（1分超）'
+    : `目安1問/分（経過${elapsedSec}秒）`
+}
+
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 // （DrillScreenと同じ回避策）、別関数越しに呼ぶ
 function now(): number {
@@ -166,7 +181,12 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // T-175（docs/27 のS-26）: 進捗の分母を実際の解答回数にする。text_passage は1itemで
   // サブ設問全問を要求するため、item数だと進捗が実態と合わない
   const total = totalAnswerSlots(snapshot.items, questions)
-  const current = answerSlotsBefore(snapshot.items, questions, displayIndex) + answers.size + 1
+  // レビュー指摘: 読解5問なら最終解答後に 6/5 と出てしまう（バー幅だけは丸められるが
+  // 表示文字とaria-valuenowは超過する）。総数で丸める
+  const current = Math.min(
+    answerSlotsBefore(snapshot.items, questions, displayIndex) + answers.size + 1,
+    total,
+  )
 
   /** 空所タップ・設問切替（該当設問へジャンプ。3.5節）。解答済み設問も閲覧のため切替可 */
   function handleSelectBlank(index: number) {
@@ -289,13 +309,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           {/* T-164（docs/27 のS-13）: 目安の1分を超えたら数値のカウントアップを止める。
               制限時間ではないのに「経過180秒」と出続けると、機能的な影響なしに心理的な圧だけが
               増える。自動確定は従来どおり行わない（速答を煽らない=3.5節） */}
-          {!activeAnswer && (
-            <p className="reading-pace">
-              {elapsedSec >= PACE_GUIDE_SECONDS
-                ? '目安1問/分（1分超）'
-                : `目安1問/分（経過${elapsedSec}秒）`}
-            </p>
-          )}
+          {!activeAnswer && <p className="reading-pace">{readingPaceLabel(elapsedSec)}</p>}
         </>
       }
       action={

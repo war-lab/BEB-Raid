@@ -5,10 +5,23 @@
 // VocabScreen の handleGrade を、この1関数の skip オプションの組み合わせで表現する。
 // T-89でpendingSyncエンキュー（4.1節の挿入点）を追加した。
 //
-// 【トランザクション境界】attempts+snapshotの原子性は answerCurrentQuestion 内で
-// 確保済み。②〜⑤を含めた全ステップの単一トランザクション化はDexieのストア跨ぎコストと
-// T-07設計を尊重して見送る（現状維持）。途中で例外が起きたら呼び出し側（UI）が
-// catchしてトースト表示＋スナップショット再読込を行う（T-70と同じ復旧方針）。
+// 【トランザクション境界（2026-07-31にJ-35から変更。正本: ADR 0010）】
+// ①attempt記録〜⑤SRS更新を**単一のDexieトランザクション**で書く。
+//
+// 当初（J-35）は「attempts+snapshotの原子性は answerCurrentQuestion 内で確保済み」として
+// ②〜⑤の単一トランザクション化を見送り、失敗時は呼び出し側がスナップショットを再読込する
+// 方針だった。しかしこれは**部分書き込みを許す設計**で、attemptだけ書かれてレート・SRSが
+// 未更新のまま残る状態を再同期では修復できない。T-176で「保存の再試行」をUIに出したことで、
+// この設計が実害になった（パイプライン全体の再実行は、Reading経路ではattemptを二重に作り、
+// Drill経路ではsnapshotが進んでいるため StaleSnabshotError で永久に後段が補完されない）。
+//
+// 単一トランザクションにすると失敗時は何も書かれないので、再試行が構造的に冪等になる。
+// Dexieのストア跨ぎコストという当初の懸念は残るが、①〜⑤は元々6回の個別トランザクションを
+// 張っていたため、1回に束ねる方が往復は減る。
+//
+// ⑥pendingSync（レイドダメージ）は**意図的にトランザクションの外**に置く。共有API向けの
+// 副作用であり、その失敗で学習記録を巻き戻すのは縮退設計（共有APIが全損してもソロ学習は
+// 無傷。CLAUDE.mdの不変条件）に反する。⑥の失敗は警告ログのみで飲み込み、解答は成立させる。
 
 import { buildDamageSyncPayload, type Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
@@ -183,50 +196,80 @@ export async function recordAnswerPipeline(
   } = input
 
   let nextSnapshot: SessionSnapshot | undefined
-  let attemptId: string
-  let answeredAt: number
-  if (snapshot) {
-    nextSnapshot = await answerCurrentQuestion(db, snapshot, { isCorrect, responseMs, isTimeout })
-    attemptId = nextSnapshot.attemptIds.at(-1)!
-    // answerCurrentQuestion は updatedAt に今回記録した attempt の answeredAt をそのまま入れる（session.ts参照）
-    answeredAt = nextSnapshot.updatedAt
-  } else {
-    const attempt = await recordAttempt(db, { questionId, mode, isCorrect, responseMs, isTimeout })
-    attemptId = attempt.id
-    answeredAt = attempt.answeredAt
-  }
-
-  if (!isCorrect && !skip?.wrongAnswer) {
-    await processWrongAnswer(db, question)
-  }
-
-  if (!skip?.tagStats) {
-    await updateTagStatsForAnswer(db, questionId, lookup)
-  }
-
+  let attemptId = ''
+  let answeredAt = 0
   let ratingUpdate: RatingUpdate | null | undefined
-  if (!skip?.rating) {
-    ratingUpdate = await applyRatingUpdate(db, {
-      part: question.part,
-      difficulty: question.difficulty,
-      isCorrect,
-      mode,
-    })
-  }
 
-  if (srsCardId && !skip?.srs) {
-    await reviewSrsCard(db, srsCardId, srsGrade ?? (isCorrect ? 'good' : 'again'))
-  }
+  // ①〜⑤を1つのトランザクションで書く。途中で例外が起きれば全部ロールバックされるので、
+  // 呼び出し側は同じ入力でそのまま再試行できる（部分書き込みが残らない＝冪等）。
+  // 内側の各エンジンも db.transaction を張るが、Dexieの入れ子は親へ join するため
+  // **ここで列挙するテーブルに内側が使う全テーブルを含める必要がある**
+  // （attempts/settings=session, srsCards=keyVocab・srs, tagStats, ratings/ratingHistory=rating）
+  await db.transaction(
+    'rw',
+    [db.attempts, db.settings, db.srsCards, db.tagStats, db.ratings, db.ratingHistory],
+    async () => {
+      if (snapshot) {
+        nextSnapshot = await answerCurrentQuestion(db, snapshot, {
+          isCorrect,
+          responseMs,
+          isTimeout,
+        })
+        attemptId = nextSnapshot.attemptIds.at(-1)!
+        // answerCurrentQuestion は updatedAt に今回記録した attempt の answeredAt をそのまま入れる（session.ts参照）
+        answeredAt = nextSnapshot.updatedAt
+      } else {
+        const attempt = await recordAttempt(db, {
+          questionId,
+          mode,
+          isCorrect,
+          responseMs,
+          isTimeout,
+        })
+        attemptId = attempt.id
+        answeredAt = attempt.answeredAt
+      }
 
-  const raidDamage =
-    (await enqueueRaidSyncIfEnabled(db, {
-      attemptId,
-      questionId,
-      answeredAt,
-      mode,
-      isCorrect,
-      basePoints: ratingUpdate?.basePoints ?? 0,
-    })) ?? undefined
+      if (!isCorrect && !skip?.wrongAnswer) {
+        await processWrongAnswer(db, question)
+      }
+
+      if (!skip?.tagStats) {
+        await updateTagStatsForAnswer(db, questionId, lookup)
+      }
+
+      if (!skip?.rating) {
+        ratingUpdate = await applyRatingUpdate(db, {
+          part: question.part,
+          difficulty: question.difficulty,
+          isCorrect,
+          mode,
+        })
+      }
+
+      if (srsCardId && !skip?.srs) {
+        await reviewSrsCard(db, srsCardId, srsGrade ?? (isCorrect ? 'good' : 'again'))
+      }
+    },
+  )
+
+  // ⑥ レイドダメージのエンキューはトランザクションの外。共有API向けの副作用なので、
+  // 失敗しても学習記録（①〜⑤）は成立させる（縮退設計）。この解答分のダメージは失われるが、
+  // 送信自体が「pendingSyncキュー経由の冪等送信」で取りこぼしを許す設計になっている
+  let raidDamage: RaidDamageResult | undefined
+  try {
+    raidDamage =
+      (await enqueueRaidSyncIfEnabled(db, {
+        attemptId,
+        questionId,
+        answeredAt,
+        mode,
+        isCorrect,
+        basePoints: ratingUpdate?.basePoints ?? 0,
+      })) ?? undefined
+  } catch (err) {
+    console.warn('[answerPipeline] レイドダメージのエンキューに失敗（解答は記録済み）', err)
+  }
 
   return { nextSnapshot, ratingUpdate, raidDamage }
 }

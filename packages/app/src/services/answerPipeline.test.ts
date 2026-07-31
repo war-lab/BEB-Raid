@@ -5,7 +5,7 @@
 // - DB書き込み失敗の伝播（呼び出し側がcatchできること）
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID, type RaidStateRecord } from '../db/schema'
@@ -720,5 +720,183 @@ describe('recordAnswerPipeline: synthetic週・API無効時の回帰（M4・T-12
 
     expect(result.raidDamage).toBeUndefined()
     expect(await db.pendingSync.count()).toBe(0)
+  })
+})
+
+describe('recordAnswerPipeline: 部分書き込みを残さない（レビュー指摘・ADR 0010）', () => {
+  // 何を防ぐか: attempt だけ書かれてレート・SRSが未更新の状態が残ること。
+  // T-176でUIに「保存を再試行する」を出したため、この状態が残ると再実行で
+  // (a) attemptが二重に増える（snapshot無し経路）
+  // (b) snapshotが進んでいて StaleSnapshotError になり後段が永久に補完されない（snapshot経路）
+  // のどちらかが起きる。単一トランザクション化により「失敗＝何も書かれない」を保証する。
+
+  /** ratings への書き込みを1回だけ失敗させる（④applyRatingUpdate の失敗を模擬） */
+  function failRatingsOnce(db: BebRaidDatabase) {
+    const original = db.ratings.put.bind(db.ratings)
+    let failed = false
+    // Dexieの戻り値はPromiseExtendedなので、モックはoriginalの戻り値をそのまま返す形にする
+    // （async関数にするとPromise<T>になり型が合わない）
+    const spy = vi.spyOn(db.ratings, 'put').mockImplementation(((...args: unknown[]) => {
+      if (!failed) {
+        failed = true
+        return Promise.reject(new Error('ratings書き込み失敗（模擬）'))
+      }
+      return original(...(args as Parameters<typeof original>))
+    }) as typeof db.ratings.put)
+    return spy
+  }
+
+  it('snapshot無し経路（読解・audio_setサブ設問）: 後段の失敗でattemptも巻き戻る', async () => {
+    const db = newDb()
+    const q = question('q-1')
+    const spy = failRatingsOnce(db)
+
+    await expect(
+      recordAnswerPipeline(db, {
+        questionId: q.id,
+        question: q,
+        lookup: lookupOf(q),
+        isCorrect: true,
+        responseMs: 5000,
+        mode: 'solo',
+      }),
+    ).rejects.toThrow(/ratings書き込み失敗/)
+
+    // ①のattemptが残っていない（従来はここが1件残り、再試行で2件になっていた）
+    expect(await db.attempts.count()).toBe(0)
+    expect(await db.tagStats.count()).toBe(0)
+
+    // 同じ入力で再試行すると、ちょうど1件だけ記録される
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 5000,
+      mode: 'solo',
+    })
+
+    expect(await db.attempts.count()).toBe(1)
+    expect(await db.ratings.get('R')).toBeDefined()
+    spy.mockRestore()
+  })
+
+  it('snapshot経路（ドリル）: 後段の失敗でsnapshotも進まないため、同じsnapshotで再試行できる', async () => {
+    const db = newDb()
+    const q = question('q-1')
+    const snapshot = await startSession(db, { items: [{ questionId: q.id, mode: 'solo' }] })
+    const spy = failRatingsOnce(db)
+
+    await expect(
+      recordAnswerPipeline(db, {
+        snapshot,
+        questionId: q.id,
+        question: q,
+        lookup: lookupOf(q),
+        isCorrect: true,
+        responseMs: 5000,
+        mode: 'solo',
+      }),
+    ).rejects.toThrow(/ratings書き込み失敗/)
+
+    expect(await db.attempts.count()).toBe(0)
+
+    // 同じsnapshotで再試行できる（DB上のsnapshotが進んでいないので StaleSnapshotError にならない）
+    const result = await recordAnswerPipeline(db, {
+      snapshot,
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 5000,
+      mode: 'solo',
+    })
+
+    expect(result.nextSnapshot?.answeredCount).toBe(1)
+    expect(await db.attempts.count()).toBe(1)
+    spy.mockRestore()
+  })
+
+  it('SRS更新の失敗でもattemptが残らない（⑤の失敗）', async () => {
+    const db = newDb()
+    const q = question('vocab-q')
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 1,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const original = db.srsCards.put.bind(db.srsCards)
+    let failed = false
+    const spy = vi.spyOn(db.srsCards, 'put').mockImplementation(((...args: unknown[]) => {
+      if (!failed) {
+        failed = true
+        return Promise.reject(new Error('srsCards書き込み失敗（模擬）'))
+      }
+      return original(...(args as Parameters<typeof original>))
+    }) as typeof db.srsCards.put)
+
+    await expect(
+      recordAnswerPipeline(db, {
+        questionId: q.id,
+        question: q,
+        lookup: lookupOf(q),
+        isCorrect: true,
+        responseMs: 5000,
+        mode: 'srs',
+        srsCardId: 'vocab:submit',
+        skip: { rating: true, tagStats: true, wrongAnswer: true },
+      }),
+    ).rejects.toThrow(/srsCards書き込み失敗/)
+
+    expect(await db.attempts.count()).toBe(0)
+    // カードのstageも変わっていない
+    expect((await db.srsCards.get('vocab:submit'))?.stage).toBe(1)
+    spy.mockRestore()
+  })
+
+  // 何を防ぐか: 共有API向けの副作用（pendingSync）の失敗で学習記録が巻き戻ること。
+  // 縮退設計（共有APIが全損してもソロ学習は無傷）に反するため、⑥はトランザクション外で
+  // 失敗を飲み込む
+  it('pendingSyncのエンキュー失敗では解答が成立する（縮退設計）', async () => {
+    const db = newDb()
+    const q = question('q-1')
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      joined: true,
+      bossId: 'boss-2026-W31',
+      bossType: 'synthetic',
+      defenseJson: null,
+      hp: 1000,
+      maxHp: 1000,
+      startAt: Date.now() - 1000,
+      endAt: Date.now() + 86_400_000,
+      myDamage: 0,
+      lastSyncedAt: Date.now(),
+      profileJson: null,
+    } as never)
+    const spy = vi
+      .spyOn(db.pendingSync, 'add')
+      .mockRejectedValue(new Error('pendingSync失敗（模擬）'))
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 5000,
+      mode: 'solo',
+    })
+
+    // 例外にならず、学習記録は残る
+    expect(await db.attempts.count()).toBe(1)
+    expect(result.raidDamage).toBeUndefined()
+    spy.mockRestore()
   })
 })

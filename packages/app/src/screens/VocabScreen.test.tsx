@@ -172,8 +172,10 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     fireEvent.click(screen.getByText('もう一回'))
 
     // T-172(J-98)以降、「もう一回」はカードを同一セッション内へ再投入するため
-    // 仕分けフェーズへは移らない。記録の完了はattemptsの件数で待つ
-    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 仕分けフェーズへは移らない。**件数だけで待つと後段（reviewSrsCard・evaluateStreak・
+    // 再投入）が走っている最中にテストが終わり、afterEachのDB削除と競合する**ので、
+    // 一連の最後の状態更新である「再投入されたカードの表示」で待つ
+    await waitFor(() => expect(screen.getByText(/復習 2\/2/)).toBeTruthy())
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
     const card = await db.srsCards.get('vocab:epsilon')
@@ -199,8 +201,9 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     expect(screen.queryByText('余裕')).toBeNull()
     fireEvent.click(screen.getByText('次へ'))
 
-    // T-172(J-98): 「わからない」はagain固定なのでカードが再投入され、仕分けへは移らない
-    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // T-172(J-98): 「わからない」はagain固定なのでカードが再投入され、仕分けへは移らない。
+    // 上と同じ理由で、件数ではなく再投入後の表示で待つ
+    await waitFor(() => expect(screen.getByText(/復習 2\/2/)).toBeTruthy())
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.isCorrect).toBe(false)
     // 「わからない」は間隔をagain（stage0リセット）にする
@@ -779,6 +782,33 @@ describe('VocabScreen: 自動再生のopt-outと画面内の音声コントロ�
     expect(audioPlayer.stop).toHaveBeenCalled()
   })
 
+  // 何を防ぐか（レビュー指摘）: 設定で自動再生をOFFにしたユーザーが、画面内のイヤホンなし
+  // モードをON→OFFすると自動再生が復活し、その場で音が鳴り始めること。
+  // 派生値（autoPlay）だけを持つと元設定が失われるため、設定値を別stateで保持する
+  it('自動再生OFFの設定は、イヤホンなしモードのON→OFF操作でも復活しない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: AUTO_PLAY_ENABLED_KEY, value: false })
+    const audioPlayer = new FakeAudioPlayer()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+
+    const toggle = screen.getByLabelText('イヤホンなしモード（音声を鳴らさない）')
+    fireEvent.click(toggle) // ON
+    await waitFor(async () =>
+      expect((await db.settings.get(NO_EARPHONE_MODE_KEY))?.value).toBe(true),
+    )
+    fireEvent.click(toggle) // OFF に戻す
+
+    await waitFor(async () =>
+      expect((await db.settings.get(NO_EARPHONE_MODE_KEY))?.value).toBe(false),
+    )
+    // 設定でOFFにしているので、イヤホンなしモードを解除しても鳴らない
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+  })
+
   it('画面内のイヤホンなしモードトグルで音を止め、設定にも永続化する', async () => {
     const db = newDb()
     const audioPlayer = new FakeAudioPlayer()
@@ -891,7 +921,8 @@ describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦�
     fireEvent.click(screen.getByText('alpha の意味'))
     fireEvent.click(screen.getByText('もう一回'))
 
-    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 再投入後の表示で待つ（件数だけだと後段のSRS更新中にテストが終わる）
+    await waitFor(() => expect(screen.getByText(/復習 2\/2/)).toBeTruthy())
     const card = await db.srsCards.get('vocab:alpha')
     // again は stage0 リセット＋翌日0時（applyGradeの既存仕様。間隔テーブルは不変）
     expect(card?.stage).toBe(0)

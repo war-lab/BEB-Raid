@@ -93,7 +93,12 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   // 以前は専用トグル(vocabAutoPlayPhrase)を設定していたがSettingsScreenに導線が
   // 一度も無く常にOFF固定＝聞き流し周回が機能していなかったため、既存のイヤホンなし
   // モード設定に統合した）
-  const [autoPlay, setAutoPlay] = useState(true)
+  /**
+   * 自動再生の設定値そのもの（T-166・J-93）。**派生値と分けて持つ**——
+   * イヤホンなしモードのトグルで自動再生の可否を計算し直すとき、元設定が分からないと
+   * 「設定でOFFにしたのにトグル操作でONに戻る」（レビュー指摘）が起きる
+   */
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
   // T-166（docs/27 のS-16）: イヤホンなしモードを画面内で切り替えられるようにする。
   // 従来は設定画面へ移動しないと切り替えられず、公共の場でカードごとに音が鳴る状態から
   // その場で逃げられなかった。新キーは作らず既存の NO_EARPHONE_MODE_KEY を読み書きする
@@ -161,7 +166,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         setTriageQueue(candidates)
         // T-166（J-93）: イヤホンなしモードに加えて、自動再生のopt-out設定でも止める
         setNoEarphoneMode(noEarphoneSetting?.value === true)
-        setAutoPlay(noEarphoneSetting?.value !== true && autoPlaySetting?.value !== false)
+        setAutoPlayEnabled(autoPlaySetting?.value !== false)
         setHapticsEnabled(hapticsSetting?.value !== false)
         setMistapUndoEnabled(mistapUndoSetting?.value !== false)
       }
@@ -223,15 +228,26 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   async function handleToggleNoEarphone() {
     const next = !noEarphoneMode
     setNoEarphoneMode(next)
-    setAutoPlay(!next)
     if (next) audioPlayer.stop() // 鳴っている音を即座に止める（公共の場での事故を止める用途）
-    await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: next })
+    try {
+      await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: next })
+    } catch (err) {
+      // 画面内トグルの永続化失敗で未処理rejectionにしない（表示は既に切り替わっている）
+      console.warn('[VocabScreen] イヤホンなしモードの保存に失敗', err)
+    }
   }
 
   /** 再生中のフレーズ音声を止める（T-166。docs/27 のS-16） */
   function handleStopPhrase() {
     audioPlayer.stop()
   }
+
+  /**
+   * 実際に自動再生してよいか（T-166。レビュー指摘の修正）。
+   * 設定（autoPlayEnabled）とイヤホンなしモードの**両方**を満たす場合のみ鳴らす。
+   * 派生値にしておけば、どちらを切り替えても他方の意思が消えない
+   */
+  const autoPlay = autoPlayEnabled && !noEarphoneMode
 
   // 仕分けフェーズに入っているか（復習キューを消化しきった後）。音声の自動再生を
   // フェーズで分けるために必要: 復習中に仕分けキュー先頭の音声が鳴ると、復習カードの
@@ -286,9 +302,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   useEffect(() => {
     if (!isDone) return
     let cancelled = false
-    void Promise.all([countAttemptsToday(db), getStreak(db)]).then(([count, streak]) => {
-      if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
-    })
+    void Promise.all([countAttemptsToday(db), getStreak(db)])
+      .then(([count, streak]) => {
+        if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
+      })
+      // 完了カードの数値取得は失敗しても学習動線に影響しないので握る。
+      // catchが無いと、画面離脱・DBクローズ直後に解決したときに未処理rejectionになる
+      // （T-161で仕分けの書き込みが400ms遅れるようになり、完了画面のマウントが
+      // テストのteardown直後にずれてCIが落ちた。挙動ではなく未処理例外が原因）
+      .catch((err: unknown) => {
+        console.warn('[VocabScreen] 完了カードの数値取得に失敗', err)
+      })
     return () => {
       cancelled = true
     }
