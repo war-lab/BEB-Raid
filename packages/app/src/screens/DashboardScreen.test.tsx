@@ -4,6 +4,7 @@
 // - データ0件・1件でも壊れない
 // - 数表ビューが3チャート全てにある
 import 'fake-indexeddb/auto'
+import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -31,7 +32,7 @@ const DAY_MS = 86_400_000
 describe('DashboardScreen: データ0件・1件でも壊れない', () => {
   it('全ストア空でも描画でき、データ不足の案内が出る', async () => {
     const db = newDb()
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     expect(await screen.findByText(/まだデータが足りない/)).toBeTruthy()
     expect(await screen.findByText(/対象タグがまだない/)).toBeTruthy()
@@ -44,7 +45,7 @@ describe('DashboardScreen: データ0件・1件でも壊れない', () => {
   it('T-75: 「ホームへ」ボタンでホーム画面へ戻れる', async () => {
     const db = newDb()
     useAppStore.setState({ screen: 'dashboard' })
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     fireEvent.click(await screen.findByText('ホームへ'))
     expect(useAppStore.getState().screen).toBe('home')
@@ -53,7 +54,7 @@ describe('DashboardScreen: データ0件・1件でも壊れない', () => {
   it('伸びグラフのデータが1件だけでも壊れない（2点未満は案内表示）', async () => {
     const db = newDb()
     await db.ratingHistory.put({ date: '2026-07-01', section: 'total', rating: 420 })
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     expect(await screen.findByText(/まだデータが足りない/)).toBeTruthy()
   })
@@ -67,7 +68,7 @@ describe('DashboardScreen: 実データからの描画', () => {
       { date: '2026-07-05', section: 'total', rating: 430 },
       { date: '2026-07-09', section: 'total', rating: 450 },
     ])
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
     await screen.findByRole('img', { name: /総合レート/ })
 
     expect(document.querySelector('.chart-line path')).not.toBeNull()
@@ -83,7 +84,7 @@ describe('DashboardScreen: 実データからの描画', () => {
       { tag: '動詞の形', windowCorrect: 9, windowTotal: 10 }, // 90% → 弱点でない
       { tag: '標本不足', windowCorrect: 0, windowTotal: 2 }, // 最小標本未満 → 非表示
     ])
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     const rects = await screen.findAllByRole('img', { name: /弱点マップ/ })
     expect(rects.length).toBe(1)
@@ -130,7 +131,7 @@ describe('DashboardScreen: 実データからの描画', () => {
         answeredAt: now - DAY_MS,
       },
     ])
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     const svg = await screen.findByRole('img', { name: /学習ヒートマップ/ })
     expect(svg).toBeTruthy()
@@ -168,7 +169,7 @@ describe('DashboardScreen: 実データからの描画', () => {
         answeredAt: now - 16 * WEEK_MS,
       },
     ])
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     await screen.findByRole('img', { name: /学習ヒートマップ/ })
     const filledCells = Array.from(document.querySelectorAll('.chart-heatmap rect')).filter(
@@ -199,7 +200,7 @@ describe('DashboardScreen: 実データからの描画', () => {
         answeredAt: Date.now(),
       },
     ])
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     const summaries = await screen.findAllByText('数表で見る')
     expect(summaries.length).toBe(3)
@@ -209,7 +210,7 @@ describe('DashboardScreen: 実データからの描画', () => {
 describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
   it('ratingHistory不在（新規ユーザー）でもブロンズ0ptが表示される', async () => {
     const db = newDb()
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     const rankSection = await screen.findByTestId('growth-rank')
     expect(rankSection.textContent).toContain('ブロンズ')
@@ -248,7 +249,7 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
         answeredAt: new Date(2026, 6, 5, 12).getTime(),
       },
     ])
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     // (445-400) + 学習日数2 = 47 → シルバー（40以上90未満）
     const rankSection = await screen.findByTestId('growth-rank')
@@ -262,7 +263,7 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
   // docs/25 V-14: 色＋台座段数の二重符号化。色を落としても段数でランクが判別できること
   it('ランクIDが data-rank に載り、台座の線の本数が段数（ブロンズ=1）になる', async () => {
     const db = newDb()
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     const rankSection = await screen.findByTestId('growth-rank')
     expect(rankSection.getAttribute('data-rank')).toBe('bronze')
@@ -276,7 +277,7 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
       { date: '2026-07-05', section: 'total', rating: 445 },
     ])
     await db.ratings.put({ section: 'total', rating: 445, updatedAt: Date.now() })
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     const rankSection = await screen.findByTestId('growth-rank')
     expect(rankSection.getAttribute('data-rank')).toBe('silver')
@@ -290,7 +291,7 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
 describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () => {
   it('ratings不在でもヒーロー数値と「計測中」表示が壊れず出る', async () => {
     const db = newDb()
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
     await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
     expect(screen.getByTestId('forecast-message').textContent).toContain('計測中')
   })
@@ -307,7 +308,7 @@ describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () =>
       })),
     )
     await db.ratings.put({ section: 'total', rating: 476, updatedAt: Date.now() })
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
 
     await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
     const message = screen.getByTestId('forecast-message').textContent!
@@ -317,7 +318,7 @@ describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () =>
 
   it('実試験スコアを登録すると一覧に表示され、予測帯との差が併記される', async () => {
     const db = newDb()
-    render(<DashboardScreen db={db} />)
+    render(<DashboardScreen db={db} questionPool={[]} />)
     await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
 
     fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
@@ -351,5 +352,102 @@ describe('buildHeatmapCells: 曜日整列（GitHub草式グリッド）', () => 
     const cells = buildHeatmapCells(counts, now, 2)
     const todayCell = cells.find((c) => c.date === dateKey)
     expect(todayCell?.count).toBe(7)
+  })
+})
+
+describe('DashboardScreen: 読解のペース指標（T-145。docs/24 3.5節）', () => {
+  const readingQuestion: Question = {
+    id: 'p7-dash',
+    part: 7,
+    format: 'text_passage',
+    difficulty: 2,
+    tags: [],
+    keyVocab: [],
+    passages: [{ id: 'p7-dash-p1', kind: 'email', text: '本文' }],
+    subQuestions: Array.from({ length: 3 }, (_, i) => ({
+      id: `p7-dash-q${i}`,
+      question: `設問${i}`,
+      choices: [
+        { key: 'A', text: 'a' },
+        { key: 'B', text: 'b' },
+      ],
+      answer: 'A',
+      explanation: '',
+      translation: '',
+    })),
+  }
+
+  async function seedReadingAttempts(db: BebRaidDatabase, responseMs: number, count: number) {
+    const now = Date.now()
+    await db.attempts.bulkAdd(
+      Array.from({ length: count }, (_, i) => ({
+        id: `rp-${i}`,
+        questionId: `p7-dash-q${i % 3}`,
+        mode: 'solo' as const,
+        isCorrect: true,
+        responseMs,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now - i * 1000,
+      })),
+    )
+  }
+
+  it('読解の平均解答時間と目標ペースとの差を表示する', async () => {
+    const db = newDb()
+    await seedReadingAttempts(db, 80_000, 6)
+
+    render(<DashboardScreen db={db} questionPool={[readingQuestion]} />)
+
+    const metric = await screen.findByTestId('reading-pace')
+    expect(metric.textContent).toContain('1問あたり1分20秒')
+    expect(metric.textContent).toContain('6問')
+    // 目標60秒より20秒遅い
+    expect(screen.getByText(/より20秒遅いペースです/)).toBeTruthy()
+  })
+
+  it('目標より速い場合は「速いペース」と表示する', async () => {
+    const db = newDb()
+    await seedReadingAttempts(db, 45_000, 6)
+
+    render(<DashboardScreen db={db} questionPool={[readingQuestion]} />)
+
+    await screen.findByTestId('reading-pace')
+    expect(screen.getByText(/より15秒速いペースです/)).toBeTruthy()
+  })
+
+  // 何を防ぐか: 1問の当たり外れで揺れる平均を見せて判断を誤らせること
+  it('サンプルが足りなければ節ごと表示しない', async () => {
+    const db = newDb()
+    await seedReadingAttempts(db, 80_000, 3)
+
+    render(<DashboardScreen db={db} questionPool={[readingQuestion]} />)
+
+    // 他の節（弱点マップ）が描画されるまで待ってから、ペース節が無いことを確認する
+    await screen.findByText('弱点マップ')
+    expect(screen.queryByTestId('reading-pace')).toBeNull()
+    expect(screen.queryByText('読解のペース')).toBeNull()
+  })
+
+  it('読解の解答が無ければ表示しない（他パートの解答では出さない）', async () => {
+    const db = newDb()
+    const now = Date.now()
+    await db.attempts.bulkAdd(
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `p5-${i}`,
+        questionId: 'p5-dash',
+        mode: 'solo' as const,
+        isCorrect: true,
+        responseMs: 20_000,
+        isTimeout: false,
+        isGuess: false,
+        answeredAt: now - i * 1000,
+      })),
+    )
+
+    render(<DashboardScreen db={db} questionPool={[readingQuestion]} />)
+
+    await screen.findByText('弱点マップ')
+    expect(screen.queryByTestId('reading-pace')).toBeNull()
   })
 })

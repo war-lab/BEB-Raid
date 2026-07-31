@@ -3243,3 +3243,25 @@
   font-size: var(--fs-note);
   color: var(--ink-2);
 }
+
+/* T-145（docs/24 3.5節）: 読解ペース指標。速答を煽らないため --ng/--ok は使わず、
+   数値だけを本文色で出す（遅い＝悪いではない。正確さとのトレードオフ） */
+.reading-pace-metric {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-stat);
+  color: var(--ink);
+}
+.reading-pace-metric__sub {
+  margin-left: var(--sp-half);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+.reading-pace-metric__diff {
+  margin: var(--sp-half) 0 0;
+  color: var(--ink);
+}
+.reading-pace-metric__note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}

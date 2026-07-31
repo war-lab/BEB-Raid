@@ -2,6 +2,7 @@
 // 伸びグラフ（総合レートの日次スナップショット＋予測帯）・弱点マップ・学習ヒートマップの
 // 3チャートに加え、予測スコア帯（ヒーロー数値）・到達予測・実試験スコア登録を持つ（J-1解除）。
 import { useEffect, useState, type FormEvent } from 'react'
+import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { ExamScoreRecord, ExamScoreSource } from '../db/schema'
 import { localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
@@ -9,6 +10,12 @@ import { computeForecast, type RatingHistoryPoint } from '../engine/forecast'
 import { getGrowthRank, GROWTH_RANK_CONFIG, type GrowthRankResult } from '../engine/growthRank'
 import { buildHeatmapCells } from '../engine/heatmapCells'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
+import {
+  computeReadingPace,
+  formatPaceDuration,
+  RC_TARGET_MS_PER_QUESTION,
+  type ReadingPace,
+} from '../engine/readingPace'
 import { getTagAccuracies, WEAK_MIN_SAMPLE } from '../engine/tagStats'
 import type { ForecastResult, TagAccuracy } from '../engine/types'
 import { useAppStore } from '../store/appStore'
@@ -19,6 +26,12 @@ import { ScreenLayout } from '../components/ScreenLayout'
 
 interface Props {
   db: BebRaidDatabase
+  /**
+   * T-145: 読解ペース指標の集計に使う。読解の attempt は questionId が**サブ設問ID**で
+   * 記録されるため、親を引いて text_passage か判定するのに問題lookupが要る
+   * （`-q<n>` のパターンだけでは audio_set のサブ設問と区別できない）
+   */
+  questionPool: Question[]
 }
 
 const EXAM_SOURCES: ExamScoreSource[] = ['IP', '公開', 'その他']
@@ -57,7 +70,7 @@ function growthRankProgress(result: GrowthRankResult): number | null {
 /** 学習ヒートマップの表示週数（07 8節: 直近15週程度） */
 const HEATMAP_WEEKS = 15
 
-export function DashboardScreen({ db }: Props) {
+export function DashboardScreen({ db, questionPool }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const [growthPoints, setGrowthPoints] = useState<LineChartPoint[] | null>(null)
   const [weakBars, setWeakBars] = useState<TagAccuracy[] | null>(null)
@@ -66,6 +79,8 @@ export function DashboardScreen({ db }: Props) {
   const [growthRank, setGrowthRank] = useState<GrowthRankResult | null>(null)
   // M2・T-53: 予測スコア・到達予測・実試験スコア登録
   const [forecast, setForecast] = useState<ForecastResult | null>(null)
+  // T-145: 読解（RC）の速読ペース指標。サンプル不足のときは null のまま出さない
+  const [readingPace, setReadingPace] = useState<ReadingPace | null>(null)
   const [examScores, setExamScores] = useState<ExamScoreRecord[]>([])
   const [examDate, setExamDate] = useState('')
   const [examListening, setExamListening] = useState('')
@@ -115,18 +130,23 @@ export function DashboardScreen({ db }: Props) {
         countsByDate.set(date, (countsByDate.get(date) ?? 0) + 1)
       }
 
+      // T-145: ヒートマップ用に読んだ期間（直近HEATMAP_WEEKS週）の attempts を再利用する。
+      // 「最近のペース」を出したいので全期間の平均より妥当で、追加のDB読み込みも要らない
+      const lookup = new Map(questionPool.map((q) => [q.id, q]))
+
       if (!cancelled) {
         setGrowthPoints(history.map((h) => ({ date: h.date, value: h.rating })))
         setWeakBars(accuracies.filter((t) => t.windowTotal >= WEAK_MIN_SAMPLE))
         setHeatmapCells(buildHeatmapCells(countsByDate, Date.now(), HEATMAP_WEEKS))
         setGrowthRank(rank)
+        setReadingPace(computeReadingPace(attempts, lookup))
       }
     }
     void load()
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- questionPoolは起動時に固定される想定
   }, [db])
 
   async function handleRegisterExamScore(e: FormEvent) {
@@ -227,6 +247,33 @@ export function DashboardScreen({ db }: Props) {
         <h2 style={{ fontSize: 'var(--fs-sub)' }}>弱点マップ</h2>
         <WeakBars bars={weakBars} />
       </section>
+
+      {/* T-145（docs/24 3.5節）: 読解の速読ペース。目的は「時間切れで解き切れない層の
+          底上げ」であって速答を煽ることではないので、合否の色分けはせず数値と差だけを出す。
+          サンプル不足（RC_PACE_MIN_SAMPLE未満）のときは節ごと出さない——1問の当たり外れで
+          揺れる平均を見せると判断を誤らせる */}
+      {readingPace && (
+        <section>
+          <h2 style={{ fontSize: 'var(--fs-sub)' }}>読解のペース</h2>
+          <p className="reading-pace-metric" data-testid="reading-pace">
+            1問あたり{formatPaceDuration(readingPace.averageMs)}
+            <small className="reading-pace-metric__sub">
+              （直近{HEATMAP_WEEKS}週・{readingPace.count}問）
+            </small>
+          </p>
+          <p className="reading-pace-metric__diff">
+            {readingPace.diffMs === 0
+              ? `目標ペース（約${formatPaceDuration(RC_TARGET_MS_PER_QUESTION)}/問）どおりです`
+              : readingPace.diffMs > 0
+                ? `目標ペース（約${formatPaceDuration(RC_TARGET_MS_PER_QUESTION)}/問）より${formatPaceDuration(readingPace.diffMs)}遅いペースです`
+                : `目標ペース（約${formatPaceDuration(RC_TARGET_MS_PER_QUESTION)}/問）より${formatPaceDuration(-readingPace.diffMs)}速いペースです`}
+          </p>
+          <p className="reading-pace-metric__note">
+            本試験のRCは約1分/問が目安です。正確さとのトレードオフなので、速さだけを追う必要は
+            ありません。
+          </p>
+        </section>
+      )}
 
       <section>
         <h2 style={{ fontSize: 'var(--fs-sub)' }}>学習ヒートマップ</h2>
