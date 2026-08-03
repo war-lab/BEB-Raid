@@ -1,3 +1,6 @@
 # ローカル開発用の環境変数の例（実際の値は .dev.vars に置く。gitignore対象）。
 # INVITE_CODE はT-92（deviceToken登録フロー）から参照する
 INVITE_CODE=dummy-invite-code
+# ADMIN_TOKEN は POST /admin/raid/generate（cron不発時の週次ボス手当て）の認可に使う。
+# 未設定なら同ルートは404を返す（設定するまで攻撃面を作らない）
+ADMIN_TOKEN=dummy-admin-token
