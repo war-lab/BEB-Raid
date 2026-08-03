@@ -2,7 +2,7 @@
 // - ルーム作成→抽選（比率・再抽選）→進行→表彰の一連テスト（フェイクBattleSocket・フェイクAudioPlayer）
 // - 音声再生完了前に解答受付が開かないテスト
 import type { Question, RaidBossState } from '@beb-raid/shared-schema'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AudioPlayer, PlaybackOutcome, RaidApi } from '../platform'
@@ -307,6 +307,14 @@ describe('BattleHostScreen: 音声再生完了前は解答受付が開かない'
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
 
     fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+
+    // 発起人の要望（2026-08-03）: 「開始する」「次の問題へ」を押した瞬間には流さない。
+    // ホストが会場へ合図を出せるよう再生タップを1つ挟む
+    expect(await screen.findByRole('button', { name: '音声を再生' })).toBeTruthy()
+    expect(audioPlayer.unlock).not.toHaveBeenCalled()
+    expect(audioPlayer.play).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: '音声を再生' }))
     await waitFor(() => expect(audioPlayer.unlock).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(1))
 
@@ -324,6 +332,92 @@ describe('BattleHostScreen: 音声再生完了前は解答受付が開かない'
         questionId: 'q-1',
       }),
     )
+  })
+})
+
+describe('BattleHostScreen: 音声は自動再生しない（発起人の要望、2026-08-03）', () => {
+  // 何を防ぐか: 「次の問題へ」を押した瞬間に音声が流れること。会場の注意がまだ前問の
+  // 順位表に向いている状態で1問目の応答が過ぎてしまうため、ホストの合図を挟む
+  it('2問目以降も「次の問題へ」の直後には流さず、再生タップを待つ', async () => {
+    const pool = [audioQaQuestion('q-1'), audioQaQuestion('q-2')]
+    const socket = new FakeBattleSocket()
+    const audioPlayer = new ControllableAudioPlayer()
+
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={audioPlayer}
+        questionPool={pool}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    // 1問目
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    fireEvent.click(await screen.findByRole('button', { name: '音声を再生' }))
+    // unlock を待ってから play が呼ばれるので、解決させる前に呼び出しを待つ
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(1))
+    audioPlayer.resolveNextPlay()
+    await waitFor(() =>
+      expect(socket.sent.filter((m) => m.type === 'openQuestion')).toHaveLength(1),
+    )
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: '太郎', totalPoints: 10 }],
+    })
+
+    // 2問目: 「次の問題へ」だけでは再生しない
+    fireEvent.click(await screen.findByRole('button', { name: '次の問題へ' }))
+    expect(await screen.findByRole('button', { name: '音声を再生' })).toBeTruthy()
+    expect(audioPlayer.play).toHaveBeenCalledTimes(1)
+    expect(socket.sent.filter((m) => m.type === 'openQuestion')).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: '音声を再生' }))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(2))
+    audioPlayer.resolveNextPlay()
+    await waitFor(() =>
+      expect(socket.sent.filter((m) => m.type === 'openQuestion')[1]).toMatchObject({
+        questionIndex: 1,
+        questionId: 'q-2',
+      }),
+    )
+  })
+
+  // 何を防ぐか: 再生ボタンの連打で openQuestion が2回送られること（DO側の締切が
+  // 2回開くと残り時間の表示が飛ぶ）
+  it('再生ボタンを連打してもopenQuestionは1回だけ送る', async () => {
+    const socket = new FakeBattleSocket()
+    const audioPlayer = new ControllableAudioPlayer()
+
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={audioPlayer}
+        questionPool={[audioQaQuestion('q-1')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+
+    const button = await screen.findByRole('button', { name: '音声を再生' })
+    // 再レンダーを待たない連打を再現する（1回目で状態が変わる前に2回目が来る）
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(1))
+    audioPlayer.resolveNextPlay()
+
+    await waitFor(() =>
+      expect(socket.sent.filter((m) => m.type === 'openQuestion')).toHaveLength(1),
+    )
+    expect(audioPlayer.play).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -377,6 +471,7 @@ describe('BattleHostScreen: 音声問題のscriptを投影しない', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
     fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    fireEvent.click(await screen.findByRole('button', { name: '音声を再生' }))
     await waitFor(() => expect(screen.getByText(/音声再生中/)).toBeTruthy())
 
     // 再生中（投影されている状態）でscriptが出ていないこと

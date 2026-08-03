@@ -76,6 +76,17 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [deadlineAt, setDeadlineAt] = useState<number | null>(null)
+  /**
+   * 音声問題の再生状態（発起人の要望、2026-08-03）。
+   * 'waiting'=ホストの再生タップ待ち / 'playing'=再生中 / 'none'=音声なし・再生済み。
+   * 自動再生をやめて1タップ挟むための状態で、詳細は presentQuestion のコメント参照
+   */
+  const [audioGate, setAudioGate] = useState<'none' | 'waiting' | 'playing'>('none')
+  /**
+   * 再生開始の同期ガード。連打は同一レンダー内で2回目のクリックが来るため、
+   * state（audioGate）では間に合わない（openQuestionが2回送られ、締切表示が飛ぶ）
+   */
+  const audioStartedRef = useRef(false)
   const [remainingSec, setRemainingSec] = useState(0)
   /** 外周リングの満量（この問の制限秒数）。questionOpen受信時点の残秒数から算出する */
   const [totalSec, setTotalSec] = useState(1)
@@ -180,9 +191,13 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   /**
    * 指定indexの問題を投影する。音声のある問題（Part2=audio_qa）は再生完了後に、
    * 音声の無い問題（Part5=text_blank）は表示と同時に openQuestion を送る
-   * （05の4.2節「再生完了イベントで解答受付を開く」。22の6節T-126シート）
+   * （05の4.2節「再生完了イベントで解答受付を開く」。22の6節T-126シート）。
+   *
+   * **音声は自動再生しない**（発起人の要望、2026-08-03）。「次の問題へ」を押した瞬間に
+   * 流れると、会場の注意がまだ前問の順位表に向いている状態で1問目の応答が過ぎてしまう。
+   * ホストが会場を見て合図を出せるよう、再生開始のタップを1つ挟む
    */
-  async function presentQuestion(index: number) {
+  function presentQuestion(index: number) {
     const question = questionSet[index]
     if (!question) return
     setCurrentIndex(index)
@@ -191,27 +206,49 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     setPhase('presenting')
 
     if (question.audio) {
-      try {
-        await audioPlayer.unlock()
-        const questionEndMs = question.audioMeta?.questionEndMs
-        await audioPlayer.play(
-          question.audio,
-          typeof questionEndMs === 'number' ? { durationMs: questionEndMs } : undefined,
-        )
-      } catch (e) {
-        console.warn('[BattleHostScreen] 音声再生に失敗。解答受付は開始する', e)
-      }
+      audioStartedRef.current = false
+      setAudioGate('waiting')
+      return
     }
+    setAudioGate('none')
     battleSocket.send({ type: 'openQuestion', questionIndex: index, questionId: question.id })
   }
 
+  /**
+   * 投影中の音声問題を再生し、再生完了で解答受付を開く（openQuestionの送信）。
+   * 再生の失敗でも受付は開く（従来と同じ。音声が出ない場でも進行は止めない）
+   */
+  async function handlePlayQuestionAudio() {
+    const question = currentQuestion
+    // 二度押しは無視する（1問につき openQuestion は1回だけ送る）
+    if (!question?.audio || audioStartedRef.current || audioGate !== 'waiting') return
+    audioStartedRef.current = true
+    setAudioGate('playing')
+    try {
+      await audioPlayer.unlock()
+      const questionEndMs = question.audioMeta?.questionEndMs
+      await audioPlayer.play(
+        question.audio,
+        typeof questionEndMs === 'number' ? { durationMs: questionEndMs } : undefined,
+      )
+    } catch (e) {
+      console.warn('[BattleHostScreen] 音声再生に失敗。解答受付は開始する', e)
+    }
+    setAudioGate('none')
+    battleSocket.send({
+      type: 'openQuestion',
+      questionIndex: currentIndex,
+      questionId: question.id,
+    })
+  }
+
   function handleStart() {
-    void presentQuestion(0)
+    presentQuestion(0)
   }
 
   function handleNext() {
     if (currentIndex + 1 < questionSet.length) {
-      void presentQuestion(currentIndex + 1)
+      presentQuestion(currentIndex + 1)
     }
   }
 
@@ -321,12 +358,23 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   // 以下、投影に映るフェーズ（音声再生中・出題中・途中順位・最終リザルト）はモバイル用の
   // ScreenLayout を使わず HostProjectionLayout で組む（docs/25 4.3節・JV-5）
   if (phase === 'presenting') {
+    // 再生タップ待ちの間は投影に「まだ流れていない」ことを出す（会場が音を待って
+    // 静まる前に流れてしまうのを避けるための1拍。presentQuestion のコメント参照）
+    const waitingForPlay = audioGate === 'waiting'
     return (
       <HostProjectionLayout
         meta={questionMeta}
-        action={<p className="battle-host-stage__note">再生完了後に解答受付が開きます</p>}
+        action={
+          waitingForPlay ? (
+            <PrimaryButton onClick={() => void handlePlayQuestionAudio()}>音声を再生</PrimaryButton>
+          ) : (
+            <p className="battle-host-stage__note">再生完了後に解答受付が開きます</p>
+          )
+        }
       >
-        <p className="battle-host-stage__phase">音声再生中…</p>
+        <p className="battle-host-stage__phase">
+          {waitingForPlay ? '準備ができたら再生してください' : '音声再生中…'}
+        </p>
         {currentQuestion && (
           <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
         )}
