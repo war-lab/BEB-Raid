@@ -152,7 +152,7 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByText('a'))
       await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
-      fireEvent.click(screen.getByText('次へ'))
+      fireEvent.click(await screen.findByText('次へ'))
       if (i < 2) {
         await waitFor(() =>
           expect(screen.getByTestId('reading-question').textContent).toContain(`設問${i + 2}/3`),
@@ -190,7 +190,7 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
       // 増分を待ち、後続クリックのrecordAnswerPipeline呼び出しと競合させない
       // （この待機が無いとElo更新の実行順序が意図した正誤順と入れ替わりうる＝Eloは順序依存のため）
       await waitFor(async () => expect((await db.ratings.get('R'))?.answerCount).toBe(i + 1))
-      fireEvent.click(screen.getByText('次へ'))
+      fireEvent.click(await screen.findByText('次へ'))
       if (i < pattern.length - 1) {
         await waitFor(() =>
           expect(screen.getByTestId('reading-question').textContent).toContain(`設問${i + 2}/3`),
@@ -280,7 +280,7 @@ describe('ReadingScreen: 読解の解法タグがtagStats・弱点判定に乗�
       // これを完了マーカーに使う。待たないと後続クリックのrecomputeTagStatsが先に走り、
       // 直近の誤答が未反映のままwindowTotalが実際より少なく記録されうる（フレーク要因）
       await waitFor(async () => expect((await db.ratings.get('R'))?.answerCount).toBe(i + 1))
-      fireEvent.click(screen.getByText('次へ'))
+      fireEvent.click(await screen.findByText('次へ'))
       if (i < subCount - 1) {
         await waitFor(() =>
           expect(screen.getByTestId('reading-question').textContent).toContain(
@@ -379,7 +379,7 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
 
     // 1問目を解答すると、未解答が2問残っているので導線が出る
     fireEvent.click(screen.getByText('a'))
-    await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+    expect(await screen.findByText('次へ')).toBeTruthy()
     expect(screen.getByText('ここで終了して結果を見る')).toBeTruthy()
 
     fireEvent.click(screen.getByText('ここで終了して結果を見る'))
@@ -394,13 +394,13 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
     render(<ReadingScreen db={db} />)
 
     fireEvent.click(screen.getByText('a'))
-    await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
-    fireEvent.click(screen.getByText('次へ'))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    fireEvent.click(await screen.findByText('次へ'))
 
     // 2問目（最終）を解答すると全問解答済みになり、導線は消える
     await waitFor(() => expect(screen.getByText('a')).toBeTruthy())
     fireEvent.click(screen.getByText('a'))
-    await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+    expect(await screen.findByText('次へ')).toBeTruthy()
     expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
   })
 
@@ -520,9 +520,9 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     // 3問すべて解答する（最後の1問を解答した時点でも 3/3 を超えない）
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByText('a'))
-      await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
+      expect(await screen.findByText('次へ')).toBeTruthy()
       if (i < 2) {
-        fireEvent.click(screen.getByText('次へ'))
+        fireEvent.click(await screen.findByText('次へ'))
         await waitFor(() => expect(screen.getByLabelText(`進捗 ${i + 2}/3`)).toBeTruthy())
       }
     }
@@ -662,6 +662,63 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     }
   })
 
+  // 何を防ぐか（レビュー指摘、2026-08-03）: 最終サブ設問の保存が終わる前に「次へ」を押して、
+  // attempt未保存のまま advanceSession → リザルトへ進めること
+  it('保存が完了するまで「次へ」を出さない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-saving', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // 待ちはトランザクションの**開始前**に入れる（Dexieのトランザクション内で非Dexieの
+    // promiseをawaitすると、そのトランザクションが先にコミットされる＝ADR 0010の制約）
+    let release: (() => void) | null = null
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const originalTx = db.transaction.bind(db)
+    const txSpy = vi
+      .spyOn(db, 'transaction')
+      .mockImplementation(((...args: unknown[]) =>
+        gate.then(() =>
+          originalTx(...(args as Parameters<typeof originalTx>)),
+        )) as unknown as typeof db.transaction)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    // 正誤表示は出ているが、進行導線はまだ出さない
+    await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
+    expect(screen.queryByText('次へ')).toBeNull()
+
+    txSpy.mockRestore()
+    release!()
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: 保存失敗のまま「次へ」「ここで終了」で進めること
+  it('保存失敗後は再試行するまで進行導線を出さない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-blocked', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const spy = failRatingsOnce(db)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+
+    expect(screen.queryByText('次へ')).toBeNull()
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+
+    fireEvent.click(screen.getByText('保存を再試行する'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    expect(screen.getByText('ここで終了して結果を見る')).toBeTruthy()
+    spy.mockRestore()
+  })
+
   // 何を防ぐか: 終了判定に解答スロット数（total）を使うこと（レビュー指摘のP2）。
   // displayIndex は item 単位なので、サブ設問を持つセッションでは最終itemでも判定が
   // 成立せず、範囲外のindexへ進んだ次のレンダーのフォールバックに拾われていた。
@@ -674,12 +731,12 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     render(<ReadingScreen db={db} />)
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByText('a'))
-      await waitFor(() => expect(screen.getByText('次へ')).toBeTruthy())
-      if (i < 2) fireEvent.click(screen.getByText('次へ'))
+      expect(await screen.findByText('次へ')).toBeTruthy()
+      if (i < 2) fireEvent.click(await screen.findByText('次へ'))
     }
     await waitFor(async () => expect(await db.attempts.count()).toBe(3))
 
-    fireEvent.click(screen.getByText('次へ'))
+    fireEvent.click(await screen.findByText('次へ'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
   })
 })

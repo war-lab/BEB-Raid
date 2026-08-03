@@ -23,7 +23,7 @@ import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import type { DictationAnswer, SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import { usePendingCommit } from '../hooks/usePendingCommit'
-import { useRetrySave } from '../hooks/useRetrySave'
+import { useSaveGuard } from '../hooks/useSaveGuard'
 import type { AiClient, AudioPlayer, PlaybackOutcome, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
@@ -294,8 +294,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [undoNotice, setUndoNotice] = useState(false)
   // T-166（J-93）: 2問目以降の音声自動再生の有効/無効。既定ON（T-110の意図は変えない）
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
-  // T-176（docs/27 のS-27）: 保存に失敗した確定をやり直す導線（多重実行のガードはフック側）
-  const retrySave = useRetrySave()
+  // T-176（docs/27 のS-27）: 保存の進行ガードと再試行導線（多重実行・保存中の進行のガードはフック側）
+  const saveGuard = useSaveGuard()
   // T-162（docs/27 のS-7）: 中断の確認。画面最上部にあり誤タップでセッションから抜けていた
   const [abortConfirm, setAbortConfirm] = useState(false)
 
@@ -588,6 +588,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       1,
     total,
   )
+  /**
+   * 進行導線（「次へ」「次の設問へ」「ここで終了」「語彙の自己評価」）を出してよいか
+   * （レビュー指摘、2026-08-03）。正誤表示は保存処理より先に出るため、保存中・保存失敗中も
+   * 押せてしまっていた。保存を待たずに次の問題へ進むと、DBのsnapshotが進んでいないまま
+   * 次問を解答し、attemptを前問のIDで記録しながらタグ・レートには次問の情報を使う
+   * 不整合が起きうる（`answerCurrentQuestion` はsnapshotの現在itemを見るため）。
+   * saveError の併記は、再試行を出さない失敗経路（スナップショット不整合）でも止めるため
+   */
+  const canAdvance = !saveGuard.blocked && saveError === null
 
   /**
    * 解答保存（recordAnswerPipeline）失敗時の共通リカバリ（J-35・T-76）。
@@ -607,7 +616,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     // ただしスナップショット不整合（二重解答・複数タブ・終了済みセッション）は
     // やり直しても同じ検知で弾かれるため、従来どおり再同期へ回す
     if (options?.retry && !(err instanceof StaleSnapshotError)) {
-      retrySave.offer(options.retry)
+      saveGuard.offerRetry(options.retry)
       return
     }
     setResult(null)
@@ -679,24 +688,33 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     } = payload
     clearUndoTimer()
     clearPending()
-    retrySave.clear()
+    // 保存を始めた時点で前回の失敗表示と再試行登録を捨てる。saveError が残ったままだと
+    // 進行導線（canAdvance）を止めっぱなしにしてしまう
+    if (mountedRef.current) setSaveError(null)
+    saveGuard.clearRetry()
 
     try {
       // S2は客観正誤のみのUIのため、SRS自己評価3段階への写像は正解→good/誤答→again に固定する
       // （srsGrade省略時のpipeline既定動作。item.srsCardIdが無ければreviewSrsCard自体を呼ばない）。
       // mode='battle'（ボス役セッション=M4・T-128）はレート更新の対象外（docs/22 3.5節・3.2節と同じ扱い）
-      const { nextSnapshot, ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
-        snapshot: snap,
-        questionId: q.id,
-        question: q,
-        lookup: questions,
-        isCorrect,
-        responseMs,
-        isTimeout,
-        mode: sessionItem.mode,
-        srsCardId: sessionItem.srsCardId,
-        skip: { rating: sessionItem.mode === 'battle' },
-      })
+      // track で包む間は saveGuard.blocked が true になり、進行導線を出さない
+      // （レビュー指摘、2026-08-03。保存を待たずに次の問題へ進むと、snapshotが進んでいない
+      // まま次問を解答し、attemptを前問のIDで記録しつつタグ・レートには次問の情報を使う
+      // 不整合が起きうる）
+      const { nextSnapshot, ratingUpdate, raidDamage } = await saveGuard.track(() =>
+        recordAnswerPipeline(db, {
+          snapshot: snap,
+          questionId: q.id,
+          question: q,
+          lookup: questions,
+          isCorrect,
+          responseMs,
+          isTimeout,
+          mode: sessionItem.mode,
+          srsCardId: sessionItem.srsCardId,
+          skip: { rating: sessionItem.mode === 'battle' },
+        }),
+      )
       // M4・T-129: 堅い/弱点バッジ・実ダメージ表示用（該当なしならraidDamageはundefinedのまま）
       if (raidDamage && mountedRef.current) setResult((r) => (r ? { ...r, raidDamage } : r))
 
@@ -779,20 +797,23 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setResult({ selectedKey: choiceKey, isCorrect, isTimeout: false })
     setStreak((s) => (isCorrect ? s + 1 : 0))
     triggerCorrectHaptics(hapticsEnabled, isCorrect)
+    setSaveError(null)
 
     try {
       // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
       // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）。
       // mode='battle'はレート更新の対象外（finalizeAnswerと同じ理由）
-      const { ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
-        questionId: currentSubQuestion.id,
-        question,
-        lookup: subQuestionLookup,
-        isCorrect,
-        responseMs,
-        mode: item.mode,
-        skip: { srs: true, rating: item.mode === 'battle' },
-      })
+      const { ratingUpdate, raidDamage } = await saveGuard.track(() =>
+        recordAnswerPipeline(db, {
+          questionId: currentSubQuestion.id,
+          question,
+          lookup: subQuestionLookup,
+          isCorrect,
+          responseMs,
+          mode: item.mode,
+          skip: { srs: true, rating: item.mode === 'battle' },
+        }),
+      )
       if (raidDamage) setResult((r) => (r ? { ...r, raidDamage } : r))
       setSubQuestionResults((prev) => [...prev, isCorrect])
       recordAnswer(snapshot, {
@@ -1040,21 +1061,24 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     setResult({ selectedKey: null, isCorrect: judgement.isCorrect, isTimeout: false })
     setStreak((s) => (judgement.isCorrect ? s + 1 : 0))
     triggerCorrectHaptics(hapticsEnabled, judgement.isCorrect)
+    setSaveError(null)
 
     try {
       // J-29: ディクテーションはレート更新の対象外（03の5.3の得点式は選択式前提のため）
-      const { nextSnapshot } = await recordAnswerPipeline(db, {
-        snapshot,
-        questionId: question.id,
-        question,
-        lookup: questions,
-        isCorrect: judgement.isCorrect,
-        responseMs,
-        isTimeout: false,
-        mode: item.mode,
-        srsCardId: item.srsCardId,
-        skip: { rating: true },
-      })
+      const { nextSnapshot } = await saveGuard.track(() =>
+        recordAnswerPipeline(db, {
+          snapshot,
+          questionId: question.id,
+          question,
+          lookup: questions,
+          isCorrect: judgement.isCorrect,
+          responseMs,
+          isTimeout: false,
+          mode: item.mode,
+          srsCardId: item.srsCardId,
+          skip: { rating: true },
+        }),
+      )
       recordAnswer(nextSnapshot!, {
         questionId: question.id,
         isCorrect: judgement.isCorrect,
@@ -1151,24 +1175,27 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     const { grade, isCorrect, responseMs, question: q, item: sessionItem, snapshot: snap } = payload
     clearVocabUndoTimer()
     clearVocabPending()
-    retrySave.clear()
+    if (mountedRef.current) setSaveError(null)
+    saveGuard.clearRetry()
 
     try {
       // vocab_cardは誤答してもkey語彙の復習デッキに落とさない（自己評価が別途あるため=skip.wrongAnswer）。
       // tagStats（tags=[]）・レート（part=0）はpipeline内部でno-opになる
-      const { nextSnapshot, ratingUpdate } = await recordAnswerPipeline(db, {
-        snapshot: snap,
-        questionId: q.id,
-        question: q,
-        lookup: questions,
-        isCorrect,
-        responseMs,
-        isTimeout: false,
-        mode: sessionItem.mode,
-        srsCardId: sessionItem.srsCardId,
-        srsGrade: grade,
-        skip: { wrongAnswer: true },
-      })
+      const { nextSnapshot, ratingUpdate } = await saveGuard.track(() =>
+        recordAnswerPipeline(db, {
+          snapshot: snap,
+          questionId: q.id,
+          question: q,
+          lookup: questions,
+          isCorrect,
+          responseMs,
+          isTimeout: false,
+          mode: sessionItem.mode,
+          srsCardId: sessionItem.srsCardId,
+          srsGrade: grade,
+          skip: { wrongAnswer: true },
+        }),
+      )
       recordAnswer(nextSnapshot!, {
         questionId: q.id,
         isCorrect,
@@ -1262,13 +1289,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               </p>
               {/* T-176（docs/27 のS-27）: 正誤表示を取り消して再解答させる代わりに、
                   同じ解答の保存をやり直す。正解が見えている状態で選び直させても意味がない */}
-              {retrySave.shown && (
+              {saveGuard.retryShown && (
                 <button
                   type="button"
                   className="secondary-action"
-                  disabled={retrySave.busy}
-                  aria-busy={retrySave.busy}
-                  onClick={() => void retrySave.run()}
+                  disabled={saveGuard.retryBusy}
+                  aria-busy={saveGuard.retryBusy}
+                  onClick={() => void saveGuard.runRetry()}
                 >
                   保存を再試行する
                 </button>
@@ -1321,7 +1348,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               取り消し
             </button>
           )}
-          {isVocabCard && dontKnowVocab && vocabPending === null && (
+          {/* 自己評価も保存中・保存失敗中は出さない（canAdvanceの理由は上の定義参照）。
+              出しておくと保存中にもう一度評価でき、二重評価になる */}
+          {isVocabCard && dontKnowVocab && vocabPending === null && canAdvance && (
             <button
               type="button"
               className="vocab-grade-button"
@@ -1330,7 +1359,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               次へ
             </button>
           )}
-          {isVocabCard && selectedChoiceKey !== null && vocabPending === null && (
+          {isVocabCard && selectedChoiceKey !== null && vocabPending === null && canAdvance && (
             <>
               <button
                 type="button"
@@ -1560,11 +1589,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                     : null
                 }
               />
-              <PrimaryButton onClick={() => void advanceSubQuestion()}>
-                {subQuestionIndex + 1 < (question.subQuestions ?? []).length
-                  ? '次の設問へ'
-                  : '次へ'}
-              </PrimaryButton>
+              {/* サブ設問の保存が終わるまで進めない（canAdvanceの理由は上の定義参照）。
+                  audio_setはサブ設問ごとにitemを進めないため取り違えは起きないが、
+                  最終設問では未保存のまま advanceSession まで進んでしまう */}
+              {canAdvance && (
+                <PrimaryButton onClick={() => void advanceSubQuestion()}>
+                  {subQuestionIndex + 1 < (question.subQuestions ?? []).length
+                    ? '次の設問へ'
+                    : '次へ'}
+                </PrimaryButton>
+              )}
             </>
           )}
           {/* 猶予中は「取り消し」を解説の上に出す（ADR 0009 + T-160のAmendment）。
@@ -1630,7 +1664,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           {/* 「次へ」と途中終了は猶予が明けてから出す（T-160でも据え置き）。猶予中に出すと
               未確定のまま次の問題へ進める・アンマウント時のflushと navigate('result') が
               競走する、の2つが起きる */}
-          {!isVocabCard && !isAudioSet && result && pending === null && (
+          {!isVocabCard && !isAudioSet && result && pending === null && canAdvance && (
             <>
               <PrimaryButton onClick={handleNext}>次へ</PrimaryButton>
               {/* T-122(J-61): 途中で電車を降りるとき等、全問完走以外でリザルトへ到達する手段が

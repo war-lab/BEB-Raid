@@ -40,7 +40,7 @@ import { PassageText, type PassageAnswer } from '../components/PassageText'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
-import { useRetrySave } from '../hooks/useRetrySave'
+import { useSaveGuard } from '../hooks/useSaveGuard'
 
 interface Props {
   db: BebRaidDatabase
@@ -98,8 +98,8 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
-  // T-176: 保存に失敗した解答をやり直す導線（多重実行のガードはフック側）
-  const retrySave = useRetrySave()
+  // T-176: 保存の進行ガードと再試行導線（多重実行・保存中の進行のガードはフック側）
+  const saveGuard = useSaveGuard()
   // T-162（docs/27 のS-7）: 中断の確認
   const [abortConfirm, setAbortConfirm] = useState(false)
   /**
@@ -188,6 +188,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     answerSlotsBefore(snapshot.items, questions, displayIndex) + answers.size + 1,
     total,
   )
+  // 保存中・保存失敗中は進行させない（レビュー指摘、2026-08-03）。saveError は
+  // saveGuard.blocked と重なるが、再試行を出さない失敗経路が将来増えても止まるように併記する
+  const canAdvance = !saveGuard.blocked && saveError === null
 
   /** 空所タップ・設問切替（該当設問へジャンプ。3.5節）。解答済み設問も閲覧のため切替可 */
   function handleSelectBlank(index: number) {
@@ -215,22 +218,27 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     setAnswers((prev) => new Map(prev).set(index, { selectedKey: choiceKey, isCorrect }))
     setSaveError(null)
     // 保存を始めた時点で古い再試行の登録を捨てる（同期。これ自体が再入ガードにもなる）
-    retrySave.clear()
+    saveGuard.clearRetry()
 
     try {
       // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
       // 本文まるごと再出題しないため呼ばない（skip.srs）。レート・tagStats・
       // keyVocab循環は通常どおり（skipしない）。ただしmode='battle'（ボス役セッション=
       // M4・T-128）はレート更新の対象外（docs/22 3.5節・DrillScreenと同じ扱い）
-      const { ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
-        questionId: sub.id,
-        question,
-        lookup: subQuestionLookup,
-        isCorrect,
-        responseMs,
-        mode: item.mode,
-        skip: { srs: true, rating: item.mode === 'battle' },
-      })
+      // track で包む間は saveGuard.blocked が true になり、「次へ」「ここで終了」を出さない
+      // （レビュー指摘、2026-08-03。正誤表示は保存より先に出るため、包まないと未保存のまま
+      // 最終サブ設問からリザルトへ進める）
+      const { ratingUpdate, raidDamage } = await saveGuard.track(() =>
+        recordAnswerPipeline(db, {
+          questionId: sub.id,
+          question,
+          lookup: subQuestionLookup,
+          isCorrect,
+          responseMs,
+          mode: item.mode,
+          skip: { srs: true, rating: item.mode === 'battle' },
+        }),
+      )
       if (raidDamage) {
         setGhostDefenseByIndex((prev) => new Map(prev).set(index, raidDamage))
       }
@@ -239,19 +247,22 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
-      retrySave.clear()
+      saveGuard.clearRetry()
     } catch (err) {
       console.error('[ReadingScreen] 解答の保存に失敗', err)
       setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
       // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
       // 従来は answers から該当indexを消して選び直させていたが、正解が既に見えている
       // 状態で選び直させることになり操作の意味がなかった
-      retrySave.offer(() => finalizeSubQuestionAnswer(index, choiceKey, { responseMs }))
+      saveGuard.offerRetry(() => finalizeSubQuestionAnswer(index, choiceKey, { responseMs }))
     }
   }
 
   function handleSelectChoice(choiceKey: string) {
-    if (activeAnswer) return
+    // 保存中・保存失敗中は別のサブ設問の解答も受け付けない（レビュー指摘、2026-08-03）。
+    // 空所タップでの設問切替は閲覧目的なので止めない。ここを開けておくと、
+    // 未保存の再試行が残っているのに別の設問を解答して retry の登録を捨ててしまう
+    if (activeAnswer || saveGuard.blocked) return
     void finalizeSubQuestionAnswer(activeIndex, choiceKey)
   }
 
@@ -334,13 +345,13 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
               <p className="drill-error" role="alert">
                 {saveError}
               </p>
-              {retrySave.shown && (
+              {saveGuard.retryShown && (
                 <button
                   type="button"
                   className="secondary-action"
-                  disabled={retrySave.busy}
-                  aria-busy={retrySave.busy}
-                  onClick={() => void retrySave.run()}
+                  disabled={saveGuard.retryBusy}
+                  aria-busy={saveGuard.retryBusy}
+                  onClick={() => void saveGuard.runRetry()}
                 >
                   保存を再試行する
                 </button>
@@ -391,12 +402,16 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                     : null
                 }
               />
-              <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>
+              {/* 保存が終わるまでは進行導線を出さない（レビュー指摘、2026-08-03）。
+                  正誤表示は保存処理より先に出るため、出しておくと最終サブ設問で
+                  attempt未保存のまま advanceSession → リザルトへ進めてしまう。
+                  保存失敗中（再試行待ち）も同様に止め、再試行だけを前進手段にする */}
+              {canAdvance && <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>}
               {/* T-164（docs/27 のS-31）: T-122でドリルに入れた途中終了導線を読解にも適用する。
                   従来は全サブ設問を解き切るまでリザルトへ到達できず、抜ける手段は「中断」
                   （ホーム直行）だけだったため、Part7の長文を全問解く覚悟がないと入れなかった。
                   解答済みが1問以上あり、かつ未解答が残っているときだけ出す */}
-              {answers.size < subQuestions.length && (
+              {canAdvance && answers.size < subQuestions.length && (
                 <button
                   type="button"
                   className="secondary-action"
