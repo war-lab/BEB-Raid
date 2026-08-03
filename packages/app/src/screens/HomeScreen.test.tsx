@@ -440,6 +440,23 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     expect(useAppStore.getState().screen).toBe('dashboard')
   })
 
+  // 発起人の要望（2026-08-03）: 過去の誤答をあとから見返す入口
+  it('下方グリッドから間違えた問題一覧へ遷移できる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('間違えた問題'))
+    expect(useAppStore.getState().screen).toBe('wrongAnswers')
+  })
+
   it('下方グリッドからシャドーイングへ直接遷移でき、listeningStageが併記される（T-48）', async () => {
     const db = newDb()
     render(
@@ -1640,8 +1657,9 @@ describe('HomeScreen: .home-gridの表層（V-13。docs/25 4.8節）', () => {
 
   it('構造は2列グリッドの素のボタン列のまま（直下の子は全てbutton要素）', async () => {
     const grid = await renderConfigured()
-    // ダッシュボード・設定・レイド・イベントバトル参加・イベントバトル主催の5導線
-    expect(grid.children).toHaveLength(5)
+    // 間違えた問題・ダッシュボード・設定・レイド・イベントバトル参加・イベントバトル主催の6導線
+    // （「間違えた問題」は2026-08-03に追加。モードタイルではなくナビゲーション枠に置く）
+    expect(grid.children).toHaveLength(6)
     expect(Array.from(grid.children).every((el) => el.tagName === 'BUTTON')).toBe(true)
   })
 
