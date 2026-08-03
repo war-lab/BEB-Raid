@@ -377,6 +377,10 @@ export function ResultScreen({ db, raidApi }: Props) {
               <span className="result-list__question">
                 {resultQuestionLabel(a.questionId, questions.get(a.questionId))}
               </span>
+              {/* T-163（J-92）: 時間切れは知識不足による誤答と混ざると振り返りを誤らせる。
+                  上のタイル（速度不足N）は件数だけなので、どの問題がそれだったかを問題単位で示す。
+                  SRS復習デッキへの登録は従来どおり維持する（J-92。学習機会を失わない側を採る） */}
+              {a.isTimeout && <span className="result-list__note">時間切れ</span>}
             </li>
           ))}
         </ul>

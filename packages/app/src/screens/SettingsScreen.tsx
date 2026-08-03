@@ -14,6 +14,7 @@ import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import { exportAll, importAll } from '../services/backup'
 import {
   BYOK_API_KEY_KEY,
+  AUTO_PLAY_ENABLED_KEY,
   BYOK_MODEL_KEY,
   FONT_SIZE_KEY,
   HAPTICS_ENABLED_KEY,
@@ -63,6 +64,8 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
   const [hapticsEnabled, setHapticsEnabledState] = useState(true)
   // 誤タップの取り消し猶予（ADR 0009）。既定ON
   const [mistapUndoEnabled, setMistapUndoEnabledState] = useState(true)
+  // T-166（J-93）: 2問目以降の音声自動再生。既定ON（T-110の意図を変えない）
+  const [autoPlayEnabled, setAutoPlayEnabledState] = useState(true)
   // T-96: レイドダメージ送信の有効/無効。既定OFF（レイド参加中のみ有効にする想定）
   const [raidSyncEnabled, setRaidSyncEnabledState] = useState(false)
   // T-100: questionStats（匿名問題別正誤集計）送信の有効/無効。既定OFF
@@ -104,6 +107,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       questionStatsSetting,
       raidRegisteredSetting,
       mistapUndoSetting,
+      autoPlaySetting,
     ] = await Promise.all([
       db.profile.get(PROFILE_ID),
       db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -119,12 +123,14 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       db.settings.get(QUESTION_STATS_ENABLED_KEY),
       db.settings.get(RAID_REGISTERED_AT_KEY),
       db.settings.get(MISTAP_UNDO_ENABLED_KEY),
+      db.settings.get(AUTO_PLAY_ENABLED_KEY),
     ])
     if (cancelledRef.current) return
     setDisplayName(profile ? profile.displayName : '')
     setNoEarphoneModeState(earphoneSetting?.value === true)
     setHapticsEnabledState(hapticsSetting?.value !== false)
     setMistapUndoEnabledState(mistapUndoSetting?.value !== false)
+    setAutoPlayEnabledState(autoPlaySetting?.value !== false)
     setRaidSyncEnabledState(raidSyncSetting?.value === true)
     setQuestionStatsEnabledState(questionStatsSetting?.value === true)
     setRaidRegistered(raidRegisteredSetting?.value != null)
@@ -172,6 +178,12 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     const next = !hapticsEnabled
     setHapticsEnabledState(next)
     await db.settings.put({ key: HAPTICS_ENABLED_KEY, value: next })
+  }
+
+  async function handleToggleAutoPlay() {
+    const next = !autoPlayEnabled
+    setAutoPlayEnabledState(next)
+    await db.settings.put({ key: AUTO_PLAY_ENABLED_KEY, value: next })
   }
 
   async function handleToggleMistapUndo() {
@@ -318,6 +330,19 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               onChange={() => void handleToggleMistapUndo()}
             />
             誤タップの取り消し猶予（選択直後に取り消せるようにする）
+          </label>
+        </section>
+
+        {/* T-166（J-93）: 2問目以降の自動再生をOFFにできるようにする。既定はONのままで、
+            18のT-110で入れた挙動そのものは変えない（心の準備・音量調整の間が要る場合の逃げ道） */}
+        <section>
+          <label>
+            <input
+              type="checkbox"
+              checked={autoPlayEnabled}
+              onChange={() => void handleToggleAutoPlay()}
+            />
+            音声の自動再生（2問目以降はタップなしで再生する）
           </label>
         </section>
 

@@ -3,7 +3,7 @@
 // 完了画面（L/R初期レート＋「ここから伸ばす」。予測スコア帯は出さない=J-1）。
 // 診断は独立したレートキャリブレーションのフローのため、通常ドリルの
 // tagStats・SRS・processWrongAnswer 等の副作用は起こさない。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import {
@@ -46,11 +46,69 @@ interface DiagnosticProgress {
   ratingR: number
   askedL: string[]
   askedR: string[]
+  /**
+   * T-174の振り返り一覧の元データ（レビュー指摘、2026-08-03）。
+   * 持たないと中断復帰後の完了画面が再開後の分だけになる（15問で中断すれば15件しか出ない）。
+   * Question実体は保存せず、questionIdだけを持って復元時にプールから引き直す
+   * （settingsを問題文で膨らませない）。省略可なのは旧形式の途中経過との互換のため
+   */
+  answerLog?: DiagnosticAnswerLogRecord[]
+}
+
+/** 途中経過に保存する振り返り1件（Question実体は持たない。上のanswerLog参照） */
+interface DiagnosticAnswerLogRecord {
+  section: 'L' | 'R'
+  questionId: string
+  selectedKey: string
+  isCorrect: boolean
 }
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ
 function now(): number {
   return Date.now()
+}
+
+/** T-174: 完了画面の振り返り1件分 */
+interface DiagnosticAnswerLog {
+  section: 'L' | 'R'
+  question: Question
+  selectedKey: string
+  isCorrect: boolean
+}
+
+/** 振り返りを途中経過へ保存する形へ落とす */
+function toAnswerLogRecords(log: readonly DiagnosticAnswerLog[]): DiagnosticAnswerLogRecord[] {
+  return log.map((entry) => ({
+    section: entry.section,
+    questionId: entry.question.id,
+    selectedKey: entry.selectedKey,
+    isCorrect: entry.isCorrect,
+  }))
+}
+
+/**
+ * 途中経過の振り返りをQuestion実体つきへ復元する。
+ * プールに無いquestionId（配信パックが入れ替わった等）は一覧から落とす——
+ * 問題文・正解を出せないため行として成立しない
+ */
+export function restoreAnswerLog(
+  records: readonly DiagnosticAnswerLogRecord[] | undefined,
+  questionPool: readonly Question[],
+): DiagnosticAnswerLog[] {
+  if (!records) return []
+  const byId = new Map(questionPool.map((q) => [q.id, q]))
+  const restored: DiagnosticAnswerLog[] = []
+  for (const record of records) {
+    const question = byId.get(record.questionId)
+    if (!question) continue
+    restored.push({
+      section: record.section,
+      question,
+      selectedKey: record.selectedKey,
+      isCorrect: record.isCorrect,
+    })
+  }
+  return restored
 }
 
 export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
@@ -67,9 +125,18 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   const [askedR, setAskedR] = useState<ReadonlySet<string>>(new Set())
   const [startedAt, setStartedAt] = useState(() => now())
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'played'>('idle')
+  // T-159: 解答処理中フラグ。refは連打の同期的な遮断用、stateはボタンの無効化用
+  const submittingRef = useRef(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const [resultL, setResultL] = useState(DEFAULT_INITIAL_RATING)
   const [resultR, setResultR] = useState(DEFAULT_INITIAL_RATING)
+  /**
+   * T-174（J-95。docs/27 のS-25）: 30問の振り返り用の解答履歴。
+   * **診断中は正誤を出さない**（測定が目的で、途中でフィードバックを与えると後続問題に
+   * 学習効果が乗りレートの測定精度が落ちる）。代わりに完了画面でまとめて開示する
+   */
+  const [answerLog, setAnswerLog] = useState<DiagnosticAnswerLog[]>([])
   // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4。DrillScreenと同じパターン）
   const [audioError, setAudioError] = useState<string | null>(null)
   // T-78: 完了カード用の「今日の実施数・ストリーク」は診断完了到達時に1回だけ取得する
@@ -145,6 +212,9 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     setRatingR(savedProgress.ratingR)
     setAskedL(new Set(savedProgress.askedL))
     setAskedR(new Set(savedProgress.askedR))
+    // 振り返り一覧も復元する（レビュー指摘、2026-08-03。復元しないと完了画面が
+    // 再開後の分だけになる）
+    setAnswerLog(restoreAnswerLog(savedProgress.answerLog, questionPool))
     setTurn(savedProgress.turn)
     setStartedAt(now())
     setPlayState('idle')
@@ -286,6 +356,44 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
             message="ここから伸ばしていきましょう"
           />
         )}
+        {/* T-174（J-95。docs/27 のS-25）: 診断中は正誤を出さない代わりに、ここで
+            まとめて振り返れるようにする。従来は30問すべて「当たったか外れたか分からない
+            まま」連続で答えるだけで、学習アプリの初回体験として離脱要因になっていた。
+            測定精度を守るため、途中でのフィードバックは追加していない */}
+        {answerLog.length > 0 && (
+          <>
+            <h2 style={{ fontSize: 'var(--fs-sub)' }}>
+              解答の振り返り（正解 {answerLog.filter((a) => a.isCorrect).length}/{answerLog.length}
+              ）
+            </h2>
+            <ul className="result-list" data-testid="diagnostic-review-list">
+              {answerLog.map((entry, i) => {
+                const correctChoice = entry.question.choices?.find(
+                  (c) => c.key === entry.question.answer,
+                )
+                const selectedChoice = entry.question.choices?.find(
+                  (c) => c.key === entry.selectedKey,
+                )
+                return (
+                  <li key={i} className="result-list__item" data-correct={entry.isCorrect}>
+                    <span aria-hidden="true" className="result-list__icon" />
+                    <span className="result-list__question">
+                      {i + 1}. [{entry.section}] {entry.question.question ?? '音声問題'}
+                    </span>
+                    {/* 誤答のときだけ「何を選んで何が正解だったか」を出す。
+                        正解した問題に同じ量の情報を出すと一覧が読めなくなる */}
+                    {!entry.isCorrect && (
+                      <span className="result-list__note">
+                        選択: {selectedChoice?.text ?? entry.selectedKey} / 正解:{' '}
+                        {correctChoice?.text ?? entry.question.answer}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
       </ScreenLayout>
     )
   }
@@ -348,7 +456,29 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     }
   }
 
+  /**
+   * 解答の多重発火を防ぐ（T-159。docs/27 のS-3）。
+   * 従来はボタンが常に有効で解答済みフラグも無く、反応待ちで連打すると
+   * recordAttempt が2件・updateDiagnosticRating が2回走った。turn は同じ値から
+   * 計算されるため進むのは1問分で、レートだけが二重に動く（＝以降のすべての
+   * 出題難易度が実力と乖離する）。
+   * refで持つのは、同一バッチ内の2クリックに対してstateの更新が間に合わないため
+   */
   async function handleSelect(choiceKey: string) {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    try {
+      await submitAnswer(choiceKey)
+    } finally {
+      // 失敗時もフラグを戻す（戻さないと画面が操作不能のまま固まる）。
+      // 保存失敗の表示自体はこの画面の既存挙動を変えない
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }
+
+  async function submitAnswer(choiceKey: string) {
     const isCorrect = choiceKey === question!.answer
     const responseMs = now() - startedAt
 
@@ -358,6 +488,15 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       isCorrect,
       responseMs,
     })
+
+    // T-174: 振り返り用に保持する（画面には出さない。完了画面でまとめて開示する）。
+    // 追加は attempt の保存が成功した**後**に行う（レビュー指摘、2026-08-03）。
+    // 先に足すと、保存が失敗して同じ問題を解答し直したときに一覧だけが重複する
+    const nextAnswerLog = [
+      ...answerLog,
+      { section, question: question!, selectedKey: choiceKey, isCorrect },
+    ]
+    setAnswerLog(nextAnswerLog)
 
     const newRating = updateDiagnosticRating(rating, question!.difficulty, isCorrect)
     const nextAsked = new Set(asked)
@@ -401,6 +540,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
         ratingR: finalReading,
         askedL: [...(section === 'L' ? nextAsked : askedL)],
         askedR: [...(section === 'R' ? nextAsked : askedR)],
+        answerLog: toAnswerLogRecords(nextAnswerLog),
       } satisfies DiagnosticProgress,
     })
   }
@@ -414,6 +554,9 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
             中断
           </button>
           <p>{section === 'L' ? 'リスニング' : 'リーディング'}</p>
+          {/* T-174（J-95）: 正誤が出ないのが意図的であることを伝える。無表示だと
+              「壊れているのか」「当たったのか外れたのか」が分からないまま30問続く */}
+          <p className="diagnostic-note">正誤は最後にまとめて表示します</p>
         </>
       }
       action={
@@ -452,6 +595,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
               <ChoiceButton
                 key={choice.key}
                 marker={choice.key}
+                disabled={submitting}
                 onClick={() => void handleSelect(choice.key)}
               >
                 {choice.text}

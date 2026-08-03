@@ -9,9 +9,11 @@ import { BebRaidDatabase } from '../db/database'
 import {
   advanceSession,
   answerCurrentQuestion,
+  answerCurrentSubQuestion,
   completeSession,
   currentItem,
   resumeSession,
+  StaleSnapshotError,
   startSession,
   type SessionItem,
 } from './session'
@@ -198,5 +200,94 @@ describe('advanceSession（M2・T-49: audio_setのセット完了後にattempts�
     const s = await startSession(db, { items: items() })
     await advanceSession(db, s)
     await expect(advanceSession(db, s)).rejects.toThrow()
+  })
+})
+
+// 複合問題（読解・audio_set）のサブ設問記録（レビュー指摘、2026-08-03）。
+// 何を防ぐか: サブ設問の解答がスナップショットに残らないことで、(1) 中断復帰後に
+// 解答済みの設問が再出題されて attempt・レート・タグ統計が重複する、
+// (2) 完走してもリザルトの集計（snapshot.attemptIds 基準）から漏れて「正解 0/0」になる
+describe('answerCurrentSubQuestion（複合問題のサブ設問記録）', () => {
+  it('itemは進めず、attemptとattemptIds・subAnswersを追加する', async () => {
+    const db = newDb()
+    let s = await startSession(db, { items: items() })
+
+    s = await answerCurrentSubQuestion(db, s, {
+      questionId: 'q-1-sub0',
+      selectedKey: 'A',
+      isCorrect: true,
+      responseMs: 3000,
+    })
+
+    // itemは進まない（サブ設問全問が終わるまで親itemの位置は同じ）
+    expect(s.answeredCount).toBe(0)
+    expect(currentItem(s)?.questionId).toBe('q-1')
+    // リザルトの集計入力に入る
+    expect(s.attemptIds).toHaveLength(1)
+    expect(s.subAnswers).toEqual([{ subQuestionId: 'q-1-sub0', selectedKey: 'A', isCorrect: true }])
+
+    const attempts = await db.attempts.toArray()
+    expect(attempts).toHaveLength(1)
+    expect(attempts[0]!.questionId).toBe('q-1-sub0')
+    expect(attempts[0]!.id).toBe(s.attemptIds[0])
+    // DBのスナップショットにも反映済み（=中断してもこの位置から再開できる）
+    expect((await resumeSession(db))?.subAnswers).toHaveLength(1)
+  })
+
+  it('同じサブ設問の二度目の記録は拒否される（二重解答・複数タブ）', async () => {
+    const db = newDb()
+    const s = await startSession(db, { items: items() })
+    const input = { questionId: 'q-1-sub0', selectedKey: 'A', isCorrect: true, responseMs: 3000 }
+    await answerCurrentSubQuestion(db, s, input)
+
+    await expect(answerCurrentSubQuestion(db, s, input)).rejects.toThrow(StaleSnapshotError)
+    expect(await db.attempts.count()).toBe(1)
+  })
+
+  it('一手古いスナップショットから呼んでも記録済みのサブ設問を取りこぼさない', async () => {
+    const db = newDb()
+    const s = await startSession(db, { items: items() })
+    // 1問目の結果を画面が受け取り損ねた状態（同じ s から2問目を記録する）を作る
+    await answerCurrentSubQuestion(db, s, {
+      questionId: 'q-1-sub0',
+      selectedKey: 'A',
+      isCorrect: true,
+      responseMs: 3000,
+    })
+    const next = await answerCurrentSubQuestion(db, s, {
+      questionId: 'q-1-sub1',
+      selectedKey: 'B',
+      isCorrect: false,
+      responseMs: 4000,
+    })
+
+    expect(next.subAnswers?.map((a) => a.subQuestionId)).toEqual(['q-1-sub0', 'q-1-sub1'])
+    expect(next.attemptIds).toHaveLength(2)
+  })
+
+  it('itemを進めるとサブ設問の記録は空に戻る（advanceSession・answerCurrentQuestion）', async () => {
+    const db = newDb()
+    let s = await startSession(db, { items: items() })
+    s = await answerCurrentSubQuestion(db, s, {
+      questionId: 'q-1-sub0',
+      selectedKey: 'A',
+      isCorrect: true,
+      responseMs: 3000,
+    })
+    s = await advanceSession(db, s)
+    expect(s.subAnswers).toEqual([])
+    // attemptIdsは累積したまま（リザルトの集計対象から消さない）
+    expect(s.attemptIds).toHaveLength(1)
+
+    s = await answerCurrentSubQuestion(db, s, {
+      questionId: 'q-2-sub0',
+      selectedKey: 'A',
+      isCorrect: true,
+      responseMs: 3000,
+    })
+    expect(s.subAnswers).toHaveLength(1)
+    s = await answerCurrentQuestion(db, s, { isCorrect: true, responseMs: 1000 })
+    expect(s.subAnswers).toEqual([])
+    expect(s.attemptIds).toHaveLength(3)
   })
 })

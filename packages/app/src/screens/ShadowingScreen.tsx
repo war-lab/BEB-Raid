@@ -8,7 +8,7 @@ import type { BebRaidDatabase } from '../db/database'
 import type { ListeningStage } from '../db/schema'
 import type { ShadowingSentence } from '../engine/shadowing'
 import { evaluateStreak, getStreak } from '../engine/streak'
-import type { AudioPlayer } from '../platform'
+import type { AudioPlayer, PlaybackOutcome } from '../platform'
 import { recordAttempt } from '../services/attempts'
 import { countAttemptsToday } from '../services/dailyStats'
 import { getOrInitPhaseState } from '../services/phase'
@@ -48,8 +48,12 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   const [rate, setRate] = useState<(typeof SPEED_CHIPS)[number]>(1)
   const [scriptMode, setScriptMode] = useState<ScriptDisplayMode>('en')
   const [positionMs, setPositionMs] = useState(0)
-  const [laps, setLaps] = useState(0)
-  const [completed, setCompleted] = useState(false)
+  /**
+   * 素材ごとの周回数（T-157。docs/27 のS-37）。従来は単一の `laps` を素材移動時に0へ
+   * リセットしていたため、2周した素材を確認のため一時的に離れると0周からやり直しだった。
+   * 永続化はしない（セッション内の保持で足りる。実施ログの記録規約は3周完了時のみ＝J-13）
+   */
+  const [lapsByQuestionId, setLapsByQuestionId] = useState<Record<string, number>>({})
   // 音声再生（メインの「再生」ボタン）失敗フラグ。音声404等ではlapsが増えず素材完了に
   // 到達できないため、trueならスキップ導線を出す（この画面から出られなくなるのを防ぐ）
   const [audioError, setAudioError] = useState(false)
@@ -118,6 +122,10 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   }, [allDone, db])
 
   const question = shadowingQuestions[index]
+  const laps = question ? (lapsByQuestionId[question.id] ?? 0) : 0
+  // 完了は周回数から導く（素材ごとに保持されるので、実施済み素材へ戻ると「次へ」のまま）。
+  // 前セッションでの実施済み（completedIds）とは別概念で、こちらは今セッションの周回のみを見る
+  const completed = laps >= COMPLETION_LAPS
 
   function playOptions(overrides?: { startMs?: number; durationMs?: number }) {
     return {
@@ -130,10 +138,11 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   async function handlePlay() {
     if (!question?.audio) return
     setAudioError(false)
+    let outcome: PlaybackOutcome
     try {
       await audioPlayer.unlock()
       setPositionMs(0)
-      await audioPlayer.play(question.audio, playOptions())
+      outcome = await audioPlayer.play(question.audio, playOptions())
     } catch (err) {
       // 失敗しても再生ボタンはそのまま残るため、タップし直せば再試行できる。
       // あわせてエラー表示＋スキップ導線を出す（恒久404等でこの画面に閉じ込められるのを防ぐ）
@@ -141,15 +150,23 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
       setAudioError(true)
       return
     }
+    // T-157: 中断（停止・3秒戻し・文タップによる打ち切り）は周回に数えない。
+    // 従来は await の解決を完走と見なしていたため、3秒戻しを3回押すだけで3周完了に達し、
+    // 練習していないのに実施ログが記録されていた（docs/27 のS-1。契約は T-155 で明確化済み）
+    if (outcome !== 'ended') return
     await handlePlaybackEnded()
+  }
+
+  /** 再生を止める（T-157。docs/27 のS-17）。中断なので周回は増えない */
+  function handleStop() {
+    audioPlayer.stop()
   }
 
   async function handlePlaybackEnded() {
     if (!question) return
     const nextLaps = laps + 1
-    setLaps(nextLaps)
-    if (nextLaps >= COMPLETION_LAPS && !completed) {
-      setCompleted(true)
+    setLapsByQuestionId((prev) => ({ ...prev, [question.id]: nextLaps }))
+    if (nextLaps >= COMPLETION_LAPS && laps < COMPLETION_LAPS) {
       await recordAttempt(db, {
         questionId: `${SHADOW_ATTEMPT_PREFIX}${question.id}`,
         mode: 'solo',
@@ -185,8 +202,7 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   function handleNext() {
     userMovedRef.current = true
     setIndex((i) => i + 1)
-    setLaps(0)
-    setCompleted(false)
+    // 周回数は素材ごとに保持するのでリセットしない（T-157。docs/27 のS-37）
     setPositionMs(0)
     setAudioError(false)
   }
@@ -200,8 +216,7 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
   function handlePrev() {
     userMovedRef.current = true
     setIndex((i) => (i > 0 ? i - 1 : i))
-    setLaps(0)
-    setCompleted(false)
+    // 周回数は素材ごとに保持するのでリセットしない（T-157。docs/27 のS-37）
     setPositionMs(0)
     setAudioError(false)
   }
@@ -229,9 +244,10 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     )
   }
 
-  const availableSpeeds = SPEED_CHIPS.filter(
-    (s) => s < 1.15 || listeningStage >= HIGH_SPEED_MIN_STAGE,
-  )
+  // T-177（docs/27 のS-29）: 高速チップは隠さずに無効状態で見せる。従来はfilterで
+  // 消していたため「選択肢が無いように見える」だけで、なぜ出ないのかが画面から
+  // 分からなかった（listeningStage=4 未満というゲートの存在自体が伝わらない）
+  const highSpeedLocked = listeningStage < HIGH_SPEED_MIN_STAGE
 
   return (
     <ScreenLayout
@@ -275,6 +291,11 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
           <button type="button" className="secondary-action" onClick={handleRewind}>
             3秒戻し
           </button>
+          {/* T-157（docs/27 のS-17）: 従来は停止手段が無く、止めたければ画面を離れるか
+              他の再生で上書きするしかなかった（後者がS-1の周回誤カウントを誘発していた） */}
+          <button type="button" className="secondary-action" onClick={handleStop}>
+            停止
+          </button>
           {/* T-120(J-59): 3周完了前でも常時素材を移動できる導線（従来は3周完了後の「次へ」か
               音声エラー時のスキップでしか移動できず、実質素材1専用画面になっていた） */}
           {index > 0 && (
@@ -290,17 +311,32 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
             中断してホームへ
           </button>
           <div className="shadowing-speed-chips">
-            {availableSpeeds.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={s === rate ? 'is-selected' : ''}
-                onClick={() => setRate(s)}
-              >
-                {s}x
-              </button>
-            ))}
+            {SPEED_CHIPS.map((s) => {
+              const locked = s >= 1.15 && highSpeedLocked
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  className={s === rate ? 'is-selected' : ''}
+                  disabled={locked}
+                  title={
+                    locked
+                      ? `リスニング段階${HIGH_SPEED_MIN_STAGE}から選べます（現在は${listeningStage}）`
+                      : undefined
+                  }
+                  onClick={() => setRate(s)}
+                >
+                  {s}x
+                </button>
+              )
+            })}
           </div>
+          {highSpeedLocked && (
+            <p className="shadowing-speed-note">
+              1.15x以上はリスニング段階{HIGH_SPEED_MIN_STAGE}から選べます（現在は
+              {listeningStage}）
+            </p>
+          )}
           <div className="shadowing-script-toggle">
             <button
               type="button"

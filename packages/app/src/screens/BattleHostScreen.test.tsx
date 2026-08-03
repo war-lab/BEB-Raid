@@ -5,7 +5,7 @@ import type { Question, RaidBossState } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { AudioPlayer, RaidApi } from '../platform'
+import type { AudioPlayer, PlaybackOutcome, RaidApi } from '../platform'
 import { FakeBattleSocket } from '../platform/net/BattleSocket'
 import { useAppStore } from '../store/appStore'
 import { setTheme } from '../theme'
@@ -38,20 +38,21 @@ class FakeRaidApi implements RaidApi {
 
 class ControllableAudioPlayer implements AudioPlayer {
   unlock = vi.fn(async () => {})
-  playResolvers: Array<() => void> = []
+  playResolvers: Array<(outcome: PlaybackOutcome) => void> = []
   play = vi.fn(
     () =>
-      new Promise<void>((resolve) => {
+      new Promise<PlaybackOutcome>((resolve) => {
         this.playResolvers.push(resolve)
       }),
   )
-  playSequence = vi.fn(async () => {})
-  replay = vi.fn(async () => {})
+  playSequence = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
+  replay = vi.fn(async (): Promise<PlaybackOutcome> => 'ended')
   stop = vi.fn(() => {})
 
-  resolveNextPlay() {
+  /** 既定は 'ended'（再生完了の模擬）。中断を模擬する場合は 'interrupted' を渡す */
+  resolveNextPlay(outcome: PlaybackOutcome = 'ended') {
     const resolve = this.playResolvers.shift()
-    resolve?.()
+    resolve?.(outcome)
   }
 }
 

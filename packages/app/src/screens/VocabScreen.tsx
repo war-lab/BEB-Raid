@@ -14,7 +14,7 @@
 // を見せた状態で agenda の意味を問えば文脈から推測できるため、4択の正答率が実力を
 // 過大評価していた。解答前は単語のみを提示し、フレーズと音声は解答後に開示する。
 // 客観正誤（4択）と間隔調整（自己評価3段階）の分離はそのまま維持する
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
@@ -26,13 +26,20 @@ import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { countAttemptsToday } from '../services/dailyStats'
-import { HAPTICS_ENABLED_KEY, NO_EARPHONE_MODE_KEY } from '../services/settingsKeys'
+import {
+  AUTO_PLAY_ENABLED_KEY,
+  HAPTICS_ENABLED_KEY,
+  MISTAP_UNDO_ENABLED_KEY,
+  NO_EARPHONE_MODE_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { usePendingCommit } from '../hooks/usePendingCommit'
 import { SwipeCard } from '../components/SwipeCard'
 
 interface Props {
@@ -47,6 +54,21 @@ const FREQ_RANK_TITLE = '頻出度ランク（Sが最も頻出、C→B→A→S�
 
 /** 仕分けの区切り単位（T-119・J-58）。600語を前に「終わりが見えない」圧を緩和する */
 const TRIAGE_BATCH_SIZE = 20
+
+/**
+ * 復習の区切り単位（T-171・J-96）。仕分け側（TRIAGE_BATCH_SIZE）と**同じ値にするのが意図**で、
+ * 「仕分けは20語で区切るのに復習は区切らない」という非対称を解消するためのもの。
+ * キュー自体は期限到来分の全件を保持し続ける（上限は設けない＝SRSの「期限が来たものは
+ * 全部やる」思想を維持する。19の6節）
+ */
+const REVIEW_BATCH_SIZE = 20
+
+/** 猶予中の未確定な仕分け（T-161）。確定に必要な値をタップ時点で確定させて保持する */
+interface TriagePendingCommit {
+  word: string
+  /** true=知ってる（卒業済みカード化）／false=知らない（SRS学習カード化） */
+  known: boolean
+}
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 function now(): number {
@@ -71,13 +93,40 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   // 以前は専用トグル(vocabAutoPlayPhrase)を設定していたがSettingsScreenに導線が
   // 一度も無く常にOFF固定＝聞き流し周回が機能していなかったため、既存のイヤホンなし
   // モード設定に統合した）
-  const [autoPlay, setAutoPlay] = useState(true)
+  /**
+   * 自動再生の設定値そのもの（T-166・J-93）。**派生値と分けて持つ**——
+   * イヤホンなしモードのトグルで自動再生の可否を計算し直すとき、元設定が分からないと
+   * 「設定でOFFにしたのにトグル操作でONに戻る」（レビュー指摘）が起きる
+   */
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
+  // T-166（docs/27 のS-16）: イヤホンなしモードを画面内で切り替えられるようにする。
+  // 従来は設定画面へ移動しないと切り替えられず、公共の場でカードごとに音が鳴る状態から
+  // その場で逃げられなかった。新キーは作らず既存の NO_EARPHONE_MODE_KEY を読み書きする
+  const [noEarphoneMode, setNoEarphoneMode] = useState(false)
   const [reviewIndex, setReviewIndex] = useState(0)
   const [triageIndex, setTriageIndex] = useState(0)
   // T-119: 20語仕分けるごとに立てる中断フラグ（「続けて仕分ける」タップでfalseに戻す）
   const [triagePaused, setTriagePaused] = useState(false)
+  // T-171: 20件復習するごとに立てる中断フラグ（仕分け側と対称。「続ける」タップでfalseに戻す）
+  const [reviewPaused, setReviewPaused] = useState(false)
+  /**
+   * T-172（J-98）: 同一セッション内に再投入したカードの位置。
+   * 「もう一回」を選んだカードをキュー末尾へ1周だけ戻す（DB上の dueAt=翌日0時は変えない）。
+   * 再投入位置を持つのは (a) 表示に「もう一度」の注記を出す (b) 再投入されたカードで
+   * 再度「もう一回」を選んでも二重に戻さない、の2つの判定に使うため
+   */
+  const [retryIndices, setRetryIndices] = useState<Set<number>>(new Set())
   // 復習モード専用: 選んだ4択のkey（未選択はnull。選択後に自己評価3段階を出す）
   const [selectedChoiceKey, setSelectedChoiceKey] = useState<string | null>(null)
+  // T-159: 記録処理中フラグ。refは連打の同期的な遮断用、stateはボタンの無効化用
+  const busyRef = useRef(false)
+  const [busy, setBusy] = useState(false)
+  // T-159: 記録の保存失敗の表示（DrillScreenのsaveErrorと同じ様式）
+  const [saveError, setSaveError] = useState<string | null>(null)
+  // T-161: 誤タップの取り消し猶予の有効/無効（既定ON。ADR 0009 + 2026-07-31 Amendment）
+  const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
+  // T-162（docs/27 のS-7）: 中断の確認。復習・仕分けの両フェーズで共用する
+  const [abortConfirm, setAbortConfirm] = useState(false)
   // 「わからない」を選んだ状態（ドッグフィードバック 2026-07-22）。当てずっぽうの正解で
   // isCorrectが偽陽性になるのを防ぐため、正解は提示しつつ isCorrect=false・SRSはagain扱いにする
   const [dontKnow, setDontKnow] = useState(false)
@@ -105,15 +154,21 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         (q) =>
           q.format === 'vocab_card' && q.front && !existingIds.has(srsCardId('vocab', q.front)),
       )
-      const [noEarphoneSetting, hapticsSetting] = await Promise.all([
-        db.settings.get(NO_EARPHONE_MODE_KEY),
-        db.settings.get(HAPTICS_ENABLED_KEY),
-      ])
+      const [noEarphoneSetting, hapticsSetting, mistapUndoSetting, autoPlaySetting] =
+        await Promise.all([
+          db.settings.get(NO_EARPHONE_MODE_KEY),
+          db.settings.get(HAPTICS_ENABLED_KEY),
+          db.settings.get(MISTAP_UNDO_ENABLED_KEY),
+          db.settings.get(AUTO_PLAY_ENABLED_KEY),
+        ])
       if (!cancelled) {
         setReviewQueue(reviewCards)
         setTriageQueue(candidates)
-        setAutoPlay(noEarphoneSetting?.value !== true)
+        // T-166（J-93）: イヤホンなしモードに加えて、自動再生のopt-out設定でも止める
+        setNoEarphoneMode(noEarphoneSetting?.value === true)
+        setAutoPlayEnabled(autoPlaySetting?.value !== false)
         setHapticsEnabled(hapticsSetting?.value !== false)
+        setMistapUndoEnabled(mistapUndoSetting?.value !== false)
       }
     }
     // 失敗（DB切断・破損等）を握りつぶすと reviewQueue/triageQueue が null のまま
@@ -143,6 +198,19 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   // 解答済み（4択を選んだ or「わからない」）かどうか。フレーズと音声の開示条件に使う
   const answered = selectedChoiceKey !== null || dontKnow
 
+  /**
+   * 仕分けの猶予付き確定（T-161）。復習の評価とは別インスタンスで持つ
+   * （仕分けフェーズと復習フェーズは同時に表示されないため競合しない）。
+   * **早期returnより前に置くこと**——後ろに置くとレンダーごとにフック数が変わる
+   */
+  const {
+    pending: triagePending,
+    schedule: scheduleTriageCommit,
+    cancel: cancelTriageCommit,
+    clearTimer: clearTriageTimer,
+    clearPending: clearTriagePending,
+  } = usePendingCommit<TriagePendingCommit>((payload) => commitTriage(payload))
+
   function playPhrase(phraseAudio: string, context: string) {
     void audioPlayer
       .unlock()
@@ -152,6 +220,34 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         console.warn(`[VocabScreen] ${context}に失敗`, err)
       })
   }
+
+  /**
+   * イヤホンなしモードの画面内トグル（T-166。docs/27 のS-16）。
+   * 設定画面と同じキーに書くので、切り替えは設定画面にもそのまま反映される
+   */
+  async function handleToggleNoEarphone() {
+    const next = !noEarphoneMode
+    setNoEarphoneMode(next)
+    if (next) audioPlayer.stop() // 鳴っている音を即座に止める（公共の場での事故を止める用途）
+    try {
+      await db.settings.put({ key: NO_EARPHONE_MODE_KEY, value: next })
+    } catch (err) {
+      // 画面内トグルの永続化失敗で未処理rejectionにしない（表示は既に切り替わっている）
+      console.warn('[VocabScreen] イヤホンなしモードの保存に失敗', err)
+    }
+  }
+
+  /** 再生中のフレーズ音声を止める（T-166。docs/27 のS-16） */
+  function handleStopPhrase() {
+    audioPlayer.stop()
+  }
+
+  /**
+   * 実際に自動再生してよいか（T-166。レビュー指摘の修正）。
+   * 設定（autoPlayEnabled）とイヤホンなしモードの**両方**を満たす場合のみ鳴らす。
+   * 派生値にしておけば、どちらを切り替えても他方の意思が消えない
+   */
+  const autoPlay = autoPlayEnabled && !noEarphoneMode
 
   // 仕分けフェーズに入っているか（復習キューを消化しきった後）。音声の自動再生を
   // フェーズで分けるために必要: 復習中に仕分けキュー先頭の音声が鳴ると、復習カードの
@@ -206,9 +302,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   useEffect(() => {
     if (!isDone) return
     let cancelled = false
-    void Promise.all([countAttemptsToday(db), getStreak(db)]).then(([count, streak]) => {
-      if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
-    })
+    void Promise.all([countAttemptsToday(db), getStreak(db)])
+      .then(([count, streak]) => {
+        if (!cancelled) setCompletionStats({ count, streakDays: streak.currentDays })
+      })
+      // 完了カードの数値取得は失敗しても学習動線に影響しないので握る。
+      // catchが無いと、画面離脱・DBクローズ直後に解決したときに未処理rejectionになる
+      // （T-161で仕分けの書き込みが400ms遅れるようになり、完了画面のマウントが
+      // テストのteardown直後にずれてCIが落ちた。挙動ではなく未処理例外が原因）
+      .catch((err: unknown) => {
+        console.warn('[VocabScreen] 完了カードの数値取得に失敗', err)
+      })
     return () => {
       cancelled = true
     }
@@ -244,7 +348,40 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     setDontKnow(true)
   }
 
+  /**
+   * 記録を伴う操作の共通ラッパ（T-159。docs/27 のS-3・S-28）。
+   *
+   * 連打防止: 従来はどのハンドラも多重発火を防いでおらず、反応が遅い端末で連打すると
+   * `setReviewIndex` が2回走って**未評価のカードが1枚無言でスキップ**された
+   * （SRS間隔も更新されないまま残る）。refで見るのは、同一バッチ内の2クリックに対して
+   * stateの更新が間に合わないため。
+   *
+   * 保存失敗の表示: 従来はtry/catchが無く、ストレージ枯渇時に「押しても何も起きない」
+   * 画面になり原因も次の行動も分からなかった（DrillScreenにはsaveErrorバナーがある）。
+   * 失敗時はインデックスを進めない（進めると解答が記録されないまま次へ流れる）
+   */
+  async function runRecording(action: () => Promise<void>) {
+    if (busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
+    try {
+      await action()
+      setSaveError(null)
+    } catch (err) {
+      console.error('[VocabScreen] 記録に失敗', err)
+      setSaveError('記録を保存できませんでした。通信状態と空き容量を確認してください')
+    } finally {
+      busyRef.current = false
+      setBusy(false)
+    }
+  }
+
   async function handleGrade(grade: SrsGrade) {
+    if (!reviewCard) return
+    await runRecording(() => gradeCard(grade))
+  }
+
+  async function gradeCard(grade: SrsGrade) {
     if (!reviewCard) return
     const responseMs = now() - startedAt
     // isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更）。
@@ -273,10 +410,41 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
       skip: { wrongAnswer: true, tagStats: true, rating: true },
     })
     await evaluateStreak(db)
-    setReviewIndex((i) => i + 1)
+    advanceReview(grade)
     setSelectedChoiceKey(null)
     setDontKnow(false)
     setStartedAt(now())
+  }
+
+  /**
+   * 復習1件の消化後の進行（T-171・T-172）。
+   *
+   * T-172（J-98）: 「もう一回」を選んだカードは同一セッション内のキュー末尾へ再投入する。
+   * 従来は最短でも翌日（`applyGrade` の again = stage0 → 翌日0時）まで再確認できず、
+   * その場で数分後に確かめる導線が無かった。**DB上の dueAt は変えない**（間隔テーブルと
+   * applyGrade には触らない＝28の1.3節の不変条件）。再投入は1周のみで、再投入された
+   * カードで再度「もう一回」を選んでも戻さない（無限ループを避ける）。
+   *
+   * T-171（J-96）: 20件ごとに中間画面を挟む。キューの件数自体は変えない
+   */
+  function advanceReview(grade: SrsGrade) {
+    const current = reviewIndex
+    const isRetryCard = retryIndices.has(current)
+    const shouldRequeue = grade === 'again' && !isRetryCard && reviewCard !== undefined
+    if (shouldRequeue) {
+      setReviewQueue((queue) => {
+        if (!queue) return queue
+        setRetryIndices((prev) => new Set(prev).add(queue.length))
+        return [...queue, reviewCard]
+      })
+    }
+    const next = current + 1
+    setReviewIndex(next)
+    // 再投入した分は「残り」に含まれるので、区切り判定は再投入後の総数で見る
+    const total = (reviewQueue?.length ?? 0) + (shouldRequeue ? 1 : 0)
+    if (next < total && next % REVIEW_BATCH_SIZE === 0) {
+      setReviewPaused(true)
+    }
   }
 
   /** 仕分け1件の消化後、20語区切りに達していたら中断フラグを立てる（T-119） */
@@ -288,18 +456,125 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     }
   }
 
+  /**
+   * 中断の確認ダイアログ（T-162）。復習・仕分けの両フェーズで同じものを出す。
+   * 進捗はカードごとにSRSへ反映済みなので「失われない」ことを明示する
+   */
+  const abortDialog = abortConfirm ? (
+    <ConfirmDialog
+      message="語彙学習を中断してホームへ戻りますか？（ここまでの記録は保存されます）"
+      onDismiss={() => setAbortConfirm(false)}
+      actions={[
+        {
+          label: '中断してホームへ',
+          primary: true,
+          onSelect: () => {
+            setAbortConfirm(false)
+            navigate('home')
+          },
+        },
+        { label: '学習を続ける', onSelect: () => setAbortConfirm(false) },
+      ]}
+    />
+  ) : null
+
+  /**
+   * 仕分け1件を永続化する（T-161で猶予の対象になった実処理）。
+   * J-58: 「知ってる」は卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ
+   * 出ないようにするためで、既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ
+   * 編入される（意図した相互作用）
+   */
+  async function writeTriage(payload: TriagePendingCommit) {
+    if (payload.known) await markVocabKnown(db, payload.word)
+    else await addSrsCard(db, { refType: 'vocab', refId: payload.word })
+  }
+
+  /**
+   * 仕分けの確定（T-161）。猶予タイマーとアンマウント時のflushの両方から呼ばれる。
+   * 書き込みが成功してから次のカードへ進める（失敗時に進めると記録なしで流れてしまう）
+   */
+  async function commitTriage(payload: TriagePendingCommit) {
+    clearTriageTimer()
+    clearTriagePending()
+    await runRecording(async () => {
+      await writeTriage(payload)
+      advanceTriage()
+    })
+  }
+
+  /**
+   * 仕分けの確定を予約する（T-161。docs/27 のS-4）。
+   *
+   * 「知ってる」は `markVocabKnown` で卒業済みカードを作り、その語を仕分け候補からも
+   * 復習キューからも恒久的に外す。**ドリルの選択肢タップより不可逆**なのに、従来は
+   * スワイプ1回で即確定し取り消せなかった。
+   *
+   * 猶予中はカードを保持する（楽観的に次のカードへ進めない）。進めてしまうと、
+   * 猶予内に次をスワイプしたときに前の予約が破棄されて1件書き込まれないまま消えるうえ、
+   * 取り消し時のインデックス巻き戻しが20語区切りの中間画面と干渉する。
+   * 解答経路（ADR 0009）・語彙カード評価（T-160）と挙動も揃う
+   */
+  async function handleTriage(known: boolean) {
+    const word = triageQuestion?.front
+    if (!word) return
+    // 予約済みなら二重に受け付けない（スワイプとボタンの同時発火・連打の防止）
+    if (busyRef.current || triagePending !== null) return
+    const payload: TriagePendingCommit = { word, known }
+    if (mistapUndoEnabled) {
+      scheduleTriageCommit(payload)
+      return
+    }
+    await commitTriage(payload)
+  }
+
+  /**
+   * 仕分けの取り消し（T-161）。まだ何も書いていないので予約を捨てるだけでよく、
+   * カードは表示されたまま残るので選び直せる（解答経路と違い、正解を見せていないため
+   * 同じカードへの再操作を許して問題ない）
+   */
+  function handleTriageUndo() {
+    cancelTriageCommit()
+  }
+
   async function handleKnown() {
-    if (!triageQuestion?.front) return
-    // J-58: 卒業済みSRSカードとして永続化する。次回入店時にまた仕分けキューへ出ないようにする
-    // （既知語が後で誤答されればaddSrsCardの既存仕様で自動的にSRS学習へ編入される=意図した相互作用）
-    await markVocabKnown(db, triageQuestion.front)
-    advanceTriage()
+    await handleTriage(true)
   }
 
   async function handleUnknown() {
-    if (!triageQuestion?.front) return
-    await addSrsCard(db, { refType: 'vocab', refId: triageQuestion.front })
-    advanceTriage()
+    await handleTriage(false)
+  }
+
+  // T-171(J-96): 20件区切りの中間画面。仕分け側（T-119）と対称にし、「終わりが見えない」
+  // 圧だけを外す。キューの件数自体は変えない（期限到来分は全部やる思想を維持する）
+  if (reviewPaused && reviewIndex < reviewQueue.length) {
+    return (
+      <ScreenLayout
+        action={
+          <>
+            <PrimaryButton onClick={() => setReviewPaused(false)}>
+              続ける（残り{reviewQueue.length - reviewIndex}件）
+            </PrimaryButton>
+            {triageQueue.length > 0 && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => {
+                  setReviewPaused(false)
+                  setReviewIndex(reviewQueue.length)
+                }}
+              >
+                仕分けへ
+              </button>
+            )}
+            <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+              ホームへ
+            </button>
+          </>
+        }
+      >
+        <p>復習を{REVIEW_BATCH_SIZE}件終えました</p>
+      </ScreenLayout>
+    )
   }
 
   if (reviewIndex < reviewQueue.length && reviewCard) {
@@ -312,6 +587,9 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
           <>
             <p>
               復習 {reviewIndex + 1}/{reviewQueue.length}
+              {/* T-172(J-98): 同一セッション内に戻ってきたカードであることを示す
+                  （同じ語が2回出る理由が分からないと不信になる） */}
+              {retryIndices.has(reviewIndex) && <span className="vocab-retry-note"> もう一度</span>}
             </p>
             {/* T-119(J-58): 復習が溜まった日でも仕分けに到達できるよう、消化せず仕分けへ直行する導線。
                 DB上の復習キューは未消化のまま=次回入店時にまた復習から始まる */}
@@ -324,14 +602,22 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 仕分けへ
               </button>
             )}
-            {/* 進行中の脱出導線（DrillScreenの中断ボタンと同じパターン。進捗はSRS上更新済みのため失われない） */}
-            <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            {/* 進行中の脱出導線（DrillScreenの中断ボタンと同じパターン。進捗はSRS上更新済みのため失われない）。
+                T-162: 誤タップ対策で確認を挟む */}
+            {abortDialog}
+            <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
               中断
             </button>
           </>
         }
         action={
           <>
+            {/* T-159: 記録の保存失敗を明示する（従来は押しても何も起きない画面になっていた） */}
+            {saveError && (
+              <p className="drill-error" role="alert">
+                {saveError}
+              </p>
+            )}
             {quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (answered) {
@@ -368,6 +654,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
               <button
                 type="button"
                 className="vocab-grade-button"
+                disabled={busy}
                 onClick={() => void handleGrade('again')}
               >
                 次へ
@@ -379,6 +666,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                   type="button"
                   className="vocab-grade-button"
                   title="間隔を短くしてすぐに復習します"
+                  disabled={busy}
                   onClick={() => void handleGrade('again')}
                 >
                   もう一回
@@ -387,6 +675,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                   type="button"
                   className="vocab-grade-button"
                   title="通常の間隔で復習します"
+                  disabled={busy}
                   onClick={() => void handleGrade('good')}
                 >
                   OK
@@ -395,6 +684,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                   type="button"
                   className="vocab-grade-button"
                   title="間隔を大きく広げて復習します"
+                  disabled={busy}
                   onClick={() => void handleGrade('easy')}
                 >
                   余裕
@@ -462,24 +752,65 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
             <p>
               仕分け {triageIndex + 1}/{triageQueue.length}
             </p>
-            {/* 進行中の脱出導線（復習モードと同様） */}
-            <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+            {/* 進行中の脱出導線（復習モードと同様。T-162で確認を挟む） */}
+            {abortDialog}
+            <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
               中断
             </button>
           </>
         }
         action={
           <>
-            <button
-              type="button"
-              className="vocab-grade-button"
-              onClick={() => void handleUnknown()}
-            >
-              知らない
-            </button>
-            <button type="button" className="vocab-grade-button" onClick={() => void handleKnown()}>
-              知ってる
-            </button>
+            {/* T-159: 仕分けの記録失敗も明示する（スワイプが無反応になる状態を避ける） */}
+            {saveError && (
+              <p className="drill-error" role="alert">
+                {saveError}
+              </p>
+            )}
+            {/* T-161: 猶予中は仕分けボタンを引っ込めて「取り消し」だけを出す。
+                「知ってる」は語を恒久的に候補から外すため、ドリルの選択肢タップより不可逆である */}
+            {/* T-166（docs/27 のS-16）: 仕分けはカード表示のたびに自動再生するため、
+                この場で止める手段とイヤホンなしモードの切り替えを置く（従来は設定画面へ
+                移動しないと切り替えられず、公共の場で音が鳴り続ける状態から逃げられなかった） */}
+            <div className="vocab-audio-controls">
+              {!noEarphoneMode && (
+                <button type="button" className="secondary-action" onClick={handleStopPhrase}>
+                  音声を止める
+                </button>
+              )}
+              <label className="vocab-earphone-toggle">
+                <input
+                  type="checkbox"
+                  checked={noEarphoneMode}
+                  onChange={() => void handleToggleNoEarphone()}
+                />
+                イヤホンなしモード（音声を鳴らさない）
+              </label>
+            </div>
+            {triagePending !== null ? (
+              <button type="button" className="drill-undo" onClick={handleTriageUndo}>
+                取り消し（{triagePending.known ? '知ってる' : '知らない'}）
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="vocab-grade-button"
+                  disabled={busy}
+                  onClick={() => void handleUnknown()}
+                >
+                  知らない
+                </button>
+                <button
+                  type="button"
+                  className="vocab-grade-button"
+                  disabled={busy}
+                  onClick={() => void handleKnown()}
+                >
+                  知ってる
+                </button>
+              </>
+            )}
           </>
         }
       >

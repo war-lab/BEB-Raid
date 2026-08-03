@@ -607,6 +607,40 @@ describe('ResultScreen: 解答の質（当て勘・速度不足）', () => {
     expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 0')
   })
 
+  // T-163（J-92）: 件数タイルだけでは「どの問題が時間切れだったか」が分からず、知識不足の
+  // 誤答と混ざって振り返りを誤らせる。SRS復習デッキへの登録は維持したまま表示で区別する
+  it('誤答一覧で時間切れの問題に注記が付き、それ以外には付かない', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, {
+      items: [
+        { questionId: 'q-1', mode: 'solo' },
+        { questionId: 'q-2', mode: 'solo' },
+      ],
+    })
+    useSessionStore.getState().begin(snapshot, [q('q-1'), q('q-2')], { L: 400, R: 400 })
+    // 1問目は時間切れ、2問目は通常の誤答
+    const afterFirst = await answerAndRecord(db, snapshot, {
+      isCorrect: false,
+      basePoints: 0,
+      responseMs: 1000,
+      isTimeout: true,
+    })
+    await answerAndRecord(db, afterFirst, {
+      isCorrect: false,
+      basePoints: 0,
+      responseMs: 5000,
+    })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('result-timeout-count').textContent).toBe('速度不足 1'),
+    )
+    const notes = document.querySelectorAll('.result-list__note')
+    expect(notes.length).toBe(1)
+    expect(notes[0]!.textContent).toBe('時間切れ')
+  })
+
   it('全問正解でも0件のまま表示する（0件は良い知らせなので隠さない）', async () => {
     const db = newDb()
     const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })

@@ -7,15 +7,15 @@
 // - ペース表示（15秒タイマーではない柔らかい目安）が出る
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
-import { advanceSession, startSession, type SessionItem } from '../services/session'
+import { advanceSession, resumeSession, startSession, type SessionItem } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
-import { ReadingScreen } from './ReadingScreen'
+import { readingPaceLabel, ReadingScreen } from './ReadingScreen'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -32,6 +32,8 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  // フェイクタイマーを使ったテストの後始末（未解除だと後続テストのwaitForが進まない）
+  vi.useRealTimers()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -150,7 +152,7 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByText('a'))
       await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
-      fireEvent.click(screen.getByText('次へ'))
+      fireEvent.click(await screen.findByText('次へ'))
       if (i < 2) {
         await waitFor(() =>
           expect(screen.getByTestId('reading-question').textContent).toContain(`設問${i + 2}/3`),
@@ -188,7 +190,7 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
       // 増分を待ち、後続クリックのrecordAnswerPipeline呼び出しと競合させない
       // （この待機が無いとElo更新の実行順序が意図した正誤順と入れ替わりうる＝Eloは順序依存のため）
       await waitFor(async () => expect((await db.ratings.get('R'))?.answerCount).toBe(i + 1))
-      fireEvent.click(screen.getByText('次へ'))
+      fireEvent.click(await screen.findByText('次へ'))
       if (i < pattern.length - 1) {
         await waitFor(() =>
           expect(screen.getByTestId('reading-question').textContent).toContain(`設問${i + 2}/3`),
@@ -278,7 +280,7 @@ describe('ReadingScreen: 読解の解法タグがtagStats・弱点判定に乗�
       // これを完了マーカーに使う。待たないと後続クリックのrecomputeTagStatsが先に走り、
       // 直近の誤答が未反映のままwindowTotalが実際より少なく記録されうる（フレーク要因）
       await waitFor(async () => expect((await db.ratings.get('R'))?.answerCount).toBe(i + 1))
-      fireEvent.click(screen.getByText('次へ'))
+      fireEvent.click(await screen.findByText('次へ'))
       if (i < subCount - 1) {
         await waitFor(() =>
           expect(screen.getByTestId('reading-question').textContent).toContain(
@@ -359,5 +361,451 @@ describe('ReadingScreen: 中断復帰（T-104）', () => {
 
     expect(screen.getByTestId('passage-text').textContent).toBe('2問目のパッセージ本文。')
     expect(screen.getByTestId('reading-question').textContent).toContain('設問1/2')
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: パッセージの途中（サブ設問単位）で中断すると、
+  // 解答済みのサブ設問が再開後に再出題され、attempt・レート・タグ統計が重複すること
+  it('パッセージ途中で中断しても解答済みサブ設問は再出題されない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-resume-sub', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // 1回目: 3問中2問だけ解答して離脱する
+    const first = render(<ReadingScreen db={db} />)
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('a'))
+      fireEvent.click(await screen.findByText('次へ'))
+    }
+    await waitFor(async () => expect(await db.attempts.count()).toBe(2))
+    first.unmount()
+
+    // 2回目: DBのスナップショットから復元して再開する（アプリ再起動の模擬）
+    const resumed = await resumeSession(db)
+    expect(resumed).not.toBeNull()
+    expect(resumed!.answeredCount).toBe(0) // 親itemはまだ進んでいない
+    expect(resumed!.attemptIds).toHaveLength(2) // リザルトの集計対象に入っている
+    useSessionStore.getState().begin(resumed!, [q], { L: 400, R: 400 })
+
+    render(<ReadingScreen db={db} />)
+
+    // 未解答の3問目から始まり、進捗も解答済み分を織り込んでいる
+    expect(screen.getByTestId('reading-question').textContent).toContain('設問3/3')
+    expect(screen.getByLabelText('進捗 3/3')).toBeTruthy()
+
+    // 残り1問を解答すると合計3件。再出題による重複が無い
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(3))
+    const attempts = await db.attempts.toArray()
+    expect(attempts.map((a) => a.questionId).sort()).toEqual([
+      'p7-resume-sub-q0',
+      'p7-resume-sub-q1',
+      'p7-resume-sub-q2',
+    ])
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: サブ設問のattemptがsnapshot.attemptIdsに入らず、
+  // リザクトの全体集計（T-109。attemptIds基準）が「正解 0/0」になること
+  it('サブ設問のattemptがスナップショットのattemptIdsに積まれる', async () => {
+    const db = newDb()
+    const q = part7Question('p7-tally', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('次へ'))
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(2))
+
+    const attemptIds = useSessionStore.getState().snapshot?.attemptIds ?? []
+    expect(attemptIds).toHaveLength(2)
+    const rows = await db.attempts.bulkGet(attemptIds)
+    expect(rows.every((r) => r !== undefined)).toBe(true)
+  })
+})
+
+describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 のS-31・S-13）', () => {
+  // 何を防ぐか: 全サブ設問を解き切るまでリザルトへ到達できず、抜ける手段が「中断」
+  // （ホーム直行）だけだったこと。Part7の長文を全問解く覚悟がないと入れない状態だった
+  it('未解答が残っている間だけ途中終了導線が出て、タップでリザルトへ遷移する', async () => {
+    const db = newDb()
+    const q = part7Question('p7-exit', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    // 解答前は解説ゾーンごと出ないので導線も出ない
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+
+    // 1問目を解答すると、未解答が2問残っているので導線が出る
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    expect(screen.getByText('ここで終了して結果を見る')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('ここで終了して結果を見る'))
+    expect(useAppStore.getState().screen).toBe('result')
+  })
+
+  it('最終サブ設問を解答した後は途中終了導線を出さない（「次へ」がitemを進める）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-exit-last', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    fireEvent.click(await screen.findByText('次へ'))
+
+    // 2問目（最終）を解答すると全問解答済みになり、導線は消える
+    await waitFor(() => expect(screen.getByText('a')).toBeTruthy())
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+  })
+
+  // 何を防ぐか: 制限時間ではないのに「経過180秒」と出続けて心理的な圧だけが増えること。
+  // **60秒の経過そのものは readingPaceLabel の単体テストで固定している**——画面テストで
+  // 経過を作るには Date をフェイクにする必要があり、同一ファイル内の実データテストと
+  // 干渉して不安定だった。ここでは「ラベル関数が配線されている」ことだけを見る
+  it('ペース表示はreadingPaceLabelの結果を出す（初期は経過秒数つき）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-pace', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByText(readingPaceLabel(0))).toBeTruthy()
+    expect(screen.getByText(/目安1問\/分（経過\d+秒）/)).toBeTruthy()
+  })
+})
+
+describe('ReadingScreen: 中断の確認（T-162。docs/27 のS-7）', () => {
+  // 何を防ぐか: 中断は画面最上部にあり、上端のスクロール・スワイプ時の誤タップで
+  // セッションから抜けていた（進捗は保存されるが、読んでいた長文の文脈は失われる）
+  it('「中断」は確認を経てホームへ戻る', async () => {
+    const db = newDb()
+    const q = part7Question('p7-abort', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    useAppStore.setState({ screen: 'reading' })
+
+    fireEvent.click(screen.getByText('中断'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(useAppStore.getState().screen).toBe('reading')
+
+    fireEvent.click(screen.getByText('読解を続ける'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(useAppStore.getState().screen).toBe('reading')
+
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('中断してホームへ'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+})
+
+describe('ReadingScreen: Part7複数文書のタブ切替（T-165。docs/27 のS-32）', () => {
+  /** 複数文書のPart7（相互参照型）。従来は1通目しか読めず解答不能になりえた */
+  function part7MultiQuestion(id: string): Question {
+    return {
+      ...part7Question(id, 2),
+      passages: [
+        { id: `${id}-p1`, kind: 'email', text: '1通目の本文です。請求書の件。' },
+        { id: `${id}-p2`, kind: 'email', text: '2通目の本文です。返信の内容。' },
+      ],
+    }
+  }
+
+  it('文書が2件以上のときタブが出て、切替で本文が変わる', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-multi')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    // 初期表示は1通目
+    expect(screen.getByTestId('passage-text').textContent).toBe('1通目の本文です。請求書の件。')
+
+    fireEvent.click(screen.getByRole('tab', { name: /文書2/ }))
+    await waitFor(() =>
+      expect(screen.getByTestId('passage-text').textContent).toBe('2通目の本文です。返信の内容。'),
+    )
+
+    // 1通目へ戻れる
+    fireEvent.click(screen.getByRole('tab', { name: /文書1/ }))
+    await waitFor(() =>
+      expect(screen.getByTestId('passage-text').textContent).toBe('1通目の本文です。請求書の件。'),
+    )
+  })
+
+  it('文書が1件のときはタブを出さない（単一文書の読解に無用な要素を増やさない）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-single', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.queryByRole('tablist')).toBeNull()
+  })
+
+  it('タブを切り替えても解答は継続できる（設問は文書と独立）', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-multi-answer')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    fireEvent.click(screen.getByRole('tab', { name: /文書2/ }))
+    fireEvent.click(screen.getByText('a'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 2通目を表示したままでも解答が記録される
+    expect(screen.getByTestId('passage-text').textContent).toBe('2通目の本文です。返信の内容。')
+  })
+})
+
+describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビュー指摘）', () => {
+  // 何を防ぐか: 「解答済み+1」のままだと最終解答後に 6/5 と出る。バー幅はSessionProgress内で
+  // 100%に丸められるが、表示文字とaria-valuenowは超過したままになる
+  it('最終サブ設問を解答しても進捗が総数を超えない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-progress', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByLabelText('進捗 1/3')).toBeTruthy()
+
+    // 3問すべて解答する（最後の1問を解答した時点でも 3/3 を超えない）
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      expect(await screen.findByText('次へ')).toBeTruthy()
+      if (i < 2) {
+        fireEvent.click(await screen.findByText('次へ'))
+        await waitFor(() => expect(screen.getByLabelText(`進捗 ${i + 2}/3`)).toBeTruthy())
+      }
+    }
+
+    const bar = screen.getByRole('progressbar')
+    expect(bar.getAttribute('aria-valuenow')).toBe('3')
+    expect(bar.getAttribute('aria-label')).toBe('進捗 3/3')
+
+    // 3件すべての記録完了を待ってから終わる。**待たないと後続テストを壊す**——
+    // useSessionStore はモジュール単位の共有ストアなので、在職中のパイプラインが
+    // 次のテストのセットアップ後に recordAnswer で上書きしてしまう
+    await waitFor(async () => expect(await db.attempts.count()).toBe(3))
+  })
+
+  // 何を防ぐか: 保存の後段（レート・タグ統計等）が失敗した後に再試行すると、
+  // パイプライン全体が再実行されて attempt が二重に記録されること（レビュー指摘のP1）。
+  // 単一トランザクション化（ADR 0010）により、失敗時は何も書かれないので再試行が冪等になる
+  it('後段の失敗後に再試行しても attempt は1件だけになる', async () => {
+    const db = newDb()
+    const q = part7Question('p7-retry', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // ratings への書き込みを1回だけ失敗させる（①attempt記録より後の段の失敗）
+    const original = db.ratings.put.bind(db.ratings)
+    let failed = false
+    const spy = vi.spyOn(db.ratings, 'put').mockImplementation(((...args: unknown[]) => {
+      if (!failed) {
+        failed = true
+        return Promise.reject(new Error('ratings書き込み失敗（模擬）'))
+      }
+      return original(...(args as Parameters<typeof original>))
+    }) as typeof db.ratings.put)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+    // 正誤表示は保持され、attemptは書かれていない（ロールバック済み）
+    expect(await db.attempts.count()).toBe(0)
+
+    fireEvent.click(screen.getByText('保存を再試行する'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 二重記録しない
+    expect(await db.attempts.count()).toBe(1)
+    await waitFor(() =>
+      expect(
+        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      ).toBeNull(),
+    )
+    spy.mockRestore()
+  })
+
+  /** ratings への最初の1回だけ失敗させる（①attempt記録より後の段の失敗を作る） */
+  function failRatingsOnce(db: BebRaidDatabase) {
+    const original = db.ratings.put.bind(db.ratings)
+    let failed = false
+    return vi.spyOn(db.ratings, 'put').mockImplementation(((...args: unknown[]) => {
+      if (!failed) {
+        failed = true
+        return Promise.reject(new Error('ratings書き込み失敗（模擬）'))
+      }
+      return original(...(args as Parameters<typeof original>))
+    }) as typeof db.ratings.put)
+  }
+
+  // 何を防ぐか: 再試行ボタンの連打で attempt・レートが二重に書かれること（レビュー指摘のP1）。
+  // 単一トランザクション化（ADR 0010）は「失敗した書き込みが部分的に残らない」ことしか
+  // 保証しないので、成功する保存を2回走らせる操作は useRetrySave 側で弾く必要がある
+  it('再試行ボタンを連打しても attempt は1件だけになる', async () => {
+    const db = newDb()
+    const q = part7Question('p7-retry-double', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const spy = failRatingsOnce(db)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+
+    // 2回のクリックを**同じ act 内で**発火させる。fireEvent を2回呼ぶとその間に
+    // 再レンダーが挟まり disabled が効いてしまうため、それでは同期ガード（busyRef）を
+    // 通らない。実機の連打は再レンダーを待たないので、この形で再現する
+    const retryButton = screen.getByText('保存を再試行する')
+    await act(async () => {
+      retryButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      retryButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    // 1件目の再試行が完了した後も増えない（2件目が遅れて走らない）
+    await waitFor(() =>
+      expect(
+        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      ).toBeNull(),
+    )
+    expect(await db.attempts.count()).toBe(1)
+    // レートも1回分しか進んでいない（attemptだけでなくレート更新の二重実行も防ぐ）
+    expect((await db.ratings.get('R'))?.answerCount).toBe(1)
+    spy.mockRestore()
+  })
+
+  // 何を防ぐか: 再試行時に回答時間を再計算すること（レビュー指摘のP2）。
+  // エラーバナーを見てから押すまでの時間がそのまま responseMs に乗ると、
+  // 速答判定（isGuess）まで巻き込んで壊れる
+  it('再試行しても回答時間は初回選択時の値を使う', async () => {
+    const db = newDb()
+    const q = part7Question('p7-retry-elapsed', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const spy = failRatingsOnce(db)
+
+    // フェイクタイマーではなく Date.now だけをずらす（タイマーを止めると同一ファイルの
+    // 他テストのwaitForが進まなくなるため。前進のみなのでDexie側への影響はない）
+    const realNow = Date.now.bind(Date)
+    let offsetMs = 0
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => realNow() + offsetMs)
+    try {
+      render(<ReadingScreen db={db} />)
+      fireEvent.click(screen.getByText('a'))
+      expect(
+        await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      ).toBeTruthy()
+
+      // エラー表示のまま10分放置してから再試行する
+      offsetMs = 600_000
+      fireEvent.click(screen.getByText('保存を再試行する'))
+      await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+
+      const attempts = await db.attempts.toArray()
+      expect(attempts[0]?.responseMs).toBeLessThan(60_000)
+    } finally {
+      nowSpy.mockRestore()
+      spy.mockRestore()
+    }
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: 最終サブ設問の保存が終わる前に「次へ」を押して、
+  // attempt未保存のまま advanceSession → リザルトへ進めること
+  it('保存が完了するまで「次へ」を出さない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-saving', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // 待ちはトランザクションの**開始前**に入れる（Dexieのトランザクション内で非Dexieの
+    // promiseをawaitすると、そのトランザクションが先にコミットされる＝ADR 0010の制約）
+    let release: (() => void) | null = null
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const originalTx = db.transaction.bind(db)
+    const txSpy = vi
+      .spyOn(db, 'transaction')
+      .mockImplementation(((...args: unknown[]) =>
+        gate.then(() =>
+          originalTx(...(args as Parameters<typeof originalTx>)),
+        )) as unknown as typeof db.transaction)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    // 正誤表示は出ているが、進行導線はまだ出さない
+    await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
+    expect(screen.queryByText('次へ')).toBeNull()
+
+    txSpy.mockRestore()
+    release!()
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: 保存失敗のまま「次へ」「ここで終了」で進めること
+  it('保存失敗後は再試行するまで進行導線を出さない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-blocked', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const spy = failRatingsOnce(db)
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(
+      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+    ).toBeTruthy()
+
+    expect(screen.queryByText('次へ')).toBeNull()
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+
+    fireEvent.click(screen.getByText('保存を再試行する'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    expect(screen.getByText('ここで終了して結果を見る')).toBeTruthy()
+    spy.mockRestore()
+  })
+
+  // 何を防ぐか: 終了判定に解答スロット数（total）を使うこと（レビュー指摘のP2）。
+  // displayIndex は item 単位なので、サブ設問を持つセッションでは最終itemでも判定が
+  // 成立せず、範囲外のindexへ進んだ次のレンダーのフォールバックに拾われていた。
+  // 到達先は同じ（リザルト）だが、範囲外の状態を一度作るのに依存していた
+  it('最終itemの全サブ設問を解答して「次へ」を押すとリザルトへ進む', async () => {
+    const db = newDb()
+    const q = part7Question('p7-finish', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      expect(await screen.findByText('次へ')).toBeTruthy()
+      if (i < 2) fireEvent.click(await screen.findByText('次へ'))
+    }
+    await waitFor(async () => expect(await db.attempts.count()).toBe(3))
+
+    fireEvent.click(await screen.findByText('次へ'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+  })
+})
+
+describe('readingPaceLabel（T-164。docs/27 のS-13）', () => {
+  // 何を防ぐか: 目安を超えても数値が増え続けること（制限時間ではないのに圧だけが増える）
+  it('目安（60秒）未満は経過秒数を出し、以降は「1分超」に切り替える', () => {
+    expect(readingPaceLabel(0)).toBe('目安1問/分（経過0秒）')
+    expect(readingPaceLabel(59)).toBe('目安1問/分（経過59秒）')
+    expect(readingPaceLabel(60)).toBe('目安1問/分（1分超）')
+    expect(readingPaceLabel(180)).toBe('目安1問/分（1分超）')
   })
 })

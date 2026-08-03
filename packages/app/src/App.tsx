@@ -380,7 +380,7 @@ export function App() {
       />
     )
   }
-  if (screen === 'dashboard') return <DashboardScreen db={getDb()} />
+  if (screen === 'dashboard') return <DashboardScreen db={getDb()} questionPool={questionPool} />
   if (screen === 'settings') {
     return (
       <SettingsScreen

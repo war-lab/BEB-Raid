@@ -80,9 +80,12 @@ import {
 import {
   buildPart6Drafts,
   buildPart6Questions,
+  buildPart7MultiDrafts,
+  buildPart7MultiQuestions,
   buildPart7SingleDrafts,
   buildPart7SingleQuestions,
   validatePart6Questions,
+  validatePart7MultiQuestions,
   validatePart7SingleQuestions,
 } from './textPassageQuestion.js'
 import { PiperTtsProvider } from './tts.js'
@@ -114,6 +117,8 @@ const DEFAULT_KEY_VOCAB_SIMILAR_S2_DRAFT_PATH = 'content/drafts/key-vocab-simila
 const DEFAULT_KEY_VOCAB_SIMILAR_S3_DRAFT_PATH = 'content/drafts/key-vocab-similar-s3.jsonl'
 const DEFAULT_TEXT_PASSAGE_P6_DRAFT_PATH = 'content/drafts/text-passage-p6-s.jsonl'
 const DEFAULT_TEXT_PASSAGE_P7_SINGLE_DRAFT_PATH = 'content/drafts/text-passage-p7-single-s.jsonl'
+/** T-144: Part7複数パッセージのドラフト出力先 */
+const DEFAULT_TEXT_PASSAGE_P7_MULTI_DRAFT_PATH = 'content/drafts/text-passage-p7-multi-s.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -234,6 +239,13 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: buildPart7SingleDrafts,
     validate: validatePart7SingleQuestions,
     defaultPath: DEFAULT_TEXT_PASSAGE_P7_SINGLE_DRAFT_PATH,
+  },
+  // T-144: Part7複数パッセージ。配信は人手レビュー（H-R1）後（ADR 0006 判断5）
+  text_passage_p7_multi: {
+    buildQuestions: buildPart7MultiQuestions,
+    buildDrafts: buildPart7MultiDrafts,
+    validate: validatePart7MultiQuestions,
+    defaultPath: DEFAULT_TEXT_PASSAGE_P7_MULTI_DRAFT_PATH,
   },
   dictation: {
     buildQuestions: buildDictationQuestions,

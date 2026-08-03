@@ -479,6 +479,15 @@
 .result-list__icon::before {
   font-weight: 700;
 }
+/* T-163（J-92）: 時間切れの注記。知識不足の誤答と区別して振り返れるようにする。
+   --ng は使わない（時間切れは「間違い」の強調ではない。docs/25 4.7節のトーン） */
+.result-list__note {
+  flex-shrink: 0;
+  margin-left: var(--sp-1);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
 .result-list__item[data-correct='true'] .result-list__icon::before {
   content: '✓';
   color: var(--ok);
@@ -520,6 +529,18 @@
   margin: var(--sp-half) 0 0;
   font-size: var(--fs-stat);
   color: var(--listen);
+}
+
+/* T-158（J-91）: 「もう一度再生」中はタイマーを止める。止まっていることが分かるように
+   数字を沈め、注記を添える（数字だけ固まると壊れたのか意図的なのか判別できない） */
+.drill-timer.is-paused {
+  color: var(--ink-2);
+}
+
+.drill-timer-paused {
+  margin-left: var(--sp-half);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
 }
 
 /* --- 読解（Part6/7単一）本文表示（T-104。正本: docs/24 3.5節） --- */
@@ -875,17 +896,12 @@
 /* 「わからない」ボタン（ドッグフィードバック 2026-07-22）。回答選択肢A–Dより一段控えめにし、
    当てずっぽうより正直な申告を選びやすくする。破線＋淡色で選択肢とは別物であることを示す */
 /* --- 誤タップの取り消し猶予（ADR 0009） --- */
-/* 高さを予約したスロット。猶予が終わってボタンが消えるときに選択肢が動かないようにする
-   （解答時に一度だけ動くのは既存の解説カードのせり上がりと同じ挙動） */
-.drill-undo-slot {
-  min-height: var(--tap-min);
-  margin-top: var(--sp-1);
-}
 /* 一段控えめな意匠（.vocab-dontknow-button と同系）。--ng は使わない
    （誤タップの訂正であって「間違い」の強調ではない。docs/25 4.7節のトーン） */
 .drill-undo {
   display: block;
   width: 100%;
+  margin-top: var(--sp-1);
   min-height: var(--tap-min);
   padding: var(--sp-1) var(--sp-2);
   background: transparent;
@@ -3091,4 +3107,161 @@
   color: var(--ink-2);
   font-size: var(--fs-sub);
   text-align: center;
+}
+
+/* T-166（docs/27 のS-16）: 語彙仕分けの音声コントロール（停止＋イヤホンなしモード）。
+   カードごとの自動再生をその場で止められるようにするための最小限の並び */
+.vocab-audio-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  margin-bottom: var(--sp-1);
+}
+.vocab-earphone-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  min-height: var(--tap-min);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
+/* T-172（J-98）: 同一セッション内に再投入されたカードの注記。
+   --ng は使わない（間違いの強調ではなく、もう一度やる合図） */
+.vocab-retry-note {
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
+/* T-177（docs/27 のS-29）: 高速チップのゲート理由。チップを隠さず無効で見せるので、
+   なぜ選べないのかを注記で補う（--ng は使わない。制限の説明であって警告ではない） */
+.shadowing-speed-note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+.shadowing-speed-chips button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* T-174（J-95）: 診断中に正誤を出さないことの注記。測定が目的であることを伝える */
+.diagnostic-note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
+/* --- 確認ダイアログ（T-162。docs/27 のS-6・S-7・S-38） --- */
+/* window.confirm の置き換え。演出は置かない（07の原則3）。
+   z-indexは他に使っていないため単一の値で足りる */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-2);
+  background: rgb(0 0 0 / 55%);
+}
+.confirm-dialog {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.confirm-dialog__message {
+  margin: 0 0 var(--sp-2);
+  color: var(--ink);
+}
+.confirm-dialog__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+/* 主要な選択肢。PrimaryButtonと同じ地色・高さに揃える（別コンポーネント化はしない） */
+.confirm-dialog__primary {
+  width: 100%;
+  min-height: var(--answer-height);
+  padding: var(--sp-1) var(--sp-2);
+  border: none;
+  border-radius: var(--radius-button);
+  background: var(--gold);
+  color: var(--on-gold);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-dialog__primary:focus-visible,
+.confirm-dialog .secondary-action:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* T-162（docs/27 のS-6）: 「ここで終了して結果を見る」を「次へ」から離す。
+   隣接していると「次へ」を狙った指がセッション終了に当たる */
+.drill-exit-separated {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+
+/* T-165（docs/27 のS-32）: Part7複数文書のタブ。文書が2件以上のときだけ出す。
+   演出は置かない（07の原則3: 読解中は静かに保つ） */
+.reading-passage-tabs {
+  display: flex;
+  gap: var(--sp-half);
+  margin-bottom: var(--sp-1);
+}
+.reading-passage-tabs button {
+  flex: 1;
+  min-height: var(--tap-min);
+  padding: var(--sp-half) var(--sp-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+  cursor: pointer;
+}
+.reading-passage-tabs button.is-selected {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.reading-passage-tabs button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* T-143（J-80）: 読解モードの時間目安。着席・自宅想定なので所要の見積りを先に出す */
+.home-reading-estimate {
+  margin: var(--sp-half) 0 var(--sp-1);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
+/* T-145（docs/24 3.5節）: 読解ペース指標。速答を煽らないため --ng/--ok は使わず、
+   数値だけを本文色で出す（遅い＝悪いではない。正確さとのトレードオフ） */
+.reading-pace-metric {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-stat);
+  color: var(--ink);
+}
+.reading-pace-metric__sub {
+  margin-left: var(--sp-half);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+.reading-pace-metric__diff {
+  margin: var(--sp-half) 0 0;
+  color: var(--ink);
+}
+.reading-pace-metric__note {
+  margin: var(--sp-half) 0 0;
+  font-size: var(--fs-note);
+  color: var(--ink-2);
 }

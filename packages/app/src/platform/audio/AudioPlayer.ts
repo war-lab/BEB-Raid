@@ -3,6 +3,18 @@
 // インターフェース経由で再生する。Capacitor 移行時はネイティブオーディオ実装に
 // 差し替える（バックグラウンド再生対応）。
 
+/**
+ * 再生の終わり方（T-155。docs/28 の1.5節・3節）。
+ * 従来この区別が契約に無く、`play()` が「再生完了（または stop）で resolve する」
+ * だけを保証していたため、呼び出し側は完走と中断を判別できなかった。
+ * シャドーイングが3秒戻し（＝中断）を完走と誤認して周回を加算していた不具合
+ * （docs/27 のS-1）の原因はこの契約の曖昧さにある。
+ *
+ * - `'ended'`: 最後まで再生し切った（`durationMs` 指定時はその長さを再生し切った）
+ * - `'interrupted'`: `stop()` または後続の再生呼び出しに打ち切られた
+ */
+export type PlaybackOutcome = 'ended' | 'interrupted'
+
 /** 再生オプション */
 export interface PlayOptions {
   /** 再生開始位置（ミリ秒）。J-5「冒頭だけ再生」特訓用 */
@@ -31,17 +43,25 @@ export interface AudioPlayer {
    */
   unlock(): Promise<void>
 
-  /** 1音源を再生する。再生完了（または stop）で resolve する */
-  play(src: string, options?: PlayOptions): Promise<void>
+  /**
+   * 1音源を再生する。再生完了（または stop）で resolve し、
+   * どちらだったかを `PlaybackOutcome` で返す。
+   * **周回・完了の判定に使う場合は必ず戻り値を見ること**（await の解決だけでは
+   * 完走と中断を区別できない）。
+   */
+  play(src: string, options?: PlayOptions): Promise<PlaybackOutcome>
 
   /**
    * 複数音源の連結再生（Part2の設問→応答など）。
-   * 途中で stop された場合は残りを再生せず resolve する。
+   * 途中で stop された場合は残りを再生せず `'interrupted'` で resolve する。
    */
-  playSequence(srcs: string[], options?: PlayOptions): Promise<void>
+  playSequence(srcs: string[], options?: PlayOptions): Promise<PlaybackOutcome>
 
-  /** 直前に再生した音源をもう一度再生する（リプレイ） */
-  replay(): Promise<void>
+  /**
+   * 直前に再生した音源をもう一度再生する（リプレイ）。
+   * 再生対象が無い場合は何も再生せず `'interrupted'` を返す（完走していないため）。
+   */
+  replay(): Promise<PlaybackOutcome>
 
   /** 再生を即時停止する */
   stop(): void

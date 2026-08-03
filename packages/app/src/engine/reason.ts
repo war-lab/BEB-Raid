@@ -13,8 +13,14 @@ export function formatQuickPackReason(reason: QuickPackReason): string {
     case 'srsNew':
       return '新規: 今日の新しいカード'
     case 'keyVocabReview':
-      // 類題在庫ゼロの同一問題再出題でもラベルは同じ（isSameQuestion は内部区別）
-      return `復習: ${reason.word} を使う問題`
+      // T-169（docs/27 のS-19）: 類題在庫ゼロで発生元の問題そのものが再出題される場合は
+      // ラベルを分ける。従来はどちらも「復習: {word} を使う問題」で、答えを覚えている問題が
+      // 「類題」として出てくるように見えていた（同じ問題だと分かれば「またこれか」ではなく
+      // 「もう一度確かめる」として受け取れる）。
+      // 類題在庫そのものの不足はコンテンツ側の課題で、14の3.4と15が扱う
+      return reason.isSameQuestion
+        ? `復習: 前回間違えた問題（${reason.word}）`
+        : `復習: ${reason.word} を使う問題`
     case 'weakTag':
       return `弱点: ${reason.tag}`
     case 'allocation':

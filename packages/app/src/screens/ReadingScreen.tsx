@@ -1,8 +1,12 @@
 // 読解（Part6/7単一）専用画面（T-104。正本: docs/24 3.5節・02の2.2節）。
 // DrillScreenに分岐追加ではなく専用画面にする理由: 本文＋設問の2ペインが
 // 既存4択UI（1問1画面）と別レイアウトのため（3.5節）。
-// Part7複数パッセージ（タブ切替・相互参照）はT-108のスコープでここでは扱わない
-// （passages[0]のみを描画する）。
+// Part7複数パッセージ（相互参照）はT-165でタブ切替を実装した（docs/27 のS-32）。
+// 従来は passages[0] のみを描画しており、相互参照型の設問が出ると2通目を読めないまま
+// 解答不能になっていた。通常パック配分からの除外（isReadingAllocatable）は維持する——
+// あれは「じっくり読解モード専用」という長さの判断（docs/24 3.3節・ADR 0006 判断2）で、
+// 表示できるかどうかの話ではない。一方でSRS復習item経由の混入は**許してよくなった**
+// （タブで全通を読めるので解答不能にならない）ため、isServable 側にフィルタは足していない。
 //
 // 採点方針（ADR 0006 判断4・docs/24 3.2節）: audio_setの2/3セット正解ルールは使わず、
 // 各subQuestionを独立採点対象とする。レートはRセクションへ1問ごとに反映
@@ -20,20 +24,24 @@
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
 // 「通常セッションからreading画面への遷移方式」の設計判断はここで確定した
 import { useEffect, useMemo, useState } from 'react'
+import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
+import { answerSlotsBefore, totalAnswerSlots } from '../engine/answerSlots'
 import { shuffle } from '../engine/shuffle'
 import type { AiClient, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
-import { advanceSession } from '../services/session'
+import { advanceSession, currentSubAnswers, type SessionSnapshot } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ExplanationCard } from '../components/ExplanationCard'
 import { PassageText, type PassageAnswer } from '../components/PassageText'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
+import { useSaveGuard } from '../hooks/useSaveGuard'
 
 interface Props {
   db: BebRaidDatabase
@@ -43,10 +51,60 @@ interface Props {
   raidApi?: RaidApi
 }
 
+/**
+ * ペース表示の目安（3.5節: 1問1分）。T-164でこの秒数を超えたら数値のカウントアップを止める
+ * （制限時間ではないので自動確定はしない）
+ */
+const PACE_GUIDE_SECONDS = 60
+
+/**
+ * ペース表示のラベル（T-164。docs/27 のS-13）。
+ * 目安を超えたら数値のカウントアップをやめる——制限時間ではないのに「経過180秒」と
+ * 出続けると、機能的な影響なしに心理的な圧だけが増える。
+ *
+ * 判定規則を純関数に切り出しているのは、画面テストで60秒の経過を作るには `Date` を
+ * フェイクにする必要があり、同一ファイル内の他テスト（実データのDexie操作）と干渉して
+ * 不安定になったため。規則はこの関数の単体テストで固定し、画面側は配線だけを見る
+ */
+export function readingPaceLabel(elapsedSec: number): string {
+  return elapsedSec >= PACE_GUIDE_SECONDS
+    ? '目安1問/分（1分超）'
+    : `目安1問/分（経過${elapsedSec}秒）`
+}
+
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 // （DrillScreenと同じ回避策）、別関数越しに呼ぶ
 function now(): number {
   return Date.now()
+}
+
+/**
+ * 中断復帰時に、解答済みサブ設問の正誤表示を復元する（レビュー指摘、2026-08-03）。
+ * スナップショットは現在itemのサブ設問の解答をIDで持つので、表示に使うインデックスへ写す。
+ * 復元しないと解答済みのサブ設問が未解答として再出題され、attempt・レート・タグ統計が重複する
+ */
+export function restoreSubAnswers(
+  snapshot: SessionSnapshot | null,
+  questions: ReadonlyMap<string, Question>,
+): Map<number, PassageAnswer> {
+  const restored = new Map<number, PassageAnswer>()
+  if (!snapshot) return restored
+  const item = snapshot.items[snapshot.answeredCount]
+  const subQuestions = (item && questions.get(item.questionId)?.subQuestions) ?? []
+  for (const record of currentSubAnswers(snapshot)) {
+    const index = subQuestions.findIndex((sub) => sub.id === record.subQuestionId)
+    if (index < 0) continue
+    restored.set(index, { selectedKey: record.selectedKey ?? '', isCorrect: record.isCorrect })
+  }
+  return restored
+}
+
+/** 未解答のうち先頭のサブ設問インデックス（全問解答済みなら0） */
+function firstUnansweredIndex(answered: ReadonlyMap<number, PassageAnswer>, count: number): number {
+  for (let i = 0; i < count; i++) {
+    if (!answered.has(i)) return i
+  }
+  return 0
 }
 
 export function ReadingScreen({ db, aiClient, raidApi }: Props) {
@@ -57,24 +115,45 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
 
   // 表示中の item インデックス（DrillScreenと同じ理由でsnapshot.answeredCountと独立に持つ）
   const [displayIndex, setDisplayIndex] = useState(() => snapshot?.answeredCount ?? 0)
-  // サブ設問インデックス（0始まり）→ 解答済みの結果。Part6は非線形にタップされうるためMapで持つ
-  const [answers, setAnswers] = useState<Map<number, PassageAnswer>>(new Map())
+  // サブ設問インデックス（0始まり）→ 解答済みの結果。Part6は非線形にタップされうるためMapで持つ。
+  // 初期値は中断復帰分（スナップショットのsubAnswers）から復元する
+  const [answers, setAnswers] = useState<Map<number, PassageAnswer>>(() =>
+    restoreSubAnswers(snapshot, questions),
+  )
   // M4・T-129: サブ設問インデックス→レイドダメージ結果（該当時のみ設定。ExplanationCardの
   // 堅い/弱点バッジ・実ダメージ表示に使う。answersと同じライフサイクルでitem切替時にクリアする）
   const [ghostDefenseByIndex, setGhostDefenseByIndex] = useState<Map<number, RaidDamageResult>>(
     new Map(),
   )
-  // 現在選択肢を表示しているサブ設問（空所タップ・「次へ」で切り替わる）
-  const [activeIndex, setActiveIndex] = useState(0)
+  // 現在選択肢を表示しているサブ設問（空所タップ・「次へ」で切り替わる）。
+  // 中断復帰時は解答済みの設問ではなく未解答の先頭から始める
+  const [activeIndex, setActiveIndex] = useState(() => {
+    const restored = restoreSubAnswers(snapshot, questions)
+    const item = snapshot?.items[snapshot.answeredCount]
+    const count = (item && questions.get(item.questionId)?.subQuestions?.length) ?? 0
+    return firstUnansweredIndex(restored, count)
+  })
   const [startedAt, setStartedAt] = useState(() => now())
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // T-176: 保存の進行ガードと再試行導線（多重実行・保存中の進行のガードはフック側）
+  const saveGuard = useSaveGuard()
+  // T-162（docs/27 のS-7）: 中断の確認
+  const [abortConfirm, setAbortConfirm] = useState(false)
+  /**
+   * T-165（docs/27 のS-32）: 表示中のパッセージ（複数文書のPart7用）。
+   * 従来は passages[0] しか描画せず、相互参照型の設問が出ると2通目を読めないまま
+   * 解答不能になっていた
+   */
+  const [activePassageIndex, setActivePassageIndex] = useState(0)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
   const subQuestions = question?.subQuestions ?? []
-  const passage = question?.passages?.[0]
+  const passages = question?.passages ?? []
+  // 範囲外（item切替直後にindexが残っている等）は先頭へ落とす
+  const passage = passages[activePassageIndex] ?? passages[0]
   const activeSub = subQuestions[activeIndex]
   const activeAnswer = answers.get(activeIndex) ?? null
 
@@ -91,14 +170,16 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     [question?.id, activeIndex],
   )
 
-  // ペース表示の秒針を進める。解答済みなら止める（速答を煽らないため自動確定はしない）
+  // ペース表示の秒針を進める。解答済みなら止める（速答を煽らないため自動確定はしない）。
+  // T-164: 目安（PACE_GUIDE_SECONDS）を超えたら更新自体を止める（表示が「1分超」に切り替わり
+  // 数値を出さなくなるため、進め続ける意味がない）
   useEffect(() => {
-    if (activeAnswer) return
+    if (activeAnswer || elapsedSec >= PACE_GUIDE_SECONDS) return
     const interval = setInterval(() => {
       setElapsedSec(Math.floor((now() - startedAt) / 1000))
     }, 1000)
     return () => clearInterval(interval)
-  }, [activeAnswer, startedAt])
+  }, [activeAnswer, startedAt, elapsedSec])
 
   // T-105（24の3.3節・3.5節）: 7分/15分パックに読解以外のitem（Part2音声・Part5等）が
   // 混在するようになったため、現在itemがtext_passageでなければDrillScreenへ切り替える
@@ -137,57 +218,97 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // 切り替え完了までの1レンダーは何も描画しない
   if (question.format !== 'text_passage') return null
 
-  const total = snapshot.items.length
-  const current = displayIndex + 1
+  // T-175（docs/27 のS-26）: 進捗の分母を実際の解答回数にする。text_passage は1itemで
+  // サブ設問全問を要求するため、item数だと進捗が実態と合わない
+  const total = totalAnswerSlots(snapshot.items, questions)
+  // レビュー指摘: 読解5問なら最終解答後に 6/5 と出てしまう（バー幅だけは丸められるが
+  // 表示文字とaria-valuenowは超過する）。総数で丸める
+  const current = Math.min(
+    answerSlotsBefore(snapshot.items, questions, displayIndex) + answers.size + 1,
+    total,
+  )
+  // 保存中・保存失敗中は進行させない（レビュー指摘、2026-08-03）。saveError は
+  // saveGuard.blocked と重なるが、再試行を出さない失敗経路が将来増えても止まるように併記する
+  const canAdvance = !saveGuard.blocked && saveError === null
 
   /** 空所タップ・設問切替（該当設問へジャンプ。3.5節）。解答済み設問も閲覧のため切替可 */
   function handleSelectBlank(index: number) {
     setActiveIndex(index)
   }
 
-  async function finalizeSubQuestionAnswer(index: number, choiceKey: string) {
+  /**
+   * サブ設問1問の解答を確定して永続化する。
+   *
+   * `retryOf` は保存失敗からの再試行（レビュー指摘、2026-07-31）。
+   * **初回選択時の値をそのまま持ち回す**のが要点で、再試行時刻から回答時間を再計算すると、
+   * エラーバナーを見てから押すまでの時間・保存エラー中に「次へ」を押して startedAt が
+   * 更新された分がそのまま responseMs に乗り、速答判定（isGuess）まで壊れる
+   */
+  async function finalizeSubQuestionAnswer(
+    index: number,
+    choiceKey: string,
+    retryOf?: { responseMs: number },
+  ) {
     const sub = subQuestions[index]
-    if (!question || !item || !sub || answers.has(index)) return
+    // 再試行時は answers に残っている（正誤表示を保持しているため）ので二重解答ガードを通す
+    if (!question || !item || !sub || (answers.has(index) && !retryOf)) return
     const isCorrect = choiceKey === sub.answer
-    const responseMs = now() - startedAt
+    const responseMs = retryOf?.responseMs ?? now() - startedAt
     setAnswers((prev) => new Map(prev).set(index, { selectedKey: choiceKey, isCorrect }))
     setSaveError(null)
+    // 保存を始めた時点で古い再試行の登録を捨てる（同期。これ自体が再入ガードにもなる）
+    saveGuard.clearRetry()
 
     try {
       // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
       // 本文まるごと再出題しないため呼ばない（skip.srs）。レート・tagStats・
       // keyVocab循環は通常どおり（skipしない）。ただしmode='battle'（ボス役セッション=
       // M4・T-128）はレート更新の対象外（docs/22 3.5節・DrillScreenと同じ扱い）
-      const { ratingUpdate, raidDamage } = await recordAnswerPipeline(db, {
-        questionId: sub.id,
-        question,
-        lookup: subQuestionLookup,
-        isCorrect,
-        responseMs,
-        mode: item.mode,
-        skip: { srs: true, rating: item.mode === 'battle' },
-      })
+      // track で包む間は saveGuard.blocked が true になり、「次へ」「ここで終了」を出さない
+      // （レビュー指摘、2026-08-03。正誤表示は保存より先に出るため、包まないと未保存のまま
+      // 最終サブ設問からリザルトへ進める）
+      const { nextSnapshot, ratingUpdate, raidDamage } = await saveGuard.track(() =>
+        recordAnswerPipeline(db, {
+          // snapshot＋subQuestion でサブ設問として記録する（レビュー指摘、2026-08-03）。
+          // itemは進めず、attemptIdと解答済み位置だけをスナップショットへ追加する。
+          // 従来は snapshot を渡さず recordAttempt で直接保存していたため、中断すると
+          // 解答済みのサブ設問が再開後に再出題され、完走してもリザルトの集計
+          // （snapshot.attemptIds 基準）から漏れていた
+          snapshot,
+          subQuestion: { selectedKey: choiceKey },
+          questionId: sub.id,
+          question,
+          lookup: subQuestionLookup,
+          isCorrect,
+          responseMs,
+          mode: item.mode,
+          skip: { srs: true, rating: item.mode === 'battle' },
+        }),
+      )
       if (raidDamage) {
         setGhostDefenseByIndex((prev) => new Map(prev).set(index, raidDamage))
       }
-      recordAnswer(snapshot, {
+      recordAnswer(nextSnapshot!, {
         questionId: sub.id,
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
+      saveGuard.clearRetry()
     } catch (err) {
       console.error('[ReadingScreen] 解答の保存に失敗', err)
       setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
-      setAnswers((prev) => {
-        const next = new Map(prev)
-        next.delete(index)
-        return next
-      })
+      // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
+      // 従来は answers から該当indexを消して選び直させていたが、正解が既に見えている
+      // 状態で選び直させることになり操作の意味がなかった
+      saveGuard.offerRetry(() => finalizeSubQuestionAnswer(index, choiceKey, { responseMs }))
     }
   }
 
   function handleSelectChoice(choiceKey: string) {
-    if (activeAnswer) return
+    // 保存中・保存失敗中は別のサブ設問の解答も受け付けない（レビュー指摘、2026-08-03）。
+    // 空所タップでの設問切替は閲覧目的なので止めない。ここを開けておくと、
+    // 未保存の再試行が残っているのに別の設問を解答して retry の登録を捨ててしまう
+    if (activeAnswer || saveGuard.blocked) return
     void finalizeSubQuestionAnswer(activeIndex, choiceKey)
   }
 
@@ -204,7 +325,11 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     if (answers.size >= subQuestions.length) {
       const nextSnapshot = await advanceSession(db, snapshot!)
       useSessionStore.setState({ snapshot: nextSnapshot })
-      if (displayIndex + 1 >= total) {
+      // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
+      // total（T-175）はサブ設問を展開した解答数なので、複数設問を含むセッションでは
+      // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
+      // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
+      if (displayIndex + 1 >= snapshot!.items.length) {
         navigate('result')
         return
       }
@@ -212,6 +337,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       setAnswers(new Map())
       setGhostDefenseByIndex(new Map())
       setActiveIndex(0)
+      setActivePassageIndex(0)
       setStartedAt(now())
       return
     }
@@ -226,22 +352,57 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     <ScreenLayout
       status={
         <>
+          {/* T-162（docs/27 のS-7）: 中断は画面最上部にあり、誤タップでセッションから
+              抜けていた。ダイアログは position:fixed なのでDOM上の位置は問わない */}
+          {abortConfirm && (
+            <ConfirmDialog
+              message="読解を中断してホームへ戻りますか？（解答済みの分は保存されます）"
+              onDismiss={() => setAbortConfirm(false)}
+              actions={[
+                {
+                  label: '中断してホームへ',
+                  primary: true,
+                  onSelect: () => {
+                    setAbortConfirm(false)
+                    navigate('home')
+                  },
+                },
+                { label: '読解を続ける', onSelect: () => setAbortConfirm(false) },
+              ]}
+            />
+          )}
           <SessionProgress current={current} total={total} />
-          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+          <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
             中断
           </button>
           {/* docs/25 4.8節（V-19）: DrillScreenと同じ英字パートタグ（.drill-part-tagを再利用）。
               表示のみの追加で、読解は必ずPart6/7なのでVOCAB分岐は持たない */}
           <span className="drill-part-tag">PART {question.part}</span>
-          {!activeAnswer && <p className="reading-pace">目安1問/分（経過{elapsedSec}秒）</p>}
+          {/* T-164（docs/27 のS-13）: 目安の1分を超えたら数値のカウントアップを止める。
+              制限時間ではないのに「経過180秒」と出続けると、機能的な影響なしに心理的な圧だけが
+              増える。自動確定は従来どおり行わない（速答を煽らない=3.5節） */}
+          {!activeAnswer && <p className="reading-pace">{readingPaceLabel(elapsedSec)}</p>}
         </>
       }
       action={
         <>
           {saveError && (
-            <p className="drill-error" role="alert">
-              {saveError}
-            </p>
+            <>
+              <p className="drill-error" role="alert">
+                {saveError}
+              </p>
+              {saveGuard.retryShown && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  disabled={saveGuard.retryBusy}
+                  aria-busy={saveGuard.retryBusy}
+                  onClick={() => void saveGuard.runRetry()}
+                >
+                  保存を再試行する
+                </button>
+              )}
+            </>
           )}
           {activeSub &&
             shuffledChoices.map((choice) => {
@@ -287,12 +448,47 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                     : null
                 }
               />
-              <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>
+              {/* 保存が終わるまでは進行導線を出さない（レビュー指摘、2026-08-03）。
+                  正誤表示は保存処理より先に出るため、出しておくと最終サブ設問で
+                  attempt未保存のまま advanceSession → リザルトへ進めてしまう。
+                  保存失敗中（再試行待ち）も同様に止め、再試行だけを前進手段にする */}
+              {canAdvance && <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>}
+              {/* T-164（docs/27 のS-31）: T-122でドリルに入れた途中終了導線を読解にも適用する。
+                  従来は全サブ設問を解き切るまでリザルトへ到達できず、抜ける手段は「中断」
+                  （ホーム直行）だけだったため、Part7の長文を全問解く覚悟がないと入れなかった。
+                  解答済みが1問以上あり、かつ未解答が残っているときだけ出す */}
+              {canAdvance && answers.size < subQuestions.length && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => navigate('result')}
+                >
+                  ここで終了して結果を見る
+                </button>
+              )}
             </>
           )}
         </>
       }
     >
+      {/* T-165（docs/27 のS-32）: 複数文書のときだけタブを出す。1件のときは従来の表示を
+          変えない（タブが常に出ると単一文書の読解に無用な要素が増える） */}
+      {passages.length >= 2 && (
+        <div className="reading-passage-tabs" role="tablist" aria-label="文書の切り替え">
+          {passages.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              role="tab"
+              aria-selected={i === activePassageIndex}
+              className={i === activePassageIndex ? 'is-selected' : ''}
+              onClick={() => setActivePassageIndex(i)}
+            >
+              文書{i + 1}（{p.kind}）
+            </button>
+          ))}
+        </div>
+      )}
       {passage && (
         // docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面と罫線だけで、
         // 光暈・アニメーションは足さない（07の原則3: 読解中は静かであるべき）

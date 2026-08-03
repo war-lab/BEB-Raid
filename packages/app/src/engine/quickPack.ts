@@ -43,6 +43,13 @@ export interface QuickPackConfig {
   newCardShare: number
   /** 弱点タグ・key単語の出題重み（03の1.3） */
   priorityWeight: number
+  /**
+   * 直近に正解した問題の重み倍率（T-168・J-94）。0より大きい値にすること——
+   * 0にすると事実上の除外になり、小さいプールで候補が枯れる
+   */
+  recentlyCorrectWeight: number
+  /** 「直近」の窓（時間）。この範囲内に正解した問題を後回しにする（T-168・J-94） */
+  recentlyCorrectWindowHours: number
 }
 
 /**
@@ -55,6 +62,13 @@ export function validateQuickPackConfig(config: QuickPackConfig): void {
   if (Math.abs(sum - 1) > 0.01) {
     throw new Error(
       `quickPackConfig の allocation 合計が不正（1±0.01 から外れている。実際: ${sum}）`,
+    )
+  }
+  // T-168: 0以下だと「後回し」ではなく事実上の除外になり、小さいプールで候補が枯れる
+  // （J-94は除外ではなく優先度の引き下げと決めている）
+  if (!(config.recentlyCorrectWeight > 0)) {
+    throw new Error(
+      `quickPackConfig の recentlyCorrectWeight は0より大きい必要がある（実際: ${config.recentlyCorrectWeight}）`,
     )
   }
 }
@@ -127,12 +141,38 @@ export function computeAllocationCounts(
  * categoryResolver 省略時は M1 既定（drillCategoryOf）。M2（フェーズ駆動）は
  * 弱形状態（weakTags）も見て分類する専用リゾルバを渡す（13の3.2節）
  */
+/**
+ * 直近に正解した問題のIDを集める（T-168・J-94。docs/27 のS-18）。
+ *
+ * 従来 `buildDrillCandidates` の除外は同一パック内のSRS由来IDだけで、`attempts` の履歴を
+ * 一切見ていなかった。そのため前のセッションで正解した問題が次のセッションでまた出る。
+ * プールが小さいPart2（150問）・Part5で体感が強く出る。
+ *
+ * **誤答した問題は対象にしない**——誤答はSRSと類題の経路で意図的に再出題するものなので、
+ * ここで抑制すると復習の設計と衝突する。
+ */
+export async function getRecentlyCorrectQuestionIds(
+  db: BebRaidDatabase,
+  now: number,
+  windowHours: number = QUICK_PACK_CONFIG.recentlyCorrectWindowHours,
+): Promise<Set<string>> {
+  const since = now - windowHours * 60 * 60 * 1000
+  const recent = await db.attempts.where('answeredAt').aboveOrEqual(since).toArray()
+  return new Set(recent.filter((a) => a.isCorrect).map((a) => a.questionId))
+}
+
 export async function buildDrillCandidates(
   db: BebRaidDatabase,
   questions: readonly Question[],
   excludeQuestionIds: ReadonlySet<string>,
   categoryResolver: (question: Question, weakTags: ReadonlySet<string>) => string | null = (q) =>
     drillCategoryOf(q),
+  /**
+   * 直近に正解した問題のID（T-168）。抽選重みを下げるだけで**除外はしない**——
+   * 除外すると小さいプールで候補が枯れる。weightedSample は非復元抽出なので、
+   * 重みを下げれば「候補が足りないときは結局出る」が自動的に成立する
+   */
+  recentlyCorrectIds: ReadonlySet<string> = new Set(),
 ): Promise<DrillCandidate[]> {
   const weakTags = new Set(await getWeakTags(db))
   const reviewWords = await getActiveReviewWords(db)
@@ -166,10 +206,14 @@ export async function buildDrillCandidates(
     } else {
       reason = { type: 'allocation' }
     }
+    const baseWeight = reason.type === 'allocation' ? 1 : QUICK_PACK_CONFIG.priorityWeight
     result.push({
       question,
       category,
-      weight: reason.type === 'allocation' ? 1 : QUICK_PACK_CONFIG.priorityWeight,
+      // T-168: 直近に正解した問題は後回しにする（重みを下げるだけで候補からは外さない）
+      weight: recentlyCorrectIds.has(question.id)
+        ? baseWeight * QUICK_PACK_CONFIG.recentlyCorrectWeight
+        : baseWeight,
       reason,
     })
   }
@@ -219,8 +263,15 @@ async function buildM1DrillItems(
   excludeIds: ReadonlySet<string>,
   slots: number,
   rng: () => number,
+  recentlyCorrectIds: ReadonlySet<string>,
 ): Promise<QuickPackItem[]> {
-  const candidates = await buildDrillCandidates(db, questions, excludeIds)
+  const candidates = await buildDrillCandidates(
+    db,
+    questions,
+    excludeIds,
+    (q) => drillCategoryOf(q),
+    recentlyCorrectIds,
+  )
   const counts = computeAllocationCounts(slots, QUICK_PACK_CONFIG.allocation)
 
   const pickedByCategory: DrillCandidate[] = []
@@ -309,9 +360,14 @@ async function buildPhaseDrivenDrillItems(
   listeningStage: ListeningStage,
   slots: number,
   rng: () => number,
+  recentlyCorrectIds: ReadonlySet<string>,
 ): Promise<QuickPackItem[]> {
-  const candidates = await buildDrillCandidates(db, questions, excludeIds, (q, weakTags) =>
-    resolveM2Category(q, weakTags, template),
+  const candidates = await buildDrillCandidates(
+    db,
+    questions,
+    excludeIds,
+    (q, weakTags) => resolveM2Category(q, weakTags, template),
+    recentlyCorrectIds,
   )
   const topCounts = computeAllocationCounts(slots, template.allocation)
 
@@ -431,6 +487,9 @@ export async function generateQuickPack(
     const excludeIds = new Set(
       items.flatMap((item) => (item.questionId !== null ? [item.questionId] : [])),
     )
+    // T-168（J-94）: attempts の読み取りはここで行い、エンジン側へは集合として渡す
+    // （`now` はリクエスト側が持っているので、テストで時刻を固定したときに整合する）
+    const recentlyCorrectIds = await getRecentlyCorrectQuestionIds(db, now)
     const pickedItems = request.phase
       ? await buildPhaseDrivenDrillItems(
           db,
@@ -440,8 +499,16 @@ export async function generateQuickPack(
           request.listeningStage ?? 1,
           remaining,
           rng,
+          recentlyCorrectIds,
         )
-      : await buildM1DrillItems(db, request.questions, excludeIds, remaining, rng)
+      : await buildM1DrillItems(
+          db,
+          request.questions,
+          excludeIds,
+          remaining,
+          rng,
+          recentlyCorrectIds,
+        )
     items.push(...pickedItems)
   }
 

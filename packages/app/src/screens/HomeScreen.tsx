@@ -2,13 +2,17 @@
 // 上: ストリーク＋SRS期限数。中: ワードマーク＋ヒーローカード（進行中レイドのHPバー=M3・T-97、
 // 未参加時はシーズン表示に縮退=docs/20 JV-2）。下: 「今日のクエスト」
 // 主ボタン＋3/7/15分チップ→generateQuickPack→セッション開始。下方グリッドは
-// 各モードへの導線（Part2瞬発・Part5・語彙SRS・ダッシュボード・設定）。
+// 各モードへの導線（Part2瞬発・Part5・Part7読解・語彙SRS・ダッシュボード・設定）。
+// Part7読解（T-143・J-80）は「じっくり読解」モードの入口で、通勤クエストの3/7/15分チップとは
+// 分離した独立タイルにしている（着席・自宅想定。docs/24 3.3節）。
 // docs/20 3.4節(V-3/V-4統合): ヒーローのボス紋章はBossSigil（S5レイド画面と同じseed=bossId）。
 import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { RaidStateRecord } from '../db/schema'
 import { RAID_STATE_ID } from '../db/schema'
+import { totalAnswerSlots } from '../engine/answerSlots'
+import { shuffle } from '../engine/shuffle'
 import { supportsAudioOnlyPart2 } from '../engine/audioOnlyPart2'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
 import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
@@ -28,6 +32,7 @@ import {
   LAST_SEEN_STREAK_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
+  READING_SET_COUNT_KEY,
   SINGLE_MODE_COUNT_KEY,
 } from '../services/settingsKeys'
 import { InstallHint } from '../pwa/InstallHint'
@@ -36,6 +41,7 @@ import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BossSigil } from '../components/BossSigil'
 import { Heatmap } from '../components/charts/Heatmap'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { Wordmark } from '../components/Wordmark'
@@ -58,8 +64,41 @@ export function confirmDiscardMessage(remaining: number): string {
   return `進行中のセッション（残り${remaining}問）を破棄して新しく始めますか？`
 }
 
+/**
+ * 中断セッションの残り解答回数（T-175。docs/27 のS-26）。
+ * item数で数えると audio_set（1itemで3サブ設問）を1回と数えてしまい、
+ * ドリル画面の進捗表示（実解答回数）と食い違う
+ */
+export function remainingAnswerSlots(
+  snapshot: SessionSnapshot,
+  questionPool: readonly Question[],
+): number {
+  const lookup = new Map(questionPool.map((q) => [q.id, q]))
+  return totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
+}
+
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
 const DEFAULT_DURATION: QuickPackDuration = 7
+/**
+ * 読解（Part7）単独モードのパッセージ数の選択肢（T-143・J-80）。
+ * 読解は1パッセージが2〜4設問を要求するので、他の単独モードの問数チップ（10/20/50）は使えない
+ * （20を選ぶと60設問級になり通勤セッションに収まらない）。docs/24 3.3節の「1〜2セットを
+ * 通しで」に合わせ、1〜3パッセージから選ばせる
+ */
+const READING_SET_COUNTS = [1, 2, 3] as const
+type ReadingSetCount = (typeof READING_SET_COUNTS)[number]
+const DEFAULT_READING_SET_COUNT: ReadingSetCount = 2
+
+/**
+ * セッション開始時のオプション。`partialAudioMode` / `audioOnlyPart2` は再生モードとして
+ * セッションストアへ渡す。`toScreen`（T-143）は遷移先の指定だけなのでストアへは渡さない
+ */
+type StartOptions = {
+  partialAudioMode?: boolean
+  audioOnlyPart2?: boolean
+  toScreen?: 'drill' | 'reading'
+}
+
 /** 単独モード（Part2瞬発・Part5）の問数選択肢（J-57）。「全問」は完走不能セッションの再発防止で置かない */
 const SINGLE_MODE_COUNTS = [10, 20, 50] as const
 type SingleModeCount = (typeof SINGLE_MODE_COUNTS)[number]
@@ -94,6 +133,43 @@ export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
   })
 }
 
+/** 読解（Part7）単独モードの設問数の見積り（下限・上限。理由は readingQuestionEstimate 参照） */
+export interface ReadingEstimate {
+  sets: number
+  minQuestions: number
+  maxQuestions: number
+}
+
+/**
+ * 選ぶパッセージ数から設問数の**範囲**を求める（T-143・J-80）。
+ *
+ * 実際の出題はプールをシャッフルして先頭N件を取るため、どのパッセージが当たるかは
+ * 開始するまで決まらない。1パッセージの設問数は2〜5問とばらつくので、
+ * 「プール先頭N件の合計」を目安として出すと表示と実数がずれる（レビュー指摘、2026-08-03）。
+ *
+ * 選択を先に確定して共有する案もあるが、開始のたびに引き直す（＝プール後半にも到達する）
+ * という現在の設計を崩すため採らない。代わりに、起こりうる最小・最大を出す
+ */
+export function readingQuestionEstimate(pool: readonly Question[], count: number): ReadingEstimate {
+  const sets = Math.min(count, pool.length)
+  const counts = pool.map((q) => q.subQuestions?.length ?? 1).sort((a, b) => a - b)
+  const sum = (values: number[]) => values.reduce((total, n) => total + n, 0)
+  return {
+    sets,
+    minQuestions: sum(counts.slice(0, sets)),
+    maxQuestions: sum(counts.slice(counts.length - sets)),
+  }
+}
+
+/** 見積りの表示文（幅が無ければ単一の数値で出す。読解の目安は1設問1分＝24の3.5節） */
+export function formatReadingEstimate(estimate: ReadingEstimate): string {
+  const { minQuestions, maxQuestions } = estimate
+  if (minQuestions === maxQuestions) {
+    return `約${minQuestions}設問（目安${minQuestions}分）`
+  }
+  return `約${minQuestions}〜${maxQuestions}設問（目安${minQuestions}〜${maxQuestions}分）`
+}
+
 export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
@@ -112,11 +188,23 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [showPart2Options, setShowPart2Options] = useState(false)
   // T-118: Part5単独モード起動時の問数選択モーダル（Part2と同型。新設）
   const [showPart5Options, setShowPart5Options] = useState(false)
+  // T-143(J-80): 読解（Part7）単独モードのパッセージ数選択モーダル（Part5と同型）
+  const [showReadingOptions, setShowReadingOptions] = useState(false)
+  const [readingSetCount, setReadingSetCount] = useState<ReadingSetCount>(DEFAULT_READING_SET_COUNT)
   // T-118: 単独モード（Part2瞬発・Part5）共通の問数選択値（画面遷移・再起動を跨いで復元）
   const [singleModeCount, setSingleModeCount] = useState<SingleModeCount>(DEFAULT_SINGLE_MODE_COUNT)
   // T-121(J-60): 生成パックが0問だったときの案内（今日のクエスト・単独モード共通）。
   // セッション開始成功時・単独モード開始時にクリアする。自動では消さない
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
+  /**
+   * T-162（docs/27 のS-38）: 進行中セッションがある状態で新規開始したときの確認。
+   * 選択が決まるまで開始要求を保持しておく（window.confirm を置き換えたため、
+   * 判断を待つ間の状態を画面側で持つ必要がある）
+   */
+  const [discardConfirm, setDiscardConfirm] = useState<{
+    items: SessionItem[]
+    options?: StartOptions
+  } | null>(null)
   // T-54: 現フェーズ（シーズン表示・クイックパックのフェーズ駆動化に使う）
   const [phase, setPhase] = useState<PhaseState | null>(null)
   // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
@@ -153,6 +241,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         raidStateRecord,
         questDurationSetting,
         singleModeCountSetting,
+        readingSetCountSetting,
       ] = await Promise.all([
         evaluateStreak(db),
         getStreak(db),
@@ -163,6 +252,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         db.raidState.get(RAID_STATE_ID),
         db.settings.get(QUEST_DURATION_KEY),
         db.settings.get(SINGLE_MODE_COUNT_KEY),
+        db.settings.get(READING_SET_COUNT_KEY),
       ])
       if (cancelled) return
       setRaidState(raidStateRecord ?? null)
@@ -175,6 +265,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       const savedSingleModeCount = singleModeCountSetting?.value as SingleModeCount | undefined
       if (savedSingleModeCount !== undefined && SINGLE_MODE_COUNTS.includes(savedSingleModeCount)) {
         setSingleModeCount(savedSingleModeCount)
+      }
+      // T-143: 読解のパッセージ数選択も同じ扱いで復元する
+      const savedReadingCount = readingSetCountSetting?.value as ReadingSetCount | undefined
+      if (savedReadingCount !== undefined && READING_SET_COUNTS.includes(savedReadingCount)) {
+        setReadingSetCount(savedReadingCount)
       }
       const today = toDateString(Date.now())
       const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
@@ -285,16 +380,55 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     await startSessionAndNavigate(items)
   }
 
+  /** T-143: 読解のパッセージ数チップの選択（保存＋画面遷移・再起動を跨いで復元） */
+  function handleSelectReadingSetCount(count: ReadingSetCount) {
+    setReadingSetCount(count)
+    void db.settings.put({ key: READING_SET_COUNT_KEY, value: count })
+  }
+
+  /**
+   * 読解（Part7）単独モードの出題プール（T-143・J-80）。
+   * Part6は空所補充で設問の型が別物なのでこのモードには入れない。
+   * 複数パッセージ（passages 2件以上）は T-165 でタブ表示に対応済みなので**含める**
+   * ——「じっくり読解」モードは元々その受け皿として設計された（docs/24 3.3節）
+   */
+  function readingPool(): Question[] {
+    return questionPool.filter((q) => q.format === 'text_passage' && q.part === 7)
+  }
+
+  /** 選択中のパッセージ数に含まれる設問数の目安（J-80の「時間目安を提示」用） */
+  function readingEstimate(count: number): ReadingEstimate {
+    return readingQuestionEstimate(readingPool(), count)
+  }
+
+  /**
+   * 読解（Part7）単独モードの開始（T-143・J-80。docs/24 3.3節）。
+   * 問数ではなくパッセージ数で選ぶ点だけが他の単独モードと違う（1パッセージが複数設問を
+   * 要求するため）。出題は毎回シャッフルして先頭N件を取る（J-57と同じ理由＝プール順固定だと
+   * 後半に永遠に到達しない）。
+   * 難易度ゲート（orderByRating）は読解には適用しない——text_passage の difficulty は
+   * パッセージ単位の目安で、Part2/5の1問単位の難易度とは意味が揃っておらず、
+   * レート比較の前提が成り立たない
+   */
+  async function startReadingMode() {
+    setEmptyPackMessage(null)
+    const pool = readingPool()
+    if (pool.length === 0) {
+      setEmptyPackMessage(EMPTY_PACK_MESSAGE)
+      return
+    }
+    const selected = shuffle(pool).slice(0, readingSetCount)
+    const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await startSessionAndNavigate(items, { toScreen: 'reading' })
+  }
+
   /** T-118: 問数選択チップの選択（保存＋画面遷移・再起動を跨いで復元） */
   function handleSelectSingleModeCount(count: SingleModeCount) {
     setSingleModeCount(count)
     void db.settings.put({ key: SINGLE_MODE_COUNT_KEY, value: count })
   }
 
-  async function startSingleMode(
-    format: 'audio_qa' | 'text_blank',
-    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
-  ) {
+  async function startSingleMode(format: 'audio_qa' | 'text_blank', options?: StartOptions) {
     // T-121: 単独モード開始時は「今日のクエスト」の空パック案内が残っていればクリアする
     setEmptyPackMessage(null)
     // T-154: 音声のみモードは応答音声が生成済みの問題しか出題できない（ADR 0008）。
@@ -328,20 +462,23 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     await startSessionAndNavigate(items, options)
   }
 
-  async function startSessionAndNavigate(
-    items: SessionItem[],
-    options?: { partialAudioMode?: boolean; audioOnlyPart2?: boolean },
-  ) {
+  async function startSessionAndNavigate(items: SessionItem[], options?: StartOptions) {
     if (items.length === 0) return
-    if (
-      resumeSnapshot &&
-      !window.confirm(
-        confirmDiscardMessage(resumeSnapshot.items.length - resumeSnapshot.answeredCount),
-      )
-    )
+    // T-162（docs/27 のS-38）: window.confirm のYes/Noでは「続きから再開する」を
+    // その場で選べず、ホームへ戻って別のボタンを探させることになっていた。
+    // 3択のアプリ内ダイアログへ置き換える（開始要求を保持して選択後に続行する）
+    if (resumeSnapshot) {
+      setDiscardConfirm({ items, options })
       return
+    }
+    await beginNewSession(items, options)
+  }
+
+  async function beginNewSession(items: SessionItem[], options?: StartOptions) {
     const snapshot = await startSession(db, { items })
     const [l, r] = await Promise.all([db.ratings.get('L'), db.ratings.get('R')])
+    // toScreen は遷移先の指定だけなのでセッションストアへは渡さない（再生モードの設定と別物）
+    const { toScreen, ...sessionOptions } = options ?? {}
     beginSession(
       snapshot,
       questionPool,
@@ -349,9 +486,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         L: l?.rating ?? DEFAULT_INITIAL_RATING,
         R: r?.rating ?? DEFAULT_INITIAL_RATING,
       },
-      options,
+      sessionOptions,
     )
-    navigate('drill')
+    // T-143: 読解は最初のitemがtext_passageなのでreadingへ直行する。DrillScreen経由でも
+    // 自動切替はされるが、1レンダーぶん空のドリル画面を挟むのを避ける
+    navigate(toScreen ?? 'drill')
   }
 
   // M3・T-97: raidApi.isConfigured() && raidState.joined のときのみHPバーを表示する（縮退設計）。
@@ -378,6 +517,34 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     <ScreenLayout
       status={
         <>
+          {/* T-162（docs/27 のS-38）: 破棄の確認を3択にする。window.confirm のYes/Noでは
+              「続きから再開する」をその場で選べず、ホームへ戻って別のボタンを探す必要があった。
+              ダイアログは position:fixed なのでDOM上の位置は問わない */}
+          {discardConfirm && resumeSnapshot && (
+            <ConfirmDialog
+              message={confirmDiscardMessage(remainingAnswerSlots(resumeSnapshot, questionPool))}
+              onDismiss={() => setDiscardConfirm(null)}
+              actions={[
+                {
+                  label: '続きから再開する',
+                  primary: true,
+                  onSelect: () => {
+                    setDiscardConfirm(null)
+                    void handleResume()
+                  },
+                },
+                {
+                  label: '破棄して新しく始める',
+                  onSelect: () => {
+                    const pending = discardConfirm
+                    setDiscardConfirm(null)
+                    void beginNewSession(pending.items, pending.options)
+                  },
+                },
+                { label: 'やめる', onSelect: () => setDiscardConfirm(null) },
+              ]}
+            />
+          )}
           {brokenSinceDays !== null ? (
             <p>途切れ（前回{brokenSinceDays}日）</p>
           ) : (
@@ -398,7 +565,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         <>
           {resumeSnapshot && (
             <button type="button" className="secondary-action" onClick={() => void handleResume()}>
-              続きから再開（残り{resumeSnapshot.items.length - resumeSnapshot.answeredCount}問）
+              続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
             </button>
           )}
           {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
@@ -543,6 +710,49 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               </div>
             </div>
           )}
+          {showReadingOptions && (
+            // T-143(J-80): 読解はパッセージ数で選ぶ（1パッセージが2〜4設問を要求するため、
+            // 他の単独モードの問数チップは使えない）。あわせて設問数の目安を出す
+            <div
+              className="home-part2-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="読解のパッセージ数を選択"
+            >
+              <div className="home-part2-options">
+                <p>読解（Part7）のパッセージ数を選んでください</p>
+                <p className="home-duration-chips__label">パッセージ数</p>
+                <div className="home-duration-chips">
+                  {READING_SET_COUNTS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`home-chip${c === readingSetCount ? ' is-selected' : ''}`}
+                      onClick={() => handleSelectReadingSetCount(c)}
+                    >
+                      {c}本
+                    </button>
+                  ))}
+                </div>
+                {/* J-80: 着席・自宅想定なので時間目安を示す。読解の目安は1設問1分（24の3.5節） */}
+                <p className="home-reading-estimate">
+                  {formatReadingEstimate(readingEstimate(readingSetCount))}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReadingOptions(false)
+                    void startReadingMode()
+                  }}
+                >
+                  開始
+                </button>
+                <button type="button" onClick={() => setShowReadingOptions(false)}>
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          )}
           {/* docs/20 3.4節: モードタイル（インラインSVGアイコン＋一言補足の2列グリッド。V-3）。
               アイコン色はモード色に合わせる: Part2=--listen・Part5=--gold・語彙=--violet・シャドーイング=--listen */}
           <div className="home-mode-grid">
@@ -591,6 +801,63 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               <span className="home-mode-tile__text">
                 <span className="home-mode-tile__label">Part5</span>
                 <small className="home-mode-tile__hint">文法・語彙の穴埋め</small>
+              </span>
+            </button>
+            {/* T-143(J-80): 「じっくり読解」モードの独立入口。通勤クエスト（3/7/15分チップ）とは
+                視覚的に分離し、着席・自宅想定である旨を補足に出す（docs/24 3.3節・J-80）。
+                アイコンはPart5の行組みと区別できるよう文書＋虫眼鏡の形にし、色は読解の
+                アクセントとして--goldを弱めて使う（07の色トークン経由） */}
+            <button
+              type="button"
+              className="home-mode-tile"
+              onClick={() => setShowReadingOptions(true)}
+            >
+              <svg
+                className="home-mode-tile__icon"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <rect
+                  x="3"
+                  y="3"
+                  width="11"
+                  height="14"
+                  rx="1.5"
+                  stroke="var(--gold)"
+                  strokeWidth="1.4"
+                  fill="none"
+                  opacity=".7"
+                />
+                <rect x="5.5" y="6" width="6" height="1.4" rx=".7" fill="var(--gold)" />
+                <rect
+                  x="5.5"
+                  y="9"
+                  width="6"
+                  height="1.4"
+                  rx=".7"
+                  fill="var(--gold)"
+                  opacity=".6"
+                />
+                <circle
+                  cx="14"
+                  cy="14"
+                  r="3"
+                  stroke="var(--gold)"
+                  strokeWidth="1.4"
+                  fill="var(--surface)"
+                />
+                <path
+                  d="M16.2 16.2 18 18"
+                  stroke="var(--gold)"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="home-mode-tile__text">
+                <span className="home-mode-tile__label">Part7 読解</span>
+                <small className="home-mode-tile__hint">着席してじっくり読む</small>
               </span>
             </button>
             <button type="button" className="home-mode-tile" onClick={() => navigate('vocab')}>

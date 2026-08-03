@@ -5,7 +5,7 @@
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
@@ -540,5 +540,220 @@ describe('BattleScreen: 4択の形マーカー（V-12。docs/25 4.4節）', () =
       '',
       '',
     ])
+  })
+})
+
+describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/27 のS-33〜S-36）', () => {
+  /** 音声問題（question を持たない＝音声で流れる形式） */
+  function audioQaQuestion(id: string): Question {
+    return {
+      id,
+      part: 2,
+      format: 'audio_qa',
+      difficulty: 2,
+      tags: ['意図推定'],
+      keyVocab: [],
+      audio: `/audio/${id}.mp3`,
+      choices: [
+        { key: 'A', text: 'Yesterday.' },
+        { key: 'B', text: 'In the meeting room.' },
+      ],
+      answer: 'A',
+      explanation: '解説',
+      translation: '和訳',
+    }
+  }
+
+  async function joinAndOpen(db: BebRaidDatabase, question: Question, socket: FakeBattleSocket) {
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[question]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: question.id,
+      deadlineAt: Date.now() + 30_000,
+    })
+  }
+
+  // 何を防ぐか（S-34）: audio_qa は question が未定義のため、手元には空白＋選択肢だけが並び、
+  // 投影を見られない位置の参加者は何を問われているか分からないまま制限時間が減っていた
+  it('音声問題では手元に指示文を出す（空白にしない）', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    await joinAndOpen(db, audioQaQuestion('p2-battle'), socket)
+
+    expect(
+      await screen.findByText('音声で質問が流れます。応答として正しい選択肢を選んでください'),
+    ).toBeTruthy()
+  })
+
+  // 何を防ぐか（S-33）: 出題が始まると退出手段が無く（退出ボタンはロビーのみ）、
+  // 会議・電車の都合で抜けたいときにブラウザバックしかなかった
+  it('出題中に退出できる（確認あり。キャンセルでは閉じない）', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    await joinAndOpen(db, textBlankQuestion('q-leave'), socket)
+    await screen.findByRole('button', { name: /submit$/ })
+
+    // この画面は自分でscreenを設定しないため、遷移の有無を見るために現在値を明示しておく
+    useAppStore.setState({ screen: 'battle' })
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    fireEvent.click(screen.getByRole('button', { name: '退出する' }))
+    expect(socket.closed).toBe(false)
+    expect(useAppStore.getState().screen).toBe('battle')
+
+    confirmSpy.mockReturnValue(true)
+    fireEvent.click(screen.getByRole('button', { name: '退出する' }))
+    expect(socket.closed).toBe(true)
+    expect(useAppStore.getState().screen).toBe('home')
+    confirmSpy.mockRestore()
+  })
+
+  // 何を防ぐか（S-36前半）: 解答後に選択肢の色と獲得点しか出ず、間違えた理由がその場で
+  // 分からなかった（最終リザルトも誤答件数だけ）
+  it('解答後に解説が表示される', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const q = textBlankQuestion('q-exp')
+    await joinAndOpen(db, q, socket)
+
+    fireEvent.click(await screen.findByRole('button', { name: /submit$/ }))
+
+    expect(await screen.findByText('解説')).toBeTruthy()
+  })
+
+  // 何を防ぐか（S-36後半）: 未解答のまま締切を迎えるとattemptsに何も残らず、ソロ側が
+  // isTimeout を記録・可視化しているのにバトルの時間切れだけ統計にも復習にも出なかった
+  it('未解答のまま締切を迎えると isTimeout の attempt を記録する', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const q = textBlankQuestion('q-timeout')
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+
+    // 締切を至近に設定して、解答せずに通過させる
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: q.id,
+      deadlineAt: Date.now() + 30,
+    })
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isTimeout).toBe(true)
+    expect(attempt.isCorrect).toBe(false)
+    expect(attempt.mode).toBe('battle')
+  })
+
+  it('解答済みなら締切時に二重記録しない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const q = textBlankQuestion('q-no-dup')
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: q.id,
+      deadlineAt: Date.now() + 120,
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: /submit$/ }))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+
+    // 締切を過ぎても件数は増えない
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    expect(await db.attempts.count()).toBe(1)
+    expect((await db.attempts.toArray())[0]!.isTimeout).toBe(false)
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: サーバーの締切判定（standings）が
+  // ローカルタイマーより先に届くと、phase遷移でカウントダウンeffectのcleanupがタイマーを
+  // 解除し、未解答の時間切れが記録されないまま消えること
+  it('standingsが先に届いても未解答の時間切れを記録する', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const q = textBlankQuestion('q-standings-first')
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+
+    // 締切はまだ先（ローカルタイマーは発火していない）
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: q.id,
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByRole('button', { name: /submit$/ })
+    expect(await db.attempts.count()).toBe(0)
+
+    // サーバーが先に締切を判定して順位を送ってきた
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: '太郎', totalPoints: 0 }],
+    })
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isTimeout).toBe(true)
+    expect(attempt.questionId).toBe(q.id)
+
+    // 続く result 受信でも二重記録しない
+    socket.emitMessage({
+      type: 'result',
+      entries: [{ displayName: '太郎', totalPoints: 0 }],
+      bestGrowth: { displayName: '太郎' },
+    })
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect(await db.attempts.count()).toBe(1)
+  })
+
+  it('ロビーで1問あたりの制限時間を告知する（秒数はサーバーの deadlineAt から算出）', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const q = textBlankQuestion('q-sec')
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+
+    // 1問目を受けるまでは秒数が分からないので、その旨を出す
+    expect(await screen.findByText('1問あたりの制限時間はホストの設定に従います')).toBeTruthy()
+
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: q.id,
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByRole('button', { name: /submit$/ })
+    // 順位表示を経てロビーには戻らないため、ここでは実測値が保持されることだけ確認する
+    socket.emitMessage({ type: 'standings', entries: [{ displayName: '太郎', totalPoints: 0 }] })
+    expect(await screen.findByTestId('battle-standings')).toBeTruthy()
   })
 })
