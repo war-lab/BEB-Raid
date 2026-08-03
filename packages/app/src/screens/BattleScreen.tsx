@@ -10,9 +10,12 @@ import { PROFILE_ID } from '../db/schema'
 import { basePoints, difficultyToRatingSpace, DEFAULT_INITIAL_RATING } from '../engine/rating'
 import type { QuestionLookup } from '../engine/types'
 import type { BattleSocket } from '../platform'
+import { wrongAnswerReviewIds, WRONG_ANSWER_REVIEW_LIMIT } from '../engine/wrongAnswers'
+import { useReviewSession } from '../hooks/useReviewSession'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { useAppStore } from '../store/appStore'
 import { BattleAward } from '../components/BattleAward'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { ExplanationCard } from '../components/ExplanationCard'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -76,6 +79,8 @@ export function participantQuestionText(question: Question): string {
 
 export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const navigate = useAppStore((s) => s.navigate)
+  // バトル直後の復習セッション（発起人の要望、2026-08-03）
+  const review = useReviewSession(db, questionPool)
   const [phase, setPhase] = useState<Phase>('entry')
   const [codeInput, setCodeInput] = useState('')
   const [participants, setParticipants] = useState<string[]>([])
@@ -93,6 +98,13 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const [resultEntries, setResultEntries] = useState<StandingRow[]>([])
   const [bestGrowthName, setBestGrowthName] = useState<string | null>(null)
   const [wrongCount, setWrongCount] = useState(0)
+  /**
+   * バトル直後の復習セッションに入れる問題ID（発起人の要望、2026-08-03）。
+   * 誤答した問題を mode='solo' の通常セッションとして解き直す。バトル中の解答が
+   * レート対象外なのは同時解答という条件差を持ち込まないためで（docs/22 3.5節）、
+   * 解き直しは通常の学習なのでレートも通常どおり動く
+   */
+  const [reviewIds, setReviewIds] = useState<string[]>([])
   /** サーバーが付与した切断理由（closed表示の案内文の出し分けに使う。通信断時は空文字） */
   const [closeReason, setCloseReason] = useState('')
 
@@ -270,7 +282,13 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     finalized.current = true
     let cancelled = false
     void persistChain.current.then(() => {
-      if (!cancelled) setWrongCount(answerRecords.current.filter((r) => !r.isCorrect).length)
+      if (cancelled) return
+      const wrong = answerRecords.current.filter((r) => !r.isCorrect)
+      setWrongCount(wrong.length)
+      // 発起人の要望（2026-08-03）: バトル直後に解き直す導線を出す。誤答は復習デッキにも
+      // 入るが、次のSRS期限まで待つと熱量が冷める。ここで確定させるのは、refを
+      // レンダー中に読まないため（react-hooks/refs）
+      setReviewIds(wrongAnswerReviewIds(wrong, WRONG_ANSWER_REVIEW_LIMIT))
     })
     return () => {
       cancelled = true
@@ -544,8 +562,41 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   if (phase === 'result') {
     return (
       <ScreenLayout
-        status={<p>最終リザルト</p>}
-        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+        status={
+          <>
+            <p>最終リザルト</p>
+            {review.conflict && (
+              <ConfirmDialog
+                message="進行中のセッションを破棄して復習を始めますか？"
+                onDismiss={review.cancel}
+                actions={[
+                  {
+                    label: '続きから再開する',
+                    primary: true,
+                    onSelect: () => void review.resume(),
+                  },
+                  {
+                    label: '破棄して復習を始める',
+                    onSelect: () => void review.discardAndStart(),
+                  },
+                  { label: 'やめる', onSelect: review.cancel },
+                ]}
+              />
+            )}
+          </>
+        }
+        action={
+          <>
+            {reviewIds.length > 0 && (
+              <PrimaryButton onClick={() => void review.start(reviewIds)}>
+                間違えた{reviewIds.length}問を復習する
+              </PrimaryButton>
+            )}
+            <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+              ホームへ戻る
+            </button>
+          </>
+        }
       >
         {/* 表彰（表彰台・ベストグロース賞・段階開示）はV-10のBattleAwardが持つ。
             上位3名は表彰台に載るため順位表は4位以下だけを描く（fromRank=4）。
@@ -565,6 +616,12 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           />
         </StandingsList>
         <p data-testid="battle-review-note">誤答{wrongCount}問を復習デッキに登録しました</p>
+        {reviewIds.length > 0 && (
+          <p data-testid="battle-review-hint">
+            このまま解き直せます（下の「間違えた{reviewIds.length}問を復習する」）。
+            あとで見返す場合はホームの「間違えた問題」から開けます。
+          </p>
+        )}
       </ScreenLayout>
     )
   }

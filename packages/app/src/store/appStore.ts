@@ -23,6 +23,8 @@ export type ScreenName =
   | 'reading'
   | 'battle'
   | 'battleHost'
+  /** S9 間違えた問題一覧（発起人の要望、2026-08-03） */
+  | 'wrongAnswers'
 
 interface AppStore {
   screen: ScreenName

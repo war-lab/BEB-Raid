@@ -923,6 +923,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
               モードタイルとは別枠に据え置く（docs/20 3.4節はPart2/Part5/語彙/シャドーイングの
               4タイルのみを規定。他はモックアップにも無い既存機能で構造は変えない） */}
           <div className="home-grid">
+            {/* S9 間違えた問題一覧（発起人の要望、2026-08-03）。モードタイル（docs/20 3.4節が
+                4タイルを規定）ではなくナビゲーション枠に置く——復習の入口であって
+                出題モードではない */}
+            <button type="button" onClick={() => navigate('wrongAnswers')}>
+              間違えた問題
+            </button>
             <button type="button" onClick={() => navigate('dashboard')}>
               ダッシュボード
             </button>

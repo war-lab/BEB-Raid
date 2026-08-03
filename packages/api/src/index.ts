@@ -1,6 +1,7 @@
 // 共有API本体（正本: docs/17_M3実装計画.md 3.1節・3.10節、docs/16）。
 // T-90時点は/healthのみだった。/stats/questionsはT-100、/reportsはT-101で追加した
 
+import { handleAdminGenerateBoss } from './adminHandlers'
 import { authenticateRequest } from './auth'
 import { handleCreateBattleRoom } from './battleHandlers'
 import { handlePreflight, withCors } from './cors'
@@ -105,6 +106,13 @@ async function route(request: Request, env: Env): Promise<Response> {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
     return handleCreateBattleRoom(env, auth.deviceToken, Date.now())
+  }
+
+  // 運用用（2026-08-03）。cronが発火しなかった週のボスを手当てする。
+  // 認証は専用シークレット（ADMIN_TOKEN）で、メンバー認証（authenticateRequest）とは別系統。
+  // 未設定の環境では handleAdminGenerateBoss が404を返す＝ルートが無いのと同じになる
+  if (request.method === 'POST' && url.pathname === '/admin/raid/generate') {
+    return handleAdminGenerateBoss(request, env, Date.now())
   }
 
   // WebSocket Upgradeのため認証はBearerヘッダではなくSec-WebSocket-Protocol経由

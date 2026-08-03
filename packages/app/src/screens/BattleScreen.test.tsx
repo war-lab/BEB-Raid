@@ -12,6 +12,7 @@ import { PROFILE_ID } from '../db/schema'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import { FakeBattleSocket } from '../platform/net/BattleSocket'
 import { useAppStore } from '../store/appStore'
+import { useSessionStore } from '../store/sessionStore'
 import { BattleScreen } from './BattleScreen'
 import { resolveBattleCloseMessage } from './battleCloseMessage'
 
@@ -223,6 +224,88 @@ describe('BattleScreen: 誤答のattempts記録・復習デッキ登録・レー
     expect(ratings).toHaveLength(0)
     const ratingHistory = await db.ratingHistory.toArray()
     expect(ratingHistory).toHaveLength(0)
+  })
+})
+
+// 発起人の要望（2026-08-03）: バトル後の復習タイム。誤答は復習デッキにも入るが、
+// 次のSRS期限まで待つと熱量が冷めるため、その場で解き直す導線を出す
+describe('BattleScreen: バトル後の復習', () => {
+  it('誤答した問題をその場で復習セッションとして開始できる', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const q1 = textBlankQuestion('q-1', 'A')
+    const q2 = textBlankQuestion('q-2', 'A')
+    const socket = new FakeBattleSocket()
+
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q1, q2]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'cccc' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('CCCC'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+
+    // 1問目は誤答、2問目は正解
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 30_000,
+    })
+    fireEvent.click(await screen.findByRole('button', { name: /submits$/ }))
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 1,
+      questionId: 'q-2',
+      deadlineAt: Date.now() + 30_000,
+    })
+    fireEvent.click(await screen.findByRole('button', { name: /submit$/ }))
+    socket.emitMessage({
+      type: 'result',
+      entries: [{ displayName: '太郎', totalPoints: 10 }],
+      bestGrowth: { displayName: '太郎' },
+    })
+
+    // 誤答した1問だけが復習対象になる
+    const reviewButton = await screen.findByRole('button', { name: '間違えた1問を復習する' })
+    expect(screen.getByTestId('battle-review-hint').textContent).toContain('間違えた問題')
+
+    fireEvent.click(reviewButton)
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    const snapshot = useSessionStore.getState().snapshot!
+    expect(snapshot.items.map((i) => i.questionId)).toEqual(['q-1'])
+    // 解き直しは通常の学習なので mode='solo'（バトルのままにするとレート対象外になる）
+    expect(snapshot.items[0]!.mode).toBe('solo')
+  })
+
+  it('全問正解なら復習導線を出さない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const q1 = textBlankQuestion('q-1', 'A')
+    const socket = new FakeBattleSocket()
+
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q1]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'dddd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('DDDD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 30_000,
+    })
+    fireEvent.click(await screen.findByRole('button', { name: /submit$/ }))
+    socket.emitMessage({
+      type: 'result',
+      entries: [{ displayName: '太郎', totalPoints: 10 }],
+      bestGrowth: { displayName: '太郎' },
+    })
+
+    await screen.findByTestId('battle-result')
+    await waitFor(() =>
+      expect(screen.getByTestId('battle-review-note').textContent).toContain('誤答0問'),
+    )
+    expect(screen.queryByTestId('battle-review-hint')).toBeNull()
+    expect(screen.queryByRole('button', { name: /復習する/ })).toBeNull()
   })
 })
 

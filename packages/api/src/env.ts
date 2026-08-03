@@ -11,6 +11,12 @@ export interface Env {
   ALLOWED_ORIGINS: string
   /** 招待コード（wrangler secret / .dev.vars。リポジトリには実値を置かない） */
   INVITE_CODE: string
+  /**
+   * 運用操作（POST /admin/raid/generate）の認可トークン（wrangler secret / .dev.vars）。
+   * **未設定なら該当ルートは404を返す**（設定するまで攻撃面を作らない）。
+   * INVITE_CODEを流用しないのは、あれが登録済みメンバー全員の知る値だから
+   */
+  ADMIN_TOKEN?: string
   MEMBERS: KVNamespace
   RAID_BOSS: DurableObjectNamespace<RaidBossDO>
   STATS: DurableObjectNamespace<StatsDO>

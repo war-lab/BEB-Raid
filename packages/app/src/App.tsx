@@ -39,6 +39,7 @@ import { ResultScreen } from './screens/ResultScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { ShadowingScreen } from './screens/ShadowingScreen'
 import { VocabScreen } from './screens/VocabScreen'
+import { WrongAnswersScreen } from './screens/WrongAnswersScreen'
 import { useAppStore, type ScreenName } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
 
@@ -381,6 +382,16 @@ export function App() {
     )
   }
   if (screen === 'dashboard') return <DashboardScreen db={getDb()} questionPool={questionPool} />
+  if (screen === 'wrongAnswers') {
+    return (
+      <WrongAnswersScreen
+        db={getDb()}
+        questionPool={questionPool}
+        aiClient={aiClient}
+        raidApi={raidApi}
+      />
+    )
+  }
   if (screen === 'settings') {
     return (
       <SettingsScreen

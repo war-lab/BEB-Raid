@@ -11,7 +11,9 @@ export default defineConfig({
     cloudflareTest({
       wrangler: { configPath: './wrangler.toml' },
       miniflare: {
-        bindings: { INVITE_CODE: 'test-invite-code' },
+        // ADMIN_TOKEN も同じ理由でダミー値を注入する（POST /admin/raid/generate。
+        // 未設定時に404を返す挙動のテストは、テスト内で env.ADMIN_TOKEN を消して確認する）
+        bindings: { INVITE_CODE: 'test-invite-code', ADMIN_TOKEN: 'test-admin-token' },
       },
     }),
   ],
