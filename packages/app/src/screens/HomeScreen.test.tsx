@@ -26,7 +26,7 @@ import {
 import { useAppStore } from '../store/appStore'
 import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
-import { HomeScreen } from './HomeScreen'
+import { formatReadingEstimate, HomeScreen, readingQuestionEstimate } from './HomeScreen'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -1689,7 +1689,8 @@ describe('HomeScreen: Part7読解モード（T-143・J-80）', () => {
     // 問数ではなくパッセージ数で選ばせる（1パッセージが2〜4設問を要求するため）
     expect(await screen.findByText('読解（Part7）のパッセージ数を選んでください')).toBeTruthy()
     expect(screen.getByText('パッセージ数')).toBeTruthy()
-    // J-80: 着席想定なので時間目安を出す（既定2本 → シャッフル前の先頭2本ぶんの設問数）
+    // J-80: 着席想定なので時間目安を出す。実際の出題はシャッフル後のN本なので、
+    // 起こりうる設問数の範囲で出す（レビュー指摘、2026-08-03）
     expect(screen.getByText(/設問（目安/)).toBeTruthy()
 
     fireEvent.click(screen.getByText('開始'))
@@ -1771,5 +1772,49 @@ describe('HomeScreen: Part7読解モード（T-143・J-80）', () => {
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('reading'))
     expect(useSessionStore.getState().snapshot!.items).toHaveLength(1)
+  })
+})
+
+// 何を防ぐか（レビュー指摘、2026-08-03）: 目安がプール先頭N件の合計だったため、
+// 実際の出題（シャッフル後のN件）と設問数がずれていたこと。1パッセージ2〜5問のばらつきが
+// そのまま表示の誤差になっていた
+describe('readingQuestionEstimate（読解の設問数の見積り）', () => {
+  const pool = [
+    part7Question('p7-a', 2),
+    part7Question('p7-b', 5),
+    part7Question('p7-c', 3),
+    part7Question('p7-d', 4),
+  ]
+
+  it('選ぶ本数から起こりうる最小・最大の設問数を返す', () => {
+    // 2本なら最小=2+3、最大=5+4
+    expect(readingQuestionEstimate(pool, 2)).toEqual({
+      sets: 2,
+      minQuestions: 5,
+      maxQuestions: 9,
+    })
+    // 全部選ぶなら幅は無くなる
+    expect(readingQuestionEstimate(pool, 4)).toEqual({
+      sets: 4,
+      minQuestions: 14,
+      maxQuestions: 14,
+    })
+  })
+
+  it('プールが選択本数より少なければある分だけで見積る', () => {
+    expect(readingQuestionEstimate(pool.slice(0, 1), 3)).toEqual({
+      sets: 1,
+      minQuestions: 2,
+      maxQuestions: 2,
+    })
+  })
+
+  it('幅があるときだけ範囲表示にする', () => {
+    expect(formatReadingEstimate({ sets: 2, minQuestions: 5, maxQuestions: 9 })).toBe(
+      '約5〜9設問（目安5〜9分）',
+    )
+    expect(formatReadingEstimate({ sets: 1, minQuestions: 3, maxQuestions: 3 })).toBe(
+      '約3設問（目安3分）',
+    )
   })
 })

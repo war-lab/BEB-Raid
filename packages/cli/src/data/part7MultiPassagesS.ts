@@ -143,12 +143,17 @@ export const PART7_MULTI_ENTRIES_S: Part7MultiRawEntry[] = [
         translation: '5月18日のワークショップにはいつまでに登録する必要がありますか。',
       },
       {
-        question: 'How much will Ms. Raman most likely pay for the workshop she wants to attend?',
-        correctText: '$20',
-        distractors: ['$12', '$32', '$40'],
+        // レビュー指摘（2026-08-03）: 当初は「Ms. Ramanはいくら支払うか」で正答を$20（本人=非会員）
+        // としていたが、メールに「we would both like to register」とあるため、2人分の$32も
+        // 同じ根拠で成立し正答が一意でなかった。2人分の合計を問う形に変え、
+        // 会員・非会員の2料金を掲示から引く相互参照として意図を明確にする
+        question:
+          'How much will Ms. Raman most likely pay in total to register herself and her partner?',
+        correctText: '$32',
+        distractors: ['$20', '$24', '$40'],
         explanation:
-          'Ramanさんはメールで非会員だと述べており、掲示の非会員料金は20ドルである。パートナーは会員だが、支払うのは本人分。',
-        translation: 'Ramanさんが参加したいワークショップにいくら支払うと考えられますか。',
+          'Ramanさんは非会員（20ドル）、パートナーは会員（12ドル）で、2人分を登録するため合計32ドルである。24ドルは2人とも会員、40ドルは2人とも非会員とした場合の額。',
+        translation: 'Ramanさんは自分とパートナーの登録に合計いくら支払うと考えられますか。',
         crossReference: true,
       },
       {

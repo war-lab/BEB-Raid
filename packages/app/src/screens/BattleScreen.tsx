@@ -113,10 +113,64 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   /** questionOpen受信時刻（responseMs算出用） */
   const questionOpenedAtRef = useRef(0)
   /**
+   * 出題中の問題の同期参照（レビュー指摘、2026-08-03）。
+   * WebSocketのメッセージハンドラはマウント時のクロージャなので state からは読めない。
+   * 未解答の時間切れをメッセージ受信時にも確定させるために持つ
+   */
+  const currentQuestionRef = useRef<Question | null>(null)
+  /**
    * T-178: 1問の制限時間（秒）。最初の questionOpen の deadlineAt から実測して覚える。
    * クライアント側に定数を置かない（秒数はDO側が正＝22の3.2節。J-97でDOは変更対象外）
    */
   const [questionSeconds, setQuestionSeconds] = useState<number | null>(null)
+
+  /**
+   * 未解答のまま締切を迎えた問題を時間切れとして記録する（T-178。docs/27 のS-36後半）。
+   *
+   * 呼び出し元は3系統ある——ローカルタイマー（deadlineAt到達）、次の `questionOpen` 受信、
+   * `standings`／`result` 受信。**どれが先に来ても1回だけ記録する**ことが要点で、
+   * `answeredThisQuestion` で冪等にしている。
+   *
+   * タイマー単独では足りない（レビュー指摘、2026-08-03）。サーバーの締切判定が
+   * ローカルタイマーより先に届くと phase が 'standings' に変わり、カウントダウンeffectの
+   * cleanupがタイマーを解除するため、未解答の記録が消えていた。
+   *
+   * 参照はすべてrefにする（WebSocketのメッセージハンドラはマウント時のクロージャで、
+   * stateからは現在の問題を読めない）
+   */
+  function finalizeUnansweredQuestion(): void {
+    const question = currentQuestionRef.current
+    if (question === null || answeredThisQuestion.current) return
+    answeredThisQuestion.current = true
+    const entry: AnsweredRecord = {
+      questionId: question.id,
+      question,
+      isCorrect: false,
+      responseMs: questionOpenedAtRef.current > 0 ? now() - questionOpenedAtRef.current : 0,
+      isTimeout: true,
+    }
+    answerRecords.current.push(entry)
+    persistAnswer(entry)
+  }
+
+  function persistAnswer(record: AnsweredRecord): void {
+    persistChain.current = persistChain.current.then(async () => {
+      try {
+        await recordAnswerPipeline(db, {
+          questionId: record.questionId,
+          question: record.question,
+          lookup: questionLookup.current,
+          isCorrect: record.isCorrect,
+          responseMs: record.responseMs,
+          isTimeout: record.isTimeout,
+          mode: 'battle',
+          skip: { rating: true },
+        })
+      } catch (e) {
+        console.warn('[BattleScreen] バトル解答のattempts記録に失敗', e)
+      }
+    })
+  }
 
   useEffect(() => {
     battleSocket.onMessage((message: BattleServerMessage) => {
@@ -126,6 +180,10 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         return
       }
       if (message.type === 'questionOpen') {
+        // 前問が未解答のまま次の出題へ進んだ場合はここで時間切れを確定する
+        // （レビュー指摘、2026-08-03。ローカルタイマーより先にサーバーのメッセージが
+        // 届くと、phase遷移でタイマーが解除されて記録が消えていた）
+        finalizeUnansweredQuestion()
         answeredThisQuestion.current = false
         questionOpenedAtRef.current = now()
         setSelectedKey(null)
@@ -134,17 +192,22 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
         setDeadlineAt(message.deadlineAt)
         setQuestionSeconds((prev) => prev ?? Math.round((message.deadlineAt - now()) / 1000))
         const question = questionLookup.current.get(message.questionId) ?? null
+        currentQuestionRef.current = question
         setCurrentQuestion(question)
         setPackMissing(question === null)
         setPhase('question')
         return
       }
       if (message.type === 'standings') {
+        // 締切をサーバーが先に判定した場合の受け皿（上と同じ理由）
+        finalizeUnansweredQuestion()
         setStandings(message.entries)
         setPhase('standings')
         return
       }
       if (message.type === 'result') {
+        // standingsを挟まずに終了した回でも取りこぼさない
+        finalizeUnansweredQuestion()
         setResultEntries(message.entries)
         setBestGrowthName(message.bestGrowth.displayName)
         setPhase('result')
@@ -159,6 +222,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
       setCloseReason(event.reason)
       setPhase((p) => (p === 'result' ? p : 'closed'))
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- finalizeUnansweredQuestionは関数宣言（hoisted）でrefのみ参照する。ハンドラの登録はマウント時1回に限る
   }, [battleSocket])
 
   // 出題中のカウントダウン表示（deadlineAt基準。DO側タイマーが正=22の3.2節）
@@ -183,28 +247,14 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     // 表示用の remainingSec は見ない——初期値0のまま同じコミットでこのeffectが走るため、
     // 出題直後に「締切」と誤判定して解答前に時間切れを記録してしまう（実装時に踏んだ）。
     // deadlineAt から残り時間を直接計算し、その時刻に1回だけ発火させる
-    const question = currentQuestion
-    const record = () => {
-      if (answeredThisQuestion.current) return
-      answeredThisQuestion.current = true
-      const entry: AnsweredRecord = {
-        questionId: question.id,
-        question,
-        isCorrect: false,
-        responseMs: questionOpenedAtRef.current > 0 ? now() - questionOpenedAtRef.current : 0,
-        isTimeout: true,
-      }
-      answerRecords.current.push(entry)
-      persistAnswer(entry)
-    }
     const msLeft = deadlineAt - now()
     if (msLeft <= 0) {
-      record()
+      finalizeUnansweredQuestion()
       return
     }
-    const id = window.setTimeout(record, msLeft)
+    const id = window.setTimeout(finalizeUnansweredQuestion, msLeft)
     return () => window.clearTimeout(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- persistAnswerは関数宣言（hoisted）
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- finalizeUnansweredQuestionは関数宣言（hoisted）でrefのみ参照する
   }, [phase, deadlineAt, currentQuestion])
 
   // 画面を離れるときは必ずWebSocketを閉じる（battleSocketはApp.tsxのモジュール単位
@@ -262,25 +312,6 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
    * レート更新は行わない=skip.rating）。解答した時点で記録するため、以降にホスト切断・
    * 通信断でclosedへ落ちても解答ログは端末に残る
    */
-  function persistAnswer(record: AnsweredRecord): void {
-    persistChain.current = persistChain.current.then(async () => {
-      try {
-        await recordAnswerPipeline(db, {
-          questionId: record.questionId,
-          question: record.question,
-          lookup: questionLookup.current,
-          isCorrect: record.isCorrect,
-          responseMs: record.responseMs,
-          isTimeout: record.isTimeout,
-          mode: 'battle',
-          skip: { rating: true },
-        })
-      } catch (e) {
-        console.warn('[BattleScreen] バトル解答のattempts記録に失敗', e)
-      }
-    })
-  }
-
   function handleAnswer(choiceKey: string) {
     if (
       phase !== 'question' ||

@@ -46,6 +46,21 @@ interface DiagnosticProgress {
   ratingR: number
   askedL: string[]
   askedR: string[]
+  /**
+   * T-174の振り返り一覧の元データ（レビュー指摘、2026-08-03）。
+   * 持たないと中断復帰後の完了画面が再開後の分だけになる（15問で中断すれば15件しか出ない）。
+   * Question実体は保存せず、questionIdだけを持って復元時にプールから引き直す
+   * （settingsを問題文で膨らませない）。省略可なのは旧形式の途中経過との互換のため
+   */
+  answerLog?: DiagnosticAnswerLogRecord[]
+}
+
+/** 途中経過に保存する振り返り1件（Question実体は持たない。上のanswerLog参照） */
+interface DiagnosticAnswerLogRecord {
+  section: 'L' | 'R'
+  questionId: string
+  selectedKey: string
+  isCorrect: boolean
 }
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため別関数越しに呼ぶ
@@ -59,6 +74,41 @@ interface DiagnosticAnswerLog {
   question: Question
   selectedKey: string
   isCorrect: boolean
+}
+
+/** 振り返りを途中経過へ保存する形へ落とす */
+function toAnswerLogRecords(log: readonly DiagnosticAnswerLog[]): DiagnosticAnswerLogRecord[] {
+  return log.map((entry) => ({
+    section: entry.section,
+    questionId: entry.question.id,
+    selectedKey: entry.selectedKey,
+    isCorrect: entry.isCorrect,
+  }))
+}
+
+/**
+ * 途中経過の振り返りをQuestion実体つきへ復元する。
+ * プールに無いquestionId（配信パックが入れ替わった等）は一覧から落とす——
+ * 問題文・正解を出せないため行として成立しない
+ */
+export function restoreAnswerLog(
+  records: readonly DiagnosticAnswerLogRecord[] | undefined,
+  questionPool: readonly Question[],
+): DiagnosticAnswerLog[] {
+  if (!records) return []
+  const byId = new Map(questionPool.map((q) => [q.id, q]))
+  const restored: DiagnosticAnswerLog[] = []
+  for (const record of records) {
+    const question = byId.get(record.questionId)
+    if (!question) continue
+    restored.push({
+      section: record.section,
+      question,
+      selectedKey: record.selectedKey,
+      isCorrect: record.isCorrect,
+    })
+  }
+  return restored
 }
 
 export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
@@ -162,6 +212,9 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     setRatingR(savedProgress.ratingR)
     setAskedL(new Set(savedProgress.askedL))
     setAskedR(new Set(savedProgress.askedR))
+    // 振り返り一覧も復元する（レビュー指摘、2026-08-03。復元しないと完了画面が
+    // 再開後の分だけになる）
+    setAnswerLog(restoreAnswerLog(savedProgress.answerLog, questionPool))
     setTurn(savedProgress.turn)
     setStartedAt(now())
     setPlayState('idle')
@@ -428,11 +481,6 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   async function submitAnswer(choiceKey: string) {
     const isCorrect = choiceKey === question!.answer
     const responseMs = now() - startedAt
-    // T-174: 振り返り用に保持する（画面には出さない。完了画面でまとめて開示する）
-    setAnswerLog((prev) => [
-      ...prev,
-      { section, question: question!, selectedKey: choiceKey, isCorrect },
-    ])
 
     await recordAttempt(db, {
       questionId: question!.id,
@@ -440,6 +488,15 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       isCorrect,
       responseMs,
     })
+
+    // T-174: 振り返り用に保持する（画面には出さない。完了画面でまとめて開示する）。
+    // 追加は attempt の保存が成功した**後**に行う（レビュー指摘、2026-08-03）。
+    // 先に足すと、保存が失敗して同じ問題を解答し直したときに一覧だけが重複する
+    const nextAnswerLog = [
+      ...answerLog,
+      { section, question: question!, selectedKey: choiceKey, isCorrect },
+    ]
+    setAnswerLog(nextAnswerLog)
 
     const newRating = updateDiagnosticRating(rating, question!.difficulty, isCorrect)
     const nextAsked = new Set(asked)
@@ -483,6 +540,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
         ratingR: finalReading,
         askedL: [...(section === 'L' ? nextAsked : askedL)],
         askedR: [...(section === 'R' ? nextAsked : askedR)],
+        answerLog: toAnswerLogRecords(nextAnswerLog),
       } satisfies DiagnosticProgress,
     })
   }

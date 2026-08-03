@@ -34,7 +34,7 @@ import { reviewSrsCard } from '../engine/srs'
 import { updateTagStatsForAnswer } from '../engine/tagStats'
 import type { QuestionLookup, RatingUpdate, SrsGrade } from '../engine/types'
 import { recordAttempt } from './attempts'
-import { answerCurrentQuestion, type SessionSnapshot } from './session'
+import { answerCurrentQuestion, answerCurrentSubQuestion, type SessionSnapshot } from './session'
 import { RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 export interface AnswerPipelineSkip {
@@ -49,8 +49,19 @@ export interface AnswerPipelineSkip {
 }
 
 export interface AnswerPipelineInput {
-  /** セッション進行中の解答。無ければ recordAttempt で直接記録する（audio_setサブ設問・VocabScreen） */
+  /** セッション進行中の解答。無ければ recordAttempt で直接記録する（VocabScreen・単独記録） */
   snapshot?: SessionSnapshot
+  /**
+   * 複合問題（読解 text_passage・リスニング audio_set）のサブ設問1問であることの指定
+   * （レビュー指摘、2026-08-03）。`snapshot` と併用すると、itemは進めずに
+   * attemptId とサブ設問の解答済み位置だけをスナップショットへ追加する
+   * （`answerCurrentSubQuestion`）。指定しないと従来どおりitemを1問進めてしまう。
+   * `snapshot` を伴わない場合は無視される
+   */
+  subQuestion?: {
+    /** 選んだ選択肢のキー（再開時の表示復元用）。キーを持たない解答形式では省略 */
+    selectedKey?: string | null
+  }
   /** attempts記録・tagStats集計のキーとなるID（audio_setサブ設問はsubQuestion.id） */
   questionId: string
   /**
@@ -183,6 +194,7 @@ export async function recordAnswerPipeline(
 ): Promise<AnswerPipelineResult> {
   const {
     snapshot,
+    subQuestion,
     questionId,
     question,
     lookup,
@@ -209,7 +221,18 @@ export async function recordAnswerPipeline(
     'rw',
     [db.attempts, db.settings, db.srsCards, db.tagStats, db.ratings, db.ratingHistory],
     async () => {
-      if (snapshot) {
+      if (snapshot && subQuestion) {
+        // 複合問題のサブ設問: itemは進めず、attemptIdと解答済み位置だけを追加する
+        nextSnapshot = await answerCurrentSubQuestion(db, snapshot, {
+          questionId,
+          selectedKey: subQuestion.selectedKey,
+          isCorrect,
+          responseMs,
+          isTimeout,
+        })
+        attemptId = nextSnapshot.attemptIds.at(-1)!
+        answeredAt = nextSnapshot.updatedAt
+      } else if (snapshot) {
         nextSnapshot = await answerCurrentQuestion(db, snapshot, {
           isCorrect,
           responseMs,

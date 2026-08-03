@@ -30,6 +30,23 @@ export interface SessionItem {
   reason?: QuickPackReason
 }
 
+/**
+ * 複合問題（読解 text_passage・リスニング audio_set）で解答済みのサブ設問1問
+ * （レビュー指摘、2026-08-03）。
+ *
+ * これらのitemは1itemでサブ設問を複数要求し、全問終わってから親itemを進める。
+ * サブ設問単位の解答済み位置をスナップショットに持たないと、途中で中断した場合に
+ * 再開後へ解答済みのサブ設問が再出題され、attempt・レート・タグ統計が重複する。
+ * 表示の復元（選んだ選択肢と正誤）にも使うため、選択キーも保持する
+ */
+export interface SessionSubAnswer {
+  /** サブ設問のID（attempts の questionId と同じ） */
+  subQuestionId: string
+  /** 選んだ選択肢のキー。ディクテーション等キーを持たない解答は null */
+  selectedKey: string | null
+  isCorrect: boolean
+}
+
 /** 進行中セッションのスナップショット（1問解答するたびに更新される） */
 export interface SessionSnapshot {
   sessionId: string
@@ -39,8 +56,19 @@ export interface SessionSnapshot {
   answeredCount: number
   /** 解答済み分の attempt ID（リザルト画面の集計入力） */
   attemptIds: string[]
+  /**
+   * **現在のitem**（`items[answeredCount]`）で解答済みのサブ設問。
+   * itemを進めた時点（answerCurrentQuestion・advanceSession）で空になる。
+   * サブ設問を持たないitemでは常に空
+   */
+  subAnswers?: SessionSubAnswer[]
   startedAt: number
   updatedAt: number
+}
+
+/** 現在itemの解答済みサブ設問（未定義の旧スナップショットも空配列として扱う） */
+export function currentSubAnswers(snapshot: SessionSnapshot): readonly SessionSubAnswer[] {
+  return snapshot.subAnswers ?? []
 }
 
 /** 次に出題する item。全問解答済みなら null */
@@ -86,6 +114,7 @@ export async function startSession(
     items: input.items,
     answeredCount: 0,
     attemptIds: [],
+    subAnswers: [],
     startedAt: now,
     updatedAt: now,
   }
@@ -130,6 +159,8 @@ export async function answerCurrentQuestion(
     ...snapshot,
     answeredCount: snapshot.answeredCount + 1,
     attemptIds: [...snapshot.attemptIds, attempt.id],
+    // itemを進めるのでサブ設問の解答済み記録は次itemのために空へ戻す
+    subAnswers: [],
     updatedAt: attempt.answeredAt,
   }
   await db.transaction('rw', db.attempts, db.settings, async () => {
@@ -148,6 +179,69 @@ export async function answerCurrentQuestion(
 }
 
 /**
+ * 現在のitemの解答をサブ設問1問分だけ記録する（複合問題。レビュー指摘、2026-08-03）。
+ *
+ * `answerCurrentQuestion` との違いは**itemを進めない**ことである。読解・audio_set は
+ * 1itemでサブ設問全問を要求するため、item を進めるのは全問終わってから
+ * （`advanceSession`）になる。それまでの間、
+ *
+ * - attempt の追記
+ * - `attemptIds` への追加（リザルトの集計入力。これが無いと「正解 0/0」になる）
+ * - `subAnswers` への追加（再開時に再出題しないための位置記録）
+ *
+ * を同一トランザクションで行う。従来はサブ設問を `recordAttempt` で直接保存しており、
+ * スナップショットに何も残らなかったため、中断すると再開後に再出題されて重複が生まれ、
+ * 完走してもリザルトの集計対象から漏れていた。
+ *
+ * 同じサブ設問が既に記録済みなら `StaleSnapshotError` で拒否する（二度押し・複数タブ）。
+ * 保存が失敗した場合は何も書かれないので、同じ入力での再試行はそのまま通る。
+ */
+export async function answerCurrentSubQuestion(
+  db: BebRaidDatabase,
+  snapshot: SessionSnapshot,
+  input: Omit<RecordAttemptInput, 'mode'> & { selectedKey?: string | null },
+): Promise<SessionSnapshot> {
+  const item = currentItem(snapshot)
+  if (item === null) {
+    throw new Error('全問解答済みのセッションには解答できない')
+  }
+  const attempt = buildAttempt({ ...input, mode: item.mode })
+  let next: SessionSnapshot | null = null
+  await db.transaction('rw', db.attempts, db.settings, async () => {
+    const stored = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as SessionSnapshot | undefined
+    if (
+      stored === undefined ||
+      stored.sessionId !== snapshot.sessionId ||
+      stored.answeredCount !== snapshot.answeredCount
+    ) {
+      throw new StaleSnapshotError()
+    }
+    const storedSubAnswers = currentSubAnswers(stored)
+    if (storedSubAnswers.some((a) => a.subQuestionId === input.questionId)) {
+      throw new StaleSnapshotError()
+    }
+    // 追加元は**DB上の値**にする。画面が持つスナップショットのサブ設問一覧が
+    // 一手古い場合でも、記録済みの解答を取りこぼさない
+    next = {
+      ...stored,
+      attemptIds: [...stored.attemptIds, attempt.id],
+      subAnswers: [
+        ...storedSubAnswers,
+        {
+          subQuestionId: input.questionId,
+          selectedKey: input.selectedKey ?? null,
+          isCorrect: attempt.isCorrect,
+        },
+      ],
+      updatedAt: attempt.answeredAt,
+    }
+    await db.attempts.add(attempt)
+    await db.settings.put({ key: ACTIVE_SESSION_KEY, value: next })
+  })
+  return next!
+}
+
+/**
  * 現在のitemを解答不要で次へ進める（M2・T-49: audio_setのセット全問終了後に使う）。
  * サブ設問ごとのattemptsは呼び出し側が個別に記録済みのため、ここではattemptsに
  * 書かず（重複記録を避ける）スナップショットの answeredCount だけ進める
@@ -163,6 +257,8 @@ export async function advanceSession(
   const next: SessionSnapshot = {
     ...snapshot,
     answeredCount: snapshot.answeredCount + 1,
+    // itemを進めるのでサブ設問の解答済み記録は次itemのために空へ戻す
+    subAnswers: [],
     updatedAt: Date.now(),
   }
   await db.transaction('rw', db.settings, async () => {

@@ -328,6 +328,11 @@ describe('DiagnosticScreen: 途中保存・離脱確認（T-113）', () => {
     expect(screen.getByText('診断完了')).toBeTruthy()
     // 中断前2問＋再開後28問=30問。再開ボタンで振り出しに戻っていない
     expect(await db.attempts.count()).toBe(30)
+    // 何を防ぐか（レビュー指摘、2026-08-03）: 振り返り一覧が再開後の分だけになること。
+    // 中断前の2問を含めて30問そろっている必要がある
+    expect(screen.getByText(/解答の振り返り（正解 \d+\/30）/)).toBeTruthy()
+    const list = screen.getByTestId('diagnostic-review-list')
+    expect(list.querySelectorAll('.result-list__item').length).toBe(30)
   }, 20000)
 
   it('完了時に途中経過（settingsの一時キー）が消える', async () => {

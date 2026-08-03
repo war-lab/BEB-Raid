@@ -24,13 +24,14 @@
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
 // 「通常セッションからreading画面への遷移方式」の設計判断はここで確定した
 import { useEffect, useMemo, useState } from 'react'
+import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import { answerSlotsBefore, totalAnswerSlots } from '../engine/answerSlots'
 import { shuffle } from '../engine/shuffle'
 import type { AiClient, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
-import { advanceSession } from '../services/session'
+import { advanceSession, currentSubAnswers, type SessionSnapshot } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -77,6 +78,35 @@ function now(): number {
   return Date.now()
 }
 
+/**
+ * 中断復帰時に、解答済みサブ設問の正誤表示を復元する（レビュー指摘、2026-08-03）。
+ * スナップショットは現在itemのサブ設問の解答をIDで持つので、表示に使うインデックスへ写す。
+ * 復元しないと解答済みのサブ設問が未解答として再出題され、attempt・レート・タグ統計が重複する
+ */
+export function restoreSubAnswers(
+  snapshot: SessionSnapshot | null,
+  questions: ReadonlyMap<string, Question>,
+): Map<number, PassageAnswer> {
+  const restored = new Map<number, PassageAnswer>()
+  if (!snapshot) return restored
+  const item = snapshot.items[snapshot.answeredCount]
+  const subQuestions = (item && questions.get(item.questionId)?.subQuestions) ?? []
+  for (const record of currentSubAnswers(snapshot)) {
+    const index = subQuestions.findIndex((sub) => sub.id === record.subQuestionId)
+    if (index < 0) continue
+    restored.set(index, { selectedKey: record.selectedKey ?? '', isCorrect: record.isCorrect })
+  }
+  return restored
+}
+
+/** 未解答のうち先頭のサブ設問インデックス（全問解答済みなら0） */
+function firstUnansweredIndex(answered: ReadonlyMap<number, PassageAnswer>, count: number): number {
+  for (let i = 0; i < count; i++) {
+    if (!answered.has(i)) return i
+  }
+  return 0
+}
+
 export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const snapshot = useSessionStore((s) => s.snapshot)
   const questions = useSessionStore((s) => s.questions)
@@ -85,15 +115,24 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
 
   // 表示中の item インデックス（DrillScreenと同じ理由でsnapshot.answeredCountと独立に持つ）
   const [displayIndex, setDisplayIndex] = useState(() => snapshot?.answeredCount ?? 0)
-  // サブ設問インデックス（0始まり）→ 解答済みの結果。Part6は非線形にタップされうるためMapで持つ
-  const [answers, setAnswers] = useState<Map<number, PassageAnswer>>(new Map())
+  // サブ設問インデックス（0始まり）→ 解答済みの結果。Part6は非線形にタップされうるためMapで持つ。
+  // 初期値は中断復帰分（スナップショットのsubAnswers）から復元する
+  const [answers, setAnswers] = useState<Map<number, PassageAnswer>>(() =>
+    restoreSubAnswers(snapshot, questions),
+  )
   // M4・T-129: サブ設問インデックス→レイドダメージ結果（該当時のみ設定。ExplanationCardの
   // 堅い/弱点バッジ・実ダメージ表示に使う。answersと同じライフサイクルでitem切替時にクリアする）
   const [ghostDefenseByIndex, setGhostDefenseByIndex] = useState<Map<number, RaidDamageResult>>(
     new Map(),
   )
-  // 現在選択肢を表示しているサブ設問（空所タップ・「次へ」で切り替わる）
-  const [activeIndex, setActiveIndex] = useState(0)
+  // 現在選択肢を表示しているサブ設問（空所タップ・「次へ」で切り替わる）。
+  // 中断復帰時は解答済みの設問ではなく未解答の先頭から始める
+  const [activeIndex, setActiveIndex] = useState(() => {
+    const restored = restoreSubAnswers(snapshot, questions)
+    const item = snapshot?.items[snapshot.answeredCount]
+    const count = (item && questions.get(item.questionId)?.subQuestions?.length) ?? 0
+    return firstUnansweredIndex(restored, count)
+  })
   const [startedAt, setStartedAt] = useState(() => now())
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
@@ -228,8 +267,15 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       // track で包む間は saveGuard.blocked が true になり、「次へ」「ここで終了」を出さない
       // （レビュー指摘、2026-08-03。正誤表示は保存より先に出るため、包まないと未保存のまま
       // 最終サブ設問からリザルトへ進める）
-      const { ratingUpdate, raidDamage } = await saveGuard.track(() =>
+      const { nextSnapshot, ratingUpdate, raidDamage } = await saveGuard.track(() =>
         recordAnswerPipeline(db, {
+          // snapshot＋subQuestion でサブ設問として記録する（レビュー指摘、2026-08-03）。
+          // itemは進めず、attemptIdと解答済み位置だけをスナップショットへ追加する。
+          // 従来は snapshot を渡さず recordAttempt で直接保存していたため、中断すると
+          // 解答済みのサブ設問が再開後に再出題され、完走してもリザルトの集計
+          // （snapshot.attemptIds 基準）から漏れていた
+          snapshot,
+          subQuestion: { selectedKey: choiceKey },
           questionId: sub.id,
           question,
           lookup: subQuestionLookup,
@@ -242,7 +288,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       if (raidDamage) {
         setGhostDefenseByIndex((prev) => new Map(prev).set(index, raidDamage))
       }
-      recordAnswer(snapshot, {
+      recordAnswer(nextSnapshot!, {
         questionId: sub.id,
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,

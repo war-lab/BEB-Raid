@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
-import { advanceSession, startSession, type SessionItem } from '../services/session'
+import { advanceSession, resumeSession, startSession, type SessionItem } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { readingPaceLabel, ReadingScreen } from './ReadingScreen'
@@ -361,6 +361,65 @@ describe('ReadingScreen: 中断復帰（T-104）', () => {
 
     expect(screen.getByTestId('passage-text').textContent).toBe('2問目のパッセージ本文。')
     expect(screen.getByTestId('reading-question').textContent).toContain('設問1/2')
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: パッセージの途中（サブ設問単位）で中断すると、
+  // 解答済みのサブ設問が再開後に再出題され、attempt・レート・タグ統計が重複すること
+  it('パッセージ途中で中断しても解答済みサブ設問は再出題されない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-resume-sub', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // 1回目: 3問中2問だけ解答して離脱する
+    const first = render(<ReadingScreen db={db} />)
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('a'))
+      fireEvent.click(await screen.findByText('次へ'))
+    }
+    await waitFor(async () => expect(await db.attempts.count()).toBe(2))
+    first.unmount()
+
+    // 2回目: DBのスナップショットから復元して再開する（アプリ再起動の模擬）
+    const resumed = await resumeSession(db)
+    expect(resumed).not.toBeNull()
+    expect(resumed!.answeredCount).toBe(0) // 親itemはまだ進んでいない
+    expect(resumed!.attemptIds).toHaveLength(2) // リザルトの集計対象に入っている
+    useSessionStore.getState().begin(resumed!, [q], { L: 400, R: 400 })
+
+    render(<ReadingScreen db={db} />)
+
+    // 未解答の3問目から始まり、進捗も解答済み分を織り込んでいる
+    expect(screen.getByTestId('reading-question').textContent).toContain('設問3/3')
+    expect(screen.getByLabelText('進捗 3/3')).toBeTruthy()
+
+    // 残り1問を解答すると合計3件。再出題による重複が無い
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(3))
+    const attempts = await db.attempts.toArray()
+    expect(attempts.map((a) => a.questionId).sort()).toEqual([
+      'p7-resume-sub-q0',
+      'p7-resume-sub-q1',
+      'p7-resume-sub-q2',
+    ])
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: サブ設問のattemptがsnapshot.attemptIdsに入らず、
+  // リザクトの全体集計（T-109。attemptIds基準）が「正解 0/0」になること
+  it('サブ設問のattemptがスナップショットのattemptIdsに積まれる', async () => {
+    const db = newDb()
+    const q = part7Question('p7-tally', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('次へ'))
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(2))
+
+    const attemptIds = useSessionStore.getState().snapshot?.attemptIds ?? []
+    expect(attemptIds).toHaveLength(2)
+    const rows = await db.attempts.bulkGet(attemptIds)
+    expect(rows.every((r) => r !== undefined)).toBe(true)
   })
 })
 

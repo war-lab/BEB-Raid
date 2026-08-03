@@ -685,6 +685,52 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     expect((await db.attempts.toArray())[0]!.isTimeout).toBe(false)
   })
 
+  // 何を防ぐか（レビュー指摘、2026-08-03）: サーバーの締切判定（standings）が
+  // ローカルタイマーより先に届くと、phase遷移でカウントダウンeffectのcleanupがタイマーを
+  // 解除し、未解答の時間切れが記録されないまま消えること
+  it('standingsが先に届いても未解答の時間切れを記録する', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const q = textBlankQuestion('q-standings-first')
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+
+    // 締切はまだ先（ローカルタイマーは発火していない）
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: q.id,
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByRole('button', { name: /submit$/ })
+    expect(await db.attempts.count()).toBe(0)
+
+    // サーバーが先に締切を判定して順位を送ってきた
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: '太郎', totalPoints: 0 }],
+    })
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isTimeout).toBe(true)
+    expect(attempt.questionId).toBe(q.id)
+
+    // 続く result 受信でも二重記録しない
+    socket.emitMessage({
+      type: 'result',
+      entries: [{ displayName: '太郎', totalPoints: 0 }],
+      bestGrowth: { displayName: '太郎' },
+    })
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect(await db.attempts.count()).toBe(1)
+  })
+
   it('ロビーで1問あたりの制限時間を告知する（秒数はサーバーの deadlineAt から算出）', async () => {
     const db = newDb()
     await seedProfile(db)

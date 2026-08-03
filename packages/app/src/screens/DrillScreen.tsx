@@ -29,6 +29,7 @@ import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerP
 import { getOrInitPhaseState } from '../services/phase'
 import {
   advanceSession,
+  currentSubAnswers,
   resumeSession,
   StaleSnapshotError,
   type SessionItem,
@@ -245,8 +246,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   const [blankFillsByIndex, setBlankFillsByIndex] = useState<Map<number, number>>(new Map())
   const [dictationRate, setDictationRate] = useState<0.85 | 1>(1)
   // audio_set 専用（M2・T-49）: セット内で今どの設問か・各設問の正誤（セット正解判定に使う）
-  const [subQuestionIndex, setSubQuestionIndex] = useState(0)
-  const [subQuestionResults, setSubQuestionResults] = useState<boolean[]>([])
+  // 中断復帰時は解答済みサブ設問の分だけ進めた状態から始める（レビュー指摘、2026-08-03）。
+  // 復元しないと解答済みの設問が再出題され、attempt・レート・タグ統計が重複する。
+  // audio_setは線形進行なので、件数と正誤列の復元で足りる
+  const [subQuestionIndex, setSubQuestionIndex] = useState(() =>
+    snapshot ? currentSubAnswers(snapshot).length : 0,
+  )
+  const [subQuestionResults, setSubQuestionResults] = useState<boolean[]>(() =>
+    snapshot ? currentSubAnswers(snapshot).map((a) => a.isCorrect) : [],
+  )
   // T-70: 音声再生失敗時のリカバリ用エラーメッセージ（14の1.4）
   const [audioError, setAudioError] = useState<string | null>(null)
   // T-71/T-76: 解答保存（recordAnswerPipeline）失敗時のリカバリ用エラーメッセージ（J-35）
@@ -803,8 +811,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       // snapshotなしのrecordAttempt経路（サブ設問ごとにitemを進めない。SRSレビューは
       // セット完了時に1回だけ=advanceSubQuestionが行うためskip.srs）。
       // mode='battle'はレート更新の対象外（finalizeAnswerと同じ理由）
-      const { ratingUpdate, raidDamage } = await saveGuard.track(() =>
+      const { nextSnapshot, ratingUpdate, raidDamage } = await saveGuard.track(() =>
         recordAnswerPipeline(db, {
+          // snapshot＋subQuestion でサブ設問として記録する（レビュー指摘、2026-08-03）。
+          // itemは進めず、attemptIdと解答済み位置だけをスナップショットへ追加する
+          // （従来は snapshot を渡さなかったため、中断時の再出題とリザルト集計漏れが起きた）
+          snapshot,
+          subQuestion: { selectedKey: choiceKey },
           questionId: currentSubQuestion.id,
           question,
           lookup: subQuestionLookup,
@@ -816,7 +829,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
       )
       if (raidDamage) setResult((r) => (r ? { ...r, raidDamage } : r))
       setSubQuestionResults((prev) => [...prev, isCorrect])
-      recordAnswer(snapshot, {
+      recordAnswer(nextSnapshot!, {
         questionId: currentSubQuestion.id,
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,

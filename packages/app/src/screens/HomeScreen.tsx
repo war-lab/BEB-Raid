@@ -133,6 +133,43 @@ export function toSessionItems(items: QuickPackItem[]): SessionItem[] {
   })
 }
 
+/** 読解（Part7）単独モードの設問数の見積り（下限・上限。理由は readingQuestionEstimate 参照） */
+export interface ReadingEstimate {
+  sets: number
+  minQuestions: number
+  maxQuestions: number
+}
+
+/**
+ * 選ぶパッセージ数から設問数の**範囲**を求める（T-143・J-80）。
+ *
+ * 実際の出題はプールをシャッフルして先頭N件を取るため、どのパッセージが当たるかは
+ * 開始するまで決まらない。1パッセージの設問数は2〜5問とばらつくので、
+ * 「プール先頭N件の合計」を目安として出すと表示と実数がずれる（レビュー指摘、2026-08-03）。
+ *
+ * 選択を先に確定して共有する案もあるが、開始のたびに引き直す（＝プール後半にも到達する）
+ * という現在の設計を崩すため採らない。代わりに、起こりうる最小・最大を出す
+ */
+export function readingQuestionEstimate(pool: readonly Question[], count: number): ReadingEstimate {
+  const sets = Math.min(count, pool.length)
+  const counts = pool.map((q) => q.subQuestions?.length ?? 1).sort((a, b) => a - b)
+  const sum = (values: number[]) => values.reduce((total, n) => total + n, 0)
+  return {
+    sets,
+    minQuestions: sum(counts.slice(0, sets)),
+    maxQuestions: sum(counts.slice(counts.length - sets)),
+  }
+}
+
+/** 見積りの表示文（幅が無ければ単一の数値で出す。読解の目安は1設問1分＝24の3.5節） */
+export function formatReadingEstimate(estimate: ReadingEstimate): string {
+  const { minQuestions, maxQuestions } = estimate
+  if (minQuestions === maxQuestions) {
+    return `約${minQuestions}設問（目安${minQuestions}分）`
+  }
+  return `約${minQuestions}〜${maxQuestions}設問（目安${minQuestions}〜${maxQuestions}分）`
+}
+
 export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
@@ -360,11 +397,8 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   }
 
   /** 選択中のパッセージ数に含まれる設問数の目安（J-80の「時間目安を提示」用） */
-  function readingEstimate(count: number): { sets: number; questions: number } {
-    const pool = readingPool()
-    const sets = Math.min(count, pool.length)
-    const questions = pool.slice(0, sets).reduce((sum, q) => sum + (q.subQuestions?.length ?? 1), 0)
-    return { sets, questions }
+  function readingEstimate(count: number): ReadingEstimate {
+    return readingQuestionEstimate(readingPool(), count)
   }
 
   /**
@@ -702,8 +736,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 </div>
                 {/* J-80: 着席・自宅想定なので時間目安を示す。読解の目安は1設問1分（24の3.5節） */}
                 <p className="home-reading-estimate">
-                  約{readingEstimate(readingSetCount).questions}設問（目安
-                  {readingEstimate(readingSetCount).questions}分）
+                  {formatReadingEstimate(readingEstimate(readingSetCount))}
                 </p>
                 <button
                   type="button"

@@ -18,6 +18,7 @@ import type { AudioPlayer, PlaybackOutcome } from '../platform'
 import {
   advanceSession,
   answerCurrentQuestion,
+  resumeSession,
   startSession,
   type SessionItem,
 } from '../services/session'
@@ -1629,6 +1630,47 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     expect(attempts).toHaveLength(3)
     expect(attempts.map((a) => a.questionId).sort()).toEqual(['set-1-q0', 'set-1-q1', 'set-1-q2'])
     expect(attempts.every((a) => a.isCorrect)).toBe(true)
+  })
+
+  // 何を防ぐか（レビュー指摘、2026-08-03）: セットの途中で中断すると解答済みのサブ設問が
+  // 再開後に再出題され、attempt・レート・タグ統計が重複すること。あわせてサブ設問の
+  // attemptがsnapshot.attemptIdsに積まれ、リザルトの全体集計（T-109）に入ること
+  it('セット途中で中断しても解答済みサブ設問は再出題されず、attemptIdsに積まれる', async () => {
+    const db = newDb()
+    const q = audioSetQuestion('set-resume')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // 1回目: 3問中2問だけ解答して離脱する
+    const first = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    await startAndSkipPreReading()
+    await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('a'))
+      await waitFor(() => expect(screen.getByText(`設問${i}の解説`)).toBeTruthy())
+      fireEvent.click(await screen.findByText('次の設問へ'))
+    }
+    await waitFor(async () => expect(await db.attempts.count()).toBe(2))
+    first.unmount()
+
+    // 2回目: DBのスナップショットから復元して再開する（アプリ再起動の模擬）
+    const resumed = await resumeSession(db)
+    expect(resumed!.answeredCount).toBe(0) // 親itemはまだ進んでいない
+    expect(resumed!.attemptIds).toHaveLength(2)
+    useSessionStore.getState().begin(resumed!, [q], { L: 400, R: 400 })
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    await startAndSkipPreReading()
+
+    // 未解答の3問目から始まる（設問0・1へ戻らない）
+    await waitFor(() => expect(screen.getByText('設問2')).toBeTruthy())
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(3))
+    const attempts = await db.attempts.toArray()
+    expect(attempts.map((a) => a.questionId).sort()).toEqual([
+      'set-resume-q0',
+      'set-resume-q1',
+      'set-resume-q2',
+    ])
   })
 
   it('2/3問正解（セット正解）でも1/3問正解（セット不正解）でも解説・進行は壊れない', async () => {
