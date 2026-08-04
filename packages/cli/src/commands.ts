@@ -20,9 +20,8 @@ import {
   applyCorrections,
   buildAllPacks,
   buildManifest,
-  PACK_DEFINITIONS,
+  loadPackSources,
   scanAudioFiles,
-  type PackSource,
 } from './build.js'
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
@@ -90,6 +89,7 @@ import {
 } from './textPassageQuestion.js'
 import { PiperTtsProvider } from './tts.js'
 import { synthesizeDraftsAudio } from './ttsBatch.js'
+import { verifyContent } from './verifyContent.js'
 import {
   buildVocabCardDrafts,
   buildVocabCardQuestions,
@@ -265,24 +265,6 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validateShadowingQuestions,
     defaultPath: DEFAULT_SHADOWING_DRAFT_PATH,
   },
-}
-
-/** M1配布4パック分のドラフトを読み込みPackSource[]を組み立てる（build/calibrate共用。T-32/T-34） */
-async function loadPackSources(contentRoot: string): Promise<PackSource[]> {
-  const sources: PackSource[] = []
-  for (const def of PACK_DEFINITIONS) {
-    const draftPath = join(contentRoot, def.draftPath)
-    const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
-    sources.push({
-      id: def.id,
-      title: def.title,
-      license: def.license,
-      origin: def.origin,
-      targetLevel: def.targetLevel,
-      questions: drafts.map((d) => d.payload as Question),
-    })
-  }
-  return sources
 }
 
 /**
@@ -528,6 +510,25 @@ export const commands: CliCommand[] = [
 
       ctx.out(`${built.length}パックをビルドし ${packsDir} に書き出しました`)
       ctx.out(`manifest.json（schemaVersion ${SCHEMA_VERSION}）を ${contentRoot} に書き出しました`)
+      return 0
+    },
+  },
+  {
+    name: 'verify-content',
+    description:
+      '配信物（content/packs/*.json・manifest.json）の再検証。validatePack・manifestのhash/sizeBytes一致・音声の参照切れ/孤児・drafts乖離を検査（T-234）',
+    run: async (ctx) => {
+      const contentRoot = ctx.args[0] ?? 'content'
+      const { ok, errors, warnings } = await verifyContent(contentRoot)
+      for (const w of warnings) ctx.out(`警告: ${w}`)
+      if (!ok) {
+        for (const e of errors) ctx.errOut(`エラー: ${e}`)
+        ctx.errOut(
+          `検証失敗: ${errors.length}件のエラー（配信物・drafts・音声のいずれかに不整合がある）`,
+        )
+        return 1
+      }
+      ctx.out(`検証OK: パック・manifest・音声・drafts の整合を確認しました（${contentRoot}）`)
       return 0
     },
   },
