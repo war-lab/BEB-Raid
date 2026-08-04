@@ -192,6 +192,26 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     expect(useAppStore.getState().screen).toBe('result')
   })
 
+  it('全問完走してリザルトへ進んだ時点でDB上のセッションを完了させる（T-267・Q-5）', async () => {
+    // 何を防ぐか: 途中終了ボタン（T-196）だけでなく、通常どおり全問解いて
+    // 「次へ」でリザルトへ進む正規完走の経路でも、ResultScreenの「ホームへ」を
+    // 待たずにこの時点でDBのアクティブセッションを消す。完走の方が途中終了より
+    // 通過頻度が高いため、ここが直っていないとQ-5の症状（終了したはずのセッションが
+    // 進行中として残る）が日常的に発生する
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    await answerAndSettle('a', 1)
+    fireEvent.click(await screen.findByText('次へ'))
+    await answerAndSettle('b', 2) // q-2（最終問）の正解
+    fireEvent.click(await screen.findByText('次へ'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('SRS由来item（srsCardIdあり）の解答で reviewSrsCard が呼ばれる', async () => {
     const db = newDb()
     await db.srsCards.put({

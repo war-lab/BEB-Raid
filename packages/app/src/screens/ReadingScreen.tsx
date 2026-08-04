@@ -204,6 +204,12 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         if (cancelled) return
         useSessionStore.setState({ snapshot: nextSnapshot })
         if (displayIndex + 1 >= snapshot.items.length) {
+          // T-267: 全問スキップ完了もリザルトへの正規到達経路のひとつ。finishSession()の
+          // 説明（DrillScreenの同名関数と同じ理由）を参照。このeffectのdeps配列に
+          // 新しいローカル関数を足さないため直接呼ぶ
+          void completeSession(db).catch((e: unknown) => {
+            console.warn('[ReadingScreen] セッション完了処理に失敗', e)
+          })
           navigate('result')
         } else {
           setDisplayIndex((i) => i + 1)
@@ -216,7 +222,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   }, [item, question, snapshot, displayIndex, db, navigate])
 
   if (!snapshot || !item || !question) {
-    if (snapshot && !item) navigate('result')
+    if (snapshot && !item) finishSession()
     return null
   }
   // text_passage以外はこのコンポーネントの担当外（上のeffectがdrill画面へ切り替える）。
@@ -327,14 +333,21 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   }
 
   /**
-   * 「ここで終了して結果を見る」（T-164）。文言が「終了」である以上、この時点でDB上の
-   * アクティブセッションを確実に消す（T-196・docs/29 Q-5、DrillScreenのhandleFinishEarly
-   * と同じ理由）。useSessionStore側のsnapshot（画面内メモリ）は消さず、ResultScreenの
-   * attemptIds基準集計（T-109）はそちらを読むため表示は壊れない
+   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
+   * （T-196・T-267。docs/29 Q-5、DrillScreenの同名関数と同じ理由）。リザルトへ到達する
+   * 経路はすべてここを通す: 「ここで終了して結果を見る」（早期終了）・全問解答後の
+   * 「次へ」（正規完走）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
+   * ときの描画フォールバック。当初は早期終了のみT-196で対処したが、全問完走の方が
+   * 通過頻度が高く、同じ欠陥がQ-5の症状として日常的に発生しうると判断してT-267で
+   * 経路を揃えた。
+   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
+   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
+   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
+   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）
    */
-  function handleFinishEarly() {
+  function finishSession() {
     void completeSession(db).catch((e: unknown) => {
-      console.warn('[ReadingScreen] 途中終了時のセッション完了処理に失敗', e)
+      console.warn('[ReadingScreen] セッション完了処理に失敗', e)
     })
     navigate('result')
   }
@@ -348,7 +361,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
       // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
       if (displayIndex + 1 >= snapshot!.items.length) {
-        navigate('result')
+        finishSession()
         return
       }
       setDisplayIndex((i) => i + 1)
@@ -476,7 +489,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                   （ホーム直行）だけだったため、Part7の長文を全問解く覚悟がないと入れなかった。
                   解答済みが1問以上あり、かつ未解答が残っているときだけ出す */}
               {canAdvance && answers.size < subQuestions.length && (
-                <button type="button" className="secondary-action" onClick={handleFinishEarly}>
+                <button type="button" className="secondary-action" onClick={finishSession}>
                   ここで終了して結果を見る
                 </button>
               )}

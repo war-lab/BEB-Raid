@@ -523,6 +523,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         useSessionStore.setState({ snapshot: nextSnapshot })
         setSkipCount((n) => n + 1)
         if (displayIndex + 1 >= snapshot.items.length) {
+          // T-267: 全問スキップ完了もリザルトへの正規到達経路のひとつ。finishSession()の
+          // 説明を参照（このeffectのdeps配列に新しいローカル関数を足さないため直接呼ぶ）
+          void completeSession(db).catch((e: unknown) => {
+            console.warn('[DrillScreen] セッション完了処理に失敗', e)
+          })
           navigate('result')
         } else {
           setDisplayIndex((i) => i + 1)
@@ -576,7 +581,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   if (!snapshot || !item || !question || !RENDERABLE_FORMATS.has(question.format)) {
-    if (snapshot && !item) navigate('result')
+    if (snapshot && !item) finishSession()
     return null
   }
   // text_passageはこのコンポーネントに描画分岐が無い（上のeffectがreading画面へ切り替える）。
@@ -1117,7 +1122,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた。
     // snapshot が無ければこの関数へ到達しない（描画前に早期returnしている）
     if (displayIndex + 1 >= snapshot!.items.length) {
-      navigate('result')
+      finishSession()
       return
     }
     setDisplayIndex((i) => i + 1)
@@ -1143,17 +1148,24 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   /**
-   * 「ここで終了して結果を見る」（T-122）。文言が「終了」である以上、この時点でDB上の
-   * アクティブセッションを確実に消す（T-196・docs/29 Q-5）。従来はここではDBに触れず、
-   * ResultScreenの「ホームへ」タップ時点まで completeSession を遅延していたため、
-   * リザルト表示後にタブを閉じる／ホームへ戻らずアプリを離れるだけで「中断」扱いのまま
-   * DBに残り、ホームに「続きから再開」バナーが残り続けた。
-   * useSessionStore側のsnapshot（画面内メモリ）は消さない。ResultScreenのattemptIds基準
-   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない
+   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
+   * （T-196・T-267。docs/29 Q-5）。リザルトへ到達する経路はすべてここを通す:
+   * 「ここで終了して結果を見る」（早期終了）・全問解答後の「次へ」（正規完走。
+   * advanceToNext）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
+   * ときの描画フォールバック。いずれも「セッションは終わった」状態であり、
+   * DB側を中断扱いのまま残すと、ResultScreenの「ホームへ」を押す前にタブを閉じる・
+   * アプリを離れるだけでホームに「続きから再開」バナーが残り続け、次モード開始時に
+   * 不要な破棄確認まで出てしまう（当初は「ここで終了して結果を見る」のみT-196で
+   * 対処したが、全問完走の方が通過頻度が高く、同じ欠陥がQ-5の症状として
+   * 日常的に発生しうると判断してT-267で経路を揃えた）。
+   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
+   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
+   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
+   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）
    */
-  function handleFinishEarly() {
+  function finishSession() {
     void completeSession(db).catch((e: unknown) => {
-      console.warn('[DrillScreen] 途中終了時のセッション完了処理に失敗', e)
+      console.warn('[DrillScreen] セッション完了処理に失敗', e)
     })
     navigate('result')
   }
@@ -1707,7 +1719,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   // T-162（docs/27 のS-6）: 「次へ」と隣接していると、狙った指が
                   // セッション終了に当たる。罫線と余白で離す
                   className="secondary-action drill-exit-separated"
-                  onClick={handleFinishEarly}
+                  onClick={finishSession}
                 >
                   ここで終了して結果を見る
                 </button>

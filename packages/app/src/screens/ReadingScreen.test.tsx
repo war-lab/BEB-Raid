@@ -170,6 +170,27 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     expect(rating).toBeDefined()
   })
 
+  it('全問完走してリザルトへ進んだ時点でDB上のセッションを完了させる（T-267・Q-5）', async () => {
+    // 何を防ぐか: DrillScreenと同じ理由（同ファイルの同名テスト参照）。読解でも
+    // 全問（全サブ設問）を解いて最終itemを終えると自動的にリザルトへ遷移するが、
+    // その時点でDBのアクティブセッションを消しておかないと、ResultScreenの
+    // 「ホームへ」を待つ間にアプリを離れただけでホームに再開バナーが残る
+    const db = newDb()
+    const q = part7Question('p7-complete', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
+      fireEvent.click(await screen.findByText('次へ'))
+    }
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('T-106: 正誤混在（正・誤・正）でも各設問が独立採点され、computeSetResultの2/3ルールに基づく一括判定を経由しない', async () => {
     const db = newDb()
     const q = part7Question('p7-mixed', 3)

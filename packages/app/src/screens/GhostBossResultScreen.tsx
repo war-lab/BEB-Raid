@@ -37,6 +37,10 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
   const wrongCount = results.filter((r) => !r.isCorrect).length
 
   async function finishAndGoHome() {
+    // T-267（docs/29 Q-5・PR #137）: ゴースト役セッションもDrillScreen経由でリザルトへ
+    // 遷移する時点で既にcompleteSessionが呼ばれている（DrillScreen側のfinishSession()を
+    // 参照）。ここでの呼び出しは基本的に空振り（settings.deleteは冪等）だが、
+    // ResultScreen.tsxと同じ理由で安全網として残す
     try {
       await completeSession(db)
     } catch (e) {
