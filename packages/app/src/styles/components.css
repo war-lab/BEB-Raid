@@ -42,8 +42,10 @@
      .choice-button.is-* 側で従来どおり担保するため、レイアウト不動には影響しない */
   background: var(--surface-grad);
   color: var(--ink);
-  /* 枠は常に2px。状態では色のみ変える（太さを変えるとレイアウトが動く） */
-  border: 2px solid var(--line);
+  /* 枠は常に2px。状態では色のみ変える（太さを変えるとレイアウトが動く）。
+     T-226(Q-70・保留): 既定枠は--ink-3（--lineはWCAG 1.4.11の3:1未達=tokens.cssの
+     コメント参照）。選択済み状態は.choice-button.is-*側で--ok/--ngへ上書きするため影響しない */
+  border: 2px solid var(--ink-3);
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
   text-align: left;
@@ -584,7 +586,8 @@
   padding: 0 var(--sp-half);
   background: none;
   border: none;
-  border-bottom: 2px solid var(--line);
+  /* T-226(Q-70・保留): タップ可能な空所の下線。--line(3:1未達)ではなく--ink-3を使う */
+  border-bottom: 2px solid var(--ink-3);
   color: var(--ink);
   font: inherit;
   cursor: pointer;
@@ -616,7 +619,7 @@
   padding: var(--sp-1) var(--sp-2);
   background: var(--surface);
   color: var(--ink);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
   cursor: pointer;
@@ -647,7 +650,7 @@
   padding: var(--sp-1) var(--sp-2);
   background: transparent;
   color: var(--ink);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
   cursor: pointer;
@@ -893,7 +896,7 @@
   padding: 0 var(--sp-2);
   background: var(--surface);
   color: var(--ink);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
   cursor: pointer;
@@ -918,7 +921,7 @@
   padding: var(--sp-1) var(--sp-2);
   background: transparent;
   color: var(--ink-2);
-  border: 2px dashed var(--line);
+  border: 2px dashed var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
   cursor: pointer;
@@ -939,7 +942,7 @@
   padding: var(--sp-1) var(--sp-2);
   background: transparent;
   color: var(--ink-2);
-  border: 2px dashed var(--line);
+  border: 2px dashed var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
   cursor: pointer;
@@ -961,7 +964,7 @@
   min-height: var(--tap-min);
   background: var(--surface);
   color: var(--ink-2);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
@@ -980,7 +983,7 @@
   padding: 0 var(--sp-1);
   background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   cursor: pointer;
 }
@@ -994,7 +997,7 @@
   padding: 0 var(--sp-1);
   background: transparent;
   color: var(--ink-2);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   cursor: pointer;
 }
@@ -1400,7 +1403,7 @@
   padding: 0 var(--sp-1);
   background: var(--surface);
   color: var(--ink-2);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-pill);
   font-size: var(--fs-sub);
   cursor: pointer;
@@ -1436,7 +1439,7 @@
   min-height: var(--tap-min);
   background: var(--surface-2);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-size: var(--fs-sub);
   cursor: pointer;
@@ -1486,7 +1489,7 @@
   padding: 0 var(--sp-1);
   background: var(--surface-grad);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-family: inherit;
   text-align: left;
@@ -1537,7 +1540,7 @@
   padding: 0 var(--sp-1);
   background: var(--surface-grad);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   font-size: var(--fs-sub);
   cursor: pointer;
@@ -1608,7 +1611,7 @@
   min-height: var(--tap-min);
   background: var(--surface);
   color: var(--ink-2);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
@@ -1625,7 +1628,7 @@
   min-height: var(--tap-min);
   background: var(--surface);
   color: var(--ink-2);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   cursor: pointer;
 }
@@ -1685,7 +1688,7 @@
   padding: 0 var(--sp-1);
   background: transparent;
   color: var(--ink);
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   cursor: pointer;
 }
@@ -1904,7 +1907,7 @@
   padding: 0 var(--sp-2);
   background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   cursor: pointer;
 }
@@ -3230,7 +3233,7 @@
   flex: 1;
   min-height: var(--tap-min);
   padding: var(--sp-half) var(--sp-1);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-3); /* T-226(Q-70・保留): --lineは3:1未達のため--ink-3 */
   border-radius: var(--radius-button);
   background: transparent;
   color: var(--ink-2);

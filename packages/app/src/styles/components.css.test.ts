@@ -104,6 +104,44 @@ describe('T-226(Q-70): 入力欄の枠は--lineでなく--ink-3を使う（コ�
   })
 })
 
+// T-226(Q-70)のうち対話部品19箇所（テキストラベル・可視記号を持つ通常ボタン）の枠線変更
+// （--line → --ink-3）は視覚設計の判断が保留中のコミットに属する（コミットメッセージ参照）。
+// このdescribeブロックはそのコミットの変更を検証するテストで、当該コミットを落とす場合は
+// このブロックも一緒に落とすこと。
+describe('T-226(Q-70・保留): テキストラベルを持つ通常ボタンの枠（--line→--ink-3、視覚確認後に採用判断）', () => {
+  // 単一セレクタで、かつ .foo__bar や .foo.is-active のような修飾版と混同しない
+  // （\s*\{ は「セレクタの直後に空白のみを挟んで{」なので、__やドット修飾は別マッチになる）
+  const singleSelectors = [
+    '.choice-button',
+    '.drill-replay',
+    '.secondary-action',
+    '.passage-blank',
+    '.vocab-grade-button',
+    '.drill-undo',
+    '.vocab-dontknow-button',
+    '.dictation-rate-chips button',
+    '.dictation-word-bank button',
+    '.dictation-reset',
+    '.home-chip',
+    '.home-part2-options button',
+    '.home-mode-tile',
+    '.home-grid button',
+    '.shadowing-speed-chips button',
+    '.shadowing-script-toggle button',
+    '.install-hint button',
+    '.settings-list button',
+    '.reading-passage-tabs button',
+  ]
+
+  it.each(singleSelectors)('%s の枠に var(--line) を使っていない', (selector) => {
+    const bodies = ruleBodies(selector)
+    expect(bodies.length).toBeGreaterThan(0)
+    for (const body of bodies) {
+      expect(body).not.toMatch(/border(-\w+)?:[^;]*var\(--line\)/)
+    }
+  })
+})
+
 describe('T-232(Q-71): --fs-* スケール外の直書きフォントサイズが無い', () => {
   it('font-size に px の直書きが残っていない', () => {
     const matches = css.match(/font-size:\s*[0-9]/g)
