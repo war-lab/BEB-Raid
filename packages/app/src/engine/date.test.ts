@@ -1,0 +1,146 @@
+// date.ts 専用テスト（T-191・Q-109）。暦日ヘルパーはSRS・ストリーク・ヒートマップ全ての
+// 基盤だが専用テストが無かった（docs/29 11節）。月末・年末跨ぎ、DST跨ぎ（実TZに影響されず
+// 検証するためprocess.env.TZを一時的に切り替える）、不正文字列の拒否を確認する。
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import {
+  daysBetween,
+  localMidnightAfterDays,
+  parseDateString,
+  startOfLocalDay,
+  toDateString,
+} from './date'
+
+describe('toDateString / parseDateString: 往復変換', () => {
+  it('epoch→暦日文字列→暦日0時のepochに戻る', () => {
+    const epoch = new Date(2026, 6, 14, 15, 30).getTime()
+    const dateStr = toDateString(epoch)
+    expect(dateStr).toBe('2026-07-14')
+    expect(parseDateString(dateStr)).toBe(new Date(2026, 6, 14).getTime())
+  })
+
+  it('月・日が1桁でも0埋めされる', () => {
+    expect(toDateString(new Date(2026, 0, 5).getTime())).toBe('2026-01-05')
+  })
+})
+
+describe('parseDateString: 不正文字列の拒否（T-191・Q-109: 範囲外成分の検出）', () => {
+  it('月が13（範囲外）なら例外', () => {
+    expect(() => parseDateString('2026-13-45')).toThrow(/不正/)
+  })
+
+  it('月が0（範囲外）なら例外', () => {
+    expect(() => parseDateString('2026-00-10')).toThrow(/不正/)
+  })
+
+  it('日が範囲外（2月30日、Dateの繰り上げ解釈を許さない）なら例外', () => {
+    expect(() => parseDateString('2026-02-30')).toThrow(/不正/)
+  })
+
+  it('日が範囲外（4月31日、4月は30日まで）なら例外', () => {
+    expect(() => parseDateString('2026-04-31')).toThrow(/不正/)
+  })
+
+  it('平年の2月29日は例外', () => {
+    expect(() => parseDateString('2026-02-29')).toThrow(/不正/)
+  })
+
+  it('うるう年の2月29日は妥当', () => {
+    expect(() => parseDateString('2028-02-29')).not.toThrow()
+  })
+
+  it('区切りが不足した文字列は例外', () => {
+    expect(() => parseDateString('2026-07')).toThrow(/不正/)
+  })
+
+  it('数値でない成分を含む文字列は例外', () => {
+    expect(() => parseDateString('2026-AB-01')).toThrow(/不正/)
+  })
+
+  it('空文字列は例外', () => {
+    expect(() => parseDateString('')).toThrow(/不正/)
+  })
+})
+
+describe('localMidnightAfterDays: 月末・年末をまたぐ暦日演算', () => {
+  it('月末（1/31）の翌日は2/1になる', () => {
+    const jan31 = new Date(2026, 0, 31).getTime()
+    expect(toDateString(localMidnightAfterDays(jan31, 1))).toBe('2026-02-01')
+  })
+
+  it('年末（12/31）の翌日は翌年1/1になる', () => {
+    const dec31 = new Date(2026, 11, 31).getTime()
+    expect(toDateString(localMidnightAfterDays(dec31, 1))).toBe('2027-01-01')
+  })
+
+  it('うるう年の2/28の翌日は2/29になる', () => {
+    const feb28 = new Date(2028, 1, 28).getTime()
+    expect(toDateString(localMidnightAfterDays(feb28, 1))).toBe('2028-02-29')
+  })
+
+  it('平年の2/28の翌日は3/1になる（2/29は存在しない）', () => {
+    const feb28 = new Date(2026, 1, 28).getTime()
+    expect(toDateString(localMidnightAfterDays(feb28, 1))).toBe('2026-03-01')
+  })
+})
+
+// DST跨ぎの検証: 実行環境（Asia/Tokyo）にはDSTが無いため、process.env.TZを一時的に
+// DSTのある地域へ切り替えて確認する。「epoch + 24h*n」の単純加算だとDST境界で
+// 時刻が0時からずれる（春の時計進めで1時間失われる/秋の時計戻しで1時間増える）ことの
+// 回帰確認であり、localMidnightAfterDays が Date の setDate（暦日演算）を使うことで
+// 影響を受けないことを検証する
+describe('localMidnightAfterDays / daysBetween: DST跨ぎでも暦日がずれない', () => {
+  const originalTz = process.env.TZ
+
+  beforeAll(() => {
+    // America/New_York の2026年DST: 開始3/8（春、2時→3時）、終了11/1（秋、2時→1時）
+    process.env.TZ = 'America/New_York'
+  })
+
+  afterAll(() => {
+    process.env.TZ = originalTz
+  })
+
+  it('春の時計進め跨ぎ（3/7→3/9の2日後）でも0時のまま暦日がちょうど2日進む', () => {
+    const mar7 = new Date(2026, 2, 7, 0, 0, 0, 0).getTime()
+    const result = localMidnightAfterDays(mar7, 2)
+    // 単純な+48h加算なら1時になってしまう（DSTで1時間短い日を挟むため）
+    expect(new Date(result).getHours()).toBe(0)
+    expect(toDateString(result)).toBe('2026-03-09')
+  })
+
+  it('秋の時計戻し跨ぎ（11/1→11/2の1日後）でも0時のまま暦日がちょうど1日進む', () => {
+    const nov1 = new Date(2026, 10, 1, 0, 0, 0, 0).getTime()
+    const result = localMidnightAfterDays(nov1, 1)
+    // 単純な+24h加算なら23時になってしまう（DSTで1時間長い日を挟むため）
+    expect(new Date(result).getHours()).toBe(0)
+    expect(toDateString(result)).toBe('2026-11-02')
+  })
+
+  it('daysBetweenはDSTによる時刻のずれに関わらず暦日差のみを返す', () => {
+    expect(daysBetween('2026-03-07', '2026-03-09')).toBe(2)
+    expect(daysBetween('2026-11-01', '2026-11-02')).toBe(1)
+  })
+})
+
+describe('startOfLocalDay', () => {
+  it('同日内の任意時刻から0時のepochを求める', () => {
+    const epoch = new Date(2026, 6, 14, 23, 59, 59).getTime()
+    expect(startOfLocalDay(epoch)).toBe(new Date(2026, 6, 14, 0, 0, 0, 0).getTime())
+  })
+})
+
+describe('daysBetween: 基本ケース', () => {
+  it('同日は0', () => {
+    expect(daysBetween('2026-07-14', '2026-07-14')).toBe(0)
+  })
+
+  it('翌日は1、前日は-1', () => {
+    expect(daysBetween('2026-07-14', '2026-07-15')).toBe(1)
+    expect(daysBetween('2026-07-14', '2026-07-13')).toBe(-1)
+  })
+
+  it('月をまたいでも正しい日数差になる', () => {
+    expect(daysBetween('2026-01-31', '2026-02-01')).toBe(1)
+  })
+})
