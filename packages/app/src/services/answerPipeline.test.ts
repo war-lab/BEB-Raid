@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID, type RaidStateRecord } from '../db/schema'
+import { DEFAULT_INITIAL_RATING } from '../engine/rating'
 import type { QuestionLookup } from '../engine/types'
 import { recordAnswerPipeline } from './answerPipeline'
 import { startSession } from './session'
@@ -205,6 +206,47 @@ describe('recordAnswerPipeline: レート更新', () => {
 
     expect(result.ratingUpdate).toBeUndefined()
     expect(await db.ratings.get('R')).toBeUndefined()
+  })
+})
+
+describe('recordAnswerPipeline: isTimeoutの正規化（T-192・Q-108）', () => {
+  // 何を防ぐか: buildAttempt（services/attempts.ts）はisTimeout時にisCorrectをfalseへ
+  // 強制するが、この正規化はattempt記録の直前でしか行われず、processWrongAnswer・
+  // updateTagStatsForAnswer・applyRatingUpdateには呼び出し側の生のisCorrectがそのまま渡って
+  // いた。isTimeout=trueなのにisCorrect=trueという矛盾した入力（呼び出し側のバグや競合を
+  // 想定）では、保存されたattemptは不正解として記録されるのに、レート・誤答デッキ・
+  // tagStatsは正解として処理され、学習記録が内部で食い違う
+  it('isTimeout=trueならisCorrectの値に関わらず、attempt・レート・誤答デッキ・tagStatsのすべてが不正解として一致する', async () => {
+    const db = newDb()
+    const q = question('q-1', { part: 5, difficulty: 3, tags: ['品詞'] })
+
+    await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true, // 矛盾した入力（本来はisTimeout時は呼び出し側もfalseにする想定だが、防御として検証する）
+      isTimeout: true,
+      responseMs: 5000,
+      mode: 'solo',
+    })
+
+    // attemptはbuildAttemptにより従来からfalseへ強制される
+    const attempts = await db.attempts.toArray()
+    expect(attempts).toHaveLength(1)
+    expect(attempts[0]!.isCorrect).toBe(false)
+    expect(attempts[0]!.isTimeout).toBe(true)
+
+    // レートは不正解として下がる（正規化前は生のisCorrect=trueで上がっていた）
+    const rating = await db.ratings.get('R')
+    expect(rating!.rating).toBeLessThan(DEFAULT_INITIAL_RATING)
+
+    // 誤答復習デッキに積まれる（正規化前はisCorrect=trueなのでprocessWrongAnswerがスキップされていた）
+    expect(await db.srsCards.get('question:q-1')).toBeTruthy()
+
+    // tagStatsは時間切れ（isTimeout）を「速度不足」として窓自体から除外するため、
+    // isCorrectの値に関わらずwindowTotalは0のまま変わらない（computeTagWindowの既存仕様）
+    const stat = await db.tagStats.get('品詞')
+    expect(stat).toMatchObject({ windowCorrect: 0, windowTotal: 0 })
   })
 })
 
@@ -654,6 +696,49 @@ describe('recordAnswerPipeline: ゴーストボスの倍率適用（M4・T-129�
 
     expect(result.raidDamage?.ghostDefenseMultiplier).toBeUndefined()
     expect(await db.pendingSync.count()).toBe(1)
+  })
+
+  // 何を防ぐか（T-192・Q-106）: JSON.parse自体は成功するが値が不正（負値・非数値）な
+  // defenseJson（外部編集されたバックアップ・破損データ等）で、multiplierを検証せず
+  // damage = baseDamage * multiplier に掛けてしまうと、ダメージが負値やNaNになる。
+  // baseDamage<=0のガードは倍率適用より前に効くため、倍率自体の検証がここでの最後の防波堤になる
+  it('defenseの倍率が負値の場合は1.0にフォールバックし、ダメージが負にならない', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await seedGhostRaidState(db, { 'q-1': -2.0 })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage?.ghostDefenseMultiplier).toBeUndefined()
+    expect(result.raidDamage!.damage).toBeGreaterThan(0)
+  })
+
+  it('defenseの値が数値でない場合（破損したdefenseJsonの一種）も1.0にフォールバックする', async () => {
+    const db = newDb()
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    // JSON.parseは成功するが値が文字列（NaN自体はJSON化できないため、非数値混入の代表例として使う）
+    await seedGhostRaidState(db, {}, { defenseJson: '{"q-1":"not-a-number"}' })
+    const q = question('q-1')
+
+    const result = await recordAnswerPipeline(db, {
+      questionId: q.id,
+      question: q,
+      lookup: lookupOf(q),
+      isCorrect: true,
+      responseMs: 1000,
+      mode: 'raid',
+    })
+
+    expect(result.raidDamage?.ghostDefenseMultiplier).toBeUndefined()
+    expect(result.raidDamage!.damage).toBeGreaterThan(0)
   })
 })
 
