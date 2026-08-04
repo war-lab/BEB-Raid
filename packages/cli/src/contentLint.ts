@@ -350,11 +350,37 @@ function checkChoiceTagConsistency(q: Question): string[] {
 }
 
 /**
- * パック1件分のルール検証。①②③⑧は個別問題ごと、④⑦は問題ごと（警告）、
- * ⑤⑥⑨はパック全体（警告）。戻り値は修正すべき問題点の一覧（このタスクでは記録のみ。
- * buildPack側ではwarningsとして扱いビルドを失敗させない）
+ * ブロッキング昇格ルール（⑥⑧⑨。正本: docs/29 Q-77・Q-79・docs/30 11節T-236・T-237の
+ * 追加修正）。T-236/T-237で実コンテンツの違反件数が0になったルールに限り、buildPackの
+ * errors（ビルド失敗）として扱う。
+ *
+ * T-80がcontentLint全体をwarnings（非ブロッキング）にした理由は「既存コンテンツに
+ * 現存する違反をビルド失敗に変えると配布が止まる」ことだった（build.ts参照）。この理由は
+ * 違反が0件のルールには当てはまらない。むしろwarningsのまま据え置くと、既存の109件の
+ * warningsに埋もれて再発（生成関数の副作用や解説記号の再ずれ）に気づけない
+ * （T-234のbeb verify-contentがCI/デプロイの必須ステップになったことで、ここをerrorsに
+ * すればCIが実効的に再発を検知するようになる）。
+ * ①②③④⑤⑦は既存違反が現に残っている（docs/STATUS.md参照）ため、このタスクの範囲では
+ * 引き続き警告のみとする。安易に昇格すると配布が止まる
  */
-export function validateContentLint(questions: readonly Question[], packId: string): string[] {
+export function validateContentLintBlocking(
+  questions: readonly Question[],
+  packId: string,
+): string[] {
+  const problems: string[] = []
+  for (const q of questions) {
+    problems.push(...checkChoiceTagConsistency(q))
+  }
+  problems.push(...checkAnswerKeyCycle(questions, packId))
+  problems.push(...checkFlatAnswerKeyCycle(questions, packId))
+  return problems
+}
+
+/** 従来どおり警告のみのルール（①②③④⑤⑦）。既存コンテンツに現存する違反があるため据え置く */
+export function validateContentLintWarnings(
+  questions: readonly Question[],
+  packId: string,
+): string[] {
   const problems: string[] = []
   for (const q of questions) {
     problems.push(...checkPart2ScriptChoiceMatch(q))
@@ -362,10 +388,19 @@ export function validateContentLint(questions: readonly Question[], packId: stri
     problems.push(...checkCasualContractions(q))
     problems.push(...checkTextBlankLength(q))
     problems.push(...checkAudioOnlyReadiness(q))
-    problems.push(...checkChoiceTagConsistency(q))
   }
   problems.push(...checkOpeningPhraseDiversity(questions, packId))
-  problems.push(...checkAnswerKeyCycle(questions, packId))
-  problems.push(...checkFlatAnswerKeyCycle(questions, packId))
   return problems
+}
+
+/**
+ * パック1件分の全ルール検証（ブロッキング⑥⑧⑨＋警告①②③④⑤⑦の合算）。
+ * 個別のブロッキング可否を問わない一括検査・テスト用。buildPack側は
+ * validateContentLintBlocking/validateContentLintWarningsを個別に呼び分ける
+ */
+export function validateContentLint(questions: readonly Question[], packId: string): string[] {
+  return [
+    ...validateContentLintBlocking(questions, packId),
+    ...validateContentLintWarnings(questions, packId),
+  ]
 }

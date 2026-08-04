@@ -24,7 +24,7 @@ import {
   type QuestionPack,
 } from '@beb-raid/shared-schema'
 import type { CorrectionsFile } from './calibrate.js'
-import { validateContentLint } from './contentLint.js'
+import { validateContentLintBlocking, validateContentLintWarnings } from './contentLint.js'
 
 /**
  * ビルド対象パックの定義（実データはドラフトJSONLから読み込む。commands.ts から参照）。
@@ -363,21 +363,25 @@ export function buildPack(
     questions: source.questions,
   }
 
-  // T-80: 5ルールの機械検証（contentLint.ts）。既存コンテンツに現存する違反を
-  // ビルド失敗に変えると配布が止まってしまうため、warnings（非ブロッキング）として
-  // 扱う（修正はT-81/T-82の担当範囲。docs/STATUS.mdに一括検査結果を記録済み）
-  const contentLintProblems = validateContentLint(source.questions, source.id)
+  // T-80: contentLintの機械検証。既存コンテンツに現存する違反をビルド失敗に変えると
+  // 配布が止まってしまうルールはwarnings（非ブロッキング）のまま据え置く
+  // （修正はT-81/T-82の担当範囲。docs/STATUS.mdに一括検査結果を記録済み）。
+  // 一方、違反件数が0になったルール（⑥⑧⑨。T-236/T-237の追加修正）はerrors
+  // （ブロッキング）に昇格する。詳細はcontentLint.tsのvalidateContentLintBlockingを参照
+  const blockingContentLint = validateContentLintBlocking(source.questions, source.id)
+  const warningContentLint = validateContentLintWarnings(source.questions, source.id)
 
   const result = validatePack(draftPack, { audioFiles })
   const explanationProblems = validateExplanationQuality(source.questions)
-  if (!result.ok || explanationProblems.length > 0) {
+  if (!result.ok || explanationProblems.length > 0 || blockingContentLint.length > 0) {
     return {
       built: null,
       errors: [
         ...result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
         ...explanationProblems.map((p) => `${source.id} ${p}`),
+        ...blockingContentLint.map((p) => `${source.id} ${p}`),
       ],
-      warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
+      warnings: warningContentLint.map((p) => `${source.id} ${p}`),
     }
   }
 
@@ -393,7 +397,7 @@ export function buildPack(
   return {
     built: { pack, hash },
     errors: [],
-    warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
+    warnings: warningContentLint.map((p) => `${source.id} ${p}`),
   }
 }
 
