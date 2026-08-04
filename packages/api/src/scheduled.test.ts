@@ -168,4 +168,34 @@ describe('generateWeeklyBoss', () => {
     expect(secondState?.maxHp).toBe(firstState?.maxHp)
     expect(secondState?.startAt).toBe(firstState?.startAt)
   })
+
+  it('同一週に2回呼んでもEMAは1回しか更新されない（生成権の主張。T-179/J-101）', async () => {
+    const currentMondayEpoch = Date.UTC(2027, 2, 1) // 別の週（他テストと衝突しない）
+    const deviceToken = `device-${crypto.randomUUID()}`
+    await env.MEMBERS.put(
+      memberKey(deviceToken),
+      JSON.stringify({
+        displayName: '重複太郎',
+        dailyGoal: 'normal',
+        registeredAt: 0,
+        emaDailyDamage: 1000,
+      }),
+    )
+    // 前週(5日換算)で合計20000ダメージ → 前週日次 = 4000
+    await seedPreviousWeekDamage(currentMondayEpoch, deviceToken, 20_000)
+
+    await generateWeeklyBoss(env, currentMondayEpoch)
+    const afterFirstRaw = await env.MEMBERS.get(memberKey(deviceToken))
+    const afterFirst = JSON.parse(afterFirstRaw!) as MemberRecord
+    // 0.5×4000(前週日次) + 0.5×1000(元のema) = 2500
+    expect(afterFirst.emaDailyDamage).toBe(2500)
+
+    // 2回目呼び出し（手動生成とcronの競合、または並行リクエストを想定）。
+    // 生成権の主張が無いと、2回目はKVから読んだ「1回目で更新済みのema(2500)」を
+    // 再度ブレンドしてしまい 0.5×4000 + 0.5×2500 = 3250 に壊れる
+    await generateWeeklyBoss(env, currentMondayEpoch + HOUR_MS)
+    const afterSecondRaw = await env.MEMBERS.get(memberKey(deviceToken))
+    const afterSecond = JSON.parse(afterSecondRaw!) as MemberRecord
+    expect(afterSecond.emaDailyDamage).toBe(2500)
+  })
 })

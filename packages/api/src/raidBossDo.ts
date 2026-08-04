@@ -90,6 +90,13 @@ export class RaidBossDO extends DurableObject<Env> {
         receivedAt INTEGER NOT NULL
       )
     `)
+    // 週の生成権の主張用（冪等化。docs/30 J-101・T-179）。1行だけを許すPRIMARY KEYで、
+    // このDOインスタンス（=このbossId）に対する生成が「進行中」かどうかを表す
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS generation_claim (
+        claimed INTEGER PRIMARY KEY
+      )
+    `)
     // M4: ゴースト関連カラムの追加（正本: docs/22 3.3節）。
     // 既存のCREATE TABLE IF NOT EXISTSは既存テーブルへ新カラムを足せないため、
     // PRAGMA table_infoで存在確認してから足りないカラムだけALTER TABLEする
@@ -107,6 +114,34 @@ export class RaidBossDO extends DurableObject<Env> {
       .toArray()
     if (columns.some((c) => c.name === column)) return
     this.ctx.storage.sql.exec(`ALTER TABLE state ADD COLUMN ${addColumnDdl}`)
+  }
+
+  /**
+   * 週の生成権を主張する（冪等化。docs/30 J-101・T-179）。
+   * `generateWeeklyBoss` の冒頭で呼ぶ。DOは単一スレッドで動くため、SQLiteの主キー制約による
+   * 1行INSERTがそのまま原子的な主張になる（KVやハンドラ側のチェックでは並行リクエストの
+   * 競合を防げない）。既に主張済み（cronと手動生成の競合、または並行リクエストの競合）なら
+   * falseを返す。生成処理が例外を投げた場合は releaseGenerationClaim() で解放すること
+   */
+  claimGeneration(): boolean {
+    if (this.hasGenerationClaim()) return false
+    this.ctx.storage.sql.exec('INSERT INTO generation_claim (claimed) VALUES (1)')
+    return true
+  }
+
+  /**
+   * 生成権の解放（例外時専用。docs/30 J-101）。
+   * 解放しないと、ボスが存在しないまま週が「生成済み」に固定され、手動生成でも復旧できない
+   */
+  releaseGenerationClaim(): void {
+    this.ctx.storage.sql.exec('DELETE FROM generation_claim')
+  }
+
+  private hasGenerationClaim(): boolean {
+    return (
+      this.ctx.storage.sql.exec<{ c: number }>('SELECT COUNT(*) as c FROM generation_claim').one()
+        .c > 0
+    )
   }
 
   /** ボス未初期化のときだけ初期化する（冪等。週次cronの再実行・重複呼び出し対策） */
