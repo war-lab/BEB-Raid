@@ -198,4 +198,52 @@ describe('generateWeeklyBoss', () => {
     const afterSecond = JSON.parse(afterSecondRaw!) as MemberRecord
     expect(afterSecond.emaDailyDamage).toBe(2500)
   })
+
+  it('generation_claim導入前にinit済みだった週（boss-2026-W32相当）はEMAが更新されない', async () => {
+    // generation_claimテーブルは今回の変更で新規追加されたため、変更前に手動生成やcronで
+    // 既にinit済みの週ではこのテーブルが空のままになる。claimGeneration()がgeneration_claim
+    // だけを見て主張を成立させると、デプロイ後最初の呼び出しでEMAが二度目に平滑化されて
+    // しまう（stateテーブルの行こそが「生成済み」の実質的な正本であるため、そちらも見る必要がある）
+    const currentMondayEpoch = Date.UTC(2027, 2, 8) // 別の週（他テストと衝突しない）
+    const deviceToken = `device-${crypto.randomUUID()}`
+    await env.MEMBERS.put(
+      memberKey(deviceToken),
+      JSON.stringify({
+        displayName: '既存太郎',
+        dailyGoal: 'normal',
+        registeredAt: 0,
+        emaDailyDamage: 1000,
+      }),
+    )
+    // 前週(5日換算)で合計20000ダメージ → 前週日次 = 4000（このテストではEMAが動けば検出できる値にする）
+    await seedPreviousWeekDamage(currentMondayEpoch, deviceToken, 20_000)
+
+    // generation_claimを経由せず、旧実装と同じ経路（POST /admin/raid/generateの手動生成や
+    // 旧cron）でinit()だけが呼ばれた状態を再現する
+    const current = isoWeekInfo(currentMondayEpoch)
+    const bossId = bossIdFor(current)
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+    await runInDurableObject(stub, (instance: RaidBossDO) => {
+      instance.init({
+        bossId,
+        profile: bossProfileForWeek(current.isoWeek),
+        maxHp: 12345,
+        startAt: current.weekStartAt,
+        endAt: weekEndAt(current.weekStartAt),
+      })
+    })
+
+    await generateWeeklyBoss(env, currentMondayEpoch)
+
+    const updatedRaw = await env.MEMBERS.get(memberKey(deviceToken))
+    const updated = JSON.parse(updatedRaw!) as MemberRecord
+    // 生成権が正しく主張不可と判定されれば、EMAは元の1000のまま変化しない
+    expect(updated.emaDailyDamage).toBe(1000)
+
+    // ボスの状態（HP等）も、既存のinit済み内容のまま変わらない
+    const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(currentMondayEpoch),
+    )
+    expect(state?.maxHp).toBe(12345)
+  })
 })

@@ -122,9 +122,16 @@ export class RaidBossDO extends DurableObject<Env> {
    * 1行INSERTがそのまま原子的な主張になる（KVやハンドラ側のチェックでは並行リクエストの
    * 競合を防げない）。既に主張済み（cronと手動生成の競合、または並行リクエストの競合）なら
    * falseを返す。生成処理が例外を投げた場合は releaseGenerationClaim() で解放すること
+   *
+   * `generation_claim` テーブルは本操作の追加と同時に新設されたため、導入前に
+   * `POST /admin/raid/generate` や旧cronで既にinit済みの週（例: boss-2026-W32）では
+   * このテーブルが空のままになる。`state` 行の存在も同時に確認しないと、デプロイ後
+   * 最初の呼び出しで誤って主張が成立し、既存週のEMAが二重に平滑化されてしまう
+   * （`state` 行こそが「この週は生成済み」の実質的な正本であるため）
    */
   claimGeneration(): boolean {
     if (this.hasGenerationClaim()) return false
+    if (this.getStateRow()) return false
     this.ctx.storage.sql.exec('INSERT INTO generation_claim (claimed) VALUES (1)')
     return true
   }
