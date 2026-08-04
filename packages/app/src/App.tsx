@@ -256,6 +256,14 @@ export function App() {
   // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）。
   // T-73: 新規/更新パックが同期できたら（synced.length>0）questionPoolを再読込し、
   // 初回同期直後から新パックが出題対象になるようにする
+  //
+  // T-201（docs/29 Q-57）: 実機の開発ビルドでパックJSON・音声ファイルへの同一URL GETが
+  // 複数回記録された所見の調査結果。原因は本エフェクトの実装ではなく、main.tsxの
+  // <StrictMode> が開発時のみマウント→アンマウント→再マウントを行うこと（cancelledガードは
+  // setState を止めるだけで、既に発行済みのfetch自体は中断しない）。本番ビルド
+  // （`vite build` + `vite preview`）でPlaywrightから実機同等の操作を行い、パックJSON・
+  // audioとも同一URLへのGETは1回のみであることを確認済み（2026-08-04）。モバイル回線の
+  // 初回コスト倍増という懸念は本番では発生しない。再現しないため修正はしない
   useEffect(() => {
     let cancelled = false
     void syncPacksAndReload(getDb(), packCache).then((pool) => {

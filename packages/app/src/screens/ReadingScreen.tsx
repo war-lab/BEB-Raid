@@ -31,7 +31,12 @@ import { answerSlotsBefore, totalAnswerSlots } from '../engine/answerSlots'
 import { shuffle } from '../engine/shuffle'
 import type { AiClient, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
-import { advanceSession, currentSubAnswers, type SessionSnapshot } from '../services/session'
+import {
+  advanceSession,
+  completeSession,
+  currentSubAnswers,
+  type SessionSnapshot,
+} from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -321,6 +326,19 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     return null
   }
 
+  /**
+   * 「ここで終了して結果を見る」（T-164）。文言が「終了」である以上、この時点でDB上の
+   * アクティブセッションを確実に消す（T-196・docs/29 Q-5、DrillScreenのhandleFinishEarly
+   * と同じ理由）。useSessionStore側のsnapshot（画面内メモリ）は消さず、ResultScreenの
+   * attemptIds基準集計（T-109）はそちらを読むため表示は壊れない
+   */
+  function handleFinishEarly() {
+    void completeSession(db).catch((e: unknown) => {
+      console.warn('[ReadingScreen] 途中終了時のセッション完了処理に失敗', e)
+    })
+    navigate('result')
+  }
+
   async function handleNext() {
     if (answers.size >= subQuestions.length) {
       const nextSnapshot = await advanceSession(db, snapshot!)
@@ -458,11 +476,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                   （ホーム直行）だけだったため、Part7の長文を全問解く覚悟がないと入れなかった。
                   解答済みが1問以上あり、かつ未解答が残っているときだけ出す */}
               {canAdvance && answers.size < subQuestions.length && (
-                <button
-                  type="button"
-                  className="secondary-action"
-                  onClick={() => navigate('result')}
-                >
+                <button type="button" className="secondary-action" onClick={handleFinishEarly}>
                   ここで終了して結果を見る
                 </button>
               )}

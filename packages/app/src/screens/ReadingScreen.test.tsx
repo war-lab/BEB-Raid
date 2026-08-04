@@ -445,6 +445,22 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
     expect(useAppStore.getState().screen).toBe('result')
   })
 
+  it('「ここで終了して結果を見る」をタップした時点でDB上のセッションを完了させる（T-196・Q-5）', async () => {
+    // DrillScreenのhandleFinishEarlyと同じ理由（同ファイルのコメント参照）。
+    // ResultScreenの「ホームへ」を待たず、この時点でDBのアクティブセッションを消す
+    const db = newDb()
+    const q = part7Question('p7-exit-complete', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    fireEvent.click(screen.getByText('ここで終了して結果を見る'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('最終サブ設問を解答した後は途中終了導線を出さない（「次へ」がitemを進める）', async () => {
     const db = newDb()
     const q = part7Question('p7-exit-last', 2)

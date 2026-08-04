@@ -29,6 +29,7 @@ import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerP
 import { getOrInitPhaseState } from '../services/phase'
 import {
   advanceSession,
+  completeSession,
   currentSubAnswers,
   resumeSession,
   StaleSnapshotError,
@@ -1141,6 +1142,22 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     advanceToNext()
   }
 
+  /**
+   * 「ここで終了して結果を見る」（T-122）。文言が「終了」である以上、この時点でDB上の
+   * アクティブセッションを確実に消す（T-196・docs/29 Q-5）。従来はここではDBに触れず、
+   * ResultScreenの「ホームへ」タップ時点まで completeSession を遅延していたため、
+   * リザルト表示後にタブを閉じる／ホームへ戻らずアプリを離れるだけで「中断」扱いのまま
+   * DBに残り、ホームに「続きから再開」バナーが残り続けた。
+   * useSessionStore側のsnapshot（画面内メモリ）は消さない。ResultScreenのattemptIds基準
+   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない
+   */
+  function handleFinishEarly() {
+    void completeSession(db).catch((e: unknown) => {
+      console.warn('[DrillScreen] 途中終了時のセッション完了処理に失敗', e)
+    })
+    navigate('result')
+  }
+
   function handleSelectVocabChoice(key: string) {
     if (selectedChoiceKey !== null || dontKnowVocab) return
     setSelectedChoiceKey(key)
@@ -1690,7 +1707,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   // T-162（docs/27 のS-6）: 「次へ」と隣接していると、狙った指が
                   // セッション終了に当たる。罫線と余白で離す
                   className="secondary-action drill-exit-separated"
-                  onClick={() => navigate('result')}
+                  onClick={handleFinishEarly}
                 >
                   ここで終了して結果を見る
                 </button>

@@ -2101,6 +2101,24 @@ describe('DrillScreen: セッション途中終了導線（T-122・J-61）', () 
     expect(useSessionStore.getState().snapshot?.sessionId).toBe(snapshot.sessionId)
   })
 
+  it('「ここで終了して結果を見る」をタップした時点でDB上のセッションを完了させる（T-196・Q-5）', async () => {
+    // 何を防ぐか: 「終了」を選んだのにDB上は中断（進行中）扱いのまま残ると、ResultScreenで
+    // 「ホームへ」をタップする前にタブを閉じる／アプリを離れるだけでホームに
+    // 「続きから再開」バナーが残り続ける。文言（終了）と状態（中断扱い）が矛盾する。
+    // 「終了」を選んだ時点でDBのアクティブセッションを確実に消す（ResultScreenの
+    // 「ホームへ」を待たない）のが正しい挙動
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await answerAndSettle('a', 1) // q-1に正解（残りq-2の1問）
+    fireEvent.click(screen.getByText('ここで終了して結果を見る'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('最終問の解説では「ここで終了して結果を見る」は出ない（「次へ」自体がリザルトへ進むため）', async () => {
     const db = newDb()
     const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
