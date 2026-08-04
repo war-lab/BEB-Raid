@@ -12,7 +12,16 @@ import {
   type RejectedItem,
 } from '@beb-raid/cli/review'
 
-/** content/drafts/ 直下の *.jsonl 一覧（reviewed/ 等のサブディレクトリは除く） */
+/**
+ * レビュー済み出力（review-import・review-uiのいずれが書き出したものも含む）のファイル名末尾。
+ * T-238（Q-81）: `content/drafts/text-passage-p6-s.accepted.jsonl` のように
+ * `content/drafts/` 直下にコミットされている運用があるため、拡張子（.jsonl）だけでは
+ * レビュー対象のドラフトと区別できない。選ぶとpayload不在の空フォームになり、
+ * 誤ってレビュー済みの結果を書き出しかねないため列挙から除外する
+ */
+const REVIEWED_OUTPUT_SUFFIXES = ['.accepted.jsonl', '.rejected.jsonl']
+
+/** content/drafts/ 直下の *.jsonl 一覧（reviewed/ 等のサブディレクトリ、レビュー済み出力は除く） */
 export async function listDraftFiles(contentRoot: string): Promise<string[]> {
   const draftsDir = join(contentRoot, 'drafts')
   let entries: string[]
@@ -21,7 +30,13 @@ export async function listDraftFiles(contentRoot: string): Promise<string[]> {
   } catch {
     return []
   }
-  return entries.filter((name) => extname(name) === '.jsonl').sort()
+  return entries
+    .filter(
+      (name) =>
+        extname(name) === '.jsonl' &&
+        !REVIEWED_OUTPUT_SUFFIXES.some((suffix) => name.endsWith(suffix)),
+    )
+    .sort()
 }
 
 /** 指定ドラフトファイルをパースして返す */

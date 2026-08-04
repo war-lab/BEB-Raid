@@ -17,6 +17,7 @@ import {
   buildManifest,
   buildPack,
   scanAudioFiles,
+  scanImageFiles,
   validateExplanationQuality,
   type PackSource,
 } from './build.js'
@@ -271,6 +272,89 @@ describe('scanAudioFiles', () => {
   it('audioディレクトリが無ければ空集合を返す（text_blankのみのパック等）', async () => {
     const files = await scanAudioFiles(dir)
     expect(files.size).toBe(0)
+  })
+})
+
+// T-239（Q-82）: image（audio_photo）は実ファイル存在チェックの対象外だった
+// （audioFilesはaudio/phraseAudioのみを列挙していたため）。scanImageFilesで
+// images/配下を列挙し、buildPack/buildAllPacksに渡せるようにする
+describe('scanImageFiles（T-239・Q-82）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-build-image-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('images配下を再帰的に列挙し、contentRoot基準の相対パス（/区切り）を返す', async () => {
+    await mkdir(join(dir, 'images/part1'), { recursive: true })
+    await writeFile(join(dir, 'images/part1/q-0001.jpg'), 'dummy')
+
+    const files = await scanImageFiles(dir)
+    expect(files).toEqual(new Set(['images/part1/q-0001.jpg']))
+  })
+
+  it('imagesディレクトリが無ければ空集合を返す（現状の全パックがこの経路）', async () => {
+    const files = await scanImageFiles(dir)
+    expect(files.size).toBe(0)
+  })
+})
+
+describe('buildPack: audio_photoのimage存在チェック（T-239・Q-82）', () => {
+  function audioPhotoQuestion(overrides: Partial<Question> = {}): Question {
+    return {
+      id: 'p1-photo-001',
+      part: 1,
+      format: 'audio_photo',
+      difficulty: 1,
+      tags: [],
+      keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+      audio: 'audio/part1/photo-001.mp3',
+      audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 3000 },
+      script: 'A man is submitting a report.',
+      image: 'images/part1/photo-001.jpg',
+      choices: [
+        { key: 'A', text: 'A man is submitting a report.' },
+        { key: 'B', text: 'A man is filing a form.' },
+      ],
+      answer: 'A',
+      explanation: '"submitting a report"が写真の内容と一致する。',
+      ...overrides,
+    }
+  }
+
+  it('imageFilesを渡すと、一覧に無いimageを参照するパックはbuilt=nullになる', () => {
+    const audioFiles = new Set(['audio/part1/photo-001.mp3'])
+    const imageFiles = new Set(['images/part1/other.jpg'])
+    const { built, errors } = buildPack(
+      source({ questions: [audioPhotoQuestion()] }),
+      audioFiles,
+      imageFiles,
+    )
+    expect(built).toBeNull()
+    expect(errors.some((e) => e.includes('photo-001.jpg'))).toBe(true)
+  })
+
+  it('imageFilesに実ファイルがあれば通る', () => {
+    const audioFiles = new Set(['audio/part1/photo-001.mp3'])
+    const imageFiles = new Set(['images/part1/photo-001.jpg'])
+    const { built, errors } = buildPack(
+      source({ questions: [audioPhotoQuestion()] }),
+      audioFiles,
+      imageFiles,
+    )
+    expect(errors).toEqual([])
+    expect(built).not.toBeNull()
+  })
+
+  it('imageFiles未指定なら存在チェックはスキップされる（従来どおり）', () => {
+    const audioFiles = new Set(['audio/part1/photo-001.mp3'])
+    const { built, errors } = buildPack(source({ questions: [audioPhotoQuestion()] }), audioFiles)
+    expect(errors).toEqual([])
+    expect(built).not.toBeNull()
   })
 })
 

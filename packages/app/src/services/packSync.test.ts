@@ -91,6 +91,33 @@ describe('syncPacks', () => {
     expect(result).toBeNull()
   })
 
+  // T-239（Q-82）: Manifest型にランタイムバリデータが無く、`as Manifest` の型アサーションを
+  // 信用していたため、配信物が壊れている場合（GitHub Pages側の不整合・手動編集ミス等）に
+  // syncPacks内部で未捕捉の例外（例: packsがundefinedでfor...ofが投げる）になっていた。
+  // 「オフライン・manifest取得失敗時はnullを返す」という既存の契約に、manifest自体の
+  // 構造不正も含める（例外を表面化させない）
+  it('manifestの構造が不正なら例外を投げずnullを返す（配信物の破損を取得失敗と同様に扱う）', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const fetchImpl = vi.fn(async () => jsonResponse({}))
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    expect(result).toBeNull()
+    expect(packCache.addAll).not.toHaveBeenCalled()
+  })
+
+  it('manifestのpacksエントリが不正（sizeBytesが負等）でもnullを返す', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const brokenManifest = {
+      schemaVersion: 2,
+      packs: [{ id: 'p', title: 'p', targetLevel: [600, 600], sizeBytes: -1, hash: 'abc' }],
+    }
+    const fetchImpl = vi.fn(async () => jsonResponse(brokenManifest))
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    expect(result).toBeNull()
+    expect(packCache.addAll).not.toHaveBeenCalled()
+  })
+
   it('初回同期: 全パックが新規としてピン留めされ、状態が保存される', async () => {
     const db = newDb()
     const packCache = fakePackCache()

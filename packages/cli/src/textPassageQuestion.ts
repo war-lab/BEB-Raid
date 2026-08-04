@@ -23,6 +23,7 @@ import {
   type Choice,
   type FreqRank,
   type Passage,
+  type PassageKind,
   type Question,
   type SubQuestion,
 } from '@beb-raid/shared-schema'
@@ -302,7 +303,7 @@ export interface Part7MultiRawSubQuestion {
 }
 
 export interface Part7MultiRawPassage {
-  kind: string
+  kind: PassageKind
   text: string
 }
 

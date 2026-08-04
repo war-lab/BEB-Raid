@@ -4,6 +4,11 @@
 // cliのreview.tsの意味論（採用/修正/破棄）をそのまま流用し、出力は既存の
 // review-import運用と互換にする（修正は「編集済みpayloadのまま採用」で表現する。
 // TSV列と違いフィールド単位で直接編集できるため、別ボタンの「修正」は設けない）。
+//
+// T-238（Q-80）: 採用/破棄は以前は一方通行で、確定後は取り消せず・前の問題へ戻る導線も
+// 無かった。誤クリック1件で最初からやり直しになるのを防ぐため、前へ/次へで自由に移動でき、
+// 現在の項目のstatusをpendingへ戻す「取り消す」を設けた。あわせて編集状態を
+// localStorageへ都度保存し、リロードしても直前の状態から再開できるようにする（途中保存）。
 import { useEffect, useState } from 'react'
 import { SCHEMA_VERSION, validatePack, type ValidationError } from '@beb-raid/shared-schema'
 import type { GeneratedItemDraft, RejectedItem } from '@beb-raid/cli/review'
@@ -17,6 +22,46 @@ interface ReviewItem {
   payload: Record<string, unknown>
   status: DraftStatus
   reason: string
+}
+
+/** localStorageに保存する1件分（draft全体ではなくidで再照合するため最小限に絞る） */
+interface PersistedReviewItem {
+  id: string
+  payload: Record<string, unknown>
+  status: DraftStatus
+  reason: string
+}
+
+const PROGRESS_STORAGE_PREFIX = 'beb-review-ui:progress:'
+
+/**
+ * 途中保存の読み書き。localStorageが使えない環境（プライベートブラウズ等）でも
+ * レビュー自体は継続できるよう、失敗は握りつぶす（保存できないだけで、機能停止にはしない）。
+ */
+function loadProgress(filename: string): PersistedReviewItem[] | null {
+  try {
+    const raw = localStorage.getItem(PROGRESS_STORAGE_PREFIX + filename)
+    if (!raw) return null
+    return JSON.parse(raw) as PersistedReviewItem[]
+  } catch {
+    return null
+  }
+}
+
+function saveProgress(filename: string, items: readonly PersistedReviewItem[]): void {
+  try {
+    localStorage.setItem(PROGRESS_STORAGE_PREFIX + filename, JSON.stringify(items))
+  } catch {
+    // 保存できなくてもレビュー継続を優先する（容量超過・プライベートブラウズ等）
+  }
+}
+
+function clearProgress(filename: string): void {
+  try {
+    localStorage.removeItem(PROGRESS_STORAGE_PREFIX + filename)
+  } catch {
+    // 削除できなくても書き出し自体は成功しているので無視する
+  }
 }
 
 function validateDraftPayload(payload: unknown): ValidationError[] {
@@ -67,19 +112,40 @@ export function App() {
     setCurrentIndex(0)
     try {
       const drafts = await fetchDrafts(filename)
-      setItems(
-        drafts.map((draft) => ({
+      const saved = loadProgress(filename)
+      const restored = drafts.map((draft) => {
+        const savedItem = saved?.find((s) => s.id === draft.id)
+        return {
           draft,
-          payload: { ...(draft.payload as Record<string, unknown>) },
-          status: 'pending',
-          reason: '',
-        })),
-      )
+          payload: savedItem
+            ? savedItem.payload
+            : { ...(draft.payload as Record<string, unknown>) },
+          status: savedItem ? savedItem.status : ('pending' as DraftStatus),
+          reason: savedItem ? savedItem.reason : '',
+        }
+      })
+      setItems(restored)
+      const firstPending = restored.findIndex((it) => it.status === 'pending')
+      setCurrentIndex(firstPending !== -1 ? firstPending : 0)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setItems(null)
     }
   }
+
+  // 途中保存: 選択中ファイルの編集状態が変わるたびlocalStorageへ反映する
+  useEffect(() => {
+    if (!items || !selectedFile) return
+    saveProgress(
+      selectedFile,
+      items.map((it) => ({
+        id: it.draft.id,
+        payload: it.payload,
+        status: it.status,
+        reason: it.reason,
+      })),
+    )
+  }, [items, selectedFile])
 
   function updateCurrent(patch: Partial<ReviewItem>) {
     setItems((prev) =>
@@ -117,6 +183,23 @@ export function App() {
     goToNextPending(currentIndex, updated)
   }
 
+  /** 採用・破棄を取り消し、現在の項目をpendingへ戻す（編集済みpayload・破棄理由は保持する） */
+  function handleUndo() {
+    if (!items) return
+    setItems(
+      items.map((it, i) => (i === currentIndex ? { ...it, status: 'pending' as const } : it)),
+    )
+  }
+
+  function handlePrev() {
+    setCurrentIndex((i) => Math.max(0, i - 1))
+  }
+
+  function handleNext() {
+    if (!items) return
+    setCurrentIndex((i) => Math.min(items.length - 1, i + 1))
+  }
+
   async function handleSubmit() {
     if (!items || !selectedFile) return
     const accepted = items.filter((it) => it.status === 'accepted').map((it) => it.payload)
@@ -126,6 +209,8 @@ export function App() {
     try {
       const result = await submitReview(selectedFile, accepted, rejected)
       setSubmitResult(result)
+      // 書き出しが成功しdisk上のaccepted/rejected.jsonlが正になったため、途中保存は不要になる
+      clearProgress(selectedFile)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -164,6 +249,15 @@ export function App() {
           <p>
             {items.length}件中 未レビュー{pendingCount}件（現在 {currentIndex + 1}件目）
           </p>
+
+          <div className="review-app__nav">
+            <button type="button" disabled={currentIndex === 0} onClick={handlePrev}>
+              前へ
+            </button>
+            <button type="button" disabled={currentIndex >= items.length - 1} onClick={handleNext}>
+              次へ
+            </button>
+          </div>
 
           {current ? (
             <div className="review-card">
@@ -213,6 +307,11 @@ export function App() {
                 >
                   破棄
                 </button>
+                {current.status !== 'pending' && (
+                  <button type="button" onClick={handleUndo}>
+                    取り消す
+                  </button>
+                )}
               </div>
             </div>
           ) : (

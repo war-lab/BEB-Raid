@@ -22,6 +22,7 @@ import {
   buildManifest,
   PACK_DEFINITIONS,
   scanAudioFiles,
+  scanImageFiles,
   type PackSource,
 } from './build.js'
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
@@ -488,6 +489,10 @@ export const commands: CliCommand[] = [
       const contentRoot = ctx.args[0] ?? 'content'
       const correctionsPath = ctx.args[1]
       const audioFiles = await scanAudioFiles(contentRoot)
+      // T-239（Q-82）: audio_photo の image 存在チェック。現状 audio_photo を使うパックは
+      // 無いが、実ファイル一覧が無限定に空集合＝全image参照を拒否になるので他フォーマットと
+      // 同じ「実ファイル列挙を渡して検証する」経路をここで揃えておく
+      const imageFiles = await scanImageFiles(contentRoot)
 
       let sources = await loadPackSources(contentRoot)
       if (correctionsPath) {
@@ -496,7 +501,7 @@ export const commands: CliCommand[] = [
         ctx.out(`実測補正（${correctionsPath}）を適用しました`)
       }
 
-      const { built, errors, warnings } = buildAllPacks(sources, audioFiles)
+      const { built, errors, warnings } = buildAllPacks(sources, audioFiles, imageFiles)
       if (errors.length > 0) {
         for (const e of errors) ctx.errOut(`エラー: ${e}`)
         ctx.errOut(
