@@ -27,7 +27,12 @@ import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
-import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
+import {
+  currentSubAnswers,
+  startSession,
+  type SessionItem,
+  type SessionSnapshot,
+} from '../services/session'
 import {
   LAST_SEEN_STREAK_KEY,
   NO_EARPHONE_MODE_KEY,
@@ -67,14 +72,22 @@ export function confirmDiscardMessage(remaining: number): string {
 /**
  * 中断セッションの残り解答回数（T-175。docs/27 のS-26）。
  * item数で数えると audio_set（1itemで3サブ設問）を1回と数えてしまい、
- * ドリル画面の進捗表示（実解答回数）と食い違う
+ * ドリル画面の進捗表示（実解答回数）と食い違う。
+ *
+ * T-200（Q-10）: `snapshot.answeredCount` はitem単位でしか進まないため、
+ * 現在item（読解・audio_set）内で答え終えたサブ設問（`snapshot.subAnswers`）は
+ * まだ反映されていない。それを引かないと、Part7で3問中1問だけ解答して
+ * 「次へ」を押す前に中断した場合、その1問分が残数に反映されず「残り7問」のまま
+ * （実際は6問）になる。Part5等サブ設問を持たないitemは常にsubAnswersが空なので
+ * この補正は効かず、従来どおりの挙動を保つ
  */
 export function remainingAnswerSlots(
   snapshot: SessionSnapshot,
   questionPool: readonly Question[],
 ): number {
   const lookup = new Map(questionPool.map((q) => [q.id, q]))
-  return totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
+  const total = totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
+  return Math.max(0, total - currentSubAnswers(snapshot).length)
 }
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]

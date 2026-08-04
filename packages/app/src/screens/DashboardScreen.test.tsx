@@ -260,6 +260,26 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
     )
   })
 
+  // 何を防ぐか: rankPointsはレート差分（小数を持ちうる）＋学習日数の合算なので丸めずに
+  // 表示すると「現在 6.450246125604053pt」のような小数が出る（実機所見、docs/29 Q-6）
+  it('T-197: rankPointsが小数でも丸めた整数で表示される', async () => {
+    const db = newDb()
+    await db.ratingHistory.bulkPut([{ date: '2026-07-01', section: 'total', rating: 400 }])
+    await db.ratings.put({
+      section: 'total',
+      rating: 406.450246125604053,
+      updatedAt: Date.now(),
+    })
+    render(<DashboardScreen db={db} questionPool={[]} />)
+
+    const rankSection = await screen.findByTestId('growth-rank')
+    expect(rankSection.textContent).toContain('現在 6pt')
+    expect(rankSection.textContent).not.toMatch(/\d+\.\d+pt/)
+    expect((await screen.findByTestId('growth-rank-next')).textContent).toBe(
+      '次のランク（シルバー）まで残り 34pt',
+    )
+  })
+
   // docs/25 V-14: 色＋台座段数の二重符号化。色を落としても段数でランクが判別できること
   it('ランクIDが data-rank に載り、台座の線の本数が段数（ブロンズ=1）になる', async () => {
     const db = newDb()
@@ -289,11 +309,24 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
 })
 
 describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () => {
-  it('ratings不在でもヒーロー数値と「計測中」表示が壊れず出る', async () => {
+  it('ratings不在でも「計測中」表示は壊れず出る', async () => {
     const db = newDb()
     render(<DashboardScreen db={db} questionPool={[]} />)
     await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
     expect(screen.getByTestId('forecast-message').textContent).toContain('計測中')
+  })
+
+  // 何を防ぐか: measuring（データ14日未満）でも予測スコア帯の数値（display-num）を
+  // 同時に出すと「604–704」と「計測中」が矛盾して見える（実機所見、docs/29 Q-9）。
+  // 排他にする＝measuringの間は数値を一切出さない
+  it('T-199: measuringでは予測スコア帯の数値を出さず「計測中」のみになる', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    expect(screen.getByTestId('forecast-message').textContent).toContain('計測中')
+    expect(document.querySelector('.dashboard-forecast-hero .display-num')).toBeNull()
+    expect(screen.queryByText('予測スコア帯（参考値。社内問題での推定）')).toBeNull()
   })
 
   it('14日以上の履歴があると断定しない到達予測が表示される（onTrack）', async () => {
@@ -314,6 +347,8 @@ describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () =>
     const message = screen.getByTestId('forecast-message').textContent!
     expect(message).toContain('参考値')
     expect(message).not.toMatch(/します|なります|保証/) // 断定表現を含まない
+    // T-199: measuringでないときは排他の反対側（数値が出る）も壊れていないことを確認する
+    expect(document.querySelector('.dashboard-forecast-hero .display-num')).not.toBeNull()
   })
 
   it('実試験スコアを登録すると一覧に表示され、予測帯との差が併記される', async () => {
