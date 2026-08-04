@@ -276,7 +276,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       const isBroken =
         record.lastActiveDate !== null && gap >= BROKEN_GAP_DAYS && !status.todayCompleted
       setStreakDays(status.currentDays)
-      setBrokenSinceDays(isBroken ? status.currentDays : null)
+      // T-195（Q-102）: 「前回N日」はstatus.currentDaysではなくrecord（生データ）から取る。
+      // evaluateStreakは途切れ確定時にcurrentDaysを0で返すよう変更した（旧値の表示居座り防止）が、
+      // この「前回何日だったか」の文脈表示は途切れる前の値をそのまま見せたいため、
+      // DBの生の値（record.currentDays）を使う
+      setBrokenSinceDays(isBroken ? record.currentDays : null)
       setDueCount(queue.dueReviews.length)
       setPhase(phaseState)
 
