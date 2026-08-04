@@ -31,22 +31,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "contractor"
-        },
-        {
-          "key": "B",
           "text": "shareholder"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "applicant"
+        },
+        {
+          "key": "C",
+          "text": "contractor"
         },
         {
           "key": "D",
           "text": "tenant"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "改装工事を請け負う外部の業者はcontractor。shareholder（株主）・applicant（応募者）・tenant（借家人）はいずれも工事を請け負う立場ではない。",
       "translation": "その会社はオフィスの改装のために外部の請負業者を雇った。"
     },
@@ -69,22 +69,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "sponsor"
-        },
-        {
-          "key": "B",
-          "text": "exhibitor"
-        },
-        {
-          "key": "C",
           "text": "invitee"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "contractor"
+        },
+        {
+          "key": "C",
+          "text": "exhibitor"
+        },
+        {
+          "key": "D",
+          "text": "sponsor"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "\"an independent contractor\"（独立請負業者）は定番の言い方。sponsor（協賛者）・exhibitor（出展者）・invitee（招待客）は契約して業務を請け負う立場を表さない。",
       "translation": "私たちはそのプロジェクトのために独立請負業者と契約を結んだ。"
     },
@@ -115,14 +115,14 @@
         },
         {
           "key": "C",
-          "text": "contractor"
+          "text": "plaintiff"
         },
         {
           "key": "D",
-          "text": "plaintiff"
+          "text": "contractor"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "入札（bid）を提出するのは工事等を請け負う業者=contractor。plaintiff（原告）・defendant（被告）・wholesaler（卸売業者）は入札の主体として自然ではない。",
       "translation": "その請負業者は予想より低い入札額を提出した。"
     },
@@ -153,11 +153,11 @@
         },
         {
           "key": "C",
-          "text": "subsidiary"
+          "text": "consignment"
         },
         {
           "key": "D",
-          "text": "consignment"
+          "text": "subsidiary"
         }
       ],
       "answer": "B",
@@ -183,22 +183,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "franchise"
+          "text": "workforce"
         },
         {
           "key": "B",
-          "text": "litigation"
-        },
-        {
-          "key": "C",
           "text": "backlog"
         },
         {
+          "key": "C",
+          "text": "litigation"
+        },
+        {
           "key": "D",
-          "text": "workforce"
+          "text": "franchise"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "\"expand its franchise\"（フランチャイズ展開を拡大する）は定番の言い方。litigation（訴訟）・backlog（滞積）・workforce（労働力）は海外展開の対象として意味が通らない。",
       "translation": "その会社はフランチャイズ展開を海外市場に拡大する計画だ。"
     },
@@ -221,11 +221,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "consignment"
+          "text": "shipment"
         },
         {
           "key": "B",
-          "text": "shipment"
+          "text": "franchise"
         },
         {
           "key": "C",
@@ -233,10 +233,10 @@
         },
         {
           "key": "D",
-          "text": "franchise"
+          "text": "consignment"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "本部の運営ルールに従う経営形態はfranchise。consignment（委託荷物）・shipment（出荷）・subsidy（補助金）はいずれも「経営形態」を表さない。",
       "translation": "フランチャイズ店を所有するということは、本部の運営ルールに従うことを意味する。"
     },
@@ -259,22 +259,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "clearance"
-        },
-        {
-          "key": "B",
-          "text": "warranty"
-        },
-        {
-          "key": "C",
           "text": "consignment"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "compliance"
+        },
+        {
+          "key": "C",
+          "text": "clearance"
+        },
+        {
+          "key": "D",
+          "text": "warranty"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "\"sell on consignment\"（委託販売する）は定番の言い方。compliance（法令遵守）・clearance（在庫一掃）・warranty（保証）は販売方式を表さない。",
       "translation": "その店は地元の売り手からの委託品として中古家具を販売している。"
     },
@@ -297,22 +297,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "levy"
-        },
-        {
-          "key": "B",
-          "text": "consignment"
-        },
-        {
-          "key": "C",
           "text": "headcount"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "workforce"
+        },
+        {
+          "key": "C",
+          "text": "consignment"
+        },
+        {
+          "key": "D",
+          "text": "levy"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "\"a consignment of goods\"（委託貨物の一群）は定番の言い方。headcount（人員数）・workforce（労働力）・levy（課税）は貨物を数える単位にならない。",
       "translation": "大量の委託貨物が国境で止められた。"
     },
@@ -335,11 +335,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "consignment"
+          "text": "sustainability"
         },
         {
           "key": "B",
-          "text": "subsidiary"
+          "text": "consignment"
         },
         {
           "key": "C",
@@ -347,10 +347,10 @@
         },
         {
           "key": "D",
-          "text": "sustainability"
+          "text": "subsidiary"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "壊れやすい品・壊れにくい品を含む「荷物一式」はconsignment。subsidiary（子会社）・litigation（訴訟）・sustainability（持続可能性）は荷物を指さない。",
       "translation": "その委託荷物には壊れやすい品と壊れにくい品の両方が含まれていた。"
     },
@@ -373,22 +373,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "deprecate"
+          "text": "streamline"
         },
         {
           "key": "B",
-          "text": "diversify"
-        },
-        {
-          "key": "C",
           "text": "mitigate"
         },
         {
+          "key": "C",
+          "text": "deprecate"
+        },
+        {
           "key": "D",
-          "text": "streamline"
+          "text": "diversify"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "承認プロセスを効率化・簡素化するのはstreamline。deprecate（非推奨にする）・diversify（多角化する）・mitigate（軽減する）は文脈に合わない。",
       "translation": "その新しいソフトウェアは承認プロセスの合理化に役立つだろう。"
     },
@@ -415,18 +415,18 @@
         },
         {
           "key": "B",
-          "text": "rectify"
+          "text": "streamline"
         },
         {
           "key": "C",
-          "text": "streamline"
+          "text": "rectify"
         },
         {
           "key": "D",
           "text": "incentivize"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "無駄なコストを削るために業務を効率化するのはstreamline。incentivize（動機づける）・appease（なだめる）・rectify（是正する）は文脈に合わない。",
       "translation": "経営陣は不要なコストを削減するため業務を合理化したいと考えている。"
     },
@@ -453,18 +453,18 @@
         },
         {
           "key": "B",
-          "text": "streamline"
+          "text": "condemn"
         },
         {
           "key": "C",
-          "text": "subsidize"
+          "text": "streamline"
         },
         {
           "key": "D",
-          "text": "condemn"
+          "text": "subsidize"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "サプライチェーンを効率化するのはstreamline。subsidize（補助金を出す）・condemn（非難する/使用禁止にする）・adjudicate（裁定する）は文脈に合わない。",
       "translation": "その合併により両社はサプライチェーンを合理化できた。"
     },
@@ -487,22 +487,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "commute"
-        },
-        {
-          "key": "B",
-          "text": "itinerary"
-        },
-        {
-          "key": "C",
           "text": "layover"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "stopover"
+        },
+        {
+          "key": "C",
+          "text": "commute"
+        },
+        {
+          "key": "D",
+          "text": "itinerary"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "自宅と職場の往復移動はcommute。itinerary（旅程）・layover/stopover（乗り継ぎ）は通勤を表さない。",
       "translation": "彼女の毎日の通勤は片道ほぼ2時間かかる。"
     },
@@ -525,22 +525,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "embark"
+          "text": "commute"
         },
         {
           "key": "B",
-          "text": "disembark"
+          "text": "embark"
         },
         {
           "key": "C",
-          "text": "repatriate"
+          "text": "disembark"
         },
         {
           "key": "D",
-          "text": "commute"
+          "text": "repatriate"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "郊外から都心へ毎日通うのはcommute（動詞）。embark（乗船する）・disembark（下船する）・repatriate（本国へ送還する）は通勤の意味を持たない。",
       "translation": "多くの従業員が毎日郊外から都心へ通勤している。"
     },
@@ -563,7 +563,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "probation"
+          "text": "tenure"
         },
         {
           "key": "B",
@@ -575,7 +575,7 @@
         },
         {
           "key": "D",
-          "text": "tenure"
+          "text": "probation"
         }
       ],
       "answer": "C",
@@ -601,22 +601,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "inauguration"
+          "text": "arbitration"
         },
         {
           "key": "B",
-          "text": "orientation"
+          "text": "inauguration"
         },
         {
           "key": "C",
-          "text": "arbitration"
+          "text": "orientation"
         },
         {
           "key": "D",
           "text": "liquidation"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "新入社員向けの導入研修はorientation。arbitration（仲裁）・liquidation（清算）・inauguration（就任式）は新人研修を表さない。",
       "translation": "新入社員は全員、1日間のオリエンテーションに出席しなければならない。"
     },
@@ -639,22 +639,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "orientation"
+          "text": "plenary"
         },
         {
           "key": "B",
-          "text": "consensus"
-        },
-        {
-          "key": "C",
           "text": "symposium"
         },
         {
+          "key": "C",
+          "text": "orientation"
+        },
+        {
           "key": "D",
-          "text": "plenary"
+          "text": "consensus"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "会社の規定と安全ルールを扱う導入プログラムはorientation program。consensus（合意）・symposium（シンポジウム）・plenary（全体会議）は新人研修を表さない。",
       "translation": "そのオリエンテーションプログラムは会社の規定と基本的な安全ルールを扱う。"
     },
@@ -677,22 +677,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "commencement"
-        },
-        {
-          "key": "B",
-          "text": "convocation"
-        },
-        {
-          "key": "C",
           "text": "jubilee"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "orientation"
+        },
+        {
+          "key": "C",
+          "text": "commencement"
+        },
+        {
+          "key": "D",
+          "text": "convocation"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "新人がチームやメンターに紹介されるのはorientationの期間。commencement（開始式/卒業式）・convocation（式典）・jubilee（記念祭）は新人研修を表さない。",
       "translation": "オリエンテーションの期間中、従業員はチームやメンターに紹介される。"
     },
@@ -715,22 +715,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "codify"
-        },
-        {
-          "key": "B",
           "text": "substantiate"
         },
         {
+          "key": "B",
+          "text": "codify"
+        },
+        {
           "key": "C",
-          "text": "revise"
+          "text": "proliferate"
         },
         {
           "key": "D",
-          "text": "proliferate"
+          "text": "revise"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "報告書に最新の数値を反映させて修正するのはrevise。proliferate（急増する）・codify（成文化する）・substantiate（立証する）は文脈に合わない。",
       "translation": "最新の売上数値を反映させるよう、報告書を修正してください。"
     },
@@ -753,22 +753,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "corroborate"
+          "text": "annotate"
         },
         {
           "key": "B",
-          "text": "revise"
-        },
-        {
-          "key": "C",
           "text": "disseminate"
         },
         {
+          "key": "C",
+          "text": "corroborate"
+        },
+        {
           "key": "D",
-          "text": "annotate"
+          "text": "revise"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "フィードバックを受けて提案書を修正するのはrevise。disseminate（周知する）・annotate（注釈を付ける）・corroborate（裏付ける）は文脈に合わない。",
       "translation": "委員会はフィードバックを受け取った後、提案書を修正することに決めた。"
     },
@@ -791,22 +791,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "revised"
-        },
-        {
-          "key": "B",
-          "text": "ratified"
-        },
-        {
-          "key": "C",
           "text": "promulgated"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "stipulated"
+        },
+        {
+          "key": "C",
+          "text": "ratified"
+        },
+        {
+          "key": "D",
+          "text": "revised"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "顧客の要望で開始時刻を修正するのはrevise。ratify（批准する）・promulgate（公布する）・stipulate（規定する）は「予定を変更する」の意味を持たない。",
       "translation": "複数の顧客が開始時刻を遅らせるよう求めたため、予定は修正された。"
     },
@@ -829,22 +829,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "portfolio"
-        },
-        {
-          "key": "B",
           "text": "clientele"
         },
         {
+          "key": "B",
+          "text": "workforce"
+        },
+        {
           "key": "C",
-          "text": "assortment"
+          "text": "portfolio"
         },
         {
           "key": "D",
-          "text": "workforce"
+          "text": "assortment"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "従業員数全体を指すのはworkforce。portfolio（資産構成）・clientele（顧客層）・assortment（品揃え）は従業員数を表さない。",
       "translation": "その工場は来年、労働力を20%増やす計画だ。"
     },
@@ -867,11 +867,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "subsidiary"
+          "text": "franchise"
         },
         {
           "key": "B",
-          "text": "franchise"
+          "text": "subsidiary"
         },
         {
           "key": "C",
@@ -905,22 +905,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "stakeholder"
+          "text": "liaison"
         },
         {
           "key": "B",
-          "text": "workforce"
+          "text": "stakeholder"
         },
         {
           "key": "C",
-          "text": "ombudsman"
+          "text": "workforce"
         },
         {
           "key": "D",
-          "text": "liaison"
+          "text": "ombudsman"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "自動化によりスキル要件が変わる対象は「労働力全体」workforce。ombudsman（オンブズマン）・liaison（連絡担当者）・stakeholder（利害関係者）は文脈に合わない。",
       "translation": "自動化は現代の労働力に求められるスキルを変えてきた。"
     },
@@ -943,22 +943,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "compensate"
+          "text": "placate"
         },
         {
           "key": "B",
-          "text": "appease"
+          "text": "compensate"
         },
         {
           "key": "C",
-          "text": "indemnify"
+          "text": "appease"
         },
         {
           "key": "D",
-          "text": "placate"
+          "text": "indemnify"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "欠航の乗客に金銭等で埋め合わせるのはcompensate。appease/placate（なだめる）は感情的な鎮静を表し金銭補償に限らない。indemnify（契約上の損害補償）はより法的・限定的な文脈で使う。",
       "translation": "その航空会社は欠航便の乗客に補償することに同意した。"
     },
@@ -981,22 +981,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "incentivize"
+          "text": "compensate"
         },
         {
           "key": "B",
-          "text": "retain"
-        },
-        {
-          "key": "C",
           "text": "delegate"
         },
         {
+          "key": "C",
+          "text": "incentivize"
+        },
+        {
           "key": "D",
-          "text": "compensate"
+          "text": "retain"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "未払いの残業代を支払う（埋め合わせる）のはcompensate。incentivize（動機づける）・retain（つなぎ止める）・delegate（委任する）は文脈に合わない。",
       "translation": "その会社は未払いの残業代について従業員に補償を申し出た。"
     },
@@ -1019,22 +1019,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "arbitrate"
-        },
-        {
-          "key": "B",
-          "text": "liaise"
-        },
-        {
-          "key": "C",
           "text": "compensate"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "mediate"
+        },
+        {
+          "key": "C",
+          "text": "liaise"
+        },
+        {
+          "key": "D",
+          "text": "arbitrate"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "\"compensate for the loss of...\"（〜の不足を埋め合わせる）は定番の言い方。mediate（調停する）・arbitrate（仲裁する）・liaise（連絡を取る）は文脈に合わない。",
       "translation": "2人のマネージャーが抜けた穴を埋めるため、追加の人員が雇われた。"
     },
@@ -1057,11 +1057,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "liquidity"
+          "text": "headcount"
         },
         {
           "key": "B",
-          "text": "headcount"
+          "text": "liquidity"
         },
         {
           "key": "C",
@@ -1072,7 +1072,7 @@
           "text": "overhead"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "予算削減で凍結する「従業員数」はheadcount。turnover（離職率/売上高）・overhead（諸経費）・liquidity（流動性）は従業員数を表さない。",
       "translation": "その部署は予算削減のため人員数を凍結した。"
     },
@@ -1095,22 +1095,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "headcount"
-        },
-        {
-          "key": "B",
           "text": "portfolio"
         },
         {
+          "key": "B",
+          "text": "headcount"
+        },
+        {
           "key": "C",
-          "text": "assortment"
+          "text": "clientele"
         },
         {
           "key": "D",
-          "text": "clientele"
+          "text": "assortment"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "「500人分の人員数」を収容するように設計されたという文脈にはheadcountが合う。portfolio（資産構成）・assortment（品揃え）・clientele（顧客層）は人数を表さない。",
       "translation": "その新しいオフィスは500人の人員数を収容できるよう設計された。"
     },
@@ -1133,22 +1133,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "valuation"
+          "text": "headcount"
         },
         {
           "key": "B",
-          "text": "amortization"
-        },
-        {
-          "key": "C",
           "text": "depreciation"
         },
         {
+          "key": "C",
+          "text": "amortization"
+        },
+        {
           "key": "D",
-          "text": "headcount"
+          "text": "valuation"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "採用計画のために四半期ごとに確認するのは人員数=headcount report。valuation（評価額）・amortization（償却）・depreciation（減価償却）は人員数と無関係。",
       "translation": "人事部は採用計画のため、四半期ごとに人員数レポートを確認する。"
     },
@@ -1171,22 +1171,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "shareholder"
-        },
-        {
-          "key": "B",
-          "text": "liaison"
-        },
-        {
-          "key": "C",
           "text": "subsidiary"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "shareholder"
+        },
+        {
+          "key": "C",
           "text": "stakeholder"
+        },
+        {
+          "key": "D",
+          "text": "liaison"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "親会社が売却する海外の子会社はsubsidiary。stakeholder（利害関係者）・shareholder（株主）・liaison（連絡担当者）は「会社」を指さない。",
       "translation": "親会社は昨年、海外子会社の一つを売却した。"
     },
@@ -1247,7 +1247,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "subsidiary"
+          "text": "defendant"
         },
         {
           "key": "B",
@@ -1255,14 +1255,14 @@
         },
         {
           "key": "C",
-          "text": "defendant"
+          "text": "tribunal"
         },
         {
           "key": "D",
-          "text": "tribunal"
+          "text": "subsidiary"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "本社に四半期ごとの収益を報告する「地域子会社」はsubsidiary。plaintiff/defendant（原告/被告）・tribunal（審判所）は法廷関連語で文脈に合わない。",
       "translation": "各地域の子会社は四半期ごとに収益を本社へ報告する。"
     },
@@ -1285,7 +1285,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "consolidation"
+          "text": "litigation"
         },
         {
           "key": "B",
@@ -1293,14 +1293,14 @@
         },
         {
           "key": "C",
-          "text": "saturation"
+          "text": "consolidation"
         },
         {
           "key": "D",
-          "text": "litigation"
+          "text": "saturation"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "訴訟手続きに至る前に和解したという文脈にはlitigationが合う。consolidation（統合）・proliferation（急増）・saturation（飽和）は法的手続きを表さない。",
       "translation": "両社は訴訟手続きに入る前に紛争を和解で解決した。"
     },
@@ -1327,7 +1327,7 @@
         },
         {
           "key": "B",
-          "text": "diversification"
+          "text": "negotiation"
         },
         {
           "key": "C",
@@ -1335,7 +1335,7 @@
         },
         {
           "key": "D",
-          "text": "negotiation"
+          "text": "diversification"
         }
       ],
       "answer": "C",
@@ -1361,22 +1361,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "endowment"
+          "text": "levy"
         },
         {
           "key": "B",
-          "text": "litigation"
-        },
-        {
-          "key": "C",
           "text": "subsidy"
         },
         {
+          "key": "C",
+          "text": "litigation"
+        },
+        {
           "key": "D",
-          "text": "levy"
+          "text": "endowment"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "訴訟費用に充てる資金という文脈にはlitigationが合う。subsidy（補助金）・levy（課税）・endowment（寄付基金）は訴訟費用を表さない。",
       "translation": "その会社は訴訟費用を賄うための資金を確保した。"
     },
@@ -1403,15 +1403,15 @@
         },
         {
           "key": "B",
-          "text": "insolvency"
+          "text": "bankruptcy"
         },
         {
           "key": "C",
-          "text": "foreclosure"
+          "text": "insolvency"
         },
         {
           "key": "D",
-          "text": "bankruptcy"
+          "text": "foreclosure"
         }
       ],
       "answer": "A",
@@ -1437,22 +1437,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "liquidity"
-        },
-        {
-          "key": "B",
           "text": "compliance"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "solvency"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "sustainability"
+        },
+        {
+          "key": "D",
+          "text": "liquidity"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "\"commitment to sustainability\"（持続可能性への取り組み）は定番の言い方。liquidity（流動性）・compliance（法令遵守）・solvency（支払能力）は環境配慮を表さない。",
       "translation": "その会社の持続可能性への取り組みには、プラスチック包装の削減が含まれる。"
     },
@@ -1475,22 +1475,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "amortization"
-        },
-        {
-          "key": "B",
-          "text": "valuation"
-        },
-        {
-          "key": "C",
           "text": "sustainability"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "depreciation"
+        },
+        {
+          "key": "C",
+          "text": "valuation"
+        },
+        {
+          "key": "D",
+          "text": "amortization"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "投資家が注目する「事業モデルの持続可能性」はsustainability。depreciation/amortization（減価償却）・valuation（評価額）は文脈に合わない。",
       "translation": "投資家はビジネスモデルの持続可能性にますます注目している。"
     },
@@ -1513,22 +1513,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "indictment"
-        },
-        {
-          "key": "B",
           "text": "feedback"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "testimony"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "affidavit"
+        },
+        {
+          "key": "D",
+          "text": "indictment"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "製品デザインへの意見・感想を求める文脈にはfeedbackが合う。testimony（証言）・affidavit（宣誓供述書）・indictment（起訴）は法廷用語で文脈に合わない。",
       "translation": "新しい製品デザインについて、ご意見をいただければ幸いです。"
     },
@@ -1551,22 +1551,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "feedback"
-        },
-        {
-          "key": "B",
           "text": "testimony"
         },
         {
+          "key": "B",
+          "text": "subpoena"
+        },
+        {
           "key": "C",
-          "text": "affidavit"
+          "text": "feedback"
         },
         {
           "key": "D",
-          "text": "subpoena"
+          "text": "affidavit"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "購入後に顧客から集める「意見・感想」はfeedback。testimony（証言）・affidavit（宣誓供述書）・subpoena（召喚状）は文脈に合わない。",
       "translation": "そのアンケートは購入のたびに顧客からフィードバックを集める。"
     },
@@ -1589,11 +1589,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "stipulation"
+          "text": "preamble"
         },
         {
           "key": "B",
-          "text": "preamble"
+          "text": "stipulation"
         },
         {
           "key": "C",
@@ -1627,22 +1627,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "stakeholder"
-        },
-        {
-          "key": "B",
-          "text": "liaison"
-        },
-        {
-          "key": "C",
           "text": "technician"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "supervisor"
+        },
+        {
+          "key": "C",
+          "text": "stakeholder"
+        },
+        {
+          "key": "D",
+          "text": "liaison"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "プリンターを修理しに来るのはtechnician。supervisor（上司）・stakeholder（利害関係者）・liaison（連絡担当者）は修理を行う専門職ではない。",
       "translation": "今日の午後、技術者がプリンターを修理しに来る。"
     },
@@ -1665,22 +1665,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "liaison"
+          "text": "proofreader"
         },
         {
           "key": "B",
-          "text": "technician"
+          "text": "liaison"
         },
         {
           "key": "C",
-          "text": "mentor"
+          "text": "technician"
         },
         {
           "key": "D",
-          "text": "proofreader"
+          "text": "mentor"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "設備を保守するために雇う経験豊富な専門職はtechnician。mentor（指導者）・proofreader（校正者）・liaison（連絡担当者）は設備保守の専門職ではない。",
       "translation": "その研究室は設備を保守するために経験豊富な技術者を雇った。"
     },
@@ -1707,7 +1707,7 @@
         },
         {
           "key": "B",
-          "text": "occupant"
+          "text": "applicant"
         },
         {
           "key": "C",
@@ -1715,7 +1715,7 @@
         },
         {
           "key": "D",
-          "text": "applicant"
+          "text": "occupant"
         }
       ],
       "answer": "A",
@@ -1741,22 +1741,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "proliferate"
+          "text": "malfunction"
         },
         {
           "key": "B",
-          "text": "diversify"
-        },
-        {
-          "key": "C",
           "text": "consolidate"
         },
         {
+          "key": "C",
+          "text": "diversify"
+        },
+        {
           "key": "D",
-          "text": "malfunction"
+          "text": "proliferate"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "停電の後にエレベーターが不調になるのはmalfunction。proliferate（急増する）・diversify（多角化する）・consolidate（統合する）は「故障する」の意味を持たない。",
       "translation": "停電の直後、エレベーターが不調になり始めた。"
     },
@@ -1779,22 +1779,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "proliferation"
+          "text": "malfunction"
         },
         {
           "key": "B",
-          "text": "escalation"
+          "text": "proliferation"
         },
         {
           "key": "C",
-          "text": "malfunction"
+          "text": "escalation"
         },
         {
           "key": "D",
           "text": "saturation"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "システムが予期せず停止した原因はsoftware malfunction（ソフトウェアの不具合）。saturation（飽和）・proliferation（急増）・escalation（激化）は「不具合」を表さない。",
       "translation": "ソフトウェアの不具合により、システムが予期せず停止した。"
     },
@@ -1825,11 +1825,11 @@
         },
         {
           "key": "C",
-          "text": "appease"
+          "text": "rectify"
         },
         {
           "key": "D",
-          "text": "rectify"
+          "text": "appease"
         }
       ],
       "answer": "B",
@@ -1859,7 +1859,7 @@
         },
         {
           "key": "B",
-          "text": "occupant"
+          "text": "exhibitor"
         },
         {
           "key": "C",
@@ -1867,7 +1867,7 @@
         },
         {
           "key": "D",
-          "text": "exhibitor"
+          "text": "occupant"
         }
       ],
       "answer": "A",
@@ -1893,22 +1893,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "invitee"
+          "text": "applicant"
         },
         {
           "key": "B",
-          "text": "dignitary"
+          "text": "invitee"
         },
         {
           "key": "C",
-          "text": "attendee"
+          "text": "dignitary"
         },
         {
           "key": "D",
-          "text": "applicant"
+          "text": "attendee"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "履歴書を提出した「応募者全員」はapplicant。invitee（招待客）・dignitary（要人）・attendee（参加者）は求人応募者を表さない。",
       "translation": "人事チームは全ての応募者の履歴書を確認している。"
     },
@@ -1931,7 +1931,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "shareholder"
+          "text": "applicant"
         },
         {
           "key": "B",
@@ -1939,14 +1939,14 @@
         },
         {
           "key": "C",
-          "text": "applicant"
+          "text": "shareholder"
         },
         {
           "key": "D",
           "text": "contractor"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "2回目の面接に招待される「最も有力な応募者」はapplicant。contractor（請負業者）・shareholder（株主）・sponsor（協賛者）は求人応募者を表さない。",
       "translation": "最も有力な応募者は2回目の面接に招かれる。"
     },
@@ -1969,22 +1969,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "reservation"
+          "text": "consignment"
         },
         {
           "key": "B",
-          "text": "shipment"
+          "text": "reservation"
         },
         {
           "key": "C",
-          "text": "consignment"
+          "text": "shipment"
         },
         {
           "key": "D",
           "text": "subscription"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "税関の問題で遅れた「出荷物」はshipment。consignment（委託荷物。文脈的にやや近いがここでは自社発送を指すためshipmentがより自然）・subscription（定期購読）・reservation（予約）は文脈に合わない。",
       "translation": "その出荷は税関での問題により遅延した。"
     },
@@ -2007,22 +2007,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "shipment"
-        },
-        {
-          "key": "B",
           "text": "itinerary"
         },
         {
+          "key": "B",
+          "text": "endorsement"
+        },
+        {
           "key": "C",
-          "text": "appraisal"
+          "text": "shipment"
         },
         {
           "key": "D",
-          "text": "endorsement"
+          "text": "appraisal"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "\"shipment of replacement parts\"（交換部品の出荷）は定番の言い方。itinerary（旅程）・appraisal（査定）・endorsement（推薦/裏書）は文脈に合わない。",
       "translation": "私たちはまだ交換部品の出荷を待っている。"
     },
@@ -2045,22 +2045,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "headcount"
-        },
-        {
-          "key": "B",
           "text": "overhead"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "levy"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "shipment"
+        },
+        {
+          "key": "D",
+          "text": "headcount"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "倉庫を出る前に検査される「出荷物」はshipment。headcount（人員数）・overhead（諸経費）・levy（課税）は文脈に合わない。",
       "translation": "各出荷物は倉庫を出る前に検査される。"
     },
@@ -2083,22 +2083,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "landlord"
-        },
-        {
-          "key": "B",
-          "text": "contractor"
-        },
-        {
-          "key": "C",
           "text": "tenant"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "occupant"
+        },
+        {
+          "key": "C",
+          "text": "landlord"
+        },
+        {
+          "key": "D",
+          "text": "contractor"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "このビルの10階建てに入る「賃借人」を数える文脈にはtenantが合う（occupantは単に「居住・使用している人」の意味でtenantより広い）。landlord（大家）・contractor（請負業者）は文脈に合わない。",
       "translation": "このビルには10フロアにわたって50以上の借家人がいる。"
     },
@@ -2121,22 +2121,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "invitees"
-        },
-        {
-          "key": "B",
-          "text": "tenants"
-        },
-        {
-          "key": "C",
           "text": "exhibitors"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "invitees"
+        },
+        {
+          "key": "C",
           "text": "attendees"
+        },
+        {
+          "key": "D",
+          "text": "tenants"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "家賃を値上げされる対象はtenants（借家人）。exhibitors（出展者）・attendees（参加者）・invitees（招待客）は賃貸物件の入居者を表さない。",
       "translation": "大家はそのビルの全借家人の家賃を値上げした。"
     },
@@ -2159,22 +2159,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "tenant"
-        },
-        {
-          "key": "B",
           "text": "sponsor"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "plaintiff"
+        },
+        {
+          "key": "C",
+          "text": "tenant"
         },
         {
           "key": "D",
           "text": "defendant"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "1階の物件で2年間の賃貸契約に署名したのはtenant（借家人）。sponsor（協賛者）・plaintiff/defendant（原告/被告）は賃貸契約の当事者を表さない。",
       "translation": "新しい借家人が1階のスペースについて2年間の賃貸契約に署名した。"
     },
@@ -2197,22 +2197,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "portfolio"
-        },
-        {
-          "key": "B",
           "text": "clientele"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "assortment"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "backlog"
+        },
+        {
+          "key": "D",
+          "text": "portfolio"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "未処理のチケットが溜まった状態はbacklog。portfolio（資産構成）・clientele（顧客層）・assortment（品揃え）は「未処理の滞積」を表さない。",
       "translation": "サポートチームは大量の未処理チケットの滞積に対応している。"
     },
@@ -2239,18 +2239,18 @@
         },
         {
           "key": "B",
-          "text": "turnover"
+          "text": "backlog"
         },
         {
           "key": "C",
-          "text": "backlog"
+          "text": "turnover"
         },
         {
           "key": "D",
           "text": "headcount"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "\"a backlog of orders\"（注文の滞積）は定番の言い方。headcount（人員数）・overhead（諸経費）・turnover（離職率/売上高）は文脈に合わない。",
       "translation": "ホリデーシーズンの繁忙期に注文の滞積が積み上がった。"
     },
@@ -2277,18 +2277,18 @@
         },
         {
           "key": "B",
-          "text": "backlog"
+          "text": "levy"
         },
         {
           "key": "C",
-          "text": "subsidy"
+          "text": "backlog"
         },
         {
           "key": "D",
-          "text": "levy"
+          "text": "subsidy"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "追加スタッフの採用で解消された「保守作業の滞積」はbacklog。subsidy（補助金）・levy（課税）・endowment（寄付基金）は文脈に合わない。",
       "translation": "スタッフを追加採用したことで、ついに保守作業の滞積が解消された。"
     }
