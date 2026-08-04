@@ -20,6 +20,13 @@ export interface PackCache {
   get(url: string): Promise<Blob | null>
 
   /**
+   * 呼び出し側が既に取得済みの内容をキャッシュへ書き戻す（T-183・Q-13）。
+   * cache miss時のfetchフォールバックが取得結果を捨てて次回もmissし続ける穴を塞ぐ用途。
+   * addAllと異なり自前でfetchしない（二重取得を避ける）ため、部分キャッシュの整合性は問わない
+   */
+  put(url: string, blob: Blob): Promise<void>
+
+  /**
    * URL群を取得してキャッシュに固定する（パックのピン留めダウンロード）。
    * 1件でも失敗したら例外を投げる（パック単位の整合性を守る。部分キャッシュを残すかは実装依存）。
    */
