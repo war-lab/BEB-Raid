@@ -568,6 +568,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
           primary: true,
           onSelect: () => {
             setAbortConfirm(false)
+            // T-221（Q-15）: 再生中のフレーズ音声を止めずに離れると、ホーム画面で流れ続ける。
+            // この画面の他の stop() はイヤホンなしモードの切替（T-166）と明示的な停止
+            // ボタン用で、中断導線には無かった（docs/29 のQ-15は「VocabScreenは対処済み」と
+            // 記述していたが、実際にはこの経路が漏れていた）
+            audioPlayer.stop()
             navigate('home')
           },
         },

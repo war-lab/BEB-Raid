@@ -138,6 +138,22 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
     expect(betaCard?.graduatedAt).not.toBeNull()
   })
 
+  // T-221（Q-15）: 「中断してホームへ」がaudioPlayer.stop()を呼ばず、再生中のフレーズ音声が
+  // ホーム画面で流れ続けていた。この画面の他のstop()はイヤホンなしモードの切替（T-166）と
+  // 明示的な停止ボタン用で、中断導線には無かった（docs/29のQ-15は対処済みと記述していたが誤り）
+  it('「中断してホームへ」でaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('halt')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('中断')).toBeTruthy())
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(screen.getByText('中断してホームへ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
   it('「知らない」ボタンでも同様に srsCards に追加される', async () => {
     const db = newDb()
     const questions = [vocabQuestion('gamma')]
