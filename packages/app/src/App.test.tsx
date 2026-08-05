@@ -16,6 +16,7 @@ import {
 } from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
+import { WebAudioPlayer } from './platform/audio/WebAudioPlayer'
 import { createProfile } from './services/profile'
 import { startSession } from './services/session'
 import { useAppStore } from './store/appStore'
@@ -126,6 +127,27 @@ describe('App: History API最小統合（T-114）', () => {
     })
 
     expect(await screen.findByText(`続きから再開（残り${snapshot.items.length}問）`)).toBeTruthy()
+  })
+
+  // T-221（Q-15）: audioPlayerはApp.tsxのモジュールスコープ・シングルトンで、Part3/4の
+  // 約30秒音声の再生中にブラウザバックで離脱しても止まらず、ホーム画面で流れ続けていた
+  it('ドリル進行中のpopstateでaudioPlayer.stop()が呼ばれる', async () => {
+    const stopSpy = vi.spyOn(WebAudioPlayer.prototype, 'stop')
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await startSession(getDb(), { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    render(<App />)
+    await screen.findByRole('heading', { name: /BEB RAID/ })
+
+    act(() => {
+      useAppStore.getState().navigate('drill')
+    })
+    stopSpy.mockClear()
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { screen: 'home' } }))
+    })
+
+    expect(stopSpy).toHaveBeenCalled()
   })
 })
 

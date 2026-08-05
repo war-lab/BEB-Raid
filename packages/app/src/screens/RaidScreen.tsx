@@ -899,7 +899,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
           <p>貢献者 {currentBoss.participantCount}人</p>
           {joined && (
             <p>
-              自分の貢献ダメージ: <span className="display-num">{currentBoss.myDamage}</span>
+              {/* T-216（Q-50）: 貢献リスト（RaidContributionList）・リザルトのBOSS HPと
+                  桁区切りを揃える（従来は素の数値のみで4〜5桁でも読みにくかった） */}
+              自分の貢献ダメージ:{' '}
+              <span className="display-num">{currentBoss.myDamage.toLocaleString('ja-JP')}</span>
             </p>
           )}
           {/* V-15（docs/25 4.6節）: 順位表（V-9）と同じ構造の貢献リスト。空状態は

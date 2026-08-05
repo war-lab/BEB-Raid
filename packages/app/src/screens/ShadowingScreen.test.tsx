@@ -279,6 +279,20 @@ describe('ShadowingScreen: 音声失敗時のスキップと脱出導線（レ�
 
     expect(useAppStore.getState().screen).toBe('home')
   })
+
+  // T-221（Q-15）: 「中断してホームへ」はaudioPlayer.stop()を呼ばず、再生中に中断すると
+  // ホーム画面で音声が流れ続けていた
+  it('「中断してホームへ」でaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const question = shadowingQuestion()
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[question]} />)
+
+    await waitFor(() => expect(screen.getByText('中断してホームへ')).toBeTruthy())
+    fireEvent.click(screen.getByText('中断してホームへ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
 })
 
 describe('ShadowingScreen: 素材が無い場合', () => {

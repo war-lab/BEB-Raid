@@ -1275,6 +1275,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   primary: true,
                   onSelect: () => {
                     setAbortConfirm(false)
+                    // T-221（Q-15）: 再生中の音声を止めずに離れると、ホーム画面で
+                    // 流れ続けていた（Part3/4の約30秒音声で特に顕著）
+                    audioPlayer.stop()
                     navigate('home')
                   },
                 },
@@ -1321,7 +1324,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                 isReplaying ? 'drill-timer display-num is-paused' : 'drill-timer display-num'
               }
             >
-              {remainingSec}
+              {/* T-216（Q-50）: バトルの「残り30秒」・ホスト投影の同表記と揃える
+                  （従来は素の数値のみで、画面ごとにタイマー表記がぶれていた） */}
+              残り{remainingSec}秒
               {/* T-158（J-91）: 止まっていることを明示する。無表示だとタイマーが
                   壊れたのか意図的に止めているのか判別できない */}
               {isReplaying && <span className="drill-timer-paused">再生中は停止</span>}
@@ -1520,7 +1525,8 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           )}
           {isAudioSet && playState === 'prereading' && (
             <>
-              <p className="drill-timer display-num">{preReadingSecondsLeft}</p>
+              {/* T-216（Q-50）: 他画面のタイマー表記（「残りN秒」）と揃える */}
+              <p className="drill-timer display-num">残り{preReadingSecondsLeft}秒</p>
               <button
                 type="button"
                 className="drill-replay"

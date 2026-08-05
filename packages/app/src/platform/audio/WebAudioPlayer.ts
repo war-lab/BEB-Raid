@@ -22,8 +22,19 @@ const defaultFetch: AudioFetch = async (src) => {
 
 const defaultCreateAudioElement: AudioElementFactory = () => new Audio()
 
-/** デコード済み AudioBuffer のメモリキャッシュ上限（1セッションの出題数を上回る概算値） */
-const BUFFER_CACHE_LIMIT = 50
+/**
+ * デコード済み AudioBuffer のメモリキャッシュ上限（バイト数。T-222・Q-16）。
+ *
+ * 旧実装は件数50のみで上限を管理していたが、decodeAudioData はサンプルレートに応じた
+ * float32 PCM へ展開するため、Part3/4級（30秒前後）の音声は1件あたり数MB〜10MB超になる。
+ * 件数だけを見ていると、大きいファイルが混じった場合に最悪で数百MB規模になり、
+ * iOS Safariではタブの強制終了リスクがある。
+ *
+ * 80MiBはドキュメント上の実測値ではなく（29のQ-16は「未検証」）、iOS Safariのタブ
+ * クラッシュがおおむね数百MB〜1GB台のメモリ使用で起きる経験則に対し、このデコード
+ * キャッシュ単体で十分な余白を残す値として置いた暫定値。実測してから調整してよい
+ */
+const BUFFER_CACHE_LIMIT_BYTES = 80 * 1024 * 1024
 
 /** onPosition 通知の間隔（ms。3.7節: 100ms程度で十分） */
 const POSITION_NOTIFY_INTERVAL_MS = 100
@@ -31,6 +42,8 @@ const POSITION_NOTIFY_INTERVAL_MS = 100
 export class WebAudioPlayer implements AudioPlayer {
   private ctx: AudioContext | null = null
   private readonly bufferCache = new Map<string, AudioBuffer>()
+  /** bufferCacheに現在乗っている全AudioBufferの推定合計バイト数（T-222） */
+  private bufferCacheBytes = 0
   private currentSources: AudioBufferSourceNode[] = []
   /** rate経路（HTMLAudioElement）で現在再生中の要素（同時に1つ。stop()での一括処理用） */
   private currentAudioElements: HTMLAudioElement[] = []
@@ -359,11 +372,27 @@ export class WebAudioPlayer implements AudioPlayer {
     }
   }
 
+  /**
+   * デコード済みAudioBufferの推定バイト数（T-222）。
+   * Web Audio APIはチャンネルごとにFloat32Array（4バイト/サンプル）でPCMを保持するため、
+   * `length × numberOfChannels × 4` で概算する（実装依存の内部圧縮等は考慮しない上振れ気味の見積り）
+   */
+  private estimateBufferBytes(buffer: AudioBuffer): number {
+    return buffer.length * buffer.numberOfChannels * 4
+  }
+
   private cacheBuffer(src: string, buffer: AudioBuffer): void {
-    if (this.bufferCache.size >= BUFFER_CACHE_LIMIT) {
+    const size = this.estimateBufferBytes(buffer)
+    // 単独で上限を超えるバッファ（長尺音声1件）も再生に必要なため拒否はしない。
+    // その場合は他の全エントリを退避し、合計を可能な限り小さく保つ
+    while (this.bufferCache.size > 0 && this.bufferCacheBytes + size > BUFFER_CACHE_LIMIT_BYTES) {
       const oldestKey = this.bufferCache.keys().next().value
-      if (oldestKey !== undefined) this.bufferCache.delete(oldestKey)
+      if (oldestKey === undefined) break
+      const evicted = this.bufferCache.get(oldestKey)
+      this.bufferCache.delete(oldestKey)
+      if (evicted) this.bufferCacheBytes -= this.estimateBufferBytes(evicted)
     }
     this.bufferCache.set(src, buffer)
+    this.bufferCacheBytes += size
   }
 }

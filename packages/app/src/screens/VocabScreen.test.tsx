@@ -138,6 +138,22 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
     expect(betaCard?.graduatedAt).not.toBeNull()
   })
 
+  // T-221（Q-15）: 「中断してホームへ」がaudioPlayer.stop()を呼ばず、再生中のフレーズ音声が
+  // ホーム画面で流れ続けていた。この画面の他のstop()はイヤホンなしモードの切替（T-166）と
+  // 明示的な停止ボタン用で、中断導線には無かった（docs/29のQ-15は対処済みと記述していたが誤り）
+  it('「中断してホームへ」でaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('halt')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('中断')).toBeTruthy())
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(screen.getByText('中断してホームへ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
   it('「知らない」ボタンでも同様に srsCards に追加される', async () => {
     const db = newDb()
     const questions = [vocabQuestion('gamma')]
@@ -562,8 +578,9 @@ describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）'
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
 
+    // T-219（Q-60）: 区切り（1回分の件数=20）を分母に出す。総数21は主表示の分母にしない
     for (let i = 0; i < 20; i++) {
-      await waitFor(() => expect(screen.getByText(`仕分け ${i + 1}/21`)).toBeTruthy())
+      await waitFor(() => expect(screen.getByText(`仕分け ${i + 1}/20（全21語）`)).toBeTruthy())
       fireEvent.click(screen.getByText('知ってる'))
     }
 
@@ -573,7 +590,35 @@ describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）'
     expect(await db.srsCards.count()).toBe(20)
 
     fireEvent.click(screen.getByText('続けて仕分ける（残り1語）'))
-    await waitFor(() => expect(screen.getByText('仕分け 21/21')).toBeTruthy())
+    // 2回目の区切り（21語目=2回目の区切りの1件目）も分母は残件数（1）になる
+    await waitFor(() => expect(screen.getByText('仕分け 1/1（全21語）')).toBeTruthy())
+  })
+
+  // T-219（Q-60）: 「仕分け 1/645」のように総数をいきなり分母に出すと完走前提に見えて
+  // 負荷感が強い。1回分の区切り（TRIAGE_BATCH_SIZE=20）を分母にする
+  it('総数が1区切り（20語）を超える場合、主表示の分母は総数ではなく区切りの件数になる', async () => {
+    const db = newDb()
+    const words = Array.from({ length: 45 }, (_, i) => `word${i}`)
+    const questions = words.map((w) => vocabQuestion(w))
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    await waitFor(() => expect(screen.getByText('仕分け 1/20（全45語）')).toBeTruthy())
+    expect(screen.queryByText(/仕分け 1\/45/)).toBeNull()
+  })
+
+  // 区切り以下（総数20以下）では従来どおり総数のみを分母にする（区切り表記の追加が
+  // 少数語のケースで冗長にならないようにする）
+  it('総数が1区切り以下なら、従来どおり総数だけを分母にする', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('beta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    expect(screen.queryByText(/全2語/)).toBeNull()
   })
 
   it('復習画面の「仕分けへ」で、復習キューを消化せず仕分けフェーズへ直行できる', async () => {

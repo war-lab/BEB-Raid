@@ -340,6 +340,19 @@ describe('ExplanationCard: ゴースト週の堅い/弱点バッジ（M4・T-129
     expect(badge.textContent).toContain('20')
   })
 
+  // T-216（Q-50）: 4〜5桁の実ダメージでも桁区切りを付ける（他のダメージ表示と表記を揃える）
+  it('実ダメージが4桁以上でも桁区切りで表示される', () => {
+    render(
+      <ExplanationCard
+        question={question()}
+        isCorrect={true}
+        ghostDefense={{ multiplier: 2.0, damage: 12345 }}
+      />,
+    )
+    const badge = screen.getByTestId('ghost-defense-badge')
+    expect(badge.textContent).toContain('12,345')
+  })
+
   it('ghostDefense.multiplier<=1のときは「堅い」バッジを表示する', () => {
     render(
       <ExplanationCard

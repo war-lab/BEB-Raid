@@ -42,6 +42,14 @@ interface Props {
  */
 export const WRONG_ANSWER_SCAN_LIMIT = 3000
 
+/**
+ * 一覧の1ページあたりの表示件数（T-215・Q-49）。
+ * 走査上限3000から畳んだ全誤答を一括レンダーすると、数百件規模でPartフィルタ切替のたびに
+ * 全再レンダーが重くなる。仮想化ライブラリを新規導入するほどの規模ではないため、
+ * ページング（「もっと見る」で追加表示）で初期レンダー件数を絞る
+ */
+export const WRONG_ANSWER_PAGE_SIZE = 20
+
 export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const review = useReviewSession(db, questionPool)
@@ -53,6 +61,18 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
   const [partFilter, setPartFilter] = useState<number | null>(null)
   /** 解説を開いている行（attempts上のID）。1件ずつ開く（全部展開すると一覧の見通しが死ぬ） */
   const [expanded, setExpanded] = useState<string | null>(null)
+  /** ページングの表示件数（T-215・Q-49）。Partフィルタを切り替えたら1ページ目に戻す */
+  const [visibleCount, setVisibleCount] = useState(WRONG_ANSWER_PAGE_SIZE)
+
+  /**
+   * Partフィルタの切替（T-215・Q-49）。表示件数も同時に1ページ目へ戻す。
+   * effectで `partFilter` の変化を見てリセットする書き方は、react-hooks/set-state-in-effect
+   * （レンダー連鎖の誘発）に触れるため、状態を変える側でまとめて更新する
+   */
+  function changePartFilter(part: number | null): void {
+    setPartFilter(part)
+    setVisibleCount(WRONG_ANSWER_PAGE_SIZE)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -82,6 +102,7 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
   const filtered = (entries ?? []).filter(
     (e) => partFilter === null || e.question.part === partFilter,
   )
+  const visibleEntries = filtered.slice(0, visibleCount)
   const reviewIds = wrongAnswerReviewIds(filtered, WRONG_ANSWER_REVIEW_LIMIT)
 
   return (
@@ -133,7 +154,7 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
           <button
             type="button"
             className={partFilter === null ? 'is-selected' : ''}
-            onClick={() => setPartFilter(null)}
+            onClick={() => changePartFilter(null)}
           >
             すべて
           </button>
@@ -142,7 +163,7 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
               key={part}
               type="button"
               className={partFilter === part ? 'is-selected' : ''}
-              onClick={() => setPartFilter(part)}
+              onClick={() => changePartFilter(part)}
             >
               Part{part}
             </button>
@@ -151,9 +172,10 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
       )}
 
       {/* 一覧はリザルトの誤答ふりかえりリストと同じ器（.result-list）を使う。
-          間違えた記録なので data-correct は常に false（✕の二重符号化） */}
+          間違えた記録なので data-correct は常に false（✕の二重符号化）。
+          T-215（Q-49）: 全件を一括レンダーせず、visibleEntries（ページング）のみを描く */}
       <ul className="result-list" data-testid="wrong-answer-list">
-        {filtered.map((entry) => (
+        {visibleEntries.map((entry) => (
           <li
             key={entry.attemptQuestionId}
             className="result-list__item"
@@ -164,9 +186,6 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
             <p className="result-list__question" style={{ whiteSpace: 'normal' }}>
               <span className="result-list__icon" aria-hidden="true" /> Part{entry.question.part}{' '}
               {wrongAnswerPrompt(entry)}
-            </p>
-            <p className="result-list__note" style={{ marginLeft: 0, whiteSpace: 'normal' }}>
-              正解: {wrongAnswerCorrectText(entry)}
             </p>
             <p className="result-list__note" style={{ marginLeft: 0 }}>
               {formatWrongAnswerDate(entry.lastWrongAt)}
@@ -189,30 +208,48 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
               {expanded === entry.attemptQuestionId ? '解説を閉じる' : '解説'}
             </button>
             {expanded === entry.attemptQuestionId && (
-              // サブ設問の誤答は設問文・選択肢・正解・解説をサブ設問のものへ差し替えて渡す
-              // （親を渡すとパッセージ全体の解説になってしまう。ReadingScreenと同じ組み立て）
-              <ExplanationCard
-                question={
-                  entry.subQuestion
-                    ? {
-                        ...entry.question,
-                        question: entry.subQuestion.question,
-                        choices: entry.subQuestion.choices,
-                        answer: entry.subQuestion.answer,
-                        explanation: entry.subQuestion.explanation,
-                        translation: entry.subQuestion.translation,
-                      }
-                    : entry.question
-                }
-                isCorrect={false}
-                aiClient={aiClient}
-                raidApi={raidApi}
-                db={db}
-              />
+              <>
+                {/* T-215（Q-54）: 復習開始前に正解が見えるとネタバレになり再テスト価値が下がる。
+                    「解説」を開いたときだけ出す（即時表示しない） */}
+                <p className="result-list__note" style={{ marginLeft: 0, whiteSpace: 'normal' }}>
+                  正解: {wrongAnswerCorrectText(entry)}
+                </p>
+                {/* サブ設問の誤答は設問文・選択肢・正解・解説をサブ設問のものへ差し替えて渡す
+                    （親を渡すとパッセージ全体の解説になってしまう。ReadingScreenと同じ組み立て） */}
+                <ExplanationCard
+                  question={
+                    entry.subQuestion
+                      ? {
+                          ...entry.question,
+                          question: entry.subQuestion.question,
+                          choices: entry.subQuestion.choices,
+                          answer: entry.subQuestion.answer,
+                          explanation: entry.subQuestion.explanation,
+                          translation: entry.subQuestion.translation,
+                        }
+                      : entry.question
+                  }
+                  isCorrect={false}
+                  aiClient={aiClient}
+                  raidApi={raidApi}
+                  db={db}
+                />
+              </>
             )}
           </li>
         ))}
       </ul>
+
+      {/* T-215（Q-49）: ページング。残りがある間だけ「もっと見る」を出す */}
+      {filtered.length > visibleEntries.length && (
+        <button
+          type="button"
+          className="secondary-action"
+          onClick={() => setVisibleCount((c) => c + WRONG_ANSWER_PAGE_SIZE)}
+        >
+          もっと見る（残り{filtered.length - visibleEntries.length}件）
+        </button>
+      )}
 
       {entries !== null && filtered.length === 0 && entries.length > 0 && (
         <p>このPartの誤答はありません。</p>

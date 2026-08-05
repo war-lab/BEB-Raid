@@ -256,10 +256,26 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(screen.getByText('中断してホームへ'))
 
     expect(useAppStore.getState().screen).toBe('home')
     // 進行中セッションはDB上に残っている（中断=破棄ではない）
     expect(await db.settings.get('activeSession')).toBeTruthy()
+  })
+
+  // T-221（Q-15）: 「中断してホームへ」はaudioPlayer.stop()を呼ばず、Part3/4の
+  // 約30秒音声の再生中に中断するとホーム画面で音声が流れ続けていた
+  it('「中断してホームへ」でaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(screen.getByText('中断してホームへ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
   })
 })
 
@@ -412,7 +428,7 @@ describe('DrillScreen: Part2音声のみモード（ADR 0008・T-154）', () => 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
     // 再生完了後にタイマーが出る（従来の15秒ではなく6秒）
-    await vi.waitFor(() => expect(screen.getByText('6')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り6秒')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(6000)
     await vi.waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
@@ -2301,7 +2317,7 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
 
-    await waitFor(() => expect(screen.getByText('6')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('残り6秒')).toBeTruthy())
   })
 
   // 何を防ぐか: 聞き直しが解答時間の減少というペナルティになること（J-91）
@@ -2321,17 +2337,17 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
-    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り15秒')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(3000)
-    await vi.waitFor(() => expect(screen.getByText('12')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り12秒')).toBeTruthy())
 
     fireEvent.click(screen.getByText('もう一度再生'))
     await vi.waitFor(() => expect(screen.getByText('再生中は停止')).toBeTruthy())
 
     // リプレイ中は何秒経ってもカウントが進まない
     await vi.advanceTimersByTimeAsync(5000)
-    expect(screen.getByText('12')).toBeTruthy()
+    expect(screen.getByText('残り12秒')).toBeTruthy()
 
     await act(async () => {
       pending.resolve?.('ended')
@@ -2340,7 +2356,7 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     // 再生終了後は残り時間（12秒）から再開する。リセットされて15秒に戻ることはない
     await vi.waitFor(() => expect(screen.queryByText('再生中は停止')).toBeNull())
     await vi.advanceTimersByTimeAsync(2000)
-    await vi.waitFor(() => expect(screen.getByText('10')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り10秒')).toBeTruthy())
   })
 
   it('リプレイを複数回してもタイマーはリセットされない', async () => {
@@ -2352,10 +2368,10 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
-    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り15秒')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(4000)
-    await vi.waitFor(() => expect(screen.getByText('11')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り11秒')).toBeTruthy())
 
     // replay は即座に 'ended' で解決するフェイクなので、押した分だけ停止→再開が起きる。
     // 再開（setIsReplaying(false)）はawait後＝act外で起きるため、actで囲んで
@@ -2370,11 +2386,11 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     }
 
     // 残り時間は据え置き（15秒に巻き戻らない）
-    expect(screen.getByText('11')).toBeTruthy()
+    expect(screen.getByText('残り11秒')).toBeTruthy()
     // 再開後はカウントが進む。なおリプレイのたびにintervalを張り直すため1秒未満の端数は
     // 切り捨てられる（学習者に有利な方向のずれなので許容する）
     await vi.advanceTimersByTimeAsync(1000)
-    await vi.waitFor(() => expect(screen.getByText('10')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り10秒')).toBeTruthy())
   })
 
   it('リプレイが失敗してもタイマーは再開する（停止したまま固まらない）', async () => {
@@ -2387,14 +2403,14 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
-    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り15秒')).toBeTruthy())
 
     fireEvent.click(screen.getByText('もう一度再生'))
     await vi.waitFor(() => expect(screen.getByText('音声を再生できませんでした')).toBeTruthy())
 
     expect(screen.queryByText('再生中は停止')).toBeNull()
     await vi.advanceTimersByTimeAsync(1000)
-    await vi.waitFor(() => expect(screen.getByText('14')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り14秒')).toBeTruthy())
   })
 })
 

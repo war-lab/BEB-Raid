@@ -231,6 +231,10 @@ export function App() {
   // 拾わないため、ブラウザ既定（アプリ終了）に任せる
   useEffect(() => {
     function handlePopState(event: PopStateEvent) {
+      // T-221（Q-15）: audioPlayerはモジュールスコープのシングルトンで、popstateで
+      // 画面を離れても再生中の音声が止まらなかった（Part3/4の約30秒音声がホーム画面で
+      // 流れ続ける）。再生していなければ no-op なので、画面を問わず常に呼んでよい
+      audioPlayer.stop()
       const state = event.state as { screen?: ScreenName } | null
       useAppStore.getState().navigateFromPopState(state?.screen ?? 'home')
     }

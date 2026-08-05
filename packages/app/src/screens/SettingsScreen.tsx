@@ -614,25 +614,32 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               )}
             </>
           ) : (
-            <>
+            // T-220（Q-58）: password inputがform外にあるとChromeが「Password field is not
+            // contained in a form」と警告し、パスワードマネージャの保存・自動入力も効かない。
+            // formで括り、送信はEnterキーでも保存ボタンでも同じhandleSaveApiKeyに流す
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                void handleSaveApiKey()
+              }}
+            >
               <label>
                 APIキー
                 <input
                   type="password"
+                  autoComplete="new-password"
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder="sk-..."
                 />
               </label>
-              <button type="button" onClick={() => void handleSaveApiKey()}>
-                保存
-              </button>
+              <button type="submit">保存</button>
               {apiKey !== null && (
                 <button type="button" onClick={() => setEditingApiKey(false)}>
                   キャンセル
                 </button>
               )}
-            </>
+            </form>
           )}
           <label>
             モデル
