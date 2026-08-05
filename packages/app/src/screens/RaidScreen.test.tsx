@@ -1238,7 +1238,9 @@ describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）'
     expect(await screen.findByTestId('raid-boss')).toBeTruthy()
   })
 
-  it('送信済み記録がある場合は「ボス役記録を撤回する」ボタンが立候補ボタンの代わりに出て、撤回するとdeleteOwnGhostRecordが呼ばれる', async () => {
+  // T-202（docs/29 Q-33）: 確認なしの1タップでサーバーから即時削除されていた
+  // （立候補側は同意画面＋チェックボックスの二重防御なのに撤回は無防備だった）
+  it('送信済み記録がある場合は「ボス役記録を撤回する」ボタンが立候補ボタンの代わりに出て、確認後にdeleteOwnGhostRecordが呼ばれる（キャンセルでは呼ばれない）', async () => {
     const { db, raidApi, pool } = await registeredSetup()
     const { GHOST_BOSS_SUBMITTED_AT_KEY } = await import('../services/settingsKeys')
     await db.settings.put({ key: GHOST_BOSS_SUBMITTED_AT_KEY, value: Date.now() })
@@ -1250,6 +1252,14 @@ describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）'
     const withdrawButton = await screen.findByTestId('ghost-boss-withdraw')
 
     fireEvent.click(withdrawButton)
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(raidApi.deleteOwnGhostRecord).not.toHaveBeenCalled()
+
+    fireEvent.click(withdrawButton)
+    fireEvent.click(await screen.findByText('撤回する', { selector: '.confirm-dialog__primary' }))
 
     await waitFor(() => expect(raidApi.deleteOwnGhostRecord).toHaveBeenCalledTimes(1))
     await waitFor(async () => {

@@ -368,6 +368,100 @@ describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () =>
   })
 })
 
+// 何を防ぐか（T-205。docs/29 Q-53）: L/Rは本来各5〜495点なのに範囲検証が無く、
+// 桁誤り（例: 650を6500と入力）がそのまま登録され、修正・削除手段も無いため
+// 「予測帯との差」表示に誤登録が残り続けていた
+describe('DashboardScreen: 実試験スコアの範囲検証・修正・削除（T-205）', () => {
+  it('L/Rが範囲外（5〜495の外）だと登録ボタンが無効になり、理由が表示される', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '6500' } }) // 桁誤り
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '410' } })
+
+    expect(screen.getByText(/Lは5〜495の範囲で入力してください/)).toBeTruthy()
+    expect((screen.getByText('登録') as HTMLButtonElement).disabled).toBe(true)
+
+    // 直接handleRegisterExamScoreを叩かれても（disabledを迂回する経路があっても）多層防御で拒否される
+    fireEvent.submit(screen.getByText('登録').closest('form')!)
+    expect(await db.examScores.count()).toBe(0)
+  })
+
+  it('範囲の境界値（5・495）は登録でき、範囲外（4・496）は拒否される', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '496' } })
+    expect((screen.getByText('登録') as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '495' } })
+    expect((screen.getByText('登録') as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(screen.getByText('登録'))
+
+    await waitFor(async () => expect(await db.examScores.count()).toBe(1))
+  })
+
+  it('登録済みスコアを編集できる（同じidのまま値だけ更新される）', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '400' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '410' } })
+    fireEvent.click(screen.getByText('登録'))
+    await screen.findByTestId('exam-score-list')
+    const originalId = (await db.examScores.toArray())[0]!.id
+
+    fireEvent.click(screen.getByText('編集'))
+    // フォームに既存値が流し込まれる
+    expect((screen.getByLabelText('L') as HTMLInputElement).value).toBe('400')
+    expect(screen.getByText('更新')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '450' } })
+    fireEvent.click(screen.getByText('更新'))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('exam-score-list').textContent).toContain('合計860'),
+    )
+    // 新規行が増えたのではなく、同じidの内容が更新されている
+    expect(await db.examScores.count()).toBe(1)
+    expect((await db.examScores.toArray())[0]!.id).toBe(originalId)
+    expect((await db.examScores.toArray())[0]!.listening).toBe(450)
+  })
+
+  it('削除は確認を経てから実行され、キャンセルでは消えない', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '400' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '410' } })
+    fireEvent.click(screen.getByText('登録'))
+    await screen.findByTestId('exam-score-list')
+
+    fireEvent.click(screen.getByText('削除'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(await db.examScores.count()).toBe(1)
+
+    fireEvent.click(screen.getByText('削除'))
+    fireEvent.click(await screen.findByText('削除する'))
+
+    await waitFor(async () => expect(await db.examScores.count()).toBe(0))
+    expect(screen.queryByTestId('exam-score-list')).toBeNull()
+  })
+})
+
 describe('buildHeatmapCells: 曜日整列（GitHub草式グリッド）', () => {
   it('先頭セルの曜日が日曜（getDay()===0）になるよう余白セルを詰める', () => {
     const now = new Date(2026, 6, 10).getTime() // 2026-07-10（金曜）

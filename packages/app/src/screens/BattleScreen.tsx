@@ -107,6 +107,9 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const [reviewIds, setReviewIds] = useState<string[]>([])
   /** サーバーが付与した切断理由（closed表示の案内文の出し分けに使う。通信断時は空文字） */
   const [closeReason, setCloseReason] = useState('')
+  // T-202（docs/29 Q-46）: window.confirmはPWAでネイティブダイアログが出て文脈が切れる
+  // （ConfirmDialog導入の理由そのもの。T-162時点で置換漏れていた2箇所の1つ）
+  const [leaveConfirm, setLeaveConfirm] = useState(false)
 
   // questionPoolはprops経由で固定のためMapはマウント時に1回だけ作る
   const questionLookup = useRef<QuestionLookup>(new Map(questionPool.map((q) => [q.id, q])))
@@ -369,9 +372,27 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
    * ロビーの退出（確認なし）とは別に確認を挟む
    */
   function handleLeaveWithConfirm() {
-    if (!window.confirm('バトルから退出しますか？（このバトルの続きには戻れません）')) return
-    handleLeave()
+    setLeaveConfirm(true)
   }
+
+  /** 退出確認ダイアログ（T-202。docs/29 Q-46）。出題中・順位表示中の両方から共用する */
+  const leaveConfirmDialog = leaveConfirm ? (
+    <ConfirmDialog
+      message="バトルから退出しますか？（このバトルの続きには戻れません）"
+      onDismiss={() => setLeaveConfirm(false)}
+      actions={[
+        {
+          label: '退出する',
+          primary: true,
+          onSelect: () => {
+            setLeaveConfirm(false)
+            handleLeave()
+          },
+        },
+        { label: 'キャンセル', onSelect: () => setLeaveConfirm(false) },
+      ]}
+    />
+  ) : null
 
   if (phase === 'entry' || phase === 'connecting') {
     return (
@@ -496,6 +517,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
             <button type="button" className="secondary-action" onClick={handleLeaveWithConfirm}>
               退出する
             </button>
+            {leaveConfirmDialog}
           </>
         }
       >
@@ -549,6 +571,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
             <button type="button" className="secondary-action" onClick={handleLeaveWithConfirm}>
               退出する
             </button>
+            {leaveConfirmDialog}
           </>
         }
       >

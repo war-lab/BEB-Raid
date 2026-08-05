@@ -40,6 +40,7 @@ import {
   READING_SET_COUNT_KEY,
   SINGLE_MODE_COUNT_KEY,
 } from '../services/settingsKeys'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import { InstallHint } from '../pwa/InstallHint'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
@@ -232,6 +233,18 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [nowMs, setNowMs] = useState(now())
   // T-105: 日付跨ぎ検出用。読込完了時点の日付を覚えておき、visibilitychange時に比較する
   const loadedDateRef = useRef(toDateString(now()))
+  /**
+   * T-203（docs/29 Q-37）: Part2再生方法・Part5問数・読解パッセージ数の3モーダルは
+   * role="dialog" aria-modal="true" を宣言しながら、フォーカストラップ・初期フォーカス・
+   * Esc・閉時のフォーカス復帰・背景タップ閉じがいずれも無かった。ConfirmDialogから
+   * 抽出したuseDialogA11yで同等の作法を適用する
+   */
+  const part2DialogRef = useRef<HTMLDivElement>(null)
+  const part5DialogRef = useRef<HTMLDivElement>(null)
+  const readingDialogRef = useRef<HTMLDivElement>(null)
+  useDialogA11y(part2DialogRef, showPart2Options, () => setShowPart2Options(false))
+  useDialogA11y(part5DialogRef, showPart5Options, () => setShowPart5Options(false))
+  useDialogA11y(readingDialogRef, showReadingOptions, () => setShowReadingOptions(false))
   // T-105: visibilitychangeで日付跨ぎを検出したときに再読込をトリガーするカウンタ
   const [dateReloadToken, setDateReloadToken] = useState(0)
 
@@ -628,13 +641,16 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
           {showPart2Options && (
             // T-116(8): ホーム下部へのインライン挿入だとスクロールしないと見えなかったため、
             // 画面中央固定のオーバーレイに変更する（スクロール位置に依存せず必ず見える）
+            // T-203: 背景タップで閉じる（内側のクリックは伝播で拾わない）
             <div
+              ref={part2DialogRef}
               className="home-part2-modal"
               role="dialog"
               aria-modal="true"
               aria-label="音声の再生方法を選択"
+              onClick={() => setShowPart2Options(false)}
             >
-              <div className="home-part2-options">
+              <div className="home-part2-options" onClick={(e) => e.stopPropagation()}>
                 <p>音声の再生方法を選んでください</p>
                 {/* T-118: 問数チップ（J-57。既定20問。プールが問数未満ならある分だけで開始する） */}
                 <p className="home-duration-chips__label">問題数</p>
@@ -692,13 +708,16 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
           )}
           {showPart5Options && (
             // T-118: Part5は従来即時開始だったが、問数選択を挟む同型モーダルを新設する
+            // T-203: 背景タップで閉じる（内側のクリックは伝播で拾わない）
             <div
+              ref={part5DialogRef}
               className="home-part2-modal"
               role="dialog"
               aria-modal="true"
               aria-label="Part5の問題数を選択"
+              onClick={() => setShowPart5Options(false)}
             >
-              <div className="home-part2-options">
+              <div className="home-part2-options" onClick={(e) => e.stopPropagation()}>
                 <p>Part5の問題数を選んでください</p>
                 <p className="home-duration-chips__label">問題数</p>
                 <div className="home-duration-chips">
@@ -731,13 +750,16 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
           {showReadingOptions && (
             // T-143(J-80): 読解はパッセージ数で選ぶ（1パッセージが2〜4設問を要求するため、
             // 他の単独モードの問数チップは使えない）。あわせて設問数の目安を出す
+            // T-203: 背景タップで閉じる（内側のクリックは伝播で拾わない）
             <div
+              ref={readingDialogRef}
               className="home-part2-modal"
               role="dialog"
               aria-modal="true"
               aria-label="読解のパッセージ数を選択"
+              onClick={() => setShowReadingOptions(false)}
             >
-              <div className="home-part2-options">
+              <div className="home-part2-options" onClick={(e) => e.stopPropagation()}>
                 <p>読解（Part7）のパッセージ数を選んでください</p>
                 <p className="home-duration-chips__label">パッセージ数</p>
                 <div className="home-duration-chips">

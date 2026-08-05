@@ -1905,3 +1905,129 @@ describe('readingQuestionEstimate（読解の設問数の見積り）', () => {
     )
   })
 })
+
+// 何を防ぐか（T-203。docs/29 Q-37）: Part2再生方法・Part5問数・読解パッセージ数の
+// 3モーダルは role="dialog" aria-modal="true" を宣言しながら、フォーカストラップ・
+// 初期フォーカス・Esc・閉時のフォーカス復帰・背景タップ閉じがいずれも無かった。
+// ConfirmDialogと同等の作法（useDialogA11yに共通抽出）を適用したことを確認する
+describe('HomeScreen: モーダルのアクセシビリティ作法（T-203）', () => {
+  const MANY_PART5: Question[] = Array.from({ length: 30 }, (_, i) => part5Question(`p5-many-${i}`))
+  const READING_POOL: Question[] = [
+    ...QUESTION_POOL,
+    part7Question('p7-1', 3),
+    part7Question('p7-2', 2),
+  ]
+
+  async function openPart2Modal() {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    // fireEvent.clickだけではjsdomでフォーカスが移らないため、実ブラウザの
+    // クリック（クリック対象へフォーカスが移る）に合わせて明示的にfocusする
+    // （閉時のフォーカス復帰の検証に必要）
+    const opener = screen.getByRole('button', { name: /Part2瞬発/ })
+    opener.focus()
+    fireEvent.click(opener)
+    await screen.findByRole('dialog', { name: '音声の再生方法を選択' })
+  }
+
+  it('Part2モーダル: 開いたら最初のボタンにフォーカスが移る', async () => {
+    await openPart2Modal()
+    const dialog = screen.getByRole('dialog', { name: '音声の再生方法を選択' })
+    const firstButton = dialog.querySelectorAll('button')[0]
+    expect(document.activeElement).toBe(firstButton)
+  })
+
+  it('Part2モーダル: Escで閉じる', async () => {
+    await openPart2Modal()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+  })
+
+  it('Part2モーダル: 背景タップで閉じ、内側のタップでは閉じない', async () => {
+    await openPart2Modal()
+    // 内側（選択肢の並び）のクリックは伝播で拾わず閉じない
+    fireEvent.click(screen.getByText('音声の再生方法を選んでください'))
+    expect(screen.getByRole('dialog', { name: '音声の再生方法を選択' })).toBeTruthy()
+
+    // 背景（ダイアログのオーバーレイ本体）のクリックで閉じる
+    fireEvent.click(screen.getByRole('dialog', { name: '音声の再生方法を選択' }))
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+  })
+
+  it('Part2モーダル: Tabはモーダル内で循環し、背景のボタンへ抜けない', async () => {
+    await openPart2Modal()
+    const dialog = screen.getByRole('dialog', { name: '音声の再生方法を選択' })
+    const buttons = [...dialog.querySelectorAll('button')]
+    const first = buttons[0]!
+    const last = buttons[buttons.length - 1]!
+
+    last.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(first)
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(last)
+  })
+
+  it('Part2モーダル: 閉じたら開く前の要素（Part2瞬発ボタン）へフォーカスを戻す', async () => {
+    await openPart2Modal()
+    const opener = screen.getByRole('button', { name: /Part2瞬発/ })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(document.activeElement).toBe(opener)
+  })
+
+  it('Part5モーダル: Escで閉じ、背景タップでも閉じる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
+    await screen.findByRole('dialog', { name: 'Part5の問題数を選択' })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Part5の問題数を選択' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
+    await screen.findByRole('dialog', { name: 'Part5の問題数を選択' })
+    fireEvent.click(screen.getByRole('dialog', { name: 'Part5の問題数を選択' }))
+    expect(screen.queryByRole('dialog', { name: 'Part5の問題数を選択' })).toBeNull()
+  })
+
+  it('読解モーダル: Escで閉じ、背景タップでも閉じる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={READING_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    await screen.findByRole('dialog', { name: '読解のパッセージ数を選択' })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: '読解のパッセージ数を選択' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    await screen.findByRole('dialog', { name: '読解のパッセージ数を選択' })
+    fireEvent.click(screen.getByRole('dialog', { name: '読解のパッセージ数を選択' }))
+    expect(screen.queryByRole('dialog', { name: '読解のパッセージ数を選択' })).toBeNull()
+  })
+})

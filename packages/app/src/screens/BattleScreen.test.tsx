@@ -5,7 +5,7 @@
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
@@ -678,8 +678,9 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     ).toBeTruthy()
   })
 
-  // 何を防ぐか（S-33）: 出題が始まると退出手段が無く（退出ボタンはロビーのみ）、
-  // 会議・電車の都合で抜けたいときにブラウザバックしかなかった
+  // 何を防ぐか（S-33・T-202のQ-46）: 出題が始まると退出手段が無く（退出ボタンはロビーのみ）、
+  // 会議・電車の都合で抜けたいときにブラウザバックしかなかった。従来はwindow.confirmで
+  // 確認していたが、PWAでネイティブダイアログが出ると文脈が切れるためConfirmDialogに揃えた
   it('出題中に退出できる（確認あり。キャンセルでは閉じない）', async () => {
     const db = newDb()
     await seedProfile(db)
@@ -689,16 +690,18 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
 
     // この画面は自分でscreenを設定しないため、遷移の有無を見るために現在値を明示しておく
     useAppStore.setState({ screen: 'battle' })
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     fireEvent.click(screen.getByRole('button', { name: '退出する' }))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
     expect(socket.closed).toBe(false)
     expect(useAppStore.getState().screen).toBe('battle')
 
-    confirmSpy.mockReturnValue(true)
     fireEvent.click(screen.getByRole('button', { name: '退出する' }))
+    fireEvent.click(await screen.findByText('退出する', { selector: '.confirm-dialog__primary' }))
     expect(socket.closed).toBe(true)
     expect(useAppStore.getState().screen).toBe('home')
-    confirmSpy.mockRestore()
   })
 
   // 何を防ぐか（S-36前半）: 解答後に選択肢の色と獲得点しか出ず、間違えた理由がその場で

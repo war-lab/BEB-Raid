@@ -22,6 +22,7 @@ import { useAppStore } from '../store/appStore'
 import { Heatmap, type HeatmapCell } from '../components/charts/Heatmap'
 import { LineChart, type LineChartPoint } from '../components/charts/LineChart'
 import { WeakBars } from '../components/charts/WeakBars'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ScreenLayout } from '../components/ScreenLayout'
 
 interface Props {
@@ -70,6 +71,14 @@ function growthRankProgress(result: GrowthRankResult): number | null {
 /** 学習ヒートマップの表示週数（07 8節: 直近15週程度） */
 const HEATMAP_WEEKS = 15
 
+/**
+ * 実試験スコアのL/R各セクションの妥当な範囲（TOEIC公式の配点は各5〜495点。T-205・Q-53）。
+ * 範囲検証が無いと桁誤り（例: 650を6500と入力）がそのまま登録され、「予測帯との差」表示に
+ * 残り続ける（登録後の修正・削除手段も無かったため一度入ると気づいても直せなかった）
+ */
+const EXAM_SECTION_SCORE_MIN = 5
+const EXAM_SECTION_SCORE_MAX = 495
+
 export function DashboardScreen({ db, questionPool }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const [growthPoints, setGrowthPoints] = useState<LineChartPoint[] | null>(null)
@@ -86,6 +95,11 @@ export function DashboardScreen({ db, questionPool }: Props) {
   const [examListening, setExamListening] = useState('')
   const [examReading, setExamReading] = useState('')
   const [examSource, setExamSource] = useState<ExamScoreSource>('IP')
+  // T-205（Q-53）: 登録済みスコアの修正手段。nullなら新規登録、idがあれば編集モード
+  // （フォームは新規登録と共用し、送信時の分岐だけで賄う。専用モーダルは作らない）
+  const [editingScoreId, setEditingScoreId] = useState<string | null>(null)
+  // T-205（Q-53）: 削除は不可逆操作のため確認を挟む（T-202と同じ方針）
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   async function reloadForecastAndExamScores() {
     const [totalRating, history, scores] = await Promise.all([
@@ -149,22 +163,62 @@ export function DashboardScreen({ db, questionPool }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- questionPoolは起動時に固定される想定
   }, [db])
 
+  /** L/Rそれぞれが妥当な範囲内の数値か（T-205・Q-53） */
+  function isValidSectionScore(input: string): boolean {
+    if (input.trim() === '') return false
+    const n = Number(input)
+    return !Number.isNaN(n) && n >= EXAM_SECTION_SCORE_MIN && n <= EXAM_SECTION_SCORE_MAX
+  }
+
+  const examListeningValid = isValidSectionScore(examListening)
+  const examReadingValid = isValidSectionScore(examReading)
+  const examFormValid = examDate !== '' && examListeningValid && examReadingValid
+
+  function resetExamForm() {
+    setEditingScoreId(null)
+    setExamDate('')
+    setExamListening('')
+    setExamReading('')
+    setExamSource('IP')
+  }
+
+  /**
+   * 新規登録・編集の両方をこの関数で扱う（T-205）。ボタンのdisabledに加えて、
+   * ここでも範囲外なら早期returnする（フォームのEnter暗黙送信がdisabledを迂回する
+   * 経路を多層防御する。DiagnosticScreenのTOEICスコア検証=T-187と同じ方針）
+   */
   async function handleRegisterExamScore(e: FormEvent) {
     e.preventDefault()
+    if (!examFormValid) return
     const listening = Number(examListening)
     const reading = Number(examReading)
-    if (!examDate || Number.isNaN(listening) || Number.isNaN(reading)) return
     await db.examScores.put({
-      id: crypto.randomUUID(),
+      id: editingScoreId ?? crypto.randomUUID(),
       date: examDate,
       listening,
       reading,
       total: listening + reading,
       source: examSource,
     })
-    setExamDate('')
-    setExamListening('')
-    setExamReading('')
+    resetExamForm()
+    await reloadForecastAndExamScores()
+  }
+
+  /** 登録済みスコアの修正（T-205）。フォームへ値を流し込み、送信時にeditingScoreIdで上書きする */
+  function handleEditExamScore(score: ExamScoreRecord) {
+    setEditingScoreId(score.id)
+    setExamDate(score.date)
+    setExamListening(String(score.listening))
+    setExamReading(String(score.reading))
+    setExamSource(score.source)
+  }
+
+  /** 登録済みスコアの削除（T-205。確認後に実行する不可逆操作） */
+  async function handleConfirmDeleteExamScore() {
+    if (!deleteConfirmId) return
+    await db.examScores.delete(deleteConfirmId)
+    setDeleteConfirmId(null)
+    if (editingScoreId === deleteConfirmId) resetExamForm()
     await reloadForecastAndExamScores()
   }
 
@@ -305,6 +359,8 @@ export function DashboardScreen({ db, questionPool }: Props) {
             L
             <input
               type="number"
+              min={EXAM_SECTION_SCORE_MIN}
+              max={EXAM_SECTION_SCORE_MAX}
               value={examListening}
               onChange={(e) => setExamListening(e.target.value)}
               required
@@ -314,11 +370,25 @@ export function DashboardScreen({ db, questionPool }: Props) {
             R
             <input
               type="number"
+              min={EXAM_SECTION_SCORE_MIN}
+              max={EXAM_SECTION_SCORE_MAX}
               value={examReading}
               onChange={(e) => setExamReading(e.target.value)}
               required
             />
           </label>
+          {/* T-205（Q-53）: 範囲外入力で登録ボタンが無効になる理由を示す（無言で押せない
+              だけだと桁誤りに気づけない。DiagnosticScreenのTOEICスコア検証=T-187と同じ様式） */}
+          {examListening.trim() !== '' && !examListeningValid && (
+            <p style={{ color: 'var(--ng)', fontSize: 'var(--fs-note)' }} role="alert">
+              Lは{EXAM_SECTION_SCORE_MIN}〜{EXAM_SECTION_SCORE_MAX}の範囲で入力してください
+            </p>
+          )}
+          {examReading.trim() !== '' && !examReadingValid && (
+            <p style={{ color: 'var(--ng)', fontSize: 'var(--fs-note)' }} role="alert">
+              Rは{EXAM_SECTION_SCORE_MIN}〜{EXAM_SECTION_SCORE_MAX}の範囲で入力してください
+            </p>
+          )}
           <label>
             種別
             <select
@@ -332,7 +402,15 @@ export function DashboardScreen({ db, questionPool }: Props) {
               ))}
             </select>
           </label>
-          <button type="submit">登録</button>
+          <button type="submit" disabled={!examFormValid}>
+            {editingScoreId ? '更新' : '登録'}
+          </button>
+          {/* T-205: 編集モードから抜ける（新規登録に戻す） */}
+          {editingScoreId && (
+            <button type="button" className="secondary-action" onClick={resetExamForm}>
+              編集をやめる
+            </button>
+          )}
         </form>
         {examScores.length > 0 && (
           <ul data-testid="exam-score-list">
@@ -340,9 +418,31 @@ export function DashboardScreen({ db, questionPool }: Props) {
               <li key={score.id}>
                 {score.date} {score.source} 合計{score.total}
                 （予測帯との差 {Math.round(score.total - forecast.scoreBand.center)}）
+                {/* T-205（Q-53）: 誤登録の修正・削除手段が無く、「予測帯との差」表示に残り
+                    続けていた */}
+                <button type="button" onClick={() => handleEditExamScore(score)}>
+                  編集
+                </button>
+                <button type="button" onClick={() => setDeleteConfirmId(score.id)}>
+                  削除
+                </button>
               </li>
             ))}
           </ul>
+        )}
+        {deleteConfirmId && (
+          <ConfirmDialog
+            message="この実試験スコアを削除しますか？（元に戻せません）"
+            onDismiss={() => setDeleteConfirmId(null)}
+            actions={[
+              {
+                label: '削除する',
+                primary: true,
+                onSelect: () => void handleConfirmDeleteExamScore(),
+              },
+              { label: 'キャンセル', onSelect: () => setDeleteConfirmId(null) },
+            ]}
+          />
         )}
       </section>
     </ScreenLayout>
