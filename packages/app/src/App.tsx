@@ -17,6 +17,7 @@ import {
   type PackCache,
 } from './platform'
 import { exportAll } from './services/backup'
+import { loadPendingGhostBossResult } from './services/ghostBoss'
 import { loadPackQuestions, syncPacks } from './services/packSync'
 import { hasProfile } from './services/profile'
 import { sendQuestionStats } from './services/questionStats'
@@ -190,10 +191,19 @@ export function App() {
       resumeSession(getDb()),
       getDb().settings.get(THEME_PREFERENCE_KEY),
       getDb().settings.get(FONT_SIZE_KEY),
+      loadPendingGhostBossResult(getDb()),
     ])
-      .then(([exists, pool, resumed, themeSetting, fontSetting]) => {
+      .then(([exists, pool, resumed, themeSetting, fontSetting, pendingGhostBoss]) => {
         if (cancelled) return
-        if (!exists) navigate('diagnostic')
+        if (!exists) {
+          navigate('diagnostic')
+        } else if (pendingGhostBoss) {
+          // T-272: 送信成功前にアプリを終了・再読み込みした未送信のボス役結果があれば、
+          // 送信/破棄の画面へ復帰させる（次回起動が唯一の再試行機会のため、黙って
+          // 通常のホームへ進ませない）
+          useSessionStore.getState().hydrateGhostBossResults(pendingGhostBoss.records, pool)
+          navigate('result')
+        }
         setQuestionPool(pool)
         setResumeSnapshot(resumed)
         const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'

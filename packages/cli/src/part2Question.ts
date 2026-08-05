@@ -18,6 +18,7 @@ import {
   type FreqRank,
   type Question,
 } from '@beb-raid/shared-schema'
+import { rotationAmount } from './choiceRotation.js'
 import { PART2_ENTRIES_S, type Part2Entry } from './data/part2QuestionsS.js'
 import { PART2_ENTRIES_S2_RAW, type Part2RawEntry } from './data/part2QuestionsS2.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
@@ -106,15 +107,15 @@ export function buildPart2Drafts(
 /**
  * 正答キーの決定的ローテーション分散（M1レビュー⑦の方式。M2・T-60）。
  * rawエントリは常に correctText を「正解」・distractors を「誤答2件」として書き、
- * index%3の回転で選択肢の並び順・正答キーを機械的に決める（著者が手作業で
- * A/B/Cの出現頻度を気にする必要をなくし、常に同じ記号が正答になる構造欠陥を防ぐ）
+ * 選択肢の並び順・正答キーを機械的に決める（著者が手作業でA/B/Cの出現頻度を気にする
+ * 必要をなくし、常に同じ記号が正答になる構造欠陥を防ぐ）。
+ * 【T-266】ローテーション量はkeyVocabWordのハッシュから導出する（配列内のindexは使わない。
+ * part5Question.tsのrotatePart5Choicesと同じ理由。indexをそのまま使うと一定差分の
+ * 決定的循環を生む＝29のQ-79・contentLint.tsのcheckFlatAnswerKeyCycleが検出する構造欠陥）
  */
-export function rotatePart2Choices(
-  raw: Part2RawEntry,
-  index: number,
-): Pick<Part2Entry, 'choices' | 'answer'> {
+export function rotatePart2Choices(raw: Part2RawEntry): Pick<Part2Entry, 'choices' | 'answer'> {
   const texts = [raw.correctText, raw.distractors[0], raw.distractors[1]]
-  const rotation = index % 3
+  const rotation = rotationAmount(raw.keyVocabWord, 3)
   const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
   const keys = ['A', 'B', 'C']
   const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
@@ -123,8 +124,8 @@ export function rotatePart2Choices(
 }
 
 /** rawエントリ（correctText/distractors形式）→Part2Entry（choices/answer確定済み）への変換 */
-export function part2EntryFromRaw(raw: Part2RawEntry, index: number): Part2Entry {
-  const { choices, answer } = rotatePart2Choices(raw, index)
+export function part2EntryFromRaw(raw: Part2RawEntry): Part2Entry {
+  const { choices, answer } = rotatePart2Choices(raw)
   return {
     keyVocabWord: raw.keyVocabWord,
     tags: raw.tags,
@@ -141,7 +142,7 @@ export function part2EntryFromRaw(raw: Part2RawEntry, index: number): Part2Entry
 export function buildPart2EntriesS2(
   raw: readonly Part2RawEntry[] = PART2_ENTRIES_S2_RAW,
 ): Part2Entry[] {
-  return raw.map((r, i) => part2EntryFromRaw(r, i))
+  return raw.map((r) => part2EntryFromRaw(r))
 }
 
 /**

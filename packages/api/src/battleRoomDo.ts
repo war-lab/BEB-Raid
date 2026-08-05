@@ -452,13 +452,20 @@ export class BattleRoomDO extends DurableObject<Env> {
     if (!this.requireHost(conn)) return
 
     this.meta.phase = 'result'
-    const joined = [...this.connections.values()]
-      .map((c) => c.participant)
-      .filter((p) => p.role === 'participant' && p.displayName !== null)
+    // ロスター（participantsByToken）基準にする。connectionsだけを見ると、finish送信の
+    // 瞬間にたまたま瞬断中だった参加者が最終結果から丸ごと消える（T-265・29のQ-。
+    // 得点はロスターに保持され続けているのに一覧にだけ出ない、という表示の欠陥だった）
+    const joined = [...this.participantsByToken.values()].filter(
+      (p) => p.role === 'participant' && p.displayName !== null,
+    )
 
     const entries: BattleStandingEntry[] = [...joined]
       .sort((a, b) => b.totalPoints - a.totalPoints)
-      .map((p) => ({ displayName: p.displayName!, totalPoints: p.totalPoints }))
+      .map((p) => ({
+        displayName: p.displayName!,
+        totalPoints: p.totalPoints,
+        connected: this.connections.has(p.deviceToken),
+      }))
 
     const questionsAskedCount = this.meta.openedQuestionIndexes.length
     const withGrowth = joined.map((p) => {
@@ -568,23 +575,38 @@ export class BattleRoomDO extends DurableObject<Env> {
     }
   }
 
+  /**
+   * 【T-265・29のQ-】参加者一覧はロスター（participantsByToken）基準にする。
+   * connectionsだけを見ると、瞬断中の参加者が得点を保持したまま一覧から一時的に消え、
+   * 復帰すると再び現れる（通勤電車のトンネル等で頻発する）。ロスターは切断時に削除せず
+   * ルームの生存期間中（closeRoomまで）保持され続けるため一覧から消えない。
+   *
+   * 一方、ロスター基準へ単純に切り替えると「切断済みの参加者が常時『参加者』として
+   * 表示され続ける」という別の挙動変化が生じる（T-184がこれを理由に一覧の更新を見送った）。
+   * この方針では、`connected` フラグをBattleParticipant/BattleStandingEntryに追加して
+   * 接続状態を露出することで両立させる: 一覧からは消えず（瞬断中の見え消えを解消）、
+   * かつ現在の接続状態はUI側で判別できる（離脱者が常に「在席中」に見えることは無い）。
+   * 順位表（standings）・最終結果（handleFinish）も同じ方針にする
+   */
   private broadcastRoomState(): void {
     if (!this.meta) return
-    const participants = [...this.connections.values()]
-      .map((c) => c.participant)
+    const participants = [...this.participantsByToken.values()]
       .filter((p) => p.role === 'participant' && p.displayName !== null)
       .sort((a, b) => (a.joinOrder ?? 0) - (b.joinOrder ?? 0))
-      .map((p) => ({ displayName: p.displayName! }))
+      .map((p) => ({ displayName: p.displayName!, connected: this.connections.has(p.deviceToken) }))
     this.broadcast({ type: 'roomState', participants })
   }
 
   private broadcastStandings(): void {
     if (!this.meta) return
-    const entries: BattleStandingEntry[] = [...this.connections.values()]
-      .map((c) => c.participant)
+    const entries: BattleStandingEntry[] = [...this.participantsByToken.values()]
       .filter((p) => p.role === 'participant' && p.displayName !== null)
       .sort((a, b) => b.totalPoints - a.totalPoints)
-      .map((p) => ({ displayName: p.displayName!, totalPoints: p.totalPoints }))
+      .map((p) => ({
+        displayName: p.displayName!,
+        totalPoints: p.totalPoints,
+        connected: this.connections.has(p.deviceToken),
+      }))
     this.broadcast({ type: 'standings', entries })
   }
 

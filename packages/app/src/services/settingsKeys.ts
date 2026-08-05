@@ -76,3 +76,15 @@ export const AUTO_PLAY_ENABLED_KEY = 'autoPlayEnabled'
  * 有無を都度問い合わせない端末内キャッシュ。撤回=DELETE成功時に削除する）
  */
 export const GHOST_BOSS_SUBMITTED_AT_KEY = 'ghostBossSubmittedAt'
+/**
+ * ボス役セッションの完走済み結果（正誤一覧）で、まだPOST /ghostsの送信が
+ * 成功していないものの一時保存（T-272。docs/30 17節）。
+ *
+ * GhostBossResultScreenの結果保持がReact state（useSessionStore）のみだと、
+ * 送信成功前にアプリを終了・再読み込みすると解き切った結果がそのまま失われる。
+ * API断が続く状況では再試行の機会が次回起動になるため現実に起こりうる。
+ * DrillScreen側で既にcompleteSessionが呼ばれた後（＝セッション自体は完了済み）の
+ * 状態を保存するので、activeSession（進行中セッションの再開）とは別のキーにする。
+ * 送信成功時・破棄確定時に削除する（settings.deleteは冪等）
+ */
+export const GHOST_BOSS_PENDING_RESULT_KEY = 'ghostBossPendingResult'

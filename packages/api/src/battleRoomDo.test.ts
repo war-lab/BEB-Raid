@@ -516,7 +516,10 @@ describe('BattleRoomDO', () => {
     })
   })
 
-  it('参加者（ホスト以外）の切断ではルームは閉じない', async () => {
+  // T-265・29のQ-: 修正前は切断中の参加者がroomStateの一覧から消えていた（[]になっていた）。
+  // ロスター（deviceToken単位）は切断時に削除しないため、修正後は一覧に残り続け、
+  // connectedフラグだけがfalseになる（表示上は消えず、UI側で在席/離席を区別できる）
+  it('参加者（ホスト以外）が切断してもルームは閉じず、roomStateの一覧からも消えない（connected:falseで残る。T-265）', async () => {
     const code = freshCode()
     const hostToken = await registerDevice('ホスト7b')
     const aliceToken = await registerDevice('アリス7b')
@@ -528,13 +531,95 @@ describe('BattleRoomDO', () => {
 
     const hostRoomState = nextMessage(hostWs) // アリス切断によるroomState再配信
     aliceWs.close(1000, 'client_disconnect')
-    const afterLeave = (await hostRoomState) as { type: 'roomState'; participants: unknown[] }
+    const afterLeave = (await hostRoomState) as {
+      type: 'roomState'
+      participants: { displayName: string; connected: boolean }[]
+    }
     expect(afterLeave.type).toBe('roomState')
-    expect(afterLeave.participants).toEqual([])
+    // 修正前はここが[]になっていた（一覧から消えていた）
+    expect(afterLeave.participants).toEqual([{ displayName: 'アリス7b', connected: false }])
 
     await runInDurableObject(stub, (instance: BattleRoomDO) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((instance as any).meta?.phase).toBe('lobby')
+    })
+  })
+
+  // T-265・29のQ-: 出題中に参加者が瞬断しても、順位表（standings）・最終結果（result）の
+  // 一覧から消えない（得点は保持されたまま一覧にも残り続ける。connectedフラグで区別する）
+  describe('参加者の瞬断中も順位表・最終結果の一覧から消えない（T-265）', () => {
+    it('出題クローズ前に切断した参加者も、standingsの一覧に得点付きで残る', async () => {
+      const code = freshCode()
+      const hostToken = await registerDevice('ホスト265a')
+      const aliceToken = await registerDevice('アリス265a')
+      const bobToken = await registerDevice('ボブ265a')
+      const stub = await createRoom(code, hostToken)
+      const hostWs = await connect(stub, code, hostToken)
+      const aliceWs = await connect(stub, code, aliceToken)
+      const bobWs = await connect(stub, code, bobToken)
+      const all = [hostWs, aliceWs, bobWs]
+
+      await joinAndDrain(aliceWs, 'アリス265a', 10, all)
+      await joinAndDrain(bobWs, 'ボブ265a', 10, all)
+      await openQuestionAndDrain(hostWs, 0, 'q-1', all)
+
+      send(aliceWs, { type: 'answer', questionIndex: 0, points: 10 })
+      await new Promise((r) => setTimeout(r, 5))
+
+      // アリスが解答済みのまま切断する（瞬断を再現）。ボブは接続を維持する
+      const disconnectBroadcasts = Promise.all([nextMessage(hostWs), nextMessage(bobWs)])
+      aliceWs.close(1000, 'client_disconnect')
+      await disconnectBroadcasts
+
+      const standingsMsgs = await closeQuestionAndCollect(hostWs, 0, [hostWs, bobWs])
+      const standings = standingsMsgs[0] as {
+        type: 'standings'
+        entries: { displayName: string; totalPoints: number; connected: boolean }[]
+      }
+      const alice = standings.entries.find((e) => e.displayName === 'アリス265a')
+      // 修正前はstandings.entriesにアリスが一切現れなかった（一覧から消えていた）
+      expect(alice).toBeDefined()
+      // 参加者2人なのでボーナス = round(10*0.2*(1-0/2)) = 2 → 12点（解答時点で確定済み）
+      expect(alice?.totalPoints).toBe(12)
+      expect(alice?.connected).toBe(false)
+      const bob = standings.entries.find((e) => e.displayName === 'ボブ265a')
+      expect(bob?.connected).toBe(true)
+    })
+
+    it('finish時点で切断中の参加者も、最終結果の一覧に得点付きで残る', async () => {
+      const code = freshCode()
+      const hostToken = await registerDevice('ホスト265b')
+      const aliceToken = await registerDevice('アリス265b')
+      const stub = await createRoom(code, hostToken)
+      const hostWs = await connect(stub, code, hostToken)
+      const aliceWs = await connect(stub, code, aliceToken)
+      const all = [hostWs, aliceWs]
+
+      await joinAndDrain(aliceWs, 'アリス265b', 5, all)
+      await openQuestionAndDrain(hostWs, 0, 'q-1', all)
+      send(aliceWs, { type: 'answer', questionIndex: 0, points: 10 })
+      await new Promise((r) => setTimeout(r, 5))
+      await closeQuestionAndCollect(hostWs, 0, all)
+
+      // finishの前にアリスが切断する
+      const aliceDisconnected = nextMessage(hostWs)
+      aliceWs.close(1000, 'client_disconnect')
+      await aliceDisconnected
+
+      const hostClose = nextClose(hostWs)
+      send(hostWs, { type: 'finish' })
+      const result = (await nextMessage(hostWs)) as {
+        type: 'result'
+        entries: { displayName: string; totalPoints: number; connected: boolean }[]
+        bestGrowth: { displayName: string }
+      }
+      // 修正前はresult.entriesにアリスが一切現れず、ベストグロース賞も空になっていた
+      const alice = result.entries.find((e) => e.displayName === 'アリス265b')
+      expect(alice).toBeDefined()
+      expect(alice?.totalPoints).toBe(12)
+      expect(alice?.connected).toBe(false)
+      expect(result.bestGrowth.displayName).toBe('アリス265b')
+      await hostClose
     })
   })
 

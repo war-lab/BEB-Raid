@@ -2215,6 +2215,14 @@
   font-size: var(--fs-sub);
   overflow-wrap: anywhere;
 }
+/* T-265: 瞬断中の参加者は一覧から消さず、チップを薄くして区別する（standings__rowと同じ考え方） */
+.battle-lobby__chip[data-connected='false'] {
+  opacity: 0.5;
+}
+.battle-lobby__chip-offline {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
 /* 切断（closed）: 文言はbattleCloseMessage.tsのまま変えず、面をカード化して
    見出しと本文の階層を付けるだけに留める（docs/25 4.4節）。
    原因を利用者のせいにしない方針のため--ng / --warnは使わない */
@@ -2354,6 +2362,17 @@
 }
 .standings__row[data-self='true'] {
   border-left-color: var(--ev-blue);
+}
+/* T-265: 瞬断中・離脱済みの参加者は一覧から消さず、行全体を薄くして区別する
+   （得点は保持されたままなので削除・非表示にはしない） */
+.standings__row[data-connected='false'] {
+  opacity: 0.5;
+}
+.standings__offline {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+  letter-spacing: 0.02em;
 }
 .standings__main {
   flex: 1;

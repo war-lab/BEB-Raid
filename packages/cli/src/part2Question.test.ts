@@ -9,6 +9,7 @@
 // - 正答キーの決定的ローテーションがA/B/Cにほぼ均等分散する
 // - 音声知覚系タグ必須
 import { describe, expect, it } from 'vitest'
+import { validateContentLintBlocking } from './contentLint.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
@@ -194,33 +195,48 @@ describe('PART2_ENTRIES_S2_RAW（M2・T-60データ本体）', () => {
 })
 
 describe('rotatePart2Choices（正答キーの決定的ローテーション。M1レビュー⑦の方式）', () => {
-  it('index%3に応じてcorrectTextの位置が機械的に決まる', () => {
+  it('choicesが3つで、answerが実際にcorrectTextの位置と一致する', () => {
     const raw = PART2_ENTRIES_S2_RAW[0]!
-    const r0 = rotatePart2Choices(raw, 0)
-    const r1 = rotatePart2Choices(raw, 1)
-    const r2 = rotatePart2Choices(raw, 2)
-    const r3 = rotatePart2Choices(raw, 3)
-    expect(r0.choices.find((c) => c.key === r0.answer)?.text).toBe(raw.correctText)
-    expect(r1.choices.find((c) => c.key === r1.answer)?.text).toBe(raw.correctText)
-    expect(r2.choices.find((c) => c.key === r2.answer)?.text).toBe(raw.correctText)
-    expect(r3.answer).toBe(r0.answer) // 周期3なのでindex 0と3は同じ結果になる
+    const r = rotatePart2Choices(raw)
+    expect(r.choices).toHaveLength(3)
+    expect(r.choices.find((c) => c.key === r.answer)?.text).toBe(raw.correctText)
   })
 
-  it('100問を通してA/B/Cの正答キーがほぼ均等に分散する（同じ記号への偏りを防ぐ）', () => {
+  it('同じrawエントリなら常に同じ結果になる（配列内位置に依存しない決定的な値。T-266）', () => {
+    const raw = PART2_ENTRIES_S2_RAW[0]!
+    expect(rotatePart2Choices(raw)).toEqual(rotatePart2Choices(raw))
+  })
+
+  // 【T-266】ローテーション量がkeyVocabWordのハッシュ由来になったため、index%3の
+  // 厳密な周期分散ではなく統計的な分散になった。極端な偏りだけを検出する目安として
+  // 「公平配分の半分〜倍」を許容範囲にする（part5Question.test.tsと同じ考え方）
+  it('100問を通してA/B/Cの正答キーが極端に偏らず分散する（同じ記号への偏りを防ぐ）', () => {
     const entries = buildPart2EntriesS2()
     const counts: Record<string, number> = { A: 0, B: 0, C: 0 }
     for (const entry of entries) counts[entry.answer] = (counts[entry.answer] ?? 0) + 1
+    const fairShare = entries.length / 3
     for (const key of ['A', 'B', 'C']) {
-      expect(counts[key]).toBeGreaterThanOrEqual(30)
-      expect(counts[key]).toBeLessThanOrEqual(37)
+      expect(counts[key]).toBeGreaterThanOrEqual(Math.floor(fairShare / 2))
+      expect(counts[key]).toBeLessThanOrEqual(Math.ceil(fairShare * 2))
     }
+  })
+
+  // T-266（29のQ-79）: 修正前はrotatePart2Choicesがindex%3をローテーション量に使っており、
+  // S2の生成経路（raw.map((r, i) => ...)）で正答キー列が一定差分の決定的循環になっていた。
+  // 修正後はkeyVocabWordのハッシュ由来のため循環しないことをcontentLint.tsの実検出ロジックで確認する
+  it('T-266: S2を通しで生成しても正答キー列が一定差分の決定的循環にならない', () => {
+    const problems = validateContentLintBlocking(
+      buildPart2Questions(buildPart2EntriesS2()),
+      'test-pack-p2-s2',
+    )
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
   })
 })
 
 describe('part2EntryFromRaw', () => {
   it('rawエントリをPart2Entry（choices/answer確定済み）に変換する', () => {
     const raw = PART2_ENTRIES_S2_RAW[0]!
-    const entry = part2EntryFromRaw(raw, 0)
+    const entry = part2EntryFromRaw(raw)
     expect(entry.keyVocabWord).toBe(raw.keyVocabWord)
     expect(entry.choices).toHaveLength(3)
     expect(entry.choices.some((c) => c.key === entry.answer)).toBe(true)

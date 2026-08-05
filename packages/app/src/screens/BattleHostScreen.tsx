@@ -36,6 +36,14 @@ type Phase =
 interface StandingRow {
   displayName: string
   totalPoints: number
+  /** 現在WebSocket接続中かどうか（T-265）。ロビーの参加者チップにも同じ考え方を使う */
+  connected: boolean
+}
+
+/** ロビーの参加者チップ1件（T-265でconnectedを追加。一覧からは消えず状態だけ変わる） */
+interface ParticipantChip {
+  displayName: string
+  connected: boolean
 }
 
 function now(): number {
@@ -73,7 +81,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     drawBattleQuestionSet(questionPool, rng),
   )
   const [roomCode, setRoomCode] = useState<string | null>(null)
-  const [participants, setParticipants] = useState<string[]>([])
+  const [participants, setParticipants] = useState<ParticipantChip[]>([])
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [deadlineAt, setDeadlineAt] = useState<number | null>(null)
@@ -110,7 +118,9 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   useEffect(() => {
     battleSocket.onMessage((message: BattleServerMessage) => {
       if (message.type === 'roomState') {
-        setParticipants(message.participants.map((p) => p.displayName))
+        setParticipants(
+          message.participants.map((p) => ({ displayName: p.displayName, connected: p.connected })),
+        )
         return
       }
       if (message.type === 'questionOpen') {
@@ -382,10 +392,17 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
             </p>
             <p className="battle-host-lobby__hint">参加者にルームコードを伝えてください</p>
             <ul className="battle-lobby__chips" data-testid="battle-host-participants">
-              {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
-              {participants.map((name, i) => (
-                <li key={i} className="battle-lobby__chip">
-                  {name}
+              {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う。
+                  T-265: サーバーはロスター基準で常に全参加者を返すため、瞬断中でもチップは消えず、
+                  data-connectedで薄く表示するだけにする */}
+              {participants.map((p, i) => (
+                <li
+                  key={i}
+                  className="battle-lobby__chip"
+                  data-connected={p.connected ? undefined : 'false'}
+                >
+                  {p.displayName}
+                  {!p.connected && <span className="battle-lobby__chip-offline">（切断中）</span>}
                 </li>
               ))}
             </ul>

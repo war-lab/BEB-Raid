@@ -19,6 +19,7 @@ import type { PackCache } from './platform'
 import { WebAudioPlayer } from './platform/audio/WebAudioPlayer'
 import { createProfile } from './services/profile'
 import { startSession } from './services/session'
+import { GHOST_BOSS_PENDING_RESULT_KEY } from './services/settingsKeys'
 import { useAppStore } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
 
@@ -82,6 +83,44 @@ describe('App: 結果画面の振り分け（M4・T-128）', () => {
     render(<App />)
 
     expect(await screen.findByText('リザルト')).toBeTruthy()
+    expect(screen.queryByText('ボス役の記録')).toBeNull()
+  })
+})
+
+// T-272（docs/30 17節）: ボス役リザルトの保持がReact state（useSessionStore）のみだと、
+// 送信成功前にアプリを終了・再読み込みすると解き切った結果が失われていた。
+// settingsに一時保存された未送信結果があれば、起動時にGhostBossResultScreenへ
+// 自動的に復帰させることでこの経路を塞ぐ
+describe('App: 未送信のボス役結果からの起動時復帰（T-272）', () => {
+  it('起動時にsettingsへ未送信のボス役結果があれば、GhostBossResultScreenへ自動復帰する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await getDb().settings.put({
+      key: GHOST_BOSS_PENDING_RESULT_KEY,
+      value: {
+        records: [
+          { questionId: 'q-1', correct: true },
+          { questionId: 'q-2', correct: false },
+        ],
+        savedAt: Date.now(),
+      },
+    })
+    // 直前にどの画面にいたかに関わらず復帰させる（起動時の判定のため'home'から始める）
+    useAppStore.setState({ screen: 'home' })
+
+    render(<App />)
+
+    expect(await screen.findByText('ボス役の記録')).toBeTruthy()
+    expect(screen.getByText('正解 1 / 2')).toBeTruthy()
+    expect(useSessionStore.getState().isGhostBossSession).toBe(true)
+  })
+
+  it('未送信のボス役結果が無ければ、通常どおりホーム画面から始まる', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    useAppStore.setState({ screen: 'home' })
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
     expect(screen.queryByText('ボス役の記録')).toBeNull()
   })
 })

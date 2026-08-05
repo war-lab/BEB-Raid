@@ -195,7 +195,10 @@ describe('BattleHostScreen: ロビーの投影レイアウト（V-22）', () => 
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
     socket.emitMessage({
       type: 'roomState',
-      participants: [{ displayName: '花子' }, { displayName: '太郎' }],
+      participants: [
+        { displayName: '花子', connected: true },
+        { displayName: '太郎', connected: true },
+      ],
     })
     await screen.findByText('花子')
     const chips = container.querySelectorAll('[data-testid="battle-host-participants"] > li')
@@ -226,7 +229,10 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
     expect((await screen.findByTestId('battle-host-room-code')).textContent).toContain('ABCD')
 
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '花子' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '花子', connected: true }],
+    })
     expect(await screen.findByText('花子')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: '開始する' }))
@@ -249,7 +255,7 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
 
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '花子', totalPoints: 90 }],
+      entries: [{ displayName: '花子', totalPoints: 90, connected: true }],
     })
     expect(await screen.findByTestId('battle-host-standings')).toBeTruthy()
 
@@ -269,7 +275,7 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
     })
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '花子', totalPoints: 150 }],
+      entries: [{ displayName: '花子', totalPoints: 150, connected: true }],
     })
     // 最終問終了後は「次の問題へ」ではなく「結果発表」になる
     const finishButton = await screen.findByRole('button', { name: '結果発表' })
@@ -278,7 +284,7 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
 
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '花子', totalPoints: 150 }],
+      entries: [{ displayName: '花子', totalPoints: 150, connected: true }],
       bestGrowth: { displayName: '花子' },
     })
     expect(await screen.findByTestId('battle-host-result')).toBeTruthy()
@@ -366,7 +372,7 @@ describe('BattleHostScreen: 音声は自動再生しない（発起人の要望�
     )
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '太郎', totalPoints: 10 }],
+      entries: [{ displayName: '太郎', totalPoints: 10, connected: true }],
     })
 
     // 2問目: 「次の問題へ」だけでは再生しない
@@ -588,7 +594,7 @@ describe('BattleHostScreen: 投影用意匠（V-11）', () => {
 
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: 'テスト1', totalPoints: 90 }],
+      entries: [{ displayName: 'テスト1', totalPoints: 90, connected: true }],
     })
     await screen.findByTestId('battle-host-standings')
     expect(view.container.querySelector('.screen-layout')).toBeNull()
@@ -633,7 +639,10 @@ describe('BattleHostScreen: 中止・退出導線（T-217）', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '花子' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '花子', connected: true }],
+    })
     await screen.findByText('花子')
 
     fireEvent.click(screen.getByRole('button', { name: 'やめる' }))
@@ -691,7 +700,7 @@ describe('BattleHostScreen: 中止・退出導線（T-217）', () => {
     fireEvent.click(screen.getByRole('button', { name: '開始する' }))
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '花子', totalPoints: 90 }],
+      entries: [{ displayName: '花子', totalPoints: 90, connected: true }],
     })
     await screen.findByTestId('battle-host-standings')
 
