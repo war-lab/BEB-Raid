@@ -5,12 +5,16 @@
 //
 // 完走後に正誤一覧・「弱点として公開される問題数」（誤答数）を表示し、
 // 送信ボタンで POST /ghosts、送信前ならいつでも破棄できる（3.5節）
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import type { RaidApi } from '../platform'
-import { sendGhostBossRecord } from '../services/ghostBoss'
+import {
+  clearPendingGhostBossResult,
+  savePendingGhostBossResult,
+  sendGhostBossRecord,
+} from '../services/ghostBoss'
 import { completeSession } from '../services/session'
 import { GHOST_BOSS_SUBMITTED_AT_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
@@ -41,6 +45,23 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
 
   const wrongCount = results.filter((r) => !r.isCorrect).length
 
+  // T-272（docs/30 17節）: 結果の保持がReact state（useSessionStore）のみだと、
+  // 送信成功前にアプリを終了・再読み込みすると解き切った結果が失われる。この画面が
+  // 表示された時点（＝完走済み。isGhostBossSessionはRaidScreenの同意確定後にのみ立つ）で
+  // settingsへ複製しておき、次回起動時にApp.tsxが見つけてこの画面へ復帰させる（T-272）。
+  // 送信済み（sent）になった後は不要なので保存しない
+  const hasSavedPendingRef = useRef(false)
+  useEffect(() => {
+    if (sent || results.length === 0 || hasSavedPendingRef.current) return
+    hasSavedPendingRef.current = true
+    void savePendingGhostBossResult(
+      db,
+      results.map((r) => ({ questionId: r.questionId, correct: r.isCorrect })),
+    ).catch((e: unknown) => {
+      console.warn('[GhostBossResultScreen] 未送信結果の一時保存に失敗', e)
+    })
+  }, [db, sent, results])
+
   async function finishAndGoHome() {
     // T-267（docs/29 Q-5・PR #137）: ゴースト役セッションもDrillScreen経由でリザルトへ
     // 遷移する時点で既にcompleteSessionが呼ばれている（DrillScreen側のfinishSession()を
@@ -51,6 +72,14 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
       if (snapshot) await completeSession(db, snapshot.sessionId)
     } catch (e) {
       console.warn('[GhostBossResultScreen] セッション完了処理に失敗', e)
+    }
+    // T-272: 送信済み（「ホームへ」）・破棄（「破棄する」確定）のどちらの経路でも、
+    // 未送信結果の一時保存はもう不要になる。送信成功時は既にhandleSendで削除済みだが、
+    // settings.deleteは冪等なのでここでも呼んで安全網にする（破棄経路はここでしか消えない）
+    try {
+      await clearPendingGhostBossResult(db)
+    } catch (e) {
+      console.warn('[GhostBossResultScreen] 未送信結果の一時保存の削除に失敗', e)
     }
     reset()
     navigate('home')
@@ -69,6 +98,8 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
         records: results.map((r) => ({ questionId: r.questionId, correct: r.isCorrect })),
       })
       await db.settings.put({ key: GHOST_BOSS_SUBMITTED_AT_KEY, value: Date.now() })
+      // T-272: 送信に成功したので、未送信結果としての一時保存はもう要らない
+      await clearPendingGhostBossResult(db)
       setSent(true)
     } catch (e) {
       console.warn('[GhostBossResultScreen] 記録の送信に失敗', e)

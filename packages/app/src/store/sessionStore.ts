@@ -63,6 +63,18 @@ interface SessionStore {
   recordAnswer: (snapshot: SessionSnapshot, entry: SessionResultEntry) => void
   /** 表示できない問題をスキップした際にDrillScreenが呼ぶ（T-108） */
   incrementSkipped: () => void
+  /**
+   * 未送信のボス役結果（T-272・services/ghostBoss.tsのPendingGhostBossResult）から
+   * セッション状態を復元する。App.tsxが起動時、settingsに保存された結果を見つけたときに呼ぶ。
+   * このセッションは既に完走・completeSession済みのため snapshot は null のままにする
+   * （GhostBossResultScreenのfinishAndGoHomeは snapshot が無ければcompleteSessionを
+   * 呼ばない＝完了対象が無い正しい扱いになる）。basePointsはGhostBossResultScreenが
+   * 読まないため0で埋める
+   */
+  hydrateGhostBossResults: (
+    records: readonly { questionId: string; correct: boolean }[],
+    questions: readonly Question[],
+  ) => void
   reset: () => void
 }
 
@@ -92,6 +104,22 @@ export const useSessionStore = create<SessionStore>((set) => ({
     set((state) => ({ snapshot, results: [...state.results, entry] })),
 
   incrementSkipped: () => set((state) => ({ skippedCount: state.skippedCount + 1 })),
+
+  hydrateGhostBossResults: (records, questions) =>
+    set({
+      snapshot: null,
+      questions: new Map(questions.map((q) => [q.id, q])),
+      results: records.map((r) => ({
+        questionId: r.questionId,
+        isCorrect: r.correct,
+        basePoints: 0,
+      })),
+      ratingBefore: null,
+      partialAudioMode: false,
+      audioOnlyPart2: false,
+      skippedCount: 0,
+      isGhostBossSession: true,
+    }),
 
   reset: () =>
     set({

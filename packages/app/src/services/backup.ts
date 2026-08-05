@@ -26,7 +26,11 @@ import type {
 } from '../db/schema'
 import { PACK_SYNC_STATE_KEY } from './packSync'
 import { ACTIVE_SESSION_KEY } from './session'
-import { BYOK_API_KEY_KEY, QUESTION_STATS_LAST_SENT_AT_KEY } from './settingsKeys'
+import {
+  BYOK_API_KEY_KEY,
+  GHOST_BOSS_PENDING_RESULT_KEY,
+  QUESTION_STATS_LAST_SENT_AT_KEY,
+} from './settingsKeys'
 
 /** バックアップファイル自体のフォーマット世代（DBスキーマ変更時に上げる） */
 export const BACKUP_FORMAT_VERSION = 1
@@ -62,12 +66,17 @@ export interface BackupStores {
  * - questionStatsLastSentAt（T-190・Q-111）: questionStats送信のwatermarkは端末固有の
  *   送信済み位置。他端末の値を持ち込むと、この端末でまだ送っていないattemptsが
  *   未送信のまま取りこぼされる（watermarkだけ進んでしまう）
+ * - ghostBossPendingResult（T-272）: 未送信のボス役結果はactiveSessionと同じ性質の
+ *   端末ローカルな一時状態。他端末・別時点のものを復元すると、復元先の問題プールに
+ *   存在しないquestionIdを指しうる、または既に送信済みの記録を重複して送信画面に
+ *   出しかねない
  */
 export const EXPORT_EXCLUDED_KEYS: readonly string[] = [
   BYOK_API_KEY_KEY,
   PACK_SYNC_STATE_KEY,
   ACTIVE_SESSION_KEY,
   QUESTION_STATS_LAST_SENT_AT_KEY,
+  GHOST_BOSS_PENDING_RESULT_KEY,
 ]
 
 /**

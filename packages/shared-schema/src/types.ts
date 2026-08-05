@@ -428,6 +428,14 @@ export type BattleClientMessage =
 /** ルーム参加者1件（表示名のみ。個人紐づき情報は含めない） */
 export interface BattleParticipant {
   displayName: string
+  /**
+   * 現在WebSocket接続中かどうか（T-265・29のQ-...で見つかった追加課題）。
+   * ロスター（deviceToken単位のParticipantState）はルームの生存期間中保持されるため、
+   * falseは瞬断中または離脱済みを示すのみで一覧からは消えない
+   * （常にロスター全件を返す。切断済みでも常時「参加者」として表示され続ける懸念は
+   * このフラグでUI側が区別する前提で許容する。docs/22 3.2節・docs/30 17節参照）
+   */
+  connected: boolean
 }
 
 /** Server→Client: ルーム状態（参加者一覧） */
@@ -451,6 +459,8 @@ export interface BattleQuestionOpenMessage {
 export interface BattleStandingEntry {
   displayName: string
   totalPoints: number
+  /** 現在WebSocket接続中かどうか（T-265。BattleParticipant.connectedと同じ意味） */
+  connected: boolean
 }
 
 /** Server→Client: 各問クローズ後の順位表示 */

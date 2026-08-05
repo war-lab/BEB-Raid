@@ -10,6 +10,13 @@ import type { ReactNode } from 'react'
 export interface StandingsEntry {
   displayName: string
   totalPoints: number
+  /**
+   * 現在WebSocket接続中かどうか（T-265）。省略時（true相当）は接続状態を示さない
+   * 呼び出し元向けの後方互換。falseの行は瞬断中・離脱済みであることを示す
+   * バッジを添えるが、一覧からは消さない（サーバー側もロスター基準で常に全件返す。
+   * docs/22 3.2節参照）
+   */
+  connected?: boolean
 }
 
 interface Props {
@@ -65,6 +72,10 @@ export function StandingsList({
           const rank = startRank + i
           const isSelf = index === selfIndex
           const ratio = topPoints > 0 ? Math.max(0, entry.totalPoints) / topPoints : 0
+          // T-265: サーバーはロスター基準で常に全参加者を返すため、瞬断中・離脱済みでも
+          // 一覧からは消えない。connected===falseの行だけ在席状態を示すバッジを添える
+          // （一覧そのものを揺らさない＝docs/22 3.2節の表示方針）
+          const isDisconnected = entry.connected === false
           return (
             <li
               // 表示名は重複しうるためkeyには使わず、サーバー送出順のindexを使う
@@ -72,6 +83,7 @@ export function StandingsList({
               className="standings__row"
               data-rank={rank <= 3 ? String(rank) : undefined}
               data-self={isSelf ? 'true' : undefined}
+              data-connected={isDisconnected ? 'false' : undefined}
             >
               {/* バッジの数字は装飾ではなく順位そのものなので、読み上げには「N位」を別途渡す */}
               <span className="standings__badge display-num" aria-hidden="true">
@@ -83,6 +95,7 @@ export function StandingsList({
                   <span className="standings__who">
                     <span className="standings__name">{entry.displayName}</span>
                     {isSelf && <span className="standings__you">YOU</span>}
+                    {isDisconnected && <span className="standings__offline">通信切断中</span>}
                   </span>
                   <span className="standings__points display-num">
                     {entry.totalPoints.toLocaleString('ja-JP')}点

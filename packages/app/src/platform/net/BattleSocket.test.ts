@@ -235,8 +235,10 @@ describe('FakeBattleSocket', () => {
     fake.send({ type: 'answer', questionIndex: 0, points: 90 })
     expect(fake.sent).toEqual([{ type: 'answer', questionIndex: 0, points: 90 }])
 
-    fake.emitMessage({ type: 'roomState', participants: [{ displayName: 'A' }] })
-    expect(messages).toEqual([{ type: 'roomState', participants: [{ displayName: 'A' }] }])
+    fake.emitMessage({ type: 'roomState', participants: [{ displayName: 'A', connected: true }] })
+    expect(messages).toEqual([
+      { type: 'roomState', participants: [{ displayName: 'A', connected: true }] },
+    ])
 
     // reasonを省略した既存の呼び方は空文字（通信断相当）として扱う＝後方互換
     fake.emitClose(1000)

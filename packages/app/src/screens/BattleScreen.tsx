@@ -57,6 +57,14 @@ interface AnsweredRecord {
 interface StandingRow {
   displayName: string
   totalPoints: number
+  /** 現在WebSocket接続中かどうか（T-265）。ロビーの参加者チップにも同じ考え方を使う */
+  connected: boolean
+}
+
+/** ロビーの参加者チップ1件（T-265でconnectedを追加。一覧からは消えず状態だけ変わる） */
+interface ParticipantChip {
+  displayName: string
+  connected: boolean
 }
 
 function now(): number {
@@ -87,7 +95,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const review = useReviewSession(db, questionPool)
   const [phase, setPhase] = useState<Phase>('entry')
   const [codeInput, setCodeInput] = useState('')
-  const [participants, setParticipants] = useState<string[]>([])
+  const [participants, setParticipants] = useState<ParticipantChip[]>([])
   /** 自分の表示名（join時に確定）。順位表で自分の行を示すために保持する（V-9） */
   const [selfDisplayName, setSelfDisplayName] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -202,7 +210,9 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     battleSocket.onMessage((message: BattleServerMessage) => {
       if (message.type === 'roomState') {
         hasConnectedRef.current = true
-        setParticipants(message.participants.map((p) => p.displayName))
+        setParticipants(
+          message.participants.map((p) => ({ displayName: p.displayName, connected: p.connected })),
+        )
         setPhase((p) => (p === 'connecting' ? 'lobby' : p))
         return
       }
@@ -469,10 +479,17 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           <p className="battle-lobby__eyebrow">LOBBY</p>
           <p className="battle-lobby__wait">ホストが開始するまでお待ちください</p>
           <ul className="battle-lobby__chips">
-            {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
-            {participants.map((name, i) => (
-              <li key={i} className="battle-lobby__chip">
-                {name}
+            {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う。
+                T-265: サーバーはロスター基準で常に全参加者を返すため、瞬断中でもチップは消えず、
+                data-connectedで薄く表示するだけにする */}
+            {participants.map((p, i) => (
+              <li
+                key={i}
+                className="battle-lobby__chip"
+                data-connected={p.connected ? undefined : 'false'}
+              >
+                {p.displayName}
+                {!p.connected && <span className="battle-lobby__chip-offline">（切断中）</span>}
               </li>
             ))}
           </ul>

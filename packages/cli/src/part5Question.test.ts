@@ -8,6 +8,7 @@
 // - 文法タグ5分類（品詞/動詞の形/代名詞・関係詞/接続詞vs前置詞/比較）が各最低10問
 // - 正答キーの決定的ローテーションがA/B/C/Dにほぼ均等分散する
 import { describe, expect, it } from 'vitest'
+import { validateContentLintBlocking } from './contentLint.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
@@ -15,6 +16,7 @@ import { PART5_ENTRIES_S2_RAW } from './data/part5QuestionsS2.js'
 import {
   buildPart5Drafts,
   buildPart5EntriesS2,
+  buildPart5EntriesS3,
   buildPart5Questions,
   part5EntryFromRaw,
   part5Question,
@@ -186,35 +188,58 @@ describe('PART5_ENTRIES_S2_RAW（M2・T-61データ本体）', () => {
 })
 
 describe('rotatePart5Choices（正答キーの決定的ローテーション。M1レビュー⑦の方式）', () => {
-  it('index%4に応じてcorrectTextの位置が機械的に決まる', () => {
+  it('choicesが4つで、answerが実際にcorrectTextの位置と一致する', () => {
     const raw = PART5_ENTRIES_S2_RAW[0]!
-    const r0 = rotatePart5Choices(raw, 0)
-    const r1 = rotatePart5Choices(raw, 1)
-    const r2 = rotatePart5Choices(raw, 2)
-    const r3 = rotatePart5Choices(raw, 3)
-    const r4 = rotatePart5Choices(raw, 4)
-    expect(r0.choices.find((c) => c.key === r0.answer)?.text).toBe(raw.correctText)
-    expect(r1.choices.find((c) => c.key === r1.answer)?.text).toBe(raw.correctText)
-    expect(r2.choices.find((c) => c.key === r2.answer)?.text).toBe(raw.correctText)
-    expect(r3.choices.find((c) => c.key === r3.answer)?.text).toBe(raw.correctText)
-    expect(r4.answer).toBe(r0.answer) // 周期4なのでindex 0と4は同じ結果になる
+    const r = rotatePart5Choices(raw)
+    expect(r.choices).toHaveLength(4)
+    expect(r.choices.find((c) => c.key === r.answer)?.text).toBe(raw.correctText)
   })
 
-  it('100問を通してA/B/C/Dの正答キーがほぼ均等に分散する（同じ記号への偏りを防ぐ）', () => {
+  it('同じrawエントリなら常に同じ結果になる（配列内位置に依存しない決定的な値。T-266）', () => {
+    const raw = PART5_ENTRIES_S2_RAW[0]!
+    const r1 = rotatePart5Choices(raw)
+    const r2 = rotatePart5Choices(raw)
+    expect(r1).toEqual(r2)
+  })
+
+  // 【T-266】ローテーション量がkeyVocabWordのハッシュ由来になったため、index%4の
+  // 厳密な周期分散（必ず25問ずつ）ではなく統計的な分散になった。極端な偏り（同じ記号への
+  // 集中）だけを検出する目安として「公平配分の半分〜倍」を許容範囲にする
+  it('100問を通してA/B/C/Dの正答キーが極端に偏らず分散する（同じ記号への偏りを防ぐ）', () => {
     const entries = buildPart5EntriesS2()
     const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 }
     for (const entry of entries) counts[entry.answer] = (counts[entry.answer] ?? 0) + 1
+    const fairShare = entries.length / 4
     for (const key of ['A', 'B', 'C', 'D']) {
-      expect(counts[key]).toBeGreaterThanOrEqual(20)
-      expect(counts[key]).toBeLessThanOrEqual(30)
+      expect(counts[key]).toBeGreaterThanOrEqual(Math.floor(fairShare / 2))
+      expect(counts[key]).toBeLessThanOrEqual(Math.ceil(fairShare * 2))
     }
+  })
+
+  // T-266（29のQ-79）: 修正前はrotatePart5Choicesがindex%4（配列内の連番）をローテーション量に
+  // 使っていたため、S2/S3のように連番でraw.map((r, i) => ...)する生成経路では正答キー列が
+  // A→D→C→B→A→...の一定差分の決定的循環になっていた（T-237で既存パックを手動シャッフルする
+  // 対処をした根本原因）。修正後はkeyVocabWordのハッシュ由来のためこの循環が起きないことを、
+  // contentLint.tsの実検出ロジック（checkFlatAnswerKeyCycle）で確認する
+  it('T-266: S2/S3を通しで生成しても正答キー列が一定差分の決定的循環にならない', () => {
+    const s2Problems = validateContentLintBlocking(
+      buildPart5Questions(buildPart5EntriesS2()),
+      'test-pack-p5-s2',
+    )
+    expect(s2Problems.some((p) => p.includes('決定的循環'))).toBe(false)
+
+    const s3Problems = validateContentLintBlocking(
+      buildPart5Questions(buildPart5EntriesS3()),
+      'test-pack-p5-s3',
+    )
+    expect(s3Problems.some((p) => p.includes('決定的循環'))).toBe(false)
   })
 })
 
 describe('part5EntryFromRaw', () => {
   it('rawエントリをPart5Entry（choices/answer確定済み）に変換する', () => {
     const raw = PART5_ENTRIES_S2_RAW[0]!
-    const entry = part5EntryFromRaw(raw, 0)
+    const entry = part5EntryFromRaw(raw)
     expect(entry.keyVocabWord).toBe(raw.keyVocabWord)
     expect(entry.choices).toHaveLength(4)
     expect(entry.choices.some((c) => c.key === entry.answer)).toBe(true)

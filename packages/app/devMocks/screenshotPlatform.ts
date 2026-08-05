@@ -69,24 +69,25 @@ const BATTLE_PACK_ID = 'pack-p5-s-001'
 /** 読解画面のセッションに使うパック（Part6。空所マーカー付きの本文を持つ） */
 const READING_PACK_ID = 'pack-reading-p6-s-001'
 
-/** 順位表・表彰の見本データ（docs/25 4.1節・4.2節の図と同じ並び） */
+/** 順位表・表彰の見本データ（docs/25 4.1節・4.2節の図と同じ並び）。
+ *  connectedはT-265で追加した接続状態フラグ。見本では全員接続中にする */
 const STANDINGS = [
-  { displayName: 'さとう', totalPoints: 1240 },
-  { displayName: 'たなか', totalPoints: 1080 },
-  { displayName: 'すずき', totalPoints: 960 },
-  { displayName: 'ビジュアル確認', totalPoints: 820 },
-  { displayName: 'いとう', totalPoints: 610 },
+  { displayName: 'さとう', totalPoints: 1240, connected: true },
+  { displayName: 'たなか', totalPoints: 1080, connected: true },
+  { displayName: 'すずき', totalPoints: 960, connected: true },
+  { displayName: 'ビジュアル確認', totalPoints: 820, connected: true },
+  { displayName: 'いとう', totalPoints: 610, connected: true },
 ]
 
 /** 想定上限（10人前後。docs/25 JV-11）の順位表。V-23の2列化を投影サイズで確認するため。
  *  既定の5人（STANDINGS）はV-20の確認記録の画像と対応するので置き換えず、別ロスターにする */
 const STANDINGS_CROWDED = [
   ...STANDINGS,
-  { displayName: 'わたなべ', totalPoints: 540 },
-  { displayName: 'いしかわ', totalPoints: 480 },
-  { displayName: 'やまもとたろう', totalPoints: 420 },
-  { displayName: 'なかむら', totalPoints: 300 },
-  { displayName: 'こばやし', totalPoints: 180 },
+  { displayName: 'わたなべ', totalPoints: 540, connected: true },
+  { displayName: 'いしかわ', totalPoints: 480, connected: true },
+  { displayName: 'やまもとたろう', totalPoints: 420, connected: true },
+  { displayName: 'なかむら', totalPoints: 300, connected: true },
+  { displayName: 'こばやし', totalPoints: 180, connected: true },
 ]
 
 /** 現在使う順位表。window.__bebScreenshotMock.setCrowdedStandings() で切り替える */
@@ -269,8 +270,8 @@ class ScreenshotBattleSocket implements BattleSocket {
   close(): void {}
 
   /** 参加者一覧（自分＝表示名は問わないため固定名で並べる。ロビーのチップの折返し確認も兼ねる） */
-  private participants(): { displayName: string }[] {
-    return standings().map((s) => ({ displayName: s.displayName }))
+  private participants(): { displayName: string; connected: boolean }[] {
+    return standings().map((s) => ({ displayName: s.displayName, connected: true }))
   }
 
   /** ハンドラ登録の直後に呼ばれても取りこぼさないよう、次のタスクで送出する */
