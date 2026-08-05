@@ -11,6 +11,8 @@ import {
   initialRatingFromToeic,
   sectionForTurn,
   selectNextQuestion,
+  TOEIC_SCORE_MAX,
+  TOEIC_SCORE_MIN,
   updateDiagnosticRating,
 } from '../engine/diagnostic'
 import { DEFAULT_INITIAL_RATING, initializeRatings, sectionForPart } from '../engine/rating'
@@ -281,7 +283,12 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       )
     }
 
-    const toeicValid = toeicInput.trim() === '' || !Number.isNaN(Number(toeicInput))
+    const toeicNum = Number(toeicInput)
+    // T-187（Q-36）: NaNチェックのみだと桁誤り（65や6500）がそのまま初期レートへ伝播する。
+    // 特にスキップ経路は30問診断を経ずにレートを確定させるため、範囲外は入力時に拒否する
+    const toeicValid =
+      toeicInput.trim() === '' ||
+      (!Number.isNaN(toeicNum) && toeicNum >= TOEIC_SCORE_MIN && toeicNum <= TOEIC_SCORE_MAX)
     const canSkip = toeicInput.trim() !== '' && toeicValid && displayName.trim() !== ''
     return (
       <ScreenLayout
@@ -335,6 +342,13 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
               placeholder="例: 650"
             />
           </label>
+          {/* T-187（Q-36）: 範囲外入力でボタンが無効になる理由を示す（無言で押せないだけだと
+              桁誤りに気づけない） */}
+          {toeicInput.trim() !== '' && !toeicValid && (
+            <p style={{ color: 'var(--ng)', fontSize: 'var(--fs-note)' }} role="alert">
+              TOEICスコアは{TOEIC_SCORE_MIN}〜{TOEIC_SCORE_MAX}の範囲で入力してください
+            </p>
+          )}
         </div>
       </ScreenLayout>
     )

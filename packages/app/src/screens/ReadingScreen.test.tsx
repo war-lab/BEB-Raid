@@ -477,6 +477,35 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
     expect(screen.getByText(readingPaceLabel(0))).toBeTruthy()
     expect(screen.getByText(/目安1問\/分（経過\d+秒）/)).toBeTruthy()
   })
+
+  // 何を防ぐか（T-198。docs/29 Q-7）: handleNextはstartedAtだけ更新してelapsedSecを
+  // リセットしないため、一度60秒（PACE_GUIDE_SECONDS）を超えると以降の全設問で
+  // 「1分超」表示に固着する（tick用effectがelapsedSec>=60で早期returnし自己回復しない）
+  it('T-198: 設問切替時に経過秒がリセットされ、前設問の「1分超」表示を引き継がない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-elapsed-reset', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // setInterval/clearInterval・Dateのみフェイク化する（RaidScreen.test.tsxと同じ理由で
+    // setTimeout・Promiseは実時間のまま動かし、findBy*/waitForとのデッドロックを避ける）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    render(<ReadingScreen db={db} />)
+
+    // 1問目で目安の60秒を超えさせ、「1分超」表示に固着させる
+    await vi.advanceTimersByTimeAsync(65_000)
+    expect(screen.getByText(readingPaceLabel(60))).toBeTruthy()
+
+    // 1問目を解答して「次へ」で2問目へ進む
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('次へ'))
+
+    // 2問目は経過秒0からのはず。前問の「1分超」を引き継いでいれば固着したままになる
+    await waitFor(() =>
+      expect(screen.getByTestId('reading-question').textContent).toContain('設問2/2'),
+    )
+    expect(screen.getByText(readingPaceLabel(0))).toBeTruthy()
+    expect(screen.queryByText(readingPaceLabel(60))).toBeNull()
+  })
 })
 
 describe('ReadingScreen: 中断の確認（T-162。docs/27 のS-7）', () => {

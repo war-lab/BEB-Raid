@@ -693,7 +693,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。A原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。",
+      "explanation": "will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。D原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。",
       "translation": "従業員はメールで予定変更について通知される。"
     },
     {
@@ -1909,7 +1909,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、C物を指す関係代名詞、D関係副詞は文脈に合わない。",
+      "explanation": "先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。",
       "translation": "昨日会ったクライアントが契約の修正を望んでいる。"
     }
   ]

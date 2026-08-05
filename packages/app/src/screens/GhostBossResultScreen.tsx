@@ -27,6 +27,7 @@ interface Props {
 export function GhostBossResultScreen({ db, raidApi }: Props) {
   const results = useSessionStore((s) => s.results)
   const questions = useSessionStore((s) => s.questions)
+  const snapshot = useSessionStore((s) => s.snapshot)
   const reset = useSessionStore((s) => s.reset)
   const navigate = useAppStore((s) => s.navigate)
 
@@ -38,7 +39,8 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
 
   async function finishAndGoHome() {
     try {
-      await completeSession(db)
+      // T-193: sessionId照合のため、このセッションを完了する対象が無ければ呼ばない
+      if (snapshot) await completeSession(db, snapshot.sessionId)
     } catch (e) {
       console.warn('[GhostBossResultScreen] セッション完了処理に失敗', e)
     }

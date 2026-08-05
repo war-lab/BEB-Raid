@@ -11,7 +11,7 @@
 // sizeBytes 抜きの内容でハッシュ確定→そのサイズを sizeBytes として書き込む、の順にする。
 
 import { createHash } from 'node:crypto'
-import { readdir } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 
 import {
@@ -25,6 +25,7 @@ import {
 } from '@beb-raid/shared-schema'
 import type { CorrectionsFile } from './calibrate.js'
 import { validateContentLint } from './contentLint.js'
+import { parseJsonl, type GeneratedItemDraft } from './review.js'
 
 /**
  * ビルド対象パックの定義（実データはドラフトJSONLから読み込む。commands.ts から参照）。
@@ -274,6 +275,76 @@ export interface BuiltPack {
 }
 
 /**
+ * `<contentRoot>/drafts/*.jsonl` から PACK_DEFINITIONS 全件分のドラフトを読み込み
+ * PackSource[] を組み立てる（build/calibrate/verify-content 共用。T-32/T-34/T-234）。
+ */
+export async function loadPackSources(contentRoot: string): Promise<PackSource[]> {
+  const sources: PackSource[] = []
+  for (const def of PACK_DEFINITIONS) {
+    const draftPath = join(contentRoot, def.draftPath)
+    const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
+    sources.push({
+      id: def.id,
+      title: def.title,
+      license: def.license,
+      origin: def.origin,
+      targetLevel: def.targetLevel,
+      questions: drafts.map((d) => d.payload as Question),
+    })
+  }
+  return sources
+}
+
+export interface PackContentHash {
+  hash: string
+  sizeBytes: number
+}
+
+/**
+ * computePackContentHash の入力形。PackMeta とほぼ同じだが license を string のまま許容する
+ * （buildPack はバリデーション前の source.license: string を渡すため。実体のライセンス値の
+ * 妥当性は validatePack が別途検証する。ここでは値の中身を問わずシリアライズするだけ）。
+ */
+export interface HashablePackMeta {
+  id: string
+  title: string
+  license: string
+  origin: string
+  targetLevel: [number, number]
+  sizeBytes?: number
+}
+
+/**
+ * パック内容（sizeBytes抜き）からコンテンツハッシュとサイズを計算する（T-234で抽出。
+ * 元は buildPack 内に直書きだった計算をそのまま切り出したのみで、アルゴリズムは変えていない）。
+ *
+ * buildPack（ビルド時の算出）と verifyContent（配信物からの再算出。build.ts:1-11のコメント参照）の
+ * 両方がこの1実装を呼ぶことで、2箇所の算出ロジックが将来ずれる事故を防ぐ。
+ * 入力の pack.sizeBytes は無視する（付いていれば剥がしてから計算する。循環を避けるため）。
+ */
+export function computePackContentHash(rawPack: {
+  schemaVersion: typeof SCHEMA_VERSION
+  pack: HashablePackMeta
+  questions: readonly Question[]
+}): PackContentHash {
+  const draftPack = {
+    schemaVersion: rawPack.schemaVersion,
+    pack: {
+      id: rawPack.pack.id,
+      title: rawPack.pack.title,
+      license: rawPack.pack.license,
+      origin: rawPack.pack.origin,
+      targetLevel: rawPack.pack.targetLevel,
+    },
+    questions: rawPack.questions,
+  }
+  const contentForHash = JSON.stringify(draftPack, null, 2) + '\n'
+  const hash = createHash('sha256').update(contentForHash).digest('hex').slice(0, 16)
+  const sizeBytes = Buffer.byteLength(contentForHash, 'utf-8')
+  return { hash, sizeBytes }
+}
+
+/**
  * T-34（実測補正）の補正値ファイルをパック素材に適用する。純粋関数（入力を書き換えず新規配列を返す）。
  * - questionDifficulty: 問題ID一致でdifficultyを上書き
  * - wordFreqRank: keyVocabの各wordが一致すればfreqRankを上書き。vocab_card自体のfront/freqRankも対象
@@ -381,9 +452,7 @@ export function buildPack(
     }
   }
 
-  const contentForHash = JSON.stringify(draftPack, null, 2) + '\n'
-  const hash = createHash('sha256').update(contentForHash).digest('hex').slice(0, 16)
-  const sizeBytes = Buffer.byteLength(contentForHash, 'utf-8')
+  const { hash, sizeBytes } = computePackContentHash(draftPack)
 
   const pack = {
     ...draftPack,

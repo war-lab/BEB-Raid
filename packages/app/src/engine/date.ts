@@ -12,13 +12,27 @@ export function toDateString(epochMs: number): string {
   return `${y}-${m}-${day}`
 }
 
-/** 'YYYY-MM-DD' → その日のローカル0時の epoch ms */
+/**
+ * 'YYYY-MM-DD' → その日のローカル0時の epoch ms。
+ * 月・日の範囲外成分（例: '2026-13-45'）は Date コンストラクタが繰り上げ解釈して
+ * 別の暦日になってしまうため、構築後の年月日が入力と一致するかで検出する（T-191・Q-109）
+ */
 export function parseDateString(date: string): number {
-  const [y, m, d] = date.split('-').map(Number)
-  if (y === undefined || m === undefined || d === undefined || Number.isNaN(y + m + d)) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (!match) {
     throw new Error(`暦日文字列が不正: ${date}`)
   }
-  return new Date(y, m - 1, d).getTime()
+  const y = Number(match[1])
+  const m = Number(match[2])
+  const d = Number(match[3])
+  if (m < 1 || m > 12) {
+    throw new Error(`暦日文字列が不正: ${date}`)
+  }
+  const parsed = new Date(y, m - 1, d)
+  if (parsed.getFullYear() !== y || parsed.getMonth() !== m - 1 || parsed.getDate() !== d) {
+    throw new Error(`暦日文字列が不正: ${date}`)
+  }
+  return parsed.getTime()
 }
 
 /** その時刻を含むローカル日の0時（epoch ms） */

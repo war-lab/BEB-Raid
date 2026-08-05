@@ -36,3 +36,7 @@ Thumbs.db
 # 導入: pip install piper-tts && python -m piper.download_voices <voice> --download-dir .piper-voices）
 /.piper-voices/
 
+
+# 実機確認の一時スクリーンショット（記録として残すものは docs/dogfood/ 配下へ移す。30のJ-112）
+/*.jpeg
+/*.jpg

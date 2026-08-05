@@ -11,6 +11,7 @@ import { PROFILE_ID } from '../db/schema'
 import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import { getFontSizeScale } from '../fontSize'
 import { AnthropicAiClient, DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
+import { PACK_SYNC_STATE_KEY } from '../services/packSync'
 import { getTheme } from '../theme'
 import { SettingsScreen } from './SettingsScreen'
 
@@ -27,6 +28,7 @@ class FakePackCache implements PackCache {
   private stored = new Set<string>(['a.mp3', 'b.mp3'])
   has = vi.fn(async (url: string) => this.stored.has(url))
   get = vi.fn(async () => null)
+  put = vi.fn(async () => {})
   addAll = vi.fn(async () => {})
   delete = vi.fn(async () => {})
   keys = vi.fn(async () => [...this.stored])
@@ -173,6 +175,25 @@ describe('SettingsScreen: 永続化', () => {
 
     expect(await screen.findByText(/0件/)).toBeTruthy()
     expect(cache.clear).toHaveBeenCalled()
+  })
+
+  it('T-183 Q-11の対: キャッシュ削除は同期状態（packSyncState）もリセットする', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: PACK_SYNC_STATE_KEY,
+      value: { packHashes: { 'pack-a': 'h1' }, totalSizeBytes: 100, lastSyncedAt: 0 },
+    })
+    const cache = new FakePackCache()
+    render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    fireEvent.click(screen.getByText('キャッシュを削除'))
+    await screen.findByText(/0件/)
+
+    // 実体だけでなく同期状態も消えていないと、ハッシュ一致のみを見るsyncPacksが
+    // 「同期済み」と誤認し、削除後も再同期されない（Q-11の対の症状）
+    expect(await db.settings.get(PACK_SYNC_STATE_KEY)).toBeUndefined()
   })
 
   it('再計算ボタンでキャッシュ使用量が再取得される（T-107c）', async () => {

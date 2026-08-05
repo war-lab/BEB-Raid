@@ -856,12 +856,15 @@
   font-size: var(--fs-sub);
   color: var(--ink-2);
 }
+/* T-225(Q-72): 英文の例文（フレーズ）も英文問題文相当のため--fs-questionを使い、
+   文字サイズ設定を効かせる（旧: --fs-headingで固定サイズだったため設定が効かなかった） */
 .vocab-card__phrase {
-  font-size: var(--fs-heading);
+  font-size: var(--fs-question);
   line-height: 1.5;
 }
 /* 復習モードで解答前に出す単語単体（2026-07-29。フレーズは解答後に開示する）。
-   フレーズより1段大きくして「今問われているのはこの語」を明示する */
+   太字＋--goldで強調し「今問われているのはこの語」を明示する
+   （T-225でフレーズも--fs-questionに揃えたため、文字サイズは常にフレーズと同じになる） */
 .vocab-card__word {
   font-size: var(--fs-question);
   font-weight: 700;
@@ -1639,12 +1642,18 @@
 }
 
 /* --- カラオケハイライト（07 6節131行: 発話中=--gold下線+明るい文字、読了=--ink、未読=--ink-2。背景塗り無し） --- */
+/* T-225(Q-72): シャドーイング本文も英文問題文相当のため--fs-questionを使い、文字サイズ設定を効かせる */
 .karaoke-script {
-  font-size: var(--fs-ui);
+  font-size: var(--fs-question);
   line-height: 1.8;
 }
 .karaoke-sentence {
   cursor: pointer;
+}
+/* T-223(Q-61): キーボード操作時のフォーカスリング（他の操作要素と同じ意匠） */
+.karaoke-sentence:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 .karaoke-read {
   color: var(--ink);

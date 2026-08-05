@@ -157,6 +157,90 @@ describe('未知typeの判別（discriminated unionの受信側ガード）', ()
   })
 })
 
+describe('isBattleClientMessage: ペイロード検証（T-182・Q-19）', () => {
+  // 修正前は type しか見ていないため、下記はいずれも誤って true になっていた
+  // （29の所見Q-19: 得点を任意値で送れる／表示名が無制限）
+  it('answer.points が負数のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 0, points: -1 })).toBe(false)
+  })
+
+  it('answer.points が NaN のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 0, points: Number.NaN })).toBe(
+      false,
+    )
+  })
+
+  it('answer.points が文字列のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 0, points: '999' })).toBe(false)
+  })
+
+  it('answer.points が桁違いに大きいメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({ type: 'answer', questionIndex: 0, points: Number.MAX_SAFE_INTEGER }),
+    ).toBe(false)
+  })
+
+  it('answer.questionIndex が負数・非数のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: -1, points: 10 })).toBe(false)
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 'x', points: 10 })).toBe(false)
+  })
+
+  it('join.displayName が空文字のメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({ type: 'join', displayName: '', expectedPointsPerQuestion: 10 }),
+    ).toBe(false)
+  })
+
+  it('join.displayName が上限を超えるメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({
+        type: 'join',
+        displayName: 'あ'.repeat(1000),
+        expectedPointsPerQuestion: 10,
+      }),
+    ).toBe(false)
+  })
+
+  it('join.expectedPointsPerQuestion が数値でないメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({
+        type: 'join',
+        displayName: '太郎',
+        expectedPointsPerQuestion: 'たくさん',
+      }),
+    ).toBe(false)
+  })
+
+  it('openQuestion.questionIndex／questionId が不正なメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({ type: 'openQuestion', questionIndex: -1, questionId: 'q-1' }),
+    ).toBe(false)
+    expect(isBattleClientMessage({ type: 'openQuestion', questionIndex: 0, questionId: '' })).toBe(
+      false,
+    )
+    expect(isBattleClientMessage({ type: 'openQuestion', questionIndex: 0, questionId: 123 })).toBe(
+      false,
+    )
+  })
+
+  it('closeQuestion.questionIndex が不正なメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'closeQuestion', questionIndex: -1 })).toBe(false)
+    expect(isBattleClientMessage({ type: 'closeQuestion', questionIndex: 'x' })).toBe(false)
+  })
+
+  it('正当な値の各メッセージは引き続き true になる（回帰防止）', () => {
+    expect(
+      isBattleClientMessage({ type: 'join', displayName: '太郎', expectedPointsPerQuestion: 40 }),
+    ).toBe(true)
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 2, points: 0 })).toBe(true)
+    expect(
+      isBattleClientMessage({ type: 'openQuestion', questionIndex: 0, questionId: 'q-101' }),
+    ).toBe(true)
+    expect(isBattleClientMessage({ type: 'closeQuestion', questionIndex: 0 })).toBe(true)
+    expect(isBattleClientMessage({ type: 'finish' })).toBe(true)
+  })
+})
+
 describe('isBattleCloseReason', () => {
   it('サーバーが付与する既知の切断理由はtrueになる', () => {
     expect(isBattleCloseReason('unauthorized')).toBe(true)

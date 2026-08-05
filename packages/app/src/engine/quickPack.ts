@@ -16,7 +16,7 @@ import type { ListeningStage, SrsCardRecord } from '../db/schema'
 import { templateForSeason } from './curriculum'
 import { getActiveReviewWords, similarOrFallback } from './keyVocab'
 import rawConfig from './quickPackConfig.json'
-import { getSrsQueue } from './srs'
+import { DEFAULT_SRS_OPTIONS, getSrsQueue } from './srs'
 import { getWeakTags } from './tagStats'
 import type {
   CurriculumTemplate,
@@ -457,7 +457,11 @@ export async function generateQuickPack(
   const config = QUICK_PACK_CONFIG
   const durationConfig = config.durations[String(request.duration) as '3' | '7' | '15']
 
-  const queue = await getSrsQueue(db, now)
+  // T-188（Q-98）: 新規停止の滞留判定を、実際の出題候補プールに対する isServable 基準にする。
+  // 配信から外れたパックの問題カードで滞留枠が占有され、新規導入が恒久停止するのを防ぐ
+  const queue = await getSrsQueue(db, now, DEFAULT_SRS_OPTIONS, (c) =>
+    isServable(c, request.questions),
+  )
   const items: QuickPackItem[] = []
 
   // ① SRS期限超過（上限 = min(15, パック容量)。溢れは次パックへ）

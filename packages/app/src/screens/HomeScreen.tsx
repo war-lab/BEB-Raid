@@ -15,7 +15,7 @@ import { totalAnswerSlots } from '../engine/answerSlots'
 import { shuffle } from '../engine/shuffle'
 import { supportsAudioOnlyPart2 } from '../engine/audioOnlyPart2'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
-import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
+import { localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { buildHeatmapCells } from '../engine/heatmapCells'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { applyRatingDifficultyFilter, orderByRating } from '../engine/ratingDifficultyFilter'
@@ -27,7 +27,12 @@ import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
-import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
+import {
+  currentSubAnswers,
+  startSession,
+  type SessionItem,
+  type SessionSnapshot,
+} from '../services/session'
 import {
   LAST_SEEN_STREAK_KEY,
   NO_EARPHONE_MODE_KEY,
@@ -67,14 +72,22 @@ export function confirmDiscardMessage(remaining: number): string {
 /**
  * 中断セッションの残り解答回数（T-175。docs/27 のS-26）。
  * item数で数えると audio_set（1itemで3サブ設問）を1回と数えてしまい、
- * ドリル画面の進捗表示（実解答回数）と食い違う
+ * ドリル画面の進捗表示（実解答回数）と食い違う。
+ *
+ * T-200（Q-10）: `snapshot.answeredCount` はitem単位でしか進まないため、
+ * 現在item（読解・audio_set）内で答え終えたサブ設問（`snapshot.subAnswers`）は
+ * まだ反映されていない。それを引かないと、Part7で3問中1問だけ解答して
+ * 「次へ」を押す前に中断した場合、その1問分が残数に反映されず「残り7問」のまま
+ * （実際は6問）になる。Part5等サブ設問を持たないitemは常にsubAnswersが空なので
+ * この補正は効かず、従来どおりの挙動を保つ
  */
 export function remainingAnswerSlots(
   snapshot: SessionSnapshot,
   questionPool: readonly Question[],
 ): number {
   const lookup = new Map(questionPool.map((q) => [q.id, q]))
-  return totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
+  const total = totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
+  return Math.max(0, total - currentSubAnswers(snapshot).length)
 }
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
@@ -108,8 +121,6 @@ const EMPTY_PACK_MESSAGE = '今は出題できる問題がありません'
 /** 3分クエスト選択時のみ続ける補足文（J-60。3分=SRS復習中心の構成のため空になりやすい） */
 const EMPTY_PACK_QUEST_3MIN_HINT =
   '3分クエストはSRS復習が中心です。復習カードが無いときは7分・15分をお試しください'
-/** 途切れ判定の閾値（レビューフォローアップ3.8節: gap≥2） */
-const BROKEN_GAP_DAYS = 2
 /** ホームのミニヒートマップの表示週数（T-78。DashboardScreenの15週の縮小版） */
 const MINI_HEATMAP_WEEKS = 4
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -271,12 +282,19 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       if (savedReadingCount !== undefined && READING_SET_COUNTS.includes(savedReadingCount)) {
         setReadingSetCount(savedReadingCount)
       }
-      const today = toDateString(Date.now())
-      const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
-      const isBroken =
-        record.lastActiveDate !== null && gap >= BROKEN_GAP_DAYS && !status.todayCompleted
+      // T-195（Q-102フォローアップ）: 「途切れ」判定はエンジン（evaluateStreak）を単一の
+      // 情報源にする。以前はホーム側で gap>=2 を独自に再計算しており、gap===2かつ保護（週1回
+      // まで1日の欠席を免除）が使える状態でもエンジンは継続中と判定しているのに、ホームだけが
+      // 「途切れ」と表示する不整合があった（streak.tsの方針「エンジンは事実だけを返す」に反する
+      // 事実でない表示）。evaluateStreakは途切れ確定時のみcurrentDays=0を返すため、
+      // 「status.currentDays===0なのにrecord.currentDays（生データ）は0でない」ことをもって
+      // 途切れと判定する（保護がまだ使える間は0にならないため途切れ扱いしない）
+      const isBroken = status.currentDays === 0 && record.currentDays > 0
       setStreakDays(status.currentDays)
-      setBrokenSinceDays(isBroken ? status.currentDays : null)
+      // 「前回N日」はstatus.currentDaysではなくrecord（生データ）から取る。evaluateStreakは
+      // 途切れ確定時にcurrentDaysを0で返すが、この「前回何日だったか」の文脈表示は
+      // 途切れる前の値をそのまま見せたいため、DBの生の値（record.currentDays）を使う
+      setBrokenSinceDays(isBroken ? record.currentDays : null)
       setDueCount(queue.dueReviews.length)
       setPhase(phaseState)
 
