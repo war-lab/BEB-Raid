@@ -411,7 +411,9 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
       setSaveError(null)
     } catch (err) {
       console.error('[VocabScreen] 記録に失敗', err)
-      setSaveError('記録を保存できませんでした。通信状態と空き容量を確認してください')
+      // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+      // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
+      setSaveError('記録を保存できませんでした。空き容量を確認してください')
     } finally {
       busyRef.current = false
       setBusy(false)
