@@ -76,7 +76,10 @@ export function ChoiceButton({
       {/* 形は装飾（aria-hidden）なので、支援技術には選択肢記号を文字で伝える。
           記号表示のときはマーカーの文字がそのまま見えているため補わない */}
       {shape !== null && <span className="visually-hidden">選択肢{marker}</span>}
-      <span className="choice-button__label">{children}</span>
+      {/* T-224（J-108）: 選択肢本文は英文そのもの（全呼び出し元でchoice.textを渡す） */}
+      <span className="choice-button__label" lang="en">
+        {children}
+      </span>
       {/* アイコン枠は常時確保（状態変化でレイアウトを動かさないため） */}
       <span className="choice-button__icon" aria-hidden={icon === ''}>
         {icon}

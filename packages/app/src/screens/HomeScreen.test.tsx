@@ -510,6 +510,73 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
   })
 })
 
+// 何を防ぐか（T-228。docs/29 Q-66）: 問数・時間チップの選択状態が枠色と文字色のみで
+// 符号化され、支援技術に選択中の値が伝わらず、色だけに頼った状態表現になっていたこと
+describe('HomeScreen: 問数・時間チップのaria-pressedと色以外の状態表現（T-228）', () => {
+  it('時間チップにaria-pressedが付き、選択中はチェックマークが表示される', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const selected = screen.getByText('7分').closest('button')!
+    expect(selected.getAttribute('aria-pressed')).toBe('true')
+    expect(selected.textContent).toContain('✓')
+
+    const unselected = screen.getByText('3分').closest('button')!
+    expect(unselected.getAttribute('aria-pressed')).toBe('false')
+    expect(unselected.textContent).not.toContain('✓')
+
+    fireEvent.click(screen.getByText('3分'))
+    expect(screen.getByText('3分').closest('button')!.getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText('7分').closest('button')!.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('Part2の問数チップにもaria-pressedが付く', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+
+    const selected = screen.getByText('20問').closest('button')!
+    expect(selected.getAttribute('aria-pressed')).toBe('true')
+    expect(selected.textContent).toContain('✓')
+    expect(screen.getByText('10問').closest('button')!.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('読解のパッセージ数チップにもaria-pressedが付く', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={[...QUESTION_POOL, part7Question('p7-a11y')]}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+
+    const selected = screen.getByText('2本').closest('button')!
+    expect(selected.getAttribute('aria-pressed')).toBe('true')
+    expect(selected.textContent).toContain('✓')
+    expect(screen.getByText('1本').closest('button')!.getAttribute('aria-pressed')).toBe('false')
+  })
+})
+
 describe('HomeScreen: 時間チップの明確化と保存（T-112）', () => {
   it('「クエストの長さ」ラベルがチップ群に付き、今日のクエストボタンとグループ化される', async () => {
     const db = newDb()
@@ -796,6 +863,63 @@ describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     // フェーズ駆動でも既存どおりセッションが開始できることの回帰確認
     expect(useSessionStore.getState().snapshot!.items.length).toBeGreaterThan(0)
+  })
+})
+
+// 何を防ぐか（T-213。docs/29 Q-43・J-109）: モバイル幅（390×844）の1画面目にCTAが
+// 1つも入らず、巨大ロゴ＋ヒーローカード＋ヒートマップ＋PWA案内で埋まっていたこと。
+// jsdomは実レイアウトを計算しないため画素位置は検証できないが、「続きから再開」と
+// 「今日のクエスト」がヒートマップよりDOM順で前に来ることで配置変更を検証する
+describe('HomeScreen: ファーストビューのCTA到達性（T-213・J-109）', () => {
+  it('「今日のクエスト」がヒートマップよりDOM順で前に描画される', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const questGroup = document.querySelector('.home-quest-group')
+    const heatmap = await screen.findByTestId('home-mini-heatmap')
+    expect(questGroup).toBeTruthy()
+    // DOM順序判定にはcompareDocumentPositionのビットマスク比較が標準的な手段
+    expect(
+      questGroup!.compareDocumentPosition(heatmap) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('進行中セッションがあるとき「続きから再開」もヒートマップよりDOM順で前に描画される', async () => {
+    const db = newDb()
+    const snapshot = {
+      sessionId: 'cta-order-session',
+      items: [
+        { questionId: 'p2-1', mode: 'solo' as const },
+        { questionId: 'p2-2', mode: 'solo' as const },
+      ],
+      answeredCount: 1,
+      attemptIds: ['a-1'],
+      startedAt: 0,
+      updatedAt: 0,
+    }
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const resumeButton = screen.getByText(/続きから再開/)
+    const heatmap = await screen.findByTestId('home-mini-heatmap')
+    expect(
+      resumeButton.compareDocumentPosition(heatmap) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })
 

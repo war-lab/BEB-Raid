@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
 import { advanceSession, resumeSession, startSession, type SessionItem } from '../services/session'
+import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { readingPaceLabel, ReadingScreen } from './ReadingScreen'
@@ -40,6 +41,10 @@ afterEach(async () => {
 async function setupSession(db: BebRaidDatabase, items: SessionItem[], questions: Question[]) {
   const snapshot = await startSession(db, { items })
   useSessionStore.getState().begin(snapshot, questions, { L: 400, R: 400 })
+  // 誤タップの取り消し猶予（T-268。ADR 0009。既定ON）をOFFにする。ONだと解答から記録まで
+  // 400ms空くため、猶予そのものを検証しない既存テストが軒並み待ちを必要とし遅く不安定になる
+  // （DrillScreen.test.tsx・VocabScreen.test.tsxと同じ対処）
+  await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
   return snapshot
 }
 
@@ -253,6 +258,54 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     const attempts = await db.attempts.toArray()
     expect(attempts).toHaveLength(1)
     expect(attempts[0]?.isCorrect).toBe(false)
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: パッセージ・設問文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('ReadingScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('Part7単一のパッセージ本文にlang="en"が付く', async () => {
+    const db = newDb()
+    const q = part7Question('p7-lang', 1, 'This invoice is due on the 15th.')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByTestId('passage-text').getAttribute('lang')).toBe('en')
+  })
+
+  it('Part6の空所付きパッセージ本文にもlang="en"が付く', async () => {
+    const db = newDb()
+    const q = part6Question('p6-lang')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByTestId('passage-text').getAttribute('lang')).toBe('en')
+  })
+
+  it('設問文（英文）の部分だけlang="en"が付き、「設問n/m:」ラベルは付かない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-lang-q', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const questionEl = screen.getByTestId('reading-question')
+    // ラベル部分（「設問n/m:」）自体には付かない。英文だけを括った子spanに付く
+    expect(questionEl.getAttribute('lang')).toBeNull()
+    const englishSpan = questionEl.querySelector('[lang="en"]')
+    expect(englishSpan?.textContent).toBe('設問0')
+  })
+
+  it('選択肢本文にもlang="en"が付く（ChoiceButton経由）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-lang-choice', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByText('a').getAttribute('lang')).toBe('en')
   })
 })
 
@@ -863,6 +916,112 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
 
     fireEvent.click(await screen.findByText('次へ'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+  })
+})
+
+// 誤タップの取り消し猶予（T-268。docs/29 Q-113・ADR 0009 2026-08-05 Amendment）。
+// 何を防ぐか: 読解の選択肢だけが同じChoiceButtonを使いながら猶予の対象外になっていたこと
+// （DrillScreen・VocabScreenには既にADR 0009の猶予が適用済み）。読解は各subQuestionを
+// 独立採点するため、DrillScreenの解答経路と同型の猶予で足りる
+describe('ReadingScreen: 誤タップの取り消し猶予（T-268。ADR 0009）', () => {
+  /** 猶予をONにしたセッション（setupSessionが既定OFFにするため上書きする） */
+  async function setupWithUndo(db: BebRaidDatabase, items: SessionItem[], questions: Question[]) {
+    const snapshot = await setupSession(db, items, questions)
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: true })
+    return snapshot
+  }
+
+  it('猶予中は attempts を書かず、解説は出すが「次へ」「ここで終了」は出ない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-1', 2)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    // 視覚フィードバックは即時（テンポを変えない）
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(screen.getByText('正解')).toBeTruthy()
+    // 猶予中は記録しない
+    expect(await db.attempts.count()).toBe(0)
+    // ADR 0009 T-160 Amendmentどおり解説は猶予中も即時に出す
+    expect(screen.getByText(/設問0の解説/)).toBeTruthy()
+    // 未確定のまま進める導線は出さない
+    expect(screen.queryByText('次へ')).toBeNull()
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+  })
+
+  it('猶予が過ぎると記録され、「次へ」が出て「取り消し」が消える', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-2', 2)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    expect(screen.queryByText('取り消し')).toBeNull()
+  })
+
+  it('取り消しで記録せず次の未解答サブ設問へ進む', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-3', 3)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    expect(screen.getByTestId('reading-question').textContent).toContain('設問1/3')
+
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // attemptは作らないが、設問1は消化して次の未解答（設問2）へ進む（同じ設問の
+    // 再解答は許さない: 正解が既に見えているためisCorrectが偽陽性になる）
+    await waitFor(() =>
+      expect(screen.getByTestId('reading-question').textContent).toContain('設問2/3'),
+    )
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('最後の1問を取り消すと、記録せずitemを進めてリザルトへ遷移する', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-last', 1)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // 他に未解答のサブ設問が残っていない（このitemで唯一の設問だった）ので、
+    // 1問分を未記録のままitemを進める。これが最終itemでもあるためリザルトへ到達する
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    expect(await db.attempts.count()).toBe(0)
+    expect(useSessionStore.getState().snapshot?.attemptIds).toEqual([])
+  })
+
+  it('Part6: 別の空所が猶予中の間は、表示中の空所の選択肢が無効化される', async () => {
+    const db = newDb()
+    const q = part6Question('p6-undo-1')
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a')) // 空所1に解答（猶予中のまま確定を待たせる）
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // 空所2へジャンプする（3.5節: 閲覧目的のジャンプは猶予中も許す）
+    fireEvent.click(screen.getByTestId('passage-blank-2'))
+    await waitFor(() =>
+      expect(screen.getByTestId('reading-question').textContent).toContain('設問2/4'),
+    )
+    // 空所1の猶予が残っている間、空所2の選択肢は無効化される（同時に2件の保存が
+    // 走る経路を作らないため。usePendingCommitは猶予中の再scheduleで前のpendingを
+    // 即flushする＝T-194・Q-107）
+    const choiceButton = screen.getByText('a').closest('button')
+    expect(choiceButton?.disabled).toBe(true)
+
+    // 空所1の猶予が明けると記録され、空所2は再び操作できるようになる
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    await waitFor(() => expect(screen.getByText('a').closest('button')?.disabled).toBe(false))
   })
 })
 

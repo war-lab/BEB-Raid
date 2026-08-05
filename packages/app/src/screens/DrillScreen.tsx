@@ -1552,10 +1552,12 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           {isDictation && playState === 'played' && !result && (
             <>
               <div className="dictation-word-bank">
+                {/* T-224（J-108）: 語バンクの単語は英文（ディクテーションのスクリプト由来） */}
                 {dictationBank.words.map((word, i) => (
                   <button
                     key={i}
                     type="button"
+                    lang="en"
                     disabled={usedBankIndices.has(i)}
                     onClick={() => handleBankWordTap(i)}
                   >
@@ -1762,7 +1764,10 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               {FREQ_RANK_TITLE}
             </InfoDisclosure>
           )}
-          <p className="vocab-card__word">{question.front ?? ''}</p>
+          {/* T-224（J-108）: 対象語は英文（単語）そのもの */}
+          <p className="vocab-card__word" lang="en">
+            {question.front ?? ''}
+          </p>
           {answeredVocab ? (
             <p className="vocab-card__phrase">
               <HighlightedPhrase
@@ -1775,53 +1780,70 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
           )}
         </div>
       ) : isDictation ? (
+        // T-224（J-108）: この<p>はスクリプト（英文）と指示文（日本語）を状態で出し分ける
+        // ので、英文の分岐だけspanで括る（指示文はUIラベルなので付けない）
         <p className="question-text dictation-script">
-          {result
-            ? (question.script ?? '')
-            : playState === 'played'
-              ? renderBlankedScript(
-                  question.script ?? '',
-                  sortedBlanks,
-                  blankFillsByIndex,
-                  dictationBank.words,
-                )
-              : // T-167: 通常形式のaudio_qaは設問文そのものを持たない（question は未定義で、
-                // script は正答を含むため解答前には出せない）。再生中に「再生中…」へ
-                // 差し替えると文字が入れ替わるだけノイズになるので、指示文を据え置く
-                playState === 'playing'
-                ? '音声を聞いて、正しい応答を選んでください'
-                : '音声を聞いて空欄を埋めてください'}
+          {result ? (
+            <span lang="en">{question.script ?? ''}</span>
+          ) : playState === 'played' ? (
+            <span lang="en">
+              {renderBlankedScript(
+                question.script ?? '',
+                sortedBlanks,
+                blankFillsByIndex,
+                dictationBank.words,
+              )}
+            </span>
+          ) : // T-167: 通常形式のaudio_qaは設問文そのものを持たない（question は未定義で、
+          // script は正答を含むため解答前には出せない）。再生中に「再生中…」へ
+          // 差し替えると文字が入れ替わるだけノイズになるので、指示文を据え置く
+          playState === 'playing' ? (
+            '音声を聞いて、正しい応答を選んでください'
+          ) : (
+            '音声を聞いて空欄を埋めてください'
+          )}
         </p>
       ) : isAudioSet ? (
         <p className="question-text">
           {/* T-167（docs/27 のS-15）: 再生中もサブ設問文を出す。「音声を聞きながら設問を
               目で追う」がPart3/4の基本動作なのに、従来は再生中だけ「再生中…」に
               置き換わり、先読みフェーズで読んだ内容を記憶で保持させていた。
-              設問文は音声の答えではないので、出しても解答が容易になるわけではない */}
-          {playState === 'played' || playState === 'prereading' || playState === 'playing'
-            ? (currentSubQuestion?.question ?? '')
-            : '音声を聞いて解答してください'}
+              設問文は音声の答えではないので、出しても解答が容易になるわけではない。
+              T-224（J-108）: 設問文（英文）の分岐だけspanで括る */}
+          {playState === 'played' || playState === 'prereading' || playState === 'playing' ? (
+            <span lang="en">{currentSubQuestion?.question ?? ''}</span>
+          ) : (
+            '音声を聞いて解答してください'
+          )}
         </p>
       ) : question.format === 'audio_qa' ? (
+        // T-224（J-108）: script（英文）の分岐だけspanで括る。他の分岐はすべて指示文（日本語）
         <p className="question-text">
-          {result
-            ? (question.script ?? '')
-            : isAudioOnlyMode
-              ? // T-154: 音声のみモードは再生中も解答できるので「再生中…」で塞がない
-                playState === 'idle'
-                ? '音声で質問と3つの応答が流れます。正しい応答の記号を選んでください'
-                : '聞こえた3つの応答から正しいものを選んでください'
-              : // T-167: 通常形式のaudio_qaは設問文そのものを持たない（question は未定義で、
-                // script は正答を含むため解答前には出せない）。再生中に「再生中…」へ
-                // 差し替えると文字が入れ替わるだけノイズになるので、指示文を据え置く
-                playState === 'playing'
-                ? '音声を聞いて、正しい応答を選んでください'
-                : playState === 'played'
-                  ? '聞こえた質問への応答として正しいものを選んでください'
-                  : '音声で質問が流れます。応答として正しい選択肢を選んでください'}
+          {result ? (
+            <span lang="en">{question.script ?? ''}</span>
+          ) : isAudioOnlyMode ? (
+            // T-154: 音声のみモードは再生中も解答できるので「再生中…」で塞がない
+            playState === 'idle' ? (
+              '音声で質問と3つの応答が流れます。正しい応答の記号を選んでください'
+            ) : (
+              '聞こえた3つの応答から正しいものを選んでください'
+            )
+          ) : // T-167: 通常形式のaudio_qaは設問文そのものを持たない（question は未定義で、
+          // script は正答を含むため解答前には出せない）。再生中に「再生中…」へ
+          // 差し替えると文字が入れ替わるだけノイズになるので、指示文を据え置く
+          playState === 'playing' ? (
+            '音声を聞いて、正しい応答を選んでください'
+          ) : playState === 'played' ? (
+            '聞こえた質問への応答として正しいものを選んでください'
+          ) : (
+            '音声で質問が流れます。応答として正しい選択肢を選んでください'
+          )}
         </p>
       ) : (
-        <p className="question-text">{question.question}</p>
+        // T-224（J-108）: text_blank等の設問文は常に英文
+        <p className="question-text" lang="en">
+          {question.question}
+        </p>
       )}
       {settingsLoaded && <span data-testid="drill-settings-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>

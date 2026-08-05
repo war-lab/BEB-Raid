@@ -446,15 +446,34 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
                 return (
                   <li key={i} className="result-list__item" data-correct={entry.isCorrect}>
                     <span aria-hidden="true" className="result-list__icon" />
+                    {/* T-224（J-108）: 番号・セクション記号は言語中立、設問文だけが英文
+                        （無ければaudio_qa用の日本語フォールバック） */}
                     <span className="result-list__question">
-                      {i + 1}. [{entry.section}] {entry.question.question ?? '音声問題'}
+                      {i + 1}. [{entry.section}]{' '}
+                      {entry.question.question ? (
+                        <span lang="en">{entry.question.question}</span>
+                      ) : (
+                        '音声問題'
+                      )}
                     </span>
                     {/* 誤答のときだけ「何を選んで何が正解だったか」を出す。
-                        正解した問題に同じ量の情報を出すと一覧が読めなくなる */}
+                        正解した問題に同じ量の情報を出すと一覧が読めなくなる。
+                        T-224（J-108）: 選択肢本文（英文）だけをspanで括る（記号のみの
+                        フォールバックは言語中立なので付けない） */}
                     {!entry.isCorrect && (
                       <span className="result-list__note">
-                        選択: {selectedChoice?.text ?? entry.selectedKey} / 正解:{' '}
-                        {correctChoice?.text ?? entry.question.answer}
+                        選択:{' '}
+                        {selectedChoice ? (
+                          <span lang="en">{selectedChoice.text}</span>
+                        ) : (
+                          entry.selectedKey
+                        )}{' '}
+                        / 正解:{' '}
+                        {correctChoice ? (
+                          <span lang="en">{correctChoice.text}</span>
+                        ) : (
+                          entry.question.answer
+                        )}
                       </span>
                     )}
                   </li>
@@ -653,7 +672,10 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
               : '音声を聞いて解答してください'}
         </p>
       ) : (
-        <p className="question-text">{question.question}</p>
+        // T-224（J-108）: 設問文は英文そのもの
+        <p className="question-text" lang="en">
+          {question.question}
+        </p>
       )}
     </ScreenLayout>
   )

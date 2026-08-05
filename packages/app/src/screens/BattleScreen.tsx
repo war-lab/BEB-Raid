@@ -547,7 +547,15 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
                 projectedQuestionText）と同じ補完をする */}
             {/* T-225(Q-63): question-textクラスが無く文字サイズ設定（--fs-question）が
                 効いていなかった。ドリル・診断・読解・ディクテーションと同じクラスを適用する */}
-            <p className="question-text">{participantQuestionText(currentQuestion)}</p>
+            {/* T-224（J-108）: question.questionがある場合は英文、無い場合はaudio_qa用の
+                日本語指示文（participantQuestionText参照）。英文の場合だけlangを付ける */}
+            <p className="question-text">
+              {currentQuestion.question ? (
+                <span lang="en">{participantQuestionText(currentQuestion)}</span>
+              ) : (
+                participantQuestionText(currentQuestion)
+              )}
+            </p>
             {currentQuestion.choices?.map((choice) => {
               let state: ChoiceState = 'idle'
               if (selectedKey !== null) {

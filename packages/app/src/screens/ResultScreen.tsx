@@ -394,7 +394,10 @@ export function ResultScreen({ db, raidApi }: Props) {
           {tallyEntries.map((a, i) => (
             <li key={i} className="result-list__item" data-correct={a.isCorrect}>
               <span aria-hidden="true" className="result-list__icon" />
-              <span className="result-list__question">
+              {/* T-224（J-108）: resultQuestionLabelは通常英文を返す（問題が引けない場合の
+                  questionIdへのフォールバックのみ言語中立だが、既存ellipsis表示を壊さないため
+                  分岐せず一括で付ける） */}
+              <span className="result-list__question" lang="en">
                 {resultQuestionLabel(a.questionId, questions.get(a.questionId))}
               </span>
               {/* T-163（J-92）: 時間切れは知識不足による誤答と混ざると振り返りを誤らせる。

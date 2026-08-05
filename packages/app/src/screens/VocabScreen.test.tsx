@@ -1167,3 +1167,31 @@ describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦�
     expect(await db.attempts.count()).toBe(2)
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 対象語（英単語）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('VocabScreen: 対象語のlang="en"（T-224・J-108）', () => {
+  it('復習カードの対象語にlang="en"が付く', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'kappa')
+    const questions = [vocabQuestion('kappa'), vocabQuestion('decoy')]
+
+    const { container } = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitForReviewCard('kappa')
+
+    expect(container.querySelector('.vocab-card__word')?.getAttribute('lang')).toBe('en')
+  })
+
+  it('選択肢本文にもlang="en"が付く（ChoiceButton経由）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'kappa')
+    const questions = [vocabQuestion('kappa'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('kappa')
+
+    expect(screen.getByText('kappa の意味').getAttribute('lang')).toBe('en')
+  })
+})

@@ -822,7 +822,10 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
               {FREQ_RANK_TITLE}
             </InfoDisclosure>
           )}
-          <p className="vocab-card__word">{front}</p>
+          {/* T-224（J-108）: 対象語は英文（単語）そのもの */}
+          <p className="vocab-card__word" lang="en">
+            {front}
+          </p>
           {answered ? (
             <p className="vocab-card__phrase">
               <HighlightedPhrase phrase={phrase} word={front} />

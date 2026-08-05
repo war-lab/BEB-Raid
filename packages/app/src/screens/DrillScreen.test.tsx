@@ -2677,3 +2677,112 @@ describe('DrillScreen: 進捗の上限（レビュー指摘）', () => {
     expect(bar.getAttribute('aria-label')).toBe('進捗 3/3')
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 問題文・語彙単語・ディクテーションのスクリプトに
+// lang="en" が無く、lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('DrillScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('text_blank（Part5）の設問文にlang="en"が付く', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(container.querySelector('.question-text')?.getAttribute('lang')).toBe('en')
+  })
+
+  it('選択肢本文にもlang="en"が付く（ChoiceButton経由）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(screen.getByText('a').getAttribute('lang')).toBe('en')
+  })
+
+  it('vocab_cardの対象語（単語）にlang="en"が付く', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(container.querySelector('.vocab-card__word')?.getAttribute('lang')).toBe('en')
+  })
+
+  it('dictationの語バンクの単語にlang="en"が付く', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-lang', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+
+    const bankButtons = screen
+      .getAllByRole('button')
+      .filter((b) => b.parentElement?.className === 'dictation-word-bank')
+    expect(bankButtons.length).toBeGreaterThan(0)
+    for (const b of bankButtons) expect(b.getAttribute('lang')).toBe('en')
+  })
+
+  it('dictationの確定後、スクリプト全文にlang="en"が付く', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-lang-2', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+    fireEvent.click(screen.getByText('submit'))
+    fireEvent.click(screen.getByText('確定'))
+
+    await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
+    const script = container.querySelector('.dictation-script [lang="en"]')
+    expect(script?.textContent).toBe('Please submit the report today')
+  })
+
+  it('audio_setのサブ設問文（再生中～解答前）にlang="en"が付く', async () => {
+    const db = newDb()
+    const set = audioSetQuestion('s-lang', 3)
+    await setupSession(db, [{ questionId: set.id, mode: 'solo' }], [set])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    fireEvent.click(await screen.findByText('もう再生する'))
+    await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
+
+    const span = container.querySelector('.question-text [lang="en"]')
+    expect(span?.textContent).toBe('設問0')
+  })
+
+  it('audio_qaの解答後、scriptにlang="en"が付く', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-lang', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    await answerAndSettle('Yesterday.', 1)
+
+    const span = container.querySelector('.question-text [lang="en"]')
+    expect(span?.textContent).toBe(q.script)
+  })
+})

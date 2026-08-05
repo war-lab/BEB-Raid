@@ -183,9 +183,15 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
             data-testid="wrong-answer-item"
             style={{ flexDirection: 'column', alignItems: 'stretch' }}
           >
+            {/* T-224（J-108）: 設問文がある場合のみ英文（無い場合はwrongAnswerPromptの
+                日本語フォールバック「（音声問題）」）。Partタグは番号のみでUIラベル扱い */}
             <p className="result-list__question" style={{ whiteSpace: 'normal' }}>
               <span className="result-list__icon" aria-hidden="true" /> Part{entry.question.part}{' '}
-              {wrongAnswerPrompt(entry)}
+              {(entry.subQuestion?.question ?? entry.question.question) ? (
+                <span lang="en">{wrongAnswerPrompt(entry)}</span>
+              ) : (
+                wrongAnswerPrompt(entry)
+              )}
             </p>
             <p className="result-list__note" style={{ marginLeft: 0 }}>
               {formatWrongAnswerDate(entry.lastWrongAt)}
@@ -210,9 +216,12 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
             {expanded === entry.attemptQuestionId && (
               <>
                 {/* T-215（Q-54）: 復習開始前に正解が見えるとネタバレになり再テスト価値が下がる。
-                    「解説」を開いたときだけ出す（即時表示しない） */}
+                    「解説」を開いたときだけ出す（即時表示しない）。
+                    T-224（J-108）: wrongAnswerCorrectTextは「キー. 選択肢本文」の形で英文を含む
+                    （選択肢が引けない場合のみキー・emダッシュの言語中立フォールバック）。
+                    返り値を分割せず一括で付ける（既存の文字列整形・単体テストを変えないため） */}
                 <p className="result-list__note" style={{ marginLeft: 0, whiteSpace: 'normal' }}>
-                  正解: {wrongAnswerCorrectText(entry)}
+                  正解: <span lang="en">{wrongAnswerCorrectText(entry)}</span>
                 </p>
                 {/* サブ設問の誤答は設問文・選択肢・正解・解説をサブ設問のものへ差し替えて渡す
                     （親を渡すとパッセージ全体の解説になってしまう。ReadingScreenと同じ組み立て） */}
