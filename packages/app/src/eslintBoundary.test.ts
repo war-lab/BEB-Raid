@@ -16,13 +16,23 @@ import { describe, expect, it } from 'vitest'
 const REPO_ROOT = resolve(__dirname, '../../..')
 
 /**
+ * ESLintインスタンスは1つを共有する。フラット設定とtypescript-eslintの読み込みが重く
+ * （初回数十秒）、テストごとに生成するとフルスイートの並列実行時に既定タイムアウトを
+ * 超えてフレークになる。設定の解決はlintText時のfilePathごとに行われるため共有できる
+ */
+let shared: ESLint | null = null
+function eslintInstance(): ESLint {
+  shared ??= new ESLint({ cwd: REPO_ROOT })
+  return shared
+}
+
+/**
  * platform境界の対象となるパス（`packages/app/src/**` かつ platform 配下でない）として
  * コードをlintし、報告されたruleIdの集合を返す。
  */
 async function lintAsAppSource(code: string): Promise<Set<string>> {
-  const eslint = new ESLint({ cwd: REPO_ROOT })
   const filePath = resolve(REPO_ROOT, 'packages/app/src/__boundary_probe__.ts')
-  const results = await eslint.lintText(code, { filePath })
+  const results = await eslintInstance().lintText(code, { filePath })
   const ruleIds = new Set<string>()
   for (const result of results) {
     for (const message of result.messages) {
@@ -32,7 +42,8 @@ async function lintAsAppSource(code: string): Promise<Set<string>> {
   return ruleIds
 }
 
-describe('platform境界のESLintルール（T-263）', () => {
+// ESLintの初期化と実行はvitestの既定タイムアウト（5秒）に収まらないことがあるため広げる
+describe('platform境界のESLintルール（T-263）', { timeout: 120_000 }, () => {
   it('ベア識別子の caches は従来どおり検出される', async () => {
     const ruleIds = await lintAsAppSource('export const c = caches\n')
     expect(ruleIds.has('no-restricted-globals')).toBe(true)
@@ -69,9 +80,10 @@ describe('platform境界のESLintルール（T-263）', () => {
   })
 
   it('platform配下は境界ルールの対象外である（抽象化レイヤ自身はWeb APIを直接使う）', async () => {
-    const eslint = new ESLint({ cwd: REPO_ROOT })
     const filePath = resolve(REPO_ROOT, 'packages/app/src/platform/__boundary_probe__.ts')
-    const results = await eslint.lintText('export const c = window.caches\n', { filePath })
+    const results = await eslintInstance().lintText('export const c = window.caches\n', {
+      filePath,
+    })
     const ruleIds = results.flatMap((r) => r.messages.map((m) => m.ruleId))
     expect(ruleIds).not.toContain('no-restricted-properties')
   })
