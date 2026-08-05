@@ -64,6 +64,16 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
   /** ページングの表示件数（T-215・Q-49）。Partフィルタを切り替えたら1ページ目に戻す */
   const [visibleCount, setVisibleCount] = useState(WRONG_ANSWER_PAGE_SIZE)
 
+  /**
+   * Partフィルタの切替（T-215・Q-49）。表示件数も同時に1ページ目へ戻す。
+   * effectで `partFilter` の変化を見てリセットする書き方は、react-hooks/set-state-in-effect
+   * （レンダー連鎖の誘発）に触れるため、状態を変える側でまとめて更新する
+   */
+  function changePartFilter(part: number | null): void {
+    setPartFilter(part)
+    setVisibleCount(WRONG_ANSWER_PAGE_SIZE)
+  }
+
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -92,11 +102,6 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
   const filtered = (entries ?? []).filter(
     (e) => partFilter === null || e.question.part === partFilter,
   )
-  // T-215（Q-49）: Partフィルタを切り替えたら1ページ目に戻す（絞り込み後の件数に対して
-  // 「もっと見る」を再度押す必要がないようにする）
-  useEffect(() => {
-    setVisibleCount(WRONG_ANSWER_PAGE_SIZE)
-  }, [partFilter])
   const visibleEntries = filtered.slice(0, visibleCount)
   const reviewIds = wrongAnswerReviewIds(filtered, WRONG_ANSWER_REVIEW_LIMIT)
 
@@ -149,7 +154,7 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
           <button
             type="button"
             className={partFilter === null ? 'is-selected' : ''}
-            onClick={() => setPartFilter(null)}
+            onClick={() => changePartFilter(null)}
           >
             すべて
           </button>
@@ -158,7 +163,7 @@ export function WrongAnswersScreen({ db, questionPool, aiClient, raidApi }: Prop
               key={part}
               type="button"
               className={partFilter === part ? 'is-selected' : ''}
-              onClick={() => setPartFilter(part)}
+              onClick={() => changePartFilter(part)}
             >
               Part{part}
             </button>

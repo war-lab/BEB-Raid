@@ -127,7 +127,12 @@ describe('WrongAnswersScreen', () => {
       const ids = Array.from({ length: 25 }, (_, i) => `q-${i}`)
       const pool = ids.map((id) => part5(id))
       for (const id of ids) {
-        await recordAttempt(db, { questionId: id, mode: 'solo', isCorrect: false, responseMs: 1000 })
+        await recordAttempt(db, {
+          questionId: id,
+          mode: 'solo',
+          isCorrect: false,
+          responseMs: 1000,
+        })
       }
 
       render(<WrongAnswersScreen db={db} questionPool={pool} />)

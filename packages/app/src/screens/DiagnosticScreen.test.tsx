@@ -335,10 +335,13 @@ describe('DiagnosticScreen: リスニング設問の自動再生（T-218。T-110
     await screen.findByText('2/30')
     fireEvent.click(screen.getByText('a'))
 
-    // turn2（3/30）は2問目のL。「タップして開始」を出さずに自動再生する
+    // turn2（3/30）は2問目のL。「タップして開始」を出さずに自動再生する。
+    // 実質の確認は「タップせずに再生が始まる」ことなので先にそれを待つ。
+    // 表示直後に同期でボタン不在を見ると、自動再生effectが走る前のフレームを
+    // 拾って落ちることがある（並列実行時のフレークの原因だった）
     await screen.findByText('3/30')
-    expect(screen.queryByText('タップして開始')).toBeNull()
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(2))
+    expect(screen.queryByText('タップして開始')).toBeNull()
   })
 })
 

@@ -385,10 +385,7 @@ export class WebAudioPlayer implements AudioPlayer {
     const size = this.estimateBufferBytes(buffer)
     // 単独で上限を超えるバッファ（長尺音声1件）も再生に必要なため拒否はしない。
     // その場合は他の全エントリを退避し、合計を可能な限り小さく保つ
-    while (
-      this.bufferCache.size > 0 &&
-      this.bufferCacheBytes + size > BUFFER_CACHE_LIMIT_BYTES
-    ) {
+    while (this.bufferCache.size > 0 && this.bufferCacheBytes + size > BUFFER_CACHE_LIMIT_BYTES) {
       const oldestKey = this.bufferCache.keys().next().value
       if (oldestKey === undefined) break
       const evicted = this.bufferCache.get(oldestKey)

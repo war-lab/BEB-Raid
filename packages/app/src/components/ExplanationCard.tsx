@@ -157,7 +157,8 @@ export function ExplanationCard({
             ? `弱点 ×${ghostDefense.multiplier}`
             : `堅い ×${ghostDefense.multiplier}`}
           {/* T-216（Q-50）: 他のダメージ表示（RaidScreen・RaidContributionList等）と
-              桁区切りを揃える */}（今回のダメージ:{' '}
+              桁区切りを揃える */}
+          （今回のダメージ:{' '}
           <span className="display-num">{ghostDefense.damage.toLocaleString('ja-JP')}</span>）
         </p>
       )}
