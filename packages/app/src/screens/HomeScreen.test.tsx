@@ -268,6 +268,36 @@ describe('HomeScreen: 実データの表示', () => {
     expect(screen.getByText('途切れ（前回5日）')).toBeTruthy()
     expect(screen.queryByText('🔥5')).toBeNull()
   })
+
+  // T-195フォローアップ: 何を防ぐか。gap===2（1日欠席）はストリーク保護（週1回まで免除）が
+  // 使える状態で、エンジン（evaluateStreak）はまだ継続中と判定する。ホーム側が独自にgapだけで
+  // 「途切れ」を判定すると、保護で救えるはずの状態なのに事実に反して「途切れ」と表示してしまう
+  // （streak.ts冒頭の「エンジンは事実だけを返す」方針にも反する）。判定はエンジンの
+  // currentDays（0になるのは途切れ確定時のみ）を単一の情報源にする
+  it('gap=2で保護が使える状態では「途切れ」を表示しない（保護でまだ救えるため）', async () => {
+    const db = newDb()
+    const twoDaysAgo = toDateString(Date.now() - 2 * 86_400_000)
+    await db.streak.put({
+      id: 'streak',
+      currentDays: 5,
+      bestDays: 5,
+      lastActiveDate: twoDaysAgo,
+      protectionUsedAt: null,
+    })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('🔥5')).toBeTruthy()
+    expect(screen.queryByText(/途切れ/)).toBeNull()
+  })
 })
 
 describe('HomeScreen: ミニヒートマップ・ストリークパルス（T-78）', () => {
