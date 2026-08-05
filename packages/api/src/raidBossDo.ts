@@ -235,6 +235,23 @@ export class RaidBossDO extends DurableObject<Env> {
   }
 
   /**
+   * 週次データの掃除（T-247・29のQ-29。方針は docs/17_M3実装計画.md 3.4節に記録）。
+   * cutoff（epoch ms）より前にこのボスの週が終了している（endAt < cutoff）場合のみ、
+   * DOのSQLiteストレージを丸ごと削除する（deleteAll()はSQLiteバックエンドのDOで
+   * state・damage_attempts・generation_claimの全テーブルを含めて消す。次回同じbossIdへ
+   * アクセスがあってもCREATE TABLE IF NOT EXISTSが再実行され未初期化状態から始まるだけで、
+   * cronは常に「当週」「前週」のみへアクセスするため実害はない）。
+   * 呼び出し元（scheduled.ts）は結果をログ目的でのみ使う
+   */
+  async cleanupIfExpired(cutoff: number): Promise<'deleted' | 'kept' | 'not_found'> {
+    const state = this.getStateRow()
+    if (!state) return 'not_found'
+    if (state.endAt >= cutoff) return 'kept'
+    await this.ctx.storage.deleteAll()
+    return 'deleted'
+  }
+
+  /**
    * 週次サマリ用（正本: docs/22 3.8節）。個人別データ（contributions・displayName等）を
    * 一切含まない集計のみを返す（未初期化ならundefined）。週次cronのクローズ処理で
    * `raidSummary:<bossId>` としてKVへ書き込むために使う

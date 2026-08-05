@@ -1,6 +1,8 @@
 // GET /raid/summary（正本: docs/22 3.8節）。運用者が係数調整のために手動確認する管理用
 // エンドポイントで、クライアントアプリはこれを呼ばない（statsHandlers.tsのhandleGetStatsと同格）。
-// 認証（Bearer）はindex.tsのroute()側で行う
+// 認可（ADMIN_TOKEN）はindex.ts側でauthenticateAdminRequestを通す（T-249・29のQ-31。
+// 以前は一般メンバーのdeviceToken Bearerでも読めており「管理用」の意図とアクセス制御が
+// 一致していなかった）
 
 import type { RaidSummary } from '@beb-raid/shared-schema'
 

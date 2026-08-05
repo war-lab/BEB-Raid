@@ -1,7 +1,7 @@
 // 共有API本体（正本: docs/17_M3実装計画.md 3.1節・3.10節、docs/16）。
 // T-90時点は/healthのみだった。/stats/questionsはT-100、/reportsはT-101で追加した
 
-import { handleAdminGenerateBoss } from './adminHandlers'
+import { authenticateAdminRequest, handleAdminGenerateBoss } from './adminHandlers'
 import { authenticateRequest } from './auth'
 import { handleCreateBattleRoom } from './battleHandlers'
 import { handlePreflight, withCors } from './cors'
@@ -77,9 +77,12 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handlePostStats(request, env)
   }
 
+  // 【T-249・29のQ-31】管理用エンドポイント。以前は一般メンバーのBearer
+  // （authenticateRequest）で保護しており、「管理用」という注記とアクセス制御が
+  // 一致していなかった（内容は匿名統計のため実害は薄いが、意図どおりADMIN_TOKENで分離する）
   if (request.method === 'GET' && url.pathname === '/stats/questions') {
-    const auth = await authenticateRequest(request, env)
-    if (auth instanceof Response) return auth
+    const authError = authenticateAdminRequest(request, env)
+    if (authError) return authError
     return handleGetStats(env)
   }
 
@@ -92,7 +95,8 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (request.method === 'POST' && url.pathname === '/ghosts') {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
-    return handlePostGhost(request, env, auth.deviceToken, Date.now())
+    // 表示名はbodyの自己申告ではなく登録済みメンバーレコードから渡す（T-251・29のQ-26）
+    return handlePostGhost(request, env, auth.deviceToken, auth.member.displayName, Date.now())
   }
 
   if (request.method === 'DELETE' && url.pathname === '/ghosts/own') {
@@ -101,9 +105,11 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handleDeleteGhostOwn(env, auth.deviceToken, Date.now())
   }
 
+  // 【T-249・29のQ-31】statsHandlers.handleGetStatsと同格の管理用エンドポイント。
+  // 同じ理由でADMIN_TOKENによる認可へ分離する
   if (request.method === 'GET' && url.pathname === '/raid/summary') {
-    const auth = await authenticateRequest(request, env)
-    if (auth instanceof Response) return auth
+    const authError = authenticateAdminRequest(request, env)
+    if (authError) return authError
     return handleGetRaidSummary(env)
   }
 

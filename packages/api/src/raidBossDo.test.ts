@@ -1,4 +1,4 @@
-import { env, runInDurableObject } from 'cloudflare:test'
+import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { describe, expect, it, vi } from 'vitest'
 
 import { memberKey } from './env'
@@ -289,5 +289,88 @@ describe('RaidBossDO', () => {
       instance.getBossState(START_AT),
     )
     expect(state).toBeUndefined()
+  })
+
+  // T-247・29のQ-29: RaidBossDOには削除経路が無く、bossIdごとに別インスタンスのSQLiteが
+  // 無期限に蓄積していた。cleanupIfExpired(cutoff)は、cutoffより前にこの週が終了して
+  // いれば（endAt < cutoff）ストレージを丸ごと削除する
+  describe('cleanupIfExpired（T-247・29のQ-29）', () => {
+    it('未初期化のボスはnot_foundを返す', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.cleanupIfExpired(END_AT + 1_000_000),
+      )
+      expect(result).toBe('not_found')
+    })
+
+    it('cutoffがendAt以下ならkeptを返し、状態は削除されない', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      await initBoss(stub)
+
+      const result = await runInDurableObject(
+        stub,
+        (instance: RaidBossDO) => instance.cleanupIfExpired(END_AT), // ちょうど境界（endAt >= cutoffなのでkept）
+      )
+      expect(result).toBe('kept')
+
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(END_AT),
+      )
+      expect(state).not.toBeUndefined()
+    })
+
+    it('cutoffがendAtより後ならdeletedを返し、SQLiteストレージが丸ごと削除される', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      await initBoss(stub)
+      // 削除対象であることを確認できるよう、ダメージ記録も入れておく
+      await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.syncDamage(
+          'device-1',
+          [{ attemptId: 'a-1', damage: 100, questionCount: 1, answeredAt: START_AT + HOUR_MS }],
+          START_AT + HOUR_MS,
+        ),
+      )
+
+      const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.cleanupIfExpired(END_AT + 1),
+      )
+      expect(result).toBe('deleted')
+
+      // ストレージが本当に空であること（deleteAll()がSQLite表も含めて削除している確認）。
+      // このチェック自体はsqlite_masterへの生クエリなので、CREATE TABLEの再実行前でも安全
+      await runInDurableObject(stub, async (_instance, state) => {
+        const tables = state.storage.sql
+          .exec<{ name: string }>(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%'",
+          )
+          .toArray()
+        expect(tables).toEqual([])
+      })
+
+      // deleteAll()直後は「state」テーブル自体が無いため、同一インスタンスのままgetBossState等を
+      // 呼ぶと例外になる（コンストラクタのCREATE TABLE IF NOT EXISTSは再実行されない）。
+      // 本番ではこのDOインスタンスがアイドル後にエビクトされ、次回アクセス時にコンストラクタが
+      // 再実行されてテーブルが復元される（空の状態で）。evictDurableObject()でその挙動を再現する
+      await evictDurableObject(stub)
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(END_AT + 1),
+      )
+      expect(state).toBeUndefined()
+    })
+
+    it('削除後（エビクション経由での再構築後）にinit()すると、未初期化のときと同様に新規作成できる', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      await initBoss(stub, { maxHp: 999 })
+      await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.cleanupIfExpired(END_AT + 1),
+      )
+      await evictDurableObject(stub)
+
+      await initBoss(stub, { maxHp: 42 })
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(START_AT),
+      )
+      expect(state?.maxHp).toBe(42)
+    })
   })
 })

@@ -386,25 +386,93 @@ describe('BattleRoomDO', () => {
     expect(await stub.tryInit(code, secondHostToken, Date.now())).toBe(true)
   })
 
-  it('ホストのWebSocket切断でルームがクローズされ、参加者へroom_closedが伝わる', async () => {
-    const code = freshCode()
-    const hostToken = await registerDevice('ホスト7')
-    const aliceToken = await registerDevice('アリス7')
-    const stub = await createRoom(code, hostToken)
-    const hostWs = await connect(stub, code, hostToken)
-    const aliceWs = await connect(stub, code, aliceToken)
+  // T-253・29のQ-27: 以前はホストのWebSocket切断（webSocketClose/webSocketError）が
+  // 猶予なく即座にcloseRoom()を呼んでおり、通勤電車のトンネル等での瞬断1回で
+  // ルーム全体（参加者を巻き込んで）が終了していた。以下は猶予期間の3つの分岐
+  // （即時クローズしない・猶予内の再接続で継続・猶予経過後はクローズ）を検証する
+  describe('ホスト切断の猶予（T-253・29のQ-27）', () => {
+    it('ホストが切断しても即座にはクローズされない（猶予期間中は参加者接続も維持される）', async () => {
+      const code = freshCode()
+      const hostToken = await registerDevice('ホスト7')
+      const aliceToken = await registerDevice('アリス7')
+      const stub = await createRoom(code, hostToken)
+      const hostWs = await connect(stub, code, hostToken)
+      const aliceWs = await connect(stub, code, aliceToken)
 
-    const aliceClosed = nextClose(aliceWs)
-    hostWs.close(1000, 'client_disconnect')
-    const closed = await aliceClosed
-    expect(closed.code).toBe(1000)
-    expect(closed.reason).toBe(CLOSE_REASONS.room_closed)
+      hostWs.close(1000, 'client_disconnect')
+      // handleDisconnectの同期処理が完了するのを待つ（closeイベントのマイクロタスク経由）
+      await new Promise((r) => setTimeout(r, 10))
 
-    await runInDurableObject(stub, (instance: BattleRoomDO) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const anyInstance = instance as any
-      expect(anyInstance.meta).toBeNull()
-      expect(anyInstance.connections.size).toBe(0)
+      await runInDurableObject(stub, (instance: BattleRoomDO) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyInstance = instance as any
+        // 修正前はここでmetaがnullになり、ルームが終了していた
+        expect(anyInstance.meta).not.toBeNull()
+        expect(anyInstance.meta.phase).not.toBe('closed')
+        expect(anyInstance.meta.hostDisconnectedAt).not.toBeNull()
+      })
+      // アリスの接続はまだ生きている（クローズされていない）
+      aliceWs.close(1000, 'test_teardown')
+    })
+
+    it('猶予期間中にホストが再接続すると、猶予が解除され2時間タイマーへ戻る', async () => {
+      const code = freshCode()
+      const hostToken = await registerDevice('ホスト7c')
+      const stub = await createRoom(code, hostToken)
+      let hostWs = await connect(stub, code, hostToken)
+
+      hostWs.close(1000, 'client_disconnect')
+      await new Promise((r) => setTimeout(r, 10))
+
+      await runInDurableObject(stub, (instance: BattleRoomDO) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((instance as any).meta.hostDisconnectedAt).not.toBeNull()
+      })
+
+      // 猶予期間中にホストが再接続する
+      hostWs = await connect(stub, code, hostToken)
+      await new Promise((r) => setTimeout(r, 10))
+
+      await runInDurableObject(stub, async (instance: BattleRoomDO, state) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyInstance = instance as any
+        expect(anyInstance.meta.hostDisconnectedAt).toBeNull()
+        expect(anyInstance.meta.phase).not.toBe('closed')
+
+        // アラームが猶予期間（60秒後）ではなく、2時間の絶対タイムアウトへ戻っていること
+        const alarmAt = await state.storage.getAlarm()
+        expect(alarmAt).not.toBeNull()
+        expect(alarmAt!).toBeGreaterThan(Date.now() + 60 * 60 * 1000) // 猶予期間よりずっと先
+      })
+      hostWs.close(1000, 'test_teardown')
+    })
+
+    it('猶予期間が満了してもホストが再接続しなければ、クローズされ参加者へroom_closedが伝わる', async () => {
+      const code = freshCode()
+      const hostToken = await registerDevice('ホスト7d')
+      const aliceToken = await registerDevice('アリス7d')
+      const stub = await createRoom(code, hostToken)
+      const hostWs = await connect(stub, code, hostToken)
+      const aliceWs = await connect(stub, code, aliceToken)
+
+      const aliceClosed = nextClose(aliceWs)
+      hostWs.close(1000, 'client_disconnect')
+      await new Promise((r) => setTimeout(r, 10))
+
+      // 猶予期間の満了をalarm()の直接呼び出しでシミュレートする
+      // （2時間経過のテストと同じ手法。実際のタイマー発火を待たない）
+      await runInDurableObject(stub, (instance: BattleRoomDO) => instance.alarm())
+
+      const closed = await aliceClosed
+      expect(closed.code).toBe(1000)
+      expect(closed.reason).toBe(CLOSE_REASONS.room_closed)
+
+      await runInDurableObject(stub, (instance: BattleRoomDO) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyInstance = instance as any
+        expect(anyInstance.meta).toBeNull()
+        expect(anyInstance.connections.size).toBe(0)
+      })
     })
   })
 

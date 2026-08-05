@@ -22,6 +22,7 @@ import type { DailyGoal, RegisterRequest } from '@beb-raid/shared-schema'
 import type { Env, MemberRecord } from './env.js'
 import { memberKey } from './env.js'
 import { listAllKeys } from './kvList.js'
+import { timingSafeStringEqual } from './timingSafeEqual.js'
 
 const MEMBER_KEY_PREFIX = 'member:'
 
@@ -147,7 +148,9 @@ export async function handleRegister(
     )
   }
 
-  if (body.inviteCode !== env.INVITE_CODE) {
+  // タイミングセーフな比較（T-250・29のQ-32）。`!==`は不一致文字までの応答時間差から
+  // 招待コードを推測されうる
+  if (!timingSafeStringEqual(body.inviteCode, env.INVITE_CODE)) {
     await recordInviteFailure(env, ip, now)
     return errorResponse(401, 'invalid_invite_code', '招待コードが一致しません')
   }

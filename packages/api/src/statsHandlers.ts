@@ -34,7 +34,12 @@ export async function handlePostStats(request: Request, env: Env): Promise<Respo
   return jsonResponse({ accepted: body.stats.length })
 }
 
-/** 管理用（3.8節: cliの自動取得はM3では実装せず、手動確認・投入用に用意する） */
+/**
+ * 管理用（3.8節: cliの自動取得はM3では実装せず、手動確認・投入用に用意する）。
+ * 認可はADMIN_TOKEN（index.ts側でauthenticateAdminRequestを通す。T-249・29のQ-31。
+ * 以前は一般メンバーのdeviceToken Bearerでも読めており「管理用」の意図とアクセス制御が
+ * 一致していなかった）
+ */
 export async function handleGetStats(env: Env): Promise<Response> {
   const stub = env.STATS.get(env.STATS.idFromName(STATS_DO_NAME))
   const stats = await stub.getAllStats()

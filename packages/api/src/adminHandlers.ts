@@ -13,10 +13,20 @@
 // 認証は専用シークレット `ADMIN_TOKEN`（Bearer）。**未設定なら 404 を返して存在しない扱い**に
 // する（設定するまで攻撃面を作らない）。招待コード（INVITE_CODE）は流用しない——
 // あれは登録済みメンバー全員が知っている値で、運用操作の認可には強度が足りない。
+//
+// 【T-249・29のQ-31】このADMIN_TOKEN認可は「管理用」の他エンドポイント
+// （GET /stats/questions・GET /raid/summary）とも共有する。以前はこの2経路が
+// authenticateRequest（一般メンバーのBearer）で保護されており、「管理用」という
+// 注記とアクセス制御が一致していなかった。index.ts側の呼び出しでこのファイルの
+// authenticateAdminRequest を使う
+//
+// 【T-250・29のQ-32】adminトークンの照合は`!==`ではなくタイミングセーフな比較
+// （timingSafeStringEqual）を使う。招待コードの照合（register.ts）も同じ理由で同関数を使う
 
 import type { Env } from './env'
 import { bossIdFor, isoWeekInfo } from './raidWeek'
 import { generateWeeklyBoss } from './scheduled'
+import { timingSafeStringEqual } from './timingSafeEqual'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -37,19 +47,29 @@ function bearerToken(request: Request): string | null {
   return token === '' ? null : token
 }
 
+/**
+ * ADMIN_TOKENによる認可の共通チェック（T-249・T-250）。問題が無ければnull、
+ * 問題があれば返すべきResponseを返す（呼び出し側はnullでなければそのまま返す）。
+ * 未設定の環境では404（ルートが無いものとして扱う。設定するまで攻撃面を作らない）
+ */
+export function authenticateAdminRequest(request: Request, env: Env): Response | null {
+  const adminToken = env.ADMIN_TOKEN
+  if (!adminToken) return errorResponse(404, 'not_found', 'not found')
+
+  const provided = bearerToken(request)
+  if (!provided || !timingSafeStringEqual(provided, adminToken)) {
+    return errorResponse(401, 'unauthorized', 'Authorizationヘッダが必要です')
+  }
+  return null
+}
+
 export async function handleAdminGenerateBoss(
   request: Request,
   env: Env,
   now: number,
 ): Promise<Response> {
-  const adminToken = env.ADMIN_TOKEN
-  // 未設定の環境ではこのルート自体が無いものとして振る舞う
-  if (!adminToken) return errorResponse(404, 'not_found', 'not found')
-
-  const provided = bearerToken(request)
-  if (provided !== adminToken) {
-    return errorResponse(401, 'unauthorized', 'Authorizationヘッダが必要です')
-  }
+  const authError = authenticateAdminRequest(request, env)
+  if (authError) return authError
 
   const bossId = bossIdFor(isoWeekInfo(now))
   const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
