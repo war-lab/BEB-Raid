@@ -23,7 +23,6 @@ import {
   loadPackSources,
   scanAudioFiles,
   scanImageFiles,
-  type PackSource,
 } from './build.js'
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
