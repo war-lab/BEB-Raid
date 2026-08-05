@@ -507,7 +507,9 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
                 空白＋選択肢だけが並び、投影を見られない位置の参加者は何を問われているか
                 分からないまま制限時間が減っていた。ホスト投影側（BattleHostScreen の
                 projectedQuestionText）と同じ補完をする */}
-            <p>{participantQuestionText(currentQuestion)}</p>
+            {/* T-225(Q-63): question-textクラスが無く文字サイズ設定（--fs-question）が
+                効いていなかった。ドリル・診断・読解・ディクテーションと同じクラスを適用する */}
+            <p className="question-text">{participantQuestionText(currentQuestion)}</p>
             {currentQuestion.choices?.map((choice) => {
               let state: ChoiceState = 'idle'
               if (selectedKey !== null) {

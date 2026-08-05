@@ -91,7 +91,10 @@ describe('BattleScreen: join→questionOpen→解答→standings→result', () =
       questionId: 'q-1',
       deadlineAt: Date.now() + 30_000,
     })
-    expect(await screen.findByText(q1.question!)).toBeTruthy()
+    const questionEl = await screen.findByText(q1.question!)
+    expect(questionEl).toBeTruthy()
+    // T-225(Q-63): question-textクラスが無く、文字サイズ設定（S/M/L）が効かなかった不具合の再発防止
+    expect(questionEl.className).toContain('question-text')
 
     fireEvent.click(screen.getByRole('button', { name: /submit$/ }))
     await waitFor(() =>
