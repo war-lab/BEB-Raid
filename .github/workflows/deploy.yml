@@ -46,6 +46,13 @@ jobs:
         env:
           GITHUB_PAGES: 'true'
           VITE_RAID_API_BASE_URL: ${{ vars.RAID_API_BASE_URL }}
+      # T-234（docs/29 Q-74・Q-83）: content/packs/*.json・manifest.json はリポジトリに
+      # 直接コミットされる配信物で、上のビルドでは再検証されない。CI（ci.yml）だけで
+      # 検証してもこのワークフローを迂回した配信は止められないため、配置直前にここでも
+      # 検証する（validatePack・manifestのhash/sizeBytes一致・音声の参照切れ/孤児・
+      # drafts乖離）。失敗時は以降のupload-pages-artifact/deployを実行しない
+      - name: コンテンツ検証（配信物の再検証。T-234）
+        run: node packages/cli/dist/index.js verify-content content
       - uses: actions/upload-pages-artifact@v3
         with:
           path: packages/app/dist
