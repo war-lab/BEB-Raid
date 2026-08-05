@@ -11,7 +11,7 @@
 
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { join, normalize } from 'node:path'
+import { join, posix } from 'node:path'
 import type { Plugin } from 'vite'
 import { listDraftFiles, loadDraftFile, writeReviewResult } from './draftsApi.js'
 
@@ -21,10 +21,20 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body))
 }
 
-/** content/audio/ 配下のみを許可（正規化して../で外に出るパスは弾く） */
-function resolveAudioAsset(contentRoot: string, urlPath: string): string | null {
+/**
+ * content/audio/ 配下のみを許可（正規化して../で外に出るパスは弾く）。
+ *
+ * T-238（Q-78）: URLパスは常にスラッシュ区切りだが、素の `node:path`（`normalize`/`join`）は
+ * Windows上ではバックスラッシュ区切りで正規化結果を返す。そのため
+ * `normalized.startsWith('audio/')` がWindowsでは常にfalseになり、音声プレビューが
+ * 全件404になっていた。判定用の正規化には `posix.normalize` を使い、常にスラッシュ区切りの
+ * 結果で `audio/` プレフィックスと `..` 混入を検査する（実ファイルへのアクセスは
+ * プラットフォーム標準の `join` のままでよい。Windowsの `join` はスラッシュ・
+ * バックスラッシュ双方を区切りとして扱うため実ファイルパスの組み立ては壊れない）。
+ */
+export function resolveAudioAsset(contentRoot: string, urlPath: string): string | null {
   const relative = decodeURIComponent(urlPath.slice('/content-assets/'.length))
-  const normalized = normalize(relative)
+  const normalized = posix.normalize(relative)
   if (!normalized.startsWith('audio/') || normalized.includes('..')) return null
   const filePath = join(contentRoot, normalized)
   return existsSync(filePath) && statSync(filePath).isFile() ? filePath : null

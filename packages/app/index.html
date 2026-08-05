@@ -73,6 +73,13 @@
           transform: rotate(360deg);
         }
       }
+      /* T-229(Q-67): base.cssの全停止則はバンドルCSS読込後にしか効かず、スプラッシュは
+         まさにその読込中に表示されるため、ここにも同じガードを直書きする */
+      @media (prefers-reduced-motion: reduce) {
+        #boot-spinner {
+          animation: none;
+        }
+      }
     </style>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -3,7 +3,7 @@
 // 弱点として抽出される。tagStats が attempts から再構築可能
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
@@ -13,6 +13,7 @@ import {
   getWeakTags,
   GUESS_WEIGHT,
   recomputeTagStats,
+  TAG_ATTEMPTS_READ_LIMIT,
   TAG_WINDOW_SIZE,
   toTagAccuracy,
   updateTagStatsForAnswer,
@@ -173,6 +174,44 @@ describe('DB統合: 解答の流し込み→更新→再構築', () => {
     expect(await db.tagStats.get('品詞')).toMatchObject({
       windowCorrect: 1,
       windowTotal: 2.5,
+    })
+  })
+
+  // T-189（Q-99）: recomputeTagStatsは解答パイプラインの単一トランザクション（ADR 0010）の
+  // 内側で毎解答時に走るため、db.attempts.toArray()（全件読み）は1年運用相当のデータ量で
+  // 数百ms級に劣化する。phase.tsのT-74と同じ、answeredAt降順の打ち切り読みへ揃える
+  it('T-189: attempts全件走査（Table.toArray）を行わず、打ち切り読みで済ませる', async () => {
+    const db = newDb()
+    // Table.toArray（全件読み）とCollection.toArray（打ち切り読み後のtoArray）は別関数のため、
+    // Table側だけをスパイすれば「全件読みが無くなったこと」を直接検証できる
+    const tableToArraySpy = vi.spyOn(db.attempts, 'toArray')
+    await db.attempts.bulkAdd([attempt('q-part-of-speech')])
+
+    await recomputeTagStats(db, lookup)
+
+    expect(tableToArraySpy).not.toHaveBeenCalled()
+  })
+
+  it('T-189: 打ち切り件数を超えるattemptsがあっても、直近の窓は正しく計算される', async () => {
+    const db = newDb()
+    // TAG_ATTEMPTS_READ_LIMITより古い誤答を大量に積んでから、直近にTAG_WINDOW_SIZE分の
+    // 正解を積む。全件読みなら古い誤答も混ざりうるが、打ち切り読みでも直近の窓が
+    // TAG_WINDOW_SIZE件の正解だけで構成されることを確認する（本来やるべき正確な打ち切り境界）
+    const oldWrongCount = TAG_ATTEMPTS_READ_LIMIT + 50
+    await db.attempts.bulkAdd(
+      Array.from({ length: oldWrongCount }, () =>
+        attempt('q-part-of-speech', { isCorrect: false }),
+      ),
+    )
+    await db.attempts.bulkAdd(
+      Array.from({ length: TAG_WINDOW_SIZE }, () => attempt('q-part-of-speech')),
+    )
+
+    await recomputeTagStats(db, lookup)
+
+    expect(await db.tagStats.get('品詞')).toMatchObject({
+      windowCorrect: TAG_WINDOW_SIZE,
+      windowTotal: TAG_WINDOW_SIZE,
     })
   })
 })

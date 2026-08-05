@@ -204,6 +204,37 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
     expect(skipButton.disabled).toBe(true)
   })
 
+  // T-187（Q-36）: 何を防ぐか。桁誤り（6500円のつもりで入力等）がNaNチェックを素通りして
+  // そのままR=TOEIC×1000/990の初期レートへ確定するのを防ぐ。スキップ経路は30問診断を
+  // 経ずにレートを確定させるため、範囲外は「診断を始める」「スキップ」の両方で入力時に拒否する
+  it('TOEICスコアが990を超えると診断開始・スキップの両方が無効になる', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '6500' } })
+
+    const startButton = screen.getByText('診断を始める') as HTMLButtonElement
+    const skipButton = screen.getByText('自己申告スコアで診断をスキップ') as HTMLButtonElement
+    expect(startButton.disabled).toBe(true)
+    expect(skipButton.disabled).toBe(true)
+  })
+
+  it('TOEICスコアが10未満だと診断開始・スキップの両方が無効になる', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '6' } })
+
+    const startButton = screen.getByText('診断を始める') as HTMLButtonElement
+    const skipButton = screen.getByText('自己申告スコアで診断をスキップ') as HTMLButtonElement
+    expect(startButton.disabled).toBe(true)
+    expect(skipButton.disabled).toBe(true)
+  })
+
   it('自己申告スコアでスキップすると30問答えずにR=TOEIC×1000/990でratings/profileが確定する', async () => {
     const db = newDb()
     render(

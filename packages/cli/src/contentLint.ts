@@ -159,18 +159,23 @@ function checkOpeningPhraseDiversity(questions: readonly Question[], packId: str
 /** 正答キー→0..3のインデックス変換に使うキー一覧 */
 const ANSWER_KEYS = ['A', 'B', 'C', 'D'] as const
 
+/** ⑥の対象format（subQuestionsで束ねられたセット形式）。T-237でaudio_setを追加 */
+const CYCLE_SET_FORMATS = new Set<Question['format']>(['text_passage', 'audio_set'])
+
 /**
- * ⑥text_passage: セット内正答キー列の決定的循環検出（T-107クロスレビューMF-1の再発防止）。
- * rotateTextPassageChoicesの決定的ローテーション出力をそのまま配布物に載せると、セット内の
- * 正答キーが常に一定差分の循環（Part6なら A→D→C→B）になり並びから推測可能になる。
- * 対象セット（subQuestions2問以上のtext_passage）が3セット以上あり、かつ全セットの隣接する
- * 正答キー差分が同一値で揃っている場合のみ警告する（シャッフル済みデータが偶然この条件を
- * 満たす確率は (1/4)^(セット数-1) 以下で無視できるため誤検出はほぼ起きない）。
- * 解消手段は packages/cli/scripts/shuffle-text-passage-choices.mjs（シード付き決定的シャッフル）。
+ * ⑥text_passage/audio_set: セット内正答キー列の決定的循環検出（T-107クロスレビューMF-1の
+ * 再発防止。T-237でaudio_set＝Part3/4にも対象を拡大。正本: docs/29 Q-79・docs/30 11節T-237）。
+ * rotateTextPassageChoices/rotateSubQuestionChoicesの決定的ローテーション出力をそのまま
+ * 配布物に載せると、セット内の正答キーが常に一定差分の循環（A→D→C→B等）になり並びから
+ * 推測可能になる。対象セット（subQuestions2問以上のtext_passage/audio_set）が3セット以上あり、
+ * かつ全セットの隣接する正答キー差分が同一値で揃っている場合のみ警告する（シャッフル済みデータが
+ * 偶然この条件を満たす確率は (1/4)^(セット数-1) 以下で無視できるため誤検出はほぼ起きない）。
+ * 解消手段はtext_passageが packages/cli/scripts/shuffle-text-passage-choices.mjs、
+ * audio_setが packages/cli/scripts/shuffle-cyclic-choices.mjs（いずれもシード付き決定的シャッフル）。
  */
 function checkAnswerKeyCycle(questions: readonly Question[], packId: string): string[] {
   const sets = questions.filter(
-    (q) => q.format === 'text_passage' && (q.subQuestions?.length ?? 0) >= 2,
+    (q) => CYCLE_SET_FORMATS.has(q.format) && (q.subQuestions?.length ?? 0) >= 2,
   )
   if (sets.length < 3) return []
   let sharedDelta: number | undefined
@@ -189,9 +194,58 @@ function checkAnswerKeyCycle(questions: readonly Question[], packId: string): st
       return []
     }
   }
+  const formats = [...new Set(sets.map((q) => q.format))].sort().join('/')
   return [
-    `[警告] ${packId}: text_passage全${sets.length}セットの正答キーがセット内で一定差分${sharedDelta}の決定的循環になっている（選択肢シャッフル漏れの可能性。scripts/shuffle-text-passage-choices.mjs参照）`,
+    `[警告] ${packId}: ${formats}全${sets.length}セットの正答キーがセット内で一定差分${sharedDelta}の決定的循環になっている（選択肢シャッフル漏れの可能性）`,
   ]
+}
+
+/**
+ * ⑨text_blank/audio_qa: パック全体を1本の設問列とみなした正答キー列の決定的循環検出（T-237。
+ * 正本: docs/29 Q-79・docs/30 11節T-237）。
+ * ⑥はsubQuestionsで束ねられたセット単位（text_passage/audio_set）が対象だが、text_blank
+ * （Part5）・audio_qa（Part2）はsubQuestionsを持たずパック内の各Questionがそのまま1設問なので、
+ * パック全体を1セットとみなして同じロジックを適用する。rotatePart5Choices/rotatePart2Choices
+ * のindex%N（N=選択肢数）による決定的ローテーションが原因で、パック内で選択肢数が揃っていると
+ * 正答キー列が一定差分の循環になる（M1レビュー⑦の方式の副作用）。対象は8問以上
+ * （誤検出確率は(1/選択肢数)^7以下で無視できる）。
+ * audio_qa（Part2）は選択肢テキストが音声と対応しているため、選択肢の並び替えでは解消できない
+ * （responsesTextDigestが変わり応答音声の再生成が必要になる。part2Responses.ts参照）。
+ * 解消は packages/cli/scripts/shuffle-cyclic-choices.mjs（text_blankは選択肢シャッフル、
+ * audio_qaは音声・選択肢を変えない出題順の並べ替え）で行う。
+ */
+function checkFlatAnswerKeyCycle(questions: readonly Question[], packId: string): string[] {
+  const problems: string[] = []
+  for (const format of ['text_blank', 'audio_qa'] as const) {
+    const subset = questions.filter(
+      (q): q is Question & { answer: string; choices: Choice[] } =>
+        q.format === format && typeof q.answer === 'string' && Array.isArray(q.choices),
+    )
+    if (subset.length < 8) continue
+    const choiceCount = subset[0]!.choices.length
+    if (choiceCount < 2 || !subset.every((q) => q.choices.length === choiceCount)) continue
+    const keys = ANSWER_KEYS.slice(0, choiceCount)
+    const indices = subset.map((q) => keys.indexOf(q.answer as (typeof ANSWER_KEYS)[number]))
+    if (indices.some((i) => i < 0)) continue
+    const delta = (indices[1]! - indices[0]! + choiceCount) % choiceCount
+    // delta=0（正答キーが常に同じ）は別種の問題（テストフィクスチャ等で偶発しやすい）で
+    // rotatePart5Choices/rotatePart2Choicesが生む「一定の非ゼロ差分で回転する」循環とは
+    // 性質が違うため対象外にする（誤検出防止）
+    if (delta === 0) continue
+    let cyclic = true
+    for (let i = 1; i < indices.length - 1; i++) {
+      if ((indices[i + 1]! - indices[i]! + choiceCount) % choiceCount !== delta) {
+        cyclic = false
+        break
+      }
+    }
+    if (cyclic) {
+      problems.push(
+        `[警告] ${packId}: ${format}全${subset.length}問の正答キーが一定差分${delta}の決定的循環になっている（出題順から正答位置が予測できる可能性）`,
+      )
+    }
+  }
+  return problems
 }
 
 /**
@@ -207,11 +261,126 @@ function checkAudioOnlyReadiness(q: Question): string[] {
 }
 
 /**
- * パック1件分の7ルール検証。①②③は個別問題ごと、④⑦は問題ごと（警告）、
- * ⑤⑥はパック全体（警告）。戻り値は修正すべき問題点の一覧（このタスクでは記録のみ。
- * buildPack側ではwarningsとして扱いビルドを失敗させない）
+ * ⑧解説内の選択肢記号→品詞ラベルの不一致検出（T-236。正本: docs/29 Q-77・docs/30 11節T-236）。
+ * 正答ローテーション適用後に解説文の記号を更新し忘れた痕跡を検出する（pack-p5-s-001の
+ * part5-notify・part5-clientで発見。docs/29の9節）。BARE_LETTER_EXPLANATION_RE
+ * （build.ts。「Aが正解」のように記号のみの解説）とは異なり、「A原形」のように記号＋
+ * 品詞ラベルが併記されている箇所を拾い、実際にその記号の選択肢テキストがラベルと
+ * 矛盾していないかを軽量な語彙ヒューリスティックで検証する。
+ * 対象ラベルは1語の表層形だけで判定できるものに限る（名詞・受動態・進行形・完了形・
+ * 三人称単数等は文全体の構造に依存し1選択肢のテキストだけでは判定できないため、
+ * 誤検出を避けて対象外にする）。
  */
-export function validateContentLint(questions: readonly Question[], packId: string): string[] {
+const CHOICE_TAG_RE =
+  /(?<![a-zA-Z])([A-D])(?![a-zA-Z])(?:[^\sA-D、。,.]{0,10})?(原形|現在分詞|過去分詞|関係代名詞|関係副詞|所有格|目的格|比較級|最上級|動名詞)/g
+
+const RELATIVE_PRONOUNS = new Set(['who', 'whom', 'whose', 'which', 'that'])
+const RELATIVE_ADVERBS = new Set(['where', 'when', 'why', 'how'])
+const POSSESSIVE_PRONOUNS = new Set(['my', 'your', 'his', 'her', 'its', 'our', 'their', 'whose'])
+const OBJECTIVE_PRONOUNS = new Set(['me', 'him', 'her', 'us', 'them', 'whom', 'it', 'you'])
+
+/**
+ * ラベル1件が選択肢テキストと整合するかを判定する。判定できないラベルは null（対象外）。
+ * 原形は同一問題のkeyVocab（テスト対象語の原形）と一致するかで判定する
+ */
+function isChoiceTagConsistent(
+  tag: string,
+  choiceText: string,
+  keyVocab: readonly { word: string }[],
+): boolean | null {
+  const lower = choiceText.trim().toLowerCase()
+  switch (tag) {
+    case '関係代名詞':
+      return RELATIVE_PRONOUNS.has(lower)
+    case '関係副詞':
+      return RELATIVE_ADVERBS.has(lower)
+    case '所有格':
+      return POSSESSIVE_PRONOUNS.has(lower) || /'s$/.test(lower)
+    case '目的格':
+      return OBJECTIVE_PRONOUNS.has(lower)
+    case '現在分詞':
+    case '動名詞':
+      return /ing$/.test(lower)
+    case '過去分詞':
+      return /ed$/.test(lower)
+    case '比較級':
+      return /er$/.test(lower) || /^more\s/.test(lower)
+    case '最上級':
+      return /est$/.test(lower) || /^(the\s+)?most\s/.test(lower)
+    case '原形':
+      if (keyVocab.length === 0) return null
+      return keyVocab.some((kv) => kv.word.toLowerCase() === lower)
+    default:
+      return null
+  }
+}
+
+function checkChoiceTagText(
+  id: string,
+  explanation: string | null | undefined,
+  choices: readonly Choice[] | null | undefined,
+  keyVocab: readonly { word: string }[],
+): string[] {
+  const problems: string[] = []
+  if (!explanation || !choices) return problems
+  let m: RegExpExecArray | null
+  CHOICE_TAG_RE.lastIndex = 0
+  while ((m = CHOICE_TAG_RE.exec(explanation))) {
+    const letter = m[1]!
+    const tag = m[2]!
+    const choice = choices.find((c) => c.key === letter)
+    if (!choice) continue
+    if (isChoiceTagConsistent(tag, choice.text, keyVocab) === false) {
+      problems.push(
+        `${id}: 解説の「${letter}${tag}」が実際の選択肢${letter}「${choice.text}」と矛盾している（正答ローテーション後の記号更新漏れの疑い）`,
+      )
+    }
+  }
+  return problems
+}
+
+/** パック内の全問（audio_set・text_passageはsubQuestions単位）を検査する */
+function checkChoiceTagConsistency(q: Question): string[] {
+  if (q.format === 'text_passage' || q.format === 'audio_set') {
+    return (q.subQuestions ?? []).flatMap((sq) =>
+      checkChoiceTagText(`${q.id}/${sq.id}`, sq.explanation, sq.choices, q.keyVocab),
+    )
+  }
+  return checkChoiceTagText(q.id, q.explanation, q.choices, q.keyVocab)
+}
+
+/**
+ * ブロッキング昇格ルール（⑥⑧⑨。正本: docs/29 Q-77・Q-79・docs/30 11節T-236・T-237の
+ * 追加修正）。T-236/T-237で実コンテンツの違反件数が0になったルールに限り、buildPackの
+ * errors（ビルド失敗）として扱う。
+ *
+ * T-80がcontentLint全体をwarnings（非ブロッキング）にした理由は「既存コンテンツに
+ * 現存する違反をビルド失敗に変えると配布が止まる」ことだった（build.ts参照）。この理由は
+ * 違反が0件のルールには当てはまらない。むしろwarningsのまま据え置くと、既存の109件の
+ * warningsに埋もれて再発（生成関数の副作用や解説記号の再ずれ）に気づけない
+ * （T-234のbeb verify-contentがCI/デプロイの必須ステップになったことで、ここをerrorsに
+ * すればCIが実効的に再発を検知するようになる）。
+ * ①②③④⑤⑦は既存違反が現に残っている（docs/STATUS.md参照）ため、このタスクの範囲では
+ * 引き続き警告のみとする。安易に昇格すると配布が止まる
+ */
+export function validateContentLintBlocking(
+  questions: readonly Question[],
+  packId: string,
+): string[] {
+  const problems: string[] = []
+  for (const q of questions) {
+    problems.push(...checkChoiceTagConsistency(q))
+  }
+  problems.push(...checkAnswerKeyCycle(questions, packId))
+  problems.push(...checkFlatAnswerKeyCycle(questions, packId))
+  return problems
+}
+
+/** 従来どおり警告のみのルール（①②③④⑤⑦）。既存コンテンツに現存する違反があるため据え置く */
+export function validateContentLintWarnings(
+  questions: readonly Question[],
+  packId: string,
+): string[] {
   const problems: string[] = []
   for (const q of questions) {
     problems.push(...checkPart2ScriptChoiceMatch(q))
@@ -221,6 +390,17 @@ export function validateContentLint(questions: readonly Question[], packId: stri
     problems.push(...checkAudioOnlyReadiness(q))
   }
   problems.push(...checkOpeningPhraseDiversity(questions, packId))
-  problems.push(...checkAnswerKeyCycle(questions, packId))
   return problems
+}
+
+/**
+ * パック1件分の全ルール検証（ブロッキング⑥⑧⑨＋警告①②③④⑤⑦の合算）。
+ * 個別のブロッキング可否を問わない一括検査・テスト用。buildPack側は
+ * validateContentLintBlocking/validateContentLintWarningsを個別に呼び分ける
+ */
+export function validateContentLint(questions: readonly Question[], packId: string): string[] {
+  return [
+    ...validateContentLintBlocking(questions, packId),
+    ...validateContentLintWarnings(questions, packId),
+  ]
 }

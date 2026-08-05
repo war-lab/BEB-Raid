@@ -207,7 +207,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           // T-267: 全問スキップ完了もリザルトへの正規到達経路のひとつ。finishSession()の
           // 説明（DrillScreenの同名関数と同じ理由）を参照。このeffectのdeps配列に
           // 新しいローカル関数を足さないため直接呼ぶ
-          void completeSession(db).catch((e: unknown) => {
+          void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
             console.warn('[ReadingScreen] セッション完了処理に失敗', e)
           })
           navigate('result')
@@ -346,13 +346,20 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
    * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）
    */
   function finishSession() {
-    void completeSession(db).catch((e: unknown) => {
-      console.warn('[ReadingScreen] セッション完了処理に失敗', e)
-    })
+    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
+    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
+    if (snapshot) {
+      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
+        console.warn('[ReadingScreen] セッション完了処理に失敗', e)
+      })
+    }
     navigate('result')
   }
 
   async function handleNext() {
+    // T-198（Q-7）: startedAtだけ更新してelapsedSecを残すと、一度60秒を超えた設問の後は
+    // 以降すべての設問で「1分超」表示に固着する（tick用effectはelapsedSec>=60で早期returnし
+    // 自己回復しない）。設問・パッセージを切り替えるたびに両方リセットする
     if (answers.size >= subQuestions.length) {
       const nextSnapshot = await advanceSession(db, snapshot!)
       useSessionStore.setState({ snapshot: nextSnapshot })
@@ -370,12 +377,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       setActiveIndex(0)
       setActivePassageIndex(0)
       setStartedAt(now())
+      setElapsedSec(0)
       return
     }
     const next = findNextUnanswered(activeIndex, answers)
     if (next !== null) {
       setActiveIndex(next)
       setStartedAt(now())
+      setElapsedSec(0)
     }
   }
 

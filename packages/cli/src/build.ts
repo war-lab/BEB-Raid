@@ -11,7 +11,7 @@
 // sizeBytes 抜きの内容でハッシュ確定→そのサイズを sizeBytes として書き込む、の順にする。
 
 import { createHash } from 'node:crypto'
-import { readdir } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 
 import {
@@ -24,7 +24,8 @@ import {
   type QuestionPack,
 } from '@beb-raid/shared-schema'
 import type { CorrectionsFile } from './calibrate.js'
-import { validateContentLint } from './contentLint.js'
+import { validateContentLintBlocking, validateContentLintWarnings } from './contentLint.js'
+import { parseJsonl, type GeneratedItemDraft } from './review.js'
 
 /**
  * ビルド対象パックの定義（実データはドラフトJSONLから読み込む。commands.ts から参照）。
@@ -274,6 +275,76 @@ export interface BuiltPack {
 }
 
 /**
+ * `<contentRoot>/drafts/*.jsonl` から PACK_DEFINITIONS 全件分のドラフトを読み込み
+ * PackSource[] を組み立てる（build/calibrate/verify-content 共用。T-32/T-34/T-234）。
+ */
+export async function loadPackSources(contentRoot: string): Promise<PackSource[]> {
+  const sources: PackSource[] = []
+  for (const def of PACK_DEFINITIONS) {
+    const draftPath = join(contentRoot, def.draftPath)
+    const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
+    sources.push({
+      id: def.id,
+      title: def.title,
+      license: def.license,
+      origin: def.origin,
+      targetLevel: def.targetLevel,
+      questions: drafts.map((d) => d.payload as Question),
+    })
+  }
+  return sources
+}
+
+export interface PackContentHash {
+  hash: string
+  sizeBytes: number
+}
+
+/**
+ * computePackContentHash の入力形。PackMeta とほぼ同じだが license を string のまま許容する
+ * （buildPack はバリデーション前の source.license: string を渡すため。実体のライセンス値の
+ * 妥当性は validatePack が別途検証する。ここでは値の中身を問わずシリアライズするだけ）。
+ */
+export interface HashablePackMeta {
+  id: string
+  title: string
+  license: string
+  origin: string
+  targetLevel: [number, number]
+  sizeBytes?: number
+}
+
+/**
+ * パック内容（sizeBytes抜き）からコンテンツハッシュとサイズを計算する（T-234で抽出。
+ * 元は buildPack 内に直書きだった計算をそのまま切り出したのみで、アルゴリズムは変えていない）。
+ *
+ * buildPack（ビルド時の算出）と verifyContent（配信物からの再算出。build.ts:1-11のコメント参照）の
+ * 両方がこの1実装を呼ぶことで、2箇所の算出ロジックが将来ずれる事故を防ぐ。
+ * 入力の pack.sizeBytes は無視する（付いていれば剥がしてから計算する。循環を避けるため）。
+ */
+export function computePackContentHash(rawPack: {
+  schemaVersion: typeof SCHEMA_VERSION
+  pack: HashablePackMeta
+  questions: readonly Question[]
+}): PackContentHash {
+  const draftPack = {
+    schemaVersion: rawPack.schemaVersion,
+    pack: {
+      id: rawPack.pack.id,
+      title: rawPack.pack.title,
+      license: rawPack.pack.license,
+      origin: rawPack.pack.origin,
+      targetLevel: rawPack.pack.targetLevel,
+    },
+    questions: rawPack.questions,
+  }
+  const contentForHash = JSON.stringify(draftPack, null, 2) + '\n'
+  const hash = createHash('sha256').update(contentForHash).digest('hex').slice(0, 16)
+  const sizeBytes = Buffer.byteLength(contentForHash, 'utf-8')
+  return { hash, sizeBytes }
+}
+
+/**
  * T-34（実測補正）の補正値ファイルをパック素材に適用する。純粋関数（入力を書き換えず新規配列を返す）。
  * - questionDifficulty: 問題ID一致でdifficultyを上書き
  * - wordFreqRank: keyVocabの各wordが一致すればfreqRankを上書き。vocab_card自体のfront/freqRankも対象
@@ -350,6 +421,8 @@ export function validateExplanationQuality(questions: readonly Question[]): stri
 export function buildPack(
   source: PackSource,
   audioFiles: ReadonlySet<string>,
+  /** audio_photo の image 存在チェック用（T-239・Q-82）。未指定ならこのチェックはスキップ */
+  imageFiles?: ReadonlySet<string>,
 ): { built: BuiltPack | null; errors: string[]; warnings: string[] } {
   const draftPack = {
     schemaVersion: SCHEMA_VERSION,
@@ -363,27 +436,29 @@ export function buildPack(
     questions: source.questions,
   }
 
-  // T-80: 5ルールの機械検証（contentLint.ts）。既存コンテンツに現存する違反を
-  // ビルド失敗に変えると配布が止まってしまうため、warnings（非ブロッキング）として
-  // 扱う（修正はT-81/T-82の担当範囲。docs/STATUS.mdに一括検査結果を記録済み）
-  const contentLintProblems = validateContentLint(source.questions, source.id)
+  // T-80: contentLintの機械検証。既存コンテンツに現存する違反をビルド失敗に変えると
+  // 配布が止まってしまうルールはwarnings（非ブロッキング）のまま据え置く
+  // （修正はT-81/T-82の担当範囲。docs/STATUS.mdに一括検査結果を記録済み）。
+  // 一方、違反件数が0になったルール（⑥⑧⑨。T-236/T-237の追加修正）はerrors
+  // （ブロッキング）に昇格する。詳細はcontentLint.tsのvalidateContentLintBlockingを参照
+  const blockingContentLint = validateContentLintBlocking(source.questions, source.id)
+  const warningContentLint = validateContentLintWarnings(source.questions, source.id)
 
-  const result = validatePack(draftPack, { audioFiles })
+  const result = validatePack(draftPack, { audioFiles, imageFiles })
   const explanationProblems = validateExplanationQuality(source.questions)
-  if (!result.ok || explanationProblems.length > 0) {
+  if (!result.ok || explanationProblems.length > 0 || blockingContentLint.length > 0) {
     return {
       built: null,
       errors: [
         ...result.errors.map((e) => `${source.id} ${e.path}: ${e.message}`),
         ...explanationProblems.map((p) => `${source.id} ${p}`),
+        ...blockingContentLint.map((p) => `${source.id} ${p}`),
       ],
-      warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
+      warnings: warningContentLint.map((p) => `${source.id} ${p}`),
     }
   }
 
-  const contentForHash = JSON.stringify(draftPack, null, 2) + '\n'
-  const hash = createHash('sha256').update(contentForHash).digest('hex').slice(0, 16)
-  const sizeBytes = Buffer.byteLength(contentForHash, 'utf-8')
+  const { hash, sizeBytes } = computePackContentHash(draftPack)
 
   const pack = {
     ...draftPack,
@@ -393,7 +468,7 @@ export function buildPack(
   return {
     built: { pack, hash },
     errors: [],
-    warnings: contentLintProblems.map((p) => `${source.id} ${p}`),
+    warnings: warningContentLint.map((p) => `${source.id} ${p}`),
   }
 }
 
@@ -401,12 +476,14 @@ export function buildPack(
 export function buildAllPacks(
   sources: readonly PackSource[],
   audioFiles: ReadonlySet<string>,
+  /** audio_photo の image 存在チェック用（T-239・Q-82）。未指定ならこのチェックはスキップ */
+  imageFiles?: ReadonlySet<string>,
 ): { built: BuiltPack[]; errors: string[]; warnings: string[] } {
   const errors: string[] = []
   const warnings: string[] = []
   const built: BuiltPack[] = []
   for (const source of sources) {
-    const result = buildPack(source, audioFiles)
+    const result = buildPack(source, audioFiles, imageFiles)
     warnings.push(...result.warnings)
     if (result.built) {
       built.push(result.built)
@@ -429,14 +506,10 @@ export function buildManifest(built: readonly BuiltPack[]): Manifest {
   return { schemaVersion: SCHEMA_VERSION, packs }
 }
 
-/**
- * `<contentRoot>/audio` 配下の実ファイルを再帰的に列挙し、Question.audio /
- * phraseAudio と同じ形式（例: 'audio/vocab/submit.mp3'、contentRoot基準の相対パス）
- * の集合を返す。audioディレクトリが無ければ空集合（テスト等、音声不要なパックのみの場合）
- */
-export async function scanAudioFiles(contentRoot: string): Promise<Set<string>> {
+/** `<contentRoot>/<subdir>` 配下の実ファイルを再帰的に列挙し、contentRoot基準の相対パス（/区切り）の集合を返す */
+async function scanContentFiles(contentRoot: string, subdir: string): Promise<Set<string>> {
   const files = new Set<string>()
-  const audioDir = join(contentRoot, 'audio')
+  const targetDir = join(contentRoot, subdir)
 
   async function walk(dir: string): Promise<void> {
     let entries
@@ -455,6 +528,24 @@ export async function scanAudioFiles(contentRoot: string): Promise<Set<string>> 
     }
   }
 
-  await walk(audioDir)
+  await walk(targetDir)
   return files
+}
+
+/**
+ * `<contentRoot>/audio` 配下の実ファイルを再帰的に列挙し、Question.audio /
+ * phraseAudio と同じ形式（例: 'audio/vocab/submit.mp3'、contentRoot基準の相対パス）
+ * の集合を返す。audioディレクトリが無ければ空集合（テスト等、音声不要なパックのみの場合）
+ */
+export async function scanAudioFiles(contentRoot: string): Promise<Set<string>> {
+  return scanContentFiles(contentRoot, 'audio')
+}
+
+/**
+ * `<contentRoot>/images` 配下の実ファイルを再帰的に列挙し、Question.image（audio_photo）と
+ * 同じ形式の集合を返す（T-239・Q-82）。imagesディレクトリが無ければ空集合
+ * （現時点では audio_photo を使うパックが無いため常にこの経路になる）。
+ */
+export async function scanImageFiles(contentRoot: string): Promise<Set<string>> {
+  return scanContentFiles(contentRoot, 'images')
 }

@@ -27,8 +27,11 @@ function fakePackCache(
   const addAllCalls: string[][] = []
   return {
     addAllCalls,
-    has: vi.fn(async () => false),
+    // 既定は「キャッシュ実体が健全に残っている」通常ケース。T-183 Q-11の再現テストは
+    // 明示的に false へ上書きする（手動削除・iOSストレージ退避で実体が失われた状態）
+    has: vi.fn(async () => true),
     get: vi.fn(async () => null),
+    put: vi.fn(async () => {}),
     addAll: vi.fn(async (urls: string[]) => {
       addAllCalls.push(urls)
     }),
@@ -89,6 +92,33 @@ describe('syncPacks', () => {
     const fetchImpl = vi.fn(async () => jsonResponse(null, false))
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
     expect(result).toBeNull()
+  })
+
+  // T-239（Q-82）: Manifest型にランタイムバリデータが無く、`as Manifest` の型アサーションを
+  // 信用していたため、配信物が壊れている場合（GitHub Pages側の不整合・手動編集ミス等）に
+  // syncPacks内部で未捕捉の例外（例: packsがundefinedでfor...ofが投げる）になっていた。
+  // 「オフライン・manifest取得失敗時はnullを返す」という既存の契約に、manifest自体の
+  // 構造不正も含める（例外を表面化させない）
+  it('manifestの構造が不正なら例外を投げずnullを返す（配信物の破損を取得失敗と同様に扱う）', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const fetchImpl = vi.fn(async () => jsonResponse({}))
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    expect(result).toBeNull()
+    expect(packCache.addAll).not.toHaveBeenCalled()
+  })
+
+  it('manifestのpacksエントリが不正（sizeBytesが負等）でもnullを返す', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const brokenManifest = {
+      schemaVersion: 2,
+      packs: [{ id: 'p', title: 'p', targetLevel: [600, 600], sizeBytes: -1, hash: 'abc' }],
+    }
+    const fetchImpl = vi.fn(async () => jsonResponse(brokenManifest))
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    expect(result).toBeNull()
+    expect(packCache.addAll).not.toHaveBeenCalled()
   })
 
   it('初回同期: 全パックが新規としてピン留めされ、状態が保存される', async () => {
@@ -341,6 +371,29 @@ describe('syncPacks', () => {
     expect(packCache.delete).toHaveBeenCalledWith([abs('/audio/removed.mp3')])
   })
 
+  it('T-183 Q-11: ハッシュが一致していてもキャッシュの実体が無ければskipせず再取得する（手動削除・iOS退避からの自己修復）', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: 'packSyncState',
+      value: { packHashes: { 'pack-a': 'h1' }, totalSizeBytes: 100, lastSyncedAt: 0 },
+    })
+    // ハッシュはpack-syncState通り一致しているが、実体はキャッシュに存在しない
+    // （手動削除・iOSストレージ退避を模擬）
+    const packCache = fakePackCache({ has: vi.fn(async () => false) })
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 100 }])
+    const fetchImpl = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') return jsonResponse(pack([]))
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    expect(result?.synced).toEqual(['pack-a'])
+    expect(result?.skipped).toEqual([])
+    expect(packCache.addAllCalls).toEqual([['/packs/pack-a.json']])
+  })
+
   it('T-73: 再同期に失敗したパックの既存URLは掃除で消さない', async () => {
     const db = newDb()
     await db.settings.put({
@@ -409,5 +462,24 @@ describe('loadPackQuestions', () => {
     await expect(loadPackQuestions(packCache, '/packs/missing.json', fetchImpl)).rejects.toThrow(
       /HTTP 404/,
     )
+  })
+
+  it('T-183 Q-13: fetchフォールバックで取得したパック内容をキャッシュへ書き戻す（次回のmissを防ぐ）', async () => {
+    const p = pack([])
+    const putCalls: Array<[string, Blob]> = []
+    const packCache = fakePackCache({
+      get: vi.fn(async () => null),
+      put: vi.fn(async (url: string, blob: Blob) => {
+        putCalls.push([url, blob])
+      }),
+    })
+    const fetchImpl = vi.fn(async () => jsonResponse(p))
+
+    await loadPackQuestions(packCache, '/packs/x.json', fetchImpl)
+
+    expect(putCalls).toHaveLength(1)
+    expect(putCalls[0]![0]).toBe('/packs/x.json')
+    const written = JSON.parse(await putCalls[0]![1].text())
+    expect(written).toEqual(p)
   })
 })

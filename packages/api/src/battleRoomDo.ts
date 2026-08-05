@@ -50,8 +50,13 @@ interface RoomMeta {
   currentQuestionId: string | null
   deadlineAt: number | null
   questionOpen: boolean
-  /** 現在オープン中の設問への解答（受信順。クローズ時に速度ボーナス算出に使い、クローズ後は空にする） */
-  currentAnswers: AnswerRecord[]
+  /**
+   * 現在オープン中の設問への解答。deviceToken単位で一意化する（T-184・29のQ-8）。
+   * 一意化しないと、切断→再接続後の再回答で同一deviceTokenのエントリが複数積まれ、
+   * closeQuestion側で二重加点できてしまう。クローズ時に速度ボーナス算出に使い、
+   * クローズ後は空にする
+   */
+  currentAnswers: Map<string, AnswerRecord>
   /** ベストグロース賞の分母（出題数）算出用。openQuestionされた出題indexの集合 */
   openedQuestionIndexes: number[]
   createdAt: number
@@ -59,7 +64,15 @@ interface RoomMeta {
   nextJoinOrder: number
 }
 
-/** 接続1本分の個人紐づき状態（当該接続のattachmentにのみ持たせる） */
+/**
+ * 接続1本分の個人紐づき状態。
+ * 【T-184・29のQ-8】DOインスタンスの `participantsByToken`（ルームの生存期間中メモリに保持）
+ * にdeviceToken単位で永続化し、再接続時に同じオブジェクトを再利用する。
+ * 切断のたびに totalPoints・answeredQuestionIndexes をゼロへ戻すと、
+ * 電車内の瞬断で得点が消える不具合になるため。永続ストレージは使わない
+ * （22の3.2節の設計を維持。DOインスタンス自体が破棄されればこの保持も失われるが、
+ * それは「ルーム揮発の原則」の範囲内として許容する）
+ */
 interface ParticipantState {
   deviceToken: string
   role: ConnectionRole
@@ -84,7 +97,7 @@ interface Connection {
 function cloneMeta(meta: RoomMeta): RoomMeta {
   return {
     ...meta,
-    currentAnswers: [...meta.currentAnswers],
+    currentAnswers: new Map(meta.currentAnswers),
     openedQuestionIndexes: [...meta.openedQuestionIndexes],
   }
 }
@@ -103,6 +116,15 @@ function closeWithReason(ws: WebSocket, code: number, reason: BattleCloseReason)
 export class BattleRoomDO extends DurableObject<Env> {
   private meta: RoomMeta | null = null
   private connections = new Map<string, Connection>()
+  /**
+   * deviceToken単位のParticipantState roster（T-184・29のQ-8）。
+   * `connections` は「今つながっているWebSocket」のみを追跡するのに対し、
+   * こちらは「ルームに参加したことがあるdeviceToken」の得点・解答済み設問を
+   * ルームの生存期間中メモリに保持し続ける。切断時に削除せず、再接続時（fetch内）に
+   * 同じオブジェクトを再利用することでtotalPoints・answeredQuestionIndexesを維持する。
+   * closeRoom（finish/ホスト切断/2時間経過）でのみクリアする
+   */
+  private participantsByToken = new Map<string, ParticipantState>()
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
@@ -116,6 +138,7 @@ export class BattleRoomDO extends DurableObject<Env> {
         ws,
         participant: attachment.participant,
       })
+      this.participantsByToken.set(attachment.participant.deviceToken, attachment.participant)
     }
   }
 
@@ -134,12 +157,15 @@ export class BattleRoomDO extends DurableObject<Env> {
       currentQuestionId: null,
       deadlineAt: null,
       questionOpen: false,
-      currentAnswers: [],
+      currentAnswers: new Map(),
       openedQuestionIndexes: [],
       createdAt: now,
       nextJoinOrder: 0,
     }
     this.connections.clear()
+    // 新規ルーム（またはclosed済みルームの再利用）なので、前回のルームの参加者roster
+    // を引き継がない（T-184）
+    this.participantsByToken.clear()
     // 2時間の強制タイムアウトクローズ（docs/22の作業指示。個人データを含まない起床タイマーのみ）
     await this.ctx.storage.setAlarm(now + TWO_HOURS_MS)
     return true
@@ -176,7 +202,10 @@ export class BattleRoomDO extends DurableObject<Env> {
     }
 
     const role: ConnectionRole = this.meta!.hostToken === deviceToken ? 'host' : 'participant'
-    const participant: ParticipantState = {
+    // 再接続（同じdeviceTokenでの再接続）なら既存のParticipantStateを再利用する。
+    // 新規作成するとtotalPoints・answeredQuestionIndexesがゼロへ戻り、
+    // 電車内の瞬断で得点が消える（T-184・29のQ-8）
+    const participant: ParticipantState = this.participantsByToken.get(deviceToken) ?? {
       deviceToken,
       role,
       displayName: null,
@@ -186,6 +215,7 @@ export class BattleRoomDO extends DurableObject<Env> {
       joinOrder: null,
     }
     this.connections.set(deviceToken, { ws: server, participant })
+    this.participantsByToken.set(deviceToken, participant)
     server.serializeAttachment({
       participant,
       meta: cloneMeta(this.meta!),
@@ -268,7 +298,9 @@ export class BattleRoomDO extends DurableObject<Env> {
     if (conn.participant.answeredQuestionIndexes.includes(msg.questionIndex)) return
 
     conn.participant.answeredQuestionIndexes.push(msg.questionIndex)
-    this.meta.currentAnswers.push({
+    // Map.set によりdeviceToken単位で一意化される（T-184・29のQ-8。
+    // 万一同一deviceTokenで2回目の書き込みが起きても上書きにしかならず、二重加点しない）
+    this.meta.currentAnswers.set(conn.participant.deviceToken, {
       deviceToken: conn.participant.deviceToken,
       points: msg.points,
       receivedAt: Date.now(),
@@ -284,7 +316,7 @@ export class BattleRoomDO extends DurableObject<Env> {
     this.meta.currentQuestionIndex = msg.questionIndex
     this.meta.currentQuestionId = msg.questionId
     this.meta.questionOpen = true
-    this.meta.currentAnswers = []
+    this.meta.currentAnswers = new Map()
     this.meta.deadlineAt = Date.now() + QUESTION_OPEN_MS
     if (!this.meta.openedQuestionIndexes.includes(msg.questionIndex)) {
       this.meta.openedQuestionIndexes.push(msg.questionIndex)
@@ -309,7 +341,9 @@ export class BattleRoomDO extends DurableObject<Env> {
       (c) => c.participant.role === 'participant' && c.participant.displayName !== null,
     ).length
 
-    const ordered = [...this.meta.currentAnswers].sort((a, b) => a.receivedAt - b.receivedAt)
+    const ordered = [...this.meta.currentAnswers.values()].sort(
+      (a, b) => a.receivedAt - b.receivedAt,
+    )
     ordered.forEach((answer, index) => {
       const rank = index + 1
       const bonus =
@@ -317,11 +351,13 @@ export class BattleRoomDO extends DurableObject<Env> {
           ? Math.round(answer.points * SPEED_BONUS_RATE * (1 - (rank - 1) / participantCount))
           : 0
       const finalPoints = answer.points + bonus
-      const target = this.connections.get(answer.deviceToken)
-      if (target) target.participant.totalPoints += finalPoints
+      // participantsByToken（deviceToken単位のroster）から加点する。connectionsではなく
+      // こちらを見るのは、解答後クローズ前に瞬断した参加者の得点を取りこぼさないため（T-184）
+      const target = this.participantsByToken.get(answer.deviceToken)
+      if (target) target.totalPoints += finalPoints
     })
 
-    this.meta.currentAnswers = []
+    this.meta.currentAnswers = new Map()
     this.syncAttachments()
     this.broadcastStandings()
   }
@@ -390,6 +426,7 @@ export class BattleRoomDO extends DurableObject<Env> {
       }
     }
     this.connections.clear()
+    this.participantsByToken.clear()
     this.meta = null
     this.ctx.waitUntil(this.ctx.storage.deleteAlarm())
   }

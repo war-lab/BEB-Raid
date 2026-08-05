@@ -134,6 +134,60 @@ describe('collectWrongAnswers', () => {
     expect(again.entries[0]!.wrongCount).toBe(2)
   })
 
+  // T-186（Q-4）: 唯一の呼び出し元WrongAnswersScreenは`orderBy('answeredAt').reverse()`で
+  // 新しい順にattemptsを渡す。recovered判定が走査順（配列の先頭から処理する順序）に
+  // 依存する実装だと、この呼び出し順では「誤答→正解」の順で最初に処理される正解attemptに
+  // まだdraftが無く捨てられてしまい、recoveredが実質常にfalseになる（本番で再現するバグ）
+  it('新しい順（本番の呼び出し順=orderBy(answeredAt).reverse()）でも recovered を正しく判定する', () => {
+    const q = part5('q-1')
+    const { entries } = collectWrongAnswers(
+      [
+        // 新しい順：正解(200)が誤答(100)より先に来る
+        attempt({ questionId: 'q-1', answeredAt: 200, isCorrect: true }),
+        attempt({ questionId: 'q-1', answeredAt: 100 }),
+      ],
+      lookup([q]),
+    )
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.recovered).toBe(true)
+  })
+
+  it('新しい順の走査でも、正解後に再度間違えていれば recovered=false のまま', () => {
+    const q = part5('q-1')
+    const { entries } = collectWrongAnswers(
+      [
+        // 新しい順：最新の誤答(300)→正解(200)→最初の誤答(100)
+        attempt({ questionId: 'q-1', answeredAt: 300 }),
+        attempt({ questionId: 'q-1', answeredAt: 200, isCorrect: true }),
+        attempt({ questionId: 'q-1', answeredAt: 100 }),
+      ],
+      lookup([q]),
+    )
+    expect(entries[0]!.recovered).toBe(false)
+    expect(entries[0]!.wrongCount).toBe(2)
+    expect(entries[0]!.lastWrongAt).toBe(300)
+  })
+
+  it('recovered判定は走査順（配列を昇順/降順/シャッフルのどれで渡すか）に依存しない', () => {
+    const q = part5('q-1')
+    const base = [
+      attempt({ questionId: 'q-1', answeredAt: 100 }),
+      attempt({ questionId: 'q-1', answeredAt: 200, isCorrect: true }),
+      attempt({ questionId: 'q-1', answeredAt: 300 }),
+      attempt({ questionId: 'q-1', answeredAt: 400, isCorrect: true }),
+    ]
+    const ascending = collectWrongAnswers(base, lookup([q]))
+    const descending = collectWrongAnswers([...base].reverse(), lookup([q]))
+    // シャッフル（昇順・降順いずれとも異なる並び）
+    const shuffled = collectWrongAnswers([base[2]!, base[0]!, base[3]!, base[1]!], lookup([q]))
+    expect(ascending.entries[0]!.recovered).toBe(true) // 最後は400=正解
+    expect(descending.entries[0]!.recovered).toBe(true)
+    expect(shuffled.entries[0]!.recovered).toBe(true)
+    expect(ascending.entries[0]!.wrongCount).toBe(2)
+    expect(descending.entries[0]!.wrongCount).toBe(2)
+    expect(shuffled.entries[0]!.wrongCount).toBe(2)
+  })
+
   it('複合問題のサブ設問IDを親から解決し、設問文と正解はサブ設問のものを出す', () => {
     const p = passage('p7-1')
     const { entries } = collectWrongAnswers(

@@ -525,7 +525,7 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         if (displayIndex + 1 >= snapshot.items.length) {
           // T-267: 全問スキップ完了もリザルトへの正規到達経路のひとつ。finishSession()の
           // 説明を参照（このeffectのdeps配列に新しいローカル関数を足さないため直接呼ぶ）
-          void completeSession(db).catch((e: unknown) => {
+          void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
             console.warn('[DrillScreen] セッション完了処理に失敗', e)
           })
           navigate('result')
@@ -1164,9 +1164,13 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
    * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）
    */
   function finishSession() {
-    void completeSession(db).catch((e: unknown) => {
-      console.warn('[DrillScreen] セッション完了処理に失敗', e)
-    })
+    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
+    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
+    if (snapshot) {
+      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
+        console.warn('[DrillScreen] セッション完了処理に失敗', e)
+      })
+    }
     navigate('result')
   }
 

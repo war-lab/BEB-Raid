@@ -35,7 +35,11 @@ export function computeScoreBand(totalRating: number): ScoreBand {
   return { center, low: center - FORECAST_BAND_WIDTH, high: center + FORECAST_BAND_WIDTH }
 }
 
-/** 直近windowDays分の履歴だけを取り出す（now基準）。日付でソート済み前提 */
+/**
+ * 直近windowDays分の履歴だけを取り出す（now基準）。日付でソート済み前提。
+ * 時計巻き戻し等でnowより未来の日付を持つスナップショットが生成されうるため、
+ * diff（now基準の経過日数）が負（=未来日付）のものは除外する（T-191・Q-110）
+ */
 function windowedHistory(
   history: readonly RatingHistoryPoint[],
   now: number,
@@ -43,7 +47,10 @@ function windowedHistory(
 ): RatingHistoryPoint[] {
   const nowDate = new Date(now)
   const nowDateStr = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}-${String(nowDate.getDate()).padStart(2, '0')}`
-  return history.filter((h) => daysBetween(h.date, nowDateStr) <= windowDays)
+  return history.filter((h) => {
+    const diff = daysBetween(h.date, nowDateStr)
+    return diff >= 0 && diff <= windowDays
+  })
 }
 
 /** 最小二乗法で傾き（レート/日）を求める。x軸は先頭日からの経過日数 */

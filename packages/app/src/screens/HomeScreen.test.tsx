@@ -26,7 +26,12 @@ import {
 import { useAppStore } from '../store/appStore'
 import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
-import { formatReadingEstimate, HomeScreen, readingQuestionEstimate } from './HomeScreen'
+import {
+  formatReadingEstimate,
+  HomeScreen,
+  readingQuestionEstimate,
+  remainingAnswerSlots,
+} from './HomeScreen'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -267,6 +272,36 @@ describe('HomeScreen: 実データの表示', () => {
 
     expect(screen.getByText('途切れ（前回5日）')).toBeTruthy()
     expect(screen.queryByText('🔥5')).toBeNull()
+  })
+
+  // T-195フォローアップ: 何を防ぐか。gap===2（1日欠席）はストリーク保護（週1回まで免除）が
+  // 使える状態で、エンジン（evaluateStreak）はまだ継続中と判定する。ホーム側が独自にgapだけで
+  // 「途切れ」を判定すると、保護で救えるはずの状態なのに事実に反して「途切れ」と表示してしまう
+  // （streak.ts冒頭の「エンジンは事実だけを返す」方針にも反する）。判定はエンジンの
+  // currentDays（0になるのは途切れ確定時のみ）を単一の情報源にする
+  it('gap=2で保護が使える状態では「途切れ」を表示しない（保護でまだ救えるため）', async () => {
+    const db = newDb()
+    const twoDaysAgo = toDateString(Date.now() - 2 * 86_400_000)
+    await db.streak.put({
+      id: 'streak',
+      currentDays: 5,
+      bestDays: 5,
+      lastActiveDate: twoDaysAgo,
+      protectionUsedAt: null,
+    })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('🔥5')).toBeTruthy()
+    expect(screen.queryByText(/途切れ/)).toBeNull()
   })
 })
 
@@ -813,6 +848,40 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(useSessionStore.getState().snapshot).toEqual(snapshot)
+  })
+
+  // 何を防ぐか（T-200。docs/29 Q-10）: 読解・audio_setは1itemでサブ設問複数を要求し、
+  // 全問終わるまでanswerCurrentSubQuestionはitemを進めない（answeredCountは変わらず
+  // snapshot.subAnswersだけが増える）。remainingAnswerSlotsがsubAnswersを見ずにitem単位で
+  // 数えると、Part7で3問中1問だけ解答して「次へ」の前に中断した場合、その1問分が
+  // 残数に反映されず「残り7問」のまま（実際は6問）になる。実機でも再現した
+  // （Playwrightでpart7を1問解答→中断→ホームで「続きから再開（残り7問）」を確認）
+  it('T-200: 読解の途中（次へを押す前）で中断すると、解答済みサブ設問が残数から引かれる', async () => {
+    const pool = [...QUESTION_POOL, part7Question('p7-resume', 3)]
+    const snapshot = snapshotOf({
+      items: [
+        { questionId: 'p7-resume', mode: 'solo' as const },
+        { questionId: 'p2-1', mode: 'solo' as const },
+      ],
+      answeredCount: 0, // itemはまだ進んでいない（3問中1問答えただけ）
+      attemptIds: ['a-1'],
+      subAnswers: [{ subQuestionId: 'p7-resume-q0', selectedKey: 'A', isCorrect: true }],
+    })
+
+    // 純関数側: p7-resume(3スロット)+p2-1(1スロット)=4 のうち1問答え済みなので残り3
+    expect(remainingAnswerSlots(snapshot, pool)).toBe(3)
+
+    render(
+      <HomeScreen
+        db={newDb()}
+        questionPool={pool}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('続きから再開（残り3問）')).toBeTruthy()
   })
 
   // T-162（docs/27 のS-38）で window.confirm を3択のアプリ内ダイアログへ置き換えた。

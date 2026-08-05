@@ -60,6 +60,14 @@ export function KaraokeScript({ script, timing, positionMs, durationMs, onSenten
             tabIndex={0}
             className="karaoke-sentence"
             onClick={() => onSentenceTap?.(sentence, sIdx)}
+            // Q-61: role="button"のspanはネイティブbuttonと違いEnter/Spaceでは
+            // onClickが発火しない。区間リピートをキーボードのみで操作できるよう
+            // 明示的に発火させる（Spaceのページスクロールは抑止する）
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              onSentenceTap?.(sentence, sIdx)
+            }}
           >
             {timing ? (
               words.map((word, wi) => (

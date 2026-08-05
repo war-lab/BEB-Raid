@@ -9,7 +9,12 @@
 // （PackCache.addAllは1件でも失敗すると例外を投げる=パック単位の整合性を守る実装のため、
 // 失敗したパックのhashだけ更新せず次回同期時に再試行させ、他パックを巻き込まない）。
 
-import type { Manifest, Question, QuestionPack } from '@beb-raid/shared-schema'
+import {
+  validateManifest,
+  type Manifest,
+  type Question,
+  type QuestionPack,
+} from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PackCache } from '../platform'
 
@@ -96,7 +101,11 @@ async function collectCachedAudioUrls(
 
 /**
  * manifest.jsonを取得し、ハッシュに変化のあるパックだけをPackCacheへピン留めする。
- * オフライン・manifest取得失敗時はnullを返す（呼び出し側はエラーUIを出さない）
+ * オフライン・manifest取得失敗時はnullを返す（呼び出し側はエラーUIを出さない）。
+ * T-239（Q-82）: `as Manifest` の型アサーションのみで実行時検証が無かったため、配信物が
+ * 壊れている場合（GitHub Pages側の不整合・手動編集ミス等）に未捕捉の例外になりうる
+ * 経路があった（例: packsが配列でないとfor...ofが投げる）。構造不正も取得失敗と同様に
+ * 扱い、nullを返す（オフラインが正常系という既存の縮退設計を配信物破損にも適用する）
  */
 export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksResult | null> {
   const { db, packCache } = options
@@ -108,7 +117,9 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   try {
     const res = await fetchImpl(`${baseUrl}manifest.json`)
     if (!res.ok) return null
-    manifest = (await res.json()) as Manifest
+    const body: unknown = await res.json()
+    if (!validateManifest(body).ok) return null
+    manifest = body as Manifest
   } catch {
     return null
   }
@@ -123,7 +134,10 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   for (const entry of manifest.packs) {
     const packUrl = `${baseUrl}packs/${entry.id}.json`
     validUrls.add(packUrl)
-    if (packHashes[entry.id] === entry.hash) {
+    // T-183 Q-11: ハッシュ一致だけでは実体の有無を確認できない。手動でのキャッシュ削除や
+    // iOSのストレージ退避で実体が失われていてもハッシュは残るため、skipすると
+    // 二度と再取得されなくなる。実体の有無を確認し、無ければ通常の同期経路へ落とす
+    if (packHashes[entry.id] === entry.hash && (await packCache.has(packUrl))) {
       skipped.push(entry.id)
       for (const url of await collectCachedAudioUrls(packCache, baseUrl, packUrl)) {
         validUrls.add(url)
@@ -192,5 +206,12 @@ export async function loadPackQuestions(
   const res = await fetchImpl(packUrl)
   if (!res.ok) throw new Error(`パック取得に失敗（HTTP ${res.status}）: ${packUrl}`)
   const pack = (await res.json()) as QuestionPack
+  // T-183 Q-13: fetchフォールバックの取得結果をキャッシュへ書き戻す（書き戻さないと次回もmissする）。
+  // 書き戻し失敗は無視する（次回のfetchフォールバックで再試行されるだけで、読み込み自体は止めない）
+  try {
+    await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
+  } catch {
+    // 無視
+  }
   return pack.questions
 }

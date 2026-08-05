@@ -17,19 +17,19 @@ export function resolveTheme(pref: ThemePreference): Theme {
   return pref
 }
 
-/** manifest の theme_color と揃えるステータスバー色（07の5.2） */
-const THEME_COLOR: Record<Theme, string> = {
-  dark: '#0E1220',
-  light: '#F6F5F1',
-}
-
 export function getTheme(): Theme {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
 }
 
 export function setTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme
-  // ステータスバー色（theme-color meta）もテーマに追従させる
+  // ステータスバー色（theme-color meta）もテーマに追従させる（07の5.2）。
+  // T-233(Q-73): 値をここで手動複製せず、tokens.cssの--bgを実行時に読み取って導出する
+  // （data-theme切替後に読むため、算出されるのは切替後の値）。--bgが未定義の場合
+  // （tokens.cssが未読込のテスト環境等）はmetaを変更せず既定値のまま残す
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-  if (meta) meta.content = THEME_COLOR[theme]
+  if (meta) {
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+    if (bg) meta.content = bg
+  }
 }

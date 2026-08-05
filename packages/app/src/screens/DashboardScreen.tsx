@@ -191,11 +191,19 @@ export function DashboardScreen({ db, questionPool }: Props) {
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>ダッシュボード</h1>
 
       <section className="dashboard-forecast-hero">
-        <p className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
-          {Math.round(forecast.scoreBand.low)}–{Math.round(forecast.scoreBand.high)}
-        </p>
-        <p className="dashboard-forecast-note">予測スコア帯（参考値。社内問題での推定）</p>
-        <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+        {/* T-199（Q-9）: measuring（データ14日未満）はまだ帯の数値が意味を持たないため、
+            数値と「計測中」文言を同時に出さない（排他）。数値は計測完了後にのみ表示する */}
+        {forecast.kind === 'measuring' ? (
+          <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+        ) : (
+          <>
+            <p className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
+              {Math.round(forecast.scoreBand.low)}–{Math.round(forecast.scoreBand.high)}
+            </p>
+            <p className="dashboard-forecast-note">予測スコア帯（参考値。社内問題での推定）</p>
+            <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+          </>
+        )}
       </section>
 
       {/* docs/25 4.5節（V-14）: 色（data-rank）＋台座の線の本数でランク段数を二重符号化する。
@@ -214,10 +222,11 @@ export function DashboardScreen({ db, questionPool }: Props) {
             <span key={i} className="dashboard-growth-rank__tier-bar" />
           ))}
         </div>
-        <p className="dashboard-forecast-note">現在 {growthRank.rankPoints}pt</p>
-        {growthRank.nextRank ? (
+        {/* T-197（Q-6）: rankPointsはレート差分＋学習日数の合算で小数になりうる。表示は丸める */}
+        <p className="dashboard-forecast-note">現在 {Math.round(growthRank.rankPoints)}pt</p>
+        {growthRank.nextRank !== null && growthRank.pointsToNext !== null ? (
           <p data-testid="growth-rank-next">
-            次のランク（{growthRank.nextRank.name}）まで残り {growthRank.pointsToNext}pt
+            次のランク（{growthRank.nextRank.name}）まで残り {Math.round(growthRank.pointsToNext)}pt
           </p>
         ) : (
           <p data-testid="growth-rank-next">最上位ランクに到達</p>

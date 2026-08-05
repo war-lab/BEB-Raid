@@ -282,7 +282,20 @@ export async function resumeSession(db: BebRaidDatabase): Promise<SessionSnapsho
   return isValidSnapshot(record.value) ? record.value : null
 }
 
-/** セッションを終了し、スナップショットを破棄する（解答ログは attempts に残る） */
-export async function completeSession(db: BebRaidDatabase): Promise<void> {
-  await db.settings.delete(ACTIVE_SESSION_KEY)
+/**
+ * セッションを終了し、スナップショットを破棄する（解答ログは attempts に残る）。
+ *
+ * T-193（Q-103）: sessionId照合を行う。answerCurrentQuestion等の解答系はstale検知
+ * （StaleSnapshotError）を持つのに、本関数は従来ACTIVE_SESSION_KEYを無条件削除しており
+ * 非対称だった。複数タブで古いタブのリザルト画面が閉じ遅れて呼ばれた場合、既に別タブが
+ * 開始した新しい進行中セッションを誤って破棄してしまうバグの修正。
+ * 呼び出し元が保持するsessionIdとDB上の現在値が一致する場合のみ削除する
+ * （既に削除済み=undefinedの場合は何もしない。冪等）
+ */
+export async function completeSession(db: BebRaidDatabase, sessionId: string): Promise<void> {
+  await db.transaction('rw', db.settings, async () => {
+    const stored = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as SessionSnapshot | undefined
+    if (stored !== undefined && stored.sessionId !== sessionId) return
+    await db.settings.delete(ACTIVE_SESSION_KEY)
+  })
 }

@@ -15,6 +15,22 @@ import type { QuestionLookup, TagAccuracy } from './types'
 
 /** 移動窓の大きさ（対象解答の件数） */
 export const TAG_WINDOW_SIZE = 100
+/**
+ * T-189（Q-99）: recomputeTagStatsは解答パイプラインの単一トランザクション（ADR 0010）の
+ * 内側で毎解答時に走るため、db.attempts.toArray()（全件読み）は1年運用相当のデータ量で
+ * 数百ms級に劣化する。services/phase.ts がT-74で同じ問題をanswerdAt降順の打ち切り読みへ
+ * 変えた方針にそのまま揃える。
+ * タグ窓（TAG_WINDOW_SIZE=100）に対する安全係数2倍・下限500件は phase.ts の
+ * ATTEMPTS_READ_LIMIT と同じヒューリスティックで、対象タグの解答が直近500件の外に
+ * 偏って集中するような極端な出題パターンでは理論上不足しうるが、通常運用では
+ * 十分な件数を見込む
+ */
+const TAG_ATTEMPTS_READ_SAFETY_FACTOR = 2
+const TAG_ATTEMPTS_READ_MIN = 500
+export const TAG_ATTEMPTS_READ_LIMIT = Math.max(
+  TAG_ATTEMPTS_READ_MIN,
+  TAG_WINDOW_SIZE * TAG_ATTEMPTS_READ_SAFETY_FACTOR,
+)
 /** 弱点判定の正答率しきい値（これ未満が弱点） */
 export const WEAK_ACCURACY_THRESHOLD = 0.6
 /**
@@ -73,7 +89,11 @@ export async function recomputeTagStats(
   tags?: readonly string[],
 ): Promise<TagStatRecord[]> {
   const targetTags = tags ?? Array.from(new Set(Array.from(lookup.values()).flatMap((q) => q.tags)))
-  const attempts = await db.attempts.toArray()
+  const attempts = await db.attempts
+    .orderBy('answeredAt')
+    .reverse()
+    .limit(TAG_ATTEMPTS_READ_LIMIT)
+    .toArray()
   const records = targetTags.map((tag) => ({ tag, ...computeTagWindow(attempts, tag, lookup) }))
   await db.tagStats.bulkPut(records)
   return records

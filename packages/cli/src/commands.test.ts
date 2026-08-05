@@ -25,7 +25,7 @@ async function run(argv: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('コマンド体系（04の5節）', () => {
-  it('generate / freq-list / review-export / review-import / tts / calibrate / kpi / build の8コマンドがある', () => {
+  it('generate / freq-list / review-export / review-import / tts / calibrate / kpi / build / verify-content の9コマンドがある', () => {
     expect(commands.map((c) => c.name)).toEqual([
       'generate',
       'freq-list',
@@ -35,6 +35,7 @@ describe('コマンド体系（04の5節）', () => {
       'calibrate',
       'kpi',
       'build',
+      'verify-content',
     ])
   })
 
@@ -1373,5 +1374,102 @@ describe('build（T-32）', () => {
     const { code, errOutput } = await run(['kpi'])
     expect(code).toBe(1)
     expect(errOutput).toContain('使い方')
+  })
+
+  describe('verify-content（T-234。docs/29 Q-74・Q-83のCIゲート）', () => {
+    it('build直後は検証OKになる（配信物・manifest・音声・draftsが整合した基準状態）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+
+      const { code, output } = await run(['verify-content', dir])
+      expect(code).toBe(0)
+      expect(output).toContain('検証OK')
+    })
+
+    it('パックJSONを直接編集してdraftsを更新しないと、drafts乖離として検出する（Q-74の核心シナリオ）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+
+      // drafts側は変えず、配信パックだけを直接書き換える（ビルドを経由しない改変）
+      const packPath = join(dir, 'packs/pack-p5-s-001.json')
+      const pack = JSON.parse(await readFile(packPath, 'utf-8')) as {
+        pack: Record<string, unknown>
+      }
+      pack.pack.origin = `${pack.pack.origin as string} 手編集`
+      await writeFile(packPath, JSON.stringify(pack, null, 2) + '\n', 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('pack-p5-s-001')
+      expect(errOutput).toContain('drafts')
+      expect(errOutput).toContain('一致しない')
+    })
+
+    it('manifest.jsonのhashを書き換えると不一致として検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+
+      const manifestPath = join(dir, 'manifest.json')
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf-8')) as {
+        packs: { id: string; hash: string }[]
+      }
+      const entry = manifest.packs.find((p) => p.id === 'pack-p5-s-001')
+      if (!entry) throw new Error('fixture broken: pack-p5-s-001 not in manifest')
+      entry.hash = 'deadbeefdeadbeef'
+      await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('pack-p5-s-001')
+      expect(errOutput).toContain('hash')
+    })
+
+    it('パックが参照する音声ファイルを削除すると参照切れとして検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await rm(join(dir, 'audio/part2/submit.mp3'))
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('音声参照切れ')
+    })
+
+    it('どのパックからも参照されない音声ファイルを孤児として検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await writeFile(join(dir, 'audio/part2/orphan.mp3'), 'dummy')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('孤児音声ファイル')
+      expect(errOutput).toContain('orphan.mp3')
+    })
+
+    it('manifest.jsonに登録されていないパックJSONを孤児として検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      const source = JSON.parse(await readFile(join(dir, 'packs/pack-p5-s-001.json'), 'utf-8')) as {
+        pack: Record<string, unknown>
+      }
+      source.pack.id = 'pack-orphan-test'
+      await writeFile(
+        join(dir, 'packs/pack-orphan-test.json'),
+        JSON.stringify(source, null, 2) + '\n',
+        'utf-8',
+      )
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('孤児パックJSON')
+    })
+
+    it('licenseを欠いたパックJSONを直接置くと、drafts経由でなくてもvalidatePackエラーとして検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+
+      const packPath = join(dir, 'packs/pack-p5-s-001.json')
+      const pack = JSON.parse(await readFile(packPath, 'utf-8')) as {
+        pack: Record<string, unknown>
+      }
+      delete pack.pack.license
+      await writeFile(packPath, JSON.stringify(pack, null, 2) + '\n', 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('license が必要')
+    })
   })
 })

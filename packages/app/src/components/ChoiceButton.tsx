@@ -81,9 +81,19 @@ export function ChoiceButton({
       <span className="choice-button__icon" aria-hidden={icon === ''}>
         {icon}
       </span>
-      {/* スクリーンリーダー向けの状態読み上げ（色に依存しない） */}
-      {state === 'correct' && <span className="visually-hidden">（正解）</span>}
-      {state === 'wrong' && <span className="visually-hidden">（誤答）</span>}
+      {/* スクリーンリーダー向けの状態読み上げ（色に依存しない）。T-231(Q-69): role="status"
+          （暗黙のaria-live="polite"）を付け、解答直後にDOM挿入されたタイミングで自動読み上げ
+          させる。role="status"はDrillScreenのスキップ・取り消し通知と同じ既存パターン */}
+      {state === 'correct' && (
+        <span className="visually-hidden" role="status">
+          （正解）
+        </span>
+      )}
+      {state === 'wrong' && (
+        <span className="visually-hidden" role="status">
+          （誤答）
+        </span>
+      )}
     </button>
   )
 }

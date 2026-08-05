@@ -300,6 +300,264 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
     const problems = validateContentLint(questions, 'pack-p6-test')
     expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
   })
+
+  // T-237（docs/29 Q-79）: audio_set（Part3/4）もrotateSubQuestionChoicesが同じ
+  // index%4ローテーションを使うため、text_passageと同じ決定的循環が起きる。対象formatを拡大した
+  function audioSetCycleSet(setId: string, answers: string[]): Question {
+    return {
+      id: setId,
+      part: 3,
+      format: 'audio_set',
+      difficulty: 2,
+      tags: ['会話'],
+      keyVocab: [{ word: 'invoice', sense: '請求書', freqRank: 'S' }],
+      audio: `audio/part34/${setId}.mp3`,
+      audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 20000 },
+      script: 'W: ... M: ...',
+      subQuestions: answers.map((answer, i) => ({
+        id: `${setId}-q${i + 1}`,
+        question: `Question ${i + 1} of ${setId}?`,
+        choices: [
+          { key: 'A', text: 'An invoice' },
+          { key: 'B', text: 'A resume' },
+          { key: 'C', text: 'A receipt' },
+          { key: 'D', text: 'A catalog' },
+        ],
+        answer,
+        explanation: '解説テキスト',
+        translation: '和訳',
+      })),
+    }
+  }
+
+  it('audio_set（Part3/4）も同一差分の循環なら警告する（T-237でtext_passageから対象拡大）', () => {
+    const questions = [
+      audioSetCycleSet('p34-cyc-1', ['A', 'D', 'C', 'B']),
+      audioSetCycleSet('p34-cyc-2', ['D', 'C', 'B', 'A']),
+      audioSetCycleSet('p34-cyc-3', ['C', 'B', 'A', 'D']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p34-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('audio_set'),
+      ),
+    ).toBe(true)
+  })
+
+  it('audio_setがシャッフル済みなら警告しない', () => {
+    const questions = [
+      audioSetCycleSet('p34-mix-1', ['B', 'B', 'D', 'A']),
+      audioSetCycleSet('p34-mix-2', ['C', 'A', 'A', 'D']),
+      audioSetCycleSet('p34-mix-3', ['D', 'B', 'C', 'C']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p34-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+})
+
+describe('checkFlatAnswerKeyCycle（⑨。text_blank/audio_qaのパック全体を1設問列とした決定的循環検出。T-237）', () => {
+  /** rotatePart5Choices相当（index%4）の決定的ローテーションをそのまま再現する（4択A〜D） */
+  function cyclicPart5Questions(count: number): Question[] {
+    const pattern = ['A', 'D', 'C', 'B']
+    return Array.from({ length: count }, (_, i) =>
+      part5Question({
+        id: `p5-cyc-${i}`,
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitting' },
+          { key: 'D', text: 'submitted' },
+        ],
+        answer: pattern[i % 4]!,
+      }),
+    )
+  }
+
+  /** rotatePart2Choices相当（index%3）の決定的ローテーションをそのまま再現する（3択） */
+  function cyclicPart2Questions(count: number): Question[] {
+    const pattern = ['A', 'C', 'B']
+    return Array.from({ length: count }, (_, i) =>
+      part2Question({
+        id: `p2-cyc-${i}`,
+        choices: [
+          { key: 'A', text: 'By Friday.' },
+          { key: 'B', text: 'Yes, I did.' },
+          { key: 'C', text: 'In the meeting room.' },
+        ],
+        answer: pattern[i % 3]!,
+      }),
+    )
+  }
+
+  it('text_blank全パックが一定差分の循環（pack-p5-s-002等の再現）なら警告する', () => {
+    const problems = validateContentLint(cyclicPart5Questions(20), 'pack-p5-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('text_blank'),
+      ),
+    ).toBe(true)
+  })
+
+  it('audio_qa全パックが一定差分の循環（pack-p2-s-001等の再現。3択ABC）なら警告する', () => {
+    const problems = validateContentLint(cyclicPart2Questions(12), 'pack-p2-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('audio_qa'),
+      ),
+    ).toBe(true)
+  })
+
+  it('シャッフル済み（循環が崩れている）なら警告しない', () => {
+    const pattern = ['A', 'B', 'A', 'D', 'C', 'C', 'B', 'D', 'A', 'B', 'C', 'D', 'A', 'D', 'B', 'C']
+    const questions = pattern.map((answer, i) =>
+      part5Question({
+        id: `p5-mix-${i}`,
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitting' },
+          { key: 'D', text: 'submitted' },
+        ],
+        answer,
+      }),
+    )
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('8問未満なら判定しない（小規模フィクスチャの誤検出防止）', () => {
+    const problems = validateContentLint(cyclicPart5Questions(6), 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('正答キーが常に同じ（delta=0）は⑨の対象外（別種の問題であり誤検出防止のため対象を分ける）', () => {
+    const questions = Array.from({ length: 20 }, (_, i) =>
+      part5Question({ id: `p5-same-${i}`, answer: 'A' }),
+    )
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+})
+
+describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベルの不一致検出。T-236）', () => {
+  it('記号と品詞ラベルが選択肢の実際の内容と一致していれば問題なし', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'client', sense: '顧客・依頼人', freqRank: 'S' }],
+      question: 'The client we met yesterday wants to revise the contract.',
+      choices: [
+        { key: 'A', text: 'whose' },
+        { key: 'B', text: 'which' },
+        { key: 'C', text: 'where' },
+        { key: 'D', text: 'whom' },
+      ],
+      answer: 'D',
+      explanation:
+        '目的格の関係代名詞whomが正しい。A所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。',
+    })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('原形ラベルが実際と異なる記号に付いていれば検出する（pack-p5-s-001 part5-notifyの再現。修正前の実データと同一内容）', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'notify', sense: '通知する', freqRank: 'S' }],
+      question: 'Employees will be ___ of the schedule change by email.',
+      choices: [
+        { key: 'A', text: 'notification' },
+        { key: 'B', text: 'notified' },
+        { key: 'C', text: 'notifying' },
+        { key: 'D', text: 'notify' },
+      ],
+      answer: 'B',
+      explanation:
+        'will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。A原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。',
+    })
+    const problems = validateContentLint([q], 'pack-p5-test')
+    expect(problems.some((p) => p.includes('矛盾') && p.includes('A'))).toBe(true)
+  })
+
+  it('関係代名詞/関係副詞ラベルが入れ替わっていれば2件検出する（pack-p5-s-001 part5-clientの再現。修正前の実データと同一内容）', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'client', sense: '顧客・依頼人', freqRank: 'S' }],
+      question: 'The client we met yesterday wants to revise the contract.',
+      choices: [
+        { key: 'A', text: 'whose' },
+        { key: 'B', text: 'which' },
+        { key: 'C', text: 'where' },
+        { key: 'D', text: 'whom' },
+      ],
+      answer: 'D',
+      explanation:
+        '先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、C物を指す関係代名詞、D関係副詞は文脈に合わない。',
+    })
+    const problems = validateContentLint([q], 'pack-p5-test')
+    expect(problems.filter((p) => p.includes('矛盾')).length).toBe(2)
+  })
+
+  it('修正後（B物を指す関係代名詞・C関係副詞）は問題なし', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'client', sense: '顧客・依頼人', freqRank: 'S' }],
+      question: 'The client we met yesterday wants to revise the contract.',
+      choices: [
+        { key: 'A', text: 'whose' },
+        { key: 'B', text: 'which' },
+        { key: 'C', text: 'where' },
+        { key: 'D', text: 'whom' },
+      ],
+      answer: 'D',
+      explanation:
+        '先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。',
+    })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('英単語"All"のように大文字始まりの英単語をA-D記号と誤認しない（false positive防止。pack-p5-s-001 part5-correspondenceの実データ）', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'correspondence', sense: '文書のやり取り', freqRank: 'S' }],
+      question: 'All ___ with the client should be kept on file.',
+      choices: [
+        { key: 'A', text: 'corresponded' },
+        { key: 'B', text: 'corresponding' },
+        { key: 'C', text: 'correspondence' },
+        { key: 'D', text: 'correspond' },
+      ],
+      answer: 'C',
+      explanation:
+        '数量形容詞Allの後には名詞correspondence（やり取り）が続く。correspond動詞原形、corresponded過去形/過去分詞、corresponding動名詞/現在分詞は名詞の位置には合わない。',
+    })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('判定不能なラベル（正規表現の対象外の品詞語）は誤検出しない', () => {
+    const q = part5Question({ explanation: 'Aは名詞で受動態の形には合わない。' })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('text_passageはsubQuestions単位で検証する', () => {
+    const q = textPassageQuestion({
+      subQuestions: [
+        {
+          id: 'p7s-test-q1',
+          question: 'Which word fits?',
+          choices: [
+            { key: 'A', text: 'who' },
+            { key: 'B', text: 'submit' },
+          ],
+          answer: 'A',
+          explanation: 'B現在分詞が正しい。',
+          translation: '和訳',
+        },
+      ],
+    })
+    const problems = validateContentLint([q], 'pack-p7s-test')
+    expect(problems.some((p) => p.includes('矛盾') && p.includes('p7s-test-q1'))).toBe(true)
+  })
+})
+
+describe('全パック一括検査（T-236完了条件: 実データの記号とラベルの矛盾がゼロ件になる）', () => {
+  it('part5QuestionsS.ts修正後は矛盾検出が0件になる', () => {
+    const problems = validateContentLint(buildPart5Questions(), 'pack-p5-s-001')
+    expect(problems.filter((p) => p.includes('矛盾'))).toEqual([])
+  })
 })
 
 describe('全パック一括検査（T-81完了条件: T-80ルール①③の検出ゼロ）', () => {

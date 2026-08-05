@@ -25,12 +25,21 @@
   --ink: #eaedf6;
   --ink-2: #a6aec6;
   /* T-75: #6b7492（--bg比4.030:1・--surface比3.577:1で共にWCAG AA=4.5:1未達）から
-     明度を上げ、--bg比5.383:1・--surface比4.777:1（機械計算値）に改善 */
+     明度を上げ、--bg比5.383:1・--surface比4.777:1（機械計算値）に改善
+     T-226(Q-70): 入力欄の枠色にも流用する（--surface-2比4.088:1・機械計算値でWCAG 1.4.11の
+     UI部品基準3:1に適合。--lineは--surface比1.370:1・--surface-2比1.172:1で未達だった）。
+     コントロール自体に文字を持たず枠線が識別の唯一の手掛かりになる入力欄
+     （.settings-list input/select・チェックボックス・ラジオ・.explanation-card__ai input）は
+     本トークンを使う。テキストラベルを持つ通常ボタンへの適用可否は視覚確認後に判断する
+     （docs/29 Q-70・保留中） */
   --ink-3: #7e89ac;
 
   /* 3.2 ブランド・モードアクセント */
   --gold: #f5b83d;
   --on-gold: #1a1405; /* 明るいアクセント上に白文字を置かない（07の3.2） */
+  /* T-226(Q-64): --surface-2上のgold文字専用の濃色バリアント。ダークは--gold(#f5b83d)が
+     --surface-2(#222a44)比7.963:1でAA=4.5:1に適合済みのため--goldをそのまま使う */
+  --gold-deep: var(--gold);
   --raid: #e8506b;
   --listen: #4ec3e0;
   --violet: #8b79e8;
@@ -63,6 +72,17 @@
      ライトブロックで上書きしないことで両テーマ同値になる */
   --hero-sky: linear-gradient(180deg, #0a0f21 0%, #101832 62%, #16204a 100%);
   --hero-line: rgba(77, 141, 255, 0.25);
+  /* --hero-sky上の文字色（両テーマ共通で固定。--hero-skyと同じ理由でテーマ追従の
+     var(--ink*)は使わない。ライトテーマの暗色文字が暗色地に乗りAA未達になるため）。
+     T-233(Q-73): 元は.home-heroのローカル変数だったが、.diagnostic-heroが同じ値を
+     再利用せず生の16進数で重複定義していたため（docs/26で指摘済み）、共有トークンへ
+     昇格した。機械計算値（--hero-sky最明部#16204a比）: ink 13.394:1・ink-2 7.085:1・
+     ink-3 4.525:1・accent(ev-blue) 4.904:1・danger(ng) 5.083:1、いずれもAA(4.5:1)適合 */
+  --home-hero-ink: #eaedf6;
+  --home-hero-ink-2: #a6aec6;
+  --home-hero-ink-3: #7e89ac;
+  --home-hero-accent: #4d8dff;
+  --home-hero-danger: #f0647a;
 
   /* 3.3 ステータス色（必ずアイコン/形と二重符号化で使う） */
   --ok: #3dc97e;
@@ -89,6 +109,11 @@
   /* 4節 タイポグラフィ */
   --font-ui: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
   --font-display: 'Chakra Petch Display', var(--font-ui);
+  /* T-232(Q-71): 直書きの11px（display書体の英字ラベル=drill-part-tag・
+     result-rating__label・home-hero-eyebrow）をトークン化。スケール最小の--fs-noteより
+     1段小さいが、いずれも大文字・letter-spacing付きの短い英字ラベルのみに使う前提で
+     本文には使わない */
+  --fs-eyebrow: 11px;
   --fs-note: 12px;
   --fs-sub: 14px;
   --fs-ui: 16px;
@@ -96,6 +121,10 @@
   --fs-heading: 22px;
   --fs-stat: 28px;
   --fs-display: 40px;
+  /* T-232(Q-71): result-points-value（リザルトの「TOTAL DAMAGE」特大数字）専用。
+     共有の--fs-displayを変えると他画面（タイマー等）に波及するため、直書き56pxを
+     トークン化するだけに留める */
+  --fs-display-xl: 56px;
 
   /* 5節 レイアウト（8ptグリッド・角丸） */
   --sp-half: 4px;
@@ -120,13 +149,22 @@
   --ink: #211e18;
   --ink-2: #6d675c;
   /* レビューF8: #9c958a（--bg比2.7:1程度でAA未達）から明度を下げ、
-     --bg比4.52:1・--surface比4.93:1（機械計算値）でAA=4.5:1を確保 */
+     --bg比4.52:1・--surface比4.93:1（機械計算値）でAA=4.5:1を確保
+     T-226(Q-70): 入力欄の枠色にも流用する（--surface-2比4.208:1・機械計算値でWCAG 1.4.11の
+     UI部品基準3:1に適合。--lineは--surface比1.410:1・--surface-2比1.204:1で未達だった）。
+     対象は3.2節の--ink-3コメント（ダーク側）と同じ（テキストラベルを持つ通常ボタンは
+     docs/29 Q-70の判断待ちで保留中） */
   --ink-3: #767061;
 
   /* レビューF8: #a66e00（--bg比4.0:1程度でAA未達）→ #996600。
      文字使用時 --bg比4.52:1、地色使用時 --on-gold(白)比4.94:1（機械計算値）でAAを確保 */
   --gold: #996600;
   --on-gold: #ffffff; /* ライトの金は暗色なので白文字で AA を確保 */
+  /* T-226(Q-64): --gold(#996600)は--surface-2(#efede6)比4.213:1でAA=4.5:1未達（機械計算値）。
+     .result-phase-transitionは継承サイズ16px+boldで「大文字テキスト」基準（18.66px bold）に
+     届かないため3:1の緩和は適用できず、4.5:1以上が必要。#8f6000へ濃くして--surface-2比
+     4.667:1（機械計算値）を確保した。--bg比5.012:1・--surface(白)比5.467:1でも適合 */
+  --gold-deep: #8f6000;
   --raid: #c42b4c;
 
   /* ブランド表層のライト値（docs/20 3.1節。機械計算値で全てAA=4.5:1適合） */
