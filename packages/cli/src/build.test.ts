@@ -61,6 +61,29 @@ function part2Question(overrides: Partial<Question> = {}): Question {
   }
 }
 
+function part5Question(id: string, answer: string, overrides: Partial<Question> = {}): Question {
+  return {
+    id,
+    part: 5,
+    format: 'text_blank',
+    difficulty: 2,
+    tags: ['品詞'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    question:
+      'Please submit the quarterly report to the department by Friday afternoon without fail.',
+    choices: [
+      { key: 'A', text: 'submit' },
+      { key: 'B', text: 'submits' },
+      { key: 'C', text: 'submitting' },
+      { key: 'D', text: 'submitted' },
+    ],
+    answer,
+    explanation: '正しい選択肢の理由を説明する十分な長さのテキストです。',
+    translation: '和訳テキスト',
+    ...overrides,
+  }
+}
+
 function source(overrides: Partial<PackSource> = {}): PackSource {
   return {
     id: 'pack-vocab-s-001',
@@ -139,6 +162,56 @@ describe('buildPack', () => {
     const { built, errors } = buildPack(source({ questions: [vocabQuestion()] }), AUDIO_FILES)
     expect(errors).toEqual([])
     expect(built).not.toBeNull()
+  })
+
+  // 再発防止の追加修正: contentLintの⑥⑧⑨はT-236/T-237で実コンテンツの違反件数が0に
+  // なったため、buildPack側でwarningsではなくerrors（ブロッキング）に昇格させた
+  // （正本: docs/29 Q-77・Q-79）。①②③④⑤⑦は既存違反が残っているため引き続き警告のみ
+  it('text_blankパック全体が決定的循環になっているとエラーで止める（⑨の昇格。再発防止）', () => {
+    const pattern = ['A', 'D', 'C', 'B']
+    const questions = Array.from({ length: 20 }, (_, i) =>
+      part5Question(`p5-cyc-${i}`, pattern[i % 4]!),
+    )
+    const { built, errors } = buildPack(source({ questions }), AUDIO_FILES)
+    expect(built).toBeNull()
+    expect(errors.some((e) => e.includes('決定的循環'))).toBe(true)
+  })
+
+  it('循環していないtext_blankパックはビルドできる（誤検出でブロックしないことの確認）', () => {
+    const pattern = ['A', 'B', 'A', 'D', 'C', 'C', 'B', 'D', 'A', 'B', 'C', 'D', 'A', 'D', 'B', 'C']
+    const questions = pattern.map((answer, i) => part5Question(`p5-mix-${i}`, answer))
+    const { built, errors } = buildPack(source({ questions }), AUDIO_FILES)
+    expect(errors.some((e) => e.includes('決定的循環'))).toBe(false)
+    expect(built).not.toBeNull()
+  })
+
+  it('解説の記号と品詞ラベルが矛盾しているとエラーで止める（⑧の昇格。再発防止。part5-notify型の再現）', () => {
+    const q = part5Question('p5-notify-like', 'B', {
+      keyVocab: [{ word: 'notify', sense: '通知する', freqRank: 'S' }],
+      question: 'Employees will be ___ of the schedule change by email.',
+      choices: [
+        { key: 'A', text: 'notification' },
+        { key: 'B', text: 'notified' },
+        { key: 'C', text: 'notifying' },
+        { key: 'D', text: 'notify' },
+      ],
+      explanation:
+        'will be の後で受動態を作る過去分詞notifiedが正しい。A原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。',
+    })
+    const { built, errors } = buildPack(source({ questions: [q] }), AUDIO_FILES)
+    expect(built).toBeNull()
+    expect(errors.some((e) => e.includes('矛盾'))).toBe(true)
+  })
+
+  it('警告のみのルール（④text_blank本文長。既存違反が残るため据え置き）はビルドを止めない', () => {
+    const q = part5Question('p5-warn-test', 'A', {
+      difficulty: 4,
+      question: 'Please submit it.',
+    })
+    const { built, errors, warnings } = buildPack(source({ questions: [q] }), AUDIO_FILES)
+    expect(built).not.toBeNull()
+    expect(errors).toEqual([])
+    expect(warnings.some((w) => w.includes('本文'))).toBe(true)
   })
 })
 
