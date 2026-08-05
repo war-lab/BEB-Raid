@@ -155,6 +155,9 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   const [ghostBossSubmitted, setGhostBossSubmitted] = useState(false)
   const [ghostBossWithdrawing, setGhostBossWithdrawing] = useState(false)
   const [ghostBossWithdrawError, setGhostBossWithdrawError] = useState<string | null>(null)
+  // T-202（docs/29 Q-33・J-105）: 撤回はサーバーから即時削除される不可逆操作なのに確認が
+  // 無かった（立候補側は同意画面＋チェックボックスの二重防御なのに撤回は無防備だった）
+  const [ghostBossWithdrawConfirm, setGhostBossWithdrawConfirm] = useState(false)
 
   // レイド機能が利用可能な間だけ60秒tickで現在時刻を進める（raidEnded・残り日数・最終同期表示に使う）
   useEffect(() => {
@@ -752,11 +755,29 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               type="button"
               className="secondary-action"
               data-testid="ghost-boss-withdraw"
-              onClick={() => void handleWithdrawGhostBoss()}
+              onClick={() => setGhostBossWithdrawConfirm(true)}
               disabled={ghostBossWithdrawing}
             >
               ボス役記録を撤回する
             </button>
+          )}
+          {/* T-202（Q-33）: 確認なしの1タップ即時削除だった。撤回後は取り消せないことを明示する */}
+          {ghostBossWithdrawConfirm && (
+            <ConfirmDialog
+              message="ボス役記録を撤回しますか？（サーバーから即時削除され、元に戻せません）"
+              onDismiss={() => setGhostBossWithdrawConfirm(false)}
+              actions={[
+                {
+                  label: '撤回する',
+                  primary: true,
+                  onSelect: () => {
+                    setGhostBossWithdrawConfirm(false)
+                    void handleWithdrawGhostBoss()
+                  },
+                },
+                { label: 'キャンセル', onSelect: () => setGhostBossWithdrawConfirm(false) },
+              ]}
+            />
           )}
           {ghostBossWithdrawError && <p className="drill-error">{ghostBossWithdrawError}</p>}
           <button type="button" className="secondary-action" onClick={() => navigate('home')}>

@@ -11,7 +11,13 @@ import type { FontSizeScale } from '../fontSize'
 import { getFontSizeScale, setFontSizeScale } from '../fontSize'
 import { DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
 import type { CacheUsage, PackCache, RaidApi } from '../platform'
-import { exportAll, importAll } from '../services/backup'
+import {
+  exportAll,
+  importAll,
+  validateBackup,
+  type BackupFile,
+  type BackupStores,
+} from '../services/backup'
 import { PACK_SYNC_STATE_KEY } from '../services/packSync'
 import {
   BYOK_API_KEY_KEY,
@@ -28,12 +34,41 @@ import {
 } from '../services/settingsKeys'
 import { resolveTheme, setTheme, type ThemePreference } from '../theme'
 import { useAppStore } from '../store/appStore'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 
 /** 保存済みキーのマスク表示（末尾4桁のみ見せる。05の5節） */
 function maskApiKey(key: string): string {
   return `sk-***...${key.slice(-4)}`
+}
+
+/**
+ * インポート確認用のストア表示名（T-202・Q-35）。件数だけでなく何のデータかも示すことで、
+ * 古いファイルの誤選択に実行前に気づけるようにする
+ */
+const STORE_LABELS: Record<keyof BackupStores, string> = {
+  profile: 'プロフィール',
+  attempts: '解答履歴',
+  srsCards: '語彙SRSカード',
+  ratings: 'レーティング',
+  ratingHistory: 'レーティング履歴',
+  tagStats: '弱点タグ統計',
+  phase: 'フェーズ状態',
+  streak: 'ストリーク',
+  badges: 'バッジ',
+  pendingSync: '同期待ちレイドダメージ',
+  settings: '設定',
+  examScores: '実試験スコア',
+  raidState: 'レイド状態',
+}
+
+/** バックアップ内の各ストアの件数を確認ダイアログ用の行にまとめる（T-202・Q-35） */
+function summarizeBackupStores(backup: BackupFile): string[] {
+  return (Object.keys(STORE_LABELS) as (keyof BackupStores)[]).map((name) => {
+    const rows = backup.stores[name]
+    return `${STORE_LABELS[name]}: ${Array.isArray(rows) ? rows.length : 0}件`
+  })
 }
 
 interface Props {
@@ -87,6 +122,16 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
   const [editingApiKey, setEditingApiKey] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [byokModel, setByokModel] = useState('')
+  // T-202（docs/29 Q-35・J-105）: ファイル選択後に対象ストアと件数を提示してから実行の
+  // 可否を問う（検証済みのバックアップと、確認ダイアログ用の件数一覧をセットで保持する）
+  const [pendingImport, setPendingImport] = useState<{
+    backup: BackupFile
+    summaryLines: string[]
+  } | null>(null)
+  // T-202（Q-46）: キャッシュ削除のwindow.confirmをConfirmDialogへ置換
+  const [cacheClearConfirm, setCacheClearConfirm] = useState(false)
+  // T-202（Q-33〜Q-35と同種の不可逆操作）: BYOKキーの削除は確認なしの1タップだった
+  const [apiKeyDeleteConfirm, setApiKeyDeleteConfirm] = useState(false)
   // T-106: マウント時の初回読込とインポート後の再読込を同じ関数で行う。アンマウント後の
   // setState回避には、コールバック間で共有できるrefで判定する（effect内ローカル変数だと
   // handleImportFile側から参照できない）
@@ -234,11 +279,14 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     await db.settings.put({ key: FONT_SIZE_KEY, value: scale })
   }
 
-  async function handleClearCache() {
-    const confirmed = window.confirm(
-      'キャッシュ済みの問題パック・音声を削除します。解答履歴・レート・SRSなどの学習データには一切触れません。よろしいですか？',
-    )
-    if (!confirmed) return
+  // T-202（Q-46）: window.confirmはPWAでネイティブダイアログが出て文脈が切れる
+  // （ConfirmDialog導入の理由そのもの。T-162時点で置換漏れていた2箇所の1つ）
+  function handleClearCache() {
+    setCacheClearConfirm(true)
+  }
+
+  async function confirmClearCache() {
+    setCacheClearConfirm(false)
     await packCache.clear()
     // T-183 Q-11の対: 実体を消してもpackSyncState（packHashes）を残すと、ハッシュ一致のみで
     // skip判定するsyncPacksが「同期済み」と誤認し、削除後も再同期されない
@@ -280,7 +328,13 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     setEditingApiKey(false)
   }
 
-  async function handleDeleteApiKey() {
+  // T-202（docs/29 Q-33〜Q-35と同種の不可逆操作）: 確認なしの1タップで削除されていた
+  function handleDeleteApiKey() {
+    setApiKeyDeleteConfirm(true)
+  }
+
+  async function confirmDeleteApiKey() {
+    setApiKeyDeleteConfirm(false)
     await db.settings.delete(BYOK_API_KEY_KEY)
     setApiKey(null)
     setEditingApiKey(false)
@@ -291,6 +345,12 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     await db.settings.put({ key: BYOK_MODEL_KEY, value })
   }
 
+  /**
+   * ファイル選択直後は検証と件数の集計のみ行い、まだ復元しない（T-202・Q-35）。
+   * 件数の提示がないと、古いファイルの誤選択に実行前に気づけない。
+   * dbVersionの新旧チェックはimportAll内部でも行うが（多層防御・唯一の正）、ここで
+   * 弾いておかないと「確認して復元する」を選んだ直後に失敗する体験になるため先に判定する
+   */
   async function handleImportFile(file: File) {
     setMessage(null)
     const text = await file.text()
@@ -305,7 +365,34 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       return
     }
     try {
-      await importAll(db, data)
+      // T-207（Q-45）のJSON.parse分離は上で済んでいるため、ここでは再読込・再parseしない
+      const problems = validateBackup(data)
+      if (problems.length > 0) {
+        setMessage(`バックアップが不正: ${problems.join(' / ')}`)
+        return
+      }
+      const backup = data as BackupFile
+      if (backup.dbVersion > db.verno) {
+        // importAll側の文言と一致させる（同じ判定を先出しするだけで正はimportAll側）
+        setMessage(
+          `バックアップの dbVersion(${backup.dbVersion}) が現在のDB(${db.verno})より新しい。アプリを更新してから復元してください。`,
+        )
+        return
+      }
+      setPendingImport({ backup, summaryLines: summarizeBackupStores(backup) })
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : '復元に失敗しました。')
+    }
+  }
+
+  /** 確認後の実際の復元（T-202）。importAll側でも検証するが、検証はすでに済んでいる */
+  async function confirmImport() {
+    if (!pendingImport) return
+    const { backup } = pendingImport
+    setPendingImport(null)
+    setMessage(null)
+    try {
+      await importAll(db, backup)
       // T-106: インポート成功後にこの画面のstateを再読込しないと、全トグル・表示名・
       // テーマ/文字サイズが復元前の値のまま表示され、以降のトグル操作が古い値の反転で
       // DBを上書きしてしまう（表示バグではなくデータ破壊経路）
@@ -461,12 +548,23 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               ? `${(cacheUsage.bytes / 1024 / 1024).toFixed(1)}MB（${cacheUsage.entries}件）`
               : '取得中…'}
           </p>
-          <button type="button" onClick={() => void handleClearCache()}>
+          <button type="button" onClick={handleClearCache}>
             キャッシュを削除
           </button>
           <button type="button" onClick={() => void handleRecalculateCache()}>
             再計算
           </button>
+          {/* T-202（Q-46）: window.confirmをConfirmDialogへ置換 */}
+          {cacheClearConfirm && (
+            <ConfirmDialog
+              message="キャッシュ済みの問題パック・音声を削除します。解答履歴・レート・SRSなどの学習データには一切触れません。よろしいですか？"
+              onDismiss={() => setCacheClearConfirm(false)}
+              actions={[
+                { label: '削除する', primary: true, onSelect: () => void confirmClearCache() },
+                { label: 'キャンセル', onSelect: () => setCacheClearConfirm(false) },
+              ]}
+            />
+          )}
           <p>永続化: {persisted === null ? '取得不可' : persisted ? '有効' : '無効'}</p>
           {persisted === false && (
             <p className="settings-note">
@@ -496,9 +594,24 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               <button type="button" onClick={() => setEditingApiKey(true)}>
                 変更
               </button>
-              <button type="button" onClick={() => void handleDeleteApiKey()}>
+              <button type="button" onClick={handleDeleteApiKey}>
                 削除
               </button>
+              {/* T-202（Q-33〜Q-35と同種の不可逆操作）: 確認なしの1タップで削除されていた */}
+              {apiKeyDeleteConfirm && (
+                <ConfirmDialog
+                  message="保存済みのAPIキーを削除しますか？（この端末から削除され、元に戻せません）"
+                  onDismiss={() => setApiKeyDeleteConfirm(false)}
+                  actions={[
+                    {
+                      label: '削除する',
+                      primary: true,
+                      onSelect: () => void confirmDeleteApiKey(),
+                    },
+                    { label: 'キャンセル', onSelect: () => setApiKeyDeleteConfirm(false) },
+                  ]}
+                />
+              )}
             </>
           ) : (
             <>
@@ -547,6 +660,18 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               }}
             />
           </label>
+          {/* T-202（Q-35）: ファイル選択後に対象ストアと件数を提示してから実行の可否を問う。
+              件数の提示がないと、古いファイルの誤選択に実行前に気づけない */}
+          {pendingImport && (
+            <ConfirmDialog
+              message={`このファイルを復元しますか？（attemptsは追記、他のストアは現在の内容を置き換えます）\n\n${pendingImport.summaryLines.join('\n')}`}
+              onDismiss={() => setPendingImport(null)}
+              actions={[
+                { label: '復元する', primary: true, onSelect: () => void confirmImport() },
+                { label: 'キャンセル', onSelect: () => setPendingImport(null) },
+              ]}
+            />
+          )}
           {message && <p role="status">{message}</p>}
         </section>
 

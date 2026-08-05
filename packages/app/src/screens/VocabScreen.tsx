@@ -76,6 +76,20 @@ interface TriagePendingCommit {
   known: boolean
 }
 
+/**
+ * 猶予中の未確定な復習自己評価（T-204。docs/29 Q-38・ADR 0009 2026-08-05 Amendment）。
+ * DrillScreen内のvocab_card自己評価（T-160）と同じ不可逆性（SRS間隔の確定＋次カードへの
+ * 前進）を持つのに、S3側は対象から漏れていた。responseMsはタップ時点で確定させ、commit側で
+ * 再計算しない（commit時刻で計算すると猶予分が乗り、当て勘判定がずれるため。ADR 0009参照）
+ */
+interface ReviewPendingCommit {
+  grade: SrsGrade
+  isCorrect: boolean
+  responseMs: number
+  reviewCard: SrsCardRecord
+  reviewQuestion: Question | undefined
+}
+
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
 function now(): number {
   return Date.now()
@@ -129,7 +143,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [busy, setBusy] = useState(false)
   // T-159: 記録の保存失敗の表示（DrillScreenのsaveErrorと同じ様式）
   const [saveError, setSaveError] = useState<string | null>(null)
-  // T-161: 誤タップの取り消し猶予の有効/無効（既定ON。ADR 0009 + 2026-07-31 Amendment）
+  // T-161・T-204: 誤タップの取り消し猶予の有効/無効（既定ON。ADR 0009 + 2026-07-31・
+  // 2026-08-05 Amendment）。仕分け（T-161）と復習の自己評価（T-204）の両方で参照する
   const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
   // T-162（docs/27 のS-7）: 中断の確認。復習・仕分けの両フェーズで共用する
   const [abortConfirm, setAbortConfirm] = useState(false)
@@ -224,6 +239,19 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     clearTimer: clearTriageTimer,
     clearPending: clearTriagePending,
   } = usePendingCommit<TriagePendingCommit>((payload) => commitTriage(payload))
+
+  /**
+   * 復習自己評価の猶予付き確定（T-204）。仕分けとは別インスタンスで持つ
+   * （復習フェーズと仕分けフェーズは同時に表示されないため競合しない）。
+   * **早期returnより前に置くこと**——後ろに置くとレンダーごとにフック数が変わる
+   */
+  const {
+    pending: reviewPending,
+    schedule: scheduleReviewCommit,
+    cancel: cancelReviewCommit,
+    clearTimer: clearReviewTimer,
+    clearPending: clearReviewPending,
+  } = usePendingCommit<ReviewPendingCommit>((payload) => commitGrade(payload))
 
   function playPhrase(phraseAudio: string, context: string) {
     void audioPlayer
@@ -392,44 +420,86 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     }
   }
 
+  /**
+   * 復習自己評価のタップ（T-204。docs/29 Q-38）。
+   * isCorrectとresponseMsはタップ時点で確定させる（commit側で計算し直すと猶予分の400msが
+   * 乗り、当て勘判定がずれるため。ADR 0009参照）。猶予中は二重評価を受け付けない
+   */
   async function handleGrade(grade: SrsGrade) {
     if (!reviewCard) return
-    await runRecording(() => gradeCard(grade))
-  }
-
-  async function gradeCard(grade: SrsGrade) {
-    if (!reviewCard) return
+    if (busyRef.current || reviewPending !== null) return
     const responseMs = now() - startedAt
     // isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更）。
     // gradeは引き続きSRSの間隔調整（もう一回/OK/余裕）専用
     const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
-    const questionId = attemptQuestionId(reviewCard.refId, reviewQuestion)
-    // このS3画面はDrillScreenのvocab_card分岐と異なりtagStats/レート更新を元々呼ばない
-    // （tags=[]・part=0で実質no-opの処理をここでも通す意味が無いため=skip全指定）。
-    // evaluateStreakはpipelineに含めず、セッション概念の無い画面としてここに残す
-    await recordAnswerPipeline(db, {
-      questionId,
-      question: reviewQuestion ?? {
-        id: questionId,
-        part: 0,
-        format: 'vocab_card',
-        difficulty: 1,
-        tags: [],
-        keyVocab: [],
-      },
-      lookup: new Map(),
+    const payload: ReviewPendingCommit = {
+      grade,
       isCorrect,
       responseMs,
-      mode: 'srs',
-      srsCardId: reviewCard.id,
-      srsGrade: grade,
-      skip: { wrongAnswer: true, tagStats: true, rating: true },
+      reviewCard,
+      reviewQuestion,
+    }
+    if (mistapUndoEnabled) {
+      scheduleReviewCommit(payload)
+      return
+    }
+    await commitGrade(payload)
+  }
+
+  /**
+   * 復習自己評価の確定（T-204）。猶予タイマーとアンマウント時のflushの両方から呼ばれる
+   * （usePendingCommitの契約により、確定に必要な値はすべてpayloadに載っている）
+   */
+  async function commitGrade(payload: ReviewPendingCommit) {
+    clearReviewTimer()
+    clearReviewPending()
+    await runRecording(async () => {
+      const { grade, isCorrect, responseMs, reviewCard: card, reviewQuestion: question } = payload
+      const questionId = attemptQuestionId(card.refId, question)
+      // このS3画面はDrillScreenのvocab_card分岐と異なりtagStats/レート更新を元々呼ばない
+      // （tags=[]・part=0で実質no-opの処理をここでも通す意味が無いため=skip全指定）。
+      // evaluateStreakはpipelineに含めず、セッション概念の無い画面としてここに残す
+      await recordAnswerPipeline(db, {
+        questionId,
+        question: question ?? {
+          id: questionId,
+          part: 0,
+          format: 'vocab_card',
+          difficulty: 1,
+          tags: [],
+          keyVocab: [],
+        },
+        lookup: new Map(),
+        isCorrect,
+        responseMs,
+        mode: 'srs',
+        srsCardId: card.id,
+        srsGrade: grade,
+        skip: { wrongAnswer: true, tagStats: true, rating: true },
+      })
+      await evaluateStreak(db)
+      const isRetryCard = retryIndices.has(reviewIndex)
+      advanceReview(grade === 'again' && !isRetryCard)
+      setSelectedChoiceKey(null)
+      setDontKnow(false)
+      setStartedAt(now())
     })
-    await evaluateStreak(db)
-    advanceReview(grade)
+  }
+
+  /**
+   * 復習自己評価の取り消し（T-204。docs/29 Q-38・ADR 0009 2026-08-05 Amendment）。
+   * 解答経路（ADR 0009）・DrillScreenのvocab_card評価（T-160）と同じく「記録せずに
+   * 次のカードへ進む」。同じカードを再評価させないのは、評価時点で4択の正誤と正解が
+   * 既に見えているため（再評価を許すとSRS間隔の申告が形骸化する）
+   */
+  function handleReviewUndo() {
+    const payload = cancelReviewCommit()
+    if (!payload) return
     setSelectedChoiceKey(null)
     setDontKnow(false)
     setStartedAt(now())
+    // 記録していないので再投入もしない（requeue=false）
+    advanceReview(false)
   }
 
   /**
@@ -441,13 +511,14 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
    * applyGrade には触らない＝28の1.3節の不変条件）。再投入は1周のみで、再投入された
    * カードで再度「もう一回」を選んでも戻さない（無限ループを避ける）。
    *
-   * T-171（J-96）: 20件ごとに中間画面を挟む。キューの件数自体は変えない
+   * T-171（J-96）: 20件ごとに中間画面を挟む。キューの件数自体は変えない。
+   *
+   * T-204: 引数を grade から shouldRequeue（呼び出し側で判定済みの真偽値）に変えた。
+   * 取り消し（記録なし）の呼び出しで「記録されないagain」のような偽のgradeを渡さずに済む
    */
-  function advanceReview(grade: SrsGrade) {
+  function advanceReview(shouldRequeue: boolean) {
     const current = reviewIndex
-    const isRetryCard = retryIndices.has(current)
-    const shouldRequeue = grade === 'again' && !isRetryCard && reviewCard !== undefined
-    if (shouldRequeue) {
+    if (shouldRequeue && reviewCard !== undefined) {
       setReviewQueue((queue) => {
         if (!queue) return queue
         setRetryIndices((prev) => new Set(prev).add(queue.length))
@@ -664,9 +735,16 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 わからない
               </button>
             )}
+            {/* T-204: 猶予中は自己評価ボタンを引っ込めて「取り消し」だけを出す（仕分け側の
+                T-161・DrillScreenのvocab_card評価=T-160と同じ思想。二重評価の防止も兼ねる） */}
+            {answered && reviewPending !== null && (
+              <button type="button" className="drill-undo" onClick={handleReviewUndo}>
+                取り消し
+              </button>
+            )}
             {/* 「わからない」で正解を提示した後は、自己評価3段階は出さず「次へ」だけにする
                 （既に「わからない」と申告済みなので間隔はagain固定・タップ数も最小にする） */}
-            {answered && dontKnow && (
+            {answered && reviewPending === null && dontKnow && (
               <button
                 type="button"
                 className="vocab-grade-button"
@@ -676,7 +754,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 次へ
               </button>
             )}
-            {answered && !dontKnow && (
+            {answered && reviewPending === null && !dontKnow && (
               <>
                 <button
                   type="button"

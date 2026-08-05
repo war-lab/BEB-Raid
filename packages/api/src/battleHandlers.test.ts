@@ -8,7 +8,7 @@ import { generateRoomCode, handleCreateBattleRoom } from './battleHandlers'
 const VALID_INVITE_CODE = 'test-invite-code'
 
 async function registerDevice(displayName: string): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

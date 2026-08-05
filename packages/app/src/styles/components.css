@@ -3194,6 +3194,8 @@
 .confirm-dialog__message {
   margin: 0 0 var(--sp-2);
   color: var(--ink);
+  /* T-202: インポート確認は対象ストアと件数を複数行で示す（改行を保持する） */
+  white-space: pre-line;
 }
 .confirm-dialog__actions {
   display: flex;

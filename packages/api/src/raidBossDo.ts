@@ -20,6 +20,15 @@ import { memberKey } from './env'
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
 
+/**
+ * 表示名キャッシュのTTL（正本: docs/30_改修計画_全量レビュー棚卸し.md T-246・29のQ-28）。
+ * buildBossStateは貢献者1人につきKV getを1回発行しており、これがGET /raid/current・
+ * POST /raid/syncの両方の応答経路で毎回走る。メンバーがポーリングすると読取が増幅し、
+ * KV無料枠（読取10万/日）を圧迫し得るため、DOインスタンスのメモリ上に短期キャッシュする。
+ * 表示名は「再登録（同一tokenでの再POST）」でのみ変わる値のため、5分程度の遅延は許容できる
+ */
+const DISPLAY_NAME_CACHE_TTL_MS = 5 * 60 * 1000
+
 export interface InitBossParams {
   bossId: string
   profile: BossProfile
@@ -67,6 +76,13 @@ interface StateRow extends Record<string, string | number | null> {
 }
 
 export class RaidBossDO extends DurableObject<Env> {
+  /**
+   * 表示名の短期キャッシュ（T-246・29のQ-28）。DOインスタンスがメモリ上に生存している間だけ
+   * 保持する（永続ストレージではない。DOがエビクトされれば消える＝再度KVを引くだけで
+   * 実害はない）
+   */
+  private displayNameCache = new Map<string, { displayName: string; cachedAt: number }>()
+
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
     this.ctx.storage.sql.exec(`
@@ -345,6 +361,26 @@ export class RaidBossDO extends DurableObject<Env> {
     )
   }
 
+  /**
+   * 表示名をKVから解決する（T-246・29のQ-28）。TTL内はDOインスタンスのメモリ上キャッシュを
+   * 使い、貢献者数×応答回数に比例してKV getが増えるのを防ぐ。フォールバック
+   * （'(不明なメンバー)'）もキャッシュする＝KVのmemberレコードが手動削除等で恒久的に
+   * 無い場合に毎回引きに行き続けるのを防ぐ（TTL経過後は再度引き直すため、後から
+   * メンバーが復旧すれば反映される）
+   */
+  private async resolveDisplayName(deviceToken: string, now: number): Promise<string> {
+    const cached = this.displayNameCache.get(deviceToken)
+    if (cached && now - cached.cachedAt < DISPLAY_NAME_CACHE_TTL_MS) {
+      return cached.displayName
+    }
+    const raw = await this.env.MEMBERS.get(memberKey(deviceToken))
+    const member = raw ? (JSON.parse(raw) as MemberRecord) : undefined
+    // そのままエンドユーザーの貢献一覧に表示される文字列である点に注意
+    const displayName = member?.displayName ?? '(不明なメンバー)'
+    this.displayNameCache.set(deviceToken, { displayName, cachedAt: now })
+    return displayName
+  }
+
   private computeStatus(state: StateRow, now: number): RaidStatus {
     if (state.defeatedAt !== null) return 'defeated'
     if (now > state.endAt) return 'closed'
@@ -370,12 +406,8 @@ export class RaidBossDO extends DurableObject<Env> {
     const contributions: RaidContribution[] = []
     for (const row of grouped) {
       if (row.deviceToken === forDeviceToken) myDamage = row.damage
-      const raw = await this.env.MEMBERS.get(memberKey(row.deviceToken))
-      const member = raw ? (JSON.parse(raw) as MemberRecord) : undefined
       contributions.push({
-        // フォールバックはKVのmemberレコード欠損時（手動削除・KV障害）のみ通る。
-        // そのままエンドユーザーの貢献一覧に表示される文字列である点に注意
-        displayName: member?.displayName ?? '(不明なメンバー)',
+        displayName: await this.resolveDisplayName(row.deviceToken, now),
         damage: row.damage,
       })
     }

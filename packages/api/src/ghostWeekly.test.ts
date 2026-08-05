@@ -16,7 +16,7 @@ const DAY_MS = 24 * HOUR_MS
 const VALID_INVITE_CODE = 'test-invite-code'
 
 async function registerDevice(displayName = '太郎'): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -140,6 +140,40 @@ describe('generateWeeklyBoss（ゴースト週の生成）', () => {
     )
     expect(state?.bossType).toBe('synthetic')
   })
+
+  // T-244・29のQ-23: env.MEMBERS.list({prefix: 'ghost:'})は1ページ最大1,000件しか返さない。
+  // 以前はcursorを見ずに1ページ目だけで最古のcreatedAtを探しており、承認済みゴースト記録が
+  // 1,000件を超えると、KVのキー順（辞書順）で1,000件目より後ろに位置する記録が
+  // 無言で選定対象から漏れていた。decoyのdeviceTokenを`decoy-*`（キー順で先頭側）、
+  // 本命を`zzz-target-ghost`（キー順で末尾）にして、1,000件のcursor境界を跨がせて再現する
+  it('ゴースト記録が1,000件を超えても、キー順で末尾側にある最古の記録を正しく選定する（KV.listのcursor対応）', async () => {
+    const monday = Date.UTC(2027, 6, 26) // 他テストと衝突しない週
+    const decoyPuts: Promise<unknown>[] = []
+    for (let i = 0; i < 1000; i++) {
+      decoyPuts.push(
+        seedGhostRecord(`decoy-${String(i).padStart(5, '0')}`, {
+          displayName: `デコイ${i}`,
+          createdAt: 1000, // 本命(createdAt=1)より新しい=本命が読めていれば選ばれない
+        }),
+      )
+    }
+    await Promise.all(decoyPuts)
+    // キー名`ghost:zzz-target-ghost`はデコイ群（`ghost:decoy-*`）より辞書順で後ろに来るため、
+    // cursorを追わずに1ページ目だけ読む実装だと本命は選定候補にすら入らない
+    await seedGhostRecord('zzz-target-ghost', {
+      displayName: '本命ゴースト',
+      createdAt: 1, // 全デコイより古い=cursor対応していれば必ずこちらが選ばれる
+    })
+
+    await generateWeeklyBoss(env, monday)
+
+    const current = isoWeekInfo(monday)
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossIdFor(current)))
+    const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(monday),
+    )
+    expect(state?.ghost?.displayName).toBe('本命ゴースト')
+  }, 30_000)
 
   it('複数の承認済み記録がある場合、createdAtが最古のものが選ばれる', async () => {
     const monday = Date.UTC(2027, 3, 5)

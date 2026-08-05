@@ -32,8 +32,15 @@ const SPEED_BONUS_RATE = 0.2
 type RoomPhase = 'lobby' | 'active' | 'result' | 'closed'
 type ConnectionRole = 'host' | 'participant'
 
+/**
+ * 【T-245・29のQ-24】deviceTokenフィールドは持たない。currentAnswers（Map）のキーが
+ * 既にdeviceTokenであり、値の中に同じ文字列（最大200字）を再度持たせるのは
+ * attachmentサイズの純粋な無駄になる。questionIndexは、ハイバネーション復帰時に
+ * 「この回答がどの設問に対するものか」をParticipantState.pendingAnswer経由で
+ * 判定するために持つ（古い設問の回答を誤って現行設問の集計へ混ぜないため）
+ */
 interface AnswerRecord {
-  deviceToken: string
+  questionIndex: number
   points: number
   receivedAt: number
 }
@@ -82,6 +89,17 @@ interface ParticipantState {
   answeredQuestionIndexes: number[]
   /** join受信順。未joinはnull（ホストはjoinしないため常にnull） */
   joinOrder: number | null
+  /**
+   * 現在オープン中の設問への自分の回答（未回答、または既にclose集計済みならnull）。
+   * 【T-245・29のQ-24】attachmentにはmeta.currentAnswers全体を含めず（attachmentMeta参照）、
+   * 各参加者が「自分の回答だけ」を自分自身のattachmentに持つ形にする。これにより
+   * attachment 1件あたりのサイズがルームの参加人数に比例して増えなくなる
+   * （修正前はcurrentAnswers全体を毎回全員のattachmentへ複製しており、参加人数と
+   * deviceToken長に比例して肥大し、Cloudflareの2,048バイト上限を超えて例外になっていた）。
+   * ハイバネーション復帰時（コンストラクタ）は、questionIndexが現在の設問と一致する
+   * pendingAnswerだけを集めてmeta.currentAnswersを再構築する
+   */
+  pendingAnswer: AnswerRecord | null
 }
 
 interface ConnectionAttachment {
@@ -94,10 +112,25 @@ interface Connection {
   participant: ParticipantState
 }
 
-function cloneMeta(meta: RoomMeta): RoomMeta {
+/**
+ * attachmentへ格納するためのmetaを作る（正本: docs/22_M4実装計画.md 3.2節、
+ * docs/30_改修計画_全量レビュー棚卸し.md T-245・29のQ-24）。
+ *
+ * 【重要】currentAnswersは常に空のMapにする。currentAnswersは「現在オープン中の設問への
+ * 全員分の回答」で参加人数に比例して増える値のため、これをmeta経由で毎回全員のattachmentへ
+ * 複製すると、参加人数×deviceToken長に比例してattachment 1件あたりのサイズが増え、
+ * Cloudflareの上限（2,048バイト）を超えて`serializeAttachment`が例外を投げる
+ * （syncAttachmentsはループで全接続へ逐次呼ぶため、1件でも超過すると以降の接続への
+ * 反映が止まり、attachment間の状態が不整合になっていた＝修正前の実際の不具合）。
+ * 実データは各participantが自分の分だけをParticipantState.pendingAnswerとして持ち、
+ * ハイバネーション復帰時（コンストラクタ）にそこから再構築する。
+ * openedQuestionIndexesは設問数（最大30程度）しか無く参加人数に依存しないため、
+ * 複製したままでも上限に影響しない
+ */
+function attachmentMeta(meta: RoomMeta): RoomMeta {
   return {
     ...meta,
-    currentAnswers: new Map(meta.currentAnswers),
+    currentAnswers: new Map(),
     openedQuestionIndexes: [...meta.openedQuestionIndexes],
   }
 }
@@ -139,6 +172,20 @@ export class BattleRoomDO extends DurableObject<Env> {
         participant: attachment.participant,
       })
       this.participantsByToken.set(attachment.participant.deviceToken, attachment.participant)
+    }
+    // 【T-245・29のQ-24】attachmentにはmeta.currentAnswersを含めていない（attachmentMeta参照）
+    // ため、各参加者が持つpendingAnswerのうち現在の設問（currentQuestionIndex）に対する
+    // ものだけを集めてcurrentAnswersを再構築する。古い設問のpendingAnswer（closeQuestionで
+    // クリアし忘れた場合等）はquestionIndexの不一致で自然に無視される
+    if (this.meta) {
+      const rebuiltAnswers = new Map<string, AnswerRecord>()
+      for (const [deviceToken, participant] of this.participantsByToken) {
+        const pending = participant.pendingAnswer
+        if (pending && pending.questionIndex === this.meta.currentQuestionIndex) {
+          rebuiltAnswers.set(deviceToken, pending)
+        }
+      }
+      this.meta.currentAnswers = rebuiltAnswers
     }
   }
 
@@ -213,12 +260,13 @@ export class BattleRoomDO extends DurableObject<Env> {
       totalPoints: 0,
       answeredQuestionIndexes: [],
       joinOrder: null,
+      pendingAnswer: null,
     }
     this.connections.set(deviceToken, { ws: server, participant })
     this.participantsByToken.set(deviceToken, participant)
     server.serializeAttachment({
       participant,
-      meta: cloneMeta(this.meta!),
+      meta: attachmentMeta(this.meta!),
     } satisfies ConnectionAttachment)
 
     return new Response(null, { status: 101, webSocket: client, headers: upgradeHeaders })
@@ -298,13 +346,17 @@ export class BattleRoomDO extends DurableObject<Env> {
     if (conn.participant.answeredQuestionIndexes.includes(msg.questionIndex)) return
 
     conn.participant.answeredQuestionIndexes.push(msg.questionIndex)
-    // Map.set によりdeviceToken単位で一意化される（T-184・29のQ-8。
-    // 万一同一deviceTokenで2回目の書き込みが起きても上書きにしかならず、二重加点しない）
-    this.meta.currentAnswers.set(conn.participant.deviceToken, {
-      deviceToken: conn.participant.deviceToken,
+    const record: AnswerRecord = {
+      questionIndex: msg.questionIndex,
       points: msg.points,
       receivedAt: Date.now(),
-    })
+    }
+    // Map.set によりdeviceToken単位で一意化される（T-184・29のQ-8。
+    // 万一同一deviceTokenで2回目の書き込みが起きても上書きにしかならず、二重加点しない）
+    this.meta.currentAnswers.set(conn.participant.deviceToken, record)
+    // 【T-245・29のQ-24】attachmentにはcurrentAnswers全体を含めない（attachmentMeta参照）ため、
+    // ハイバネーション復帰後も自分の回答を失わないよう、自分自身のattachmentにも保持させる
+    conn.participant.pendingAnswer = record
     this.syncAttachments()
   }
 
@@ -341,10 +393,10 @@ export class BattleRoomDO extends DurableObject<Env> {
       (c) => c.participant.role === 'participant' && c.participant.displayName !== null,
     ).length
 
-    const ordered = [...this.meta.currentAnswers.values()].sort(
-      (a, b) => a.receivedAt - b.receivedAt,
+    const ordered = [...this.meta.currentAnswers.entries()].sort(
+      ([, a], [, b]) => a.receivedAt - b.receivedAt,
     )
-    ordered.forEach((answer, index) => {
+    ordered.forEach(([deviceToken, answer], index) => {
       const rank = index + 1
       const bonus =
         answer.points > 0 && participantCount > 0
@@ -353,8 +405,13 @@ export class BattleRoomDO extends DurableObject<Env> {
       const finalPoints = answer.points + bonus
       // participantsByToken（deviceToken単位のroster）から加点する。connectionsではなく
       // こちらを見るのは、解答後クローズ前に瞬断した参加者の得点を取りこぼさないため（T-184）
-      const target = this.participantsByToken.get(answer.deviceToken)
-      if (target) target.totalPoints += finalPoints
+      const target = this.participantsByToken.get(deviceToken)
+      if (target) {
+        target.totalPoints += finalPoints
+        // 集計済みのため、以後のattachmentへ残す必要が無い（T-245。次の設問のpendingAnswerが
+        // 上書きするまでの間、古い回答が復元対象として残り続けるのを防ぐ）
+        target.pendingAnswer = null
+      }
     })
 
     this.meta.currentAnswers = new Map()
@@ -456,7 +513,7 @@ export class BattleRoomDO extends DurableObject<Env> {
   /** 全接続のattachmentを現在のmeta＋各自のparticipantで再シリアライズする */
   private syncAttachments(): void {
     if (!this.meta) return
-    const meta = cloneMeta(this.meta)
+    const meta = attachmentMeta(this.meta)
     for (const conn of this.connections.values()) {
       conn.ws.serializeAttachment({
         participant: conn.participant,
