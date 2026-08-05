@@ -56,7 +56,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method === 'POST' && url.pathname === '/register') {
-    return handleRegister(request, env)
+    return handleRegister(request, env, Date.now())
   }
 
   if (request.method === 'GET' && url.pathname === '/raid/current') {

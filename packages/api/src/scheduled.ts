@@ -9,6 +9,7 @@ import type { Env, MemberRecord } from './env'
 import { memberKey } from './env'
 import { selectGhostRecord } from './ghostSelection'
 import { ghostKey, type GhostRecord } from './ghostStore'
+import { listAllKeys } from './kvList'
 import type { RaidBossDO } from './raidBossDo'
 import {
   BOSS_HP_FACTOR,
@@ -107,10 +108,13 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
     // 週次サマリ書込（docs/22 3.8節）: 前週ボスの集計（個人別データ非含有）をKVへ保存する
     await writeRaidSummary(env, previousBossId, previousStub)
 
-    const memberKeys = await env.MEMBERS.list({ prefix: MEMBER_KEY_PREFIX })
+    // 【T-244・29のQ-23】KV.list()は1ページ最大1,000件までしか返さない。cursorが尽きるまで
+    // 全ページ読み切らないと、メンバーが1,000人を超えた時点でEMA更新・HP算出の両方が
+    // 無言で一部のメンバーを取りこぼす（実際に1,050人規模で検証し再現した）
+    const memberKeys = await listAllKeys(env.MEMBERS, { prefix: MEMBER_KEY_PREFIX })
 
     // ①前週実績からemaDailyDamageを更新する
-    for (const key of memberKeys.keys) {
+    for (const key of memberKeys) {
       const raw = await env.MEMBERS.get(key.name)
       if (!raw) continue
       const deviceToken = key.name.slice(MEMBER_KEY_PREFIX.length)
@@ -132,10 +136,10 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
       )
     }
 
-    // ②更新後の値からHPを算出する
-    const refreshed = await env.MEMBERS.list({ prefix: MEMBER_KEY_PREFIX })
+    // ②更新後の値からHPを算出する（①と同じ理由でcursorを最後まで読む）
+    const refreshed = await listAllKeys(env.MEMBERS, { prefix: MEMBER_KEY_PREFIX })
     let totalDailyDamage = 0
-    for (const key of refreshed.keys) {
+    for (const key of refreshed) {
       const raw = await env.MEMBERS.get(key.name)
       if (!raw) continue
       totalDailyDamage += estimatedDailyDamage(JSON.parse(raw) as MemberRecord)
@@ -187,9 +191,7 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
     }
 
     // 週1回しか走らないジョブのため、成功時も生成結果を必ずログに残す（失敗時の切り分け材料）
-    console.log(
-      `週次ボス生成完了: bossId=${bossId} maxHp=${maxHp} members=${memberKeys.keys.length}`,
-    )
+    console.log(`週次ボス生成完了: bossId=${bossId} maxHp=${maxHp} members=${memberKeys.length}`)
     return true
   } catch (err) {
     // 生成権を解放しないと、ボスが存在しないまま週が「生成済み」に固定され、
