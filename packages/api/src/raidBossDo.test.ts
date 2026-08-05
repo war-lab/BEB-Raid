@@ -216,19 +216,31 @@ describe('RaidBossDO', () => {
     getSpy.mockClear()
 
     // 同一TTL内でGET /raid/current相当の呼び出し（getBossState）を3回連続で行う
-    // （実運用ではポーリングやraid/syncの応答構築のたびにbuildBossStateが走る想定）
-    for (let call = 0; call < 3; call++) {
-      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
-        instance.getBossState(receivedAt),
-      )
-      expect(state?.contributions).toHaveLength(CONTRIBUTOR_COUNT)
-      expect(state?.contributions.every((c) => c.displayName.startsWith('メンバー'))).toBe(true)
-    }
+    // （実運用ではポーリングやraid/syncの応答構築のたびにbuildBossStateが走る想定）。
+    //
+    // 【フレーク対策・2026-08-05】3回を別々のrunInDurableObject呼び出しに分けると、
+    // その間にDOインスタンスがエビクトされうる（DOランタイムの正常な挙動。
+    // displayNameCacheはインスタンスのメモリ上フィールドのため、エビクトされれば
+    // 空に戻る＝raidBossDo.tsのコメントどおり実害は無い設計だが、テストとしては
+    // 「キャッシュが効く条件」を確定的に再現したい）。CIでファイルを並列実行した際に
+    // このエビクションと思われるタイミングでget回数が上限を超え、本テストが不安定に
+    // なることを実際に観測した。3回の呼び出しを同一のruntInDurableObject呼び出し内
+    // （＝同一インスタンス上）で連続実行し、エビクションの入り込む余地を無くす
+    let contributions: { displayName: string }[] | undefined
+    await runInDurableObject(stub, async (instance: RaidBossDO) => {
+      for (let call = 0; call < 3; call++) {
+        const state = await instance.getBossState(receivedAt)
+        contributions = state?.contributions
+      }
+    })
+    expect(contributions).toHaveLength(CONTRIBUTOR_COUNT)
+    expect(contributions?.every((c) => c.displayName.startsWith('メンバー'))).toBe(true)
 
     // 修正前は呼び出し回数(3)×貢献者数(5)=15回のKV getになる。修正後はキャッシュヒットする
     // ため、呼び出し回数を3回に増やしてもget回数は増えない（シード時の内部呼び出しで
     // 既にキャッシュが温まっているため0になりうるが、いずれにせよ15回には遠く及ばない）
     expect(getSpy.mock.calls.length).toBeLessThanOrEqual(CONTRIBUTOR_COUNT)
+    getSpy.mockRestore()
   })
 
   // T-246: キャッシュがTTL経過後も表示名変更（再登録）を永久に反映しなくなる退行を防ぐ
