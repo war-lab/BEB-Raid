@@ -113,6 +113,30 @@ function send(ws: WebSocket, message: unknown) {
   ws.send(JSON.stringify(message))
 }
 
+/**
+ * 条件が満たされるまでポーリングする（T-253テストの安定化）。
+ *
+ * WebSocketのclose（hostWs.close()）からDO側のwebSocketClose/handleDisconnectが
+ * 実際に呼ばれるまでの伝播は非同期で、所要時間はランタイムの負荷に依存する
+ * （固定のsetTimeout待機だと、CI等の高負荷環境で伝播が間に合わずテストが不安定になる）。
+ * 固定時間待つ代わりに、条件が成立するまで短間隔でポーリングし、タイムアウト
+ * （既定2秒。伝播時間として通常起こりえない上限）を超えたら明確な失敗にする
+ */
+async function waitFor(
+  predicate: () => Promise<boolean> | boolean,
+  timeoutMs = 2000,
+  intervalMs = 10,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    if (await predicate()) return
+    if (Date.now() >= deadline) {
+      throw new Error(`waitFor: 条件がタイムアウト(${timeoutMs}ms)内に満たされませんでした`)
+    }
+    await new Promise((r) => setTimeout(r, intervalMs))
+  }
+}
+
 /** joinを送信し、broadcastRoomStateが届く全ソケット（送信者含む）をdrainする */
 async function joinAndDrain(
   joiningWs: WebSocket,
@@ -400,8 +424,14 @@ describe('BattleRoomDO', () => {
       const aliceWs = await connect(stub, code, aliceToken)
 
       hostWs.close(1000, 'client_disconnect')
-      // handleDisconnectの同期処理が完了するのを待つ（closeイベントのマイクロタスク経由）
-      await new Promise((r) => setTimeout(r, 10))
+      // handleDisconnectの処理完了をポーリングで待つ（固定時間待機は高負荷環境で不安定なため）
+      await waitFor(() =>
+        runInDurableObject(stub, (instance: BattleRoomDO) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const anyInstance = instance as any
+          return anyInstance.meta !== null && anyInstance.meta.hostDisconnectedAt !== null
+        }),
+      )
 
       await runInDurableObject(stub, (instance: BattleRoomDO) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -422,7 +452,12 @@ describe('BattleRoomDO', () => {
       let hostWs = await connect(stub, code, hostToken)
 
       hostWs.close(1000, 'client_disconnect')
-      await new Promise((r) => setTimeout(r, 10))
+      await waitFor(() =>
+        runInDurableObject(stub, (instance: BattleRoomDO) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return (instance as any).meta.hostDisconnectedAt !== null
+        }),
+      )
 
       await runInDurableObject(stub, (instance: BattleRoomDO) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -431,7 +466,12 @@ describe('BattleRoomDO', () => {
 
       // 猶予期間中にホストが再接続する
       hostWs = await connect(stub, code, hostToken)
-      await new Promise((r) => setTimeout(r, 10))
+      await waitFor(() =>
+        runInDurableObject(stub, (instance: BattleRoomDO) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return (instance as any).meta.hostDisconnectedAt === null
+        }),
+      )
 
       await runInDurableObject(stub, async (instance: BattleRoomDO, state) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
