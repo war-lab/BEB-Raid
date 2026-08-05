@@ -799,6 +799,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 >
                   余裕
                 </button>
+                {/* T-269（29のQ-39・17節）: 3ボタンのtitleはhover専用でタッチ端末では読めないため、
+                    DrillScreen（T-210）と同じ開閉式の説明を添える（titleは残す） */}
+                <InfoDisclosure className="info-help-link" label="間隔について">
+                  もう一回＝間隔を短くしてすぐに復習／OK＝通常の間隔で復習／余裕＝間隔を大きく広げて復習
+                </InfoDisclosure>
               </>
             )}
           </>
