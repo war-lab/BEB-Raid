@@ -86,14 +86,22 @@ export interface SubQuestion {
 }
 
 /**
+ * passages[].kind の許容値（実データで使用中の分類。04の2節）。
+ * T-239（Q-82）: 以前はdocコメントでのみ列挙されバリデータで強制されていなかった。
+ * 新しい分類を追加する場合は本型と validate.ts の PASSAGE_KINDS を同じPRで更新する。
+ */
+export type PassageKind =
+  'email' | 'notice' | 'article' | 'chat' | 'form' | 'advertisement' | 'memo'
+
+/**
  * text_passage（Part6/7）の刺激文書（正本: docs/24 3.1節・ADR 0006 判断3）。
  * Part6・Part7単一は1件、Part7複数パッセージは2〜3件。
  * Part6は text に空所マーカー [[1]]…[[4]] を埋め込み、subQuestions の n 番目が [[n]] に対応する。
  */
 export interface Passage {
   id: string
-  /** email | notice | article | chat | form | advertisement 等。表示ラベルと出題文脈 */
-  kind: string
+  /** 表示ラベルと出題文脈（PassageKind参照） */
+  kind: PassageKind
   text: string
 }
 

@@ -9,7 +9,12 @@
 // （PackCache.addAllは1件でも失敗すると例外を投げる=パック単位の整合性を守る実装のため、
 // 失敗したパックのhashだけ更新せず次回同期時に再試行させ、他パックを巻き込まない）。
 
-import type { Manifest, Question, QuestionPack } from '@beb-raid/shared-schema'
+import {
+  validateManifest,
+  type Manifest,
+  type Question,
+  type QuestionPack,
+} from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PackCache } from '../platform'
 
@@ -96,7 +101,11 @@ async function collectCachedAudioUrls(
 
 /**
  * manifest.jsonを取得し、ハッシュに変化のあるパックだけをPackCacheへピン留めする。
- * オフライン・manifest取得失敗時はnullを返す（呼び出し側はエラーUIを出さない）
+ * オフライン・manifest取得失敗時はnullを返す（呼び出し側はエラーUIを出さない）。
+ * T-239（Q-82）: `as Manifest` の型アサーションのみで実行時検証が無かったため、配信物が
+ * 壊れている場合（GitHub Pages側の不整合・手動編集ミス等）に未捕捉の例外になりうる
+ * 経路があった（例: packsが配列でないとfor...ofが投げる）。構造不正も取得失敗と同様に
+ * 扱い、nullを返す（オフラインが正常系という既存の縮退設計を配信物破損にも適用する）
  */
 export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksResult | null> {
   const { db, packCache } = options
@@ -108,7 +117,9 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   try {
     const res = await fetchImpl(`${baseUrl}manifest.json`)
     if (!res.ok) return null
-    manifest = (await res.json()) as Manifest
+    const body: unknown = await res.json()
+    if (!validateManifest(body).ok) return null
+    manifest = body as Manifest
   } catch {
     return null
   }

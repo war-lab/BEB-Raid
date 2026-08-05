@@ -64,6 +64,19 @@ export interface ReviewImportResult {
  * - 破棄: 「破棄理由」列（空なら「(理由未記入)」）付きでrejectedへ
  * - それ以外（status未記入・ドラフトに対応するid無し）: レビュー未完了として無視（次回に持ち越し）
  */
+/**
+ * 「修正」列のJSON解析に失敗した行があったことを表すエラー（T-240・Q-84）。
+ * 以前はここで黙って破棄側に振り分けていたため、レビューアが採用したかった
+ * 修正意図がrejected.jsonlの理由文字列に埋もれて消えていた。TSVの誤記を
+ * 明示的に気づけるよう、解析失敗時は取込全体を中断する（部分取込はしない）。
+ */
+export class ReviewCorrectionParseError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ReviewCorrectionParseError'
+  }
+}
+
 export function parseReviewTsv(
   tsv: string,
   draftsById: ReadonlyMap<string, GeneratedItemDraft>,
@@ -74,6 +87,7 @@ export function parseReviewTsv(
   const accepted: unknown[] = []
   const rejected: RejectedItem[] = []
   let skipped = 0
+  const correctionParseErrors: string[] = []
 
   for (const row of rows) {
     const cells = row.split('\t')
@@ -98,18 +112,25 @@ export function parseReviewTsv(
       try {
         const patch = JSON.parse(edit) as Record<string, unknown>
         accepted.push({ ...(draft.payload as Record<string, unknown>), ...patch })
-      } catch {
-        rejected.push({
-          id: draft.id,
-          kind: draft.kind,
-          reason: `修正内容のJSON解析に失敗（そのまま破棄扱い）: ${edit}`,
-        })
+      } catch (e) {
+        const cause = e instanceof Error ? e.message : String(e)
+        correctionParseErrors.push(
+          `id=${draft.id}（kind=${draft.kind}）: 修正内容のJSON解析に失敗: ${edit}（原因: ${cause}）`,
+        )
       }
     } else if (status === '破棄') {
       rejected.push({ id: draft.id, kind: draft.kind, reason: reason.trim() || '(理由未記入)' })
     } else {
       skipped += 1
     }
+  }
+
+  if (correctionParseErrors.length > 0) {
+    throw new ReviewCorrectionParseError(
+      `修正内容のJSON解析に失敗した行が${correctionParseErrors.length}件あります` +
+        '（TSVの該当行を直して取込を再実行してください。採用・破棄いずれにも振り分けていません）:\n' +
+        correctionParseErrors.join('\n'),
+    )
   }
 
   return { accepted, rejected, skipped }

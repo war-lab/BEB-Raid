@@ -11,7 +11,7 @@
 // audioFiles として渡す。app（ブラウザ）からも同じバリデータを使えるようにするため。
 
 import { part2ResponsesDigest } from './part2Responses.js'
-import type { Choice, FreqRank, PackLicense, QuestionFormat } from './types.js'
+import type { Choice, FreqRank, PackLicense, PassageKind, QuestionFormat } from './types.js'
 
 export type ValidationErrorCode =
   | 'invalid_structure' // JSONの構造自体が不正（型違い・必須オブジェクト欠落）
@@ -23,6 +23,7 @@ export type ValidationErrorCode =
   | 'missing_key_vocab' // keyVocab が欠落（空含む）
   | 'key_vocab_not_found' // keyVocab の word が検査対象フィールドに存在しない
   | 'missing_audio_file' // 参照する音声ファイルが実在しない（audioFiles 指定時のみ）
+  | 'missing_image_file' // 参照する画像ファイルが実在しない（imageFiles 指定時のみ）
 
 export interface ValidationError {
   /** エラー位置（例: `questions[2].answer`） */
@@ -42,10 +43,28 @@ export interface ValidatePackOptions {
    * 未指定の場合このチェックはスキップする（ビルド時=T-32 に実ファイル一覧を渡す）。
    */
   audioFiles?: ReadonlySet<string>
+  /**
+   * パック内の画像参照パス（audio_photo の image）の実在チェックに使うファイル一覧
+   * （T-239・Q-82。audioFiles とは別集合。未指定の場合このチェックはスキップする）。
+   */
+  imageFiles?: ReadonlySet<string>
 }
 
 const LICENSES: readonly PackLicense[] = ['internal-original', 'cc-by', 'public-domain']
 const FREQ_RANKS: readonly FreqRank[] = ['S', 'A', 'B', 'C']
+/**
+ * passages[].kind の許容値（types.ts の PassageKind と同期させる。T-239・Q-82）。
+ * 新しい分類を追加する場合は types.ts の PassageKind と本配列を同じPRで更新する。
+ */
+const PASSAGE_KINDS: readonly PassageKind[] = [
+  'email',
+  'notice',
+  'article',
+  'chat',
+  'form',
+  'advertisement',
+  'memo',
+]
 /** vocab_card の levelBand（目標スコア帯）の許容値（03の4節・T-41=C-1改訂） */
 const LEVEL_BANDS: readonly number[] = [600, 730, 860, 990]
 /** dictation/shadowing の script/timing/blanks 整合チェックで使う句読点（前後除去対象） */
@@ -86,6 +105,23 @@ function isNonEmptyString(v: unknown): v is string {
 
 function isInt(v: unknown): v is number {
   return typeof v === 'number' && Number.isInteger(v)
+}
+
+/**
+ * 「存在する場合のみ型を検証する」ための共通ヘルパー（T-239・Q-82）。
+ * translation・explanation は format によっては欠落が正当（例: Part3/4の一部パックは
+ * translation を持たない）なため、必須化はせず「有るなら文字列であること」だけを見る。
+ */
+function validateOptionalStringField(
+  value: unknown,
+  path: string,
+  label: string,
+  err: (path: string, code: ValidationErrorCode, message: string) => void,
+): void {
+  if (value === undefined || value === null) return
+  if (typeof value !== 'string') {
+    err(path, 'invalid_value', `${label} は文字列（存在する場合。省略・nullも可）`)
+  }
 }
 
 /**
@@ -222,6 +258,11 @@ function validateQuestion(
 
   validateKeyVocab(q, format, path, err)
 
+  // translation/explanation は型のみで実行時検証が無かった（T-239・Q-82）。format問わず
+  // 「存在する場合のみ型を検査する」（必須化すると欠落パックが壊れるため）
+  validateOptionalStringField(q.translation, `${path}.translation`, 'translation', err)
+  validateOptionalStringField(q.explanation, `${path}.explanation`, 'explanation', err)
+
   // --- format 毎の必須フィールド ---
   if (AUDIO_FORMATS.includes(format)) {
     if (!isNonEmptyString(q.audio)) {
@@ -313,6 +354,8 @@ function validateQuestion(
   if (format === 'audio_photo') {
     if (!isNonEmptyString(q.image)) {
       err(`${path}.image`, 'missing_field', 'audio_photo には image が必要')
+    } else if (options.imageFiles && !options.imageFiles.has(q.image)) {
+      err(`${path}.image`, 'missing_image_file', `画像ファイルが存在しない: ${q.image}`)
     }
   }
 
@@ -599,6 +642,9 @@ function validateSubQuestions(
         err(`${sqPath}.tags`, 'invalid_value', 'tags は文字列配列')
       }
     }
+    // translation/explanation は存在する場合のみ型を検査する（T-239・Q-82。Question側と同方針）
+    validateOptionalStringField(sq.translation, `${sqPath}.translation`, 'translation', err)
+    validateOptionalStringField(sq.explanation, `${sqPath}.explanation`, 'explanation', err)
     validateChoicesAndAnswer(sq.choices, sq.answer, sqPath, err)
   })
 }
@@ -643,6 +689,13 @@ function validatePassages(
     }
     if (!isNonEmptyString(p.kind)) {
       err(`${pPath}.kind`, 'missing_field', 'kind が必要')
+    } else if (!PASSAGE_KINDS.includes(p.kind as PassageKind)) {
+      // T-239・Q-82: docコメントでのみ列挙され強制されていなかったenumを検証する
+      err(
+        `${pPath}.kind`,
+        'invalid_value',
+        `kind は ${PASSAGE_KINDS.join(' | ')} のいずれか（実際: ${p.kind}）`,
+      )
     }
     if (!isNonEmptyString(p.text)) {
       err(`${pPath}.text`, 'missing_field', 'text が必要')
@@ -778,4 +831,77 @@ function validateKeyVocab(
       )
     }
   })
+}
+
+/**
+ * manifest.json を検証する（T-239・Q-82）。型定義（Manifest）だけがあり実行時バリデータが
+ * 無かったため、配信物の破損・スキーマ不一致（GitHub Pages側の不整合等）を実行時に検知できて
+ * いなかった。validatePack と同じ「全件列挙・部分取込はしない」方針で全エラーを返す。
+ */
+export function validateManifest(data: unknown): ValidationResult {
+  const errors: ValidationError[] = []
+  const err = (path: string, code: ValidationErrorCode, message: string) => {
+    errors.push({ path, code, message })
+  }
+
+  if (!isRecord(data)) {
+    err('', 'invalid_structure', 'manifestがオブジェクトではない')
+    return { ok: false, errors }
+  }
+
+  if (data.schemaVersion !== 2) {
+    err(
+      'schemaVersion',
+      'invalid_value',
+      `schemaVersion は 2 のみ対応（実際: ${JSON.stringify(data.schemaVersion)}）`,
+    )
+  }
+
+  if (!Array.isArray(data.packs)) {
+    err('packs', 'invalid_structure', 'packs が配列ではない')
+  } else {
+    const seenIds = new Set<string>()
+    data.packs.forEach((entry, i) => validateManifestEntry(entry, `packs[${i}]`, seenIds, err))
+  }
+
+  return { ok: errors.length === 0, errors }
+}
+
+function validateManifestEntry(
+  entry: unknown,
+  path: string,
+  seenIds: Set<string>,
+  err: (path: string, code: ValidationErrorCode, message: string) => void,
+): void {
+  if (!isRecord(entry)) {
+    err(path, 'invalid_structure', 'パックエントリがオブジェクトではない')
+    return
+  }
+  if (!isNonEmptyString(entry.id)) {
+    err(`${path}.id`, 'missing_field', 'id が必要')
+  } else if (seenIds.has(entry.id)) {
+    err(`${path}.id`, 'invalid_value', `id が重複: ${entry.id}`)
+  } else {
+    seenIds.add(entry.id)
+  }
+  if (!isNonEmptyString(entry.title)) {
+    err(`${path}.title`, 'missing_field', 'title が必要')
+  }
+  const level = entry.targetLevel
+  if (
+    !Array.isArray(level) ||
+    level.length !== 2 ||
+    typeof level[0] !== 'number' ||
+    typeof level[1] !== 'number'
+  ) {
+    err(`${path}.targetLevel`, 'invalid_value', 'targetLevel は [下限, 上限] の数値2要素配列')
+  } else if (level[0] > level[1]) {
+    err(`${path}.targetLevel`, 'invalid_value', 'targetLevel の下限が上限を超えている')
+  }
+  if (!isInt(entry.sizeBytes) || entry.sizeBytes < 0) {
+    err(`${path}.sizeBytes`, 'invalid_value', 'sizeBytes は 0 以上の整数')
+  }
+  if (!isNonEmptyString(entry.hash)) {
+    err(`${path}.hash`, 'missing_field', 'hash が必要')
+  }
 }

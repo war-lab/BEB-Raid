@@ -9,6 +9,8 @@
 // 各セットの設問構成に応じて付与する（相互参照はPart7複数専用のためここでは使わない）。
 // 全文・設問はエージェント直接執筆のオリジナル（市販教材の流用なし。CLAUDE.md不変条件）。
 
+import type { PassageKind } from '@beb-raid/shared-schema'
+
 export interface Part7SingleRawSubQuestion {
   question: string
   correctText: string
@@ -22,7 +24,7 @@ export interface Part7SingleRawEntry {
   difficulty: number
   tags: string[]
   keyVocabWords: string[]
-  passageKind: string
+  passageKind: PassageKind
   passageText: string
   subQuestions: readonly Part7SingleRawSubQuestion[]
 }

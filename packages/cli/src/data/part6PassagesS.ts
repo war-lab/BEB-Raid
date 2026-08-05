@@ -11,6 +11,8 @@
 // validate.tsのvalidateKeyVocab参照）。
 // 全文・設問はエージェント直接執筆のオリジナル（市販教材の流用なし。CLAUDE.md不変条件）。
 
+import type { PassageKind } from '@beb-raid/shared-schema'
+
 export type Part6SubQuestionKind = 'grammar' | 'vocab' | 'connector' | 'insertion'
 
 export interface Part6RawSubQuestion {
@@ -26,7 +28,7 @@ export interface Part6RawEntry {
   difficulty: number
   tags: string[]
   keyVocabWords: string[]
-  passageKind: string
+  passageKind: PassageKind
   /** 本文。[[1]]〜[[4]]を1から連番で埋め込む */
   passageText: string
   subQuestions: readonly [

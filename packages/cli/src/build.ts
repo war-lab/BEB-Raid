@@ -421,6 +421,8 @@ export function validateExplanationQuality(questions: readonly Question[]): stri
 export function buildPack(
   source: PackSource,
   audioFiles: ReadonlySet<string>,
+  /** audio_photo の image 存在チェック用（T-239・Q-82）。未指定ならこのチェックはスキップ */
+  imageFiles?: ReadonlySet<string>,
 ): { built: BuiltPack | null; errors: string[]; warnings: string[] } {
   const draftPack = {
     schemaVersion: SCHEMA_VERSION,
@@ -439,7 +441,7 @@ export function buildPack(
   // 扱う（修正はT-81/T-82の担当範囲。docs/STATUS.mdに一括検査結果を記録済み）
   const contentLintProblems = validateContentLint(source.questions, source.id)
 
-  const result = validatePack(draftPack, { audioFiles })
+  const result = validatePack(draftPack, { audioFiles, imageFiles })
   const explanationProblems = validateExplanationQuality(source.questions)
   if (!result.ok || explanationProblems.length > 0) {
     return {
@@ -470,12 +472,14 @@ export function buildPack(
 export function buildAllPacks(
   sources: readonly PackSource[],
   audioFiles: ReadonlySet<string>,
+  /** audio_photo の image 存在チェック用（T-239・Q-82）。未指定ならこのチェックはスキップ */
+  imageFiles?: ReadonlySet<string>,
 ): { built: BuiltPack[]; errors: string[]; warnings: string[] } {
   const errors: string[] = []
   const warnings: string[] = []
   const built: BuiltPack[] = []
   for (const source of sources) {
-    const result = buildPack(source, audioFiles)
+    const result = buildPack(source, audioFiles, imageFiles)
     warnings.push(...result.warnings)
     if (result.built) {
       built.push(result.built)
@@ -498,14 +502,10 @@ export function buildManifest(built: readonly BuiltPack[]): Manifest {
   return { schemaVersion: SCHEMA_VERSION, packs }
 }
 
-/**
- * `<contentRoot>/audio` 配下の実ファイルを再帰的に列挙し、Question.audio /
- * phraseAudio と同じ形式（例: 'audio/vocab/submit.mp3'、contentRoot基準の相対パス）
- * の集合を返す。audioディレクトリが無ければ空集合（テスト等、音声不要なパックのみの場合）
- */
-export async function scanAudioFiles(contentRoot: string): Promise<Set<string>> {
+/** `<contentRoot>/<subdir>` 配下の実ファイルを再帰的に列挙し、contentRoot基準の相対パス（/区切り）の集合を返す */
+async function scanContentFiles(contentRoot: string, subdir: string): Promise<Set<string>> {
   const files = new Set<string>()
-  const audioDir = join(contentRoot, 'audio')
+  const targetDir = join(contentRoot, subdir)
 
   async function walk(dir: string): Promise<void> {
     let entries
@@ -524,6 +524,24 @@ export async function scanAudioFiles(contentRoot: string): Promise<Set<string>> 
     }
   }
 
-  await walk(audioDir)
+  await walk(targetDir)
   return files
+}
+
+/**
+ * `<contentRoot>/audio` 配下の実ファイルを再帰的に列挙し、Question.audio /
+ * phraseAudio と同じ形式（例: 'audio/vocab/submit.mp3'、contentRoot基準の相対パス）
+ * の集合を返す。audioディレクトリが無ければ空集合（テスト等、音声不要なパックのみの場合）
+ */
+export async function scanAudioFiles(contentRoot: string): Promise<Set<string>> {
+  return scanContentFiles(contentRoot, 'audio')
+}
+
+/**
+ * `<contentRoot>/images` 配下の実ファイルを再帰的に列挙し、Question.image（audio_photo）と
+ * 同じ形式の集合を返す（T-239・Q-82）。imagesディレクトリが無ければ空集合
+ * （現時点では audio_photo を使うパックが無いため常にこの経路になる）。
+ */
+export async function scanImageFiles(contentRoot: string): Promise<Set<string>> {
+  return scanContentFiles(contentRoot, 'images')
 }
