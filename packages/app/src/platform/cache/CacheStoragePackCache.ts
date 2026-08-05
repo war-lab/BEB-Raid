@@ -22,6 +22,11 @@ export class CacheStoragePackCache implements PackCache {
     return res ? res.blob() : null
   }
 
+  async put(url: string, blob: Blob): Promise<void> {
+    const cache = await this.open()
+    await cache.put(url, new Response(blob))
+  }
+
   async addAll(urls: string[]): Promise<void> {
     const cache = await this.open()
     // Cache.addAll は1件でも失敗すると reject する（パック単位の整合性はこの挙動に乗る）

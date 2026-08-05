@@ -261,6 +261,7 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     return {
       has: vi.fn(async () => false),
       get,
+      put: vi.fn(async () => {}),
       addAll: vi.fn(async () => {}),
       delete: vi.fn(async () => {}),
       keys: vi.fn(async () => []),
@@ -336,6 +337,7 @@ describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () =
     return {
       has: vi.fn(async () => false),
       get,
+      put: vi.fn(async () => {}),
       addAll: vi.fn(async () => {}),
       delete: vi.fn(async () => {}),
       keys: vi.fn(async () => []),

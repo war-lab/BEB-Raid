@@ -71,6 +71,20 @@ export interface RaidSyncResult {
 }
 
 /**
+ * 実行中フラグ（questionStats.tsのsendInFlightと同じ流儀。T-193・Q-104）。
+ * App.tsxの起動時自動同期・ResultScreen/RaidScreenの完了時同期・RaidScreenの手動同期ボタンが
+ * 同じ関数を並行して呼びうる。並行実行を許すと同一pendingSyncバッチを2回送信し、
+ * サーバー側で二重計上されたり、片方のraidState.put書き込みがもう片方の結果を
+ * 上書きする競合が起きるため、実行中の再入は黙って抑止する
+ */
+let syncInFlight = false
+
+/** テスト専用: 実行中フラグをリセットする（テスト間の状態漏れ防止） */
+export function resetRaidSyncFlagsForTest(): void {
+  syncInFlight = false
+}
+
+/**
  * 戻り値のokは「サーバーとの同期が成功したか」（3.6節の手動同期ボタンがエラー表示するために使う）。
  * 縮退ゲート（未設定/OFF/未参加）はok:falseを返すが、これらは通常UIから到達しない経路のため
  * 呼び出し側でエラー表示に使う想定はしていない。成功時のbossはRaidScreenの手動同期が
@@ -94,68 +108,93 @@ export async function syncRaidDamage(
   const raidState = await db.raidState.get(RAID_STATE_ID)
   if (!raidState?.joined) return { ok: false }
 
-  const candidates = (await db.pendingSync.toArray())
-    .filter((record) => record.kind === 'raidDamage')
-    .slice(0, RAID_SYNC_BATCH_LIMIT)
-
-  // payloadJsonが破損したレコード（外部編集されたバックアップのインポート等）は、
-  // 残すと毎回の同期でJSON.parseが例外になりキュー全体が恒久的に詰まるため、
-  // 警告して削除し、残りの送信を続行する
-  const pending: typeof candidates = []
-  const payloads: DamageSyncPayload[] = []
-  const corruptedIds: number[] = []
-  for (const record of candidates) {
-    try {
-      payloads.push(JSON.parse(record.payloadJson) as DamageSyncPayload)
-      pending.push(record)
-    } catch {
-      console.warn(`raidSync: payloadJsonが破損したpendingSyncレコードを削除する (id=${record.id})`)
-      corruptedIds.push(record.id!)
-    }
-  }
-  if (corruptedIds.length > 0) await db.pendingSync.bulkDelete(corruptedIds)
-
-  let acceptedIds: string[]
-  let boss: Awaited<ReturnType<RaidApi['syncDamage']>>['boss']
+  if (syncInFlight) return { ok: false }
+  syncInFlight = true
   try {
-    const result = await raidApi.syncDamage(payloads)
-    acceptedIds = result.acceptedIds
-    boss = result.boss
-    useRaidSyncStore.getState().recordSuccess()
-  } catch (e) {
-    const unauthorized = e instanceof RaidApiError && e.kind === 'unauthorized'
-    useRaidSyncStore.getState().recordFailure(unauthorized)
-    return { ok: false }
+    const candidates = (await db.pendingSync.toArray())
+      .filter((record) => record.kind === 'raidDamage')
+      .slice(0, RAID_SYNC_BATCH_LIMIT)
+
+    // payloadJsonが破損したレコード（外部編集されたバックアップのインポート等）は、
+    // 残すと毎回の同期でJSON.parseが例外になりキュー全体が恒久的に詰まるため、
+    // 警告して削除し、残りの送信を続行する
+    const pending: typeof candidates = []
+    const payloads: DamageSyncPayload[] = []
+    const corruptedIds: number[] = []
+    for (const record of candidates) {
+      try {
+        payloads.push(JSON.parse(record.payloadJson) as DamageSyncPayload)
+        pending.push(record)
+      } catch {
+        console.warn(
+          `raidSync: payloadJsonが破損したpendingSyncレコードを削除する (id=${record.id})`,
+        )
+        corruptedIds.push(record.id!)
+      }
+    }
+    if (corruptedIds.length > 0) await db.pendingSync.bulkDelete(corruptedIds)
+
+    let acceptedIds: string[]
+    let boss: Awaited<ReturnType<RaidApi['syncDamage']>>['boss']
+    try {
+      const result = await raidApi.syncDamage(payloads)
+      acceptedIds = result.acceptedIds
+      boss = result.boss
+      useRaidSyncStore.getState().recordSuccess()
+    } catch (e) {
+      const unauthorized = e instanceof RaidApiError && e.kind === 'unauthorized'
+      useRaidSyncStore.getState().recordFailure(unauthorized)
+      return { ok: false }
+    }
+
+    const weekRolledOver = boss.bossId !== raidState.bossId
+
+    if (pending.length > 0) {
+      const accepted = new Set(acceptedIds)
+      const idsToDelete = pending
+        .filter((record) =>
+          accepted.has((JSON.parse(record.payloadJson) as DamageSyncPayload).attemptId),
+        )
+        .map((record) => record.id!)
+      if (idsToDelete.length > 0) await db.pendingSync.bulkDelete(idsToDelete)
+
+      // T-193（Q-105）: 週替わりを検知した場合、raidState.joinedはこの直後にfalseへ戻り、
+      // 以降のsyncRaidDamage呼び出しは縮退ゲート（raidState.joined!==true）で即returnして
+      // 二度とこの掃除コードへ到達しない。受理されなかった旧週（raidState.bossId）分の
+      // pendingSyncは今後も二度と受理されないため、このタイミングで掃除しないと
+      // 永久に滞留する（再参加後の週でも再送され続けキューが単調増加する）
+      if (weekRolledOver) {
+        const staleWeekIds = pending
+          .filter((record) => {
+            const payload = JSON.parse(record.payloadJson) as DamageSyncPayload
+            return !accepted.has(payload.attemptId) && payload.bossId === raidState.bossId
+          })
+          .map((record) => record.id!)
+        if (staleWeekIds.length > 0) await db.pendingSync.bulkDelete(staleWeekIds)
+      }
+    }
+
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: boss.bossId,
+      profileJson: JSON.stringify({ name: boss.name }),
+      hp: boss.hp,
+      maxHp: boss.maxHp,
+      myDamage: boss.myDamage,
+      // 週替わり（レスポンスのbossが端末の知るbossIdと別）ならjoinedを引き継がずfalseへ
+      // リセットする。「参加」はS5の参加ボタンによるraidState書込と定義されており（docs/17）、
+      // 引き継ぐと参加操作を経ないまま新ボスへ自動参加してしまう
+      joined: weekRolledOver ? false : raidState.joined,
+      startAt: boss.startAt,
+      endAt: boss.endAt,
+      lastSyncedAt: Date.now(),
+      ...buildRaidStateBossCache(boss),
+    })
+
+    await grantRaidBadgesIfDefeated(db, boss)
+
+    return { ok: true, boss }
+  } finally {
+    syncInFlight = false
   }
-
-  if (pending.length > 0) {
-    const accepted = new Set(acceptedIds)
-    const idsToDelete = pending
-      .filter((record) =>
-        accepted.has((JSON.parse(record.payloadJson) as DamageSyncPayload).attemptId),
-      )
-      .map((record) => record.id!)
-    if (idsToDelete.length > 0) await db.pendingSync.bulkDelete(idsToDelete)
-  }
-
-  await db.raidState.put({
-    id: RAID_STATE_ID,
-    bossId: boss.bossId,
-    profileJson: JSON.stringify({ name: boss.name }),
-    hp: boss.hp,
-    maxHp: boss.maxHp,
-    myDamage: boss.myDamage,
-    // 週替わり（レスポンスのbossが端末の知るbossIdと別）ならjoinedを引き継がずfalseへ
-    // リセットする。「参加」はS5の参加ボタンによるraidState書込と定義されており（docs/17）、
-    // 引き継ぐと参加操作を経ないまま新ボスへ自動参加してしまう
-    joined: boss.bossId === raidState.bossId ? raidState.joined : false,
-    startAt: boss.startAt,
-    endAt: boss.endAt,
-    lastSyncedAt: Date.now(),
-    ...buildRaidStateBossCache(boss),
-  })
-
-  await grantRaidBadgesIfDefeated(db, boss)
-
-  return { ok: true, boss }
 }

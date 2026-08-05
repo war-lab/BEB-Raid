@@ -223,6 +223,36 @@ describe('getSrsQueue: 期限抽出と新規制御', () => {
     expect(after.newStopped).toBe(false)
     expect(after.newCards.map((c) => c.refId)).toEqual(['fresh'])
   })
+
+  // T-188（Q-98）: 何を防ぐか。配信から外れたパックの問題カードは isServable=false のまま
+  // dueAt超過で残り続ける。isServableを渡さない全件判定だと、これが16枚溜まった時点で
+  // 出題可能なカードが0枚でも newStopped=true に固定され、新規カードの導入が恒久停止する
+  it('isServable基準では出題不可カードが滞留判定を占有しない（Q-98）', async () => {
+    const db = newDb()
+    const now = at(2026, 7, 9)
+    // 配信から外れ、出題不可能な期限超過カードを16枚（newStopBacklog相当）
+    for (let i = 0; i < DEFAULT_SRS_OPTIONS.newStopBacklog; i++) {
+      await db.srsCards.put(
+        card({ id: `vocab:gone-${i}`, refId: `gone-${i}`, dueAt: at(2026, 7, 8) }),
+      )
+    }
+    await addSrsCard(db, { refType: 'vocab', refId: 'fresh', now })
+
+    // isServable未指定（既定）は従来どおり全件を servable 扱いし、新規停止のまま
+    const withoutServable = await getSrsQueue(db, now)
+    expect(withoutServable.newStopped).toBe(true)
+    expect(withoutServable.newCards).toHaveLength(0)
+
+    // isServableで「gone-*」が出題不可と分かっていれば、滞留にカウントされず新規が導入される
+    const withServable = await getSrsQueue(
+      db,
+      now,
+      DEFAULT_SRS_OPTIONS,
+      (c) => !c.refId.startsWith('gone-'),
+    )
+    expect(withServable.newStopped).toBe(false)
+    expect(withServable.newCards.map((c) => c.refId)).toEqual(['fresh'])
+  })
 })
 
 describe('間隔テーブル', () => {

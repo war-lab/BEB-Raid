@@ -51,6 +51,25 @@ function protectionAvailable(record: StreakRecord, missedDate: string): boolean 
 }
 
 /**
+ * 当日評価前の時点で、ストリークが既に途切れ確定しているか（T-195・Q-102）。
+ * evaluateStreakの本成立処理（gap===2は保護判定、gap>2は無条件で途切れ）と同じ基準を、
+ * 当日分がまだ成立していない時点の判定にも適用する。gap===2かつ保護が使える間は
+ * 今日中に救える余地が残るため「途切れ確定」とは扱わない
+ */
+function isStreakBroken(record: StreakRecord, today: string): boolean {
+  if (record.lastActiveDate === null) return false
+  const gap = daysBetween(record.lastActiveDate, today)
+  if (gap < 2) return false
+  if (gap === 2) {
+    const missedDate = toDateString(
+      localMidnightAfterDays(parseDateString(record.lastActiveDate), 1),
+    )
+    return !protectionAvailable(record, missedDate)
+  }
+  return true
+}
+
+/**
  * ストリークを評価・更新する。SRS解答の記録後やホーム表示時に呼ぶ（冪等）。
  * - 当日のSRS解答が5問に達した最初の評価で当日分が成立する
  * - 前回成立日との間隔が1日（連続）なら +1
@@ -68,8 +87,13 @@ export async function evaluateStreak(
 
     const alreadyCounted = record.lastActiveDate === today
     if (alreadyCounted || todaySrsCount < STREAK_REQUIRED_SRS_ANSWERS) {
+      // T-195（Q-102）: 途切れが確定済み（gap>=2で保護不可）なら、当日分が未成立でも
+      // 旧いcurrentDaysをそのまま返さず0にする。旧値のまま返し続けると、次に成立する日まで
+      // 「N日連続」の表示が居座り、成立した瞬間に突然1へ落ちて見える（DBは更新しない。
+      // 次の成立日に1から正しく数え直す既存ロジックに委ねる）
+      const broken = !alreadyCounted && isStreakBroken(record, today)
       return {
-        currentDays: record.currentDays,
+        currentDays: broken ? 0 : record.currentDays,
         bestDays: record.bestDays,
         todaySrsCount,
         todayCompleted: alreadyCounted,

@@ -12,6 +12,7 @@ import { getFontSizeScale, setFontSizeScale } from '../fontSize'
 import { DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
 import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import { exportAll, importAll } from '../services/backup'
+import { PACK_SYNC_STATE_KEY } from '../services/packSync'
 import {
   BYOK_API_KEY_KEY,
   AUTO_PLAY_ENABLED_KEY,
@@ -223,6 +224,9 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     )
     if (!confirmed) return
     await packCache.clear()
+    // T-183 Q-11の対: 実体を消してもpackSyncState（packHashes）を残すと、ハッシュ一致のみで
+    // skip判定するsyncPacksが「同期済み」と誤認し、削除後も再同期されない
+    await db.settings.delete(PACK_SYNC_STATE_KEY)
     setCacheUsage(await packCache.usage())
   }
 

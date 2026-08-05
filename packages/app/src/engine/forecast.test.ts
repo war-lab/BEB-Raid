@@ -121,6 +121,22 @@ describe('computeForecast: 断定しない表現（データ構造のみ検証�
   })
 })
 
+describe('computeForecast: 未来日付のスナップショットを窓から除外する（T-191・Q-110の回帰）', () => {
+  it('時計巻き戻し等で生成された未来日付の高レート点に引っ張られてonTrackにならない', () => {
+    // 直近28日は横ばい（500固定・14日分あれば判定に入る）→ 本来は behind
+    const history = Array.from({ length: 14 }, (_, i) => point(13 - i, 500))
+    const future = new Date(NOW)
+    future.setDate(future.getDate() + 10)
+    const futureDate = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`
+    // 未来日付・高レートの1件が窓に混入すると回帰の傾きが正転し、誤ってonTrackになる
+    const withFuturePoint = [...history, { date: futureDate, rating: 2000 }]
+
+    const result = computeForecast(withFuturePoint, 500, NOW)
+
+    expect(result.kind).toBe('behind')
+  })
+})
+
 describe('TARGET_RATING', () => {
   it('760×1000/990 ≈ 767.68', () => {
     expect(TARGET_RATING).toBeCloseTo(767.68, 1)

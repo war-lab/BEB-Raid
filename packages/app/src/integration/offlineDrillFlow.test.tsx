@@ -105,6 +105,7 @@ function offlinePinnedPackCache(): PackCache {
       const questions = id === 'pack-p5-s-001' ? [CACHED_QUESTION] : []
       return new Blob([JSON.stringify(pack(id, questions))])
     }),
+    put: vi.fn(async () => {}),
     addAll: vi.fn(async () => {}),
     delete: vi.fn(async () => {}),
     keys: vi.fn(async () => []),

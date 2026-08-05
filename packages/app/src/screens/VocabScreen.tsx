@@ -20,7 +20,13 @@ import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
 import { isServable } from '../engine/quickPack'
 import { evaluateStreak, getStreak } from '../engine/streak'
-import { addSrsCard, getSrsQueue, markVocabKnown, srsCardId } from '../engine/srs'
+import {
+  addSrsCard,
+  DEFAULT_SRS_OPTIONS,
+  getSrsQueue,
+  markVocabKnown,
+  srsCardId,
+} from '../engine/srs'
 import type { SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
@@ -140,7 +146,15 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const queue = await getSrsQueue(db)
+      // T-188（Q-98）: 新規停止の滞留判定を、vocabQuestionsに対する実出題可否基準にする。
+      // refType==='question' のカードは本画面のプールでは可否判定できないため素通しし、
+      // 判定を変えない（question側の滞留対策はquickPack.ts側のisServableで別途行う）
+      const queue = await getSrsQueue(
+        db,
+        now(),
+        DEFAULT_SRS_OPTIONS,
+        (c) => c.refType !== 'vocab' || isServable(c, vocabQuestions),
+      )
       // 復習対象は「refType==='vocab' かつ対応する vocab_card 問題が実在する」カードに限る
       // （quickPack.ts の isServable と同種の発見バグ対策）。processWrongAnswer が作る
       // refType==='question' カードや、パック撤去・別端末復元で語が引けないカードが

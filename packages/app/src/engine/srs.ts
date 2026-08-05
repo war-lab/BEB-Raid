@@ -177,11 +177,21 @@ export async function reviewSrsCard(
  * - dueReviews: 導入済み・未卒業・期限到来（dueAt <= now）。dueAt 昇順
  * - newCards: 未導入カードを追加順に、残り新規枠（上限 − 今日導入済み数）まで。
  *   期限超過が newStopBacklog 以上溜まっている日は新規を自動停止（03の2節）
+ *
+ * @param isServable T-188（Q-98）: 新規停止判定（滞留カウント）に使う実出題可否判定。
+ *   配信から外れたパックの問題カード等は `srsCards` に削除経路が無く、期限超過のまま
+ *   復習キューへ残り続ける。全件を数える判定だとこれが積み上がり、出題可能なカードが
+ *   0枚でも新規カード導入が恒久停止しうる。呼び出し元（quickPack.ts の isServable 等）が
+ *   実際の出題候補プールに対する可否を渡せるようにし、滞留判定をそちらへ寄せる。
+ *   未指定時は全件を servable 扱いし、既存呼び出し元（HomeScreenの件数表示など）の
+ *   挙動を変えない。`dueReviews`・`newCards` 自体はこれまでどおり全件を返す（呼び出し側の
+ *   既存の後段フィルタ処理を壊さないため）
  */
 export async function getSrsQueue(
   db: BebRaidDatabase,
   now: number = Date.now(),
   options: SrsOptions = DEFAULT_SRS_OPTIONS,
+  isServable: (card: SrsCardRecord) => boolean = () => true,
 ): Promise<SrsQueue> {
   const all = await db.srsCards.toArray()
   const active = all.filter((c) => (c.graduatedAt ?? null) === null)
@@ -192,7 +202,8 @@ export async function getSrsQueue(
 
   const today = toDateString(now)
   const introducedToday = active.filter((c) => c.introducedDate === today).length
-  const newStopped = dueReviews.length >= options.newStopBacklog
+  const servableDueCount = dueReviews.filter(isServable).length
+  const newStopped = servableDueCount >= options.newStopBacklog
   const allowance = newStopped ? 0 : Math.max(0, options.newCardsPerDay - introducedToday)
   const newCards = active
     .filter((c) => (c.introducedDate ?? null) === null)

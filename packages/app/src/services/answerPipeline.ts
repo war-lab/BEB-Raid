@@ -108,8 +108,14 @@ function resolveGhostDefenseMultiplier(
 ): number | undefined {
   if (raidState.bossType !== 'ghost' || !raidState.defenseJson) return undefined
   try {
-    const map = JSON.parse(raidState.defenseJson) as Record<string, number>
-    return map[questionId]
+    const map = JSON.parse(raidState.defenseJson) as Record<string, unknown>
+    const value = map[questionId]
+    // T-192（Q-106）: JSON.parse自体は成功しても、値が数値でない・NaN・負値の場合がある
+    // （外部編集されたバックアップ、破損したキャッシュ等）。ここで弾かないと
+    // damage = baseDamage * multiplier にそのまま乗り、ダメージが負値やNaNになる。
+    // baseDamage<=0のガードは倍率適用より前に効くため、ここが最後の防波堤になる
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return undefined
+    return value
   } catch {
     return undefined
   }
@@ -198,7 +204,7 @@ export async function recordAnswerPipeline(
     questionId,
     question,
     lookup,
-    isCorrect,
+    isCorrect: rawIsCorrect,
     responseMs,
     isTimeout = false,
     mode,
@@ -206,6 +212,11 @@ export async function recordAnswerPipeline(
     srsGrade,
     skip,
   } = input
+  // T-192（Q-108）: buildAttempt（services/attempts.ts）はisTimeout時にisCorrectをfalseへ
+  // 強制するが、この正規化はattempt記録の直前でしか行われず、processWrongAnswer・
+  // updateTagStatsForAnswer・applyRatingUpdateには呼び出し側の生のisCorrectがそのまま
+  // 渡っていた。正規化をパイプライン冒頭へ移し、以降すべての処理で一致させる
+  const isCorrect = isTimeout ? false : rawIsCorrect
 
   let nextSnapshot: SessionSnapshot | undefined
   let attemptId = ''
