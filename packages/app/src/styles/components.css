@@ -1155,6 +1155,14 @@
   width: min(72%, 280px);
   height: auto;
 }
+/* T-213（Q-43・J-109）: モバイル幅（390×844相当）では280px級のロゴ単体で縦170px超を
+   占有し、ヒーローカード・ヒートマップの手前でCTAが1画面目に入らない一因になっていた。
+   ロゴの縦横比(600:407)は保ったまま、幅の上限を下げて高さを縮める（配置・他要素は変えない） */
+@media (max-width: 480px) {
+  .wordmark-logo {
+    width: min(48%, 160px);
+  }
+}
 /* docs/26 A-4: 診断ウェルカムの読み仮名。ロゴ直下に中央で敷く（旧 .diagnostic-wordmark__sub） */
 .wordmark {
   flex-direction: column;
@@ -1740,6 +1748,19 @@
   border: 2px solid var(--line);
   border-radius: var(--radius-button);
   cursor: pointer;
+}
+/* T-213（Q-43・J-109）: 既定折りたたみ。見出し（summary）はタップ目標48pxを確保する。
+   案内文・ボタンは開いたときだけ描画対象になる（<details>のUAデフォルト挙動） */
+.install-hint-summary {
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 700;
+}
+.install-hint-details[open] .install-hint-summary {
+  margin-bottom: var(--sp-1);
 }
 
 /* ダッシュボードの予測スコア帯（ヒーロー数値） */

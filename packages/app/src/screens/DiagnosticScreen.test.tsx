@@ -585,3 +585,65 @@ describe('DiagnosticScreen: 完了画面の振り返り（T-174。J-95。docs/27
     expect(screen.queryByTestId('diagnostic-review-list')).toBeNull()
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 設問文・選択肢本文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('DiagnosticScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('text_blank（Reading）の設問文にlang="en"が付く', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+    const startButton = screen.queryByText('タップして開始')
+    if (startButton) fireEvent.click(startButton)
+    // 1問目（L=audio_qa）を解答して2問目（R=text_blank）へ進む
+    fireEvent.click(await screen.findByText('a'))
+    await screen.findByText('2/30')
+
+    expect(screen.getByText('dummy blank').getAttribute('lang')).toBe('en')
+    // 選択肢本文にもlang="en"が付く（ChoiceButton経由）
+    expect(screen.getByText('a').getAttribute('lang')).toBe('en')
+  })
+
+  it('振り返り一覧: 設問文はtext_blankの行だけlang="en"、選択/正解の選択肢本文には常に付く', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+
+    // 全問「b」を選ぶ（buildPoolの正解は'A'='a'なので全問誤答=全行にnoteが出る）
+    for (let i = 1; i <= 30; i++) {
+      await screen.findByText(`${i}/30`)
+      const startButton = screen.queryByText('タップして開始')
+      if (startButton) fireEvent.click(startButton)
+      fireEvent.click(await screen.findByText('b'))
+      if (i < 30) await screen.findByText(`${i + 1}/30`)
+    }
+    await screen.findByText('診断完了')
+
+    const list = await screen.findByTestId('diagnostic-review-list')
+    const items = Array.from(list.querySelectorAll('.result-list__item'))
+    expect(items.length).toBe(30)
+
+    // text_blank（設問文あり=15問）だけ設問部にlang="en"が付く。audio_qa（設問文無し=
+    // 「音声問題」の日本語フォールバック=15問）には付かない
+    const withQuestionLang = items.filter((el) =>
+      el.querySelector('.result-list__question [lang="en"]'),
+    )
+    const withoutQuestionLang = items.filter(
+      (el) => !el.querySelector('.result-list__question [lang="en"]'),
+    )
+    expect(withQuestionLang.length).toBe(15)
+    expect(withoutQuestionLang.length).toBe(15)
+
+    // 選択・正解の選択肢本文（英文）は全問に付く（全問誤答なのでnoteが全行に出る）
+    const notes = Array.from(list.querySelectorAll('.result-list__note'))
+    expect(notes.length).toBe(30)
+    for (const note of notes) {
+      expect(note.querySelectorAll('[lang="en"]').length).toBe(2)
+    }
+  })
+})

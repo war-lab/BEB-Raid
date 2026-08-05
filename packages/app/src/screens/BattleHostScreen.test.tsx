@@ -768,3 +768,58 @@ describe('BattleHostScreen: 切断理由ごとの案内', () => {
     expect(body.textContent).toContain('通信が途切れた')
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 抽選プレビュー・投影中の設問文・選択肢本文
+// （英文）に lang="en" が無く、lang="ja" の文書内で日本語の音声として読み上げられていたこと
+describe('BattleHostScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('抽選プレビューはquestion.questionがある行だけlang="en"が付く（音声問題の行は付かない）', () => {
+    const leaky = audioQaQuestion('q-leak-lang')
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={new FakeBattleSocket()}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[
+          leaky,
+          ...Array.from({ length: 20 }, (_, i) => textBlankQuestion(`p5-lang-${i}`)),
+        ]}
+        rng={() => 0.3}
+      />,
+    )
+
+    const preview = screen.getByTestId('battle-host-lottery-preview')
+    const textEl = screen.getByText('Please ___ the p5-lang-0.')
+    expect(textEl.getAttribute('lang')).toBe('en')
+    const audioRow = screen.getByText('音声問題（q-leak-lang）')
+    expect(audioRow.getAttribute('lang')).toBeNull()
+    expect(preview).toBeTruthy()
+  })
+
+  it('投影中の設問文にlang="en"が付く', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1-lang')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1-lang',
+      deadlineAt: Date.now() + 20_000,
+    })
+    await screen.findByTestId('battle-host-timer')
+
+    const questionEl = await screen.findByText('Please ___ the q-1-lang.')
+    expect(questionEl.getAttribute('lang')).toBe('en')
+    // 選択肢本文（投影専用の描画。ChoiceButtonを使わないため個別に検証する）
+    expect(screen.getByText('submit').getAttribute('lang')).toBe('en')
+  })
+})

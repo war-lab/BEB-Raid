@@ -93,8 +93,9 @@ describe('BattleScreen: join→questionOpen→解答→standings→result', () =
     })
     const questionEl = await screen.findByText(q1.question!)
     expect(questionEl).toBeTruthy()
-    // T-225(Q-63): question-textクラスが無く、文字サイズ設定（S/M/L）が効かなかった不具合の再発防止
-    expect(questionEl.className).toContain('question-text')
+    // T-225(Q-63): question-textクラスが無く、文字サイズ設定（S/M/L）が効かなかった不具合の再発防止。
+    // T-224でlang="en"のspanを挟んだため、マッチするのは内側のspan（.closest('p')が外側）
+    expect(questionEl.closest('.question-text')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /submit$/ }))
     await waitFor(() =>
@@ -958,5 +959,64 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     expect(
       await screen.findByText(/問題パックは自動で同期されます（未取得の問題は0点で流れます）/),
     ).toBeTruthy()
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 設問文・選択肢本文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('BattleScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  async function joinAndOpen(db: BebRaidDatabase, question: Question, socket: FakeBattleSocket) {
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[question]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: question.id,
+      deadlineAt: Date.now() + 30_000,
+    })
+  }
+
+  it('question.questionがある設問は英文にlang="en"が付く', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    await joinAndOpen(db, textBlankQuestion('q-lang'), socket)
+
+    const questionEl = await screen.findByText('Please ___ the q-lang.')
+    expect(questionEl.getAttribute('lang')).toBe('en')
+    // 選択肢本文（ChoiceButton経由）にも付く
+    expect(screen.getByText('submit').getAttribute('lang')).toBe('en')
+  })
+
+  it('question.questionが無い音声問題の指示文（日本語）にはlang="en"を付けない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const audioQuestion: Question = {
+      id: 'p2-lang',
+      part: 2,
+      format: 'audio_qa',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [],
+      audio: '/audio/p2-lang.mp3',
+      choices: [
+        { key: 'A', text: 'Yesterday.' },
+        { key: 'B', text: 'By email.' },
+      ],
+      answer: 'A',
+      explanation: '解説',
+      translation: '和訳',
+    }
+    await joinAndOpen(db, audioQuestion, socket)
+
+    const promptEl = await screen.findByText(
+      '音声で質問が流れます。応答として正しい選択肢を選んでください',
+    )
+    expect(promptEl.getAttribute('lang')).toBeNull()
   })
 })

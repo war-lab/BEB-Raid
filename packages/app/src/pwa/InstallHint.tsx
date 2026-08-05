@@ -58,18 +58,24 @@ export function InstallHint() {
 
   return (
     <aside role="note" className="install-hint">
-      <p>
-        ホーム画面に追加すると、オフラインでもすぐ起動でき、学習データが消えにくくなります。
-        {isIos() && '共有ボタン → 「ホーム画面に追加」で追加できます。'}
-      </p>
-      {installEvent && (
-        <button type="button" onClick={() => void installEvent.prompt()}>
-          ホーム画面に追加
+      {/* T-213（Q-43・J-109）: モバイル幅のファーストビューにCTAが入らない一因として、
+          この案内が既定で全文展開されホームの縦方向を圧迫していた。<details>で既定折りたたみに
+          する（ネイティブの開閉なので追加の状態管理・JSは不要。中身の文言・ボタンは変えない） */}
+      <details className="install-hint-details">
+        <summary className="install-hint-summary">ホーム画面への追加案内</summary>
+        <p>
+          ホーム画面に追加すると、オフラインでもすぐ起動でき、学習データが消えにくくなります。
+          {isIos() && '共有ボタン → 「ホーム画面に追加」で追加できます。'}
+        </p>
+        {installEvent && (
+          <button type="button" onClick={() => void installEvent.prompt()}>
+            ホーム画面に追加
+          </button>
+        )}
+        <button type="button" onClick={dismiss}>
+          閉じる
         </button>
-      )}
-      <button type="button" onClick={dismiss}>
-        閉じる
-      </button>
+      </details>
     </aside>
   )
 }

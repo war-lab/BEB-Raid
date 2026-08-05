@@ -633,52 +633,6 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       }
       action={
         <>
-          {resumeSnapshot && (
-            <button type="button" className="secondary-action" onClick={() => void handleResume()}>
-              続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
-            </button>
-          )}
-          {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
-              ボタン・チップをひとつのグループにまとめラベルを付ける（Part2瞬発等には作用しない） */}
-          <div className="home-quest-group">
-            <PrimaryButton
-              onClick={() => void handleStartQuest()}
-              disabled={questionPool.length === 0}
-            >
-              {/* docs/20 3.4節: 金CTAにサブテキストでパック内訳を添える（V-3）。
-                  新規カード数はここでは未確定のため、実データがあるSRS復習件数のみ示す */}
-              <span className="home-cta-label">今日のクエスト</span>
-              {/* 時間チップの表記「7分」等と完全一致すると同一文言で複数要素になり
-                  テスト上も判別不能になるため、「〜のクエスト」で必ず区別できる文にする */}
-              <small className="home-cta-sub">
-                {duration}分のクエスト{dueCount > 0 ? ` ・ SRS復習${dueCount}件` : ''}
-              </small>
-            </PrimaryButton>
-            {questionPool.length === 0 && (
-              <p className="home-pool-empty-hint">
-                {/* T-207（Q-56）: T-107aの自動再同期により「開き直してください」という
-                    操作案内は不要（online復帰時に自動で再同期される）。実装に合わせる */}
-                問題データを取得できていません。オンラインになると自動で取得します
-              </p>
-            )}
-            {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
-            <p className="home-duration-chips__label">クエストの長さ</p>
-            <div className="home-duration-chips">
-              {DURATIONS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`home-chip${d === duration ? ' is-selected' : ''}`}
-                  onClick={() => {
-                    setDuration(d)
-                    void db.settings.put({ key: QUEST_DURATION_KEY, value: d })
-                  }}
-                >
-                  {d}分
-                </button>
-              ))}
-            </div>
-          </div>
           {showPart2Options && (
             // T-116(8): ホーム下部へのインライン挿入だとスクロールしないと見えなかったため、
             // 画面中央固定のオーバーレイに変更する（スクロール位置に依存せず必ず見える）
@@ -696,13 +650,22 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 {/* T-118: 問数チップ（J-57。既定20問。プールが問数未満ならある分だけで開始する） */}
                 <p className="home-duration-chips__label">問題数</p>
                 <div className="home-duration-chips">
+                  {/* T-228（Q-66）: 選択状態が枠色のみで符号化されていた。aria-pressedで
+                      支援技術に伝え、選択中はチェックマーク（aria-hiddenでaria-pressedと
+                      二重に読み上げさせない）で色以外の状態表現も加える */}
                   {SINGLE_MODE_COUNTS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       className={`home-chip${c === singleModeCount ? ' is-selected' : ''}`}
+                      aria-pressed={c === singleModeCount}
                       onClick={() => handleSelectSingleModeCount(c)}
                     >
+                      {c === singleModeCount && (
+                        <span aria-hidden="true" className="home-chip__check">
+                          ✓{' '}
+                        </span>
+                      )}
                       {c}問
                     </button>
                   ))}
@@ -762,13 +725,20 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 <p>Part5の問題数を選んでください</p>
                 <p className="home-duration-chips__label">問題数</p>
                 <div className="home-duration-chips">
+                  {/* T-228（Q-66） */}
                   {SINGLE_MODE_COUNTS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       className={`home-chip${c === singleModeCount ? ' is-selected' : ''}`}
+                      aria-pressed={c === singleModeCount}
                       onClick={() => handleSelectSingleModeCount(c)}
                     >
+                      {c === singleModeCount && (
+                        <span aria-hidden="true" className="home-chip__check">
+                          ✓{' '}
+                        </span>
+                      )}
                       {c}問
                     </button>
                   ))}
@@ -804,13 +774,20 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                 <p>読解（Part7）のパッセージ数を選んでください</p>
                 <p className="home-duration-chips__label">パッセージ数</p>
                 <div className="home-duration-chips">
+                  {/* T-228（Q-66） */}
                   {READING_SET_COUNTS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       className={`home-chip${c === readingSetCount ? ' is-selected' : ''}`}
+                      aria-pressed={c === readingSetCount}
                       onClick={() => handleSelectReadingSetCount(c)}
                     >
+                      {c === readingSetCount && (
+                        <span aria-hidden="true" className="home-chip__check">
+                          ✓{' '}
+                        </span>
+                      )}
                       {c}本
                     </button>
                   ))}
@@ -1096,6 +1073,65 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       }
     >
       <Wordmark />
+      {/* T-213（Q-43・J-109）: 「続きから再開」と「今日のクエスト」は起動直後の
+          最初の操作対象なのに、従来はヒーローカード・ヒートマップより後（action=画面下の
+          操作ゾーン）にあり、モバイル幅（390×844）の1画面目には入らなかった。
+          ScreenLayoutの「操作要素はactionに置く」原則（親指リーチ）より、起動直後の
+          到達性を優先し、この2つだけ表示専用のchildren側・ヒーローカードより前へ移す
+          （docs/07 5.1節・7節S1を本タスクで改訂）。ボタンの機能・ハンドラは変更しない */}
+      {resumeSnapshot && (
+        <button type="button" className="secondary-action" onClick={() => void handleResume()}>
+          続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
+        </button>
+      )}
+      {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
+          ボタン・チップをひとつのグループにまとめラベルを付ける（Part2瞬発等には作用しない） */}
+      <div className="home-quest-group">
+        <PrimaryButton onClick={() => void handleStartQuest()} disabled={questionPool.length === 0}>
+          {/* docs/20 3.4節: 金CTAにサブテキストでパック内訳を添える（V-3）。
+              新規カード数はここでは未確定のため、実データがあるSRS復習件数のみ示す */}
+          <span className="home-cta-label">今日のクエスト</span>
+          {/* 時間チップの表記「7分」等と完全一致すると同一文言で複数要素になり
+              テスト上も判別不能になるため、「〜のクエスト」で必ず区別できる文にする */}
+          <small className="home-cta-sub">
+            {duration}分のクエスト{dueCount > 0 ? ` ・ SRS復習${dueCount}件` : ''}
+          </small>
+        </PrimaryButton>
+        {questionPool.length === 0 && (
+          <p className="home-pool-empty-hint">
+            {/* T-207（Q-56）: T-107aの自動再同期により「開き直してください」という
+                操作案内は不要（online復帰時に自動で再同期される）。実装に合わせる */}
+            問題データを取得できていません。オンラインになると自動で取得します
+          </p>
+        )}
+        {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
+        <p className="home-duration-chips__label">クエストの長さ</p>
+        <div className="home-duration-chips">
+          {/* T-228（Q-66）: 選択状態が枠色（--line→--gold）と文字色のみで符号化され、
+              支援技術に選択中の値が伝わらなかった（docs/07の「色に頼らない」原則とも不整合）。
+              aria-pressedを付け、選択中はチェックマークで色以外の状態表現も加える
+              （aria-hiddenでaria-pressedと二重に読み上げさせない） */}
+          {DURATIONS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              className={`home-chip${d === duration ? ' is-selected' : ''}`}
+              aria-pressed={d === duration}
+              onClick={() => {
+                setDuration(d)
+                void db.settings.put({ key: QUEST_DURATION_KEY, value: d })
+              }}
+            >
+              {d === duration && (
+                <span aria-hidden="true" className="home-chip__check">
+                  ✓{' '}
+                </span>
+              )}
+              {d}分
+            </button>
+          ))}
+        </div>
+      </div>
       {/* docs/20 3.4節(S1): ヒーローカード。レイド参加中はBossSigil＋
           HPバー、未参加時はシーズン表示に縮退する（JV-2） */}
       {showRaidHp ? (

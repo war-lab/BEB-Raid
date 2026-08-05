@@ -151,7 +151,10 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
             {results.map((r, i) => (
               <li key={i} className="result-list__item" data-correct={r.isCorrect}>
                 <span aria-hidden="true" className="result-list__icon" />
-                <span className="result-list__question">{questionLabel(r.questionId)}</span>
+                {/* T-224（J-108）: resultQuestionLabel経由。ResultScreenの同型表示と同じ扱い */}
+                <span className="result-list__question" lang="en">
+                  {questionLabel(r.questionId)}
+                </span>
               </li>
             ))}
           </ul>

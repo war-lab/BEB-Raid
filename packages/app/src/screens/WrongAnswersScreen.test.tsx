@@ -218,3 +218,53 @@ describe('WrongAnswersScreen', () => {
     expect(await screen.findByText(/まだ誤答の記録がありません/)).toBeTruthy()
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 設問文・正解の選択肢本文（英文）に lang="en" が
+// 無く、lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('WrongAnswersScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('設問文（英文）にlang="en"が付き、「PartN」タグには付かない', async () => {
+    const db = newDb()
+    await recordAttempt(db, { questionId: 'q-1', mode: 'solo', isCorrect: false, responseMs: 5000 })
+
+    render(<WrongAnswersScreen db={db} questionPool={[part5('q-1')]} />)
+    await screen.findAllByTestId('wrong-answer-item')
+
+    const questionEl = screen.getByText('Please ___ the q-1.')
+    expect(questionEl.getAttribute('lang')).toBe('en')
+    const item = questionEl.closest('.result-list__item')!
+    // 「Part5」のPartタグ部分はUIラベルなのでlang="en"を持たない
+    expect(item.querySelector('.result-list__question')?.getAttribute('lang')).toBeNull()
+  })
+
+  it('正解の選択肢本文（英文）にlang="en"が付く', async () => {
+    const db = newDb()
+    await recordAttempt(db, { questionId: 'q-1', mode: 'solo', isCorrect: false, responseMs: 5000 })
+
+    render(<WrongAnswersScreen db={db} questionPool={[part5('q-1')]} />)
+    const item = (await screen.findAllByTestId('wrong-answer-item'))[0]!
+    // T-215（Q-54）: 正解の選択肢は「解説」を開いたときだけ出る
+    fireEvent.click(screen.getByRole('button', { name: '解説' }))
+    await waitFor(() => expect(item.textContent).toContain('正解: A. submit'))
+
+    const note = Array.from(item.querySelectorAll('.result-list__note')).find((el) =>
+      el.textContent?.includes('正解:'),
+    )!
+    expect(note.querySelector('[lang="en"]')?.textContent).toBe('A. submit')
+  })
+
+  it('音声問題（設問文なし）は「（音声問題）」表示でlang="en"を持たない', async () => {
+    const db = newDb()
+    await recordAttempt(db, {
+      questionId: 'p2-1',
+      mode: 'solo',
+      isCorrect: false,
+      responseMs: 4000,
+    })
+
+    render(<WrongAnswersScreen db={db} questionPool={[part2('p2-1')]} />)
+    const item = (await screen.findAllByTestId('wrong-answer-item'))[0]!
+
+    expect(item.textContent).toContain('（音声問題）')
+    expect(item.querySelector('.result-list__question [lang="en"]')).toBeNull()
+  })
+})

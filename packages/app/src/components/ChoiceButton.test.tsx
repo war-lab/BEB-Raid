@@ -118,3 +118,17 @@ describe('ChoiceButton: 形マーカー（イベントバトル専用。docs/25 
     expect(btn.getAttribute('data-marker-variant')).toBeNull()
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 選択肢本文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('ChoiceButton: 選択肢本文のlang="en"（T-224・J-108）', () => {
+  it('選択肢本文を持つ要素にlang="en"が付く', () => {
+    render(
+      <ChoiceButton marker="A" state="idle">
+        Please attend the meeting.
+      </ChoiceButton>,
+    )
+    const label = screen.getByText('Please attend the meeting.')
+    expect(label.getAttribute('lang')).toBe('en')
+  })
+})

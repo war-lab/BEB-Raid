@@ -332,7 +332,11 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
               <li key={q.id} className="battle-lottery__item">
                 <span className="battle-lottery__num display-num">{i + 1}</span>
                 <span className="battle-lottery__part">Part{q.part}</span>
-                <span className="battle-lottery__text">{lotteryPreviewText(q)}</span>
+                {/* T-224（J-108）: question.questionがある場合のみ英文（無い場合はID埋め込みの
+                    日本語フォールバック=lotteryPreviewText参照） */}
+                <span className="battle-lottery__text" lang={q.question ? 'en' : undefined}>
+                  {lotteryPreviewText(q)}
+                </span>
               </li>
             ))}
           </ol>
@@ -418,8 +422,12 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
           <p className="battle-host-stage__phase">
             {waitingForPlay ? '準備ができたら再生してください' : '音声再生中…'}
           </p>
+          {/* T-224（J-108）: question.questionがある場合のみ英文（無い場合はaudio_qa用の
+              日本語指示文=projectedQuestionText参照） */}
           {currentQuestion && (
-            <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
+            <p className="battle-host-question" lang={currentQuestion.question ? 'en' : undefined}>
+              {projectedQuestionText(currentQuestion)}
+            </p>
           )}
         </HostProjectionLayout>
       </>
@@ -439,7 +447,13 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
         >
           {currentQuestion && (
             <>
-              <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
+              {/* T-224（J-108）: question.questionがある場合のみ英文 */}
+              <p
+                className="battle-host-question"
+                lang={currentQuestion.question ? 'en' : undefined}
+              >
+                {projectedQuestionText(currentQuestion)}
+              </p>
               {/* 選択肢は「形＋色＋記号」の三重符号化。色（キーごとのアクセント）はV-11が
                   data-choice-key で当て、形マーカー（▲■●◆）はV-12が同じ器の中身として
                   載せた（docs/25 4.4節・JV-7=案B）。形の対応表は ChoiceButton と共有するため、
@@ -452,7 +466,10 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
                     <span className="battle-host-choice__marker display-num" aria-hidden="true">
                       {choiceShapeMarker(choice.key) ?? choice.key}
                     </span>
-                    <span className="battle-host-choice__text">{choice.text}</span>
+                    {/* T-224（J-108）: 選択肢本文は英文。ChoiceButtonを使わない投影専用の描画のため個別に付ける */}
+                    <span className="battle-host-choice__text" lang="en">
+                      {choice.text}
+                    </span>
                     {/* 記号を装飾扱いにしたぶんの読み上げ（投影画面は読み上げ対象外だが、
                         ホスト端末の支援技術で選択肢が判別できるようにしておく） */}
                     <span className="visually-hidden">{choice.key}</span>

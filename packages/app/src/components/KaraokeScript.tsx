@@ -59,6 +59,9 @@ export function KaraokeScript({ script, timing, positionMs, durationMs, onSenten
             role="button"
             tabIndex={0}
             className="karaoke-sentence"
+            // T-224（J-108）: スクリプトは英文そのもの。注記「ハイライトは目安です」は
+            // 兄弟要素（.karaoke-note）でこのspanの外にあるため、ここへ付けても和訳側は影響しない
+            lang="en"
             onClick={() => onSentenceTap?.(sentence, sIdx)}
             // Q-61: role="button"のspanはネイティブbuttonと違いEnter/Spaceでは
             // onClickが発火しない。区間リピートをキーボードのみで操作できるよう

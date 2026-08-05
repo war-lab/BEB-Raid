@@ -722,3 +722,19 @@ describe('ResultScreen: ボスHPバー（docs/20 3.4節リザルト行「ボスH
     expect(screen.queryByTestId('result-boss-hp')).toBeNull()
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 一覧の設問ラベル（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('ResultScreen: 一覧の設問ラベルのlang="en"（T-224・J-108）', () => {
+  it('resultQuestionLabelの表示にlang="en"が付く', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    const label = await screen.findByText('question q-1')
+    expect(label.getAttribute('lang')).toBe('en')
+  })
+})

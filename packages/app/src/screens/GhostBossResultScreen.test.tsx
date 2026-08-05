@@ -202,3 +202,17 @@ describe('GhostBossResultScreen: 記録プレビュー', () => {
     warnSpy.mockRestore()
   })
 })
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 一覧の設問ラベル（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('GhostBossResultScreen: 一覧の設問ラベルのlang="en"（T-224・J-108）', () => {
+  it('resultQuestionLabelの表示にlang="en"が付く', async () => {
+    const db = newDb()
+    await seedGhostBossSession(db)
+
+    render(<GhostBossResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    const label = await screen.findByText('question q-1')
+    expect(label.getAttribute('lang')).toBe('en')
+  })
+})
