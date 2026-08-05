@@ -3,6 +3,8 @@ import { reset, SELF } from 'cloudflare:test'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const VALID_INVITE_CODE = 'test-invite-code'
+// vitest.config.tsのbindingsで注入されるダミー値（adminHandlers.test.tsと同じ値）
+const ADMIN_TOKEN = 'test-admin-token'
 
 async function registerDevice(): Promise<string> {
   const deviceToken = crypto.randomUUID()
@@ -25,6 +27,13 @@ function postStats(deviceToken: string, stats: unknown[]): Request {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${deviceToken}` },
     body: JSON.stringify({ stats }),
+  })
+}
+
+/** GET /stats/questions はADMIN_TOKENのBearerで呼ぶ（T-249・29のQ-31。管理用のため一般メンバーのdeviceTokenでは読めない） */
+function getStatsAsAdmin(): Request {
+  return new Request('https://example.com/stats/questions', {
+    headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
   })
 }
 
@@ -72,7 +81,7 @@ describe('POST /stats/questions', () => {
     expect(res.status).toBe(400)
   })
 
-  it('正常系: 受理件数を返し、GETで集計値が取得できる', async () => {
+  it('正常系: 受理件数を返し、GET（ADMIN_TOKEN）で集計値が取得できる', async () => {
     const deviceToken = await registerDevice()
     const res = await SELF.fetch(
       postStats(deviceToken, [
@@ -83,9 +92,7 @@ describe('POST /stats/questions', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ accepted: 2 })
 
-    const getRes = await SELF.fetch('https://example.com/stats/questions', {
-      headers: { Authorization: `Bearer ${deviceToken}` },
-    })
+    const getRes = await SELF.fetch(getStatsAsAdmin())
     expect(getRes.status).toBe(200)
     const body = (await getRes.json()) as { stats: unknown[] }
     expect(body.stats).toEqual([
@@ -103,9 +110,7 @@ describe('POST /stats/questions', () => {
       postStats(deviceToken, [{ questionId: 'q-1', correct: 2, wrong: 1, timeout: 0 }]),
     )
 
-    const getRes = await SELF.fetch('https://example.com/stats/questions', {
-      headers: { Authorization: `Bearer ${deviceToken}` },
-    })
+    const getRes = await SELF.fetch(getStatsAsAdmin())
     const body = (await getRes.json()) as { stats: unknown[] }
     expect(body.stats).toEqual([{ questionId: 'q-1', correct: 3, wrong: 1, timeout: 0 }])
   })
@@ -116,9 +121,7 @@ describe('POST /stats/questions', () => {
       postStats(deviceToken, [{ questionId: 'q-1', correct: 1, wrong: 0, timeout: 0 }]),
     )
 
-    const getRes = await SELF.fetch('https://example.com/stats/questions', {
-      headers: { Authorization: `Bearer ${deviceToken}` },
-    })
+    const getRes = await SELF.fetch(getStatsAsAdmin())
     const text = await getRes.text()
     expect(text).not.toContain(deviceToken)
     expect(text).not.toContain('deviceToken')
@@ -126,6 +129,9 @@ describe('POST /stats/questions', () => {
 })
 
 describe('GET /stats/questions', () => {
+  // T-249・29のQ-31: 「管理用」と注記されていたが、一般メンバーのdeviceToken Bearerでも
+  // 読めていた（アクセス制御と意図の不一致）。ADMIN_TOKENへ分離した後は、
+  // 未登録tokenはもちろん登録済み一般メンバーのtokenでも401になることを確認する
   it('未登録tokenは401になる', async () => {
     const res = await SELF.fetch('https://example.com/stats/questions', {
       headers: { Authorization: 'Bearer unknown' },
@@ -133,11 +139,16 @@ describe('GET /stats/questions', () => {
     expect(res.status).toBe(401)
   })
 
-  it('未送信状態では空配列を返す', async () => {
+  it('登録済み一般メンバーのdeviceTokenでは読めない（管理用のためADMIN_TOKEN必須）', async () => {
     const deviceToken = await registerDevice()
     const res = await SELF.fetch('https://example.com/stats/questions', {
       headers: { Authorization: `Bearer ${deviceToken}` },
     })
+    expect(res.status).toBe(401)
+  })
+
+  it('ADMIN_TOKENでは読める。未送信状態では空配列を返す', async () => {
+    const res = await SELF.fetch(getStatsAsAdmin())
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ stats: [] })
   })

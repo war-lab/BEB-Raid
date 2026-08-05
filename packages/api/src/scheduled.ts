@@ -8,7 +8,7 @@ import { bossProfileForWeek } from './bossProfiles'
 import type { Env, MemberRecord } from './env'
 import { memberKey } from './env'
 import { selectGhostRecord } from './ghostSelection'
-import { ghostKey, type GhostRecord } from './ghostStore'
+import { updateGhostRecordIfPresent } from './ghostStore'
 import { listAllKeys } from './kvList'
 import type { RaidBossDO } from './raidBossDo'
 import {
@@ -20,18 +20,25 @@ import {
   GHOST_MULTIPLIER_SOLID,
   GHOST_MULTIPLIER_WEAK,
   MIN_BOSS_HP,
+  RAID_BOSS_RETENTION_WEEKS,
   RAID_DAYS,
 } from './raidConfig'
 import { bossIdFor, isoWeekInfo, previousWeekInfo, weekEndAt } from './raidWeek'
 import { raidSummaryKey } from './raidSummaryStore'
 
 const MEMBER_KEY_PREFIX = 'member:'
+const DAY_MS = 24 * 60 * 60 * 1000
+const WEEK_MS = 7 * DAY_MS
 
 /**
  * 前週ボスのゴーストクローズ処理（正本: docs/22 3.3節）。
  * 前週がghost週かつ討伐成立していれば、該当ghostレコードのdefeatedCountを+1する
  * （レコードが撤回済み＝KVから無ければ何もしない）。cronの再実行に備え、処理後は
  * 前週DO側のghostSourceTokenをクリアして二重加算されないようにする（DO側で冪等化）
+ *
+ * 【T-248・29のQ-30】defeatedCountの加算は updateGhostRecordIfPresent 経由で行う。
+ * 以前は「読取→加算→書込」を素朴に行っており、読取後・書込前に `DELETE /ghosts/own`
+ * （撤回）が割り込むと、撤回済みレコードが古い内容のまま復活しえた
  */
 async function closeOutPreviousGhost(
   env: Env,
@@ -41,17 +48,38 @@ async function closeOutPreviousGhost(
   if (!info) return
 
   if (info.defeated) {
-    const key = ghostKey(info.ghostSourceToken)
-    const raw = await env.MEMBERS.get(key)
-    if (raw) {
-      const record = JSON.parse(raw) as GhostRecord
-      await env.MEMBERS.put(
-        key,
-        JSON.stringify({ ...record, defeatedCount: record.defeatedCount + 1 }),
-      )
-    }
+    await updateGhostRecordIfPresent(env, info.ghostSourceToken, (record) => ({
+      ...record,
+      defeatedCount: record.defeatedCount + 1,
+    }))
   }
   await previousStub.markGhostCloseoutHandled()
+}
+
+/**
+ * 週次データの掃除（T-247・29のQ-29。方針は docs/17_M3実装計画.md 3.4節に記録）。
+ * RAID_BOSS_RETENTION_WEEKS週より前に終了した週のRaidBossDOを削除する。掃除は
+ * 週次ボス生成そのものの成否に影響させない（副次処理のため失敗してもthrowしない）。
+ *
+ * 削除対象の週は「保持期間の境界（cutoffEpoch = 当週開始 − RETENTION週）を1ms遡った時刻が
+ * 属する週」とする。この週は必ず weekStartAt + WEEK_MS（＝翌週の開始）= cutoffEpoch を
+ * 満たすため、この週のendAt（金曜15:00。翌週開始より必ず前）は常にcutoffEpochより前になり、
+ * cleanupIfExpired側の判定（endAt < cutoff）に確実に該当する。cronは日次発火のため、
+ * 対象週は約7日間かけて同じbossIdを指し続け、最初の1回で削除された後は
+ * cleanupIfExpired が not_found を返すだけになる（冪等）
+ */
+async function cleanupExpiredRaidBoss(env: Env, current: { weekStartAt: number }): Promise<void> {
+  try {
+    const cutoffEpoch = current.weekStartAt - RAID_BOSS_RETENTION_WEEKS * WEEK_MS
+    const targetBossId = bossIdFor(isoWeekInfo(cutoffEpoch - 1))
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(targetBossId))
+    const result = await stub.cleanupIfExpired(cutoffEpoch)
+    if (result === 'deleted') {
+      console.log(`週次RaidBossDOを掃除しました: bossId=${targetBossId}`)
+    }
+  } catch (err) {
+    console.error('週次RaidBossDOの掃除に失敗しました（週次ボス生成自体は継続）', err)
+  }
 }
 
 /**
@@ -175,11 +203,16 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
         },
         ghostSourceToken: selectedGhost.deviceToken,
       })
-      // 選定した記録のlastUsedBossIdを今回のbossIdへ更新する（次回以降のクールダウン判定に使う）
-      await env.MEMBERS.put(
-        ghostKey(selectedGhost.deviceToken),
-        JSON.stringify({ ...selectedGhost.record, lastUsedBossId: bossId }),
-      )
+      // 選定した記録のlastUsedBossIdを今回のbossIdへ更新する（次回以降のクールダウン判定に使う）。
+      // 【T-248・29のQ-30】selectedGhost.recordはselectGhostRecord内で読み取った古い
+      // スナップショット（この後の全メンバーEMA更新ループを経ているため実運用では
+      // 数百ms〜秒オーダーの遅延がある）。ここで素朴に書き戻すと、その間に
+      // `DELETE /ghosts/own`（撤回）が完了していても古い内容のまま復活しうる。
+      // updateGhostRecordIfPresentは書込直前に再取得し、既に削除されていれば書込を取りやめる
+      await updateGhostRecordIfPresent(env, selectedGhost.deviceToken, (current) => ({
+        ...current,
+        lastUsedBossId: bossId,
+      }))
     } else {
       await stub.init({
         bossId,
@@ -192,6 +225,10 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
 
     // 週1回しか走らないジョブのため、成功時も生成結果を必ずログに残す（失敗時の切り分け材料）
     console.log(`週次ボス生成完了: bossId=${bossId} maxHp=${maxHp} members=${memberKeys.length}`)
+
+    // 週次データの掃除（T-247・29のQ-29）。生成本体の後段・独立した副次処理として実行する
+    await cleanupExpiredRaidBoss(env, current)
+
     return true
   } catch (err) {
     // 生成権を解放しないと、ボスが存在しないまま週が「生成済み」に固定され、

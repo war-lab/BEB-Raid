@@ -1,5 +1,5 @@
 import { env, reset, SELF } from 'cloudflare:test'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { memberKey, type MemberRecord } from './env'
 import { MAX_REGISTERED_MEMBERS } from './register'
@@ -67,6 +67,26 @@ describe('POST /register', () => {
         }),
       )
       expect(bad.status).toBe(400)
+    }
+  })
+
+  // T-250・29のQ-32: 以前は招待コードの照合が`!==`だった。crypto.subtle.timingSafeEqualが
+  // 実際に比較へ使われていることをスパイで確認する（`!==`のままだと本テストは失敗する）
+  it('招待コードの照合はcrypto.subtle.timingSafeEqualで行われる（タイミングセーフ比較）', async () => {
+    const spy = vi.spyOn(crypto.subtle, 'timingSafeEqual')
+    try {
+      const res = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken: crypto.randomUUID(),
+          displayName: '太郎',
+          dailyGoal: 'normal',
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(spy).toHaveBeenCalled()
+    } finally {
+      spy.mockRestore()
     }
   })
 

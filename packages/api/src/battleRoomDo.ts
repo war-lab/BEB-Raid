@@ -6,6 +6,9 @@
 // 一切使わない（ルーム揮発の原則。docs/04 4節battleRooms行・docs/22 2.3節-3）。
 // 例外はAlarms API（ctx.storage.setAlarm/deleteAlarm）のみ：2時間の強制クローズ用の
 // 起床タイマーであり個人データを一切含まないため対象外と判断済み（docs/22の作業指示）。
+// T-253でホスト切断の猶予期間タイマーにも同じAlarms APIを流用した（アラームは1つしか
+// 予約できないため、猶予期間中は2時間タイマーを一時的に上書きし、再接続時に戻す）。
+// こちらも個人データを含まない起床タイマーのため同じ扱いとする。
 // ルーム状態はWebSocket Hibernation APIの流儀に従い、インスタンスフィールド＋各接続の
 // serializeAttachmentのみで保持する。ルーム全体の共有メタ情報（フェーズ・現在の出題・
 // deadlineAt等）は全接続のattachmentに重複して持たせる（1本のattachmentだけに置くと
@@ -28,6 +31,13 @@ import type { Env } from './env'
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
 const QUESTION_OPEN_MS = 30 * 1000
 const SPEED_BONUS_RATE = 0.2
+/**
+ * ホスト切断時の猶予期間（T-253・29のQ-27）。通勤電車のトンネル等での瞬断1回で
+ * ルーム全体が終了するのを防ぐため、切断から即クローズせずこの時間だけ再接続を待つ。
+ * 60秒はトンネル通過や瞬断を吸収しつつ、ホストが本当に離脱した場合の参加者の
+ * 待たされ時間を過大にしない値として暫定的に置いた（実測調整の対象）
+ */
+const HOST_DISCONNECT_GRACE_MS = 60 * 1000
 
 type RoomPhase = 'lobby' | 'active' | 'result' | 'closed'
 type ConnectionRole = 'host' | 'participant'
@@ -69,6 +79,13 @@ interface RoomMeta {
   createdAt: number
   /** join受信順（先着判定用）の採番カウンタ */
   nextJoinOrder: number
+  /**
+   * ホストが切断中で猶予期間中であることを示す起算時刻（T-253・29のQ-27）。
+   * 切断していなければnull。ハイバネーション退避を挟んでも判定を継続できるよう
+   * attachment経由で保持する（DO内部の状態のみで、クライアントへの新規配信は
+   * 本タスクの範囲外。参加者UIへの可視化は別タスクで検討する）
+   */
+  hostDisconnectedAt: number | null
 }
 
 /**
@@ -208,6 +225,7 @@ export class BattleRoomDO extends DurableObject<Env> {
       openedQuestionIndexes: [],
       createdAt: now,
       nextJoinOrder: 0,
+      hostDisconnectedAt: null,
     }
     this.connections.clear()
     // 新規ルーム（またはclosed済みルームの再利用）なので、前回のルームの参加者roster
@@ -249,6 +267,16 @@ export class BattleRoomDO extends DurableObject<Env> {
     }
 
     const role: ConnectionRole = this.meta!.hostToken === deviceToken ? 'host' : 'participant'
+
+    // ホストが猶予期間中に再接続した（T-253・29のQ-27）。猶予を解除し、
+    // 2時間の絶対タイムアウトへアラームを戻す（切断中はscheduleHostGraceCloseが
+    // 猶予期間の短いアラームへ上書きしているため、ここで戻さないと本来の
+    // 2時間より早く別の理由でクローズしてしまう経路が残る）
+    if (role === 'host' && this.meta!.hostDisconnectedAt !== null) {
+      this.meta!.hostDisconnectedAt = null
+      this.ctx.waitUntil(this.ctx.storage.setAlarm(this.meta!.createdAt + TWO_HOURS_MS))
+    }
+
     // 再接続（同じdeviceTokenでの再接続）なら既存のParticipantStateを再利用する。
     // 新規作成するとtotalPoints・answeredQuestionIndexesがゼロへ戻り、
     // 電車内の瞬断で得点が消える（T-184・29のQ-8）
@@ -454,13 +482,31 @@ export class BattleRoomDO extends DurableObject<Env> {
     if (!conn) return
     this.connections.delete(conn.participant.deviceToken)
     if (conn.participant.role === 'host') {
-      this.closeRoom()
+      this.scheduleHostGraceClose()
       return
     }
     if (this.meta) {
       this.syncAttachments()
       this.broadcastRoomState()
     }
+  }
+
+  /**
+   * ホスト切断時は即座にクローズせず、猶予期間（HOST_DISCONNECT_GRACE_MS）だけ待って
+   * から再接続が無ければクローズする（T-253・29のQ-27）。通勤電車のトンネル等での
+   * 瞬断1回でルーム全体が終了し、参加者を巻き込んで進行が失われるのを防ぐ。
+   *
+   * アラームは1つしか予約できない（setAlarmは既存の予約を上書きする）ため、2時間の
+   * 絶対タイムアウト用アラームをこの猶予期間用アラームで一時的に上書きする。
+   * 猶予期間中にホストが再接続すればfetch()側で2時間の絶対タイムアウトへ戻す。
+   * 再接続が無ければこのアラームがそのまま発火し、alarm()は無条件にcloseRoom()を
+   * 呼ぶため、猶予期間経過後は通常どおりクローズされる
+   */
+  private scheduleHostGraceClose(): void {
+    if (!this.meta) return
+    this.meta.hostDisconnectedAt = Date.now()
+    this.syncAttachments()
+    this.ctx.waitUntil(this.ctx.storage.setAlarm(Date.now() + HOST_DISCONNECT_GRACE_MS))
   }
 
   // ---------------------------------------------------------------------

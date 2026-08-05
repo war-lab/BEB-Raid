@@ -14,6 +14,8 @@ import { generateWeeklyBoss } from './scheduled'
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 const VALID_INVITE_CODE = 'test-invite-code'
+// vitest.config.tsのbindingsで注入されるダミー値（adminHandlers.test.tsと同じ値）
+const ADMIN_TOKEN = 'test-admin-token'
 
 async function registerDevice(displayName = '太郎'): Promise<string> {
   const deviceToken = crypto.randomUUID()
@@ -183,16 +185,26 @@ describe('GET /raid/summary', () => {
     expect(res.status).toBe(401)
   })
 
-  it('保存済みサマリを配列で返す（クライアントは呼ばない管理用途）', async () => {
+  // T-249・29のQ-31: 「管理用」と注記されていたが、一般メンバーのdeviceToken Bearerでも
+  // 読めていた（アクセス制御と意図の不一致）。ADMIN_TOKENへ分離した後は登録済み
+  // 一般メンバーのtokenでも401になることを確認する
+  it('登録済み一般メンバーのdeviceTokenでは読めない（管理用のためADMIN_TOKEN必須）', async () => {
+    const viewerToken = await registerDevice()
+    const res = await SELF.fetch('https://example.com/raid/summary', {
+      headers: { Authorization: `Bearer ${viewerToken}` },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('保存済みサマリを配列で返す（クライアントは呼ばない管理用途。ADMIN_TOKENで取得）', async () => {
     const week1 = Date.UTC(2027, 6, 19)
     const week1BossId = bossIdFor(isoWeekInfo(week1))
     await generateWeeklyBoss(env, week1)
     const week2 = week1 + 7 * DAY_MS
     await generateWeeklyBoss(env, week2)
 
-    const viewerToken = await registerDevice()
     const res = await SELF.fetch('https://example.com/raid/summary', {
-      headers: { Authorization: `Bearer ${viewerToken}` },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     })
     expect(res.status).toBe(200)
     const summaries = (await res.json()) as RaidSummaryJson[]
@@ -224,9 +236,8 @@ describe('GET /raid/summary', () => {
     }
     await Promise.all(puts)
 
-    const viewerToken = await registerDevice()
     const res = await SELF.fetch('https://example.com/raid/summary', {
-      headers: { Authorization: `Bearer ${viewerToken}` },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     })
     expect(res.status).toBe(200)
     const summaries = (await res.json()) as RaidSummaryJson[]
@@ -234,9 +245,8 @@ describe('GET /raid/summary', () => {
   }, 30_000)
 
   it('サマリが1件も無ければ空配列を返す', async () => {
-    const viewerToken = await registerDevice()
     const res = await SELF.fetch('https://example.com/raid/summary', {
-      headers: { Authorization: `Bearer ${viewerToken}` },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual([])

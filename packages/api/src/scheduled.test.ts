@@ -1,14 +1,16 @@
-import { env, reset, runInDurableObject } from 'cloudflare:test'
+import { env, evictDurableObject, reset, runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { bossProfileForWeek } from './bossProfiles'
 import { memberKey, type MemberRecord } from './env'
-import { MIN_BOSS_HP } from './raidConfig'
+import { MIN_BOSS_HP, RAID_BOSS_RETENTION_WEEKS } from './raidConfig'
 import { bossIdFor, isoWeekInfo, previousWeekInfo, weekEndAt } from './raidWeek'
 import { generateWeeklyBoss } from './scheduled'
 import type { RaidBossDO } from './raidBossDo'
 
 const HOUR_MS = 60 * 60 * 1000
+const DAY_MS = 24 * HOUR_MS
+const WEEK_MS = 7 * DAY_MS
 
 async function seedPreviousWeekDamage(
   currentMondayEpoch: number,
@@ -284,5 +286,54 @@ describe('generateWeeklyBoss', () => {
       instance.getBossState(currentMondayEpoch),
     )
     expect(state?.maxHp).toBe(12345)
+  })
+
+  // T-247・29のQ-29: RaidBossDOには削除経路が無く、bossIdごとに別インスタンスのSQLiteが
+  // 無期限に蓄積していた。generateWeeklyBossの末尾でRAID_BOSS_RETENTION_WEEKSより古い週の
+  // DOを掃除する配線（cleanupExpiredRaidBoss）を検証する
+  describe('週次データの掃除（T-247・29のQ-29）', () => {
+    it(`保持期間(${RAID_BOSS_RETENTION_WEEKS}週)を超えて古い週のRaidBossDOは削除される`, async () => {
+      const week1 = Date.UTC(2028, 0, 3) // 他テストと衝突しない週
+      const week1BossId = bossIdFor(isoWeekInfo(week1))
+      await generateWeeklyBoss(env, week1)
+      const week1Stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(week1BossId))
+
+      // week1がちょうど保持期間の境界を過ぎる週まで進める
+      // （cleanupExpiredRaidBossの対象週選定はscheduled.tsのコメント参照）
+      const farFuture = week1 + (RAID_BOSS_RETENTION_WEEKS + 1) * WEEK_MS
+      await generateWeeklyBoss(env, farFuture)
+
+      // deleteAll()直後は同一インスタンスのままだと例外になるため、エビクションで
+      // コンストラクタを再実行させてから確認する（raidBossDo.test.tsと同じ理由）
+      await evictDurableObject(week1Stub)
+      const state = await runInDurableObject(week1Stub, (instance: RaidBossDO) =>
+        instance.getBossState(farFuture),
+      )
+      expect(state).toBeUndefined()
+    })
+
+    it(`保持期間(${RAID_BOSS_RETENTION_WEEKS}週)以内の週のRaidBossDOは削除されない`, async () => {
+      const week1 = Date.UTC(2028, 2, 6) // 他テストと衝突しない週
+      const week1BossId = bossIdFor(isoWeekInfo(week1))
+      await generateWeeklyBoss(env, week1)
+      const week1Stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(week1BossId))
+
+      // 保持期間の半分程度しか進めない
+      const nearFuture = week1 + Math.floor(RAID_BOSS_RETENTION_WEEKS / 2) * WEEK_MS
+      await generateWeeklyBoss(env, nearFuture)
+
+      const state = await runInDurableObject(week1Stub, (instance: RaidBossDO) =>
+        instance.getBossState(nearFuture),
+      )
+      expect(state).not.toBeUndefined()
+    })
+
+    it('掃除に失敗しても週次ボス生成自体は成功する', async () => {
+      // cleanupExpiredRaidBossは内部でtry/catchしているため、cutoff計算が正常に走る限り
+      // 例外がgenerateWeeklyBossまで伝播しないことを回帰として確認する
+      // （週1回しか走らないジョブの成否に副次処理の失敗を混ぜ込まないことが目的）
+      const currentMondayEpoch = Date.UTC(2028, 3, 3) // 他テストと衝突しない週
+      await expect(generateWeeklyBoss(env, currentMondayEpoch)).resolves.toBe(true)
+    })
   })
 })

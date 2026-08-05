@@ -121,7 +121,9 @@ describe('POST /ghosts', () => {
     expect(res.status).toBe(400)
   })
 
-  it('正常系: 200 { ok: true } を返し、KVにghost:<deviceToken>として保存される', async () => {
+  // 【T-251・29のQ-26】displayNameは登録済みメンバーの表示名（'太郎'。registerDeviceの既定値）
+  // を使う。VALID_PAYLOAD.displayName（'ボス太郎'）は自己申告のため無視される
+  it('正常系: 200 { ok: true } を返し、KVにghost:<deviceToken>として保存される（displayNameは登録済みメンバー名）', async () => {
     const deviceToken = await registerDevice()
     const res = await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
     expect(res.status).toBe(200)
@@ -130,11 +132,27 @@ describe('POST /ghosts', () => {
     const raw = await env.MEMBERS.get(ghostKey(deviceToken))
     expect(raw).not.toBeNull()
     const record = JSON.parse(raw!) as GhostRecord
-    expect(record.displayName).toBe('ボス太郎')
+    expect(record.displayName).toBe('太郎')
     expect(record.consent).toBe(true)
     expect(record.records).toEqual(VALID_PAYLOAD.records)
     expect(record.defeatedCount).toBe(0)
     expect(record.lastUsedBossId).toBeNull()
+  })
+
+  // T-251・29のQ-26: 以前はbody.displayName（自己申告・最大100字）をそのまま保存しており、
+  // 他メンバーの表示名を騙ったゴースト（ボス名として全参加者に配信される）を誰でも作れた。
+  // 修正後は自己申告のdisplayNameが何であっても、登録済みメンバー名で上書きされる
+  it('なりすまし防止: 他メンバーの表示名を自己申告しても、登録済みメンバー名で保存される', async () => {
+    const deviceToken = await registerDevice('本人太郎')
+    const res = await SELF.fetch(
+      postGhost(deviceToken, { ...VALID_PAYLOAD, displayName: '他人になりすまし' }),
+    )
+    expect(res.status).toBe(200)
+
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    expect(record.displayName).toBe('本人太郎')
+    expect(record.displayName).not.toBe('他人になりすまし')
   })
 
   it('再POSTは記録を作り直す（defeatedCount・lastUsedBossIdが初期化される）', async () => {
@@ -156,7 +174,7 @@ describe('POST /ghosts', () => {
 
     const raw = await env.MEMBERS.get(ghostKey(deviceToken))
     const record = JSON.parse(raw!) as GhostRecord
-    expect(record.displayName).toBe('ボス太郎')
+    expect(record.displayName).toBe('太郎')
     expect(record.defeatedCount).toBe(0)
     expect(record.lastUsedBossId).toBeNull()
   })
