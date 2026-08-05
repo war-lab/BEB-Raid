@@ -616,6 +616,110 @@ describe('BattleHostScreen: 投影用意匠（V-11）', () => {
   })
 })
 
+// T-217（Q-51）: ホストは出題中・順位表示中に中止・退出導線が無く、中止するにはブラウザバック
+// 頼みだった（socket切断で全参加者が落ちる=battleRoomDo.tsのcloseRoom）。ロビーの「やめる」も
+// 参加者が入室済みでも確認なしでルームを閉じていた。中止導線と確認を追加する
+describe('BattleHostScreen: 中止・退出導線（T-217）', () => {
+  it('ロビーの「やめる」は確認を経てから閉じる（参加者が入室済みでも無confirmで閉じない）', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '花子' }] })
+    await screen.findByText('花子')
+
+    fireEvent.click(screen.getByRole('button', { name: 'やめる' }))
+    // 確認ダイアログを経るまでソケットは閉じない
+    expect(socket.closed).toBe(false)
+    expect(await screen.findByRole('alertdialog')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '終了する' }))
+    expect(socket.closed).toBe(true)
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('出題中は中止ボタンが出て、確認後に終了する（参加者全員が切断される契機）', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1'), textBlankQuestion('q-2')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 20_000,
+    })
+    await screen.findByTestId('battle-host-timer')
+
+    fireEvent.click(screen.getByRole('button', { name: '中止' }))
+    expect(await screen.findByRole('alertdialog')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '終了する' }))
+    expect(socket.closed).toBe(true)
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('途中順位フェーズでも中止ボタンが出る', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1'), textBlankQuestion('q-2')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: '花子', totalPoints: 90 }],
+    })
+    await screen.findByTestId('battle-host-standings')
+
+    expect(screen.getByRole('button', { name: '中止' })).toBeTruthy()
+  })
+
+  it('確認ダイアログで「続ける」を選ぶとソケットを閉じずに進行を続ける', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'やめる' }))
+    expect(await screen.findByRole('alertdialog')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '続ける' }))
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(socket.closed).toBe(false)
+  })
+})
+
 // 切断理由ごとの案内（回帰防止）: 参加画面と同じく、以前は理由を捨てて固定文しか出していなかった。
 // ホストもレイド登録済みの端末でなければルームを開けない
 describe('BattleHostScreen: 切断理由ごとの案内', () => {

@@ -307,7 +307,15 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
             次の素材へ
           </button>
           {/* 進行中の脱出導線（DrillScreenの中断と同じ思想。従来は素材完了までこの画面から出られなかった） */}
-          <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={() => {
+              // T-221（Q-15）: 再生中の音声を止めずに離れると、ホーム画面で流れ続けていた
+              audioPlayer.stop()
+              navigate('home')
+            }}
+          >
             中断してホームへ
           </button>
           <div className="shadowing-speed-chips">

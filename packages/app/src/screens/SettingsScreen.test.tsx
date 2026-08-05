@@ -612,6 +612,23 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
     expect(await db.settings.get('byokApiKey')).toBeUndefined()
   })
 
+  // T-220（Q-58）: APIキー入力欄がform外にあり、Chromeが「Password field is not contained
+  // in a form」と警告していた（パスワードマネージャ連携も効かない）。formで括る
+  it('APIキー入力欄はform内にあり、Enter送信でも保存できる', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    const input = screen.getByPlaceholderText('sk-...')
+    expect(input.closest('form')).not.toBeNull()
+
+    fireEvent.change(input, { target: { value: 'sk-ant-formtest' } })
+    fireEvent.submit(input.closest('form')!)
+
+    await vi.waitFor(() => expect(screen.getByText('sk-***...test')).toBeTruthy())
+    expect((await db.settings.get('byokApiKey'))?.value).toBe('sk-ant-formtest')
+  })
+
   it('注記2点（端末内平文保存・支出上限推奨）が常に表示される', async () => {
     const db = newDb()
     render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)

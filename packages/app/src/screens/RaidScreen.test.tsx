@@ -1077,6 +1077,35 @@ describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）',
     expect(list!.querySelector('.standings__points.display-num')?.textContent).toBe('100')
   })
 
+  // T-216（Q-50）: 自分の貢献ダメージが4〜5桁でも桁区切りが付く（BOSS HP・貢献リストと表記を揃える）
+  it('自分の貢献ダメージは桁区切りで表示される', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: ACTIVE_BOSS.bossId,
+      profileJson: JSON.stringify({ name: ACTIVE_BOSS.name }),
+      hp: ACTIVE_BOSS.hp,
+      maxHp: ACTIVE_BOSS.maxHp,
+      myDamage: 12345,
+      joined: true,
+      startAt: ACTIVE_BOSS.startAt,
+      endAt: ACTIVE_BOSS.endAt,
+      lastSyncedAt: Date.now() - 60_000,
+    })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = { ...ACTIVE_BOSS, myDamage: 12345 }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.getByText('12,345')).toBeTruthy()
+  })
+
   it('貢献リストは順位・相対バー・自分の行の識別を持ち、正答率は表示しない（V-15・プライバシー境界）', async () => {
     const db = newDb()
     await putProfile(db)

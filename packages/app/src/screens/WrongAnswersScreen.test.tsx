@@ -87,8 +87,22 @@ describe('WrongAnswersScreen', () => {
     expect(items[0]!.textContent).toContain('Please ___ the q-1.')
     // 正解は出さない
     expect(screen.queryByText(/Please ___ the q-2\./)).toBeNull()
-    // 正解の選択肢は本文つきで出す（キーだけでは思い出せない）
-    expect(items[0]!.textContent).toContain('正解: A. submit')
+  })
+
+  // T-215（Q-54）: 復習開始前に正解の選択肢が見えるとネタバレになり再テスト価値が下がる。
+  // 「解説」を開くまでは正解の選択肢テキストを出さない
+  it('正解の選択肢は即時表示せず、解説を開いたときだけ出す', async () => {
+    const db = newDb()
+    await recordAttempt(db, { questionId: 'q-1', mode: 'solo', isCorrect: false, responseMs: 5000 })
+
+    render(<WrongAnswersScreen db={db} questionPool={[part5('q-1')]} />)
+    const item = (await screen.findAllByTestId('wrong-answer-item'))[0]!
+
+    expect(item.textContent).not.toContain('正解: A. submit')
+    fireEvent.click(screen.getByRole('button', { name: '解説' }))
+    expect(item.textContent).toContain('正解: A. submit')
+    fireEvent.click(screen.getByRole('button', { name: '解説を閉じる' }))
+    expect(item.textContent).not.toContain('正解: A. submit')
   })
 
   it('解説はたたんだ状態から開ける', async () => {
@@ -103,6 +117,29 @@ describe('WrongAnswersScreen', () => {
     expect(await screen.findByText('q-1の解説')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '解説を閉じる' }))
     expect(screen.queryByText('q-1の解説')).toBeNull()
+  })
+
+  // T-215（Q-49）: 走査上限3000から畳んだ全誤答を一括レンダーすると、数百件規模で重くなる。
+  // ページングで初期表示件数を絞り、「もっと見る」で追加表示する
+  describe('ページング（T-215・Q-49）', () => {
+    it('一覧はページ単位で表示し、「もっと見る」で追加表示する', async () => {
+      const db = newDb()
+      const ids = Array.from({ length: 25 }, (_, i) => `q-${i}`)
+      const pool = ids.map((id) => part5(id))
+      for (const id of ids) {
+        await recordAttempt(db, { questionId: id, mode: 'solo', isCorrect: false, responseMs: 1000 })
+      }
+
+      render(<WrongAnswersScreen db={db} questionPool={pool} />)
+      await screen.findAllByTestId('wrong-answer-item')
+
+      // 初期表示は全25件ではなく1ページ分に絞られる
+      expect(screen.getAllByTestId('wrong-answer-item').length).toBeLessThan(25)
+
+      const more = screen.getByRole('button', { name: /もっと見る/ })
+      fireEvent.click(more)
+      await waitFor(() => expect(screen.getAllByTestId('wrong-answer-item')).toHaveLength(25))
+    })
   })
 
   it('Partで絞り込める', async () => {

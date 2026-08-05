@@ -314,6 +314,34 @@ describe('DiagnosticScreen: audio_qa の正答応答リーク防止', () => {
   })
 })
 
+// T-218（Q-55）: リスニング15問が毎問「タップして開始」を要していた。アプリの最初の体験
+// （診断）で15回の追加タップが入っていたため、DrillScreenのT-110（初回成功後は自動再生）と
+// 同じ方式を適用する
+describe('DiagnosticScreen: リスニング設問の自動再生（T-218。T-110相当）', () => {
+  it('1問目は開始タップが必要だが、2問目以降のリスニング設問はタップなしで自動再生する', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={buildPool()} />)
+    await startDiagnostic('')
+
+    // turn0（1/30）はL（audio_qa）。初回は開始タップが必要
+    await screen.findByText('1/30')
+    expect(screen.getByText('タップして開始')).toBeTruthy()
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(1))
+    fireEvent.click(await screen.findByText('a'))
+
+    // turn1（2/30）はR（text_blank）。音声ゲート自体が無い
+    await screen.findByText('2/30')
+    fireEvent.click(screen.getByText('a'))
+
+    // turn2（3/30）は2問目のL。「タップして開始」を出さずに自動再生する
+    await screen.findByText('3/30')
+    expect(screen.queryByText('タップして開始')).toBeNull()
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(2))
+  })
+})
+
 describe('DiagnosticScreen: 音声再生失敗リカバリ（T-70）', () => {
   it('再生失敗でボタンが「もう一度試す」に変わり、「音声なしで解答する」で解答へ進める', async () => {
     const db = newDb()

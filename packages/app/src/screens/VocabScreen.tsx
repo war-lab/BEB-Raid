@@ -851,6 +851,12 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   }
 
   if (triageIndex < triageQueue.length && triageQuestion) {
+    // T-219（Q-60）: 「仕分け 1/645」のように総数をいきなり分母に出すと完走前提に見えて
+    // 負荷感が強い。1回分の区切り（TRIAGE_BATCH_SIZE）を分母にする。総数が1区切り以下の
+    // ときは従来どおり総数のみを分母にする（区切り表記が冗長にならないようにする）
+    const triageBatchStart = Math.floor(triageIndex / TRIAGE_BATCH_SIZE) * TRIAGE_BATCH_SIZE
+    const triageBatchTotal = Math.min(TRIAGE_BATCH_SIZE, triageQueue.length - triageBatchStart)
+    const triageBatchPosition = triageIndex - triageBatchStart + 1
     return (
       <ScreenLayout
         // docs/26 A-1: 仕分けは操作ゾーンの中身が固定（知らない/知ってるの2つ）で、カードを
@@ -859,7 +865,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         status={
           <>
             <p>
-              仕分け {triageIndex + 1}/{triageQueue.length}
+              仕分け {triageBatchPosition}/{triageBatchTotal}
+              {triageQueue.length > TRIAGE_BATCH_SIZE && `（全${triageQueue.length}語）`}
             </p>
             {/* 進行中の脱出導線（復習モードと同様。T-162で確認を挟む） */}
             {abortDialog}

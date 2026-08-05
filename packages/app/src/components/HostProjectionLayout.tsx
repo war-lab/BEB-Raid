@@ -35,9 +35,23 @@ interface Props {
   children: ReactNode
   /** 画面下端の進行ボタン・注記 */
   action: ReactNode
+  /**
+   * 中止導線（T-217・Q-51）。渡した場合のみヘッダに「中止」ボタンを出す。
+   * presenting/question/standingsの各フェーズは進行ボタンが用途固定（次の問題へ・結果発表等）
+   * のため、中止はヘッダ側に独立して置く。確認ダイアログの要否は呼び出し側の責務とする
+   * （ここでは押されたことをそのまま伝えるだけ）
+   */
+  onAbort?: () => void
 }
 
-export function HostProjectionLayout({ meta, remainingSec, totalSec, children, action }: Props) {
+export function HostProjectionLayout({
+  meta,
+  remainingSec,
+  totalSec,
+  children,
+  action,
+  onAbort,
+}: Props) {
   const hasTimer = typeof remainingSec === 'number'
   const isLow = hasTimer && remainingSec <= RING_LOW_SEC
   return (
@@ -53,6 +67,11 @@ export function HostProjectionLayout({ meta, remainingSec, totalSec, children, a
           >
             残り{remainingSec}秒
           </p>
+        )}
+        {onAbort && (
+          <button type="button" className="battle-host-stage__abort" onClick={onAbort}>
+            中止
+          </button>
         )}
       </header>
       <section className="battle-host-stage__body">{children}</section>
