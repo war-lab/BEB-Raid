@@ -320,7 +320,10 @@ export class WebAudioPlayer implements AudioPlayer {
   /** キャッシュ→フォールバックfetchで Blob を取得する（rate経路。デコード不要） */
   private async loadBlob(src: string): Promise<Blob> {
     const cachedBlob = await this.packCache.get(src)
-    return cachedBlob ?? (await this.fetchAudio(src))
+    if (cachedBlob) return cachedBlob
+    const blob = await this.fetchAudio(src)
+    await this.writeBackToCache(src, blob)
+    return blob
   }
 
   /** キャッシュファースト（メモリ→PackCache→fetch）で AudioBuffer を取得する */
@@ -332,11 +335,28 @@ export class WebAudioPlayer implements AudioPlayer {
     if (!ctx) throw new Error('AudioContext が未初期化です')
 
     const cachedBlob = await this.packCache.get(src)
-    const blob = cachedBlob ?? (await this.fetchAudio(src))
+    let blob = cachedBlob
+    if (!blob) {
+      blob = await this.fetchAudio(src)
+      await this.writeBackToCache(src, blob)
+    }
     const arrayBuffer = await blob.arrayBuffer()
     const buffer = await ctx.decodeAudioData(arrayBuffer)
     this.cacheBuffer(src, buffer)
     return buffer
+  }
+
+  /**
+   * fetchフォールバックで取得したBlobをPackCacheへ書き戻す（T-183・Q-13）。
+   * 書き戻しに失敗しても再生自体は継続する（キャッシュ書き込みは付随処理であり、
+   * 失敗しても次回同じmissを踏むだけで再生を止める理由にはならない）
+   */
+  private async writeBackToCache(src: string, blob: Blob): Promise<void> {
+    try {
+      await this.packCache.put(src, blob)
+    } catch {
+      // 無視（次回のfetchフォールバックで再試行される）
+    }
   }
 
   private cacheBuffer(src: string, buffer: AudioBuffer): void {

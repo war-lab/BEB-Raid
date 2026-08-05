@@ -108,6 +108,9 @@ class FakePackCache implements PackCache {
     this.getCalls.push(url)
     return this.blobs.get(url) ?? null
   }
+  async put(url: string, blob: Blob): Promise<void> {
+    this.blobs.set(url, blob)
+  }
   async addAll(): Promise<void> {}
   async delete(): Promise<void> {}
   async keys(): Promise<string[]> {
@@ -260,6 +263,38 @@ describe('WebAudioPlayer', () => {
 
     ctx.createdSources[0]!.end()
     await done
+  })
+
+  // 何を防ぐか: フォールバック取得した内容をキャッシュへ書き戻さないと、オンラインの間は
+  // fetchでしのげてしまい気づかないまま、次回以降も同じmissを繰り返す。
+  // オフラインに入った瞬間に再生できなくなる（T-183 Q-13）
+  it('T-183 Q-13: AudioBuffer経路のフォールバック取得結果をPackCacheへ書き戻す', async () => {
+    const { player, ctx, packCache } = createPlayer({ 'a.mp3': 1 }, { seedCache: false })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3')
+    await tick()
+    ctx.createdSources[0]!.end()
+    await done
+
+    expect(await packCache.get('a.mp3')).not.toBeNull()
+  })
+
+  it('T-183 Q-13: rate経路のフォールバック取得結果をPackCacheへ書き戻す', async () => {
+    const { player, ctx, packCache, audioElements } = createPlayer(
+      { 'a.mp3': 1 },
+      { seedCache: false },
+    )
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3', { rate: 0.85 })
+    await tick()
+    audioElements[0]!.end()
+    await done
+
+    expect(await packCache.get('a.mp3')).not.toBeNull()
   })
 })
 

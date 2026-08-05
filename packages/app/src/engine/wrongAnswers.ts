@@ -48,24 +48,35 @@ export interface WrongAnswerSummary {
  */
 export const WRONG_ANSWER_REVIEW_LIMIT = 20
 
-/** 内部集計用の可変レコード */
-interface Draft {
-  entry: WrongAnswerEntry
-  /** 最後の解答（正誤を問わない）の時刻。recovered の判定に使う */
-  lastAnsweredAt: number
+/** 内部集計用の可変レコード（問題単位。正解・誤答それぞれの最新時刻をanansweredAtで追う） */
+interface Bucket {
+  question: Question
+  subQuestion?: SubQuestion
+  /** その問題への誤答一覧（1件以上あるものだけentries化する） */
+  wrongAttempts: AttemptRecord[]
+  /** 正解attemptsの中で最も新しいanansweredAt（無ければnull） */
+  latestCorrectAt: number | null
 }
 
 /**
  * 誤答を問題単位に畳む。
  *
- * @param attempts 走査対象の解答ログ（順序は問わない。呼び出し側が件数を絞る）
+ * recovered（その後できるようになったか）は「正解の最新answeredAtが、誤答の最新answeredAt
+ * 以降か」で判定する。走査中の途中経過（Draft）ではなく各attemptのanansweredAtタイムスタンプ
+ * だけで決まるため、attemptsを配列のどの順序で渡しても結果は変わらない
+ * （旧実装は「最初に処理したattemptが正解か誤答か」に依存するバグがあり、唯一の呼び出し元
+ * WrongAnswersScreenが新しい順=`orderBy('answeredAt').reverse()`で渡すため、本番では
+ * recoveredが実質常にfalseになっていた。T-186）
+ *
+ * @param attempts 走査対象の解答ログ（順序は問わない。answeredAtで最新を判定するため、
+ *   呼び出し側がどの並び順で渡しても結果は変わらない。件数を絞るのは呼び出し側の責務のまま）
  * @param questions 問題lookup（パック単位。サブ設問は含まないので親から解決する）
  */
 export function collectWrongAnswers(
   attempts: readonly AttemptRecord[],
   questions: QuestionLookup,
 ): WrongAnswerSummary {
-  const drafts = new Map<string, Draft>()
+  const buckets = new Map<string, Bucket>()
   let unresolvedCount = 0
 
   for (const attempt of attempts) {
@@ -74,46 +85,45 @@ export function collectWrongAnswers(
       if (!attempt.isCorrect) unresolvedCount += 1
       continue
     }
-    const existing = drafts.get(attempt.questionId)
+    let bucket = buckets.get(attempt.questionId)
+    if (!bucket) {
+      bucket = {
+        question: resolved.question,
+        subQuestion: resolved.subQuestion,
+        wrongAttempts: [],
+        latestCorrectAt: null,
+      }
+      buckets.set(attempt.questionId, bucket)
+    }
     if (attempt.isCorrect) {
       // 正解は「その後できるようになったか」の判定にのみ使う（一覧には載せない）
-      if (existing && attempt.answeredAt >= existing.lastAnsweredAt) {
-        existing.lastAnsweredAt = attempt.answeredAt
-        existing.entry.recovered = true
+      if (bucket.latestCorrectAt === null || attempt.answeredAt >= bucket.latestCorrectAt) {
+        bucket.latestCorrectAt = attempt.answeredAt
       }
-      continue
-    }
-    if (!existing) {
-      drafts.set(attempt.questionId, {
-        lastAnsweredAt: attempt.answeredAt,
-        entry: {
-          attemptQuestionId: attempt.questionId,
-          question: resolved.question,
-          subQuestion: resolved.subQuestion,
-          wrongCount: 1,
-          lastWrongAt: attempt.answeredAt,
-          recovered: false,
-          lastWrongTimeout: attempt.isTimeout,
-          lastWrongGuess: attempt.isGuess,
-        },
-      })
-      continue
-    }
-    existing.entry.wrongCount += 1
-    if (attempt.answeredAt >= existing.entry.lastWrongAt) {
-      existing.entry.lastWrongAt = attempt.answeredAt
-      existing.entry.lastWrongTimeout = attempt.isTimeout
-      existing.entry.lastWrongGuess = attempt.isGuess
-    }
-    if (attempt.answeredAt >= existing.lastAnsweredAt) {
-      existing.lastAnsweredAt = attempt.answeredAt
-      existing.entry.recovered = false
+    } else {
+      bucket.wrongAttempts.push(attempt)
     }
   }
 
-  const entries = [...drafts.values()]
-    .map((d) => d.entry)
-    .sort((a, b) => b.lastWrongAt - a.lastWrongAt)
+  const entries: WrongAnswerEntry[] = []
+  for (const [questionId, bucket] of buckets) {
+    if (bucket.wrongAttempts.length === 0) continue // 誤答が無ければ一覧に載せない
+    const lastWrong = bucket.wrongAttempts.reduce((latest, a) =>
+      a.answeredAt >= latest.answeredAt ? a : latest,
+    )
+    entries.push({
+      attemptQuestionId: questionId,
+      question: bucket.question,
+      subQuestion: bucket.subQuestion,
+      wrongCount: bucket.wrongAttempts.length,
+      lastWrongAt: lastWrong.answeredAt,
+      recovered: bucket.latestCorrectAt !== null && bucket.latestCorrectAt >= lastWrong.answeredAt,
+      lastWrongTimeout: lastWrong.isTimeout,
+      lastWrongGuess: lastWrong.isGuess,
+    })
+  }
+
+  entries.sort((a, b) => b.lastWrongAt - a.lastWrongAt)
   return { entries, unresolvedCount }
 }
 
