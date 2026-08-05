@@ -322,6 +322,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   }
 
   async function handleNext() {
+    // T-198（Q-7）: startedAtだけ更新してelapsedSecを残すと、一度60秒を超えた設問の後は
+    // 以降すべての設問で「1分超」表示に固着する（tick用effectはelapsedSec>=60で早期returnし
+    // 自己回復しない）。設問・パッセージを切り替えるたびに両方リセットする
     if (answers.size >= subQuestions.length) {
       const nextSnapshot = await advanceSession(db, snapshot!)
       useSessionStore.setState({ snapshot: nextSnapshot })
@@ -339,12 +342,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       setActiveIndex(0)
       setActivePassageIndex(0)
       setStartedAt(now())
+      setElapsedSec(0)
       return
     }
     const next = findNextUnanswered(activeIndex, answers)
     if (next !== null) {
       setActiveIndex(next)
       setStartedAt(now())
+      setElapsedSec(0)
     }
   }
 
