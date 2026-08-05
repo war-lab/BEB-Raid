@@ -224,6 +224,29 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     expect(screen.getByText(/頻出度ランク（Sが最も頻出/)).toBeTruthy()
   })
 
+  // T-269（29のQ-39・17節）: SRS自己評価3ボタン（もう一回/OK/余裕）の説明はDrillScreen側
+  // （T-210）にのみ付き、同一UIを持つVocabScreenには無かった。DrillScreenと同文言で揃える
+  it('T-269: SRS自己評価（もう一回/OK/余裕）の意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'zeta')
+    const questions = [vocabQuestion('zeta'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('zeta')
+    fireEvent.click(screen.getByText('zeta の意味'))
+    expect(screen.getByText('もう一回')).toBeTruthy()
+
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/間隔を短くしてすぐに復習／OK＝通常の間隔で復習/)).toBeNull()
+    fireEvent.click(screen.getByText('間隔について'))
+    expect(
+      screen.getByText(
+        /間隔を短くしてすぐに復習／OK＝通常の間隔で復習／余裕＝間隔を大きく広げて復習/,
+      ),
+    ).toBeTruthy()
+  })
+
   it('不正解を選ぶとattemptsにisCorrect=falseで記録される（グレードは自己申告のまま独立）', async () => {
     const db = newDb()
     await seedDueCard(db, 'epsilon')
