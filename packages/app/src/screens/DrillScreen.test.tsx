@@ -1201,6 +1201,63 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     expect(attempt.isCorrect).toBe(true)
   })
 
+  // T-210(Q-39・J-107): 頻出度ランク・SRS間隔（もう一回/OK/余裕）の意味はtitle属性のみ
+  // （hover専用）で提供されており、タッチ端末では説明に到達できなかった
+  it('T-210: 頻出度ランクの意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/頻出度ランク（Sが最も頻出/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '頻出度ランク Sの説明を表示' }))
+    expect(screen.getByText(/頻出度ランク（Sが最も頻出/)).toBeTruthy()
+  })
+
+  it('T-210: SRS間隔（もう一回/OK/余裕）の意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('submit の意味'))
+    expect(screen.getByText('もう一回')).toBeTruthy()
+
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/間隔を短くしてすぐに復習／OK＝通常の間隔で復習/)).toBeNull()
+    fireEvent.click(screen.getByText('間隔について'))
+    expect(
+      screen.getByText(
+        /間隔を短くしてすぐに復習／OK＝通常の間隔で復習／余裕＝間隔を大きく広げて復習/,
+      ),
+    ).toBeTruthy()
+  })
+
   it('解答前はフレーズがDOMに存在しない（文脈からの推測を防ぐ。2026-07-29）', async () => {
     const db = newDb()
     await db.srsCards.put({

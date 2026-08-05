@@ -655,6 +655,26 @@ describe('ResultScreen: 解答の質（当て勘・速度不足）', () => {
     // 500msの正解は当て勘ではない（当て勘は誤答限定）
     expect(screen.getByTestId('result-timeout-count').textContent).toBe('速度不足 0')
   })
+
+  // T-210(Q-39・J-107): 「当て勘」「速度不足」の定義はtitle属性のみ（hover専用）で提供されて
+  // おり、タッチ端末では説明に到達できなかった。タップで開閉できる説明に置き換える
+  it('T-210: 「当て勘」「速度不足」の定義をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    await answerAndRecord(db, snapshot, { isCorrect: false, basePoints: 0, responseMs: 1500 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+    await waitFor(() =>
+      expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 1'),
+    )
+
+    // 説明は既定で閉じている。タイルのtextContent自体は変えない（既存アサーションを壊さない）
+    expect(screen.queryByText(/2秒未満の誤答。弱点統計では重みを半分にして数えます/)).toBeNull()
+    fireEvent.click(screen.getByText('「当て勘」「速度不足」とは'))
+    expect(screen.getByText(/2秒未満の誤答。弱点統計では重みを半分にして数えます/)).toBeTruthy()
+    expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 1')
+  })
 })
 
 describe('ResultScreen: ボスHPバー（docs/20 3.4節リザルト行「ボスHPバー削れ」）', () => {

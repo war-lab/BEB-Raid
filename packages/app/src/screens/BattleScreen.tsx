@@ -4,7 +4,11 @@
 // BattleRoomDOはコンテンツ非依存（questionIdと換算点のみ）のため、問題文・選択肢の解決・
 // 正誤判定はこの画面（各参加端末のローカルパック）が担う（3.2節）。
 import { useEffect, useRef, useState } from 'react'
-import type { BattleServerMessage, Question } from '@beb-raid/shared-schema'
+import {
+  isBattleCloseReason,
+  type BattleServerMessage,
+  type Question,
+} from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import { basePoints, difficultyToRatingSpace, DEFAULT_INITIAL_RATING } from '../engine/rating'
@@ -114,6 +118,13 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const answerRecords = useRef<AnsweredRecord[]>([])
   const finalized = useRef(false)
   /**
+   * T-212(Q-44): 一度でもroomStateを受信した（＝実際に接続できた）かどうか。
+   * closeReasonが未知（通信断・サーバー到達不可・ルーム不在の一部はいずれも空文字で
+   * 区別が付かない）のとき、接続済みからの切断（「接続が切れました」）と、そもそも
+   * 接続できなかった（「接続できませんでした」）を出し分けるために使う
+   */
+  const hasConnectedRef = useRef(false)
+  /**
    * attempts記録の直列化チェーン。解答のたびにここへ繋いで記録する（最終リザルト受信まで
    * 貯めておくと、ホスト切断・通信断でclosedへ落ちた回の解答が1件も残らないため。
    * attemptsは分析の基盤で欠落させない＝CLAUDE.mdの不変条件）。
@@ -187,6 +198,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   useEffect(() => {
     battleSocket.onMessage((message: BattleServerMessage) => {
       if (message.type === 'roomState') {
+        hasConnectedRef.current = true
         setParticipants(message.participants.map((p) => p.displayName))
         setPhase((p) => (p === 'connecting' ? 'lobby' : p))
         return
@@ -302,6 +314,8 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
       return
     }
     setErrorMessage(null)
+    // T-212: 再試行のたびに接続実績をリセットする（前回の失敗を今回の判定に持ち越さない）
+    hasConnectedRef.current = false
     setPhase('connecting')
     try {
       const [profile, totalRating] = await Promise.all([
@@ -632,11 +646,35 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   // V-13（docs/25 4.4節）: 文言はbattleCloseMessage.tsのまま変えず、面をカード化して
   // 見出し（title）と本文（body）の階層を付けるだけに留める。見出しはステータス帯から
   // カード内へ移し、本文と隣り合わせて読めるようにする（重複表示はしない）
-  const closeMessage = resolveBattleCloseMessage(closeReason, 'participant')
+  //
+  // T-212(Q-44): reasonが未知（通信断・サーバー到達不可はブラウザのWebSocket APIでは
+  // いずれも空文字にしかならず区別できない）かつ一度もroomStateを受信していない
+  // （＝接続実績が無い）場合は、「切れた」ではなく「そもそも繋がらなかった」と伝える。
+  // navigator.onLineでオフラインかどうかだけは区別できるため、その旨を添える
+  const knownReason = isBattleCloseReason(closeReason)
+  const closeMessage =
+    !knownReason && !hasConnectedRef.current
+      ? {
+          title: '接続できませんでした',
+          body: navigator.onLine
+            ? 'ルームコードが違っているか、サーバー側に問題が発生している可能性があります。ルームコードを主催者に確認してください。'
+            : '通信がオフラインになっています。電波の届く場所でもう一度お試しください。',
+        }
+      : resolveBattleCloseMessage(closeReason, 'participant')
   return (
     <ScreenLayout
       status={<p>イベントバトル</p>}
-      action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+      action={
+        <>
+          {/* T-212(Q-44): 従来は「ホームへ戻る」のみで、再試行にはコード再入力からの
+              やり直しが必要だった。codeInputは保持したままentryへ戻すことで、
+              コード再入力なしに再試行（または誤りの修正）ができるようにする */}
+          <PrimaryButton onClick={() => setPhase('entry')}>もう一度試す</PrimaryButton>
+          <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+            ホームへ戻る
+          </button>
+        </>
+      }
     >
       <div className="battle-closed">
         <p className="battle-closed__title">{closeMessage.title}</p>

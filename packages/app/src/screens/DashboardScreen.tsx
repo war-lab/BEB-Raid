@@ -175,7 +175,19 @@ export function DashboardScreen({ db, questionPool }: Props) {
     forecast === null ||
     growthRank === null
   ) {
-    return null
+    // T-211(Q-59): return nullのままだと読み込み中に白画面になる。RaidScreenの
+    // 読み込み中表示と揃える
+    return (
+      <ScreenLayout
+        action={
+          <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+            ホームへ
+          </button>
+        }
+      >
+        <p>読み込み中…</p>
+      </ScreenLayout>
+    )
   }
 
   const rankProgress = growthRankProgress(growthRank)

@@ -43,6 +43,7 @@ import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
+import { InfoDisclosure } from '../components/InfoDisclosure'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { usePendingCommit } from '../hooks/usePendingCommit'
@@ -344,7 +345,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     )
   }
 
-  if (reviewQueue === null || triageQueue === null) return null
+  if (reviewQueue === null || triageQueue === null) {
+    // T-211(Q-59): return nullのままだと読み込み中に白画面になる。RaidScreenの
+    // 読み込み中表示と揃える
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}
+      >
+        <p>読み込み中…</p>
+      </ScreenLayout>
+    )
+  }
 
   function handleSelectChoice(key: string) {
     if (selectedChoiceKey !== null || dontKnow) return
@@ -714,13 +725,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
             DOMに出さない（visibility:hidden では退行をテストで検出できない） */}
         <div className="vocab-card vocab-card--recall">
           {reviewQuestion?.freqRank && (
-            <span
+            // T-210(Q-39・J-107): titleのみ（hover専用）ではタッチ端末で読めないため、
+            // タップで開閉する説明に置き換える。titleはデスクトップ併用のため残す
+            <InfoDisclosure
               className="vocab-card__rank"
               data-rank={reviewQuestion.freqRank}
               title={FREQ_RANK_TITLE}
+              aria-label={`頻出度ランク ${reviewQuestion.freqRank}の説明を表示`}
+              label={reviewQuestion.freqRank}
             >
-              {reviewQuestion.freqRank}
-            </span>
+              {FREQ_RANK_TITLE}
+            </InfoDisclosure>
           )}
           <p className="vocab-card__word">{front}</p>
           {answered ? (
@@ -831,13 +846,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         <SwipeCard onSwipeRight={() => void handleKnown()} onSwipeLeft={() => void handleUnknown()}>
           <div className="vocab-card">
             {triageQuestion.freqRank && (
-              <span
+              // T-210(Q-39・J-107): titleのみ（hover専用）ではタッチ端末で読めないため、
+              // タップで開閉する説明に置き換える。titleはデスクトップ併用のため残す
+              <InfoDisclosure
                 className="vocab-card__rank"
                 data-rank={triageQuestion.freqRank}
                 title={FREQ_RANK_TITLE}
+                aria-label={`頻出度ランク ${triageQuestion.freqRank}の説明を表示`}
+                label={triageQuestion.freqRank}
               >
-                {triageQuestion.freqRank}
-              </span>
+                {FREQ_RANK_TITLE}
+              </InfoDisclosure>
             )}
             <p className="vocab-card__phrase">
               <HighlightedPhrase
@@ -853,13 +872,21 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
 
   return (
     <ScreenLayout action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}>
-      <p>語彙SRSが終了しました</p>
-      {completionStats && (
-        <CompletionCard
-          countLabel={`今日の実施数 ${completionStats.count}問`}
-          streakDays={completionStats.streakDays}
-          message="この調子で続けましょう"
-        />
+      {/* T-214(Q-48): 語彙データ0件（パック未取得等）でも「終了しました」と表示していたが、
+          それは完了ではなく素材が無いだけである。ShadowingScreenの出し分けに揃える */}
+      {vocabQuestions.length === 0 ? (
+        <p>語彙データがありません</p>
+      ) : (
+        <>
+          <p>語彙SRSが終了しました</p>
+          {completionStats && (
+            <CompletionCard
+              countLabel={`今日の実施数 ${completionStats.count}問`}
+              streakDays={completionStats.streakDays}
+              message="この調子で続けましょう"
+            />
+          )}
+        </>
       )}
     </ScreenLayout>
   )

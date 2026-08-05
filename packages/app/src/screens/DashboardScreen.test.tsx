@@ -42,6 +42,15 @@ describe('DashboardScreen: データ0件・1件でも壊れない', () => {
     expect(await screen.findByText(/まだ記録がありません/)).toBeTruthy()
   })
 
+  // T-211(Q-59): データ読込中（growthPoints等がnullの間）はreturn nullで白画面になっていた。
+  // マウント直後（load()のPromiseが解決する前）の同期描画を見て白画面でないことを確認する
+  it('T-211: データ読み込み中は白画面ではなく読み込み中の表示を出す', () => {
+    const db = newDb()
+    const { container } = render(<DashboardScreen db={db} questionPool={[]} />)
+    expect(container.textContent).not.toBe('')
+    expect(screen.getByText('読み込み中…')).toBeTruthy()
+  })
+
   it('T-75: 「ホームへ」ボタンでホーム画面へ戻れる', async () => {
     const db = newDb()
     useAppStore.setState({ screen: 'dashboard' })

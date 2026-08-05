@@ -46,6 +46,20 @@ describe('App（配線確認）', () => {
     expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
   })
+
+  // T-211(Q-40): 起動チェック完了（hasProfile・パック読込等のPromise.all解決）まで
+  // return nullだと、index.htmlの静的スプラッシュがReactマウントの瞬間に#rootごと
+  // 消え、以降は完全な白画面になる。マウント直後（起動チェック完了前）の同期描画を
+  // 確認して白画面でないことを保証する
+  it('T-211: 起動チェック完了前は白画面ではなく読み込み中の表示を出す', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    const { container } = render(<App />)
+    // 起動チェックのPromiseはまだ解決していないはずの、マウント直後の同期描画を見る
+    expect(container.textContent).not.toBe('')
+    expect(screen.getByText('読み込み中…')).toBeTruthy()
+    // 起動チェック完了後は通常どおりホーム画面まで到達できる
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
+  })
 })
 
 describe('App: 結果画面の振り分け（M4・T-128）', () => {
