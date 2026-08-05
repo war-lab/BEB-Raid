@@ -314,6 +314,24 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     expect(await screen.findByText(/dbVersion/)).toBeTruthy()
   })
 
+  // T-207（Q-45）: JSONでないファイルを選ぶとJSON.parseの英語メッセージ
+  // （"Unexpected token..."）がそのまま表示されていた。importAll由来のメッセージは
+  // 既に日本語のため、JSON.parse失敗時だけが英語のまま生表示される不整合があった
+  it('JSONとして読み込めないファイルは日本語のエラーになる（英語のJSON.parseメッセージを出さない）', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File(['これはJSONではない'], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    const message = await screen.findByRole('status')
+    expect(message.textContent).not.toMatch(/Unexpected token/i)
+    expect(message.textContent).toMatch(/[ぁ-んァ-ヶ一-龠]/) // 日本語であること
+  })
+
   function emptyBackup(dbVersion: number, overrides: Record<string, unknown[]> = {}) {
     return {
       formatVersion: 1,
@@ -423,6 +441,65 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     await vi.waitFor(async () => {
       expect((await db.settings.get('noEarphoneMode'))?.value).toBe(false)
     })
+  })
+})
+
+describe('SettingsScreen: 読込失敗時のガードとエクスポート失敗ハンドリング（T-208・Q-52）', () => {
+  // 何を防ぐか: load()にcatchが無いと、読込失敗時にトグルがReactの初期値（既定値）の
+  // まま描画される。この状態でユーザーがトグルを操作すると「既定値の反転」がDBの実際の値を
+  // 確認せずに書き込まれ、実際の設定値（この試験ではDB上は false）を静かに上書きしてしまう
+  // （T-106で塞いだ経路と同型の残り）。読込失敗時はトグルを無効化し、書き込み自体を防ぐ
+  it('load()が失敗すると既定値を表示したままトグルは無効化され、操作してもDBを上書きしない', async () => {
+    const db = newDb()
+    // DB上の実際の値はfalse（Reactの初期値=trueとは食い違わせる）
+    await db.settings.put({ key: 'hapticsEnabled', value: false })
+    const cache = new FakePackCache()
+    cache.usage.mockRejectedValueOnce(new Error('boom'))
+
+    render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
+
+    // 読込失敗時はsettings-loadedマーカーが立たないため、無効化を直接待つ
+    await vi.waitFor(() => {
+      expect((screen.getByLabelText(/ハプティクス/) as HTMLInputElement).disabled).toBe(true)
+    })
+
+    // 無効化されたチェックボックスはクリックしても操作を受け付けない
+    fireEvent.click(screen.getByLabelText(/ハプティクス/))
+    expect((await db.settings.get('hapticsEnabled'))?.value).toBe(false)
+  })
+
+  it('エクスポート失敗時はエラーメッセージを出す（無反応・unhandled rejectionにしない）', async () => {
+    const db = newDb()
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: () => {
+        throw new Error('boom')
+      },
+      revokeObjectURL: vi.fn(),
+    })
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('エクスポート'))
+
+    const message = await screen.findByRole('status')
+    expect(message.textContent).toContain('失敗')
+  })
+
+  it('エクスポート成功時に完了メッセージを出す', async () => {
+    const db = newDb()
+    const createObjectURL = vi.fn((blob: Blob) => `blob:mock:${blob.size}`)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('エクスポート'))
+
+    expect(await screen.findByText('エクスポートしました。')).toBeTruthy()
   })
 })
 

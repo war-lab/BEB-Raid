@@ -685,7 +685,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     fireEvent.click(screen.getByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 正誤表示は保持され、attemptは書かれていない（ロールバック済み）
     expect(await db.attempts.count()).toBe(0)
@@ -697,7 +697,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     expect(await db.attempts.count()).toBe(1)
     await waitFor(() =>
       expect(
-        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        screen.queryByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeNull(),
     )
     spy.mockRestore()
@@ -728,7 +728,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     render(<ReadingScreen db={db} />)
     fireEvent.click(screen.getByText('a'))
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
 
     // 2回のクリックを**同じ act 内で**発火させる。fireEvent を2回呼ぶとその間に
@@ -744,7 +744,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     // 1件目の再試行が完了した後も増えない（2件目が遅れて走らない）
     await waitFor(() =>
       expect(
-        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        screen.queryByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeNull(),
     )
     expect(await db.attempts.count()).toBe(1)
@@ -771,7 +771,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
       render(<ReadingScreen db={db} />)
       fireEvent.click(screen.getByText('a'))
       expect(
-        await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeTruthy()
 
       // エラー表示のまま10分放置してから再試行する
@@ -831,7 +831,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     render(<ReadingScreen db={db} />)
     fireEvent.click(screen.getByText('a'))
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
 
     expect(screen.queryByText('次へ')).toBeNull()

@@ -842,4 +842,23 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     socket.emitMessage({ type: 'standings', entries: [{ displayName: '太郎', totalPoints: 0 }] })
     expect(await screen.findByTestId('battle-standings')).toBeTruthy()
   })
+
+  // T-207（Q-56）: 「最新パックを取得してから参加してください」に対応する操作がアプリ内に
+  // 存在しない（パック同期は起動時とonline復帰時の自動のみ）。文言を実装に合わせる
+  it('ロビーの案内文はパック同期が自動であることに合わせた文言で、手動操作を促さない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+
+    expect(screen.queryByText(/取得してから参加してください/)).toBeNull()
+    expect(
+      await screen.findByText(/問題パックは自動で同期されます（未取得の問題は0点で流れます）/),
+    ).toBeTruthy()
+  })
 })

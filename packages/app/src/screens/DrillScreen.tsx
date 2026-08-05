@@ -623,7 +623,9 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     options?: { resyncSnapshot?: boolean; retry?: () => Promise<void> },
   ) {
     console.error('[DrillScreen] 解答の保存に失敗', err)
-    setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
+    // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+    // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
+    setSaveError('解答を保存できませんでした。空き容量を確認してください')
     // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
     // 従来は setResult(null) で正誤表示を取り消して再解答を求めていたが、正解が既に
     // 見えている状態で選び直させることになり、操作の意味がなかった。

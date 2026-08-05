@@ -19,6 +19,12 @@ export function SwipeCard({ children, onSwipeRight, onSwipeLeft }: Props) {
 
   function handlePointerDown(e: PointerEvent<HTMLDivElement>) {
     startRef.current = { x: e.clientX, y: e.clientY }
+    // T-209（Q-47）: キャプチャせずにいると、揺れる車内で指がカード外へ出て離した際に
+    // pointerupがカードへ届かず、カードが途中位置（translateX固定）で固まる、または
+    // スワイプが不成立になる。ポインタを明示的にキャプチャし、カード外で離れても
+    // pointermove/pointerup/pointercancelを確実にこの要素で受け取れるようにする。
+    // 未対応環境（jsdom等）でも落ちないようoptional chainingで呼ぶ
+    e.currentTarget.setPointerCapture?.(e.pointerId)
   }
 
   function handlePointerMove(e: PointerEvent<HTMLDivElement>) {

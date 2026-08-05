@@ -92,6 +92,14 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
   // handleImportFile側から参照できない）
   const cancelledRef = useRef(false)
 
+  /**
+   * T-208（Q-52）: 失敗時は呼び出し元（マウント時effect・handleImportFile）に
+   * 例外を伝播させる（従来どおり自身では握らない）。マウント時effect側は`.catch()`で
+   * 受けて日本語の案内を出し、`loaded`をtrueにしないことで各トグルのdisabledガード
+   * （`!loaded`）を効かせる。ここで自前にtry/catchを持つと、react-hooks/set-state-in-effect
+   * が「catch節はawait前でも到達しうる」と保守的に判定し誤検知するため、
+   * 呼び出し元のPromiseチェーン側でハンドリングする形にしている
+   */
   async function load() {
     const [
       profile,
@@ -152,7 +160,15 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
 
   useEffect(() => {
     cancelledRef.current = false
-    void load()
+    // T-208（Q-52）: load()にcatchが無いと、読込失敗時にトグル類がReactの初期値
+    // （既定値。DBの実値と一致するとは限らない）のまま描画される。ここで拾って
+    // `loaded`をfalseのままにしておくことで各トグルのdisabledガード（`!loaded`）が効き、
+    // 「既定値の反転」でDBの実値を上書きする事故を防ぐ（T-106と同型の経路の残り）
+    load().catch((e: unknown) => {
+      if (cancelledRef.current) return
+      console.error('[SettingsScreen] 設定の読み込みに失敗', e)
+      setMessage('設定の読み込みに失敗しました。ページを再読み込みしてください。')
+    })
     return () => {
       cancelledRef.current = true
     }
@@ -236,15 +252,23 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
   }
 
   async function handleExport() {
-    const backup = await exportAll(db)
-    const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    const date = new Date(now()).toISOString().slice(0, 10)
-    anchor.href = url
-    anchor.download = `beb-raid-backup-${date}.json`
-    anchor.click()
-    URL.revokeObjectURL(url)
+    // T-208（Q-52）: catchが無いと失敗時に無反応のうえunhandled rejectionになる
+    // （onClickは`void handleExport()`で呼ばれ、失敗が誰にも伝わらない）
+    try {
+      const backup = await exportAll(db)
+      const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      const date = new Date(now()).toISOString().slice(0, 10)
+      anchor.href = url
+      anchor.download = `beb-raid-backup-${date}.json`
+      anchor.click()
+      URL.revokeObjectURL(url)
+      setMessage('エクスポートしました。')
+    } catch (e) {
+      console.error('[SettingsScreen] エクスポートに失敗', e)
+      setMessage('エクスポートに失敗しました。')
+    }
   }
 
   async function handleSaveApiKey() {
@@ -269,9 +293,18 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
 
   async function handleImportFile(file: File) {
     setMessage(null)
+    const text = await file.text()
+    // T-207（Q-45）: JSON.parseの失敗はSyntaxError（英語メッセージ）で、importAll由来の
+    // 検証エラー（日本語）と同じcatchで拾うとe.messageが英語のまま生表示されていた。
+    // JSON.parseだけを先に分離し、日本語の案内に置き換える
+    let data: unknown
     try {
-      const text = await file.text()
-      const data: unknown = JSON.parse(text)
+      data = JSON.parse(text)
+    } catch {
+      setMessage('ファイルの形式が正しくありません（JSONとして読み込めません）。')
+      return
+    }
+    try {
       await importAll(db, data)
       // T-106: インポート成功後にこの画面のstateを再読込しないと、全トグル・表示名・
       // テーマ/文字サイズが復元前の値のまま表示され、以降のトグル操作が古い値の反転で
@@ -279,6 +312,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       await load()
       setMessage('復元しました。')
     } catch (e) {
+      // importAllが投げるエラーは検証済みで常に日本語（バックアップ不正・dbVersion不一致等）
       setMessage(e instanceof Error ? e.message : '復元に失敗しました。')
     }
   }
@@ -309,6 +343,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
             <input
               type="checkbox"
               checked={noEarphoneMode}
+              disabled={!loaded}
               onChange={() => void handleToggleEarphone()}
             />
             イヤホンなしモード（リスニング問題をリーディング系に差し替える）
@@ -320,6 +355,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
             <input
               type="checkbox"
               checked={hapticsEnabled}
+              disabled={!loaded}
               onChange={() => void handleToggleHaptics()}
             />
             ハプティクス（正解確定時に振動する）
@@ -331,6 +367,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
             <input
               type="checkbox"
               checked={mistapUndoEnabled}
+              disabled={!loaded}
               onChange={() => void handleToggleMistapUndo()}
             />
             誤タップの取り消し猶予（選択直後に取り消せるようにする）
@@ -344,6 +381,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
             <input
               type="checkbox"
               checked={autoPlayEnabled}
+              disabled={!loaded}
               onChange={() => void handleToggleAutoPlay()}
             />
             音声の自動再生（2問目以降はタップなしで再生する）
@@ -356,6 +394,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               <input
                 type="checkbox"
                 checked={raidSyncEnabled}
+                disabled={!loaded}
                 onChange={() => void handleToggleRaidSync()}
               />
               レイドダメージを送信する
@@ -369,11 +408,12 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
         {raidApi.isConfigured() && (
           <section>
             <label>
-              {/* 未登録だとBearer必須のAPIに送信できないため、トグル自体を無効化する（レビューF3(b)） */}
+              {/* 未登録だとBearer必須のAPIに送信できないため、トグル自体を無効化する（レビューF3(b)）。
+                  T-208（Q-52）: !loadedのときも同様に無効化し、読込失敗時の既定値反転書き込みを防ぐ */}
               <input
                 type="checkbox"
                 checked={questionStatsEnabled}
-                disabled={!raidRegistered}
+                disabled={!loaded || !raidRegistered}
                 onChange={() => void handleToggleQuestionStats()}
               />
               問題別の正誤統計を送信する

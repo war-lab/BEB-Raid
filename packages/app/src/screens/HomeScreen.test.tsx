@@ -977,6 +977,127 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
   })
 })
 
+describe('HomeScreen: 破棄確認の前倒し（T-206・Q-42）', () => {
+  // 何を防ぐか: 修正前は再生方法・問数・パッセージ数を選んでモーダルの開始ボタンを
+  // 押した「後」に破棄確認が出ていた。「やめる」を選ぶとモーダルでの選択操作が
+  // すべて無駄になる。モーダルを開く前（タイルタップ直後）に確認を出すべきことを固定する
+  function snapshotOf(overrides: Partial<import('../services/session').SessionSnapshot> = {}) {
+    return {
+      sessionId: 'resume-session-1',
+      items: [
+        { questionId: 'p2-1', mode: 'solo' as const },
+        { questionId: 'p2-2', mode: 'solo' as const },
+      ],
+      answeredCount: 1,
+      attemptIds: ['a-1'],
+      startedAt: 0,
+      updatedAt: 0,
+      ...overrides,
+    }
+  }
+
+  it('Part2瞬発タップ直後（モーダルを開く前）に破棄確認が出る', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+  })
+
+  it('破棄確認で「破棄して新しく始める」を選ぶと再生方法選択モーダルが開く', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(await screen.findByText('破棄して新しく始める'))
+
+    expect(await screen.findByRole('dialog', { name: '音声の再生方法を選択' })).toBeTruthy()
+    fireEvent.click(screen.getByText('通常'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot!.sessionId).not.toBe(snapshot.sessionId)
+  })
+
+  it('破棄確認で「やめる」を選ぶとモーダルは開かず、既存セッションも保持される', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(await screen.findByText('やめる'))
+
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('Part5タップ直後にも破棄確認が前倒しで出る（T-118モーダルも同型のため）', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
+
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: 'Part5の問題数を選択' })).toBeNull()
+  })
+
+  it('Part7読解タップ直後にも破棄確認が前倒しで出る', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    const pool = [...QUESTION_POOL, part7Question('p7-1')]
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={pool}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.queryByText('読解（Part7）のパッセージ数を選んでください')).toBeNull()
+  })
+})
+
 describe('HomeScreen: 出題プール空の案内（T-73）', () => {
   it('questionPoolが空のとき、主ボタンがdisabledになり案内文が表示される', async () => {
     const db = newDb()
@@ -987,8 +1108,10 @@ describe('HomeScreen: 出題プール空の案内（T-73）', () => {
 
     const button = screen.getByRole('button', { name: /今日のクエスト/ }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
+    // T-207（Q-56）: T-107aの自動再同期により「開き直してください」という操作案内は
+    // 実態と食い違う（online復帰時に自動で再同期される）。実装に合わせた文言にする
     expect(
-      screen.getByText('問題データを取得できていません。オンラインで開き直してください'),
+      screen.getByText('問題データを取得できていません。オンラインになると自動で取得します'),
     ).toBeTruthy()
   })
 

@@ -210,12 +210,38 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   /**
    * T-162（docs/27 のS-38）: 進行中セッションがある状態で新規開始したときの確認。
    * 選択が決まるまで開始要求を保持しておく（window.confirm を置き換えたため、
-   * 判断を待つ間の状態を画面側で持つ必要がある）
+   * 判断を待つ間の状態を画面側で持つ必要がある）。
+   *
+   * T-206（Q-42）: Part2・Part5・Part7は「モーダルで問数/再生方法を選ぶ→開始ボタン」の
+   * 2段階になっている。従来はkind:'start'（開始直前・アイテム確定済み）の1種類しか
+   * 無かったため、確認がモーダルの開始ボタンの後にしか出せず、「やめる」を選ぶと
+   * モーダルでの選択操作が丸ごと無駄になっていた。タイルタップ直後
+   * （モーダルを開く前）に確認できるよう、kind:'openModal'（モーダルをこれから開く）を追加する
    */
-  const [discardConfirm, setDiscardConfirm] = useState<{
-    items: SessionItem[]
-    options?: StartOptions
-  } | null>(null)
+  const [discardConfirm, setDiscardConfirm] = useState<
+    | { kind: 'start'; items: SessionItem[]; options?: StartOptions }
+    | { kind: 'openModal'; modal: 'part2' | 'part5' | 'reading' }
+    | null
+  >(null)
+
+  /** T-206: 破棄確認を経ずにモーダルを直接開く（resumeSnapshotが無い場合の通常経路） */
+  function openModalDirectly(modal: 'part2' | 'part5' | 'reading') {
+    if (modal === 'part2') setShowPart2Options(true)
+    else if (modal === 'part5') setShowPart5Options(true)
+    else setShowReadingOptions(true)
+  }
+
+  /**
+   * T-206（Q-42）: モード選択タイルのタップ時に呼ぶ。進行中セッションがあれば、
+   * モーダルを開く前に破棄確認を出す（無ければ従来どおり即座にモーダルを開く）
+   */
+  function openSingleModeOptions(modal: 'part2' | 'part5' | 'reading') {
+    if (resumeSnapshot) {
+      setDiscardConfirm({ kind: 'openModal', modal })
+      return
+    }
+    openModalDirectly(modal)
+  }
   // T-54: 現フェーズ（シーズン表示・クイックパックのフェーズ駆動化に使う）
   const [phase, setPhase] = useState<PhaseState | null>(null)
   // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
@@ -437,7 +463,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     }
     const selected = shuffle(pool).slice(0, readingSetCount)
     const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
-    await startSessionAndNavigate(items, { toScreen: 'reading' })
+    // T-206: 破棄確認は openSingleModeOptions がモーダルを開く前に済ませているため、
+    // ここではstartSessionAndNavigateを経由せず直接開始する（二重確認を避ける）
+    await beginNewSession(items, { toScreen: 'reading' })
   }
 
   /** T-118: 問数選択チップの選択（保存＋画面遷移・再起動を跨いで復元） */
@@ -477,16 +505,20 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       )
       return
     }
-    await startSessionAndNavigate(items, options)
+    // T-206: 破棄確認は openSingleModeOptions がモーダルを開く前に済ませているため、
+    // ここではstartSessionAndNavigateを経由せず直接開始する（二重確認を避ける）
+    await beginNewSession(items, options)
   }
 
   async function startSessionAndNavigate(items: SessionItem[], options?: StartOptions) {
     if (items.length === 0) return
     // T-162（docs/27 のS-38）: window.confirm のYes/Noでは「続きから再開する」を
     // その場で選べず、ホームへ戻って別のボタンを探させることになっていた。
-    // 3択のアプリ内ダイアログへ置き換える（開始要求を保持して選択後に続行する）
+    // 3択のアプリ内ダイアログへ置き換える（開始要求を保持して選択後に続行する）。
+    // 「今日のクエスト」専用（Part2/Part5/読解はモーダルを開く前にopenSingleModeOptionsで
+    // 確認済みのため、この関数を経由せずbeginNewSessionを直接呼ぶ。T-206）
     if (resumeSnapshot) {
-      setDiscardConfirm({ items, options })
+      setDiscardConfirm({ kind: 'start', items, options })
       return
     }
     await beginNewSession(items, options)
@@ -556,7 +588,14 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                   onSelect: () => {
                     const pending = discardConfirm
                     setDiscardConfirm(null)
-                    void beginNewSession(pending.items, pending.options)
+                    // T-206: quest（kind:'start'）はアイテム確定済みなので即開始。
+                    // Part2/Part5/読解（kind:'openModal'）はここではまだ問数/再生方法を
+                    // 選んでいないため、モーダルを開くだけにとどめる
+                    if (pending.kind === 'start') {
+                      void beginNewSession(pending.items, pending.options)
+                    } else {
+                      openModalDirectly(pending.modal)
+                    }
                   },
                 },
                 { label: 'やめる', onSelect: () => setDiscardConfirm(null) },
@@ -604,7 +643,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             </PrimaryButton>
             {questionPool.length === 0 && (
               <p className="home-pool-empty-hint">
-                問題データを取得できていません。オンラインで開き直してください
+                {/* T-207（Q-56）: T-107aの自動再同期により「開き直してください」という
+                    操作案内は不要（online復帰時に自動で再同期される）。実装に合わせる */}
+                問題データを取得できていません。オンラインになると自動で取得します
               </p>
             )}
             {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
@@ -777,7 +818,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <button
               type="button"
               className="home-mode-tile"
-              onClick={() => setShowPart2Options(true)}
+              onClick={() => openSingleModeOptions('part2')}
             >
               <svg
                 className="home-mode-tile__icon"
@@ -803,7 +844,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <button
               type="button"
               className="home-mode-tile"
-              onClick={() => setShowPart5Options(true)}
+              onClick={() => openSingleModeOptions('part5')}
             >
               <svg
                 className="home-mode-tile__icon"
@@ -828,7 +869,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <button
               type="button"
               className="home-mode-tile"
-              onClick={() => setShowReadingOptions(true)}
+              onClick={() => openSingleModeOptions('reading')}
             >
               <svg
                 className="home-mode-tile__icon"

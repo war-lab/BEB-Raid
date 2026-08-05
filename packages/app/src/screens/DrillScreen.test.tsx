@@ -1135,8 +1135,10 @@ describe('DrillScreen: 解答保存失敗リカバリ（T-76。J-35のpipeline�
 
     fireEvent.click(screen.getByText('b')) // q-1（正解はA）に解答を試みる
 
+    // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+    // 圏外利用者に誤った原因究明をさせるため外す（空き容量への言及は残す）
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
 
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
@@ -1375,7 +1377,7 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     fireEvent.click(screen.getByText('OK'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
@@ -1584,7 +1586,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     fireEvent.click(screen.getByText('確定'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
@@ -1776,7 +1778,7 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     fireEvent.click(screen.getByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // サブ設問はsnapshot経由でないため進行せず、同じ設問のまま（選択肢もまだ見える）
     expect(screen.getByText('設問0')).toBeTruthy()
@@ -2387,7 +2389,7 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     fireEvent.click(await screen.findByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 正誤表示は保持する（再解答を求めない）
     expect(screen.getByText('a').closest('button')?.dataset.state).toBe('correct')
@@ -2398,7 +2400,7 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     await waitFor(() =>
       expect(
-        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        screen.queryByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeNull(),
     )
     expect(screen.queryByText('保存を再試行する')).toBeNull()
@@ -2461,7 +2463,7 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     fireEvent.click(await screen.findByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 進行導線は出さず、再試行だけが前進手段になる
     expect(screen.queryByText('次へ')).toBeNull()
@@ -2492,7 +2494,7 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     fireEvent.click(screen.getByText('b'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // やり直しても同じ検知で弾かれるため再試行は出さない
     expect(screen.queryByText('保存を再試行する')).toBeNull()
