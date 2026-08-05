@@ -74,6 +74,8 @@
 .choice-button__label {
   flex: 1;
   min-width: 0;
+  /* T-227(Q-65): 長い選択肢文字列（URL等）が390px幅で溢れないようにする */
+  overflow-wrap: anywhere;
 }
 /* T-154: Part2音声のみモードの解答前（記号だけを出す。ADR 0008）。
    ラベルが空でもボタン高さが潰れないよう最小高さを保ち、記号を中央に置く。
@@ -198,7 +200,7 @@
   background: color-mix(in srgb, var(--gold) 6%, transparent);
   color: var(--gold);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow); /* T-232(Q-71): 直書き11pxをトークン化 */
   letter-spacing: 0.1em;
 }
 
@@ -240,7 +242,11 @@
   padding: var(--sp-1);
   border-radius: var(--radius-button);
   background: var(--surface-2);
-  color: var(--gold);
+  /* T-226(Q-64): --gold(#996600)は--surface-2比4.213:1でAA=4.5:1未達（機械計算値）。
+     継承サイズ16px+boldは「大文字テキスト」基準（18.66px bold）に届かないため3:1の緩和は
+     適用できず、--gold-deepで4.667:1（機械計算値）を確保する。ダークは変更前も
+     7.963:1で適合済み（tokens.cssの--gold-deep定義のコメント参照） */
+  color: var(--gold-deep);
   font-weight: 700;
   text-align: center;
   animation: result-scale-in 250ms ease-out;
@@ -289,7 +295,7 @@
 .result-eyebrow {
   margin: 0;
   color: var(--ev-blue);
-  font-size: 12px;
+  font-size: var(--fs-note); /* T-232(Q-71): 直書き12px（--fs-noteと同値）をトークン化 */
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-family: var(--font-display);
@@ -297,7 +303,7 @@
 /* ディスプレイ数字特大（docs/20 3.4節リザルト行）。共有トークン--fs-displayは
    他画面（タイマー等）でも使うため変更せず、リザルト専用に大きいサイズを指定する */
 .result-points-value {
-  font-size: 56px;
+  font-size: var(--fs-display-xl); /* T-232(Q-71): 直書き56pxをトークン化 */
   text-shadow: var(--glow-gold);
 }
 /* --- リザルトのボスHPバー（docs/20 3.4節リザルト行「ボスHPバー削れ」）。
@@ -412,7 +418,7 @@
 }
 .result-rating__label {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow); /* T-232(Q-71): 直書き11pxをトークン化 */
   letter-spacing: 0.16em;
   color: var(--ev-blue);
 }
@@ -568,6 +574,9 @@
   line-height: 1.65;
   max-width: 34em;
   white-space: pre-wrap;
+  /* T-227(Q-65): Part7定番のURL・メールアドレスが390px幅で折り返せず横スクロールする
+     ことがあったため、任意の位置で折り返す */
+  overflow-wrap: anywhere;
 }
 /* Part6の空所（未解答=___(n)___・解答済み=選択結果を反映。タップで該当設問へジャンプ） */
 .passage-blank {
@@ -780,7 +789,10 @@
   padding: 0 var(--sp-1);
   background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--line);
+  /* T-226(Q-70): 入力欄はコントロール自体に文字を持たず、枠線が識別の唯一の手掛かりの
+     ため1.4.11の対象。他の入力欄（components.css内の.settings-list input等）と同じ
+     --ink-3の適用漏れだった（--lineは3:1未達=tokens.cssのコメント参照） */
+  border: 1px solid var(--ink-3);
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
 }
@@ -1121,17 +1133,8 @@
   border-radius: var(--radius-card);
   border: 1px solid var(--hero-line);
   overflow: hidden;
-  /* --hero-skyと同じ理由（両テーマ共通の夜空を維持）で、カード内文字色もテーマに
-     追従させず常にダーク値へ固定する（ライト基調の--ink等をそのまま使うと、常に暗い
-     hero-sky上でほぼ読めなくなるため）。コントラスト機械計算値（--hero-skyの最明部
-     #16204aとの比。テーマ切替時に最も厳しくなる箇所を採用）:
-       #eaedf6(ink) = 13.394:1 / #a6aec6(ink-2) = 7.085:1 / #7e89ac(ink-3) = 4.525:1
-       #4d8dff(ev-blue) = 4.904:1 / #f0647a(ng) = 5.083:1 いずれもAA(4.5:1)適合 */
-  --home-hero-ink: #eaedf6;
-  --home-hero-ink-2: #a6aec6;
-  --home-hero-ink-3: #7e89ac;
-  --home-hero-accent: #4d8dff;
-  --home-hero-danger: #f0647a;
+  /* --home-hero-ink*はtokens.css（3.2節）で両テーマ共通の固定値として定義済み
+     （T-233でトークン化。機械計算値のコントラストもそちらに記載） */
   /* 車窓の星（微小radial-gradientの点描）＋下端の電光青ハイライト＋--hero-skyの3段グラデ */
   background:
     radial-gradient(1.2px 1.2px at 12% 18%, rgba(234, 237, 246, 0.9) 50%, transparent 51%),
@@ -1164,7 +1167,7 @@
 }
 .home-hero-eyebrow {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow); /* T-232(Q-71): 直書き11pxをトークン化 */
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--home-hero-accent);
@@ -1504,7 +1507,9 @@
   font-size: var(--fs-sub);
 }
 .home-mode-tile__hint {
-  font-size: 10.5px;
+  /* T-232(Q-71): 直書き10.5pxは--fs-note（12px）より小さくスケール外だったため、
+     満員電車前提の可読性方針に合わせ--fs-noteへ引き上げる */
+  font-size: var(--fs-note);
   color: var(--ink-3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1823,7 +1828,9 @@
   padding: 0 var(--sp-1);
   background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--line);
+  /* T-226(Q-70): 入力欄はコントロール自体に文字を持たず、枠線が識別の唯一の手掛かりの
+     ため1.4.11の対象。--lineは3:1未達（tokens.cssのコメント参照）のため--ink-3を使う */
+  border: 1px solid var(--ink-3);
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
 }
@@ -1850,7 +1857,9 @@
   height: 22px;
   vertical-align: middle;
   background: var(--surface);
-  border: 2px solid var(--line);
+  /* T-226(Q-70): 未チェック時は中身が空で、枠線が「ここにチェック可能な部品がある」ことを
+     示す唯一の手掛かりのため1.4.11の対象。--lineは3:1未達（tokens.cssのコメント参照） */
+  border: 2px solid var(--ink-3);
   cursor: pointer;
 }
 .settings-list input[type='checkbox'] {
@@ -1957,10 +1966,10 @@
 
 /* --- 診断ウェルカム（docs/20 V-6: ワードマーク＋--hero-sky帯＋フォームを--surface-gradカードに）
    --hero-skyは両テーマ共通の夜空色固定（tokens.css）のため、その上のテキストもテーマの
-   var(--ink*)に追従させず固定のダーク基準値にする（ライトテーマの--ink-2をそのまま使うと
-   暗色地に暗色文字が乗りAA未達になるため。機械計算値: 固定#eaedf6は--hero-sky最明部
-   #16204a比13.394:1、固定#a6aec6は7.085:1でAA適合）。ワードマークはhero外（画面地=
-   テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で両テーマ追従させる */
+   var(--ink*)に追従させず--home-hero-ink*（tokens.css 3.2節。T-233で.home-heroと共有する
+   トークンへ統一。docs/26で指摘された生の16進数の重複定義を解消）を使う。ワードマークは
+   hero外（画面地=テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で
+   両テーマ追従させる */
 /* docs/26 A-4: 旧 .diagnostic-wordmark（鋼グラデのテキストワードマーク）は Wordmark
    コンポーネント（ロゴ画像）へ統一したため削除した。読み仮名は .wordmark-sub が持つ */
 .diagnostic-hero {
@@ -1969,14 +1978,14 @@
   background: var(--hero-sky);
   border: 1px solid var(--hero-line);
   border-radius: var(--radius-card);
-  color: #eaedf6;
+  color: var(--home-hero-ink);
 }
 .diagnostic-hero h1 {
   margin: 0 0 var(--sp-1);
 }
 .diagnostic-hero p {
   margin: 0 0 var(--sp-1);
-  color: #a6aec6;
+  color: var(--home-hero-ink-2);
 }
 .diagnostic-hero p:last-child {
   margin-bottom: 0;

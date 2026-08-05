@@ -42,6 +42,9 @@ textarea {
   font-size: var(--fs-question);
   line-height: 1.65;
   max-width: 34em;
+  /* T-227(Q-65): Part7定番のURL・メールアドレスが390px幅で折り返せず横スクロールする
+     ことがあったため、任意の位置で折り返す */
+  overflow-wrap: anywhere;
 }
 
 /* 学習中の常時アニメーション禁止（07の9節）に加え、reduced-motion では全て止める */
