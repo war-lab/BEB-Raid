@@ -51,15 +51,15 @@
             },
             {
               "key": "B",
-              "text": "A delayed job interview"
-            },
-            {
-              "key": "C",
               "text": "A software installation problem"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "An upcoming office move"
+            },
+            {
+              "key": "D",
+              "text": "A delayed job interview"
             }
           ],
           "answer": "A",
@@ -76,18 +76,18 @@
             },
             {
               "key": "B",
-              "text": "It does not include installation"
-            },
-            {
-              "key": "C",
               "text": "It was sent to the wrong department"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "It is higher than the budget"
+            },
+            {
+              "key": "D",
+              "text": "It does not include installation"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "Bは\"the price is higher than we budgeted\"と述べている。",
           "translation": "Bは見積もりについてどんな問題を挙げていますか。"
         },
@@ -97,22 +97,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Approving the estimate immediately"
-            },
-            {
-              "key": "B",
               "text": "Asking for a discount from the same supplier"
             },
             {
+              "key": "B",
+              "text": "Canceling the laptop purchase"
+            },
+            {
               "key": "C",
-              "text": "Getting quotes from two more suppliers"
+              "text": "Approving the estimate immediately"
             },
             {
               "key": "D",
-              "text": "Canceling the laptop purchase"
+              "text": "Getting quotes from two more suppliers"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "Bは\"we should ask two more suppliers before we decide\"と提案している。",
           "translation": "Bは次に何をすることを提案していますか。"
         }
@@ -178,11 +178,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "More people have registered already"
+              "text": "Fewer people have registered"
             },
             {
               "key": "B",
-              "text": "Fewer people have registered"
+              "text": "More people have registered already"
             },
             {
               "key": "C",
@@ -193,7 +193,7 @@
               "text": "No one has registered yet"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "Aは\"That's more than last year already\"と述べている。",
           "translation": "今年の登録者数は去年と比べてどうですか。"
         },
@@ -207,18 +207,18 @@
             },
             {
               "key": "B",
-              "text": "Close registration early"
-            },
-            {
-              "key": "C",
               "text": "Ask A to lead the conference"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "Contact the venue about a larger hall"
+            },
+            {
+              "key": "D",
+              "text": "Close registration early"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "Bは\"I'll check with the venue today\"と述べている。",
           "translation": "Bは次に何をする可能性が高いですか。"
         }
@@ -267,14 +267,14 @@
             },
             {
               "key": "C",
-              "text": "Renewing a lease for a tenant"
+              "text": "Repairing a broken elevator"
             },
             {
               "key": "D",
-              "text": "Repairing a broken elevator"
+              "text": "Renewing a lease for a tenant"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "会話は入居者の賃貸契約更新について話している。",
           "translation": "会話は主に何についてですか。"
         },
@@ -284,7 +284,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "A private parking space"
+              "text": "A shorter lease term"
             },
             {
               "key": "B",
@@ -292,11 +292,11 @@
             },
             {
               "key": "C",
-              "text": "A larger unit"
+              "text": "A private parking space"
             },
             {
               "key": "D",
-              "text": "A shorter lease term"
+              "text": "A larger unit"
             }
           ],
           "answer": "B",
@@ -317,11 +317,11 @@
             },
             {
               "key": "C",
-              "text": "Ask the tenant to move out"
+              "text": "Call a lawyer"
             },
             {
               "key": "D",
-              "text": "Call a lawyer"
+              "text": "Ask the tenant to move out"
             }
           ],
           "answer": "A",
@@ -365,22 +365,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "The company's annual revenue"
+              "text": "The company's workforce"
             },
             {
               "key": "B",
-              "text": "The number of office locations"
-            },
-            {
-              "key": "C",
               "text": "The marketing budget"
             },
             {
+              "key": "C",
+              "text": "The number of office locations"
+            },
+            {
               "key": "D",
-              "text": "The company's workforce"
+              "text": "The company's annual revenue"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "Aが\"our workforce grew by twelve percent\"と述べている。",
           "translation": "何が12パーセント増加しましたか。"
         },
@@ -390,22 +390,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Sometime next year"
-            },
-            {
-              "key": "B",
               "text": "It has already been made"
             },
             {
+              "key": "B",
+              "text": "By the end of this week"
+            },
+            {
               "key": "C",
-              "text": "By the end of March"
+              "text": "Sometime next year"
             },
             {
               "key": "D",
-              "text": "By the end of this week"
+              "text": "By the end of March"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "Aは\"a decision should come by the end of March\"と述べている。",
           "translation": "オフィススペースについての決定はいつ下されますか。"
         },
@@ -415,7 +415,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Present the report to clients"
+              "text": "Close one of the offices"
             },
             {
               "key": "B",
@@ -423,11 +423,11 @@
             },
             {
               "key": "C",
-              "text": "Hire more staff"
+              "text": "Present the report to clients"
             },
             {
               "key": "D",
-              "text": "Close one of the offices"
+              "text": "Hire more staff"
             }
           ],
           "answer": "B",
@@ -471,22 +471,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Accounting"
-            },
-            {
-              "key": "B",
               "text": "Marketing"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Human resources"
+            },
+            {
+              "key": "C",
+              "text": "Accounting"
             },
             {
               "key": "D",
               "text": "Customer service"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "Aが\"the vacancy in the accounting department\"と述べている。",
           "translation": "どの部署に欠員がありますか。"
         },
@@ -496,11 +496,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "It was canceled at the last minute"
+              "text": "It went very well"
             },
             {
               "key": "B",
-              "text": "It did not go well"
+              "text": "It was canceled at the last minute"
             },
             {
               "key": "C",
@@ -508,10 +508,10 @@
             },
             {
               "key": "D",
-              "text": "It went very well"
+              "text": "It did not go well"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "Bは\"Her interview went really well\"と述べている。",
           "translation": "その候補者の面接はどうでしたか。"
         },
@@ -521,22 +521,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Next Monday"
-            },
-            {
-              "key": "B",
-              "text": "She is not available this week"
-            },
-            {
-              "key": "C",
               "text": "Thursday afternoon"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "Tomorrow morning"
+            },
+            {
+              "key": "C",
+              "text": "She is not available this week"
+            },
+            {
+              "key": "D",
+              "text": "Next Monday"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "Bは\"She's available this Thursday afternoon\"と述べている。",
           "translation": "その候補者はいつ2次面接に対応できますか。"
         }
@@ -577,22 +577,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "The warehouse closed early"
-            },
-            {
-              "key": "B",
               "text": "A package was not sent out as planned"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "A courier lost a package"
+            },
+            {
+              "key": "C",
+              "text": "The warehouse closed early"
             },
             {
               "key": "D",
               "text": "A client canceled an order"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "Aは荷物が予定どおり発送されなかったと述べている。",
           "translation": "どんな問題について話していますか。"
         },
@@ -602,7 +602,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "The warehouse ran out of the right size box"
+              "text": "The client changed the delivery address"
             },
             {
               "key": "B",
@@ -610,14 +610,14 @@
             },
             {
               "key": "C",
-              "text": "The client changed the delivery address"
+              "text": "The package was damaged"
             },
             {
               "key": "D",
-              "text": "The package was damaged"
+              "text": "The warehouse ran out of the right size box"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "Aは\"the warehouse ran out of the right size box\"と述べている。",
           "translation": "なぜその荷物は発送されなかったのですか。"
         },
@@ -683,22 +683,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "A refund policy change"
-            },
-            {
-              "key": "B",
               "text": "A new premium feature"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "A discount for renewing a subscription"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "A price increase for new customers"
+            },
+            {
+              "key": "D",
+              "text": "A refund policy change"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "会話は年間契約更新の割引について話している。",
           "translation": "話者たちは何について話していますか。"
         },
@@ -708,22 +708,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Customers must upgrade to the premium tier"
-            },
-            {
-              "key": "B",
               "text": "Customers must renew before their plan expires"
             },
             {
+              "key": "B",
+              "text": "Customers must contact support first"
+            },
+            {
               "key": "C",
-              "text": "Customers must pay by credit card"
+              "text": "Customers must upgrade to the premium tier"
             },
             {
               "key": "D",
-              "text": "Customers must contact support first"
+              "text": "Customers must pay by credit card"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "Bは\"ten percent if customers renew before their plan expires\"と述べている。",
           "translation": "その割引にはどんな条件が付きますか。"
         },
@@ -733,22 +733,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Confirm with the billing team and update the website"
-            },
-            {
-              "key": "B",
               "text": "Cancel the discount program"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Call each customer individually"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "Raise the discount to twenty percent"
+            },
+            {
+              "key": "D",
+              "text": "Confirm with the billing team and update the website"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "Bは\"let me confirm with the billing team and update the website today\"と述べている。",
           "translation": "Bは次に何をしますか。"
         }
@@ -789,22 +789,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "A delayed job offer"
+              "text": "A new employee's probation period"
             },
             {
               "key": "B",
-              "text": "A performance complaint"
+              "text": "A delayed job offer"
             },
             {
               "key": "C",
-              "text": "A training budget"
+              "text": "A performance complaint"
             },
             {
               "key": "D",
-              "text": "A new employee's probation period"
+              "text": "A training budget"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "会話は新入社員の試用期間について話している。",
           "translation": "この会話の話題は何ですか。"
         },
@@ -814,22 +814,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "It did not go well"
+              "text": "It was delayed by a week"
             },
             {
               "key": "B",
-              "text": "It has not started yet"
-            },
-            {
-              "key": "C",
               "text": "It went smoothly"
             },
             {
+              "key": "C",
+              "text": "It did not go well"
+            },
+            {
               "key": "D",
-              "text": "It was delayed by a week"
+              "text": "It has not started yet"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "Bは\"Her onboarding went smoothly\"と述べている。",
           "translation": "その新入社員の新人研修はどうでしたか。"
         },
@@ -839,22 +839,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "It already ended"
-            },
-            {
-              "key": "B",
-              "text": "In about two weeks"
-            },
-            {
-              "key": "C",
               "text": "Tomorrow"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "In three months"
+            },
+            {
+              "key": "C",
+              "text": "In about two weeks"
+            },
+            {
+              "key": "D",
+              "text": "It already ended"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "Bは\"In about two weeks, on the fifteenth\"と述べている。",
           "translation": "90日間の期間はいつ終わりますか。"
         }
@@ -895,7 +895,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "A sponsor for a charity run"
+              "text": "A new supplier for office snacks"
             },
             {
               "key": "B",
@@ -903,14 +903,14 @@
             },
             {
               "key": "C",
-              "text": "A new supplier for office snacks"
+              "text": "A sponsor for a charity run"
             },
             {
               "key": "D",
               "text": "A speaker for a conference"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "会話はチャリティーランのスポンサー探しについて話している。",
           "translation": "話者たちは何を手配しようとしていますか。"
         },
@@ -920,7 +920,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "A national supermarket chain"
+              "text": "No one has shown interest"
             },
             {
               "key": "B",
@@ -928,14 +928,14 @@
             },
             {
               "key": "C",
-              "text": "No one has shown interest"
+              "text": "A bakery downtown"
             },
             {
               "key": "D",
-              "text": "A bakery downtown"
+              "text": "A national supermarket chain"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "Bは\"one bakery seemed interested\"と述べている。",
           "translation": "これまでに関心を示したのは誰ですか。"
         },
@@ -945,22 +945,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "A list of past donors"
-            },
-            {
-              "key": "B",
-              "text": "A photo from last year's event"
-            },
-            {
-              "key": "C",
               "text": "A testimonial from last year's sponsor"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "A quote from the bakery owner"
+            },
+            {
+              "key": "C",
+              "text": "A photo from last year's event"
+            },
+            {
+              "key": "D",
+              "text": "A list of past donors"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "Aは\"could you also collect a testimonial from last year's sponsor\"と述べている。",
           "translation": "Aは何を集めるようBに依頼していますか。"
         }
@@ -1026,22 +1026,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Another three weeks"
-            },
-            {
-              "key": "B",
-              "text": "One more day"
-            },
-            {
-              "key": "C",
               "text": "Six months"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "It has already been approved"
+            },
+            {
+              "key": "C",
+              "text": "Another three weeks"
+            },
+            {
+              "key": "D",
+              "text": "One more day"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "Bは\"it could take another three weeks to review\"と述べている。",
           "translation": "審査にはどのくらいかかる可能性がありますか。"
         },
@@ -1051,11 +1051,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "They will cancel the project"
+              "text": "They need more workers"
             },
             {
               "key": "B",
-              "text": "They need more workers"
+              "text": "They can adjust the start date if needed"
             },
             {
               "key": "C",
@@ -1063,10 +1063,10 @@
             },
             {
               "key": "D",
-              "text": "They can adjust the start date if needed"
+              "text": "They will cancel the project"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "Bは\"the contractor said they can adjust the start date if needed\"と述べている。",
           "translation": "請負業者は何と言いましたか。"
         }
@@ -1107,22 +1107,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Return an item for a refund"
-            },
-            {
-              "key": "B",
               "text": "Attend a store event"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Complete a survey about their experience"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "Sign up for a loyalty card"
+            },
+            {
+              "key": "D",
+              "text": "Return an item for a refund"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "\"we would appreciate it if you could complete a short survey\"と依頼している。",
           "translation": "聞き手は何をするよう求められていますか。"
         },
@@ -1136,7 +1136,7 @@
             },
             {
               "key": "B",
-              "text": "About five minutes"
+              "text": "About one hour"
             },
             {
               "key": "C",
@@ -1144,10 +1144,10 @@
             },
             {
               "key": "D",
-              "text": "About one hour"
+              "text": "About five minutes"
             }
           ],
-          "answer": "B",
+          "answer": "D",
           "explanation": "\"It only takes about five minutes\"と述べている。",
           "translation": "その調査にはどのくらい時間がかかりますか。"
         },
@@ -1161,7 +1161,7 @@
             },
             {
               "key": "B",
-              "text": "A free gift today"
+              "text": "Nothing extra"
             },
             {
               "key": "C",
@@ -1169,7 +1169,7 @@
             },
             {
               "key": "D",
-              "text": "Nothing extra"
+              "text": "A free gift today"
             }
           ],
           "answer": "A",
@@ -1213,7 +1213,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "A fire safety inspection"
+              "text": "A full inventory count"
             },
             {
               "key": "B",
@@ -1225,10 +1225,10 @@
             },
             {
               "key": "D",
-              "text": "A full inventory count"
+              "text": "A fire safety inspection"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "\"we will be conducting a full inventory count this Saturday\"と述べている。",
           "translation": "どんな出来事が案内されていますか。"
         },
@@ -1238,22 +1238,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Clean the entire warehouse floor"
-            },
-            {
-              "key": "B",
               "text": "Return all borrowed equipment"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Make sure all shelves are labeled correctly"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "Submit their weekly time sheets"
+            },
+            {
+              "key": "D",
+              "text": "Clean the entire warehouse floor"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "\"Please make sure all shelves are labeled correctly before Friday evening\"と述べている。",
           "translation": "金曜の夕方までにスタッフは何をすべきですか。"
         },
@@ -1267,18 +1267,18 @@
             },
             {
               "key": "B",
-              "text": "By early afternoon"
+              "text": "The following Monday"
             },
             {
               "key": "C",
-              "text": "At eight in the morning"
+              "text": "By early afternoon"
             },
             {
               "key": "D",
-              "text": "The following Monday"
+              "text": "At eight in the morning"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "\"We expect the count to finish by early afternoon\"と述べている。",
           "translation": "その棚卸しはいつ終わる見込みですか。"
         }
@@ -1314,22 +1314,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "A leadership seminar"
-            },
-            {
-              "key": "B",
               "text": "A change in office hours"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "A new employee handbook"
+            },
+            {
+              "key": "C",
+              "text": "A leadership seminar"
             },
             {
               "key": "D",
               "text": "A building safety drill"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "案内全体はリーダーシップセミナーについてである。",
           "translation": "この案内は主に何についてですか。"
         },
@@ -1339,22 +1339,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Nine o'clock Tuesday morning"
+              "text": "Five o'clock this Friday"
             },
             {
               "key": "B",
-              "text": "Next Monday"
-            },
-            {
-              "key": "C",
               "text": "It has already closed"
             },
             {
+              "key": "C",
+              "text": "Next Monday"
+            },
+            {
               "key": "D",
-              "text": "Five o'clock this Friday"
+              "text": "Nine o'clock Tuesday morning"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "\"registration for the leadership seminar closes at five o'clock this Friday\"と述べている。",
           "translation": "登録はいつ締め切られますか。"
         },
@@ -1364,22 +1364,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "One hundred"
+              "text": "Ten"
             },
             {
               "key": "B",
-              "text": "There is no limit"
+              "text": "One hundred"
             },
             {
               "key": "C",
-              "text": "Forty"
+              "text": "There is no limit"
             },
             {
               "key": "D",
-              "text": "Ten"
+              "text": "Forty"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "\"Seats are limited to forty participants\"と述べている。",
           "translation": "何人まで参加できますか。"
         }
@@ -1424,18 +1424,18 @@
             },
             {
               "key": "B",
-              "text": "The main lobby will be closed for renovation"
+              "text": "The building will close for a holiday"
             },
             {
               "key": "C",
-              "text": "The parking garage will be repaved"
+              "text": "The main lobby will be closed for renovation"
             },
             {
               "key": "D",
-              "text": "The building will close for a holiday"
+              "text": "The parking garage will be repaved"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "\"the main lobby will be closed for renovation starting Monday\"と述べている。",
           "translation": "月曜日から何が起こりますか。"
         },
@@ -1445,22 +1445,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Use the side entrance near the parking garage"
-            },
-            {
-              "key": "B",
               "text": "Enter through the loading dock only"
             },
             {
+              "key": "B",
+              "text": "Use the side entrance near the parking garage"
+            },
+            {
               "key": "C",
-              "text": "Avoid the building completely"
+              "text": "Call ahead before visiting"
             },
             {
               "key": "D",
-              "text": "Call ahead before visiting"
+              "text": "Avoid the building completely"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "\"visitors should use the side entrance near the parking garage\"と述べている。",
           "translation": "この期間中、訪問者は何をすべきですか。"
         },
@@ -1526,22 +1526,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "The break room is being renovated"
+              "text": "A printer is malfunctioning"
             },
             {
               "key": "B",
-              "text": "A technician did not show up"
+              "text": "The break room is being renovated"
             },
             {
               "key": "C",
-              "text": "A printer is malfunctioning"
+              "text": "A technician did not show up"
             },
             {
               "key": "D",
               "text": "The elevators are out of service"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "\"the color printer near the break room is malfunctioning\"と述べている。",
           "translation": "どんな問題が報告されていますか。"
         },
@@ -1551,11 +1551,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "Print from home instead"
+              "text": "Ask IT before printing anything"
             },
             {
               "key": "B",
-              "text": "Use the black-and-white printer near the elevators"
+              "text": "Print from home instead"
             },
             {
               "key": "C",
@@ -1563,10 +1563,10 @@
             },
             {
               "key": "D",
-              "text": "Ask IT before printing anything"
+              "text": "Use the black-and-white printer near the elevators"
             }
           ],
-          "answer": "B",
+          "answer": "D",
           "explanation": "\"Please use the black-and-white printer near the elevators until further notice\"と述べている。",
           "translation": "追って連絡があるまで、スタッフは何をすべきですか。"
         },
@@ -1580,15 +1580,15 @@
             },
             {
               "key": "B",
-              "text": "Tomorrow morning"
-            },
-            {
-              "key": "C",
               "text": "Next week"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "The technician has already left"
+            },
+            {
+              "key": "D",
+              "text": "Tomorrow morning"
             }
           ],
           "answer": "A",
@@ -1632,22 +1632,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Current employees requesting a transfer"
-            },
-            {
-              "key": "B",
               "text": "University professors"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Vendors submitting bids"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "Job applicants who were recently interviewed"
+            },
+            {
+              "key": "D",
+              "text": "Current employees requesting a transfer"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "\"a recorded message from the recruiting office for all applicants who completed an interview last week\"と述べている。",
           "translation": "このメッセージは誰を対象にしていますか。"
         },
@@ -1657,22 +1657,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "A background check report"
+              "text": "An official transcript from each candidate's university"
             },
             {
               "key": "B",
-              "text": "A reference letter from a former employer"
+              "text": "A background check report"
             },
             {
               "key": "C",
-              "text": "An official transcript from each candidate's university"
+              "text": "A reference letter from a former employer"
             },
             {
               "key": "D",
               "text": "A signed offer letter"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "\"We are currently waiting on an official transcript from each candidate's university\"と述べている。",
           "translation": "会社は何を待っていますか。"
         },
@@ -1682,22 +1682,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "They have already been notified"
-            },
-            {
-              "key": "B",
-              "text": "Within ten business days"
-            },
-            {
-              "key": "C",
               "text": "Immediately"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "Within two business days"
+            },
+            {
+              "key": "C",
+              "text": "Within ten business days"
+            },
+            {
+              "key": "D",
+              "text": "They have already been notified"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "\"we expect to notify candidates within ten business days\"と述べている。",
           "translation": "候補者はいつ連絡を受けますか。"
         }
@@ -1742,15 +1742,15 @@
             },
             {
               "key": "B",
-              "text": "A permanent price increase"
+              "text": "A change in store hours"
             },
             {
               "key": "C",
-              "text": "A new store opening"
+              "text": "A permanent price increase"
             },
             {
               "key": "D",
-              "text": "A change in store hours"
+              "text": "A new store opening"
             }
           ],
           "answer": "A",
@@ -1763,22 +1763,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Because the store is closing permanently"
-            },
-            {
-              "key": "B",
-              "text": "Because of a pricing error"
-            },
-            {
-              "key": "C",
               "text": "Because of a delivery delay"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "To make room for new spring inventory"
+            },
+            {
+              "key": "C",
+              "text": "Because the store is closing permanently"
+            },
+            {
+              "key": "D",
+              "text": "Because of a pricing error"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "\"to make room for new spring inventory\"と述べている。",
           "translation": "なぜこの店はこのセールを行っているのですか。"
         },
@@ -1788,7 +1788,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "At midnight"
+              "text": "At six o'clock"
             },
             {
               "key": "B",
@@ -1796,14 +1796,14 @@
             },
             {
               "key": "C",
-              "text": "At six o'clock"
+              "text": "At midnight"
             },
             {
               "key": "D",
               "text": "At noon"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "\"The sale ends at six o'clock sharp\"と述べている。",
           "translation": "そのセールはいつ終わりますか。"
         }
@@ -1839,7 +1839,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "The department is hiring new staff"
+              "text": "The department is being closed"
             },
             {
               "key": "B",
@@ -1847,11 +1847,11 @@
             },
             {
               "key": "C",
-              "text": "The department is being closed"
+              "text": "The department is merging with another team"
             },
             {
               "key": "D",
-              "text": "The department is merging with another team"
+              "text": "The department is hiring new staff"
             }
           ],
           "answer": "B",
@@ -1889,15 +1889,15 @@
           "choices": [
             {
               "key": "A",
-              "text": "By Thursday"
+              "text": "It is already ready"
             },
             {
               "key": "B",
-              "text": "By the end of the year"
+              "text": "By Thursday"
             },
             {
               "key": "C",
-              "text": "It is already ready"
+              "text": "By the end of the year"
             },
             {
               "key": "D",
@@ -1945,22 +1945,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "To introduce a new team member"
-            },
-            {
-              "key": "B",
-              "text": "To review last quarter's sales"
-            },
-            {
-              "key": "C",
               "text": "To update the team on hiring for an open position"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "To announce a new customer support policy"
+            },
+            {
+              "key": "C",
+              "text": "To introduce a new team member"
+            },
+            {
+              "key": "D",
+              "text": "To review last quarter's sales"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "\"I want to update the team on our plan to recruit for the open vacancy\"と述べている。",
           "translation": "この話の主な目的は何ですか。"
         },
@@ -1970,22 +1970,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "It has not been posted yet"
-            },
-            {
-              "key": "B",
               "text": "On three websites"
             },
             {
+              "key": "B",
+              "text": "It has not been posted yet"
+            },
+            {
               "key": "C",
-              "text": "In a local newspaper"
+              "text": "On one website only"
             },
             {
               "key": "D",
-              "text": "On one website only"
+              "text": "In a local newspaper"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "\"We have posted the job listing on three websites\"と述べている。",
           "translation": "その求人はどこに掲載されていますか。"
         },
@@ -1995,7 +1995,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Forward the candidate's resume to human resources"
+              "text": "Wait until the listing closes"
             },
             {
               "key": "B",
@@ -2007,10 +2007,10 @@
             },
             {
               "key": "D",
-              "text": "Wait until the listing closes"
+              "text": "Forward the candidate's resume to human resources"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "\"please forward their resume to human resources\"と述べている。",
           "translation": "候補者を知っている場合、スタッフは何をするよう求められていますか。"
         }
@@ -2055,7 +2055,7 @@
             },
             {
               "key": "B",
-              "text": "A new tax on large companies"
+              "text": "A new employment subsidy for companies"
             },
             {
               "key": "C",
@@ -2063,10 +2063,10 @@
             },
             {
               "key": "D",
-              "text": "A new employment subsidy for companies"
+              "text": "A new tax on large companies"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "\"today's briefing on the new regional employment subsidy\"と述べている。",
           "translation": "この説明会は何についてですか。"
         },
@@ -2076,22 +2076,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Companies that reduce their workforce"
+              "text": "Companies with fewer than ten employees"
             },
             {
               "key": "B",
-              "text": "Only companies in the technology sector"
+              "text": "Companies that reduce their workforce"
             },
             {
               "key": "C",
-              "text": "Companies that add more than ten employees"
+              "text": "Only companies in the technology sector"
             },
             {
               "key": "D",
-              "text": "Companies with fewer than ten employees"
+              "text": "Companies that add more than ten employees"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "\"companies that expand their workforce by more than ten employees may qualify\"と述べている。",
           "translation": "どの企業がその補助金の対象になり得ますか。"
         },
@@ -2109,11 +2109,11 @@
             },
             {
               "key": "C",
-              "text": "Within one week"
+              "text": "On the first of the month"
             },
             {
               "key": "D",
-              "text": "On the first of the month"
+              "text": "Within one week"
             }
           ],
           "answer": "B",

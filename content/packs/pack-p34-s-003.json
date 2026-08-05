@@ -51,15 +51,15 @@
             },
             {
               "key": "B",
-              "text": "A missing invoice from the Denver office"
-            },
-            {
-              "key": "C",
               "text": "A duplicate payment to a supplier"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "An error in the payroll system"
+            },
+            {
+              "key": "D",
+              "text": "A missing invoice from the Denver office"
             }
           ],
           "answer": "A",
@@ -76,11 +76,11 @@
             },
             {
               "key": "B",
-              "text": "He is blaming the woman for the delay"
+              "text": "He is suggesting they stop looking into the issue"
             },
             {
               "key": "C",
-              "text": "He is suggesting they stop looking into the issue"
+              "text": "He is blaming the woman for the delay"
             },
             {
               "key": "D",
@@ -97,22 +97,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Reverse the suspicious transaction immediately"
-            },
-            {
-              "key": "B",
-              "text": "Escalate the issue to their manager"
-            },
-            {
-              "key": "C",
               "text": "Document the discrepancy before contacting the bank"
             },
             {
-              "key": "D",
+              "key": "B",
+              "text": "Reverse the suspicious transaction immediately"
+            },
+            {
+              "key": "C",
               "text": "Ask the Denver office to resend an invoice"
+            },
+            {
+              "key": "D",
+              "text": "Escalate the issue to their manager"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "女性は\"Let's just document exactly where the numbers diverge so we don't have to start from scratch when we call\"と提案している。",
           "translation": "話者たちは次に何をする可能性が高いですか。"
         }
@@ -148,11 +148,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "Whether to close their current office permanently"
+              "text": "Whether to move to a more expensive office"
             },
             {
               "key": "B",
-              "text": "Whether to move to a more expensive office"
+              "text": "Whether to renew an expired contract"
             },
             {
               "key": "C",
@@ -160,10 +160,10 @@
             },
             {
               "key": "D",
-              "text": "Whether to renew an expired contract"
+              "text": "Whether to close their current office permanently"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "会話全体は移転提案のコスト増と、それに代わる案について話している。",
           "translation": "話者たちは主に何について話していますか。"
         },
@@ -173,7 +173,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "He finds the woman's suggestion to be a new and useful idea"
+              "text": "He thinks the suggestion is not realistic"
             },
             {
               "key": "B",
@@ -185,10 +185,10 @@
             },
             {
               "key": "D",
-              "text": "He thinks the suggestion is not realistic"
+              "text": "He finds the woman's suggestion to be a new and useful idea"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "直前の女性の\"maybe we should look at subleasing part of our current floor\"という提案に対する驚き・関心の反応であり、単なる相槌ではなく新しい案への肯定的な評価を示す意図推定問題。",
           "translation": "男性が「それは考えていなかった」と言っているのはどういう意味ですか。"
         },
@@ -202,18 +202,18 @@
             },
             {
               "key": "B",
-              "text": "Cancel the relocation proposal entirely"
+              "text": "Present the subleasing option at Thursday's meeting"
             },
             {
               "key": "C",
-              "text": "Hire a real estate consultant"
+              "text": "Cancel the relocation proposal entirely"
             },
             {
               "key": "D",
-              "text": "Present the subleasing option at Thursday's meeting"
+              "text": "Hire a real estate consultant"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "男性は\"Let's bring that option to Thursday's meeting and see what the finance team thinks\"と述べている。",
           "translation": "話者たちは次に何をする可能性が高いですか。"
         }
@@ -254,7 +254,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "A processor that overheated during testing"
+              "text": "Battery life below the target level"
             },
             {
               "key": "B",
@@ -262,14 +262,14 @@
             },
             {
               "key": "C",
-              "text": "Battery life below the target level"
+              "text": "A processor that overheated during testing"
             },
             {
               "key": "D",
               "text": "A display that would not turn on"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "男性は\"passed every benchmark test we ran except battery life, which came in about fifteen percent below target\"と述べている。",
           "translation": "その試作品にはどんな問題がありましたか。"
         },
@@ -283,18 +283,18 @@
             },
             {
               "key": "B",
-              "text": "He is concerned that fixing the issue may require a major redesign"
+              "text": "He is confident the display setting is the cause"
             },
             {
               "key": "C",
-              "text": "He is worried the board presentation has been canceled"
+              "text": "He is concerned that fixing the issue may require a major redesign"
             },
             {
               "key": "D",
-              "text": "He is confident the display setting is the cause"
+              "text": "He is worried the board presentation has been canceled"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "直前の\"if it's the processor, we might be looking at a redesign\"を受けた発言で、その可能性への不安を表す意図推定問題。",
           "translation": "男性が「それがまさに私の心配なんです」と言っているのはどういう意味ですか。"
         },
@@ -304,7 +304,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Getting a definite answer from engineering by Friday"
+              "text": "Replacing the entire engineering team"
             },
             {
               "key": "B",
@@ -312,14 +312,14 @@
             },
             {
               "key": "C",
-              "text": "Replacing the entire engineering team"
+              "text": "Approving the redesign immediately"
             },
             {
               "key": "D",
-              "text": "Approving the redesign immediately"
+              "text": "Getting a definite answer from engineering by Friday"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "女性は\"Let's ask engineering for a firm answer by Friday\"と提案している。",
           "translation": "女性は何をすることを提案していますか。"
         }
@@ -360,22 +360,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "A new contract with a distributor"
-            },
-            {
-              "key": "B",
               "text": "A merger with a competitor"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "A budget cut in the legal department"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "A proposed settlement in a legal dispute"
+            },
+            {
+              "key": "D",
+              "text": "A new contract with a distributor"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "会話は元販売代理店との訴訟における和解提案について話している。",
           "translation": "話者たちは何について話していますか。"
         },
@@ -389,18 +389,18 @@
             },
             {
               "key": "B",
-              "text": "She wants to end the conversation quickly"
-            },
-            {
-              "key": "C",
               "text": "She agrees with the man's reasoning about the risk of going to trial"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "She thinks the settlement offer is too low"
+            },
+            {
+              "key": "D",
+              "text": "She wants to end the conversation quickly"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "直前の男性の\"a trial could easily run past eighteen months anyway, and there's no guarantee we'd win the full amount\"という論拠に納得したことを示す意図推定問題。",
           "translation": "女性が「もっともな指摘だ」と言っているのはどういう意味ですか。"
         },
@@ -410,7 +410,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Ask for a larger settlement amount"
+              "text": "Proceed directly to trial"
             },
             {
               "key": "B",
@@ -422,7 +422,7 @@
             },
             {
               "key": "D",
-              "text": "Proceed directly to trial"
+              "text": "Ask for a larger settlement amount"
             }
           ],
           "answer": "B",
@@ -466,22 +466,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "When to schedule a system overhaul"
+              "text": "Which vendor to use for a new system"
             },
             {
               "key": "B",
-              "text": "Whether to cancel a weekend sale"
+              "text": "When to schedule a system overhaul"
             },
             {
               "key": "C",
-              "text": "How to hire more maintenance staff"
+              "text": "Whether to cancel a weekend sale"
             },
             {
               "key": "D",
-              "text": "Which vendor to use for a new system"
+              "text": "How to hire more maintenance staff"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "会話はシステム改修のスケジュールについて話している。",
           "translation": "話者たちは何を決めようとしていますか。"
         },
@@ -491,11 +491,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "He is rejecting the weeknight option outright"
+              "text": "He already agreed with her before she spoke"
             },
             {
               "key": "B",
-              "text": "He already agreed with her before she spoke"
+              "text": "He is rejecting the weeknight option outright"
             },
             {
               "key": "C",
@@ -520,7 +520,7 @@
             },
             {
               "key": "B",
-              "text": "Postpone the decision until next month"
+              "text": "Cancel the system overhaul entirely"
             },
             {
               "key": "C",
@@ -528,7 +528,7 @@
             },
             {
               "key": "D",
-              "text": "Cancel the system overhaul entirely"
+              "text": "Postpone the decision until next month"
             }
           ],
           "answer": "C",
@@ -572,22 +572,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "To announce a new product launch"
-            },
-            {
-              "key": "B",
               "text": "To announce details of a company restructuring"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "To introduce a new regional manager"
+            },
+            {
+              "key": "C",
+              "text": "To announce a new product launch"
             },
             {
               "key": "D",
               "text": "To celebrate a company anniversary"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "冒頭\"I want to speak candidly about the restructuring plan that was announced this morning\"と述べている。",
           "translation": "この話の主な目的は何ですか。"
         },
@@ -597,22 +597,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Some details of the plan are not yet finalized or shareable"
-            },
-            {
-              "key": "B",
               "text": "The speaker disagrees with the restructuring plan"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "The speaker has been told to hide all information"
+            },
+            {
+              "key": "C",
+              "text": "Some details of the plan are not yet finalized or shareable"
             },
             {
               "key": "D",
               "text": "The restructuring plan has already been canceled"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "直前の\"I understand this is difficult news\"に続く発言で、現時点で開示できる情報に限りがあることへの遺憾の意を示す意図推定問題。",
           "translation": "話者が「今日お伝えできる以上のことをお伝えできればと思う」と言っているのはどういう意味ですか。"
         },
@@ -622,22 +622,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Submit a formal complaint"
+              "text": "Attend a one-on-one session with human resources"
             },
             {
               "key": "B",
-              "text": "Apply for a transfer to another region"
+              "text": "Submit a formal complaint"
             },
             {
               "key": "C",
-              "text": "Meet with the regional manager directly"
+              "text": "Apply for a transfer to another region"
             },
             {
               "key": "D",
-              "text": "Attend a one-on-one session with human resources"
+              "text": "Meet with the regional manager directly"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "\"Human resources will be holding one-on-one sessions starting next week...I encourage everyone to attend one\"と述べている。",
           "translation": "従業員は来週、何をするよう勧められていますか。"
         }
@@ -678,22 +678,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "A summary of quarterly sales figures"
+              "text": "An update on integrating a recently acquired company"
             },
             {
               "key": "B",
-              "text": "A warning about a data security breach"
+              "text": "A summary of quarterly sales figures"
             },
             {
               "key": "C",
-              "text": "An update on integrating a recently acquired company"
+              "text": "A warning about a data security breach"
             },
             {
               "key": "D",
               "text": "An announcement of a new company policy"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "\"an update on the acquisition of Northfield Instruments...we're now beginning the integration process\"と述べている。",
           "translation": "この話は主に何についてですか。"
         },
@@ -703,7 +703,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "The speaker is asking employees to keep the news confidential"
+              "text": "The speaker regrets the acquisition took place"
             },
             {
               "key": "B",
@@ -711,11 +711,11 @@
             },
             {
               "key": "C",
-              "text": "The speaker is warning of layoffs that will happen immediately"
+              "text": "The speaker is asking employees to keep the news confidential"
             },
             {
               "key": "D",
-              "text": "The speaker regrets the acquisition took place"
+              "text": "The speaker is warning of layoffs that will happen immediately"
             }
           ],
           "answer": "B",
@@ -728,22 +728,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Communicate major decisions as soon as they are finalized"
+              "text": "Complete the integration within one month"
             },
             {
               "key": "B",
-              "text": "Guarantee that no roles will change"
+              "text": "Communicate major decisions as soon as they are finalized"
             },
             {
               "key": "C",
-              "text": "Complete the integration within one month"
+              "text": "Guarantee that no roles will change"
             },
             {
               "key": "D",
               "text": "Allow employees to choose their own new roles"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "\"we'll communicate every major decision as soon as it's finalized\"と述べている。",
           "translation": "話者は何をすると約束していますか。"
         }
@@ -784,7 +784,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "To announce a new product launch"
+              "text": "To inform staff about a product recall"
             },
             {
               "key": "B",
@@ -796,10 +796,10 @@
             },
             {
               "key": "D",
-              "text": "To inform staff about a product recall"
+              "text": "To announce a new product launch"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "\"an internal briefing regarding the voluntary recall of model AX-200 units\"と述べている。",
           "translation": "この説明会の目的は何ですか。"
         },
@@ -809,7 +809,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "The speaker is blaming the engineering team"
+              "text": "The speaker believes the recall was the right decision despite its cost"
             },
             {
               "key": "B",
@@ -817,14 +817,14 @@
             },
             {
               "key": "C",
-              "text": "The speaker believes the recall was the right decision despite its cost"
+              "text": "The speaker is blaming the engineering team"
             },
             {
               "key": "D",
               "text": "The speaker thinks the recall was unnecessary"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "直前の\"this was not an easy decision given the cost involved\"に続く発言で、コストを踏まえてもリコールが唯一正しい判断だったという確信を示す意図推定問題。",
           "translation": "話者が「率直に言って、それが唯一責任ある判断だった」と言っているのはどういう意味ですか。"
         },
@@ -834,7 +834,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "All units will be automatically refunded"
+              "text": "Engineering will begin redesigning the product"
             },
             {
               "key": "B",
@@ -842,7 +842,7 @@
             },
             {
               "key": "C",
-              "text": "Engineering will begin redesigning the product"
+              "text": "All units will be automatically refunded"
             },
             {
               "key": "D",
@@ -890,11 +890,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "A proposed business expansion into a new region"
+              "text": "A review of a failed marketing campaign"
             },
             {
               "key": "B",
-              "text": "A review of a failed marketing campaign"
+              "text": "A summary of customer satisfaction surveys"
             },
             {
               "key": "C",
@@ -902,10 +902,10 @@
             },
             {
               "key": "D",
-              "text": "A summary of customer satisfaction surveys"
+              "text": "A proposed business expansion into a new region"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "\"this planning session on our proposed expansion into the southern region\"と述べている。",
           "translation": "この話の主な話題は何ですか。"
         },
@@ -915,15 +915,15 @@
           "choices": [
             {
               "key": "A",
-              "text": "The speaker wants to cancel the expansion plan"
+              "text": "The speaker is asking for more research before any discussion"
             },
             {
               "key": "B",
-              "text": "The speaker is confident there is no real competition"
+              "text": "The speaker wants to cancel the expansion plan"
             },
             {
               "key": "C",
-              "text": "The speaker is asking for more research before any discussion"
+              "text": "The speaker is confident there is no real competition"
             },
             {
               "key": "D",
@@ -940,22 +940,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Three competitors will exit the market"
+              "text": "The expansion plan will be canceled"
             },
             {
               "key": "B",
-              "text": "The pricing model will be revised"
+              "text": "Three competitors will exit the market"
             },
             {
               "key": "C",
-              "text": "The first location could open by early autumn"
+              "text": "The pricing model will be revised"
             },
             {
               "key": "D",
-              "text": "The expansion plan will be canceled"
+              "text": "The first location could open by early autumn"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "\"If the leadership team approves the budget next week, we could open our first location there by early autumn\"と述べている。",
           "translation": "来週予算が承認されれば、何が起こり得ますか。"
         }
@@ -996,7 +996,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Merging with another company"
+              "text": "Hiring a large number of new in-house staff"
             },
             {
               "key": "B",
@@ -1004,7 +1004,7 @@
             },
             {
               "key": "C",
-              "text": "Hiring a large number of new in-house staff"
+              "text": "Merging with another company"
             },
             {
               "key": "D",
@@ -1025,11 +1025,11 @@
             },
             {
               "key": "B",
-              "text": "The decision was made without any research"
+              "text": "The decision has already been reversed"
             },
             {
               "key": "C",
-              "text": "The decision has already been reversed"
+              "text": "The decision was made without any research"
             },
             {
               "key": "D",
@@ -1046,22 +1046,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "All customer complaints without exception"
-            },
-            {
-              "key": "B",
               "text": "Only technical support issues"
             },
             {
+              "key": "B",
+              "text": "Routine inquiries such as order status and returns"
+            },
+            {
               "key": "C",
-              "text": "Complex cases that the internal team cannot resolve"
+              "text": "All customer complaints without exception"
             },
             {
               "key": "D",
-              "text": "Routine inquiries such as order status and returns"
+              "text": "Complex cases that the internal team cannot resolve"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "\"The external provider will handle only routine inquiries at first, such as order status and returns\"と述べている。",
           "translation": "外部の業者は最初、何を担当しますか。"
         }

@@ -300,6 +300,143 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
     const problems = validateContentLint(questions, 'pack-p6-test')
     expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
   })
+
+  // T-237（docs/29 Q-79）: audio_set（Part3/4）もrotateSubQuestionChoicesが同じ
+  // index%4ローテーションを使うため、text_passageと同じ決定的循環が起きる。対象formatを拡大した
+  function audioSetCycleSet(setId: string, answers: string[]): Question {
+    return {
+      id: setId,
+      part: 3,
+      format: 'audio_set',
+      difficulty: 2,
+      tags: ['会話'],
+      keyVocab: [{ word: 'invoice', sense: '請求書', freqRank: 'S' }],
+      audio: `audio/part34/${setId}.mp3`,
+      audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 20000 },
+      script: 'W: ... M: ...',
+      subQuestions: answers.map((answer, i) => ({
+        id: `${setId}-q${i + 1}`,
+        question: `Question ${i + 1} of ${setId}?`,
+        choices: [
+          { key: 'A', text: 'An invoice' },
+          { key: 'B', text: 'A resume' },
+          { key: 'C', text: 'A receipt' },
+          { key: 'D', text: 'A catalog' },
+        ],
+        answer,
+        explanation: '解説テキスト',
+        translation: '和訳',
+      })),
+    }
+  }
+
+  it('audio_set（Part3/4）も同一差分の循環なら警告する（T-237でtext_passageから対象拡大）', () => {
+    const questions = [
+      audioSetCycleSet('p34-cyc-1', ['A', 'D', 'C', 'B']),
+      audioSetCycleSet('p34-cyc-2', ['D', 'C', 'B', 'A']),
+      audioSetCycleSet('p34-cyc-3', ['C', 'B', 'A', 'D']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p34-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('audio_set'),
+      ),
+    ).toBe(true)
+  })
+
+  it('audio_setがシャッフル済みなら警告しない', () => {
+    const questions = [
+      audioSetCycleSet('p34-mix-1', ['B', 'B', 'D', 'A']),
+      audioSetCycleSet('p34-mix-2', ['C', 'A', 'A', 'D']),
+      audioSetCycleSet('p34-mix-3', ['D', 'B', 'C', 'C']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p34-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+})
+
+describe('checkFlatAnswerKeyCycle（⑨。text_blank/audio_qaのパック全体を1設問列とした決定的循環検出。T-237）', () => {
+  /** rotatePart5Choices相当（index%4）の決定的ローテーションをそのまま再現する（4択A〜D） */
+  function cyclicPart5Questions(count: number): Question[] {
+    const pattern = ['A', 'D', 'C', 'B']
+    return Array.from({ length: count }, (_, i) =>
+      part5Question({
+        id: `p5-cyc-${i}`,
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitting' },
+          { key: 'D', text: 'submitted' },
+        ],
+        answer: pattern[i % 4]!,
+      }),
+    )
+  }
+
+  /** rotatePart2Choices相当（index%3）の決定的ローテーションをそのまま再現する（3択） */
+  function cyclicPart2Questions(count: number): Question[] {
+    const pattern = ['A', 'C', 'B']
+    return Array.from({ length: count }, (_, i) =>
+      part2Question({
+        id: `p2-cyc-${i}`,
+        choices: [
+          { key: 'A', text: 'By Friday.' },
+          { key: 'B', text: 'Yes, I did.' },
+          { key: 'C', text: 'In the meeting room.' },
+        ],
+        answer: pattern[i % 3]!,
+      }),
+    )
+  }
+
+  it('text_blank全パックが一定差分の循環（pack-p5-s-002等の再現）なら警告する', () => {
+    const problems = validateContentLint(cyclicPart5Questions(20), 'pack-p5-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('text_blank'),
+      ),
+    ).toBe(true)
+  })
+
+  it('audio_qa全パックが一定差分の循環（pack-p2-s-001等の再現。3択ABC）なら警告する', () => {
+    const problems = validateContentLint(cyclicPart2Questions(12), 'pack-p2-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('audio_qa'),
+      ),
+    ).toBe(true)
+  })
+
+  it('シャッフル済み（循環が崩れている）なら警告しない', () => {
+    const pattern = ['A', 'B', 'A', 'D', 'C', 'C', 'B', 'D', 'A', 'B', 'C', 'D', 'A', 'D', 'B', 'C']
+    const questions = pattern.map((answer, i) =>
+      part5Question({
+        id: `p5-mix-${i}`,
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitting' },
+          { key: 'D', text: 'submitted' },
+        ],
+        answer,
+      }),
+    )
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('8問未満なら判定しない（小規模フィクスチャの誤検出防止）', () => {
+    const problems = validateContentLint(cyclicPart5Questions(6), 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('正答キーが常に同じ（delta=0）は⑨の対象外（別種の問題であり誤検出防止のため対象を分ける）', () => {
+    const questions = Array.from({ length: 20 }, (_, i) =>
+      part5Question({ id: `p5-same-${i}`, answer: 'A' }),
+    )
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
 })
 
 describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベルの不一致検出。T-236）', () => {

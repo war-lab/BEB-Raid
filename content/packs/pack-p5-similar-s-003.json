@@ -31,22 +31,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "delivery"
+          "text": "inspection"
         },
         {
           "key": "B",
-          "text": "renewal"
-        },
-        {
-          "key": "C",
           "text": "warranty"
         },
         {
+          "key": "C",
+          "text": "delivery"
+        },
+        {
           "key": "D",
-          "text": "inspection"
+          "text": "renewal"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "機材が届く行為はdelivery（配達）。renewal（更新）・warranty（保証）・inspection（検査）はいずれも「届くこと」自体を指さない。",
       "translation": "新しい機材の配達は1週間遅れた。"
     },
@@ -69,22 +69,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "itinerary"
-        },
-        {
-          "key": "B",
-          "text": "agenda"
-        },
-        {
-          "key": "C",
           "text": "brochure"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "venue"
+        },
+        {
+          "key": "C",
+          "text": "agenda"
+        },
+        {
+          "key": "D",
+          "text": "itinerary"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "会議を開く「会場」はvenue。itinerary（旅程表）・agenda（議題）・brochure（パンフレット）はいずれも場所を表さない。",
       "translation": "彼らは今年の会議のためにより大きな会場を予約した。"
     },
@@ -107,7 +107,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "certification"
+          "text": "qualification"
         },
         {
           "key": "B",
@@ -115,14 +115,14 @@
         },
         {
           "key": "C",
-          "text": "training"
+          "text": "certification"
         },
         {
           "key": "D",
-          "text": "qualification"
+          "text": "training"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "業務前に受ける安全「研修」はtraining。qualification（資格）・certification（認定）・orientation（オリエンテーション）は研修そのものではない。",
       "translation": "新入社員は全員、業務開始前に安全研修を修了しなければならない。"
     },
@@ -145,22 +145,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "premises"
+          "text": "warehouse"
         },
         {
           "key": "B",
-          "text": "headquarters"
+          "text": "premises"
         },
         {
           "key": "C",
-          "text": "branch"
+          "text": "headquarters"
         },
         {
           "key": "D",
-          "text": "warehouse"
+          "text": "branch"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "「本社」はheadquarters。branch（支店）・warehouse（倉庫）・premises（構内、一般名詞）は本社機能そのものを指さない。",
       "translation": "その会社は本社を中心街のより大きなビルに移転した。"
     },
@@ -183,22 +183,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "reception"
-        },
-        {
-          "key": "B",
-          "text": "checkpoint"
-        },
-        {
-          "key": "C",
           "text": "gateway"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "concierge"
+        },
+        {
+          "key": "C",
+          "text": "reception"
+        },
+        {
+          "key": "D",
+          "text": "checkpoint"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "来客対応の「受付」はreception。checkpoint（検問所）・gateway（玄関口）・concierge（コンシェルジュ、人を指す名詞）は受付デスクの名称として不自然。",
       "translation": "かばんは受付のデスクに預けてください。"
     },
@@ -221,7 +221,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "reconciliation"
+          "text": "inspection"
         },
         {
           "key": "B",
@@ -229,14 +229,14 @@
         },
         {
           "key": "C",
-          "text": "inspection"
+          "text": "audit"
         },
         {
           "key": "D",
-          "text": "audit"
+          "text": "reconciliation"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "財務の「監査」はaudit。reconciliation（照合）・appraisal（人事評価）・inspection（検査）は監査という制度そのものを指す語ではない。",
       "translation": "経理チームは来週月曜日に始まる年次監査の準備をしている。"
     },
@@ -259,11 +259,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "facility"
+          "text": "venue"
         },
         {
           "key": "B",
-          "text": "venue"
+          "text": "facility"
         },
         {
           "key": "C",
@@ -301,18 +301,18 @@
         },
         {
           "key": "B",
-          "text": "utility"
+          "text": "warranty"
         },
         {
           "key": "C",
-          "text": "mortgage"
+          "text": "utility"
         },
         {
           "key": "D",
-          "text": "warranty"
+          "text": "mortgage"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "電気・ガス等の「公共料金」はutility。mortgage（住宅ローン）・warranty（保証）・subscription（定期購読）は請求書の種類として文脈に合わない。",
       "translation": "家賃には水道代が含まれるが、入居者は自分で公共料金を別途支払わなければならない。"
     },
@@ -339,11 +339,11 @@
         },
         {
           "key": "B",
-          "text": "hospitality"
+          "text": "concierge"
         },
         {
           "key": "C",
-          "text": "concierge"
+          "text": "hospitality"
         },
         {
           "key": "D",
@@ -373,22 +373,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "applicant"
+          "text": "occupant"
         },
         {
           "key": "B",
-          "text": "candidate"
-        },
-        {
-          "key": "C",
           "text": "shareholder"
         },
         {
+          "key": "C",
+          "text": "candidate"
+        },
+        {
           "key": "D",
-          "text": "occupant"
+          "text": "applicant"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "建物に「入居している人」はoccupant。applicant（応募者）・candidate（候補者）・shareholder（株主）はその建物にいる人を指すとは限らない。",
       "translation": "その建物の入居者は全員、金曜日までに新しい安全方針に署名しなければならない。"
     },
@@ -411,7 +411,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "inventory"
+          "text": "freight"
         },
         {
           "key": "B",
@@ -419,14 +419,14 @@
         },
         {
           "key": "C",
-          "text": "freight"
+          "text": "merchandise"
         },
         {
           "key": "D",
-          "text": "merchandise"
+          "text": "inventory"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "船舶・航空で運ばれる「貨物」はfreight。merchandise（商品）・inventory（在庫）・consignment（委託荷物）は輸送中の貨物そのものを指す一般語としては不自然。",
       "translation": "その貨物は通関の問題で港に足止めされた。"
     },
@@ -449,22 +449,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "authorize"
-        },
-        {
-          "key": "B",
           "text": "outsource"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "allocate"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "delegate"
+        },
+        {
+          "key": "D",
+          "text": "authorize"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "業務を外部の会社に「委託する」はoutsource。allocate（割り当てる）・delegate（社内の人に委任する）・authorize（承認する）は「外部委託」という意味を持たない。",
       "translation": "その会社は昨年、顧客サポートを他社に外部委託することにした。"
     },
@@ -487,7 +487,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "stakeholder"
+          "text": "occupant"
         },
         {
           "key": "B",
@@ -499,10 +499,10 @@
         },
         {
           "key": "D",
-          "text": "occupant"
+          "text": "stakeholder"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "事業に利害を持つ「利害関係者」はstakeholder。applicant（応募者）・competitor（競合他社）・occupant（入居者）は提案を確認する立場として文脈に合わない。",
       "translation": "すべての利害関係者が、取締役会の前に新しい提案を確認するよう招待された。"
     },
@@ -525,22 +525,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "estate"
+          "text": "facility"
         },
         {
           "key": "B",
-          "text": "premises"
-        },
-        {
-          "key": "C",
           "text": "venue"
         },
         {
+          "key": "C",
+          "text": "premises"
+        },
+        {
           "key": "D",
-          "text": "facility"
+          "text": "estate"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "生産のための「施設」はfacility。estate（地所）・premises（構内、単体では工場全体を指さない）・venue（会場）は製造拠点を表す語として不自然。",
       "translation": "新しい製造施設は来春オープンする。"
     },
@@ -563,22 +563,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "mortgage"
-        },
-        {
-          "key": "B",
           "text": "voucher"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "lease"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "warranty"
+        },
+        {
+          "key": "D",
+          "text": "mortgage"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "不動産の「賃貸借契約」はlease。warranty（保証）・mortgage（住宅ローン）・voucher（引換券）は賃貸契約の種類として合わない。",
       "translation": "その会社は先月、中心街のオフィススペースについて5年間の賃貸契約を結んだ。"
     },
@@ -601,22 +601,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "dispute"
-        },
-        {
-          "key": "B",
           "text": "defect"
         },
         {
+          "key": "B",
+          "text": "dispute"
+        },
+        {
           "key": "C",
-          "text": "malfunction"
+          "text": "shortage"
         },
         {
           "key": "D",
-          "text": "shortage"
+          "text": "malfunction"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "製品の「欠陥」はdefect。malfunction（機械の不具合。梱包には使いにくい）・shortage（不足）・dispute（紛争）は梱包の状態を表す語として合わない。",
       "translation": "検査官は最終確認の際、梱包に小さな欠陥を見つけた。"
     },
@@ -639,11 +639,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "branch"
+          "text": "premises"
         },
         {
           "key": "B",
-          "text": "headquarters"
+          "text": "branch"
         },
         {
           "key": "C",
@@ -651,10 +651,10 @@
         },
         {
           "key": "D",
-          "text": "premises"
+          "text": "headquarters"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "本社に対する「支店」はbranch。headquarters（本社）・facility（施設）・premises（構内）は「支店」という意味を持たない。",
       "translation": "その銀行は商業地区に新しい支店を開いた。"
     },
@@ -685,14 +685,14 @@
         },
         {
           "key": "C",
-          "text": "mortgage"
+          "text": "reimbursement"
         },
         {
           "key": "D",
-          "text": "reimbursement"
+          "text": "mortgage"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "立て替えた経費の「払い戻し」はreimbursement。subscription（定期購読）・voucher（引換券）・mortgage（住宅ローン）は経費精算の種類として合わない。",
       "translation": "従業員は出張から30日以内であれば、承認された出張経費について払い戻しを請求できる。"
     },
@@ -715,22 +715,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "delegate"
+          "text": "authorize"
         },
         {
           "key": "B",
-          "text": "allocate"
-        },
-        {
-          "key": "C",
           "text": "troubleshoot"
         },
         {
+          "key": "C",
+          "text": "delegate"
+        },
+        {
           "key": "D",
-          "text": "authorize"
+          "text": "allocate"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "不具合の原因を調べて「解決する」はtroubleshoot。authorize（承認する）・delegate（委任する）・allocate（割り当てる）は問題解決の行為を意味しない。",
       "translation": "その技術者は昨夜遅く、ネットワークの問題を解決するために呼ばれた。"
     },
@@ -753,22 +753,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "encryption"
+          "text": "protocol"
         },
         {
           "key": "B",
-          "text": "password"
-        },
-        {
-          "key": "C",
           "text": "firewall"
         },
         {
+          "key": "C",
+          "text": "password"
+        },
+        {
           "key": "D",
-          "text": "protocol"
+          "text": "encryption"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "個人が設定する「パスワード」はpassword。firewall（ファイアウォール）・protocol（通信規約）・encryption（暗号化）はいずれもユーザーが定期的に変更するものではない。",
       "translation": "パスワードは90日ごとに変更しなければならない。"
     },
@@ -791,7 +791,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "allocate"
+          "text": "comply"
         },
         {
           "key": "B",
@@ -799,14 +799,14 @@
         },
         {
           "key": "C",
-          "text": "comply"
+          "text": "ratify"
         },
         {
           "key": "D",
-          "text": "ratify"
+          "text": "allocate"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "予算などを「割り当てる」はallocate。authorize（承認する）・comply（従う）・ratify（批准する）は配分の意味を持たない。",
       "translation": "部長は会計年度が終わる前に、3つの部署に予算を割り当てる予定だ。"
     },
@@ -829,22 +829,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "brochure"
-        },
-        {
-          "key": "B",
-          "text": "itinerary"
-        },
-        {
-          "key": "C",
           "text": "correspondence"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "newsletter"
+        },
+        {
+          "key": "C",
+          "text": "brochure"
+        },
+        {
+          "key": "D",
+          "text": "itinerary"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "定期的に配布する「社内報」はnewsletter。brochure（パンフレット）・itinerary（旅程表）・correspondence（文書のやり取り全般）は月刊の社内向け通信を指さない。",
       "translation": "人事部は毎月、全社員に社内報を送っている。"
     },
@@ -867,22 +867,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "comply"
-        },
-        {
-          "key": "B",
           "text": "delegate"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "attend"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "authorize"
+        },
+        {
+          "key": "D",
+          "text": "comply"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "会議に「出席する」はattend。authorize（承認する）・comply（従う）・delegate（委任する）は出席するという意味を持たない。",
       "translation": "管理職は全員、四半期会議に出席することが求められている。"
     },
@@ -943,7 +943,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "authorize"
+          "text": "notify"
         },
         {
           "key": "B",
@@ -955,10 +955,10 @@
         },
         {
           "key": "D",
-          "text": "notify"
+          "text": "authorize"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "権限を持って「承認する」はauthorize。comply（従う）・delegate（委任する）・notify（通知する）は承認権限を行使する意味を持たない。",
       "translation": "経理部長だけが、追加の承認なしに1万ドルを超える支払いを承認できる。"
     },
@@ -981,22 +981,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "comply"
-        },
-        {
-          "key": "B",
           "text": "ratify"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "allocate"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "implement"
+        },
+        {
+          "key": "D",
+          "text": "comply"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "方針などを「実施する」はimplement。comply（従う）・ratify（批准する）・allocate（割り当てる）は制度を導入する意味を持たない。",
       "translation": "その会社は来月、すべての工場で新しい安全方針を実施する予定だ。"
     },
@@ -1019,22 +1019,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "delegate"
-        },
-        {
-          "key": "B",
           "text": "ratify"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "comply"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "authorize"
+        },
+        {
+          "key": "D",
+          "text": "delegate"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "規則に「従う」はcomply（with）。authorize（承認する）・delegate（委任する）・ratify（批准する）は規則遵守の意味を持たない。",
       "translation": "すべての業者は来四半期から、新しい梱包規制に従わなければならない。"
     },
@@ -1061,18 +1061,18 @@
         },
         {
           "key": "B",
-          "text": "delegate"
+          "text": "comply"
         },
         {
           "key": "C",
-          "text": "authorize"
+          "text": "delegate"
         },
         {
           "key": "D",
-          "text": "comply"
+          "text": "authorize"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "業務を部下に「委任する」はdelegate。authorize（承認する）・comply（従う）・notify（通知する）は権限移譲の意味を持たない。",
       "translation": "CEOは先週、日常業務を副社長に委任することにした。"
     },
@@ -1095,22 +1095,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "prioritize"
-        },
-        {
-          "key": "B",
           "text": "allocate"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "delegate"
+        },
+        {
+          "key": "C",
+          "text": "prioritize"
         },
         {
           "key": "D",
           "text": "coordinate"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "物事に「優先順位をつける」はprioritize。allocate（割り当てる）・delegate（委任する）・coordinate（調整する）は優先順位づけの意味を持たない。",
       "translation": "チームは今週、定型業務よりも顧客の苦情対応を優先するよう求められた。"
     },
@@ -1137,7 +1137,7 @@
         },
         {
           "key": "B",
-          "text": "oversee"
+          "text": "coordinate"
         },
         {
           "key": "C",
@@ -1145,10 +1145,10 @@
         },
         {
           "key": "D",
-          "text": "coordinate"
+          "text": "oversee"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "複数の予定を「調整する」はcoordinate。supervise（監督する）・oversee（統括する）・delegate（委任する）はスケジュール同士をすり合わせる意味を持たない。",
       "translation": "彼女は年次合宿のため、全部門長のスケジュールを調整する予定だ。"
     },
@@ -1171,11 +1171,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "coordinate"
+          "text": "oversee"
         },
         {
           "key": "B",
-          "text": "recruit"
+          "text": "coordinate"
         },
         {
           "key": "C",
@@ -1183,7 +1183,7 @@
         },
         {
           "key": "D",
-          "text": "oversee"
+          "text": "recruit"
         }
       ],
       "answer": "C",
@@ -1209,22 +1209,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "recruit"
+          "text": "supervise"
         },
         {
           "key": "B",
-          "text": "oversee"
+          "text": "recruit"
         },
         {
           "key": "C",
-          "text": "supervise"
+          "text": "oversee"
         },
         {
           "key": "D",
           "text": "coordinate"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "複数の組織を広く「統括する」はoversee。supervise（個々の人を直接監督する）・coordinate（調整する）・recruit（採用する）は複数拠点の統括を表す語として弱い。",
       "translation": "地域統括責任者は来月から、3つの支店すべてを統括する。"
     },
@@ -1247,22 +1247,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "recruit"
+          "text": "delegate"
         },
         {
           "key": "B",
-          "text": "hire"
+          "text": "recruit"
         },
         {
           "key": "C",
-          "text": "terminate"
+          "text": "hire"
         },
         {
           "key": "D",
-          "text": "delegate"
+          "text": "terminate"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "人材を「募集し採用する」はrecruit。hire（雇う。意味は近いがrecruitほど募集活動を含意しない）・terminate（解雇する）・delegate（委任する）はこの文脈にふさわしくない。",
       "translation": "その会社は今年、拡大中の研究部門のために新しいエンジニアを10人採用する予定だ。"
     },
@@ -1285,22 +1285,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "recruit"
-        },
-        {
-          "key": "B",
-          "text": "terminate"
-        },
-        {
-          "key": "C",
           "text": "delegate"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "hire"
+        },
+        {
+          "key": "C",
+          "text": "terminate"
+        },
+        {
+          "key": "D",
+          "text": "recruit"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "人を「雇う」はhire。recruit（募集する。より広い採用活動を指す）・terminate（解雇する）・delegate（委任する）はこの文脈に合わない。",
       "translation": "私たちは休暇シーズンのために追加のスタッフを雇う必要がある。"
     },
@@ -1327,18 +1327,18 @@
         },
         {
           "key": "B",
-          "text": "delegate"
+          "text": "authorize"
         },
         {
           "key": "C",
-          "text": "notify"
+          "text": "delegate"
         },
         {
           "key": "D",
-          "text": "authorize"
+          "text": "notify"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "相手に「通知する」はnotify。authorize（承認する）・comply（従う）・delegate（委任する）は情報を伝える意味を持たない。",
       "translation": "住所変更があれば配送部門に通知してください。"
     },
@@ -1361,22 +1361,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "comply"
-        },
-        {
-          "key": "B",
           "text": "inform"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "authorize"
+        },
+        {
+          "key": "C",
+          "text": "comply"
         },
         {
           "key": "D",
           "text": "delegate"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "情報を「知らせる」はinform。authorize（承認する）・delegate（委任する）・comply（従う）は知らせるという意味を持たない。",
       "translation": "部長がチームにスケジュール変更を知らせる予定だ。"
     },
@@ -1399,22 +1399,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "request"
-        },
-        {
-          "key": "B",
-          "text": "authorize"
-        },
-        {
-          "key": "C",
           "text": "comply"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "request"
+        },
+        {
+          "key": "C",
           "text": "delegate"
+        },
+        {
+          "key": "D",
+          "text": "authorize"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "何かを「依頼・要求する」はrequest。authorize（承認する）・comply（従う）・delegate（委任する）は依頼する側の行為を表さない。",
       "translation": "顧客は30日以内であれば返金を依頼できる。"
     },
@@ -1445,14 +1445,14 @@
         },
         {
           "key": "C",
-          "text": "comply"
+          "text": "clarify"
         },
         {
           "key": "D",
-          "text": "clarify"
+          "text": "comply"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "曖昧な点を「明確にする」はclarify。authorize（承認する）・delegate（委任する）・comply（従う）は説明を明確にする意味を持たない。",
       "translation": "このプロジェクトの締切を明確にしていただけますか。"
     },
@@ -1475,7 +1475,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "comply"
+          "text": "implement"
         },
         {
           "key": "B",
@@ -1483,14 +1483,14 @@
         },
         {
           "key": "C",
-          "text": "terminate"
+          "text": "comply"
         },
         {
           "key": "D",
-          "text": "implement"
+          "text": "terminate"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "契約などを「終了させる」はterminate。implement（実施する）・comply（従う）・authorize（承認する）は契約を打ち切る意味を持たない。",
       "translation": "その会社は度重なる納品の遅れのため、契約を早期に終了させることにした。"
     },
@@ -1513,11 +1513,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "attrition"
+          "text": "retirement"
         },
         {
           "key": "B",
-          "text": "retirement"
+          "text": "attrition"
         },
         {
           "key": "C",
@@ -1528,7 +1528,7 @@
           "text": "retention"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "勤続後の「退職」はretirement。appraisal（人事評価）・retention（人材の定着）・attrition（自然減）は退職という個人の行為そのものを指さない。",
       "translation": "彼女はその会社での25年間の勤続の後、退職を計画している。"
     },
@@ -1551,22 +1551,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "evaluation"
+          "text": "correspondence"
         },
         {
           "key": "B",
-          "text": "newsletter"
+          "text": "evaluation"
         },
         {
           "key": "C",
-          "text": "correspondence"
+          "text": "newsletter"
         },
         {
           "key": "D",
           "text": "expenditure"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "業績の「評価」はevaluation。newsletter（社内報）・correspondence（文書のやり取り）・expenditure（支出）は評価という行為・文書を表さない。",
       "translation": "各従業員は3月に、直属の上司から年次業績評価を受ける。"
     },
@@ -1589,7 +1589,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "expenditure"
+          "text": "occupancy"
         },
         {
           "key": "B",
@@ -1597,14 +1597,14 @@
         },
         {
           "key": "C",
-          "text": "occupancy"
+          "text": "performance"
         },
         {
           "key": "D",
-          "text": "performance"
+          "text": "expenditure"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "業績・成績を表すのはperformance。expenditure（支出）・correspondence（文書のやり取り）・occupancy（入居）は売上の良し悪しを表す語ではない。",
       "translation": "その報告書は、不況にもかかわらず今四半期の好調な販売実績を強調している。"
     },
@@ -1631,7 +1631,7 @@
         },
         {
           "key": "B",
-          "text": "appraisal"
+          "text": "correspondence"
         },
         {
           "key": "C",
@@ -1639,7 +1639,7 @@
         },
         {
           "key": "D",
-          "text": "correspondence"
+          "text": "appraisal"
         }
       ],
       "answer": "C",
@@ -1665,22 +1665,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "newsletter"
-        },
-        {
-          "key": "B",
-          "text": "correspondence"
-        },
-        {
-          "key": "C",
           "text": "registration"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "evaluation"
+        },
+        {
+          "key": "C",
+          "text": "correspondence"
+        },
+        {
+          "key": "D",
+          "text": "newsletter"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "手紙・メール等の「やり取り」全般はcorrespondence。registration（登録）・evaluation（評価）・newsletter（社内報という特定の刊行物）はこの意味を持たない。",
       "translation": "すべての業務上のやり取りは、法律により少なくとも5年間保管すべきだ。"
     },
@@ -1703,22 +1703,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "participate"
-        },
-        {
-          "key": "B",
           "text": "authorize"
         },
         {
+          "key": "B",
+          "text": "participate"
+        },
+        {
           "key": "C",
-          "text": "comply"
+          "text": "delegate"
         },
         {
           "key": "D",
-          "text": "delegate"
+          "text": "comply"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "活動に「参加する」はparticipate（in）。authorize（承認する）・comply（従う）・delegate（委任する）は参加する意味を持たない。",
       "translation": "従業員は健康増進プログラムへの参加を奨励されている。"
     },
@@ -1741,7 +1741,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "revenue"
+          "text": "registration"
         },
         {
           "key": "B",
@@ -1749,7 +1749,7 @@
         },
         {
           "key": "C",
-          "text": "registration"
+          "text": "revenue"
         },
         {
           "key": "D",
@@ -1821,7 +1821,7 @@
         },
         {
           "key": "B",
-          "text": "client"
+          "text": "affiliate"
         },
         {
           "key": "C",
@@ -1829,10 +1829,10 @@
         },
         {
           "key": "D",
-          "text": "affiliate"
+          "text": "client"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "専門家に依頼する側の「顧客・依頼人」はclient。competitor（競合他社）・affiliate（提携先）・stakeholder（利害関係者）は依頼人を意味しない。",
       "translation": "その弁護士は依頼人と会って案件について話し合った。"
     },
@@ -1855,22 +1855,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "shareholder"
-        },
-        {
-          "key": "B",
           "text": "occupant"
         },
         {
+          "key": "B",
+          "text": "shareholder"
+        },
+        {
           "key": "C",
-          "text": "applicant"
+          "text": "competitor"
         },
         {
           "key": "D",
-          "text": "competitor"
+          "text": "applicant"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "会社の「株主」はshareholder。occupant（入居者）・applicant（応募者）・competitor（競合他社）は株主総会の主体として合わない。",
       "translation": "株主総会は、来週火曜日に中心街の本社で開催される。"
     },
@@ -1893,11 +1893,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "occupant"
+          "text": "landlord"
         },
         {
           "key": "B",
-          "text": "supplier"
+          "text": "occupant"
         },
         {
           "key": "C",
@@ -1905,10 +1905,10 @@
         },
         {
           "key": "D",
-          "text": "landlord"
+          "text": "supplier"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "物件を貸す「大家」はlandlord。occupant（入居者。借りる側）・supplier（仕入れ先）・concierge（コンシェルジュ）は大家を意味しない。",
       "translation": "入居者は、建物内で必要な修理について大家に連絡すべきだ。"
     },
@@ -1935,7 +1935,7 @@
         },
         {
           "key": "B",
-          "text": "competitor"
+          "text": "applicant"
         },
         {
           "key": "C",
@@ -1943,7 +1943,7 @@
         },
         {
           "key": "D",
-          "text": "applicant"
+          "text": "competitor"
         }
       ],
       "answer": "C",
@@ -1973,18 +1973,18 @@
         },
         {
           "key": "B",
-          "text": "presentation"
-        },
-        {
-          "key": "C",
           "text": "briefing"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "ceremony"
+        },
+        {
+          "key": "D",
+          "text": "presentation"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "資料を使って行う「プレゼンテーション」はpresentation。briefing（短い説明会）・ceremony（式典）・testimonial（推薦の声）は発表そのものを指さない。",
       "translation": "彼女は新しいマーケティング戦略についてプレゼンテーションを行った。"
     },
@@ -2007,7 +2007,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "deadline"
+          "text": "registration"
         },
         {
           "key": "B",
@@ -2015,14 +2015,14 @@
         },
         {
           "key": "C",
-          "text": "registration"
+          "text": "appraisal"
         },
         {
           "key": "D",
-          "text": "appraisal"
+          "text": "deadline"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "提出などの「締切」はdeadline。itinerary（旅程表）・registration（登録）・appraisal（人事評価）は締切日を意味しない。",
       "translation": "提案書の締切は来週の月曜日だ。"
     },
@@ -2045,22 +2045,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "receipt"
-        },
-        {
-          "key": "B",
-          "text": "lease"
-        },
-        {
-          "key": "C",
           "text": "mortgage"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "voucher"
+        },
+        {
+          "key": "C",
+          "text": "receipt"
+        },
+        {
+          "key": "D",
+          "text": "lease"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "無料引き換えなどに使う「引換券」はvoucher。receipt（領収書）・lease（賃貸借契約）・mortgage（住宅ローン）は引換券を意味しない。",
       "translation": "顧客は無料コーヒーの引換券を受け取る。"
     },
@@ -2087,18 +2087,18 @@
         },
         {
           "key": "B",
-          "text": "venue"
+          "text": "facility"
         },
         {
           "key": "C",
-          "text": "premises"
+          "text": "venue"
         },
         {
           "key": "D",
-          "text": "facility"
+          "text": "premises"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "建物・敷地全体を指す「構内」はpremises。facility（施設という機能面の語）・estate（地所）・venue（会場）はこの文脈では代わりにくい。",
       "translation": "訪問者は、通常の営業時間内に構内に入る前に署名しなければならない。"
     },
@@ -2125,18 +2125,18 @@
         },
         {
           "key": "B",
-          "text": "supplier"
+          "text": "affiliate"
         },
         {
           "key": "C",
-          "text": "competitor"
+          "text": "supplier"
         },
         {
           "key": "D",
-          "text": "affiliate"
+          "text": "competitor"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "商品を供給する「仕入れ先」はsupplier。competitor（競合他社）・affiliate（提携先）・client（顧客）は仕入れ先を意味しない。",
       "translation": "私たちは事務用品の仕入れ先を新しいところに変えた。"
     },
@@ -2159,7 +2159,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "receipt"
+          "text": "lease"
         },
         {
           "key": "B",
@@ -2171,10 +2171,10 @@
         },
         {
           "key": "D",
-          "text": "lease"
+          "text": "receipt"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "購入証明の「領収書」はreceipt。voucher（引換券）・warranty（保証）・lease（賃貸借契約）は返金の際に必要な購入証明にはならない。",
       "translation": "返金が必要になった場合に備えて領収書を保管しておいてください。"
     },
@@ -2197,7 +2197,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "freight"
+          "text": "footfall"
         },
         {
           "key": "B",
@@ -2205,14 +2205,14 @@
         },
         {
           "key": "C",
-          "text": "footfall"
+          "text": "merchandise"
         },
         {
           "key": "D",
-          "text": "merchandise"
+          "text": "freight"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "店で売る「商品」はmerchandise。freight（輸送中の貨物一般）・revenue（収益）・footfall（来店客数）は商品そのものを意味しない。",
       "translation": "その店は新商品の大きな入荷を受け取った。"
     },
@@ -2235,22 +2235,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "stopover"
-        },
-        {
-          "key": "B",
           "text": "checkpoint"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "boarding"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "immigration"
+        },
+        {
+          "key": "D",
+          "text": "stopover"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "飛行機への「搭乗」はboarding。immigration（出入国審査）・stopover（短期滞在）・checkpoint（検問所）は搭乗開始を意味しない。",
       "translation": "204便の搭乗は12番ゲートで始まる。"
     },
@@ -2273,22 +2273,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "liquidity"
+          "text": "performance"
         },
         {
           "key": "B",
-          "text": "revenue"
-        },
-        {
-          "key": "C",
           "text": "expenditure"
         },
         {
+          "key": "C",
+          "text": "revenue"
+        },
+        {
           "key": "D",
-          "text": "performance"
+          "text": "liquidity"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "「収益」はrevenue。expenditure（支出。逆の意味）・performance（業績全般）・liquidity（流動性）は売上高そのものを指さない。",
       "translation": "その会社の収益は、不況にもかかわらず昨年15パーセント増加した。"
     },
@@ -2311,11 +2311,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "retail"
+          "text": "freight"
         },
         {
           "key": "B",
-          "text": "freight"
+          "text": "retail"
         },
         {
           "key": "C",
@@ -2326,7 +2326,7 @@
           "text": "hospitality"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "「小売」市場はretail market。freight（貨物輸送）・catering（ケータリング）・hospitality（もてなし業）は市場の種類として合わない。",
       "translation": "そのブランドは、いくつかの新しい国々にまたがって小売市場への進出を計画している。"
     },
@@ -2349,11 +2349,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "lease"
+          "text": "mortgage"
         },
         {
           "key": "B",
-          "text": "voucher"
+          "text": "lease"
         },
         {
           "key": "C",
@@ -2361,10 +2361,10 @@
         },
         {
           "key": "D",
-          "text": "mortgage"
+          "text": "voucher"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "住宅購入のための「住宅ローン」はmortgage。lease（賃貸借契約）・voucher（引換券）・subscription（定期購読）はローンを意味しない。",
       "translation": "彼らは、海辺近くの初めての持ち家を買うために住宅ローンを申し込んだ。"
     },
@@ -2387,7 +2387,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "testimonial"
+          "text": "dispute"
         },
         {
           "key": "B",
@@ -2399,7 +2399,7 @@
         },
         {
           "key": "D",
-          "text": "dispute"
+          "text": "testimonial"
         }
       ],
       "answer": "C",
@@ -2467,11 +2467,11 @@
         },
         {
           "key": "B",
-          "text": "registration"
+          "text": "appraisal"
         },
         {
           "key": "C",
-          "text": "appraisal"
+          "text": "registration"
         },
         {
           "key": "D",
@@ -2501,22 +2501,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "reconciliation"
+          "text": "depreciation"
         },
         {
           "key": "B",
-          "text": "liquidity"
-        },
-        {
-          "key": "C",
           "text": "variance"
         },
         {
+          "key": "C",
+          "text": "liquidity"
+        },
+        {
           "key": "D",
-          "text": "depreciation"
+          "text": "reconciliation"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "資産価値の目減りを表す「減価償却」はdepreciation。reconciliation（照合）・liquidity（流動性）・variance（例外許可）は資産価値の減少を意味しない。",
       "translation": "その会計士は、今度の納税申告のために設備の年間減価償却額を計算した。"
     },
@@ -2543,18 +2543,18 @@
         },
         {
           "key": "B",
-          "text": "merchandise"
+          "text": "prototype"
         },
         {
           "key": "C",
-          "text": "prototype"
+          "text": "merchandise"
         },
         {
           "key": "D",
           "text": "blueprint"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "完成前の「試作品」はprototype。blueprint（設計図）・benchmark（基準）・merchandise（商品）は試作品そのものを指さない。",
       "translation": "技術者たちは何週間も続けて、研究室で新しい試作品をテストした。"
     },
@@ -2577,22 +2577,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "chartered"
-        },
-        {
-          "key": "B",
           "text": "demographic"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "nonrefundable"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "punctual"
+        },
+        {
+          "key": "D",
+          "text": "chartered"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "「人口統計上の」を表す形容詞はdemographic。nonrefundable（払い戻し不可の）・punctual（時間に正確な）・chartered（貸し切りの）は人口層を修飾する語ではない。",
       "translation": "そのキャンペーンは、ほぼすべての買い物をオンラインで行うより若い人口層を対象にしている。"
     },
@@ -2619,15 +2619,15 @@
         },
         {
           "key": "B",
-          "text": "briefing"
+          "text": "testimonial"
         },
         {
           "key": "C",
-          "text": "ceremony"
+          "text": "briefing"
         },
         {
           "key": "D",
-          "text": "testimonial"
+          "text": "ceremony"
         }
       ],
       "answer": "A",
@@ -2653,15 +2653,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "inquiry"
-        },
-        {
-          "key": "B",
           "text": "variance"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "infringement"
+        },
+        {
+          "key": "C",
+          "text": "inquiry"
         },
         {
           "key": "D",
@@ -2691,22 +2691,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "boarding"
-        },
-        {
-          "key": "B",
           "text": "reception"
         },
         {
+          "key": "B",
+          "text": "boarding"
+        },
+        {
           "key": "C",
-          "text": "checkpoint"
+          "text": "gateway"
         },
         {
           "key": "D",
-          "text": "gateway"
+          "text": "checkpoint"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "通過を確認する「検問所」はcheckpoint。gateway（玄関口）・boarding（搭乗）・reception（受付）は検問という機能を表さない。",
       "translation": "乗客は国際線に搭乗する前に、保安検査場を通過しなければならない。"
     },
@@ -2733,18 +2733,18 @@
         },
         {
           "key": "B",
-          "text": "firewall"
+          "text": "password"
         },
         {
           "key": "C",
-          "text": "password"
+          "text": "firewall"
         },
         {
           "key": "D",
           "text": "protocol"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "不正アクセスを防ぐ「ファイアウォール」はfirewall。password（パスワード）・protocol（通信規約）・middleware（ミドルウェア）は侵入を遮断する装置そのものを指さない。",
       "translation": "IT部門は先月の侵入事件を受けて、侵入を遮断する新しいファイアウォールを導入した。"
     },
@@ -2767,22 +2767,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "encryption"
+          "text": "firewall"
         },
         {
           "key": "B",
-          "text": "authentication"
-        },
-        {
-          "key": "C",
           "text": "protocol"
         },
         {
+          "key": "C",
+          "text": "authentication"
+        },
+        {
           "key": "D",
-          "text": "firewall"
+          "text": "encryption"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "データを読めない形に変える「暗号化」はencryption。authentication（本人確認の認証）・protocol（通信規約）・firewall（ファイアウォール）は暗号化そのものを意味しない。",
       "translation": "すべての顧客データは、新しいプライバシー方針のもと強力な暗号化によって保護されている。"
     },
@@ -2809,7 +2809,7 @@
         },
         {
           "key": "B",
-          "text": "benchmark"
+          "text": "blueprint"
         },
         {
           "key": "C",
@@ -2817,10 +2817,10 @@
         },
         {
           "key": "D",
-          "text": "blueprint"
+          "text": "benchmark"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "建築の「設計図」はblueprint。prototype（試作品）・benchmark（基準）・itinerary（旅程表）は図面そのものを指さない。",
       "translation": "建築家は、新しい棟の工事開始前に設計図を注意深く確認した。"
     },
@@ -2843,22 +2843,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "outreach"
-        },
-        {
-          "key": "B",
           "text": "testimonial"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "ceremony"
+        },
+        {
+          "key": "C",
+          "text": "outreach"
         },
         {
           "key": "D",
           "text": "briefing"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "公式な「式典」はceremony。briefing（説明会）・outreach（働きかけ）・testimonial（推薦の声）は式典そのものを意味しない。",
       "translation": "開会式はメインホールで行われる。"
     },
@@ -2881,22 +2881,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "condemnation"
-        },
-        {
-          "key": "B",
           "text": "regulation"
         },
         {
+          "key": "B",
+          "text": "protocol"
+        },
+        {
           "key": "C",
-          "text": "variance"
+          "text": "condemnation"
         },
         {
           "key": "D",
-          "text": "protocol"
+          "text": "variance"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "法令上の「規制」はregulation。variance（例外許可。むしろ規制からの逸脱を指す）・protocol（通信規約）・condemnation（使用不可宣告）は規制そのものを意味しない。",
       "translation": "その工場は、州政府が定めた厳格な安全規制に従わなければならない。"
     },
@@ -2919,22 +2919,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "briefing"
+          "text": "outreach"
         },
         {
           "key": "B",
-          "text": "ceremony"
+          "text": "briefing"
         },
         {
           "key": "C",
-          "text": "outreach"
+          "text": "ceremony"
         },
         {
           "key": "D",
           "text": "testimonial"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "短時間の「説明会」はbriefing。ceremony（式典）・outreach（働きかけ）・testimonial（推薦の声）は事前説明の意味を持たない。",
       "translation": "部長は、議題を確認するため顧客訪問の前に説明会を開いた。"
     },
@@ -2957,22 +2957,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "occupancy"
-        },
-        {
-          "key": "B",
-          "text": "footfall"
-        },
-        {
-          "key": "C",
           "text": "liquidity"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "throughput"
+        },
+        {
+          "key": "C",
+          "text": "footfall"
+        },
+        {
+          "key": "D",
+          "text": "occupancy"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "単位時間あたりの「処理能力」はthroughput。occupancy（入居率）・footfall（来店客数）・liquidity（流動性）は生産処理量を意味しない。",
       "translation": "その新しいシステムは、最初の6か月でその工場の処理能力を倍にした。"
     },
@@ -2995,7 +2995,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "footfall"
+          "text": "occupancy"
         },
         {
           "key": "B",
@@ -3003,14 +3003,14 @@
         },
         {
           "key": "C",
-          "text": "occupancy"
+          "text": "footfall"
         },
         {
           "key": "D",
           "text": "throughput"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "部屋等が埋まっている割合「入居（率）」はoccupancy。throughput（処理能力）・footfall（来店客数）・retention（人材の定着）はホテルの稼働率を意味しない。",
       "translation": "ほとんどの沿岸の町で、ホテルの稼働率は休暇シーズンに急上昇する。"
     },
@@ -3033,11 +3033,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "depreciation"
+          "text": "liquidity"
         },
         {
           "key": "B",
-          "text": "liquidity"
+          "text": "expenditure"
         },
         {
           "key": "C",
@@ -3045,10 +3045,10 @@
         },
         {
           "key": "D",
-          "text": "expenditure"
+          "text": "depreciation"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "資金をすぐ使える状態にできるかを表す「流動性」はliquidity。revenue（収益）・expenditure（支出）・depreciation（減価償却）は資金繰りの良さそのものを意味しない。",
       "translation": "その会社は、以前の年より早く支払いを回収することで流動性を改善した。"
     },
@@ -3109,7 +3109,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "retention"
+          "text": "attrition"
         },
         {
           "key": "B",
@@ -3121,10 +3121,10 @@
         },
         {
           "key": "D",
-          "text": "attrition"
+          "text": "retention"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "自然に人員が減っていく「自然減」はattrition。retention（定着。むしろ逆の概念）・redundancy（人員整理）・downsizing（人員削減）はいずれも意図的な削減を指し、自然減とは異なる。",
       "translation": "その会社の従業員自然減率は、3年連続で昨年低下した。"
     },
@@ -3147,7 +3147,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "disclose"
+          "text": "proofread"
         },
         {
           "key": "B",
@@ -3155,14 +3155,14 @@
         },
         {
           "key": "C",
-          "text": "proofread"
+          "text": "disclose"
         },
         {
           "key": "D",
           "text": "summarize"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "誤りがないか「校正する」はproofread。summarize（要約する）・disclose（開示する）・ratify（批准する）は文章の誤りを確認する意味を持たない。",
       "translation": "今日の午後、その文書を顧客に送る前に2回校正してください。"
     },
@@ -3185,22 +3185,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "retention"
-        },
-        {
-          "key": "B",
           "text": "onboarding"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "retirement"
+        },
+        {
+          "key": "C",
+          "text": "retention"
         },
         {
           "key": "D",
           "text": "appraisal"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "新入社員の「新人研修」プロセスはonboarding。retirement（退職）・appraisal（人事評価）・retention（人材の定着）は入社直後の研修過程を意味しない。",
       "translation": "新しいオンラインシステムのおかげで、新人研修のプロセスは今では2日しかかからない。"
     },
@@ -3223,22 +3223,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "reconciliation"
-        },
-        {
-          "key": "B",
-          "text": "audit"
-        },
-        {
-          "key": "C",
           "text": "depreciation"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "variance"
+        },
+        {
+          "key": "C",
+          "text": "audit"
+        },
+        {
+          "key": "D",
+          "text": "reconciliation"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "帳簿と実際の数字を合わせる「照合」はreconciliation。audit（監査という制度全体）・depreciation（減価償却）・variance（例外許可）は照合作業そのものを意味しない。",
       "translation": "その会計士は、締切に先立って月次の口座照合を終えた。"
     },
@@ -3261,22 +3261,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "retention"
-        },
-        {
-          "key": "B",
           "text": "attrition"
         },
         {
+          "key": "B",
+          "text": "retention"
+        },
+        {
           "key": "C",
-          "text": "onboarding"
+          "text": "appraisal"
         },
         {
           "key": "D",
-          "text": "appraisal"
+          "text": "onboarding"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "個人の業績を評価する「人事評価」はappraisal。retention（定着）・attrition（自然減）・onboarding（新人研修）は評価という行為を意味しない。",
       "translation": "各スタッフは、上司によって行われる年次の人事評価を受ける。"
     },
@@ -3299,11 +3299,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "downsizing"
+          "text": "onboarding"
         },
         {
           "key": "B",
-          "text": "onboarding"
+          "text": "attrition"
         },
         {
           "key": "C",
@@ -3311,7 +3311,7 @@
         },
         {
           "key": "D",
-          "text": "attrition"
+          "text": "downsizing"
         }
       ],
       "answer": "C",
@@ -3337,7 +3337,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "concierge"
+          "text": "utility"
         },
         {
           "key": "B",
@@ -3345,11 +3345,11 @@
         },
         {
           "key": "C",
-          "text": "utility"
+          "text": "throughput"
         },
         {
           "key": "D",
-          "text": "throughput"
+          "text": "concierge"
         }
       ],
       "answer": "B",
@@ -3379,11 +3379,11 @@
         },
         {
           "key": "B",
-          "text": "landlord"
+          "text": "occupant"
         },
         {
           "key": "C",
-          "text": "occupant"
+          "text": "landlord"
         },
         {
           "key": "D",
@@ -3413,22 +3413,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "nonrefundable"
+          "text": "chartered"
         },
         {
           "key": "B",
-          "text": "punctual"
-        },
-        {
-          "key": "C",
           "text": "obsolete"
         },
         {
+          "key": "C",
+          "text": "nonrefundable"
+        },
+        {
           "key": "D",
-          "text": "chartered"
+          "text": "punctual"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "団体のために「貸し切りの」はchartered。nonrefundable（払い戻し不可の）・punctual（時間に正確な）・obsolete（旧式の）はバスの種類を修飾する語として合わない。",
       "translation": "彼らは、先週中心街で開かれた会議へ貸し切りバスで移動した。"
     },
@@ -3451,7 +3451,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "obsolete"
+          "text": "punctual"
         },
         {
           "key": "B",
@@ -3459,14 +3459,14 @@
         },
         {
           "key": "C",
-          "text": "punctual"
+          "text": "chartered"
         },
         {
           "key": "D",
-          "text": "chartered"
+          "text": "obsolete"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "「時間に正確な」はpunctual。chartered（貸し切りの）・obsolete（旧式の）・nonrefundable（払い戻し不可の）は人の性質を表す語として合わない。",
       "translation": "フロントデスクでのこの顧客対応の役職には、時間を守ることが不可欠だ。"
     },
@@ -3489,22 +3489,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "stopover"
-        },
-        {
-          "key": "B",
           "text": "gateway"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "checkpoint"
+        },
+        {
+          "key": "C",
+          "text": "stopover"
         },
         {
           "key": "D",
           "text": "boarding"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "地域への「玄関口」はgateway。checkpoint（検問所）・boarding（搭乗）・stopover（短期滞在）は地域への入り口という意味を持たない。",
       "translation": "その空港は、海外からの旅行者にとってその地域への主要な玄関口となっている。"
     },
@@ -3527,22 +3527,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "hospitality"
+          "text": "retail"
         },
         {
           "key": "B",
-          "text": "catering"
-        },
-        {
-          "key": "C",
           "text": "concierge"
         },
         {
+          "key": "C",
+          "text": "catering"
+        },
+        {
           "key": "D",
-          "text": "retail"
+          "text": "hospitality"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "客をもてなす「もてなし」はhospitality。catering（ケータリング）・concierge（コンシェルジュ、人）・retail（小売）はもてなしという性質を意味しない。",
       "translation": "そのスタッフは、チェックインするすべての宿泊客への素晴らしいもてなしで知られている。"
     },
@@ -3565,15 +3565,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "boarding"
+          "text": "stopover"
         },
         {
           "key": "B",
-          "text": "checkpoint"
+          "text": "boarding"
         },
         {
           "key": "C",
-          "text": "stopover"
+          "text": "checkpoint"
         },
         {
           "key": "D",
@@ -3603,7 +3603,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "immigration"
+          "text": "boarding"
         },
         {
           "key": "B",
@@ -3611,14 +3611,14 @@
         },
         {
           "key": "C",
-          "text": "stopover"
+          "text": "immigration"
         },
         {
           "key": "D",
-          "text": "boarding"
+          "text": "stopover"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "目的地までの「短期滞在」はstopover。boarding（搭乗）・immigration（出入国審査）・gateway（玄関口）は途中滞在を意味しない。",
       "translation": "私たちの便は、ソウルへ向かう前に東京での2時間の短期滞在を含んでいる。"
     },
@@ -3649,11 +3649,11 @@
         },
         {
           "key": "C",
-          "text": "implement"
+          "text": "comply"
         },
         {
           "key": "D",
-          "text": "comply"
+          "text": "implement"
         }
       ],
       "answer": "B",
@@ -3683,15 +3683,15 @@
         },
         {
           "key": "B",
-          "text": "ratify"
-        },
-        {
-          "key": "C",
           "text": "comply"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "summarize"
+        },
+        {
+          "key": "D",
+          "text": "ratify"
         }
       ],
       "answer": "A",
@@ -3717,11 +3717,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "terminate"
+          "text": "allocate"
         },
         {
           "key": "B",
-          "text": "allocate"
+          "text": "terminate"
         },
         {
           "key": "C",
@@ -3755,22 +3755,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "chartered"
+          "text": "obsolete"
         },
         {
           "key": "B",
-          "text": "nonrefundable"
+          "text": "chartered"
         },
         {
           "key": "C",
-          "text": "obsolete"
+          "text": "nonrefundable"
         },
         {
           "key": "D",
           "text": "punctual"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "時代遅れで使われなくなった「旧式の」はobsolete。punctual（時間に正確な）・chartered（貸し切りの）・nonrefundable（払い戻し不可の）はこの文脈に合わない。",
       "translation": "古いソフトウェアは、全社的にアップデートが展開された後、旧式のものとなった。"
     },
@@ -3793,22 +3793,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "acquittal"
-        },
-        {
-          "key": "B",
           "text": "infringement"
         },
         {
+          "key": "B",
+          "text": "condemnation"
+        },
+        {
           "key": "C",
-          "text": "dispute"
+          "text": "acquittal"
         },
         {
           "key": "D",
-          "text": "condemnation"
+          "text": "dispute"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "権利の「侵害」はinfringement。dispute（紛争一般）・condemnation（使用不可宣告）・acquittal（無罪判決）は権利侵害という具体的行為を意味しない。",
       "translation": "その訴訟は、競合の製造会社が提起した特許侵害の主張を含んでいた。"
     },
@@ -3831,22 +3831,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "accommodation"
+          "text": "regulation"
         },
         {
           "key": "B",
-          "text": "infringement"
-        },
-        {
-          "key": "C",
           "text": "itinerary"
         },
         {
+          "key": "C",
+          "text": "infringement"
+        },
+        {
           "key": "D",
-          "text": "regulation"
+          "text": "accommodation"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "宿泊施設を意味する「宿泊」はaccommodation。infringement（侵害）・itinerary（旅程表）・regulation（規制）はこの文脈に合わない。",
       "translation": "その旅行代理店は、参加者全員のために会場近くの宿泊施設を手配した。"
     },
@@ -3869,7 +3869,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "accommodation"
+          "text": "advertisement"
         },
         {
           "key": "B",
@@ -3877,14 +3877,14 @@
         },
         {
           "key": "C",
-          "text": "dispute"
+          "text": "accommodation"
         },
         {
           "key": "D",
-          "text": "advertisement"
+          "text": "dispute"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "新聞等に載せる「広告」はadvertisement。accommodation（宿泊）・infringement（侵害）・dispute（紛争）は広告の意味を持たない。",
       "translation": "その会社は週末セールを宣伝するため、地元紙に広告を掲載した。"
     },
@@ -3907,22 +3907,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "attrition"
+          "text": "redundancy"
         },
         {
           "key": "B",
-          "text": "retention"
+          "text": "attrition"
         },
         {
           "key": "C",
-          "text": "redundancy"
+          "text": "retention"
         },
         {
           "key": "D",
           "text": "downsizing"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "役職廃止に伴う「人員整理」はredundancy。downsizing（全体的な人員削減。近い意味だが規模縮小の視点）・attrition（自然減）・retention（定着）はこの文脈での言い換えとしては不正確。",
       "translation": "その合併は、1年以内に両社にわたる大幅な人員整理につながった。"
     },
@@ -3945,22 +3945,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "attrition"
+          "text": "retention"
         },
         {
           "key": "B",
-          "text": "downsizing"
-        },
-        {
-          "key": "C",
           "text": "redundancy"
         },
         {
+          "key": "C",
+          "text": "attrition"
+        },
+        {
           "key": "D",
-          "text": "retention"
+          "text": "downsizing"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "組織全体の規模を縮小する「人員削減」はdownsizing。redundancy（個々の役職廃止）・retention（定着）・attrition（自然減）はこの文脈での言い換えとしては不正確。",
       "translation": "その会社は、複数の拠点に影響する大規模な人員削減計画を発表した。"
     },
@@ -3983,7 +3983,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "nonrefundable"
+          "text": "chartered"
         },
         {
           "key": "B",
@@ -3991,14 +3991,14 @@
         },
         {
           "key": "C",
-          "text": "chartered"
+          "text": "obsolete"
         },
         {
           "key": "D",
-          "text": "obsolete"
+          "text": "nonrefundable"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "「払い戻し不可の」はnonrefundable。punctual（時間に正確な）・chartered（貸し切りの）・obsolete（旧式の）はチケットの返金可否を表さない。",
       "translation": "そのチケットは、購入後は、たとえイベントが中止になっても払い戻し不可となる。"
     },
@@ -4021,11 +4021,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "regulation"
+          "text": "depreciation"
         },
         {
           "key": "B",
-          "text": "depreciation"
+          "text": "regulation"
         },
         {
           "key": "C",
@@ -4063,18 +4063,18 @@
         },
         {
           "key": "B",
-          "text": "firewall"
-        },
-        {
-          "key": "C",
           "text": "authentication"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "encryption"
+        },
+        {
+          "key": "D",
+          "text": "firewall"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "本人確認を行う「認証」はauthentication。encryption（暗号化）・protocol（通信規約）・firewall（ファイアウォール）は本人確認の手続きそのものを意味しない。",
       "translation": "二要素認証は、あらゆるログイン試行に追加のセキュリティ層を加える。"
     },
@@ -4097,22 +4097,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "endpoint"
-        },
-        {
-          "key": "B",
           "text": "middleware"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "firewall"
+        },
+        {
+          "key": "C",
+          "text": "endpoint"
         },
         {
           "key": "D",
           "text": "protocol"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "アプリとデータベースをつなぐ「ミドルウェア」はmiddleware。firewall（ファイアウォール）・protocol（通信規約）・endpoint（末端機器）は接続の仲介ソフトウェアを意味しない。",
       "translation": "そのミドルウェアは、メインサーバー上で動くデータベースとアプリをつないでいる。"
     },
@@ -4135,22 +4135,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "protocol"
+          "text": "endpoint"
         },
         {
           "key": "B",
-          "text": "middleware"
-        },
-        {
-          "key": "C",
           "text": "firewall"
         },
         {
+          "key": "C",
+          "text": "protocol"
+        },
+        {
           "key": "D",
-          "text": "endpoint"
+          "text": "middleware"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "通信の規約・手順を表す「通信規約」はprotocol。middleware（ミドルウェア）・firewall（ファイアウォール）・endpoint（末端機器）は通信手順そのものを意味しない。",
       "translation": "それらの機器は、業界全体で認識されている標準的な通信規約を使って通信する。"
     },
@@ -4173,22 +4173,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "middleware"
-        },
-        {
-          "key": "B",
           "text": "protocol"
         },
         {
+          "key": "B",
+          "text": "endpoint"
+        },
+        {
           "key": "C",
-          "text": "gateway"
+          "text": "middleware"
         },
         {
           "key": "D",
-          "text": "endpoint"
+          "text": "gateway"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "ネットワークにつながる個々の「末端機器」はendpoint。middleware（ミドルウェア）・protocol（通信規約）・gateway（玄関口、ネットワークの出入口を指すが個々の機器ではない）は個々の端末を意味しない。",
       "translation": "各末端機器は、オンラインになる前に最新のセキュリティソフトが導入されていなければならない。"
     },
@@ -4211,7 +4211,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "integration"
+          "text": "provisioning"
         },
         {
           "key": "B",
@@ -4219,14 +4219,14 @@
         },
         {
           "key": "C",
-          "text": "provisioning"
+          "text": "integration"
         },
         {
           "key": "D",
           "text": "virtualization"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "システム資源を用意し割り当てる「プロビジョニング」はprovisioning。virtualization（仮想化という別の技術）・integration（統合）・throughput（処理能力）はこの意味を持たない。",
       "translation": "IT部門は、新規プロジェクトの立ち上げを早めるためにサーバーのプロビジョニングを自動化した。"
     },
@@ -4249,11 +4249,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "encryption"
+          "text": "virtualization"
         },
         {
           "key": "B",
-          "text": "virtualization"
+          "text": "integration"
         },
         {
           "key": "C",
@@ -4261,10 +4261,10 @@
         },
         {
           "key": "D",
-          "text": "integration"
+          "text": "encryption"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "物理機器を仮想的に扱う「仮想化」はvirtualization。provisioning（プロビジョニング）・integration（統合）・encryption（暗号化）はこの技術そのものを意味しない。",
       "translation": "仮想化により、その会社ははるかに少ないハードウェアで、より多くのサーバーを稼働できた。"
     },
@@ -4287,22 +4287,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "cybersecurity"
-        },
-        {
-          "key": "B",
           "text": "authentication"
         },
         {
+          "key": "B",
+          "text": "cybersecurity"
+        },
+        {
           "key": "C",
-          "text": "encryption"
+          "text": "firewall"
         },
         {
           "key": "D",
-          "text": "firewall"
+          "text": "encryption"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "デジタル環境全般を守る「サイバーセキュリティ」はcybersecurity。authentication（認証）・encryption（暗号化）・firewall（ファイアウォール）はいずれもサイバーセキュリティを構成する個別要素であり、全体を表す語ではない。",
       "translation": "その会社は、データ漏えいが全国的なニュースになった後、サイバーセキュリティに多額の投資をした。"
     },
@@ -4329,18 +4329,18 @@
         },
         {
           "key": "B",
-          "text": "condemnation"
-        },
-        {
-          "key": "C",
           "text": "dispute"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "phishing"
+        },
+        {
+          "key": "D",
+          "text": "condemnation"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "偽メール等で情報を盗む「フィッシング詐欺」はphishing。infringement（侵害）・condemnation（使用不可宣告）・dispute（紛争）はこの種の詐欺行為を意味しない。",
       "translation": "従業員は、会社の役員を狙う新しいフィッシング詐欺メールについて警告を受けた。"
     },
@@ -4363,22 +4363,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "provisioning"
+          "text": "virtualization"
         },
         {
           "key": "B",
-          "text": "throughput"
-        },
-        {
-          "key": "C",
           "text": "integration"
         },
         {
+          "key": "C",
+          "text": "throughput"
+        },
+        {
           "key": "D",
-          "text": "virtualization"
+          "text": "provisioning"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "複数のものを一つにまとめる「統合」はintegration。virtualization（仮想化）・provisioning（プロビジョニング）・throughput（処理能力）は部門間の連携強化を意味しない。",
       "translation": "そのソフトウェア更新は、組織全体にわたって部門間の統合を改善した。"
     },
@@ -4405,18 +4405,18 @@
         },
         {
           "key": "B",
-          "text": "benchmark"
+          "text": "prototype"
         },
         {
           "key": "C",
-          "text": "prototype"
+          "text": "benchmark"
         },
         {
           "key": "D",
           "text": "blueprint"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "比較の「基準」はbenchmark。prototype（試作品）・blueprint（設計図）・variance（例外許可）は比較対象となる基準値を意味しない。",
       "translation": "そのチームは、年の初めに公表された業界の基準と結果を比較した。"
     },
@@ -4439,22 +4439,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "niche"
+          "text": "affiliate"
         },
         {
           "key": "B",
-          "text": "retail"
+          "text": "niche"
         },
         {
           "key": "C",
-          "text": "affiliate"
+          "text": "retail"
         },
         {
           "key": "D",
           "text": "competitor"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "特化した「隙間市場」はniche。retail（小売という広い業態）・affiliate（提携先）・competitor（競合他社）はこの語の意味を持たない。",
       "translation": "そのスタートアップは、最初の年のうちに環境に優しい包装という利益の出る隙間市場を見つけた。"
     },
@@ -4477,22 +4477,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "briefing"
-        },
-        {
-          "key": "B",
-          "text": "ceremony"
-        },
-        {
-          "key": "C",
           "text": "outreach"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "briefing"
+        },
+        {
+          "key": "C",
           "text": "testimonial"
+        },
+        {
+          "key": "D",
+          "text": "ceremony"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "利用者による「推薦の声」はtestimonial。briefing（説明会）・ceremony（式典）・outreach（働きかけ）は推薦の言葉そのものを意味しない。",
       "translation": "そのウェブサイトは、料金表の隣のホームページに顧客の推薦の声を掲載している。"
     },
@@ -4515,22 +4515,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "client"
-        },
-        {
-          "key": "B",
           "text": "supplier"
         },
         {
+          "key": "B",
+          "text": "client"
+        },
+        {
           "key": "C",
-          "text": "affiliate"
+          "text": "competitor"
         },
         {
           "key": "D",
-          "text": "competitor"
+          "text": "affiliate"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "提携して販売等を行う「提携先」はaffiliate。competitor（競合他社）・client（顧客）・supplier（仕入れ先）は提携関係を意味しない。",
       "translation": "その製品は、複数のブロガーが運営するオンラインの提携プログラムを通じて販売されている。"
     },
@@ -4553,22 +4553,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "footfall"
-        },
-        {
-          "key": "B",
           "text": "engagement"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "retention"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "throughput"
+        },
+        {
+          "key": "D",
+          "text": "footfall"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "顧客が積極的に関わる「関与」はengagement。retention（定着）・throughput（処理能力）・footfall（来店客数）は顧客の能動的な関わりの度合いを意味しない。",
       "translation": "過去6か月間で、SNSの投稿は顧客エンゲージメントを大きく高めた。"
     }
