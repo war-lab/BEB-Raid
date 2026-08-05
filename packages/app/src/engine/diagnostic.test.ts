@@ -42,6 +42,18 @@ describe('initialRatingFromToeic', () => {
   it('自己申告なし（null）はフォールバック値をそのまま返す', () => {
     expect(initialRatingFromToeic(null, DEFAULT_INITIAL_RATING)).toBe(DEFAULT_INITIAL_RATING)
   })
+
+  // T-187（Q-36）: 桁誤り（65や6500）がそのまま初期レートへ伝播すると、以降の全出題難易度・
+  // クイックパック構成・予測スコアに波及し、修正手段が診断のやり直ししか無くなる。
+  // 何を防ぐか: UI側の入力検証を素通りした値（保存済み途中経過の復元・将来の呼び出し経路の
+  // 変更など）が来ても、engine層で必ず10〜990にクランプされることを保証する
+  it('990超は990にクランプする（桁誤り6500がそのまま伝播しない）', () => {
+    expect(initialRatingFromToeic(6500, DEFAULT_INITIAL_RATING)).toBeCloseTo((990 * 1000) / 990)
+  })
+
+  it('10未満は10にクランプする（桁誤り6がそのまま伝播しない）', () => {
+    expect(initialRatingFromToeic(6, DEFAULT_INITIAL_RATING)).toBeCloseTo((10 * 1000) / 990)
+  })
 })
 
 describe('selectNextQuestion', () => {

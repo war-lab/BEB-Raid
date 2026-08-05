@@ -29,8 +29,13 @@ const BATTLE_WS_PATH = /^\/battle\/rooms\/([A-Z0-9]{4})\/ws$/
  * 追加cronの発火でも走り、emaDailyDamage（翌週以降のボスHP算出に使う）のEMA平滑化が
  * 崩れて前週値へ収束する＝レイド難易度調整が無症状で壊れる事故経路になっていた。
  * cron追加時は必ずここに分岐を足すこと（式を文字列リテラルで散らさない）
+ *
+ * 曜日フィールドは使わず日次発火にする（docs/30 J-100・T-180）。「Cloudflareは1=日曜〜
+ * 7=土曜」という解釈が本番ログで確定していないため、曜日番号の書き換えでは解釈が誤っていた
+ * 場合に発火日を別の誤った曜日へ動かしてしまう。generateWeeklyBossはRaidBossDO側で週の
+ * 生成権を主張する形で完全に冪等化した（T-179）ため、日次発火でも週1回しか生成されない
  */
-const CRON_WEEKLY_BOSS = '0 0 * * 1'
+const CRON_WEEKLY_BOSS = '0 0 * * *'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

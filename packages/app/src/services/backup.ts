@@ -25,7 +25,8 @@ import type {
   TagStatRecord,
 } from '../db/schema'
 import { PACK_SYNC_STATE_KEY } from './packSync'
-import { BYOK_API_KEY_KEY } from './settingsKeys'
+import { ACTIVE_SESSION_KEY } from './session'
+import { BYOK_API_KEY_KEY, QUESTION_STATS_LAST_SENT_AT_KEY } from './settingsKeys'
 
 /** バックアップファイル自体のフォーマット世代（DBスキーマ変更時に上げる） */
 export const BACKUP_FORMAT_VERSION = 1
@@ -55,8 +56,19 @@ export interface BackupStores {
  * - packSyncState: 端末ローカルのCache Storageと対になる状態のため、他端末へ持ち込むと
  *   「packHashesは同期済みなのにキャッシュは空」となり、パックが永久にピン留めされない。
  *   復元先端末は自前のpackSyncState（無ければ空=初回同期扱い）を使うのが正しい
+ * - activeSession（T-190・Q-111）: 進行中セッションの一時スナップショット。他端末・別時点の
+ *   ものを復元すると、復元先で進行中のセッション（あれば）を上書きしてしまう、または
+ *   存在しないattemptIds/questionIdsを指す壊れたスナップショットを持ち込みかねない
+ * - questionStatsLastSentAt（T-190・Q-111）: questionStats送信のwatermarkは端末固有の
+ *   送信済み位置。他端末の値を持ち込むと、この端末でまだ送っていないattemptsが
+ *   未送信のまま取りこぼされる（watermarkだけ進んでしまう）
  */
-export const EXPORT_EXCLUDED_KEYS: readonly string[] = [BYOK_API_KEY_KEY, PACK_SYNC_STATE_KEY]
+export const EXPORT_EXCLUDED_KEYS: readonly string[] = [
+  BYOK_API_KEY_KEY,
+  PACK_SYNC_STATE_KEY,
+  ACTIVE_SESSION_KEY,
+  QUESTION_STATS_LAST_SENT_AT_KEY,
+]
 
 /**
  * 各ストアが導入されたDexieスキーマバージョン（database.ts の version() と対応）。
@@ -127,11 +139,99 @@ export async function exportAll(db: BebRaidDatabase): Promise<BackupFile> {
   })
 }
 
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null
+}
+function isStr(v: unknown): v is string {
+  return typeof v === 'string'
+}
+function isNum(v: unknown): v is number {
+  return typeof v === 'number'
+}
+function isBool(v: unknown): v is boolean {
+  return typeof v === 'boolean'
+}
+function isNumOrNull(v: unknown): boolean {
+  return v === null || isNum(v)
+}
+function isStrOrNull(v: unknown): boolean {
+  return v === null || isStr(v)
+}
+
+/**
+ * 各ストアのレコード単位の型検証（T-190・Q-100）。「storesが配列か」だけでは、
+ * id欠落のattempts・型不正のsrsCards等がそのままbulkAdd/bulkPutされてしまう
+ * （実行時エラー、あるいはサイレントな不整合データの混入）。網羅的なスキーマ検証ではなく、
+ * 破損・改ざんされたバックアップの取込を防ぐ最低限（必須フィールドの型）の検査
+ */
+const RECORD_VALIDATORS: Record<keyof BackupStores, (r: unknown) => boolean> = {
+  profile: (r) =>
+    isObj(r) &&
+    isStr(r.id) &&
+    isStr(r.displayName) &&
+    isNumOrNull(r.initialToeic) &&
+    isNum(r.createdAt) &&
+    isStr(r.deviceToken),
+  attempts: (r) =>
+    isObj(r) &&
+    isStr(r.id) &&
+    isStr(r.questionId) &&
+    isStr(r.mode) &&
+    isBool(r.isCorrect) &&
+    isNum(r.responseMs) &&
+    isBool(r.isTimeout) &&
+    isBool(r.isGuess) &&
+    isNum(r.answeredAt),
+  srsCards: (r) =>
+    isObj(r) &&
+    isStr(r.id) &&
+    isStr(r.refType) &&
+    isStr(r.refId) &&
+    isNum(r.stage) &&
+    isNum(r.dueAt) &&
+    isNum(r.lapses),
+  ratings: (r) => isObj(r) && isStr(r.section) && isNum(r.rating) && isNum(r.updatedAt),
+  ratingHistory: (r) => isObj(r) && isStr(r.date) && isStr(r.section) && isNum(r.rating),
+  tagStats: (r) => isObj(r) && isStr(r.tag) && isNum(r.windowCorrect) && isNum(r.windowTotal),
+  phase: (r) => isObj(r) && isStr(r.season) && isStr(r.criteriaJson) && isNumOrNull(r.achievedAt),
+  streak: (r) =>
+    isObj(r) &&
+    isStr(r.id) &&
+    isNum(r.currentDays) &&
+    isNum(r.bestDays) &&
+    isStrOrNull(r.lastActiveDate) &&
+    isStrOrNull(r.protectionUsedAt),
+  badges: (r) => isObj(r) && isStr(r.badgeId) && isNum(r.earnedAt),
+  pendingSync: (r) => isObj(r) && isStr(r.kind) && isStr(r.payloadJson) && isNum(r.createdAt),
+  settings: (r) => isObj(r) && isStr(r.key),
+  examScores: (r) =>
+    isObj(r) &&
+    isStr(r.id) &&
+    isStr(r.date) &&
+    isNum(r.listening) &&
+    isNum(r.reading) &&
+    isNum(r.total) &&
+    isStr(r.source),
+  raidState: (r) =>
+    isObj(r) &&
+    isStr(r.id) &&
+    isStr(r.bossId) &&
+    isStr(r.profileJson) &&
+    isNum(r.hp) &&
+    isNum(r.maxHp) &&
+    isNum(r.myDamage) &&
+    isBool(r.joined) &&
+    isNum(r.startAt) &&
+    isNum(r.endAt) &&
+    isNum(r.lastSyncedAt),
+}
+
 /**
  * バックアップの構造検証。不正なら理由の配列を返す（空なら妥当）。
  * ストアが未定義の場合、バックアップの dbVersion がそのストアの導入バージョン未満なら
  * 「まだ存在しなかった」として許容する（STORE_INTRODUCED_AT）。それ以外（本来存在すべき
- * ストアの欠落・値が配列でない）はエラーとする
+ * ストアの欠落・値が配列でない・配列内のレコードが必須フィールドの型を満たさない）は
+ * エラーとする
  */
 export function validateBackup(data: unknown): string[] {
   const problems: string[] = []
@@ -155,6 +255,11 @@ export function validateBackup(data: unknown): string[] {
       problems.push(`stores.${name} が配列ではない`)
     } else if (!Array.isArray(value)) {
       problems.push(`stores.${name} が配列ではない`)
+    } else {
+      const invalidCount = value.filter((r) => !RECORD_VALIDATORS[name](r)).length
+      if (invalidCount > 0) {
+        problems.push(`stores.${name} に型不正なレコードが${invalidCount}件ある`)
+      }
     }
   }
   return problems
@@ -188,11 +293,23 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
       const rows = backup.stores[name] ?? []
       if (name === 'attempts') {
         // 追記マージのみ。既存IDは内容が異なっても上書きしない（改ざん・破損した
-        // バックアップで生ログが書き換わるのを防ぐ。削除・更新はフックでも遮断される）
-        const incoming = rows as AttemptRecord[]
+        // バックアップで生ログが書き換わるのを防ぐ。削除・更新はフックでも遮断される）。
+        // T-190・Q-101: バックアップファイル内でIDが重複していると、そのままbulkAddに
+        // 渡した場合ConstraintErrorのBulkErrorでトランザクション全体が中断するため、
+        // 先に同一ID内で1件（先勝ち）に統合してからDB照合する
+        const incoming = [...new Map((rows as AttemptRecord[]).map((r) => [r.id, r])).values()]
         const existing = await db.attempts.bulkGet(incoming.map((r) => r.id))
         const fresh = incoming.filter((_, i) => existing[i] === undefined)
         await db.attempts.bulkAdd(fresh)
+      } else if (name === 'phase') {
+        // T-190: phaseストアは「常に1行だけ存在する」が不変条件（services/phase.ts）。
+        // 通常のexportAllは0〜1行しか出力しないが、改ざん・破損したバックアップで
+        // 複数行が含まれていても不変条件を破らないよう、先頭の1行のみを復元する
+        const incoming = rows as PhaseRecord[]
+        await db.table(name).clear()
+        if (incoming.length > 0) {
+          await db.table(name).put(incoming[0])
+        }
       } else if (name === 'settings') {
         // BYOK APIキー等はエクスポート時に既に除外されているが、外部編集された
         // バックアップファイルに万一含まれていても復元しない（多層防御）

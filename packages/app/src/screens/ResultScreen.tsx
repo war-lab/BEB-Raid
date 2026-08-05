@@ -214,8 +214,10 @@ export function ResultScreen({ db, raidApi }: Props) {
   function handleHome() {
     // レビューF5: スナップショット削除の失敗で「ホームへ」が無反応にならないようにする。
     // 削除に失敗して残ったスナップショットは次回startSessionで上書きされるため、
-    // ログだけ残してホーム遷移は必ず実行する
-    void completeSession(db)
+    // ログだけ残してホーム遷移は必ず実行する。
+    // T-193: snapshotが無い（=このセッションを完了する対象が無い）場合は
+    // completeSession自体を呼ばない（sessionIdが必須引数のため）
+    void (snapshot ? completeSession(db, snapshot.sessionId) : Promise.resolve())
       .catch((e: unknown) => {
         console.warn('[ResultScreen] セッション完了処理に失敗', e)
       })

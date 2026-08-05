@@ -445,4 +445,143 @@ describe('BattleRoomDO', () => {
       expect((instance as any).meta).toBeNull()
     })
   })
+
+  // T-182・29のQ-19: 修正前は isBattleClientMessage が type しか見ないため、
+  // 負数・NaN・文字列の points や上限超の displayName がそのまま通り、
+  // totalPoints と順位表が壊れていた
+  it('answer.points に負数・NaN・文字列を送っても拒否され、接続は切られず得点も壊れない', async () => {
+    const code = freshCode()
+    const hostToken = await registerDevice('ホスト9')
+    const aliceToken = await registerDevice('アリス9')
+    const stub = await createRoom(code, hostToken)
+    const hostWs = await connect(stub, code, hostToken)
+    const aliceWs = await connect(stub, code, aliceToken)
+    const all = [hostWs, aliceWs]
+
+    await joinAndDrain(aliceWs, 'アリス9', 5, all)
+    await openQuestionAndDrain(hostWs, 0, 'q-1', all)
+
+    send(aliceWs, { type: 'answer', questionIndex: 0, points: -999 })
+    const err1 = (await nextMessage(aliceWs)) as { type: 'error'; code: string }
+    expect(err1).toEqual({ type: 'error', code: 'invalid_message' })
+
+    send(aliceWs, { type: 'answer', questionIndex: 0, points: Number.NaN })
+    const err2 = (await nextMessage(aliceWs)) as { type: 'error'; code: string }
+    expect(err2).toEqual({ type: 'error', code: 'invalid_message' })
+
+    send(aliceWs, { type: 'answer', questionIndex: 0, points: '999' })
+    const err3 = (await nextMessage(aliceWs)) as { type: 'error'; code: string }
+    expect(err3).toEqual({ type: 'error', code: 'invalid_message' })
+
+    // 接続が切られていないこと（正当な解答が引き続き受理されることで確認する）
+    send(aliceWs, { type: 'answer', questionIndex: 0, points: 10 })
+    const standingsMsgs = await closeQuestionAndCollect(hostWs, 0, all)
+    const standings = standingsMsgs[0] as {
+      entries: { displayName: string; totalPoints: number }[]
+    }
+    // 不正な解答は一切加点に反映されず、正当な10点のみが反映される
+    // （参加者1人なのでボーナス = round(10*0.2*(1-0/1)) = 2 → 12点）
+    expect(standings.entries.find((e) => e.displayName === 'アリス9')?.totalPoints).toBe(12)
+  })
+
+  it('join.displayName が上限超のメッセージは拒否され、参加者一覧に載らない', async () => {
+    const code = freshCode()
+    const hostToken = await registerDevice('ホスト10')
+    const aliceToken = await registerDevice('アリス10')
+    const stub = await createRoom(code, hostToken)
+    const hostWs = await connect(stub, code, hostToken)
+    const aliceWs = await connect(stub, code, aliceToken)
+
+    send(aliceWs, {
+      type: 'join',
+      displayName: 'あ'.repeat(1000),
+      expectedPointsPerQuestion: 10,
+    })
+    const err = (await nextMessage(aliceWs)) as { type: 'error'; code: string }
+    expect(err).toEqual({ type: 'error', code: 'invalid_message' })
+
+    // 接続は切られていないこと（正当なjoinが引き続き受理されることで確認する）
+    await joinAndDrain(aliceWs, 'アリス10', 5, [hostWs, aliceWs])
+    await runInDurableObject(stub, (instance: BattleRoomDO) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyInstance = instance as any
+      expect(anyInstance.meta?.phase).toBe('lobby')
+    })
+  })
+
+  // T-184・29のQ-8: 参加者が再接続すると ParticipantState が新規作成され、
+  // totalPoints と answeredQuestionIndexes がゼロに戻っていた（電車内の瞬断で得点が消える）
+  it('参加者が切断→再接続しても、既に閉じた問題のtotalPointsは保持される', async () => {
+    const code = freshCode()
+    const hostToken = await registerDevice('ホスト9')
+    const aliceToken = await registerDevice('アリス9')
+    const stub = await createRoom(code, hostToken)
+    const hostWs = await connect(stub, code, hostToken)
+    let aliceWs = await connect(stub, code, aliceToken)
+
+    await joinAndDrain(aliceWs, 'アリス9', 5, [hostWs, aliceWs])
+    await openQuestionAndDrain(hostWs, 0, 'q-1', [hostWs, aliceWs])
+
+    send(aliceWs, { type: 'answer', questionIndex: 0, points: 10 })
+    await new Promise((r) => setTimeout(r, 5))
+    const standings1Msgs = await closeQuestionAndCollect(hostWs, 0, [hostWs, aliceWs])
+    const standings1 = standings1Msgs[0] as {
+      entries: { displayName: string; totalPoints: number }[]
+    }
+    // 参加者1人なのでボーナス = round(10*0.2*(1-0/1)) = 2 → 12点
+    expect(standings1.entries.find((e) => e.displayName === 'アリス9')?.totalPoints).toBe(12)
+
+    // 瞬断: アリスの接続が切れ、同じdeviceTokenで再接続する
+    const aliceDisconnected = nextMessage(hostWs) // 切断によるroomState再配信をdrain
+    aliceWs.close(1000, 'client_disconnect')
+    await aliceDisconnected
+    aliceWs = await connect(stub, code, aliceToken)
+
+    // 再接続後にjoinし直す（アプリの再接続導線を想定。既存参加者としてroomStateへ戻る）
+    await joinAndDrain(aliceWs, 'アリス9', 5, [hostWs, aliceWs])
+
+    // 2問目をオープン・解答・クローズし、totalPointsが前問の12点から積み上がることを確認する
+    await openQuestionAndDrain(hostWs, 1, 'q-2', [hostWs, aliceWs])
+    send(aliceWs, { type: 'answer', questionIndex: 1, points: 10 })
+    await new Promise((r) => setTimeout(r, 5))
+    const standings2Msgs = await closeQuestionAndCollect(hostWs, 1, [hostWs, aliceWs])
+    const standings2 = standings2Msgs[0] as {
+      entries: { displayName: string; totalPoints: number }[]
+    }
+    // 修正前は再接続でtotalPointsが0へ戻るため12点、修正後は前問の12点+今回の12点=24点になる
+    expect(standings2.entries.find((e) => e.displayName === 'アリス9')?.totalPoints).toBe(24)
+  })
+
+  it('参加者が出題オープン中に切断→再接続して同じ問題へ再回答しても二重加点しない', async () => {
+    const code = freshCode()
+    const hostToken = await registerDevice('ホスト10')
+    const aliceToken = await registerDevice('アリス10')
+    const stub = await createRoom(code, hostToken)
+    const hostWs = await connect(stub, code, hostToken)
+    let aliceWs = await connect(stub, code, aliceToken)
+
+    await joinAndDrain(aliceWs, 'アリス10', 5, [hostWs, aliceWs])
+    await openQuestionAndDrain(hostWs, 0, 'q-1', [hostWs, aliceWs])
+
+    // 出題オープン中に解答してから切断する
+    send(aliceWs, { type: 'answer', questionIndex: 0, points: 10 })
+    await new Promise((r) => setTimeout(r, 5))
+
+    const aliceDisconnected = nextMessage(hostWs) // 切断によるroomState再配信をdrain
+    aliceWs.close(1000, 'client_disconnect')
+    await aliceDisconnected
+    aliceWs = await connect(stub, code, aliceToken)
+    await joinAndDrain(aliceWs, 'アリス10', 5, [hostWs, aliceWs])
+
+    // 再接続後、同じ問題（questionIndex: 0）へ再回答を試みる（二重加点の再現条件）
+    send(aliceWs, { type: 'answer', questionIndex: 0, points: 999 })
+    await new Promise((r) => setTimeout(r, 5))
+
+    const standingsMsgs = await closeQuestionAndCollect(hostWs, 0, [hostWs, aliceWs])
+    const standings = standingsMsgs[0] as {
+      entries: { displayName: string; totalPoints: number }[]
+    }
+    // 参加者1人なのでボーナス = round(10*0.2*(1-0/1)) = 2 → 12点（再回答の999点分は反映されない）
+    expect(standings.entries.find((e) => e.displayName === 'アリス10')?.totalPoints).toBe(12)
+  })
 })

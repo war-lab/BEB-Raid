@@ -109,6 +109,40 @@ describe('日付跨ぎ', () => {
     expect(status.currentDays).toBe(1)
     expect(status.todayCompleted).toBe(false)
   })
+
+  // T-195（Q-102）: 何を防ぐか。ストリークが途切れた後もcurrentDaysが旧値のまま返り続け、
+  // ホームに「N日連続」が欠席後も表示され続けて次の成立日に突然1へ落ちる（急な段差でユーザーが
+  // 混乱する）のを防ぐ。途切れが確定した時点（gap>=2で保護が使えない）で0を返す
+  it('2日以上の欠席で保護不可（gap>2）なら、当日未成立でも0を返す（旧値を返さない）', async () => {
+    const db = newDb()
+    await studyOn(db, 2026, 7, 9) // currentDays=1, lastActiveDate=7/9
+    // 7/10・7/11 欠席。7/12 時点ではまだ当日分（5問）を解いていない
+    const status = await evaluateStreak(db, noonOf(2026, 7, 12))
+    expect(status.currentDays).toBe(0)
+    expect(status.todayCompleted).toBe(false)
+    // 未成立の評価はDBを更新しない（次の成立日に1から正しく数え直すため）
+    expect((await db.streak.get(STREAK_ID))?.currentDays).toBe(1)
+  })
+
+  it('gap=2でも保護使用済み（7日以内の再欠席）なら、当日未成立時点で0を返す', async () => {
+    const db = newDb()
+    await studyOn(db, 2026, 7, 9)
+    await studyOn(db, 2026, 7, 11) // 7/10欠席を保護で免除。currentDays=2、保護使用=7/10
+    await studyOn(db, 2026, 7, 12)
+    // 7/13欠席。7/14時点でまだ当日分を解いていない → 保護使用から7日以内の再欠席なので途切れ確定
+    const status = await evaluateStreak(db, noonOf(2026, 7, 14))
+    expect(status.currentDays).toBe(0)
+    expect(status.todayCompleted).toBe(false)
+  })
+
+  it('gap=2かつ保護が使える状態では、当日未成立でも旧値のまま返す（保護でまだ救えるため）', async () => {
+    const db = newDb()
+    await studyOn(db, 2026, 7, 9) // currentDays=1, 保護未使用
+    // 7/10欠席。7/11時点ではまだ当日分を解いていないが、保護が使えるためこの時点では未確定
+    const status = await evaluateStreak(db, noonOf(2026, 7, 11))
+    expect(status.currentDays).toBe(1)
+    expect(status.todayCompleted).toBe(false)
+  })
 })
 
 describe('時計の巻き戻し', () => {

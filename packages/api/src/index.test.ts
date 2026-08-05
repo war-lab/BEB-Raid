@@ -63,6 +63,18 @@ describe('CORS', () => {
     expect(res.status).toBe(403)
     expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull()
   })
+
+  // T-181（Q-2）: DELETE /ghosts/own はAuthorizationヘッダを伴う単純リクエストでない
+  // DELETEのため必ずプリフライトされる。Allow-Methodsに列挙されていないとブラウザが
+  // ブロックし、ゴースト記録の撤回（同意の取り消し）が実行できなくなる
+  it('プリフライトの Access-Control-Allow-Methods に DELETE を含む（ゴースト記録撤回に必要）', async () => {
+    const res = await SELF.fetch('https://example.com/health', {
+      method: 'OPTIONS',
+      headers: { Origin: ALLOWED_ORIGIN },
+    })
+    const methods = res.headers.get('Access-Control-Allow-Methods') ?? ''
+    expect(methods.split(',')).toContain('DELETE')
+  })
 })
 
 // scheduled()のcron出し分け（回帰テスト）。
@@ -71,10 +83,15 @@ describe('CORS', () => {
 // 翌週以降のボスHPが無症状で狂う。generateWeeklyBoss単体の検証はscheduled.test.tsが
 // 担当し、ここでは「どのcronで呼ばれるか／呼ばれないか」だけを見る
 describe('scheduled（cron出し分け）', () => {
-  /** wrangler.tomlの `[triggers] crons` の唯一のエントリ（週次ボス生成用） */
-  const WEEKLY_CRON = '0 0 * * 1'
-  /** 将来追加されうる別cronの例（T-149のWeb Push日次通知想定。wrangler.tomlには未追加） */
-  const OTHER_CRON = '0 0 * * *'
+  /**
+   * wrangler.tomlの `[triggers] crons` の唯一のエントリ（週次ボス生成用）。
+   * 日次発火（docs/30 J-100・T-180）。曜日フィールドを使わず、generateWeeklyBoss側の
+   * 冪等化（T-179）で週1回だけ生成されることに委ねる
+   */
+  const WEEKLY_CRON = '0 0 * * *'
+  /** 将来追加されうる別時刻のcronの例（正午発火。wrangler.tomlには未追加） */
+  const OTHER_CRON = '0 12 * * *'
+  const HOUR_MS = 60 * 60 * 1000
 
   // KV(MEMBERS)とボスDOの状態が後続テストへ漏れないようにする（scheduled.test.tsと同じ方針）
   afterEach(async () => {
@@ -111,6 +128,32 @@ describe('scheduled（cron出し分け）', () => {
 
     expect(await isBossInitialized(scheduledTime)).toBe(true)
     expect(warn).not.toHaveBeenCalled()
+  })
+
+  // T-180の完了条件: 日次発火にしても週1回だけ生成される。
+  // wrangler.toml・index.ts・index.test.tsの3箇所のcron式が一字一句一致していないと、
+  // controller.cronがCRON_WEEKLY_BOSSと不一致になりdefault分岐（何もしない）に落ちるため、
+  // このテストはその不一致も検出する
+  it('日次発火として週内の複数日で発火しても週1回だけボスが生成される', async () => {
+    const monday = Date.UTC(2028, 1, 7) // 月曜。他テストと週が衝突しない
+    const wednesday = monday + 2 * 24 * HOUR_MS // 同じISO週の水曜
+
+    await runScheduled(WEEKLY_CRON, monday)
+    const bossId = bossIdFor(isoWeekInfo(monday))
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+    const afterMonday = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(monday),
+    )
+    expect(afterMonday).toBeDefined()
+
+    await runScheduled(WEEKLY_CRON, wednesday)
+    const afterWednesday = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(wednesday),
+    )
+
+    // 同じ週のボスが再生成されていない（maxHp・startAtが変化しない）ことを確認する
+    expect(afterWednesday?.maxHp).toBe(afterMonday?.maxHp)
+    expect(afterWednesday?.startAt).toBe(afterMonday?.startAt)
   })
 
   it('別のcron式で発火したときは週次ボス生成が実行されない', async () => {

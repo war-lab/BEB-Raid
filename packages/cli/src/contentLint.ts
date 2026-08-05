@@ -207,7 +207,96 @@ function checkAudioOnlyReadiness(q: Question): string[] {
 }
 
 /**
- * パック1件分の7ルール検証。①②③は個別問題ごと、④⑦は問題ごと（警告）、
+ * ⑧解説内の選択肢記号→品詞ラベルの不一致検出（T-236。正本: docs/29 Q-77・docs/30 11節T-236）。
+ * 正答ローテーション適用後に解説文の記号を更新し忘れた痕跡を検出する（pack-p5-s-001の
+ * part5-notify・part5-clientで発見。docs/29の9節）。BARE_LETTER_EXPLANATION_RE
+ * （build.ts。「Aが正解」のように記号のみの解説）とは異なり、「A原形」のように記号＋
+ * 品詞ラベルが併記されている箇所を拾い、実際にその記号の選択肢テキストがラベルと
+ * 矛盾していないかを軽量な語彙ヒューリスティックで検証する。
+ * 対象ラベルは1語の表層形だけで判定できるものに限る（名詞・受動態・進行形・完了形・
+ * 三人称単数等は文全体の構造に依存し1選択肢のテキストだけでは判定できないため、
+ * 誤検出を避けて対象外にする）。
+ */
+const CHOICE_TAG_RE =
+  /(?<![a-zA-Z])([A-D])(?![a-zA-Z])(?:[^\sA-D、。,.]{0,10})?(原形|現在分詞|過去分詞|関係代名詞|関係副詞|所有格|目的格|比較級|最上級|動名詞)/g
+
+const RELATIVE_PRONOUNS = new Set(['who', 'whom', 'whose', 'which', 'that'])
+const RELATIVE_ADVERBS = new Set(['where', 'when', 'why', 'how'])
+const POSSESSIVE_PRONOUNS = new Set(['my', 'your', 'his', 'her', 'its', 'our', 'their', 'whose'])
+const OBJECTIVE_PRONOUNS = new Set(['me', 'him', 'her', 'us', 'them', 'whom', 'it', 'you'])
+
+/**
+ * ラベル1件が選択肢テキストと整合するかを判定する。判定できないラベルは null（対象外）。
+ * 原形は同一問題のkeyVocab（テスト対象語の原形）と一致するかで判定する
+ */
+function isChoiceTagConsistent(
+  tag: string,
+  choiceText: string,
+  keyVocab: readonly { word: string }[],
+): boolean | null {
+  const lower = choiceText.trim().toLowerCase()
+  switch (tag) {
+    case '関係代名詞':
+      return RELATIVE_PRONOUNS.has(lower)
+    case '関係副詞':
+      return RELATIVE_ADVERBS.has(lower)
+    case '所有格':
+      return POSSESSIVE_PRONOUNS.has(lower) || /'s$/.test(lower)
+    case '目的格':
+      return OBJECTIVE_PRONOUNS.has(lower)
+    case '現在分詞':
+    case '動名詞':
+      return /ing$/.test(lower)
+    case '過去分詞':
+      return /ed$/.test(lower)
+    case '比較級':
+      return /er$/.test(lower) || /^more\s/.test(lower)
+    case '最上級':
+      return /est$/.test(lower) || /^(the\s+)?most\s/.test(lower)
+    case '原形':
+      if (keyVocab.length === 0) return null
+      return keyVocab.some((kv) => kv.word.toLowerCase() === lower)
+    default:
+      return null
+  }
+}
+
+function checkChoiceTagText(
+  id: string,
+  explanation: string | null | undefined,
+  choices: readonly Choice[] | null | undefined,
+  keyVocab: readonly { word: string }[],
+): string[] {
+  const problems: string[] = []
+  if (!explanation || !choices) return problems
+  let m: RegExpExecArray | null
+  CHOICE_TAG_RE.lastIndex = 0
+  while ((m = CHOICE_TAG_RE.exec(explanation))) {
+    const letter = m[1]!
+    const tag = m[2]!
+    const choice = choices.find((c) => c.key === letter)
+    if (!choice) continue
+    if (isChoiceTagConsistent(tag, choice.text, keyVocab) === false) {
+      problems.push(
+        `${id}: 解説の「${letter}${tag}」が実際の選択肢${letter}「${choice.text}」と矛盾している（正答ローテーション後の記号更新漏れの疑い）`,
+      )
+    }
+  }
+  return problems
+}
+
+/** パック内の全問（audio_set・text_passageはsubQuestions単位）を検査する */
+function checkChoiceTagConsistency(q: Question): string[] {
+  if (q.format === 'text_passage' || q.format === 'audio_set') {
+    return (q.subQuestions ?? []).flatMap((sq) =>
+      checkChoiceTagText(`${q.id}/${sq.id}`, sq.explanation, sq.choices, q.keyVocab),
+    )
+  }
+  return checkChoiceTagText(q.id, q.explanation, q.choices, q.keyVocab)
+}
+
+/**
+ * パック1件分のルール検証。①②③は個別問題ごと、④⑦⑧は問題ごと（④⑦は警告）、
  * ⑤⑥はパック全体（警告）。戻り値は修正すべき問題点の一覧（このタスクでは記録のみ。
  * buildPack側ではwarningsとして扱いビルドを失敗させない）
  */
@@ -219,6 +308,7 @@ export function validateContentLint(questions: readonly Question[], packId: stri
     problems.push(...checkCasualContractions(q))
     problems.push(...checkTextBlankLength(q))
     problems.push(...checkAudioOnlyReadiness(q))
+    problems.push(...checkChoiceTagConsistency(q))
   }
   problems.push(...checkOpeningPhraseDiversity(questions, packId))
   problems.push(...checkAnswerKeyCycle(questions, packId))
