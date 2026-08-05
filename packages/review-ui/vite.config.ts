@@ -13,5 +13,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // 【フレーク対策・2026-08-05】ルートの `npm test` は全ワークスペースを並列で回すため、
+    // 他パッケージ（特にworkerdを多数起動するapi）と負荷を奪い合う。App.test.tsx の
+    // findByText が既定タイムアウト（5秒）に間に合わず、フルスイートでのみ不定に落ちる
+    // 事象が観測された（単独実行では4回連続で全pass）。アサーションは変えずに余裕を持たせる
+    testTimeout: 20000,
   },
 })
