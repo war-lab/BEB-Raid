@@ -32,9 +32,56 @@ export default tseslint.config(
     files: ['packages/app/src/**/*.{ts,tsx}'],
     ignores: ['packages/app/src/platform/**'],
     rules: {
+      // no-restricted-globals はベア識別子（`caches` 単体の参照）しか検出できず、
+      // `window.caches` や `globalThis.caches` はメンバー式のため素通りする（T-263）。
+      // メンバー式は no-restricted-properties 側で塞ぐ。
       'no-restricted-globals': [
         'error',
         { name: 'caches', message: 'PackCache（src/platform）経由で使うこと（T-04）' },
+        { name: 'Notification', message: 'Notifier（src/platform）経由で使うこと（T-263）' },
+      ],
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'window',
+          property: 'caches',
+          message: 'PackCache（src/platform）経由で使うこと（T-04・T-263）',
+        },
+        {
+          object: 'globalThis',
+          property: 'caches',
+          message: 'PackCache（src/platform）経由で使うこと（T-04・T-263）',
+        },
+        {
+          object: 'window',
+          property: 'Audio',
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04・T-263）',
+        },
+        {
+          object: 'globalThis',
+          property: 'Audio',
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04・T-263）',
+        },
+        {
+          object: 'window',
+          property: 'AudioContext',
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04・T-263）',
+        },
+        {
+          object: 'globalThis',
+          property: 'AudioContext',
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04・T-263）',
+        },
+        {
+          object: 'window',
+          property: 'Notification',
+          message: 'Notifier（src/platform）経由で使うこと（T-263）',
+        },
+        {
+          object: 'globalThis',
+          property: 'Notification',
+          message: 'Notifier（src/platform）経由で使うこと（T-263）',
+        },
       ],
       'no-restricted-syntax': [
         'error',
@@ -45,6 +92,18 @@ export default tseslint.config(
         {
           selector: "NewExpression[callee.name='AudioContext']",
           message: 'AudioPlayer（src/platform）経由で使うこと（T-04）',
+        },
+        {
+          selector: "NewExpression[callee.name='webkitAudioContext']",
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04・T-263）',
+        },
+        {
+          // webkitAudioContext は型定義に無い非標準APIのため、実コードでは
+          // `(window as any).webkitAudioContext` のようにキャストを介して参照する。
+          // キャストを挟むと object 側の型が Identifier でなくなり no-restricted-properties
+          // の object 名一致から外れるため、プロパティ名一致でオブジェクトの形に依らず検出する。
+          selector: "MemberExpression[property.name='webkitAudioContext']",
+          message: 'AudioPlayer（src/platform）経由で使うこと（T-04・T-263）',
         },
       ],
     },
