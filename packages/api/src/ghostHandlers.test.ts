@@ -11,7 +11,7 @@ const VALID_INVITE_CODE = 'test-invite-code'
 const HOUR_MS = 60 * 60 * 1000
 
 async function registerDevice(displayName = '太郎'): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

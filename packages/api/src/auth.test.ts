@@ -47,4 +47,23 @@ describe('authenticateRequest', () => {
     expect(success.deviceToken).toBe(deviceToken)
     expect(success.member.displayName).toBe('花子')
   })
+
+  // T-242・J-103: /registerにはUUID v4形式強制を追加した（register.ts参照）が、
+  // authenticateRequestには意図的に適用しない。本番KVの既存トークン形式を事前確認
+  // できないため、非UUID形式の既存端末が認証できなくなる事故を避ける安全側の判断。
+  // このテストは「KVに存在しさえすれば、形式を問わず認証を通過する」ことの回帰防止
+  it('UUID v4形式でない既存トークンでも、KVに存在すれば認証を通過する（形式検証は新規登録経路にのみ適用）', async () => {
+    const legacyStyleToken = 'legacy-non-uuid-token-12345'
+    const record: MemberRecord = {
+      displayName: '旧トークン太郎',
+      dailyGoal: 'normal',
+      registeredAt: 1_600_000_000_000,
+    }
+    await env.MEMBERS.put(memberKey(legacyStyleToken), JSON.stringify(record))
+
+    const result = await authenticateRequest(requestWithAuth(`Bearer ${legacyStyleToken}`), env)
+    expect(result).not.toBeInstanceOf(Response)
+    const success = result as { deviceToken: string; member: MemberRecord }
+    expect(success.deviceToken).toBe(legacyStyleToken)
+  })
 })

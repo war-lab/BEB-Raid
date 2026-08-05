@@ -16,7 +16,7 @@ const DAY_MS = 24 * HOUR_MS
 const VALID_INVITE_CODE = 'test-invite-code'
 
 async function registerDevice(displayName = '太郎'): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -198,6 +198,40 @@ describe('GET /raid/summary', () => {
     const summaries = (await res.json()) as RaidSummaryJson[]
     expect(summaries.some((s) => s.bossId === week1BossId)).toBe(true)
   })
+
+  // T-244・29のQ-23: env.MEMBERS.list({prefix: 'raidSummary:'})は1ページ最大1,000件までしか
+  // 返さない。週次サマリは毎週1件ずつ蓄積される運用データのため、長期運用で1,000件を超えると
+  // cursorを追わない実装では古いサマリが無言で欠落していた
+  it('サマリが1,000件を超えても全件返す（KV.listのcursor対応）', async () => {
+    const SUMMARY_COUNT = 1005
+    const puts: Promise<unknown>[] = []
+    for (let i = 0; i < SUMMARY_COUNT; i++) {
+      const bossId = `boss-2020-W${String((i % 52) + 1).padStart(2, '0')}-bulk-${i}`
+      puts.push(
+        env.MEMBERS.put(
+          raidSummaryKey(bossId),
+          JSON.stringify({
+            bossId,
+            bossType: 'synthetic',
+            maxHp: 1000,
+            remainingHp: 1000,
+            defeated: false,
+            defeatedAt: null,
+            participantCount: 0,
+          } satisfies RaidSummaryJson),
+        ),
+      )
+    }
+    await Promise.all(puts)
+
+    const viewerToken = await registerDevice()
+    const res = await SELF.fetch('https://example.com/raid/summary', {
+      headers: { Authorization: `Bearer ${viewerToken}` },
+    })
+    expect(res.status).toBe(200)
+    const summaries = (await res.json()) as RaidSummaryJson[]
+    expect(summaries.length).toBe(SUMMARY_COUNT)
+  }, 30_000)
 
   it('サマリが1件も無ければ空配列を返す', async () => {
     const viewerToken = await registerDevice()

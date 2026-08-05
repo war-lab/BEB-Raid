@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 const VALID_INVITE_CODE = 'test-invite-code'
 
 async function registerDevice(): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

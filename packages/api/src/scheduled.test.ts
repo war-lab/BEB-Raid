@@ -199,6 +199,45 @@ describe('generateWeeklyBoss', () => {
     expect(afterSecond.emaDailyDamage).toBe(2500)
   })
 
+  // T-244・29のQ-23: env.MEMBERS.list({prefix})は1ページ最大1,000件しか返さない。
+  // 以前はcursorを見ずに1ページ目だけでtotalDailyDamageを集計しており、メンバー数が
+  // 1,000を超えると1,000件を超えた分が無言で無視され、HP算出が正しい合計より小さくなっていた。
+  // 1,050人（全員dailyGoal='normal'・ema無し）を登録し、maxHpが「1,000人分」ではなく
+  // 「1,050人分」で算出されることを実測で確認する
+  it('登録メンバーが1,000人を超えてもHP算出が全員分を反映する（KV.listのcursor対応）', async () => {
+    const currentMondayEpoch = Date.UTC(2027, 3, 5) // 他テストと衝突しない週
+    const MEMBER_COUNT = 1050
+    const puts: Promise<unknown>[] = []
+    for (let i = 0; i < MEMBER_COUNT; i++) {
+      const deviceToken = `bulk-member-${String(i).padStart(5, '0')}`
+      puts.push(
+        env.MEMBERS.put(
+          memberKey(deviceToken),
+          JSON.stringify({
+            displayName: `一括太郎${i}`,
+            dailyGoal: 'normal',
+            registeredAt: 0,
+          }),
+        ),
+      )
+    }
+    await Promise.all(puts)
+
+    await generateWeeklyBoss(env, currentMondayEpoch)
+
+    const current = isoWeekInfo(currentMondayEpoch)
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossIdFor(current)))
+    const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(currentMondayEpoch),
+    )
+
+    // normal 1人あたり 15問×128×5日×0.85 = 8,160。1,050人分なら8,568,000。
+    // 1,000件で打ち切られていれば8,160,000になる（本テストが検出したい旧不具合の値）
+    const expectedMaxHp = Math.round(MEMBER_COUNT * 15 * 128 * 5 * 0.85)
+    expect(expectedMaxHp).toBe(8_568_000)
+    expect(state?.maxHp).toBe(expectedMaxHp)
+  }, 30_000)
+
   it('generation_claim導入前にinit済みだった週（boss-2026-W32相当）はEMAが更新されない', async () => {
     // generation_claimテーブルは今回の変更で新規追加されたため、変更前に手動生成やcronで
     // 既にinit済みの週ではこのテーブルが空のままになる。claimGeneration()がgeneration_claim

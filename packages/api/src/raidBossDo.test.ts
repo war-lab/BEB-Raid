@@ -1,5 +1,5 @@
 import { env, runInDurableObject } from 'cloudflare:test'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { memberKey } from './env'
 import type { RaidBossDO } from './raidBossDo'
@@ -185,6 +185,93 @@ describe('RaidBossDO', () => {
 
     expect(result.boss.contributions).toEqual([{ displayName: '花子', damage: 100 }])
     expect(result.boss.participantCount).toBe(1)
+  })
+
+  // T-246・29のQ-28: buildBossStateは貢献者1人につきKV getを1回発行し、これが
+  // GET /raid/current・POST /raid/sync双方の応答経路で毎回走る。メンバーがポーリングすると
+  // 読取が増幅し、KV無料枠（読取10万/日）を圧迫し得る。DO内で表示名を短期キャッシュし、
+  // 同一TTL内の再呼び出しでは同じdeviceTokenへ再度KV getを発行しないことを確認する
+  it('表示名解決のKV get回数は、TTL内の再呼び出しでは貢献者数に比例して増えない（短期キャッシュ）', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 100_000 })
+
+    const CONTRIBUTOR_COUNT = 5
+    const receivedAt = START_AT + HOUR_MS
+    for (let i = 0; i < CONTRIBUTOR_COUNT; i++) {
+      const deviceToken = `device-cache-${i}`
+      await env.MEMBERS.put(
+        memberKey(deviceToken),
+        JSON.stringify({ displayName: `メンバー${i}`, dailyGoal: 'normal', registeredAt: 0 }),
+      )
+      await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.syncDamage(
+          deviceToken,
+          [{ attemptId: `seed-${i}`, damage: 10, questionCount: 1, answeredAt: receivedAt }],
+          receivedAt,
+        ),
+      )
+    }
+
+    const getSpy = vi.spyOn(env.MEMBERS, 'get')
+    getSpy.mockClear()
+
+    // 同一TTL内でGET /raid/current相当の呼び出し（getBossState）を3回連続で行う
+    // （実運用ではポーリングやraid/syncの応答構築のたびにbuildBossStateが走る想定）
+    for (let call = 0; call < 3; call++) {
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(receivedAt),
+      )
+      expect(state?.contributions).toHaveLength(CONTRIBUTOR_COUNT)
+      expect(state?.contributions.every((c) => c.displayName.startsWith('メンバー'))).toBe(true)
+    }
+
+    // 修正前は呼び出し回数(3)×貢献者数(5)=15回のKV getになる。修正後はキャッシュヒットする
+    // ため、呼び出し回数を3回に増やしてもget回数は増えない（シード時の内部呼び出しで
+    // 既にキャッシュが温まっているため0になりうるが、いずれにせよ15回には遠く及ばない）
+    expect(getSpy.mock.calls.length).toBeLessThanOrEqual(CONTRIBUTOR_COUNT)
+  })
+
+  // T-246: キャッシュがTTL経過後も表示名変更（再登録）を永久に反映しなくなる退行を防ぐ
+  it('表示名キャッシュはTTL経過後、再登録による表示名変更を反映する', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000 })
+    const deviceToken = 'device-cache-ttl'
+    const receivedAt = START_AT + HOUR_MS
+    await env.MEMBERS.put(
+      memberKey(deviceToken),
+      JSON.stringify({ displayName: '旧名前', dailyGoal: 'normal', registeredAt: 0 }),
+    )
+    await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        deviceToken,
+        [{ attemptId: 'ttl-1', damage: 10, questionCount: 1, answeredAt: receivedAt }],
+        receivedAt,
+      ),
+    )
+    const beforeRename = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(receivedAt),
+    )
+    expect(beforeRename?.contributions[0]?.displayName).toBe('旧名前')
+
+    // 再登録（同一tokenでの再POST）による表示名変更を模す
+    await env.MEMBERS.put(
+      memberKey(deviceToken),
+      JSON.stringify({ displayName: '新名前', dailyGoal: 'normal', registeredAt: 0 }),
+    )
+
+    // TTL内はまだ古い名前のまま（キャッシュヒット）
+    const stillCached = await runInDurableObject(
+      stub,
+      (instance: RaidBossDO) => instance.getBossState(receivedAt + 60_000), // 1分後
+    )
+    expect(stillCached?.contributions[0]?.displayName).toBe('旧名前')
+
+    // TTL(5分)経過後は新しい表示名に更新される
+    const afterTtl = await runInDurableObject(
+      stub,
+      (instance: RaidBossDO) => instance.getBossState(receivedAt + 6 * 60_000), // 6分後
+    )
+    expect(afterTtl?.contributions[0]?.displayName).toBe('新名前')
   })
 
   it('未初期化のボスへsyncDamageすると例外になる', async () => {
