@@ -446,16 +446,111 @@ describe('BattleScreen: 切断理由ごとの案内', () => {
     expect(body.textContent).toContain('主催者がバトルを終了しました')
   })
 
-  it('未知の理由・理由なしなら通信断の汎用案内に落とす', async () => {
+  // T-212(Q-44): renderAndCloseはroomStateを一度も送らないまま閉じる（＝一度も接続できて
+  // いない）。このケースで「接続が切れました」（＝一度は繋がっていた前提の文言）を出すのは
+  // 誤りだったため、「接続できませんでした」に変える
+  it('一度も接続できていない状態で未知の理由・理由なしに閉じると「接続できませんでした」と案内する', async () => {
     const body = await renderAndClose(1006)
+    expect(screen.getByText('接続できませんでした')).toBeTruthy()
+    expect(body.textContent).not.toContain('通信が途切れた')
+  })
+
+  it('一度も接続できていない状態でサーバーが未知のreasonを返しても「接続できませんでした」と案内する', async () => {
+    await renderAndClose(1011, 'something_unexpected')
+    expect(screen.getByText('接続できませんでした')).toBeTruthy()
+  })
+
+  it('roomStateを受信した後（＝接続実績あり）に通信が切れた場合は従来どおり「接続が切れました」と案内する', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    await screen.findByText('ロビー')
+
+    socket.emitClose(1006)
+    const body = await screen.findByTestId('battle-close-reason')
     expect(screen.getByText('接続が切れました')).toBeTruthy()
     expect(body.textContent).toContain('通信が途切れた')
   })
+})
 
-  it('サーバーが未知のreasonを返しても汎用案内に落とす', async () => {
-    const body = await renderAndClose(1011, 'something_unexpected')
-    expect(screen.getByText('接続が切れました')).toBeTruthy()
-    expect(body.textContent).toContain('通信が途切れた')
+function setOnline(value: boolean) {
+  Object.defineProperty(window.navigator, 'onLine', { configurable: true, value })
+}
+
+// T-212(Q-44): 従来は「ホームへ戻る」しか導線が無く、再試行にはコードの再入力から
+// やり直しになっていた。「もう一度試す」でentryへ戻り、codeInputは保持されるため
+// 打ち直しが要らないことを確認する。あわせてnavigator.onLineでオフラインと
+// サーバー障害（の可能性）を出し分けることも確認する
+describe('BattleScreen: 切断からの再試行導線とオフライン/サーバー障害の区別（T-212）', () => {
+  afterEach(() => {
+    setOnline(true)
+  })
+
+  it('「もう一度試す」でentryへ戻り、ルームコードの再入力なしに再度参加できる', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitClose(1006)
+    await screen.findByText('接続できませんでした')
+
+    fireEvent.click(screen.getByRole('button', { name: 'もう一度試す' }))
+    // entryへ戻った上で、ルームコードを打ち直さずに再度「参加する」を押せる
+    const input = screen.getByLabelText('ルームコード（4文字）') as HTMLInputElement
+    expect(input.value).toBe('ABCD')
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+  })
+
+  it('オンライン中の接続失敗は、ルームコード誤りかサーバー障害の可能性を案内する', async () => {
+    setOnline(true)
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitClose(1006)
+
+    const body = await screen.findByTestId('battle-close-reason')
+    expect(body.textContent).toContain('ルームコードが違っているか')
+    expect(body.textContent).not.toContain('オフライン')
+  })
+
+  it('オフライン中の接続失敗は、オフラインである旨を案内する', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    setOnline(false)
+    socket.emitClose(1006)
+
+    const body = await screen.findByTestId('battle-close-reason')
+    expect(body.textContent).toContain('オフラインになっています')
   })
 })
 

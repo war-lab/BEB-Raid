@@ -851,6 +851,7 @@
   height: 28px;
   padding: 0 var(--sp-1);
   margin-bottom: var(--sp-2);
+  background: none;
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   font-size: var(--fs-sub);
@@ -908,6 +909,48 @@
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+
+/* --- T-210(J-107): titleのみでは読めない説明をタップで開閉表示（InfoDisclosure） --- */
+.info-disclosure-trigger {
+  cursor: pointer;
+  font-family: inherit;
+}
+.info-disclosure-trigger[aria-expanded='false']::after {
+  content: '▾';
+  margin-left: var(--sp-half);
+}
+.info-disclosure-trigger[aria-expanded='true']::after {
+  content: '▴';
+  margin-left: var(--sp-half);
+}
+.info-disclosure-trigger:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.info-disclosure__body {
+  display: block;
+  margin-top: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  text-align: left;
+}
+/* 文中リンク風のトリガー（SRS間隔・当て勘/速度不足の説明。ボタン群の下に単独で置く） */
+.info-help-link {
+  display: block;
+  width: 100%;
+  margin-top: var(--sp-1);
+  padding: var(--sp-half) 0;
+  background: none;
+  border: none;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+  text-decoration: underline;
+}
+
 /* 「わからない」ボタン（ドッグフィードバック 2026-07-22）。回答選択肢A–Dより一段控えめにし、
    当てずっぽうより正直な申告を選びやすくする。破線＋淡色で選択肢とは別物であることを示す */
 /* --- 誤タップの取り消し猶予（ADR 0009） --- */

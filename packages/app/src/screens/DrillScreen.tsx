@@ -48,6 +48,7 @@ import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ExplanationCard } from '../components/ExplanationCard'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
+import { InfoDisclosure } from '../components/InfoDisclosure'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
@@ -1433,6 +1434,11 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
               >
                 余裕
               </button>
+              {/* T-210(Q-39・J-107): 3ボタンのtitleはhover専用でタッチ端末では読めないため、
+                  その場で開ける説明を添える（titleは残す） */}
+              <InfoDisclosure className="info-help-link" label="間隔について">
+                もう一回＝間隔を短くしてすぐに復習／OK＝通常の間隔で復習／余裕＝間隔を大きく広げて復習
+              </InfoDisclosure>
             </>
           )}
           {isDictation && playState !== 'played' && (
@@ -1739,9 +1745,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
         // 解答前は単語のみ、解答後にフレーズを開示する（2026-07-29。VocabScreen と同一仕様）
         <div className="vocab-card vocab-card--recall">
           {question.freqRank && (
-            <span className="vocab-card__rank" title={FREQ_RANK_TITLE}>
-              {question.freqRank}
-            </span>
+            // T-210(Q-39・J-107): titleのみ（hover専用）ではタッチ端末で読めないため、
+            // タップで開閉する説明に置き換える。titleはデスクトップ併用のため残す
+            <InfoDisclosure
+              className="vocab-card__rank"
+              title={FREQ_RANK_TITLE}
+              aria-label={`頻出度ランク ${question.freqRank}の説明を表示`}
+              label={question.freqRank}
+            >
+              {FREQ_RANK_TITLE}
+            </InfoDisclosure>
           )}
           <p className="vocab-card__word">{question.front ?? ''}</p>
           {answeredVocab ? (

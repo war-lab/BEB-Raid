@@ -92,6 +92,22 @@ async function seedDueCard(db: BebRaidDatabase, word: string, now = Date.now()) 
   })
 }
 
+describe('VocabScreen: 読み込み中の表示（T-211・Q-59）', () => {
+  // reviewQueue/triageQueueがnull（初回ロードのPromiseが解決する前）の間はreturn nullで
+  // 白画面になっていた。マウント直後の同期描画を見て白画面でないことを確認する
+  it('マウント直後（データ読み込み中）は白画面ではなく読み込み中の表示を出す', () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    const { container } = render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
+    )
+    expect(container.textContent).not.toBe('')
+    expect(screen.getByText('読み込み中…')).toBeTruthy()
+  })
+})
+
 describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け）', () => {
   it('スワイプ「知らない」で未卒業カードが追加され、「知ってる」（ボタン）では卒業済みカードが追加される（T-119）', async () => {
     const db = newDb()
@@ -133,6 +149,21 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
 
     await waitFor(async () => expect(await db.srsCards.get('vocab:gamma')).toBeDefined())
   })
+
+  // T-210(Q-39・J-107): 仕分けカードのランクチップもtitle属性のみだった。SwipeCardの
+  // pointerイベントハンドラに巻き込まれてタップが拾われない退行を防ぐ意図も兼ねる
+  it('T-210: 仕分けカードでも頻出度ランクの意味をタップで確認できる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will alpha it.'))).toBeTruthy())
+
+    expect(screen.queryByText(/頻出度ランク（Sが最も頻出/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '頻出度ランク Sの説明を表示' }))
+    expect(screen.getByText(/頻出度ランク（Sが最も頻出/)).toBeTruthy()
+  })
 })
 
 describe('VocabScreen: 復習モード（4択リコールテスト→自己評価3段階）', () => {
@@ -158,6 +189,23 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     expect(attempt.mode).toBe('srs')
     expect(attempt.questionId).toBe('vocab-delta')
     expect(attempt.isCorrect).toBe(true)
+  })
+
+  // T-210(Q-39・J-107): 頻出度ランクの定義はtitle属性のみ（hover専用）で提供されており、
+  // タッチ端末では説明に到達できなかった。タップで開閉できる説明に置き換える
+  it('T-210: 頻出度ランクの意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'delta')
+    const questions = [vocabQuestion('delta'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('delta')
+
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/頻出度ランク（Sが最も頻出/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '頻出度ランク Sの説明を表示' }))
+    expect(screen.getByText(/頻出度ランク（Sが最も頻出/)).toBeTruthy()
   })
 
   it('不正解を選ぶとattemptsにisCorrect=falseで記録される（グレードは自己申告のまま独立）', async () => {
@@ -570,6 +618,21 @@ describe('VocabScreen: 完了カード（T-78）', () => {
     const card = await screen.findByTestId('completion-card')
     expect(card.textContent).toContain(`今日の実施数 ${words.length}問`)
     expect(card.textContent).toContain('🔥')
+  })
+})
+
+// T-214(Q-48): 語彙データ0件（パック未取得の初回オフライン起動等）でも復習・仕分けの
+// 両キューが空になる点は完了時と区別が付かず、「語彙SRSが終了しました」という完了文言が
+// 出ていた。ShadowingScreenの「シャドーイング素材がありません」と同様に区別する
+describe('VocabScreen: 語彙データ0件の表示（T-214・Q-48）', () => {
+  it('vocabQuestionsが空の場合は完了ではなく素材が無い旨の文言を出す', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={[]} />)
+
+    expect(await screen.findByText('語彙データがありません')).toBeTruthy()
+    expect(screen.queryByText('語彙SRSが終了しました')).toBeNull()
   })
 })
 

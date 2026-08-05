@@ -693,6 +693,84 @@ describe('RaidScreen: 404と通信失敗の区別（レビューF1(b)）', () =>
   })
 })
 
+function setOnline(value: boolean) {
+  Object.defineProperty(window.navigator, 'onLine', { configurable: true, value })
+}
+
+// T-212(Q-44): 取得失敗の表示に再試行導線が無く、オフラインとサーバー障害の区別も
+// 付かなかった。「開き直す」以外の復帰手段が無い状態だった
+describe('RaidScreen: 取得失敗からの再試行とオフライン/サーバー障害の区別（T-212）', () => {
+  afterEach(() => {
+    setOnline(true)
+  })
+
+  it('再試行ボタンをタップし、成功すればボス表示に復帰する', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.fetchShouldFail = true
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    expect(await screen.findByText('最新情報を取得できませんでした')).toBeTruthy()
+    const retryButton = screen.getByTestId('raid-retry-boss-fetch')
+    expect(retryButton.textContent).toBe('再試行')
+
+    // 再試行時に通信が復旧した状態を模する
+    raidApi.fetchShouldFail = false
+    fireEvent.click(retryButton)
+
+    expect(await screen.findByTestId('raid-boss')).toBeTruthy()
+    expect(screen.queryByText('最新情報を取得できませんでした')).toBeNull()
+    expect(screen.queryByTestId('raid-retry-boss-fetch')).toBeNull()
+  })
+
+  it('再試行しても失敗が続く場合は取得失敗表示のまま留まる', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.fetchShouldFail = true
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    expect(await screen.findByText('最新情報を取得できませんでした')).toBeTruthy()
+    const callsBeforeRetry = raidApi.fetchCurrentBoss.mock.calls.length
+    fireEvent.click(screen.getByTestId('raid-retry-boss-fetch'))
+
+    await waitFor(() =>
+      expect(raidApi.fetchCurrentBoss.mock.calls.length).toBe(callsBeforeRetry + 1),
+    )
+    expect(screen.getByText('最新情報を取得できませんでした')).toBeTruthy()
+  })
+
+  it('オフライン時はオフラインの案内を、オンライン時はサーバー障害の案内を出す', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.fetchShouldFail = true
+
+    setOnline(false)
+    const { unmount } = render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    expect(await screen.findByText(/オフラインになっています/)).toBeTruthy()
+    unmount()
+
+    setOnline(true)
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    expect(await screen.findByText(/サーバー側に問題が発生している可能性/)).toBeTruthy()
+  })
+})
+
 describe('RaidScreen: 手動同期の表示更新（T-104）', () => {
   it('同期成功時、追加fetchなしでボス表示が更新される（fetchCurrentBossは再呼びされない）', async () => {
     const db = newDb()

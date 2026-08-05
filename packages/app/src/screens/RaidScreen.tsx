@@ -139,6 +139,8 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   // レビューF1(b): 404（今週のボス未生成）と通信失敗を区別する。
   // fetchCurrentBoss()は404をnullで返し、通信失敗はthrowするため、catch側でこのフラグを立てる
   const [bossFetchFailed, setBossFetchFailed] = useState(false)
+  // T-212(Q-44): 再試行導線が無く、通信状態が変わっても復帰手段が「開き直す」しかなかった
+  const [bossFetchRetrying, setBossFetchRetrying] = useState(false)
   // T-105(b): 相対時刻・raidEnded判定のtick更新用の現在時刻state
   const [nowMs, setNowMs] = useState(now())
   // T-121(J-60): 生成パックが0問だったときの案内。自動では消さず、セッション開始成功でクリアする
@@ -251,6 +253,26 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     const lookup = buildFullQuestionLookup(questionPool)
     return buildGhostWeaknessMap(currentBoss.defense, lookup)
   }, [currentBoss, questionPool])
+
+  /**
+   * T-212(Q-44): ボス情報の取得失敗（通信断・サーバー障害）からの再試行導線。
+   * 従来は「最新情報を取得できませんでした」を表示するのみで、復帰にはアプリの
+   * 開き直し（起動時の初回読み込みのやり直し）しか手段が無かった
+   */
+  async function handleRetryBossFetch() {
+    if (!raidApi.isConfigured()) return
+    setBossFetchRetrying(true)
+    try {
+      const boss = await raidApi.fetchCurrentBoss() // 404はnull・通信失敗はthrow
+      setCurrentBoss(boss)
+      setBossFetchFailed(false)
+    } catch (e) {
+      setBossFetchFailed(true)
+      console.warn('[RaidScreen] 現ボスの再取得に失敗', e)
+    } finally {
+      setBossFetchRetrying(false)
+    }
+  }
 
   async function handleRegister() {
     setRegisterError(null)
@@ -708,6 +730,20 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       }
       action={
         <>
+          {/* T-212(Q-44): 取得失敗からの再試行導線。オフライン中はraidApi呼び出し自体が
+              失敗するだけなので無効化はしない（タップして初めて最新のnavigator.onLineを
+              見られるほうが、オンライン復帰直後に有効化されないより実害が小さい） */}
+          {!currentBoss && bossFetchFailed && (
+            <button
+              type="button"
+              className="secondary-action"
+              data-testid="raid-retry-boss-fetch"
+              onClick={() => void handleRetryBossFetch()}
+              disabled={bossFetchRetrying}
+            >
+              {bossFetchRetrying ? '再試行中…' : '再試行'}
+            </button>
+          )}
           {!joined && currentBoss && (
             <PrimaryButton onClick={() => void handleJoin()} disabled={raidEnded}>
               参加する
@@ -791,6 +827,14 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       {!currentBoss && bossFetchFailed && (
         <div data-testid="raid-fetch-failed">
           <p className="drill-error">最新情報を取得できませんでした</p>
+          {/* T-212(Q-44): navigator.onLineでオフラインとサーバー障害を大まかに区別する
+              （オフライン中はブラウザが確実にfalseを返す。true側は「サーバー障害」を断定
+              できないため「の可能性」に留める） */}
+          <p className="result-list__note">
+            {navigator.onLine
+              ? 'サーバー側に問題が発生している可能性があります'
+              : '通信がオフラインになっています。電波状況をご確認ください'}
+          </p>
           {cachedBossName !== null && raidState && (
             <div data-testid="raid-boss-cached">
               <div className="raid-boss-header">

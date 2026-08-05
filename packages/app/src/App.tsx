@@ -360,7 +360,16 @@ export function App() {
     )
   }
 
-  if (!bootChecked) return null
+  // T-211(Q-40): 起動チェック完了までreturn nullだと、index.htmlの静的スプラッシュが
+  // Reactマウントの瞬間に#rootごと消え、以降は完全な白画面になる（低速回線ではPromise.all
+  // で20パックの取得を待つため数秒間続く）。RaidScreenの読み込み中表示と揃える
+  if (!bootChecked) {
+    return (
+      <ScreenLayout status={<p>BEB Raid</p>} action={null}>
+        <p>読み込み中…</p>
+      </ScreenLayout>
+    )
+  }
 
   const vocabQuestions = questionPool.filter((q) => q.format === 'vocab_card')
   const shadowingQuestions = questionPool.filter((q) => q.format === 'shadowing')

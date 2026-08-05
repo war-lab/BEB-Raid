@@ -17,6 +17,7 @@ import { syncRaidDamage } from '../services/raidSync'
 import { completeSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
+import { InfoDisclosure } from '../components/InfoDisclosure'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 
@@ -316,24 +317,33 @@ export function ResultScreen({ db, raidApi }: Props) {
             色は --ok を使わない（docs/25 5.1節の既知#1: ライトテーマの --ok は --surface 上
             4.358で本文基準未達）。docs/25 4.7節のトーン（誤答＝悪ではない）にも合わせる */}
         {tallyEntries.length > 0 && (
-          <ul className="result-quality-tiles">
-            <li
-              className="result-highlight-tile result-quality-tile"
-              style={{ animationDelay: '250ms' }}
-              data-testid="result-guess-count"
-              title="2秒未満の誤答。弱点統計では重みを半分にして数えています"
-            >
-              当て勘 {guessCount}
-            </li>
-            <li
-              className="result-highlight-tile result-quality-tile"
-              style={{ animationDelay: '300ms' }}
-              data-testid="result-timeout-count"
-              title="時間切れ。知識不足とは別に数えています"
-            >
-              速度不足 {timeoutCount}
-            </li>
-          </ul>
+          <>
+            <ul className="result-quality-tiles">
+              <li
+                className="result-highlight-tile result-quality-tile"
+                style={{ animationDelay: '250ms' }}
+                data-testid="result-guess-count"
+                title="2秒未満の誤答。弱点統計では重みを半分にして数えています"
+              >
+                当て勘 {guessCount}
+              </li>
+              <li
+                className="result-highlight-tile result-quality-tile"
+                style={{ animationDelay: '300ms' }}
+                data-testid="result-timeout-count"
+                title="時間切れ。知識不足とは別に数えています"
+              >
+                速度不足 {timeoutCount}
+              </li>
+            </ul>
+            {/* T-210(Q-39・J-107): タイルのtitleはhover専用でタッチ端末では読めないため、
+                その場で開ける説明を添える（各タイルのtitleは残す。textContentを変えないため
+                タイル外に単独で置く） */}
+            <InfoDisclosure className="info-help-link" label="「当て勘」「速度不足」とは">
+              <p>当て勘: 2秒未満の誤答。弱点統計では重みを半分にして数えます。</p>
+              <p>速度不足: 時間切れによる不正解。知識不足とは別に数えます。</p>
+            </InfoDisclosure>
+          </>
         )}
         <ul className="result-stats">
           {ratingBefore && ratingAfter && (
