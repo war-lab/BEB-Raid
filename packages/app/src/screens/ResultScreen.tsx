@@ -215,6 +215,14 @@ export function ResultScreen({ db, raidApi }: Props) {
     // レビューF5: スナップショット削除の失敗で「ホームへ」が無反応にならないようにする。
     // 削除に失敗して残ったスナップショットは次回startSessionで上書きされるため、
     // ログだけ残してホーム遷移は必ず実行する。
+    //
+    // T-267（docs/29 Q-5・PR #137）: DrillScreen/ReadingScreenがリザルトへ遷移する
+    // すべての経路でcompleteSessionを呼ぶようになったため、通常はこの時点で既に
+    // アクティブセッションは削除済みであり、ここでの呼び出しは基本的に空振りになる。
+    // それでも撤去せず残すのは、将来リザルトへの新しい到達経路が追加されたときに
+    // ここが最後の安全網になるため（DrillScreen/ReadingScreen側の呼び出し漏れを
+    // 個別に見つけるより、ここで一括して保証する方が壊れにくい）。
+    //
     // T-193: snapshotが無い（=このセッションを完了する対象が無い）場合は
     // completeSession自体を呼ばない（sessionIdが必須引数のため）
     void (snapshot ? completeSession(db, snapshot.sessionId) : Promise.resolve())

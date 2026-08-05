@@ -170,6 +170,27 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     expect(rating).toBeDefined()
   })
 
+  it('全問完走してリザルトへ進んだ時点でDB上のセッションを完了させる（T-267・Q-5）', async () => {
+    // 何を防ぐか: DrillScreenと同じ理由（同ファイルの同名テスト参照）。読解でも
+    // 全問（全サブ設問）を解いて最終itemを終えると自動的にリザルトへ遷移するが、
+    // その時点でDBのアクティブセッションを消しておかないと、ResultScreenの
+    // 「ホームへ」を待つ間にアプリを離れただけでホームに再開バナーが残る
+    const db = newDb()
+    const q = part7Question('p7-complete', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
+      fireEvent.click(await screen.findByText('次へ'))
+    }
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('T-106: 正誤混在（正・誤・正）でも各設問が独立採点され、computeSetResultの2/3ルールに基づく一括判定を経由しない', async () => {
     const db = newDb()
     const q = part7Question('p7-mixed', 3)
@@ -443,6 +464,22 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
 
     fireEvent.click(screen.getByText('ここで終了して結果を見る'))
     expect(useAppStore.getState().screen).toBe('result')
+  })
+
+  it('「ここで終了して結果を見る」をタップした時点でDB上のセッションを完了させる（T-196・Q-5）', async () => {
+    // DrillScreenのhandleFinishEarlyと同じ理由（同ファイルのコメント参照）。
+    // ResultScreenの「ホームへ」を待たず、この時点でDBのアクティブセッションを消す
+    const db = newDb()
+    const q = part7Question('p7-exit-complete', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    fireEvent.click(screen.getByText('ここで終了して結果を見る'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
   })
 
   it('最終サブ設問を解答した後は途中終了導線を出さない（「次へ」がitemを進める）', async () => {
