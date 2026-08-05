@@ -15,6 +15,7 @@ import { completeSession } from '../services/session'
 import { GHOST_BOSS_SUBMITTED_AT_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { resultQuestionLabel } from './ResultScreen'
@@ -34,6 +35,9 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
+  // T-202（docs/29 Q-34・J-105）:「破棄する」は「送信する」の直下に隣接し、確認なしの
+  // 1タップでこの記録（正誤一覧）が失われた。撤回導線と同様に確認を挟む
+  const [discardConfirm, setDiscardConfirm] = useState(false)
 
   const wrongCount = results.filter((r) => !r.isCorrect).length
 
@@ -80,7 +84,29 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
 
   return (
     <ScreenLayout
-      status={<p>ボス役の記録</p>}
+      status={
+        <>
+          <p>ボス役の記録</p>
+          {/* T-202（Q-34）: 「送信する」の直下に隣接し、確認なしの1タップで記録が失われていた */}
+          {discardConfirm && (
+            <ConfirmDialog
+              message="記録を破棄しますか？（送信していない正誤記録が失われます）"
+              onDismiss={() => setDiscardConfirm(false)}
+              actions={[
+                {
+                  label: '破棄する',
+                  primary: true,
+                  onSelect: () => {
+                    setDiscardConfirm(false)
+                    void finishAndGoHome()
+                  },
+                },
+                { label: 'キャンセル', onSelect: () => setDiscardConfirm(false) },
+              ]}
+            />
+          )}
+        </>
+      }
       action={
         sent ? (
           <PrimaryButton onClick={() => void finishAndGoHome()}>ホームへ</PrimaryButton>
@@ -92,7 +118,7 @@ export function GhostBossResultScreen({ db, raidApi }: Props) {
             <button
               type="button"
               className="secondary-action"
-              onClick={() => void finishAndGoHome()}
+              onClick={() => setDiscardConfirm(true)}
               disabled={sending}
             >
               破棄する

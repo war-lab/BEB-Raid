@@ -161,13 +161,24 @@ describe('GhostBossResultScreen: 記録プレビュー', () => {
     expect(await screen.findByTestId('ghost-boss-sent')).toBeTruthy()
   })
 
-  it('破棄するとsendGhostRecordを呼ばずホームへ戻る', async () => {
+  // T-202（docs/29 Q-34）: 「送信する」の直下に隣接し、確認なしの1タップで記録が
+  // 失われていた。確認ダイアログを経由するようになった
+  it('破棄は確認を経てからsendGhostRecordを呼ばずホームへ戻る（キャンセルでは閉じない）', async () => {
     const db = newDb()
     await seedGhostBossSession(db)
     const raidApi = new FakeRaidApi()
 
     render(<GhostBossResultScreen db={db} raidApi={raidApi} />)
     fireEvent.click(screen.getByText('破棄する'))
+
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('home')
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+
+    fireEvent.click(screen.getByText('破棄する'))
+    fireEvent.click(await screen.findByText('破棄する', { selector: '.confirm-dialog__primary' }))
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('home'))
     expect(raidApi.sendGhostRecord).not.toHaveBeenCalled()

@@ -6,7 +6,11 @@
 //     その場で出せず、ホームへ戻って別のボタンを探させることになっていた。
 //
 // 演出は置かない（07の原則3。確認は判断の場であって演出の場ではない）。
-import { useEffect, useRef } from 'react'
+//
+// フォーカストラップ・Esc・初期フォーカス・閉時のフォーカス復帰は useDialogA11y に
+// 抽出した（T-203。HomeScreenの3モーダルにも同じ作法を適用するため）
+import { useRef } from 'react'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 
 export interface ConfirmAction {
   label: string
@@ -26,57 +30,8 @@ interface Props {
 
 export function ConfirmDialog({ message, actions, onDismiss }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null)
-
-  // Escで閉じられるようにする（モーダルの最低限の作法。onDismiss未指定なら何もしない）
-  useEffect(() => {
-    if (!onDismiss) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onDismiss()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onDismiss])
-
-  /**
-   * 開いたら最初の選択肢へフォーカスを移し、閉じたら開く前の要素へ戻す。
-   * Tabはダイアログ内で循環させる（レビュー指摘、2026-08-03）。
-   *
-   * `aria-modal` は支援技術への申告にすぎず、**操作は制限しない**。トラップが無いと
-   * Tabで背景の「中断」や選択肢へ抜けられ、確認しているはずの操作を裏で実行できてしまう。
-   * 背景をinert化する手もあるが、この画面はダイアログをオーバーレイとして各画面の中に
-   * 直接置く構成（ポータルを使わない）なので、対象の親を特定せずに済むトラップを採る
-   */
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null
-    const focusables = () =>
-      [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])].filter(
-        (el) => !el.disabled,
-      )
-    focusables()[0]?.focus()
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return
-      const items = focusables()
-      if (items.length === 0) return
-      const first = items[0]!
-      const last = items[items.length - 1]!
-      const active = document.activeElement
-      // 端からの移動、およびダイアログ外にフォーカスがある場合を内側へ引き戻す
-      if (e.shiftKey && (active === first || !dialogRef.current?.contains(active))) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && (active === last || !dialogRef.current?.contains(active))) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      // 閉じた後にフォーカスが body へ落ちると、キーボード操作の位置を見失う
-      if (previouslyFocused?.isConnected) previouslyFocused.focus()
-    }
-  }, [])
+  // ConfirmDialogは条件付きレンダリングでマウント/アンマウントされる想定のため常時enabled
+  useDialogA11y(dialogRef, true, onDismiss)
 
   return (
     <div

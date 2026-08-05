@@ -349,6 +349,9 @@ describe('VocabScreen: フレーズ音声自動再生（既定ON。解答後の�
 describe('VocabScreen: ストリーク成立（02の7節）', () => {
   it('SRS5問完了時に evaluateStreak がストリーク成立を返す', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（ADR 0009の先例と同じ扱い）。このテストの対象は
+    // ストリーク成立であって猶予ではなく、5件×400msの待ちを避ける
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = ['w1', 'w2', 'w3', 'w4', 'w5']
     for (const w of words) await seedDueCard(db, w)
     const questions = words.map((w) => vocabQuestion(w))
@@ -547,6 +550,9 @@ describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）'
 describe('VocabScreen: 完了カード（T-78）', () => {
   it('全復習・仕分けが終わると今日の実施数・ストリークを含む完了カードを表示する', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（ADR 0009の先例と同じ扱い）。このテストの対象は
+    // 完了カードの表示であって猶予ではなく、5件×400msの待ちを避ける
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = ['w1', 'w2', 'w3', 'w4', 'w5']
     for (const w of words) await seedDueCard(db, w)
     const questions = words.map((w) => vocabQuestion(w))
@@ -667,6 +673,104 @@ describe('VocabScreen: 仕分けスワイプの取り消し猶予（T-161。docs
 
     await waitFor(async () => expect(await db.srsCards.count()).toBe(1))
     expect(screen.queryByText('取り消し（知ってる）')).toBeNull()
+  })
+})
+
+describe('VocabScreen: 復習自己評価の取り消し猶予（T-204。docs/29 Q-38・ADR 0009 2026-08-05 Amendment）', () => {
+  // 何を防ぐか: DrillScreen内のvocab_card自己評価（T-160）と同じ不可逆性（SRS間隔の確定＋
+  // 次カードへの前進）を持つのに、S3側（VocabScreen）は取り消し猶予の対象から漏れていた。
+  // フレーズや正解を読む前に自己評価を押すとカードが消えて戻れなかった
+  it('自己評価タップで猶予に入り、まだ記録されない', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+    // 猶予中は自己評価ボタンを引っ込める（二重確定の防止）
+    expect(screen.queryByText('もう一回')).toBeNull()
+    expect(screen.queryByText('余裕')).toBeNull()
+    // カードは保持されたまま（次のカードへ進めない）
+    expect(screen.getByText('復習 1/1')).toBeTruthy()
+    // ADR 0009 2026-07-31 Amendment 決定2と同じく、猶予中もフレーズは開示済みのまま
+    expect(screen.getByText(phraseMatcher('I will alpha it.'))).toBeTruthy()
+  })
+
+  it('取り消すと記録されず次のカードへ進む（正解を見せた後のため同じカードには戻らない）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // 記録されない
+    expect(await db.attempts.count()).toBe(0)
+    expect(await db.srsCards.get('vocab:alpha')).toMatchObject({ stage: 2 }) // 変わらず
+    // 復習キューを消化して次（仕分けフェーズ。decoyが候補として残る）へ進む。
+    // 同じカードへは戻らない＝alphaの4択が再度出ることはない
+    await waitFor(() => expect(screen.getByText(/仕分け \d/)).toBeTruthy())
+  })
+
+  it('猶予が過ぎると記録され、次のカードへ進む', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(() => expect(screen.getByText(/仕分け \d/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(1)
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(true)
+    expect((await db.srsCards.get('vocab:alpha'))?.stage).toBe(3) // stage2→OK(+1)=3
+  })
+
+  it('猶予中にアンマウントされると記録される（操作は実際に行われたため捨てない）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    const view = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    // DB往復を挟まない（挟むと400msの猶予が経過し、flushではなくタイマー確定を
+    // 検証してしまう。猶予中に書かないことは上のテストが担保する）
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    view.unmount()
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect((await db.srsCards.get('vocab:alpha'))?.stage).toBe(3)
+  })
+
+  it('設定OFFなら従来どおり即確定する（回帰）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect(screen.queryByText('取り消し')).toBeNull()
   })
 })
 
@@ -849,6 +953,9 @@ describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦�
   // 仕分け側は20語で区切る配慮があるのに復習側には無く、非対称だった
   it('20件復習するごとに中間画面が出て、「続ける」で再開できる', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（ADR 0009の先例と同じ扱い）。このテストの対象は
+    // 20件区切りであって猶予ではなく、ONのままだと20回×400msでタイムアウトのリスクが増す
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = Array.from({ length: 21 }, (_, i) => `w${i}`)
     for (const w of words) await seedDueCard(db, w)
     const questions = words.map((w) => vocabQuestion(w))
@@ -871,6 +978,8 @@ describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦�
 
   it('中間画面から仕分けへ直行できる', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（上のテストと同じ理由）
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = Array.from({ length: 21 }, (_, i) => `w${i}`)
     for (const w of words) await seedDueCard(db, w)
     const questions = [...words, 'newword'].map((w) => vocabQuestion(w))

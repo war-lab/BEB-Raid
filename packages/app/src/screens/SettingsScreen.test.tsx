@@ -24,6 +24,15 @@ function newDb(): BebRaidDatabase {
   return db
 }
 
+/**
+ * インポートの確認ダイアログ（T-202・Q-35）で「復元する」を押す。
+ * ファイル選択後は対象ストアと件数を提示してから実行の可否を問うようになったため、
+ * 従来の「選択→即復元」だったテストはこの1手順を挟む
+ */
+async function confirmImport() {
+  fireEvent.click(await screen.findByText('復元する', { selector: '.confirm-dialog__primary' }))
+}
+
 class FakePackCache implements PackCache {
   private stored = new Set<string>(['a.mp3', 'b.mp3'])
   has = vi.fn(async (url: string) => this.stored.has(url))
@@ -162,7 +171,9 @@ describe('SettingsScreen: 永続化', () => {
     expect(getFontSizeScale()).toBe('L')
   })
 
-  it('キャッシュ使用量が表示され、削除で0件になる', async () => {
+  // T-202（Q-46）: window.confirmはPWAでネイティブダイアログが出て文脈が切れるため、
+  // ConfirmDialogへ置換した（T-162時点で置換漏れていた2箇所の1つ）
+  it('キャッシュ使用量が表示され、確認後の削除で0件になる（キャンセルでは消えない）', async () => {
     const db = newDb()
     const cache = new FakePackCache()
     render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
@@ -170,8 +181,15 @@ describe('SettingsScreen: 永続化', () => {
 
     expect(screen.getByText(/2件/)).toBeTruthy()
 
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByText('キャッシュを削除'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(cache.clear).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('キャッシュを削除'))
+    fireEvent.click(await screen.findByText('削除する'))
 
     expect(await screen.findByText(/0件/)).toBeTruthy()
     expect(cache.clear).toHaveBeenCalled()
@@ -187,8 +205,8 @@ describe('SettingsScreen: 永続化', () => {
     render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
     await flushLoad()
 
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByText('キャッシュを削除'))
+    fireEvent.click(await screen.findByText('削除する'))
     await screen.findByText(/0件/)
 
     // 実体だけでなく同期状態も消えていないと、ハッシュ一致のみを見るsyncPacksが
@@ -275,9 +293,66 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([backupText], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
 
     await screen.findByText('復元しました。')
     expect((await db.profile.get(PROFILE_ID))?.displayName).toBe('たろう')
+  })
+
+  // T-202（docs/29 Q-35・J-105）: ファイル選択後に確認もプレビューもなく即実行されていた。
+  // 件数の提示がないと古いファイルの誤選択に実行前に気づけない
+  it('ファイル選択後は対象ストアと件数を提示し、キャンセルすれば復元されない', async () => {
+    const db = newDb()
+    await db.profile.put({
+      id: PROFILE_ID,
+      displayName: 'もとの名前',
+      initialToeic: null,
+      createdAt: 0,
+      deviceToken: 'token',
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    const backup = emptyBackup(db.verno, {
+      profile: [
+        {
+          id: PROFILE_ID,
+          displayName: '復元後の名前',
+          initialToeic: null,
+          createdAt: 0,
+          deviceToken: 'token',
+        },
+      ],
+      attempts: [
+        {
+          id: 'a1',
+          questionId: 'q1',
+          mode: 'solo',
+          isCorrect: true,
+          responseMs: 1000,
+          isTimeout: false,
+          isGuess: false,
+          answeredAt: 0,
+        },
+      ],
+    })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    // 対象ストアと件数を提示する（まだ実行しない）
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.getByText(/プロフィール: 1件/)).toBeTruthy()
+    expect(screen.getByText(/解答履歴: 1件/)).toBeTruthy()
+    expect(screen.getByText(/語彙SRSカード: 0件/)).toBeTruthy()
+    // インポートはまだ実行されていない
+    expect(screen.getByDisplayValue('もとの名前')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(screen.getByDisplayValue('もとの名前')).toBeTruthy()
+    expect(await db.profile.get(PROFILE_ID)).toMatchObject({ displayName: 'もとの名前' })
   })
 
   it('dbVersionが新しいバックアップはUI経由でも拒否される', async () => {
@@ -372,6 +447,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
 
     await screen.findByText('復元しました。')
     expect(screen.getByDisplayValue('インポート後')).toBeTruthy()
@@ -399,6 +475,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
 
     await screen.findByText('復元しました。')
     expect(onThemePreferenceChange).toHaveBeenCalledWith('dark')
@@ -415,6 +492,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
     await screen.findByText('復元しました。')
     expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(true)
 
@@ -427,7 +505,8 @@ describe('SettingsScreen: エクスポート/インポート', () => {
 })
 
 describe('SettingsScreen: BYOK設定（T-55）', () => {
-  it('APIキーを保存するとマスク表示になり、削除すると入力欄に戻る', async () => {
+  // T-202（docs/29 Q-33〜Q-35と同種の不可逆操作）: 確認なしの1タップで削除されていた
+  it('APIキーを保存するとマスク表示になり、確認後の削除で入力欄に戻る（キャンセルでは消えない）', async () => {
     const db = newDb()
     render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
@@ -443,6 +522,15 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
     expect(screen.queryByText('sk-ant-abcd1234')).toBeNull()
 
     fireEvent.click(screen.getByText('削除'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(await db.settings.get('byokApiKey')).toBeDefined()
+
+    fireEvent.click(screen.getByText('削除'))
+    fireEvent.click(await screen.findByText('削除する'))
+
     await vi.waitFor(() => expect(screen.getByPlaceholderText('sk-...')).toBeTruthy())
     expect(await db.settings.get('byokApiKey')).toBeUndefined()
   })
