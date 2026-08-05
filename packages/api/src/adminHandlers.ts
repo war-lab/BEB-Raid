@@ -53,13 +53,18 @@ export async function handleAdminGenerateBoss(
 
   const bossId = bossIdFor(isoWeekInfo(now))
   const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+  // 存在確認は不要なDO呼び出しを避けるための最適化。重複防止の責務そのものは
+  // generateWeeklyBoss側（週の生成権の主張）に移った（docs/30 J-101・T-179）
   // deviceTokenを渡さないので myDamage は0になる（存在確認だけが目的）
   const existing = await stub.getBossState(now)
   if (existing) {
     return jsonResponse({ created: false, bossId, boss: existing })
   }
 
-  await generateWeeklyBoss(env, now)
+  // createdは主張の結果（実際にこの呼び出しが生成処理を行ったか）から返す。
+  // 上のexisting確認とgenerateWeeklyBoss呼び出しの間で他の生成（cronや並行リクエスト）が
+  // 割り込んだ場合、claimGeneration()がfalseを返すのでcreated:falseが正しく返る
+  const created = await generateWeeklyBoss(env, now)
   const boss = await stub.getBossState(now)
-  return jsonResponse({ created: true, bossId, boss: boss ?? null })
+  return jsonResponse({ created, bossId, boss: boss ?? null })
 }
