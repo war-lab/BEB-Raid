@@ -70,7 +70,10 @@ describe('BattleServerMessage: JSON往復', () => {
   it('roomState', () => {
     const msg: BattleRoomStateMessage = {
       type: 'roomState',
-      participants: [{ displayName: '太郎' }, { displayName: '花子' }],
+      participants: [
+        { displayName: '太郎', connected: true },
+        { displayName: '花子', connected: false },
+      ],
     }
     expect(roundTrip(msg)).toEqual(msg)
     expect(isBattleServerMessage(roundTrip(msg))).toBe(true)
@@ -91,8 +94,8 @@ describe('BattleServerMessage: JSON往復', () => {
     const msg: BattleStandingsMessage = {
       type: 'standings',
       entries: [
-        { displayName: '太郎', totalPoints: 48 },
-        { displayName: '花子', totalPoints: 40 },
+        { displayName: '太郎', totalPoints: 48, connected: true },
+        { displayName: '花子', totalPoints: 40, connected: false },
       ],
     }
     expect(roundTrip(msg)).toEqual(msg)
@@ -103,8 +106,8 @@ describe('BattleServerMessage: JSON往復', () => {
     const msg: BattleResultMessage = {
       type: 'result',
       entries: [
-        { displayName: '太郎', totalPoints: 240 },
-        { displayName: '花子', totalPoints: 200 },
+        { displayName: '太郎', totalPoints: 240, connected: true },
+        { displayName: '花子', totalPoints: 200, connected: false },
       ],
       bestGrowth: { displayName: '花子' },
     }
