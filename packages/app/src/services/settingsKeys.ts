@@ -88,3 +88,13 @@ export const GHOST_BOSS_SUBMITTED_AT_KEY = 'ghostBossSubmittedAt'
  * 送信成功時・破棄確定時に削除する（settings.deleteは冪等）
  */
 export const GHOST_BOSS_PENDING_RESULT_KEY = 'ghostBossPendingResult'
+
+/**
+ * 成長ランクのrankPointsが到達した最大値（T-305・K-33）。
+ * rankPointsはratingHistory（section='total'）の最古行をinitialRatingとして算定するため、
+ * 過去日付でスナップショットが書かれると最古行が入れ替わり、初期値が現在レートへ移動して
+ * rankPointsが下落しうる（実測でマスター→ゴールドへ退行）。「累積の継続装置」という
+ * 位置づけ（docs/22 3.7節）に反するため、到達済みの最大値をここに永続化して
+ * 単調性を保証する（engine/growthRank.ts参照）
+ */
+export const GROWTH_RANK_MAX_POINTS_KEY = 'growthRankMaxPoints'

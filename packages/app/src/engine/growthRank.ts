@@ -13,6 +13,7 @@
 //              （累積の継続装置であり表示ウィンドウを切る対象ではないため）。
 
 import type { BebRaidDatabase } from '../db/database'
+import { GROWTH_RANK_MAX_POINTS_KEY } from '../services/settingsKeys'
 import { toDateString } from './date'
 import rawConfig from './growthRankConfig.json'
 import { DEFAULT_INITIAL_RATING } from './rating'
@@ -97,12 +98,19 @@ export function resolveGrowthRank(
 }
 
 /**
- * 学習日数: attempts が1件以上存在する暦日の数（全期間。ストリーク/ヒートマップと
- * 同じ日付基準=toDateStringで暦日キー化してから distinct を取る）
+ * 学習日数: 正誤判定を伴う解答が1件以上存在する暦日の数（全期間。ストリーク/ヒートマップと
+ * 同じ日付基準=toDateStringで暦日キー化してから distinct を取る）。
+ *
+ * T-307（K-36）: シャドーイングは `shadow:` プレフィックスのquestionIdで記録されるが、
+ * `isCorrect` は固定値（客観的な正誤判定を伴わない再生ログ）。フィルタが無いと
+ * 1日1件の再生を続けるだけで学習日数が積み上がり、レートが不変でも230日で
+ * 最上位ランクに到達しうる（questionStats・カリキュラム判定は既にshadow:を除外している
+ * のと同じ理由で、こちらも除外する）
  */
 export async function countLearningDays(db: BebRaidDatabase): Promise<number> {
   const dates = new Set<string>()
   await db.attempts.each((a) => {
+    if (a.questionId.startsWith('shadow:')) return
     dates.add(toDateString(a.answeredAt))
   })
   return dates.size
@@ -111,19 +119,32 @@ export async function countLearningDays(db: BebRaidDatabase): Promise<number> {
 /**
  * 成長ランクをDBから導出する（端末内のみ。サーバー送信は一切行わない=J-68）。
  * ratingHistory が無い新規ユーザーは currentRating を初期レートとみなし
- * 差分0（学習日数のみ加点。学習前なら0）として扱う
+ * 差分0（学習日数のみ加点。学習前なら0）として扱う。
+ *
+ * T-305（K-33）: rankPointsはratingHistoryの最古行をinitialRatingとして算定するため、
+ * 過去日付でスナップショットが書かれて最古行が入れ替わると、初期値が現在レートへ移動して
+ * rankPointsが下落しうる（実測でマスター→ゴールドへ退行）。「累積の継続装置」という
+ * 位置づけ（docs/22 3.7節）に反するため、到達済みの最大値をsettingsへ永続化し、
+ * 今回の算定値がそれ未満なら永続化済みの最大値を使う（単調性の保証。時刻の正当性検証は
+ * しない=J-124と同じ方針で、値そのものの単調性だけを守る）
  */
 export async function getGrowthRank(
   db: BebRaidDatabase,
   config: GrowthRankConfig = GROWTH_RANK_CONFIG,
 ): Promise<GrowthRankResult> {
-  const [totalRating, history, learningDays] = await Promise.all([
+  const [totalRating, history, learningDays, maxPointsSetting] = await Promise.all([
     db.ratings.get('total'),
     db.ratingHistory.where('section').equals('total').sortBy('date'),
     countLearningDays(db),
+    db.settings.get(GROWTH_RANK_MAX_POINTS_KEY),
   ])
   const currentRating = totalRating?.rating ?? DEFAULT_INITIAL_RATING
   const initialRating = history.length > 0 ? history[0]!.rating : currentRating
-  const rankPoints = computeRankPoints({ currentRating, initialRating, learningDays })
+  const computedPoints = computeRankPoints({ currentRating, initialRating, learningDays })
+  const previousMax = (maxPointsSetting?.value as number | undefined) ?? 0
+  const rankPoints = Math.max(computedPoints, previousMax)
+  if (rankPoints > previousMax) {
+    await db.settings.put({ key: GROWTH_RANK_MAX_POINTS_KEY, value: rankPoints })
+  }
   return resolveGrowthRank(rankPoints, config)
 }

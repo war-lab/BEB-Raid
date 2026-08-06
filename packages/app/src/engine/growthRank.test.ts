@@ -51,6 +51,20 @@ async function addAttempt(db: BebRaidDatabase, at: number): Promise<void> {
   })
 }
 
+/** シャドーイングの実施ログ（ShadowingScreenと同型。mode:'solo'・shadow:プレフィックス） */
+async function addShadowAttempt(db: BebRaidDatabase, at: number): Promise<void> {
+  await db.attempts.add({
+    id: `shadow-a-${++attemptSeq}`,
+    questionId: `shadow:q-${attemptSeq}`,
+    mode: 'solo',
+    isCorrect: true,
+    responseMs: 1000,
+    isTimeout: false,
+    isGuess: false,
+    answeredAt: at,
+  })
+}
+
 describe('validateGrowthRankConfig（validateQuickPackConfigの前例に倣う整合検証）', () => {
   it('同梱の growthRankConfig.json は検証を通る（暫定閾値: 0/40/90/150/230）', () => {
     expect(() => validateGrowthRankConfig(GROWTH_RANK_CONFIG)).not.toThrow()
@@ -149,6 +163,30 @@ describe('countLearningDays（ストリーク/ヒートマップと同じ暦日�
     await addAttempt(db, noonOf(2026, 8, 20)) // 遠い過去日でもヒートマップ表示窓(15週)を超えて数える
     expect(await countLearningDays(db)).toBe(3)
   })
+
+  // 何を防ぐか（T-307・K-36）: シャドーイング（shadow:プレフィックス）はisCorrectが
+  // 固定値（客観的な正誤判定を伴わない再生ログ）。フィルタが無いと1日1件の再生を
+  // 続けるだけで学習日数が積み上がり、レートが不変でも230日で最上位ランクに到達しうる
+  it('シャドーイングのみの日は学習日として数えない', async () => {
+    const db = newDb()
+    await addShadowAttempt(db, noonOf(2026, 7, 9))
+    expect(await countLearningDays(db)).toBe(0)
+  })
+
+  it('シャドーイングと通常解答が同日にあれば学習日として数える（通常解答があるため）', async () => {
+    const db = newDb()
+    await addShadowAttempt(db, noonOf(2026, 7, 9))
+    await addAttempt(db, noonOf(2026, 7, 9) + 1000)
+    expect(await countLearningDays(db)).toBe(1)
+  })
+
+  it('複数日のうちシャドーイングのみの日は除外され、通常解答がある日だけ数える', async () => {
+    const db = newDb()
+    await addAttempt(db, noonOf(2026, 7, 9))
+    await addShadowAttempt(db, noonOf(2026, 7, 10)) // シャドーイングのみ→除外
+    await addAttempt(db, noonOf(2026, 7, 11))
+    expect(await countLearningDays(db)).toBe(2)
+  })
 })
 
 describe('getGrowthRank: ratingHistory不在（新規ユーザー）でブロンズ0ポイント', () => {
@@ -201,6 +239,48 @@ describe('getGrowthRank: ratingHistoryとattemptsからの実データ導出', (
     }
     const result = await getGrowthRank(db)
     expect(result.rankPoints).toBe(5) // レート上昇0 + 学習日数5
+  })
+})
+
+// 何を防ぐか（T-305・K-33）: initialRatingをratingHistoryの最古行から取るため、過去日付で
+// スナップショットが書かれて最古行が入れ替わると、初期値が現在レートへ移動しrankPointsが
+// 下落する（実測でマスター→ゴールドへ退行）。「累積の継続装置」（docs/22 3.7節）に反する
+describe('getGrowthRank: rankPointsの単調性（T-305・K-33）', () => {
+  it('過去日付のratingHistoryが後から追加されてinitialRatingが動いても、rankPointsは下がらない', async () => {
+    const db = newDb()
+    await db.ratingHistory.put({ date: '2026-07-10', section: 'total', rating: 400 })
+    await db.ratings.put({ section: 'total', rating: 500, updatedAt: Date.now() })
+    for (let d = 1; d <= 5; d++) await addAttempt(db, noonOf(2026, 7, d))
+
+    const before = await getGrowthRank(db)
+    expect(before.rankPoints).toBe(105) // (500-400) + 5日
+
+    // 過去日付（2026-06-01）のスナップショットが後から追加される（他端末からの復元・
+    // インポート等）。最古行が入れ替わり、initialRatingが現在レート付近へ移動する
+    await db.ratingHistory.put({ date: '2026-06-01', section: 'total', rating: 495 })
+
+    const after = await getGrowthRank(db)
+    // 素の計算では (500-495)+5=10 まで下落するはずだが、永続化済みの最大値105を下回らない
+    expect(after.rankPoints).toBe(105)
+    expect(after.rank.id).toBe(before.rank.id)
+  })
+
+  it('新しい算定値が過去の最大値を上回れば、最大値も更新される', async () => {
+    const db = newDb()
+    await db.ratingHistory.put({ date: '2026-07-01', section: 'total', rating: 400 })
+    await db.ratings.put({ section: 'total', rating: 420, updatedAt: Date.now() })
+
+    const first = await getGrowthRank(db)
+    expect(first.rankPoints).toBe(20) // 420-400
+
+    await db.ratings.put({ section: 'total', rating: 460, updatedAt: Date.now() })
+    const second = await getGrowthRank(db)
+    expect(second.rankPoints).toBe(60) // 460-400（更新された最大値）
+
+    // レートが下がっても、更新済みの最大値を下回らない
+    await db.ratings.put({ section: 'total', rating: 410, updatedAt: Date.now() })
+    const third = await getGrowthRank(db)
+    expect(third.rankPoints).toBe(60)
   })
 })
 

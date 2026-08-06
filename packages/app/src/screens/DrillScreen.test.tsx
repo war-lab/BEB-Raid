@@ -1569,10 +1569,16 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
     const audioPlayer = new FakeAudioPlayer()
 
+    // T-309（K-38）: fireEventは即時発火するためresponseMsが実質0msになり、GUESS_THRESHOLD_MS
+    // （2000ms）未満の「速答」としてtagStatsの重みが0.5に下がってしまう。この時刻経過は
+    // テストの本題（レート対象外でもtagStatsは更新される）とは無関係なので、Date.nowを
+    // 進めて実際に3秒かけて解答したのと同じ状態を作る
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
     fireEvent.click(screen.getByText('submit'))
+    nowSpy.mockReturnValue(1_003_000)
     fireEvent.click(screen.getByText('確定'))
 
     await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
@@ -1581,6 +1587,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     expect(await db.ratings.get('R')).toBeUndefined()
     const tagStat = await db.tagStats.get('弱形・連結')
     expect(tagStat?.windowTotal).toBe(1)
+    nowSpy.mockRestore()
   })
 
   it('「やり直す」で穴の記入をリセットできる', async () => {

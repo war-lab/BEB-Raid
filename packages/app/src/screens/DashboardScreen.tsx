@@ -43,6 +43,11 @@ function forecastMessage(forecast: ForecastResult): string {
   if (forecast.kind === 'onTrack') {
     return `このペースなら${forecast.year}年${forecast.month}月頃到達（参考値）`
   }
+  if (forecast.kind === 'behindDaily') {
+    // T-310（K-40）: 既に週7日（毎日）学習しているため「あとN日増やす」提案が
+    // 成立しない。日数以外の助言（1問あたりの精度・難易度への言及）に分岐させる
+    return 'このペースでは到達しない見込み。既に毎日学習しているため、1問ごとの見直し（間違えた問題・弱点タグ）を増やすことを目安に（参考値）'
+  }
   return `このペースでは到達しない見込み。週の学習日数をあと${forecast.addDaysPerWeek}日増やすことを目安に（参考値）`
 }
 

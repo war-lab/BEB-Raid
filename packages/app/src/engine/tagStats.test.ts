@@ -65,7 +65,7 @@ describe('computeTagWindow: 移動窓の集計', () => {
     const attempts = [
       attempt('q-1'), // 正解
       attempt('q-1', { isCorrect: false }), // 通常誤答
-      attempt('q-2', { isCorrect: false, isGuess: true }), // 当て勘誤答
+      attempt('q-2', { isCorrect: false, isGuess: true, responseMs: 1000 }), // 当て勘誤答
     ]
     expect(computeTagWindow(attempts, '品詞', lookup)).toEqual({
       windowCorrect: 1,
@@ -75,6 +75,31 @@ describe('computeTagWindow: 移動窓の集計', () => {
     expect(computeTagWindow(attempts, '動詞の形', lookup)).toEqual({
       windowCorrect: 0,
       windowTotal: GUESS_WEIGHT,
+    })
+  })
+
+  // 何を防ぐか（T-309・K-38）: isGuessは定義上「誤答かつ応答2秒未満」のみで立つため、
+  // 従来の実装（attempt.isGuessをそのまま使う）は正答側の「まぐれ当たり」（同じ2秒未満の
+  // 速答で偶然正解した場合）を検知できず、常に重み1（満額）で数えていた。当て勘の多い
+  // タグはまぐれ正解が満点計上される一方で当て勘の誤答は軽く数えられる非対称になり、
+  // 正答率が実力より高く出て弱点タグが立たなくなる
+  it('応答2秒未満の正解（まぐれ当たり）も当て勘の誤答と対称に重み0.5になる', () => {
+    const attempts = [
+      attempt('q-1', { isCorrect: true, responseMs: 1000 }), // まぐれ当たり（速答の正解）
+      attempt('q-1', { isCorrect: false, isGuess: true, responseMs: 1000 }), // 当て勘誤答
+    ]
+    // 従来（isGuessのみで判定）ならwindowCorrect=1・windowTotal=1.5になっていた
+    expect(computeTagWindow(attempts, '品詞', lookup)).toEqual({
+      windowCorrect: GUESS_WEIGHT,
+      windowTotal: GUESS_WEIGHT + GUESS_WEIGHT,
+    })
+  })
+
+  it('応答2秒以上の正解は当て勘とみなさず満額（1）で数える', () => {
+    const attempts = [attempt('q-1', { isCorrect: true, responseMs: 3000 })]
+    expect(computeTagWindow(attempts, '品詞', lookup)).toEqual({
+      windowCorrect: 1,
+      windowTotal: 1,
     })
   })
 
@@ -162,7 +187,7 @@ describe('DB統合: 解答の流し込み→更新→再構築', () => {
     const db = newDb()
     await db.attempts.bulkAdd([
       attempt('q-part-of-speech'),
-      attempt('q-part-of-speech', { isCorrect: false, isGuess: true }),
+      attempt('q-part-of-speech', { isCorrect: false, isGuess: true, responseMs: 1000 }),
       attempt('q-both', { isCorrect: false }),
     ])
     await recomputeTagStats(db, lookup)

@@ -24,6 +24,21 @@ describe('toDateString / parseDateString: 往復変換', () => {
   })
 })
 
+// 何を防ぐか（T-312・K-45）: epochMsがNaN等の非有限値だと、new Date(NaN)は例外を投げず
+// 「Invalid Date」を返し、getFullYear()等もNaNを返すため "NaN-NaN-NaN" という一見文字列に
+// 見える壊れた値が学習日集計・ヒートマップ等の日付キーに紛れ込む。parseDateStringの
+// 不正入力の扱い（即座に例外）と揃える
+describe('toDateString: 非有限のepochMsは拒否される（T-312・K-45）', () => {
+  it('NaNは例外を投げる（"NaN-NaN-NaN"を返さない）', () => {
+    expect(() => toDateString(NaN)).toThrow(/非有限|toDateString/)
+  })
+
+  it('Infinity・-Infinityも例外を投げる', () => {
+    expect(() => toDateString(Infinity)).toThrow()
+    expect(() => toDateString(-Infinity)).toThrow()
+  })
+})
+
 describe('parseDateString: 不正文字列の拒否（T-191・Q-109: 範囲外成分の検出）', () => {
   it('月が13（範囲外）なら例外', () => {
     expect(() => parseDateString('2026-13-45')).toThrow(/不正/)
