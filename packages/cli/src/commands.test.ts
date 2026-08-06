@@ -427,6 +427,67 @@ describe('generate shadowing（M2・T-62）', () => {
   })
 })
 
+describe('generate text_passage_p6_url / text_passage_p7_url（T-273: URL・メールアドレスを含む題材）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-reading-url-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('text_passage_p6_urlがAPIキー不要でバリデーション通過済みのドラフトを出力する', async () => {
+    const outputPath = join(dir, 'text-passage-p6-url-s.jsonl')
+    const { code, output } = await run(['generate', 'text_passage_p6_url', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('バリデーション')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        part: number
+        passages: { text: string }[]
+        subQuestions: unknown[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts.length).toBeGreaterThanOrEqual(1)
+    expect(drafts.every((d) => d.kind === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.format === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.part === 6)).toBe(true)
+    // URL・メールアドレスを含む題材であることを確認する（本タスクの主目的）
+    expect(
+      drafts.some((d) => /https?:\/\/|@[a-z0-9.-]+\.[a-z]{2,}/i.test(d.payload.passages[0]!.text)),
+    ).toBe(true)
+  })
+
+  it('text_passage_p7_urlがAPIキー不要でバリデーション通過済みのドラフトを出力する', async () => {
+    const outputPath = join(dir, 'text-passage-p7-url-s.jsonl')
+    const { code, output } = await run(['generate', 'text_passage_p7_url', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('バリデーション')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        part: number
+        passages: { text: string }[]
+        subQuestions: unknown[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts.length).toBeGreaterThanOrEqual(1)
+    expect(drafts.every((d) => d.kind === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.format === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.part === 7)).toBe(true)
+    expect(
+      drafts.some((d) => /https?:\/\/|@[a-z0-9.-]+\.[a-z]{2,}/i.test(d.payload.passages[0]!.text)),
+    ).toBe(true)
+  })
+})
+
 describe('generate key_vocab_similar（T-29）', () => {
   let dir: string
 
