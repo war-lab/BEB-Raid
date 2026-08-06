@@ -13,6 +13,7 @@
 //              （累積の継続装置であり表示ウィンドウを切る対象ではないため）。
 
 import type { BebRaidDatabase } from '../db/database'
+import { GROWTH_RANK_LEARNING_DAYS_CACHE_KEY } from '../services/settingsKeys'
 import { toDateString } from './date'
 import rawConfig from './growthRankConfig.json'
 import { DEFAULT_INITIAL_RATING } from './rating'
@@ -96,15 +97,51 @@ export function resolveGrowthRank(
   }
 }
 
+/** countLearningDaysの差分加算キャッシュの保存形（T-301・K-29） */
+interface LearningDaysCache {
+  /** これまでに1件以上attemptsがあった暦日の集合（toDateString形式） */
+  dates: string[]
+  /** 処理済みのうち最大のanswered At（この値以下のattemptsは次回スキップする） */
+  watermark: number
+}
+
 /**
  * 学習日数: attempts が1件以上存在する暦日の数（全期間。ストリーク/ヒートマップと
- * 同じ日付基準=toDateStringで暦日キー化してから distinct を取る）
+ * 同じ日付基準=toDateStringで暦日キー化してから distinct を取る）。
+ *
+ * T-301（K-29）: 従来はevery呼び出しでattempts全件をフルスキャンしており、
+ * ホーム・ダッシュボード表示のたびに件数に比例したコストがかかっていた。
+ * attemptsは追記のみ（削除されない）ため、前回のwatermarkより新しい分だけを
+ * 差分で読めば足りる。同じ日を2回集合に加えても副作用が無いため、
+ * watermark境界の重複走査があっても結果は狂わない
  */
 export async function countLearningDays(db: BebRaidDatabase): Promise<number> {
-  const dates = new Set<string>()
-  await db.attempts.each((a) => {
-    dates.add(toDateString(a.answeredAt))
-  })
+  const stored = (await db.settings.get(GROWTH_RANK_LEARNING_DAYS_CACHE_KEY))?.value as
+    LearningDaysCache | undefined
+  const cache: LearningDaysCache = stored ?? { dates: [], watermark: 0 }
+  const dates = new Set(cache.dates)
+  let watermark = cache.watermark
+  await db.attempts
+    .where('answeredAt')
+    .above(cache.watermark)
+    .each((a) => {
+      dates.add(toDateString(a.answeredAt))
+      if (a.answeredAt > watermark) watermark = a.answeredAt
+    })
+  if (watermark !== cache.watermark || dates.size !== cache.dates.length) {
+    // キャッシュ更新の失敗（DBクローズ済み等）は握る。呼び出し元の画面が
+    // アンマウント後もこの関数の完了を待たずに進む構成のため、ここから例外が
+    // 漏れると未処理rejectionになる。更新に失敗しても次回呼び出し時に
+    // watermark=前回値からやり直すだけで、返り値（今回のdates.size）自体は正しい
+    try {
+      await db.settings.put({
+        key: GROWTH_RANK_LEARNING_DAYS_CACHE_KEY,
+        value: { dates: [...dates], watermark } satisfies LearningDaysCache,
+      })
+    } catch (err) {
+      console.error('[growthRank] 学習日数キャッシュの更新に失敗', err)
+    }
+  }
   return dates.size
 }
 

@@ -14,17 +14,23 @@ import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import {
   exportAll,
   importAll,
+  shouldNudgeExport,
   validateBackup,
   type BackupFile,
   type BackupStores,
 } from '../services/backup'
 import { PACK_SYNC_STATE_KEY } from '../services/packSync'
 import {
+  clearPendingCommitFailure,
+  loadPendingCommitFailure,
+} from '../services/pendingCommitFailure'
+import {
   BYOK_API_KEY_KEY,
   AUTO_PLAY_ENABLED_KEY,
   BYOK_MODEL_KEY,
   FONT_SIZE_KEY,
   HAPTICS_ENABLED_KEY,
+  LAST_EXPORTED_AT_KEY,
   MISTAP_UNDO_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
   QUESTION_STATS_ENABLED_KEY,
@@ -115,6 +121,12 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
   // T-72: ストレージ永続化状態・端末ストレージ使用量（J-38）
   const [persisted, setPersisted] = useState<boolean | null>(null)
   const [storageEstimate, setStorageEstimate] = useState<StorageEstimate | null>(null)
+  // T-296（K-22）: エクスポート督促（一度もエクスポートしていない・久しくエクスポート
+  // していない場合にtrue）。persisted===falseでも独立にtrueになりうるため別状態で持つ
+  const [exportNudge, setExportNudge] = useState(false)
+  // T-297（K-23）: アンマウント時flush失敗の通知（一度も無ければfalse）。
+  // 失われた解答そのものは復元できないため、通知は「あったことに気づく」だけの役割
+  const [pendingCommitFailure, setPendingCommitFailure] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   // BYOK APIキー（T-55）: 保存済みキーの実値（マスク表示の元。画面外へは出さない）
@@ -162,6 +174,7 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       raidRegisteredSetting,
       mistapUndoSetting,
       autoPlaySetting,
+      lastExportedAtSetting,
     ] = await Promise.all([
       db.profile.get(PROFILE_ID),
       db.settings.get(NO_EARPHONE_MODE_KEY),
@@ -178,7 +191,21 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       db.settings.get(RAID_REGISTERED_AT_KEY),
       db.settings.get(MISTAP_UNDO_ENABLED_KEY),
       db.settings.get(AUTO_PLAY_ENABLED_KEY),
+      db.settings.get(LAST_EXPORTED_AT_KEY),
     ])
+    if (cancelledRef.current) return
+    // T-296（K-22）: lastExportedAt以降のattempts件数（無ければ全件）でエクスポート督促を判定する。
+    // Promise.allの他クエリと独立な依存クエリのため、後段で個別に投げる
+    const lastExportedAt = (lastExportedAtSetting?.value as number | undefined) ?? null
+    const attemptsSinceLastExport =
+      lastExportedAt === null
+        ? await db.attempts.count()
+        : await db.attempts.where('answeredAt').above(lastExportedAt).count()
+    if (cancelledRef.current) return
+    setExportNudge(shouldNudgeExport({ lastExportedAt, attemptsSinceLastExport, now: now() }))
+    // T-297（K-23）: Promise.allの他クエリと独立な依存クエリのため後段で個別に投げる
+    // （lastExportedAtSettingと同じ扱い）
+    setPendingCommitFailure((await loadPendingCommitFailure(db)) !== null)
     if (cancelledRef.current) return
     setDisplayName(profile ? profile.displayName : '')
     setNoEarphoneModeState(earphoneSetting?.value === true)
@@ -312,11 +339,21 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
       anchor.download = `beb-raid-backup-${date}.json`
       anchor.click()
       URL.revokeObjectURL(url)
+      // T-296（K-22）: 督促の起点をこの時刻へ進める（次回loadで再判定されるまでは
+      // ここで即座にfalseへ落として、ボタンを押した効果が即時UIへ反映されるようにする）
+      await db.settings.put({ key: LAST_EXPORTED_AT_KEY, value: now() })
+      setExportNudge(false)
       setMessage('エクスポートしました。')
     } catch (e) {
       console.error('[SettingsScreen] エクスポートに失敗', e)
       setMessage('エクスポートに失敗しました。')
     }
+  }
+
+  /** T-297（K-23）: 通知を確認したら退避を消す（データそのものは復元できない） */
+  async function acknowledgePendingCommitFailure() {
+    await clearPendingCommitFailure(db)
+    setPendingCommitFailure(false)
   }
 
   async function handleSaveApiKey() {
@@ -576,6 +613,30 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               端末ストレージ使用量: {((storageEstimate.usage ?? 0) / 1024 / 1024).toFixed(1)}MB /{' '}
               {((storageEstimate.quota ?? 0) / 1024 / 1024).toFixed(1)}MB
             </p>
+          )}
+          {/* T-296（K-22）: persist()拒否・久しくエクスポートしていない場合に、
+              注意表示だけでなく実際に手を動かせる導線をここに出す */}
+          {exportNudge && (
+            <p className="settings-note">
+              しばらくエクスポートしていません。端末の紛失・削除に備えて定期的にエクスポートしてください
+            </p>
+          )}
+          {(persisted === false || exportNudge) && (
+            <button type="button" onClick={() => void handleExport()}>
+              今すぐエクスポート
+            </button>
+          )}
+          {/* T-297（K-23）: 画面を閉じた直後の保存失敗はその場のエラー表示が誰にも見えない
+              （画面が既に消えている）ため、次回起動時にここで気づけるようにする */}
+          {pendingCommitFailure && (
+            <>
+              <p className="settings-note">
+                前回、画面を閉じた直後に保存できなかった解答があります。その解答は復元できません
+              </p>
+              <button type="button" onClick={() => void acknowledgePendingCommitFailure()}>
+                確認した
+              </button>
+            </>
           )}
         </section>
 

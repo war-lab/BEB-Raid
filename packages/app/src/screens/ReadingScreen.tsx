@@ -32,14 +32,17 @@ import { shuffle } from '../engine/shuffle'
 import type { QuestionLookup } from '../engine/types'
 import type { AiClient, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
+import { recordPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
   advanceSession,
   completeSession,
   currentSubAnswers,
+  StaleSnapshotError,
   type SessionItem,
   type SessionSnapshot,
 } from '../services/session'
 import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
+import { isQuotaExceededError, QUOTA_EXCEEDED_SAVE_ERROR } from '../services/storageErrors'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -426,9 +429,32 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       saveGuard.clearRetry()
     } catch (err) {
       console.error('[ReadingScreen] 解答の保存に失敗', err)
-      // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
-      // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
-      if (mountedRef.current) {
+      // T-297（K-23）: アンマウント後（flush経路）の失敗はsaveErrorバナー・再試行ボタンが
+      // 出しても誰にも見えない（画面ごと消えている）。UI復旧を試みる代わりに退避して
+      // 次回起動時に通知する
+      if (!mountedRef.current) {
+        // 退避自体の失敗（DBクローズ済み等）はここで握る。呼び出し元はvoidで
+        // 投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+        try {
+          await recordPendingCommitFailure(db)
+        } catch (recordErr) {
+          console.error('[ReadingScreen] 保存失敗の退避にも失敗', recordErr)
+        }
+        return
+      }
+      if (err instanceof StaleSnapshotError) {
+        // T-298（K-24）: 従来はストレージ不足と同じ文言を出しており、別タブでの新セッション
+        // 開始・二度押しが原因のケースでも「空き容量を確認してください」という誤った
+        // 原因究明をさせていた。この経路は保存先の空き容量とは無関係で、解答が失われた
+        // ことだけが確定している事実
+        setSaveError('この解答は保存されていません（別のセッションが開始された可能性があります）')
+      } else if (isQuotaExceededError(err)) {
+        // T-299（K-25）: 従来は「確認してください」までで終わり、確認した後の具体的な
+        // 回復手段（エクスポートして空き容量を作る）を示していなかった
+        setSaveError(QUOTA_EXCEEDED_SAVE_ERROR)
+      } else {
+        // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+        // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
         setSaveError('解答を保存できませんでした。空き容量を確認してください')
       }
       // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
@@ -621,6 +647,16 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                   onClick={() => void saveGuard.runRetry()}
                 >
                   保存を再試行する
+                </button>
+              )}
+              {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+              {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => navigate('settings')}
+                >
+                  設定でエクスポート
                 </button>
               )}
             </>

@@ -12,7 +12,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
-import { advanceSession, resumeSession, startSession, type SessionItem } from '../services/session'
+import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
+import {
+  advanceSession,
+  answerCurrentSubQuestion,
+  resumeSession,
+  startSession,
+  type SessionItem,
+} from '../services/session'
 import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -984,6 +991,30 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     spy.mockRestore()
   })
 
+  // 何を防ぐか（T-299・K-25）: 容量不足（QuotaExceededError）でも一律「空き容量を
+  // 確認してください」だけで、確認した後の具体的な回復手段（エクスポート）を示していなかった
+  it('QuotaExceededErrorのときは専用の文言とエクスポート導線が出る', async () => {
+    const db = newDb()
+    const q = part7Question('p7-quota', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new DOMException('quota exceeded', 'QuotaExceededError'))
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    expect(
+      await screen.findByText(
+        '端末のストレージ容量が不足しています。データをエクスポートして空き容量を確保してください',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+    addSpy.mockRestore()
+  })
+
   // 何を防ぐか: 終了判定に解答スロット数（total）を使うこと（レビュー指摘のP2）。
   // displayIndex は item 単位なので、サブ設問を持つセッションでは最終itemでも判定が
   // 成立せず、範囲外のindexへ進んだ次のレンダーのフォールバックに拾われていた。
@@ -1084,6 +1115,35 @@ describe('ReadingScreen: 誤タップの取り消し猶予（T-268。ADR 0009）
     await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
     expect(await db.attempts.count()).toBe(0)
     expect(useSessionStore.getState().snapshot?.attemptIds).toEqual([])
+  })
+
+  // 何を防ぐか（T-297・K-23）: アンマウント時のflushでfinalizeSubQuestionAnswerが失敗すると、
+  // 従来はconsole.errorに流すだけで解答が無言で失われていた（saveErrorバナー・再試行ボタンは
+  // アンマウント済みの画面には効かない）。次回起動時に気づけるよう退避されているか検証する
+  it('猶予中にアンマウント→flushが失敗すると、次回起動時の通知用に退避される（K-23）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-k23', 1)
+    const snapshot = await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const view = render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // 同じサブ設問を裏で先に記録してしまう（他タブ・多重解答の再現。DBは正常なまま）。
+    // flush時のfinalizeSubQuestionAnswerはこの状態でrecordAnswerPipelineを呼び、
+    // 「既に記録済み」のStaleSnapshotErrorになる
+    await answerCurrentSubQuestion(db, snapshot, {
+      questionId: `${q.id}-q0`,
+      isCorrect: true,
+      responseMs: 1000,
+      selectedKey: 'A',
+    })
+
+    view.unmount()
+
+    await waitFor(async () => expect(await loadPendingCommitFailure(db)).not.toBeNull())
+    // 猶予中の解答自体は書かれない（元の設計どおり、失われたデータは再送できない）
+    expect(await db.attempts.count()).toBe(1) // answerCurrentSubQuestionで直接書いた1件のみ
   })
 
   it('Part6: 別の空所が猶予中の間は、表示中の空所の選択肢が無効化される', async () => {

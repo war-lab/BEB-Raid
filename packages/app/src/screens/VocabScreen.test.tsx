@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { evaluateStreak } from '../engine/streak'
 import type { AudioPlayer, PlaybackOutcome } from '../platform'
+import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
   AUTO_PLAY_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
@@ -889,6 +890,33 @@ describe('VocabScreen: 復習自己評価の取り消し猶予（T-204。docs/29
     expect((await db.srsCards.get('vocab:alpha'))?.stage).toBe(3)
   })
 
+  // 何を防ぐか（T-297・K-23）: アンマウント時のflushでcommitGradeが失敗すると、
+  // 従来はconsole.errorに流すだけで解答が無言で失われていた（saveErrorバナーは
+  // アンマウント済みの画面には効かない）。次回起動時に気づけるよう退避されているか検証する
+  it('猶予中にアンマウント→flushが失敗すると、次回起動時の通知用に退避される（K-23）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    const view = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // カードを裏で削除する（DBは正常なまま、reviewSrsCardだけが失敗する。他タブでの
+    // 削除・多重評価の再現）。flush時のcommitGradeはこの状態でreviewSrsCardを呼ぶ
+    await db.srsCards.delete('vocab:alpha')
+
+    view.unmount()
+
+    await waitFor(async () => expect(await loadPendingCommitFailure(db)).not.toBeNull())
+    // 猶予中の評価自体は書かれない（元の設計どおり、失われたデータは再送できない）
+    expect(await db.attempts.count()).toBe(0)
+  })
+
   it('設定OFFなら従来どおり即確定する（回帰）', async () => {
     const db = newDb()
     await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
@@ -978,6 +1006,32 @@ describe('VocabScreen: 連打防止と保存失敗の表示（T-159。docs/27 �
 
     await screen.findByText(/記録を保存できませんでした/)
     expect(screen.getByText('仕分け 1/2')).toBeTruthy()
+  })
+
+  // 何を防ぐか（T-299・K-25）: 容量不足（QuotaExceededError）でも一律「記録を保存
+  // できませんでした」だけで、確認した後の具体的な回復手段（エクスポート）を示していなかった
+  it('QuotaExceededErrorのときは専用の文言とエクスポート導線が出る', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new DOMException('quota exceeded', 'QuotaExceededError'))
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    expect(
+      await screen.findByText(
+        '端末のストレージ容量が不足しています。データをエクスポートして空き容量を確保してください',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+    addSpy.mockRestore()
   })
 })
 
