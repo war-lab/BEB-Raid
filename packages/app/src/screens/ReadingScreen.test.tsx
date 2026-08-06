@@ -683,6 +683,93 @@ describe('ReadingScreen: Part7複数文書のタブ切替（T-165。docs/27 のS
   })
 })
 
+describe('ReadingScreen: 読解タブのWAI-ARIA APG準拠（T-230。docs/29 Q-68）', () => {
+  /** 複数文書のPart7（相互参照型）。従来は1通目しか読めず解答不能になりえた */
+  function part7MultiQuestion(id: string): Question {
+    return {
+      ...part7Question(id, 2),
+      passages: [
+        { id: `${id}-p1`, kind: 'email', text: '1通目の本文です。請求書の件。' },
+        { id: `${id}-p2`, kind: 'email', text: '2通目の本文です。返信の内容。' },
+      ],
+    }
+  }
+
+  // 何を防ぐか: aria-controls/tabpanelの紐づけが無いと、スクリーンリーダー利用者が
+  // タブ切替でどのパネルが更新されたのか把握できない（APG Tabsパターン必須要件）
+  it('各タブがaria-controlsで対応するtabpanelを参照し、tabpanelがaria-labelledbyで紐づく', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-apg')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const tab1 = screen.getByRole('tab', { name: /文書1/ })
+    const tab2 = screen.getByRole('tab', { name: /文書2/ })
+    const panel1 = screen.getByRole('tabpanel')
+
+    // タブ1選択時: タブ1のaria-controlsが現在のtabpanelのidと一致し、
+    // tabpanel側はタブ1のidをaria-labelledbyで指す
+    const tab1ControlledId = tab1.getAttribute('aria-controls')
+    expect(tab1ControlledId).toBeTruthy()
+    expect(panel1.getAttribute('id')).toBe(tab1ControlledId)
+    expect(panel1.getAttribute('aria-labelledby')).toBe(tab1.getAttribute('id'))
+
+    // 各タブは自分自身の（他方とは異なる）tabpanelを指す
+    const tab2ControlledId = tab2.getAttribute('aria-controls')
+    expect(tab2ControlledId).toBeTruthy()
+    expect(tab2ControlledId).not.toBe(tab1ControlledId)
+
+    // タブ2に切り替えると、tabpanel側の紐づけもタブ2のものに変わる
+    fireEvent.click(tab2)
+    await waitFor(() => {
+      const panel2 = screen.getByRole('tabpanel')
+      expect(panel2.getAttribute('id')).toBe(tab2ControlledId)
+      expect(panel2.getAttribute('aria-labelledby')).toBe(tab2.getAttribute('id'))
+    })
+  })
+
+  // 何を防ぐか: roving tabindexが無いと、Tabキーで各タブに個別に止まってしまい
+  // APGパターン（タブリストへは1回、以降は矢印キー）に反する
+  it('選択中タブのみtabIndex=0で、他は-1になる（roving tabindex）', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-roving')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const tab1 = screen.getByRole('tab', { name: /文書1/ })
+    const tab2 = screen.getByRole('tab', { name: /文書2/ })
+    expect(tab1.getAttribute('tabindex')).toBe('0')
+    expect(tab2.getAttribute('tabindex')).toBe('-1')
+
+    fireEvent.click(tab2)
+    await waitFor(() => expect(tab2.getAttribute('tabindex')).toBe('0'))
+    expect(tab1.getAttribute('tabindex')).toBe('-1')
+  })
+
+  // 何を防ぐか: 矢印キーで移動できないと、APGのTabsパターンとして不完全になる
+  // （Tab移動のみでは操作できるが規約違反。docs/30 T-230）
+  it('矢印キー（→/←）でタブが移動し、選択と本文が切り替わる', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-arrow')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const tab1 = screen.getByRole('tab', { name: /文書1/ })
+
+    fireEvent.keyDown(tab1, { key: 'ArrowRight' })
+    const tab2 = await screen.findByRole('tab', { name: /文書2/ })
+    await waitFor(() => expect(tab2.getAttribute('aria-selected')).toBe('true'))
+    expect(screen.getByTestId('passage-text').textContent).toBe('2通目の本文です。返信の内容。')
+
+    fireEvent.keyDown(tab2, { key: 'ArrowLeft' })
+    await waitFor(() => expect(tab1.getAttribute('aria-selected')).toBe('true'))
+    expect(screen.getByTestId('passage-text').textContent).toBe('1通目の本文です。請求書の件。')
+  })
+})
+
 describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビュー指摘）', () => {
   // 何を防ぐか: 「解答済み+1」のままだと最終解答後に 6/5 と出る。バー幅はSessionProgress内で
   // 100%に丸められるが、表示文字とaria-valuenowは超過したままになる
