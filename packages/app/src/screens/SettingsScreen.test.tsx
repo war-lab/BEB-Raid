@@ -259,6 +259,16 @@ describe('SettingsScreen: 永続化', () => {
 })
 
 describe('SettingsScreen: エクスポート/インポート', () => {
+  // T-279（K-2）: バックアップに共有APIの認証情報（deviceToken）が含まれないことをUIで明示する
+  it('エクスポート/インポートの説明に、学習データを含み共有APIの認証情報を含まない旨が表示される', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText(/このファイルは学習データを含みます/)).toBeTruthy()
+    expect(screen.getByText(/共有APIの認証情報は含まれません/)).toBeTruthy()
+  })
+
   it('エクスポート→インポート往復がUI経由で動く', async () => {
     const db = newDb()
     await db.profile.put({
