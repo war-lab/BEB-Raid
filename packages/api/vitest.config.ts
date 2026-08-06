@@ -1,6 +1,12 @@
 import { cloudflareTest } from '@cloudflare/vitest-pool-workers'
 import { defineConfig } from 'vitest/config'
 
+// T-286（K-13。docs/32 3節J-126）: @vitest/coverage-v8はテストコードをworkerd
+// （simulated Workers runtime）内で実行するため`node:inspector/promises`に依存でき
+// ず、`vitest run --coverage`が全ファイルでエラーになる（実測。cloudflare公式ドキュメントにも
+// coverage対応の記載が無い）。したがってapiパッケージには`test:coverage`スクリプトを
+// 追加していない（他4パッケージ=app・cli・review-ui・shared-schemaのみ対応）。
+//
 // @cloudflare/vitest-pool-workers 0.18系はVitest4のプラグイン方式に対応
 // （旧`defineWorkersProject`/`poolOptions.workers`は廃止。同梱のcodemodで確認済み）。
 // INVITE_CODEはwrangler.tomlに書かない秘密値のため（本番は`wrangler secret`・ローカルは

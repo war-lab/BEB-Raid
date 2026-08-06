@@ -59,6 +59,18 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // T-286（K-13。docs/32 3節J-126）: 閾値は導入時点（2026-08-06）の実測値をそのまま
+    // 下限として固定する。以後この値を下げない
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      thresholds: {
+        statements: 91.4,
+        branches: 87.42,
+        functions: 88.74,
+        lines: 93.19,
+      },
+    },
     /**
      * 既定の5000msでは、jsdomワーカーを並列で立てたときのCPU競合で実行ごとに異なる2〜4件が
      * タイムアウトしていた（2026-07-31に検出。無関係な画面のテストが入れ替わりで落ちる形）。
