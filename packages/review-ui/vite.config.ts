@@ -13,6 +13,13 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // T-287（K-14）: 消費側がpackage.jsonのexports経由でdistを見るため、
+    // shared-schemaを変更してもビルドし直さない限りテストが古いコードを見ていた
+    alias: {
+      '@beb-raid/shared-schema': fileURLToPath(
+        new URL('../shared-schema/src/index.ts', import.meta.url),
+      ),
+    },
     // 【フレーク対策・2026-08-05】ルートの `npm test` は全ワークスペースを並列で回すため、
     // 他パッケージ（特にworkerdを多数起動するapi）と負荷を奪い合う。App.test.tsx の
     // findByText が既定タイムアウト（5秒）に間に合わず、フルスイートでのみ不定に落ちる
