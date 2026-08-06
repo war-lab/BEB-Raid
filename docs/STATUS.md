@@ -47,7 +47,7 @@ devへの統合は完了しているが、**mainへのマージは発起人の�
 | 1（T-278〜T-285） | pendingSync復旧・deviceToken漏洩・SW強制リロード・読解白画面・バトル再参加汚染・generation_claimデッドロック・packSyncハング・ボス未検出時データ損失 | #159 |
 | 2（T-286・T-288〜T-295） | coverage設定・cron契約テスト・no-floating-promises・damageSync自己参照テスト・TZ巻き戻り・bossローテーション網羅・prettier worktree・未テスト5モジュール・platform境界4件 | #161（T-287は#160で単独） |
 | 3（T-296〜T-302） | エクスポート督促・アンマウント時flush失敗の退避通知・startSession上書き検出とStale文言・QuotaExceededError専用文言＋事前警告・学習日数の差分キャッシュ化・questionStats watermarkの巻き戻り耐性 | #162 |
-| 4（T-303〜T-314） | SRS dueAtの上限クランプ・ストリークlastActiveDate巻き戻し・rankPoints単調化・診断のK=32区間短縮・シャドーイングのストリーク算入・aggregateSetsの放棄セット除外・tagStatsの当て勘重み対称化・到達予測の異常値ガードと週7日学習者分岐・damageConfig/QuickPackConfig検証拡張・shuffle/NaNガード・コメント訂正・サンドバッグ対策の再評価記録 | 本PR |
+| 4（T-303〜T-314） | SRS dueAtの上限クランプ・ストリークlastActiveDate巻き戻し・rankPoints単調化・診断のK=32区間短縮・シャドーイングのストリーク算入・aggregateSetsの放棄セット除外・tagStatsの当て勘重み対称化・到達予測の異常値ガードと週7日学習者分岐・damageConfig/QuickPackConfig検証拡張・shuffle/NaNガード・コメント訂正・サンドバッグ対策の再評価記録 | #163 |
 
 K-26（Dexie verno乖離）はコード読解の結果、通常のDexie操作では再現不能と判断し、**T-300の対象から意図的に除外した**（発起人判断待ちとして記録。修正は行っていない）。
 
