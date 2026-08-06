@@ -23,7 +23,7 @@
 // question.formatを見て、text_passageならこの画面、それ以外ならDrillScreenへ自動的に
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
 // 「通常セッションからreading画面への遷移方式」の設計判断はここで確定した
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Question, SubQuestion } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
@@ -179,6 +179,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
    * 解答不能になっていた
    */
   const [activePassageIndex, setActivePassageIndex] = useState(0)
+  // T-230（docs/29 Q-68・WAI-ARIA APG Tabsパターン）: 矢印キー移動時にDOMへ直接フォーカスを
+  // 当てるためのタブリスト要素参照（roving tabindexは選択状態から算出するため配列refは不要）
+  const tabListRef = useRef<HTMLDivElement | null>(null)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
@@ -307,6 +310,28 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   /** 空所タップ・設問切替（該当設問へジャンプ。3.5節）。解答済み設問も閲覧のため切替可 */
   function handleSelectBlank(index: number) {
     setActiveIndex(index)
+  }
+
+  /**
+   * 文書タブの矢印キー操作（T-230。docs/29 Q-68・WAI-ARIA APG Tabsパターン）。
+   * roving tabindexなのでTabキーでの移動先はタブリストへの出入りのみ（各タブは個別に
+   * フォーカスストップしない）。Left/Rightは循環、Home/Endは端へ直接移動する。
+   * automatic activation（フォーカス移動と同時に選択も切り替える）はクリック時の挙動と
+   * 揃えている——タブ切替そのものは軽い操作（本文の再取得等を伴わない）ため、
+   * 選択確定の別操作を挟む理由が無い
+   */
+  function handleTabKeyDown(event: { key: string; preventDefault: () => void }, index: number) {
+    let nextIndex: number | null = null
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % passages.length
+    else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + passages.length) % passages.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = passages.length - 1
+    if (nextIndex === null) return
+    event.preventDefault()
+    setActivePassageIndex(nextIndex)
+    // 選択状態の反映を待たずに、その場でDOM上のタブへフォーカスを移す（roving tabindexの定石）
+    const tabs = tabListRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+    tabs?.[nextIndex]?.focus()
   }
 
   /**
@@ -682,15 +707,27 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       {/* T-165（docs/27 のS-32）: 複数文書のときだけタブを出す。1件のときは従来の表示を
           変えない（タブが常に出ると単一文書の読解に無用な要素が増える） */}
       {passages.length >= 2 && (
-        <div className="reading-passage-tabs" role="tablist" aria-label="文書の切り替え">
+        <div
+          className="reading-passage-tabs"
+          role="tablist"
+          aria-label="文書の切り替え"
+          ref={tabListRef}
+        >
           {passages.map((p, i) => (
             <button
               key={p.id}
+              // T-230: tabpanel側のaria-labelledbyから参照する安定id（passages[i].id由来）
+              id={`reading-tab-${p.id}`}
               type="button"
               role="tab"
               aria-selected={i === activePassageIndex}
+              aria-controls={`reading-tabpanel-${p.id}`}
+              // T-230: roving tabindex。選択中タブのみ0、他は-1（Tabキーではタブリストへ
+              // 1回入るだけにし、以降の移動は矢印キーに委ねるAPGパターン）
+              tabIndex={i === activePassageIndex ? 0 : -1}
               className={i === activePassageIndex ? 'is-selected' : ''}
               onClick={() => setActivePassageIndex(i)}
+              onKeyDown={(e) => handleTabKeyDown(e, i)}
             >
               文書{i + 1}（{p.kind}）
             </button>
@@ -700,7 +737,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       {passage && (
         // docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面と罫線だけで、
         // 光暈・アニメーションは足さない（07の原則3: 読解中は静かであるべき）
-        <div className="reading-passage">
+        // T-230: タブが出る（複数文書の）ときだけtabpanelとして紐づける。単一文書には
+        // タブリスト自体が無いため、tabpanel役を持たせる意味が無い
+        <div
+          className="reading-passage"
+          role={passages.length >= 2 ? 'tabpanel' : undefined}
+          id={passages.length >= 2 ? `reading-tabpanel-${passage.id}` : undefined}
+          aria-labelledby={passages.length >= 2 ? `reading-tab-${passage.id}` : undefined}
+        >
           <p className="passage-kind">{passage.kind}</p>
           <PassageText
             text={passage.text}
