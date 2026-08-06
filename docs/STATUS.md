@@ -46,7 +46,7 @@ devへの統合は完了しているが、**mainへのマージは発起人の�
 | 0（T-274〜T-277） | レイドダメージ整数化（K-1止血）・WSメッセージ検証・テストファイル型検査・デプロイのlint/testゲート | #156〜#158 |
 | 1（T-278〜T-285） | pendingSync復旧・deviceToken漏洩・SW強制リロード・読解白画面・バトル再参加汚染・generation_claimデッドロック・packSyncハング・ボス未検出時データ損失 | #159 |
 | 2（T-286・T-288〜T-295） | coverage設定・cron契約テスト・no-floating-promises・damageSync自己参照テスト・TZ巻き戻り・bossローテーション網羅・prettier worktree・未テスト5モジュール・platform境界4件 | #161（T-287は#160で単独） |
-| 3（T-296〜T-302） | エクスポート督促・アンマウント時flush失敗の退避通知・startSession上書き検出とStale文言・QuotaExceededError専用文言＋事前警告・学習日数の差分キャッシュ化・questionStats watermarkの巻き戻り耐性 | 本PR |
+| 3（T-296〜T-302） | エクスポート督促・アンマウント時flush失敗の退避通知・startSession上書き検出とStale文言・QuotaExceededError専用文言＋事前警告・学習日数の差分キャッシュ化・questionStats watermarkの巻き戻り耐性 | #162 |
 
 K-26（Dexie verno乖離）はコード読解の結果、通常のDexie操作では再現不能と判断し、**T-300の対象から意図的に除外した**（発起人判断待ちとして記録。修正は行っていない）。
 
