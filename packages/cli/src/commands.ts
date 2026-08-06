@@ -27,6 +27,8 @@ import {
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
+import { PART6_URL_ENTRIES_S } from './data/part6UrlPassagesS.js'
+import { PART7_SINGLE_URL_ENTRIES_S } from './data/part7SingleUrlPassagesS.js'
 import { VOCAB_CARDS_S2 } from './data/vocabCardsS2.js'
 import {
   buildDictationDrafts,
@@ -120,6 +122,13 @@ const DEFAULT_TEXT_PASSAGE_P6_DRAFT_PATH = 'content/drafts/text-passage-p6-s.jso
 const DEFAULT_TEXT_PASSAGE_P7_SINGLE_DRAFT_PATH = 'content/drafts/text-passage-p7-single-s.jsonl'
 /** T-144: Part7複数パッセージのドラフト出力先 */
 const DEFAULT_TEXT_PASSAGE_P7_MULTI_DRAFT_PATH = 'content/drafts/text-passage-p7-multi-s.jsonl'
+/**
+ * T-273: URL・メールアドレスを含む題材の追加ドラフト出力先。既存の配信パック
+ * （pack-reading-p6-s-001・pack-reading-p7single-s-001）のソースとは別ファイルにする。
+ * build.ts の PACK_DEFINITIONS には未登録＝人手レビュー（H-R1）を経るまで配信対象外。
+ */
+const DEFAULT_TEXT_PASSAGE_P6_URL_DRAFT_PATH = 'content/drafts/text-passage-p6-url-s.jsonl'
+const DEFAULT_TEXT_PASSAGE_P7_URL_DRAFT_PATH = 'content/drafts/text-passage-p7-url-s.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -247,6 +256,20 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: buildPart7MultiDrafts,
     validate: validatePart7MultiQuestions,
     defaultPath: DEFAULT_TEXT_PASSAGE_P7_MULTI_DRAFT_PATH,
+  },
+  // T-273: URL・メールアドレスを含む題材の追加分。配信は人手レビュー（H-R1）後
+  // （ADR 0006 判断5。T-144と同じ「生成側と在庫だけ実装し、配信は保留」の扱い）
+  text_passage_p6_url: {
+    buildQuestions: () => buildPart6Questions(PART6_URL_ENTRIES_S),
+    buildDrafts: () => buildPart6Drafts(PART6_URL_ENTRIES_S),
+    validate: validatePart6Questions,
+    defaultPath: DEFAULT_TEXT_PASSAGE_P6_URL_DRAFT_PATH,
+  },
+  text_passage_p7_url: {
+    buildQuestions: () => buildPart7SingleQuestions(PART7_SINGLE_URL_ENTRIES_S),
+    buildDrafts: () => buildPart7SingleDrafts(PART7_SINGLE_URL_ENTRIES_S),
+    validate: validatePart7SingleQuestions,
+    defaultPath: DEFAULT_TEXT_PASSAGE_P7_URL_DRAFT_PATH,
   },
   dictation: {
     buildQuestions: buildDictationQuestions,
