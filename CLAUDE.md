@@ -16,7 +16,7 @@ npm workspaces の monorepo。ルートで実行する:
 - `packages/api` — 共有API（Cloudflare Workers + KV + Durable Objects。M3のレイド集計・匿名問題統計）。ローカル実行は `wrangler dev --local`（`npm run dev -w @beb-raid/api`）、秘密値（INVITE_CODE）は `.dev.vars`（gitignore対象。例は `.dev.vars.example`）、テストは `@cloudflare/vitest-pool-workers`（DO・KV含めローカル完結）。設計の正本は `docs/17_M3実装計画.md` 3節
 - `packages/review-ui` — 生成コンテンツの人手レビュー用ローカルUI（ルートの `npm run review-ui` で起動）
 - `packages/app/src/platform/` — 音声再生（AudioPlayer）・パックキャッシュ（PackCache）の抽象化レイヤ。**UI・エンジンから Audio / AudioContext / caches を直接呼ぶと ESLint エラーになる**（必ず platform のインターフェース経由で使う）
-- `packages/app/src/db/` — Dexie スキーマ（04の3節の全11ストア）。**attempts は追記のみ**（削除は Dexie フックで実行時にも遮断。サービス層にも削除APIを作らない）。`packages/app/src/services/` — 解答記録・セッション中断復帰・エクスポート/インポート。IndexedDB を使うテストは fake-indexeddb を import する
+- `packages/app/src/db/` — Dexie スキーマ（04の3節。M1時点の全11ストアに`examScores`(M2)・`raidState`(M3)が追加され現在13ストア）。**attempts は追記のみ**（削除は Dexie フックで実行時にも遮断。サービス層にも削除APIを作らない）。`packages/app/src/services/` — 解答記録・セッション中断復帰・エクスポート/インポート。IndexedDB を使うテストは fake-indexeddb を import する
 - デザイントークンは `packages/app/src/styles/tokens.css`（07の3節が正本）。色は必ずトークン経由で参照する
 
 ## ドキュメント構成
@@ -71,7 +71,7 @@ npm workspaces の monorepo。ルートで実行する:
 
 ### 破ってはいけない不変条件
 
-- **プライバシー境界**: 個人紐づきで共有APIに送るのは「ダメージ換算値＋表示名」のみ。個人単位の正誤詳細・レート実値・本名・社名は端末外に出さない。問題別正誤集計（questionStats）は deviceToken と結合できない匿名統計としてのみ扱う。
+- **プライバシー境界**: 個人紐づきで共有APIに送るのは「ダメージ換算値＋表示名」のみ。個人単位の正誤詳細・レート実値・本名・社名は端末外に出さない。問題別正誤集計（questionStats）は deviceToken と結合できない匿名統計としてのみ扱う。**例外（2026-08-05・T-252・ADR 0013）**: ゴースト週の `defense`（questionIdごとの防御倍率0.5/2.0）は、ボス役立候補者本人の問題別正誤と1対1に対応し、ボス名（`ゴースト・<表示名>`）とあわせて全レイド参加者へ配信される（05の6節・22の3.3節）。ボス役立候補時の同意画面（22の3.5節）を経た場合に限って成立する例外で、同意を経ない経路への拡張は対象外。
 - **コンテンツの出所**: 問題パックは `license` / `origin` 必須。市販教材（金のフレーズ等）の流用は著作権リスクがあるため取込拒否。LLM生成＋人手レビュー＋TTS のパイプラインで自作する。
 - **オフラインが正常系**: 解答・SRS更新は IndexedDB へ即時保存。レイドダメージは pendingSync キュー経由で冪等送信（同一 attempt ID の二重送信はサーバー側で無視）。
 - **ネイティブ化路線の確保**: 将来 Capacitor でラップする前提のため、キャッシュ層・通知・音声再生は差し替え可能な抽象化レイヤにしておく（05の7節）。

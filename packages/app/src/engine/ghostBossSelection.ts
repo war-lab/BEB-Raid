@@ -24,6 +24,13 @@ const GHOST_BOSS_ELIGIBLE_FORMATS: ReadonlySet<QuestionFormat> = new Set([
   'text_passage',
 ])
 
+/**
+ * ボス役セッションもテンポ制のバトル系出題（docs/02 5.2節・6.1節の「バトル」の定義に含む）のため、
+ * docs/06「Part7長文のバトル出題はソロ専用」の対象になる。text_passageのformatだけでは
+ * Part6（穴埋め・短文寄り）とPart7（長文）を区別できないためpartで除外する（T-363・K-97）
+ */
+const GHOST_BOSS_EXCLUDED_PARTS: ReadonlySet<number> = new Set([7])
+
 export interface GhostBossSelectionResult {
   /** 抽選された問題（無作為抽出済み。最大GHOST_BOSS_QUESTION_COUNT件） */
   questions: Question[]
@@ -39,7 +46,9 @@ export function selectGhostBossQuestions(
   pool: readonly Question[],
   rng: () => number = Math.random,
 ): GhostBossSelectionResult | null {
-  const eligible = pool.filter((q) => GHOST_BOSS_ELIGIBLE_FORMATS.has(q.format))
+  const eligible = pool.filter(
+    (q) => GHOST_BOSS_ELIGIBLE_FORMATS.has(q.format) && !GHOST_BOSS_EXCLUDED_PARTS.has(q.part),
+  )
   const tierHigh = eligible.filter((q) => q.difficulty >= 4)
   const tierThree = eligible.filter((q) => q.difficulty === 3)
 
