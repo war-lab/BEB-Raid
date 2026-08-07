@@ -57,28 +57,43 @@ async function closeOutPreviousGhost(
 }
 
 /**
+ * 掃除1回のcron実行で遡ってチェックする週数（T-337・K-72）。
+ * 旧実装は境界週（cutoffEpoch）ちょうど1週だけをチェックしており、cronが数日〜数週間
+ * 発火しなかった（障害・デプロイ不整合等）場合、その間に保持期間を超えた週の一部が
+ * 「対象週が翌週へ移ってしまい二度とチェックされない」形で永久に残り続けた
+ * （対象週は日次cronの前提で約7日間だけ同じbossIdを指す設計だったため、7日を超える
+ * 空白があると取りこぼす）。境界週から遡って複数週まとめてチェックすれば、
+ * 空白期間中に取りこぼした週も次回発火時に自己修復する。cleanupIfExpiredは
+ * 存在しない週・保持期間内の週に対しても安全（not_found/kept）なため、
+ * 毎回複数週チェックしても副作用は増えない
+ */
+const CLEANUP_LOOKBACK_WEEKS = 4
+
+/**
  * 週次データの掃除（T-247・29のQ-29。方針は docs/17_M3実装計画.md 3.4節に記録）。
  * RAID_BOSS_RETENTION_WEEKS週より前に終了した週のRaidBossDOを削除する。掃除は
  * 週次ボス生成そのものの成否に影響させない（副次処理のため失敗してもthrowしない）。
  *
  * 削除対象の週は「保持期間の境界（cutoffEpoch = 当週開始 − RETENTION週）を1ms遡った時刻が
- * 属する週」とする。この週は必ず weekStartAt + WEEK_MS（＝翌週の開始）= cutoffEpoch を
- * 満たすため、この週のendAt（金曜15:00。翌週開始より必ず前）は常にcutoffEpochより前になり、
- * cleanupIfExpired側の判定（endAt < cutoff）に確実に該当する。cronは日次発火のため、
- * 対象週は約7日間かけて同じbossIdを指し続け、最初の1回で削除された後は
- * cleanupIfExpired が not_found を返すだけになる（冪等）
+ * 属する週」を起点に、そこからCLEANUP_LOOKBACK_WEEKS週分遡って毎回まとめてチェックする
+ * （上のCLEANUP_LOOKBACK_WEEKSのコメント参照）。起点の週は必ず
+ * weekStartAt + WEEK_MS（＝翌週の開始）= cutoffEpoch を満たすため、この週のendAt
+ * （金曜15:00。翌週開始より必ず前）は常にcutoffEpochより前になり、cleanupIfExpired側の
+ * 判定（endAt < cutoff）に確実に該当する
  */
 async function cleanupExpiredRaidBoss(env: Env, current: { weekStartAt: number }): Promise<void> {
-  try {
-    const cutoffEpoch = current.weekStartAt - RAID_BOSS_RETENTION_WEEKS * WEEK_MS
-    const targetBossId = bossIdFor(isoWeekInfo(cutoffEpoch - 1))
-    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(targetBossId))
-    const result = await stub.cleanupIfExpired(cutoffEpoch)
-    if (result === 'deleted') {
-      console.log(`週次RaidBossDOを掃除しました: bossId=${targetBossId}`)
+  const cutoffEpoch = current.weekStartAt - RAID_BOSS_RETENTION_WEEKS * WEEK_MS
+  for (let i = 0; i < CLEANUP_LOOKBACK_WEEKS; i++) {
+    try {
+      const targetBossId = bossIdFor(isoWeekInfo(cutoffEpoch - 1 - i * WEEK_MS))
+      const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(targetBossId))
+      const result = await stub.cleanupIfExpired(cutoffEpoch)
+      if (result === 'deleted') {
+        console.log(`週次RaidBossDOを掃除しました: bossId=${targetBossId}`)
+      }
+    } catch (err) {
+      console.error('週次RaidBossDOの掃除に失敗しました（週次ボス生成自体は継続）', err)
     }
-  } catch (err) {
-    console.error('週次RaidBossDOの掃除に失敗しました（週次ボス生成自体は継続）', err)
   }
 }
 
@@ -137,11 +152,16 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
     await writeRaidSummary(env, previousBossId, previousStub)
 
     // 【T-244・29のQ-23】KV.list()は1ページ最大1,000件までしか返さない。cursorが尽きるまで
-    // 全ページ読み切らないと、メンバーが1,000人を超えた時点でEMA更新・HP算出の両方が
-    // 無言で一部のメンバーを取りこぼす（実際に1,050人規模で検証し再現した）
+    // 全ページ読み切らないと、メンバーが1,000人を超えた時点で取りこぼす（1,050人規模で再現した）。
+    // 【T-326・K-61】旧実装はこの全件走査を①EMA更新・②HP算出の2回（＝メンバー1人あたり
+    // get2回）に分けていたため、無料枠の外向き呼び出し上限にメンバー数の増加で当たりうる
+    // （週次cronがO(3N)になる）。②は①のループ内でその場で計算できる値（更新後のema、
+    // または更新しなかった場合は元のmember。estimatedDailyDamageはemaDailyDamageが
+    // undefinedならdailyGoalフォールバックを使うため、undefinedのまま渡しても正しい）
+    // なので、走査そのものを1回に統合しget呼び出しを1人あたり1回にする
     const memberKeys = await listAllKeys(env.MEMBERS, { prefix: MEMBER_KEY_PREFIX })
 
-    // ①前週実績からemaDailyDamageを更新する
+    let totalDailyDamage = 0
     for (const key of memberKeys) {
       const raw = await env.MEMBERS.get(key.name)
       if (!raw) continue
@@ -151,26 +171,23 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
       // ここで0を確定させると、以後estimatedDailyDamage()のdailyGoalフォールバック（J-48の
       // 「emaが無ければ申告問題数から換算」）に二度と入らなくなるため、undefinedのまま温存する
       const hasPreviousRecord = deviceToken in previousDamageByToken
-      if (!hasPreviousRecord && member.emaDailyDamage === undefined) continue
+      if (!hasPreviousRecord && member.emaDailyDamage === undefined) {
+        totalDailyDamage += estimatedDailyDamage(member)
+        continue
+      }
       const previousDamage = previousDamageByToken[deviceToken] ?? 0
       const previousDaily = previousDamage / RAID_DAYS
       const updatedEma =
         member.emaDailyDamage === undefined
           ? previousDaily
           : EMA_WEIGHT * previousDaily + (1 - EMA_WEIGHT) * member.emaDailyDamage
-      await env.MEMBERS.put(
-        memberKey(deviceToken),
-        JSON.stringify({ ...member, emaDailyDamage: updatedEma }),
-      )
-    }
-
-    // ②更新後の値からHPを算出する（①と同じ理由でcursorを最後まで読む）
-    const refreshed = await listAllKeys(env.MEMBERS, { prefix: MEMBER_KEY_PREFIX })
-    let totalDailyDamage = 0
-    for (const key of refreshed) {
-      const raw = await env.MEMBERS.get(key.name)
-      if (!raw) continue
-      totalDailyDamage += estimatedDailyDamage(JSON.parse(raw) as MemberRecord)
+      const updatedMember = { ...member, emaDailyDamage: updatedEma }
+      // KV listのmetadataにも載せる（T-326・K-61）。この関数の外でemaDailyDamageだけを
+      // 参照したい将来の呼び出し元がlist()のmetadataからget()無しで読めるようにする用途
+      await env.MEMBERS.put(memberKey(deviceToken), JSON.stringify(updatedMember), {
+        metadata: { emaDailyDamage: updatedEma },
+      })
+      totalDailyDamage += estimatedDailyDamage(updatedMember)
     }
     const maxHp = Math.max(MIN_BOSS_HP, Math.round(totalDailyDamage * RAID_DAYS * BOSS_HP_FACTOR))
 

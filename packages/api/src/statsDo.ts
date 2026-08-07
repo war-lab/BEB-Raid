@@ -10,6 +10,16 @@ import type { Env } from './env'
 
 export const STATS_DO_NAME = 'global'
 
+/** T-333（K-68）: getAllStatsの1ページあたりの既定・上限件数 */
+export const STATS_PAGE_DEFAULT_LIMIT = 200
+export const STATS_PAGE_MAX_LIMIT = 1000
+
+export interface StatsPage {
+  items: QuestionStatPayload[]
+  /** 次ページの取得に使うカーソル（このページの最後のquestionId）。もう無ければnull */
+  nextCursor: string | null
+}
+
 interface QuestionStatRow extends Record<string, string | number | null> {
   questionId: string
   correct: number
@@ -61,13 +71,32 @@ export class StatsDO extends DurableObject<Env> {
     }
   }
 
-  /** 管理用GET /stats/questionsの入力（全件返却。3.8節） */
-  getAllStats(): QuestionStatPayload[] {
-    return this.ctx.storage.sql
-      .exec<QuestionStatRow>(
-        'SELECT questionId, correct, wrong, timeout FROM question_stats ORDER BY questionId',
-      )
-      .toArray()
+  /**
+   * 管理用GET /stats/questionsの入力（3.8節）。
+   * 【T-333・K-68】question_statsはパック配信ごとに増え続け、無制限に増えると
+   * 全件を1レスポンスで返す旧実装は応答サイズ・メモリの両方で無制限に肥大する。
+   * questionId昇順のキーセットページネーション（`WHERE questionId > cursor`）にする。
+   * OFFSETベースにしないのは、件数が増えるほど「先頭からcursor件を読み捨てる」コストが
+   * 増えるため（keyset方式はどのページでもO(limit)で済む）
+   */
+  getAllStats(cursor: string | null = null, limit: number = STATS_PAGE_DEFAULT_LIMIT): StatsPage {
+    const boundedLimit = Math.max(1, Math.min(limit, STATS_PAGE_MAX_LIMIT))
+    const rows = cursor
+      ? this.ctx.storage.sql
+          .exec<QuestionStatRow>(
+            'SELECT questionId, correct, wrong, timeout FROM question_stats WHERE questionId > ? ORDER BY questionId LIMIT ?',
+            cursor,
+            boundedLimit,
+          )
+          .toArray()
+      : this.ctx.storage.sql
+          .exec<QuestionStatRow>(
+            'SELECT questionId, correct, wrong, timeout FROM question_stats ORDER BY questionId LIMIT ?',
+            boundedLimit,
+          )
+          .toArray()
+    const nextCursor = rows.length === boundedLimit ? rows[rows.length - 1]!.questionId : null
+    return { items: rows, nextCursor }
   }
 
   /** 「問題がおかしい」報告をquestionId×reason別にUPSERT加算する（T-101。deviceTokenは受け取らない） */

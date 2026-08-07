@@ -41,6 +41,10 @@ class_name = "StatsDO"
 name = "BATTLE_ROOM"
 class_name = "BattleRoomDO"
 
+[[durable_objects.bindings]]
+name = "INVITE_RATE_LIMIT"
+class_name = "InviteRateLimitDo"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RaidBossDO"]
@@ -56,6 +60,12 @@ new_sqlite_classes = ["StatsDO"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["BattleRoomDO"]
+
+# T-329（K-64）: 招待コード誤りのレート制限カウンタをKV（結果整合・lost update）から
+# DOのSQLiteストレージ（単一スレッド・強整合）へ移す
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["InviteRateLimitDo"]
 
 # 週次ボス生成（3.4節）。曜日フィールドは使わず日次発火にする（docs/30 J-100・T-180）。
 # 生成処理（generateWeeklyBoss）はRaidBossDO側で週の生成権を主張する形で完全に冪等化した
@@ -99,6 +109,10 @@ class_name = "StatsDO"
 name = "BATTLE_ROOM"
 class_name = "BattleRoomDO"
 
+[[env.dev.durable_objects.bindings]]
+name = "INVITE_RATE_LIMIT"
+class_name = "InviteRateLimitDo"
+
 [env.production]
 name = "beb-raid-api"
 
@@ -123,3 +137,7 @@ class_name = "StatsDO"
 [[env.production.durable_objects.bindings]]
 name = "BATTLE_ROOM"
 class_name = "BattleRoomDO"
+
+[[env.production.durable_objects.bindings]]
+name = "INVITE_RATE_LIMIT"
+class_name = "InviteRateLimitDo"
