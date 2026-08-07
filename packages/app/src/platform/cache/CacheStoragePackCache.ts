@@ -47,17 +47,18 @@ export class CacheStoragePackCache implements PackCache {
   async usage(): Promise<CacheUsage> {
     const cache = await this.open()
     const requests = await cache.keys()
-    let bytes = 0
-    for (const req of requests) {
-      const res = await cache.match(req)
-      if (!res) continue
-      const len = res.headers.get('content-length')
-      if (len) {
-        bytes += Number(len)
-      } else {
-        bytes += (await res.clone().blob()).size
-      }
-    }
+    // T-325（K-60）: 旧実装はfor...ofで1件ずつawaitしていた。実測960ファイル規模では
+    // 起動時（設定画面のキャッシュ使用量表示）の合計待ちが直列分だけ積み上がるため並列化する
+    const sizes = await Promise.all(
+      requests.map(async (req) => {
+        const res = await cache.match(req)
+        if (!res) return 0
+        const len = res.headers.get('content-length')
+        if (len) return Number(len)
+        return (await res.clone().blob()).size
+      }),
+    )
+    const bytes = sizes.reduce((sum, size) => sum + size, 0)
     return { bytes, entries: requests.length }
   }
 

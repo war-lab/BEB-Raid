@@ -25,6 +25,7 @@ import { DIAGNOSTIC_PROGRESS_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
@@ -156,6 +157,10 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   // T-113: 診断途中経過の永続化。マウント時に残っていれば再開/やり直しを提示する
   const [progressChecked, setProgressChecked] = useState(false)
   const [savedProgress, setSavedProgress] = useState<DiagnosticProgress | null>(null)
+  // T-316（K-49）: 中断の確認。診断画面だけ「中断」ボタンが確認なしで即ホームへ遷移しており、
+  // 誤タップで測定中の解答を無言で切り上げていた（進行は途中経過に保存済みなので実際には
+  // 失われないが、確認が無いこと自体が他画面との不整合＝T-162の方針から外れていた）
+  const [abortConfirm, setAbortConfirm] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -179,6 +184,14 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       cancelled = true
     }
   }, [step, db])
+
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
 
   const lPool = questionPool.filter((q) => sectionForPart(q.part) === 'L')
   const rPool = questionPool.filter((q) => sectionForPart(q.part) === 'R')
@@ -604,12 +617,35 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     })
   }
 
+  // T-316（K-49）: 途中経過はT-113で1問ごとに保存済みのため、実際には失われない。
+  // その事実を確認文言に含めることで、誤タップへの不安を減らす（VocabScreen・DrillScreenと
+  // 同じ位置づけの確認だが、診断は「進捗はここまで保存される」という他画面と異なる事実がある）
+  const abortDialog = abortConfirm ? (
+    <ConfirmDialog
+      message="診断を中断してホームへ戻りますか？（ここまでの進捗は保存され、次回続きから再開できます）"
+      onDismiss={() => setAbortConfirm(false)}
+      actions={[
+        {
+          label: '中断してホームへ',
+          primary: true,
+          onSelect: () => {
+            setAbortConfirm(false)
+            audioPlayer.stop()
+            navigate('home')
+          },
+        },
+        { label: 'キャンセル', onSelect: () => setAbortConfirm(false) },
+      ]}
+    />
+  ) : null
+
   return (
     <ScreenLayout
       status={
         <>
           <SessionProgress current={turn + 1} total={DIAGNOSTIC_TOTAL_ITEMS} />
-          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+          {abortDialog}
+          <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
             中断
           </button>
           <p>{section === 'L' ? 'リスニング' : 'リーディング'}</p>

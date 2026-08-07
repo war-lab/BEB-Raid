@@ -154,6 +154,23 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
     expect(audioPlayer.stop).toHaveBeenCalled()
   })
 
+  // 何を防ぐか（T-315・K-48）: 中断導線とpopstateハンドラ以外に、useEffectの
+  // unmount cleanupでの音声停止が無かった（画面外からの遷移では止まらない）
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('unmount')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    const view = render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
+    )
+    await waitFor(() => expect(screen.getByText('中断')).toBeTruthy())
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
   it('「知らない」ボタンでも同様に srsCards に追加される', async () => {
     const db = newDb()
     const questions = [vocabQuestion('gamma')]

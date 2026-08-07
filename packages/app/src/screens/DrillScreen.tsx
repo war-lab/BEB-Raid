@@ -4,7 +4,7 @@
 // vocab_card（T-21。クイックパックにkind:'srsVocab'が混在する場合の受け皿）は
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import type { PhaseSeason } from '../db/schema'
@@ -329,6 +329,15 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     }
   }, [db])
 
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった。最終問で再生中に
+  // リザルトへ進むと、再生中の音声がリザルト画面まで流れ続ける
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
+
   // 先読み秒数の決定に使うフェーズを1回だけ取得する（M2・T-50）。
   // 失敗しても（DB切断等）先読み秒数が既定値にフォールバックするだけで画面は壊れない
   useEffect(() => {
@@ -556,6 +565,41 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     navigate('reading')
   }, [item, question, snapshot, navigate])
 
+  /**
+   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
+   * （T-196・T-267。docs/29 Q-5）。リザルトへ到達する経路はすべてここを通す:
+   * 「ここで終了して結果を見る」（早期終了）・全問解答後の「次へ」（正規完走。
+   * advanceToNext）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
+   * ときの描画フォールバック。いずれも「セッションは終わった」状態であり、
+   * DB側を中断扱いのまま残すと、ResultScreenの「ホームへ」を押す前にタブを閉じる・
+   * アプリを離れるだけでホームに「続きから再開」バナーが残り続け、次モード開始時に
+   * 不要な破棄確認まで出てしまう（当初は「ここで終了して結果を見る」のみT-196で
+   * 対処したが、全問完走の方が通過頻度が高く、同じ欠陥がQ-5の症状として
+   * 日常的に発生しうると判断してT-267で経路を揃えた）。
+   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
+   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
+   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
+   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）。
+   * useCallbackで安定化するのは、下のuseEffectの依存配列に含めるため（T-320・K-53）
+   */
+  const finishSession = useCallback(() => {
+    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
+    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
+    if (snapshot) {
+      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
+        console.warn('[DrillScreen] セッション完了処理に失敗', e)
+      })
+    }
+    navigate('result')
+  }, [snapshot, db, navigate])
+
+  // T-320（K-53）: 全item解答済み（snapshotはあるがitemが無い）でのfinishSession()呼び出しが
+  // レンダー本体（return null直前）にあり、レンダー中にnavigate（内部的にstateを更新する
+  // pushState相当の操作）を呼んでいた。上のreading切替と同じ理由でuseEffectへ移す
+  useEffect(() => {
+    if (snapshot && !item) finishSession()
+  }, [snapshot, item, finishSession])
+
   // 取り消し通知も同型（非モーダル・4秒）
   useEffect(() => {
     if (!undoNotice) return
@@ -582,7 +626,6 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
   }
 
   if (!snapshot || !item || !question || !RENDERABLE_FORMATS.has(question.format)) {
-    if (snapshot && !item) finishSession()
     return null
   }
   // text_passageはこのコンポーネントに描画分岐が無い（上のeffectがreading画面へ切り替える）。
@@ -1148,33 +1191,6 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
 
   function handleNext() {
     advanceToNext()
-  }
-
-  /**
-   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
-   * （T-196・T-267。docs/29 Q-5）。リザルトへ到達する経路はすべてここを通す:
-   * 「ここで終了して結果を見る」（早期終了）・全問解答後の「次へ」（正規完走。
-   * advanceToNext）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
-   * ときの描画フォールバック。いずれも「セッションは終わった」状態であり、
-   * DB側を中断扱いのまま残すと、ResultScreenの「ホームへ」を押す前にタブを閉じる・
-   * アプリを離れるだけでホームに「続きから再開」バナーが残り続け、次モード開始時に
-   * 不要な破棄確認まで出てしまう（当初は「ここで終了して結果を見る」のみT-196で
-   * 対処したが、全問完走の方が通過頻度が高く、同じ欠陥がQ-5の症状として
-   * 日常的に発生しうると判断してT-267で経路を揃えた）。
-   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
-   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
-   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
-   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）
-   */
-  function finishSession() {
-    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
-    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
-    if (snapshot) {
-      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
-        console.warn('[DrillScreen] セッション完了処理に失敗', e)
-      })
-    }
-    navigate('result')
   }
 
   function handleSelectVocabChoice(key: string) {

@@ -2,7 +2,7 @@
 // 画面コンポーネントを切り替える。S1ホーム（T-21）で暫定の確認画面から差し替え済み。
 // 起動時、profile未作成（=P0診断未完了）なら診断画面から始める（T-20）。
 import { useEffect, useState } from 'react'
-import type { Question } from '@beb-raid/shared-schema'
+import { validateManifest, type Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from './db/database'
 import { getDb } from './db/database'
 import { PROFILE_ID } from './db/schema'
@@ -45,11 +45,14 @@ import { useAppStore, type ScreenName } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
 
 /**
- * 配布パック全20件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2。
- * T-32/T-64/T-83〜T-85/T-107のPACK_DEFINITIONSと対応。cli側の定義を
- * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
- * idはここに複製する）。手動複製のため追加漏れが起きうる——App.test.tsxで
- * content/manifest.json（build成果物）のパック一覧との一致をテストで検証する
+ * 配布パックID一覧のフォールバック（T-325・K-60より前の実装。手動複製のため追加漏れが
+ * 起きうる——App.test.tsxでcontent/manifest.json（build成果物）のパック一覧との
+ * 一致をテストで検証する）。
+ *
+ * T-325（K-60）: 通常はresolvePackIds()がmanifest.json（PackCacheのcache-first→
+ * fetchフォールバック）からパックID一覧を動的に解決するため、このリストは
+ * 「manifest.jsonを一切読めない」完全オフライン初回起動時のみのフォールバックとして残す
+ * （PACK_IDSとmanifestの二重管理そのものはこの用途のために意図的に残す判断）
  */
 export const PACK_IDS = [
   'pack-vocab-s-001',
@@ -75,21 +78,64 @@ export const PACK_IDS = [
 ]
 
 /**
+ * manifest.jsonから配布パックID一覧を解決する（T-325・K-60）。
+ * PackCacheのcache-first→fetchフォールバックで読む（loadPackQuestionsと同じ経路）。
+ * syncPacksが同期成功時にmanifest.jsonをPackCacheへ書き戻しているため、2回目以降の
+ * 起動はオフラインでもcache-firstで読める。どちらも読めない場合（完全オフラインの
+ * 初回起動等）だけPACK_IDSへフォールバックする
+ */
+async function resolvePackIds(
+  packCache: PackCache,
+  baseUrl: string,
+  fetchImpl: typeof fetch,
+): Promise<string[]> {
+  const manifestUrl = `${baseUrl}manifest.json`
+  const idsFromManifest = (body: unknown): string[] | null => {
+    if (!validateManifest(body).ok) return null
+    return (body as { packs: { id: string }[] }).packs.map((p) => p.id)
+  }
+  try {
+    const cached = await packCache.get(manifestUrl)
+    if (cached) {
+      const ids = idsFromManifest(JSON.parse(await cached.text()))
+      if (ids) return ids
+    }
+  } catch {
+    // 読み込み・パース失敗はfetchフォールバックへ委ねる
+  }
+  try {
+    const res = await fetchImpl(manifestUrl)
+    if (res.ok) {
+      const ids = idsFromManifest(await res.json())
+      if (ids) return ids
+    }
+  } catch {
+    // 無視（オフラインが正常系）
+  }
+  return PACK_IDS
+}
+
+/**
  * 全パックの問題を読み込み1つのプールにまとめる（T-37: ダミーパック削除・実パック配線）。
  * PackCacheファースト（loadPackQuestions）で読み、1パックの取得に失敗しても
- * 他パックは読み込みを続行する（オフラインが正常系。取得できたぶんだけで動かす）
+ * 他パックは読み込みを続行する（オフラインが正常系。取得できたぶんだけで動かす）。
+ * 対象パックID一覧はmanifest.json由来（T-325・resolvePackIds）
  */
 export async function loadQuestionPool(
   packCache: PackCache,
   baseUrl: string = import.meta.env.BASE_URL,
+  fetchImpl: typeof fetch = fetch,
 ): Promise<Question[]> {
+  const packIds = await resolvePackIds(packCache, baseUrl, fetchImpl)
   const results = await Promise.all(
-    PACK_IDS.map((id) =>
-      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`).catch((err: unknown) => {
-        // オフラインが正常系のため描画はブロックしないが、原因追跡のためコンソールには残す
-        console.warn(`[loadQuestionPool] パック取得に失敗: ${id}`, err)
-        return [] as Question[]
-      }),
+    packIds.map((id) =>
+      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`, fetchImpl).catch(
+        (err: unknown) => {
+          // オフラインが正常系のため描画はブロックしないが、原因追跡のためコンソールには残す
+          console.warn(`[loadQuestionPool] パック取得に失敗: ${id}`, err)
+          return [] as Question[]
+        },
+      ),
     ),
   )
   return results.flat()
