@@ -34,7 +34,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['先読み'],
     keyVocabWords: ['reschedule'],
     script:
-      "A: Do you have a few minutes to talk about tomorrow's budget meeting? B: Actually, I just found out I have a client call at the same time. Could we reschedule it to Thursday afternoon? A: That should work — most of the team is free then. I'll send a new invite this afternoon. B: Great, thanks for being so flexible.",
+      "A: Do you have a few minutes to talk about tomorrow's budget meeting? B: Actually, I just found out I have a client call at the same time. Could we reschedule it to Thursday afternoon? A: That should work — most of the team is free then, but I'll need to check whether the large conference room is available that day. B: I think Priya already reserved it for a training session, so we might have to use the smaller room down the hall instead. A: That should still be fine, as long as everyone can fit comfortably around the table. I'll send a new invite this afternoon and note the room change in the description. B: Great, thanks for being so flexible. I'll let the client know our schedule is confirmed as soon as you send it over.",
     subQuestions: [
       {
         question: 'What are the speakers mainly discussing?',
@@ -80,7 +80,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['malfunction', 'technician'],
     script:
-      "A: The shared server seems to be malfunctioning again — I can't access any of the project files. B: I noticed that too. I already called the technician, but he said he can't come until tomorrow morning. A: That's a problem. Do we have a backup we can use in the meantime? B: I'll check with IT and email you a temporary link within the hour.",
+      "A: The shared server seems to be malfunctioning again — I can't access any of the project files. B: I noticed that too. I already called the technician, but he said he can't come until tomorrow morning. A: That's a problem, especially since the client presentation is due this afternoon. Do we have a backup we can use in the meantime? B: I'll check with IT and email you a temporary link within the hour so you can at least open the files you need. A: That would help a lot. Should I let the rest of the team know about the delay as well? B: Yes, please send a quick note so nobody wastes time trying to log in before the server is fixed.",
     subQuestions: [
       {
         question: 'What problem are the speakers discussing?',
@@ -121,7 +121,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['submit'],
     script:
-      "A: We're almost out of printer paper and toner in the supply closet. B: Really? I thought we just placed an order last month. A: We did, but the new interns have been printing a lot of training materials. B: Let's submit a request today so it arrives before the weekend.",
+      "A: We're almost out of printer paper and toner in the supply closet. B: Really? I thought we just placed an order last month. A: We did, but the new interns have been printing a lot of training materials for their onboarding sessions. B: That makes sense — I didn't realize how much paper those packets use. Do you know roughly how many boxes we usually go through in a month? A: I don't have the exact number, but I can check the last few invoices before I submit anything. B: Let's submit a request today regardless, so it arrives before the weekend and we're not caught short again.",
     subQuestions: [
       {
         question: 'What is the conversation mainly about?',
@@ -166,7 +166,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['backlog'],
     script:
-      "A: I just got off the phone with the client — their shipment still hasn't arrived. B: That's the third delay this quarter. Did the carrier give a reason? A: They mentioned a warehouse backlog, but they couldn't give a firm delivery date. B: Let's offer the client a discount on their next order as an apology.",
+      "A: I just got off the phone with the client — their shipment still hasn't arrived. B: That's the third delay this quarter. Did the carrier give a reason? A: They mentioned a warehouse backlog, but they couldn't give a firm delivery date, which is what frustrated the client the most. B: I can imagine. Did they say anything about compensating us for the extra shipping fees we paid to expedite the last order? A: No, they didn't bring that up at all, so I think we'll need to raise it separately. B: Let's offer the client a discount on their next order as an apology, and I'll follow up with the carrier myself about those fees.",
     subQuestions: [
       {
         question: 'What is the main issue being discussed?',
@@ -210,7 +210,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['先読み'],
     keyVocabWords: ['candidate'],
     script:
-      "A: What did you think of the candidate we interviewed this morning? B: I was impressed — her experience matches the role closely, and she asked great questions. A: Agreed. Should we move forward with a second interview? B: Yes, let's schedule it for early next week and loop in the department manager.",
+      "A: What did you think of the candidate we interviewed this morning? B: I was impressed — her experience matches the role closely, and she asked great questions about our team structure. A: I agree, especially her answer about handling conflicting deadlines. Should we move forward with a second interview? B: Yes, and I think it would help to have the department manager sit in this time, since she'll be working closely with that team. A: Good idea. Do you want to reach out to the manager, or should I? B: I'll take care of it — let's schedule it for early next week and loop in the department manager before we confirm a time.",
     subQuestions: [
       {
         question: 'What are the speakers mainly discussing?',
@@ -256,7 +256,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['attendee', 'finalize'],
     script:
-      "A: Have we finalized the catering order for Friday's event? B: Almost — I'm still waiting to hear back about how many guests are vegetarian. A: I'll send a quick survey to the attendee list this afternoon. B: Perfect, let's finalize the order by tomorrow morning at the latest.",
+      "A: Have we finalized the catering order for Friday's event? B: Almost — I'm still waiting to hear back about how many guests are vegetarian before I lock in the numbers. A: That's fair. Do we know yet whether the venue allows outside caterers, or does it have to be their in-house kitchen? B: The venue confirmed this morning that outside caterers are fine as long as we submit the menu in advance. A: Good, that simplifies things. I'll send a quick survey to the attendee list this afternoon to get the vegetarian count. B: Perfect, let's finalize the order by tomorrow morning at the latest so the caterer has enough time to prepare.",
     subQuestions: [
       {
         question: 'What are the speakers preparing for?',
@@ -301,7 +301,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['synchronize'],
     script:
-      "A: Did you see the notice about the software upgrade this weekend? B: Yes, IT said all our files will automatically synchronize before the update starts. A: Good, I was worried I'd lose my project files. B: Same here — let's just save everything one more time on Friday to be safe.",
+      "A: Did you see the notice about the software upgrade this weekend? B: Yes, IT said all our files will automatically synchronize before the update starts, as long as we're connected to the network overnight. A: Good, I was worried I'd lose my project files since I've been working on that report for weeks. B: Same here — let's just save everything one more time on Friday to be safe, in case the sync doesn't run correctly. A: That sounds smart. Should we also let the rest of the team know, in case anyone is planning to work remotely this weekend? B: Good point, I'll send a quick reminder email before we leave today.",
     subQuestions: [
       {
         question: 'What is the conversation mainly about?',
@@ -347,7 +347,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['先読み'],
     keyVocabWords: ['itinerary', 'confirm'],
     script:
-      "A: Have you finished putting together my itinerary for the conference next month? B: Almost — I booked your flight and hotel, but I'm still waiting on the shuttle reservation. A: No rush, just make sure I land with enough time before the opening reception. B: Understood, I'll confirm everything by the end of the week.",
+      "A: Have you finished putting together my itinerary for the conference next month? B: Almost — I booked your flight and hotel, but I'm still waiting on the shuttle reservation to hear back from the venue. A: No rush, just make sure I land with enough time before the opening reception, since I really don't want to miss the keynote speaker. B: Understood. I've also blocked out an extra hour between your flight and the reception in case there's any delay at the airport. A: That's smart thinking, thank you. Could you also send me a printed copy along with the digital one? B: Of course, I'll confirm everything by the end of the week and print a copy for your folder.",
     subQuestions: [
       {
         question: 'What is B helping A prepare for?',
@@ -384,7 +384,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['restock'],
     script:
-      "A: The shelves in the front section look almost empty again. B: I know, our best-selling items keep selling out faster than we can restock them. A: Should we increase the order size for next month? B: Yes, and let's also move some inventory from the stockroom out front today.",
+      "A: The shelves in the front section look almost empty again. B: I know, our best-selling items keep selling out faster than we can restock them, especially since that promotion started last week. A: Should we increase the order size for next month, or would that leave us with too much stock once the promotion ends? B: I think a modest increase should be safe, since demand has been steady even before the promotion started. Let's also move some inventory from the stockroom out front today so customers aren't turned away this afternoon. A: Good idea, I'll grab a cart and start bringing boxes out right after lunch.",
     subQuestions: [
       {
         question: 'What problem does A point out?',
@@ -430,7 +430,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['negotiate', 'renewal'],
     script:
-      "A: The vendor sent over the new contract terms for next year. B: How do the numbers compare to our current agreement? A: The overall cost is about the same, but they want to shorten the renewal period to six months. B: Let's negotiate for a full year before we sign anything.",
+      "A: The vendor sent over the new contract terms for next year. B: How do the numbers compare to our current agreement? A: The overall cost is about the same, but they want to shorten the renewal period to six months instead of the usual twelve. B: That's a strange change — did they explain why they want a shorter term now? A: They mentioned rising material costs and wanting more flexibility to adjust pricing, but I'm not fully convinced that's the whole story. B: Let's negotiate for a full year before we sign anything, and ask them to lock in the current pricing if they want the longer commitment.",
     subQuestions: [
       {
         question: 'What are the speakers discussing?',
@@ -476,7 +476,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['先読み'],
     keyVocabWords: ['tenant'],
     script:
-      'Attention all building tenants: the east elevator will be out of service for routine maintenance from nine to eleven tomorrow morning. During that time, please use the west elevator or the stairs near the lobby. We apologize for any inconvenience and expect the elevator to be back in service by early afternoon.',
+      "Attention all building tenants: the east elevator will be out of service for routine maintenance from nine to eleven tomorrow morning. A technician from the maintenance company will be inspecting the cables and motor as part of our annual safety check. During that time, please use the west elevator or the stairs near the lobby, and allow a few extra minutes if you're heading to a meeting on the upper floors. We apologize for any inconvenience and expect the elevator to be back in service by early afternoon. If you notice any unusual sounds or delays once it reopens, please report them to building management right away.",
     subQuestions: [
       {
         question: 'Who is this announcement most likely for?',
@@ -517,7 +517,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['merchandise', 'complimentary'],
     script:
-      "This weekend only, visit Harbor Outlet for our biggest clearance sale of the year. Every item in the store is marked down, with select merchandise up to seventy percent off. Doors open early at eight, and the first fifty customers will receive a complimentary gift bag. Don't miss this once-a-year event.",
+      "This weekend only, visit Harbor Outlet for our biggest clearance sale of the year. Every item in the store is marked down, with select merchandise up to seventy percent off, including winter coats, kitchen appliances, and last season's furniture. Doors open early at eight, and the first fifty customers will receive a complimentary gift bag filled with samples from our newest suppliers. Parking will be available in the lot behind the store, and extra staff will be on hand to help you find exactly what you're looking for. Don't miss this once-a-year event — we look forward to seeing you there.",
     subQuestions: [
       {
         question: 'What is being advertised?',
@@ -558,7 +558,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['confirm'],
     script:
-      "Hi, this is Dana calling from Crestview Dental. I'm calling to let you know that your appointment originally scheduled for Tuesday at ten needs to be moved due to a scheduling conflict. We have an opening on Wednesday at the same time. Please call us back at your convenience to confirm.",
+      "Hi, this is Dana calling from Crestview Dental. I'm calling to let you know that your appointment originally scheduled for Tuesday at ten needs to be moved due to a scheduling conflict with one of our hygienists. We have an opening on Wednesday at the same time, or if that doesn't work, we could also fit you in Thursday afternoon. Either time should allow enough room for the full cleaning and checkup we have planned. Please call us back at your convenience to confirm which day works best for you, and let us know if you'd like a reminder call the day before.",
     subQuestions: [
       {
         question: 'Why is Dana calling?',
@@ -599,7 +599,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['数字・時刻'],
     keyVocabWords: ['boarding'],
     script:
-      'Attention passengers on flight two-fourteen to Denver: your departure gate has changed from gate twelve to gate twenty-three. Boarding will begin in approximately twenty minutes. Please proceed to the new gate as soon as possible, and have your boarding pass ready for the agent.',
+      'Attention passengers on flight two-fourteen to Denver: your departure gate has changed from gate twelve to gate twenty-three due to a scheduling conflict with another aircraft. Boarding will begin in approximately twenty minutes, starting with families traveling with small children and passengers who need extra time. Please proceed to the new gate as soon as possible, since it is located in a different terminal and the walk may take longer than expected. Have your boarding pass and photo identification ready for the agent, and please listen for further announcements in case there are any additional changes.',
     subQuestions: [
       {
         question: 'What is the purpose of this announcement?',
@@ -628,7 +628,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Their baggage claim ticket',
           'Their seat upgrade voucher',
         ],
-        explanation: '"have your boarding pass ready for the agent"と述べている。',
+        explanation:
+          '"Have your boarding pass and photo identification ready for the agent"と述べている。',
         translation: '乗客は何を準備しておくよう求められていますか。',
       },
     ],
@@ -640,7 +641,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['先読み'],
     keyVocabWords: ['itinerary'],
     script:
-      "Welcome, everyone, to the Riverside History Museum. My name is Carlos, and I'll be your guide for the next hour. Let me walk you through today's itinerary: we'll begin in the main hall, where you'll see artifacts dating back over two hundred years, before moving on to the interactive exhibit on the second floor. Please feel free to ask questions along the way.",
+      "Welcome, everyone, to the Riverside History Museum. My name is Carlos, and I'll be your guide for the next hour. Let me walk you through today's itinerary: we'll begin in the main hall, where you'll see artifacts dating back over two hundred years, including several items donated by local families whose ancestors settled this region. From there, we'll move on to the interactive exhibit on the second floor, where you can try some of the tools and games that children in this area once used. We'll finish in the gift shop, where a small discount is available for anyone who mentions today's tour. Please feel free to ask questions along the way, and let me know if you'd like extra time at any particular stop.",
     subQuestions: [
       {
         question: 'Who most likely is Carlos?',
@@ -680,7 +681,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['数字・時刻'],
     keyVocabWords: ['revenue', 'retail'],
     script:
-      "Good afternoon, everyone. Before we wrap up today's meeting, I want to share a quick update on our quarterly results. Revenue grew twelve percent compared to last quarter, largely thanks to strong sales in the retail division. I want to thank each of you for your hard work, and I look forward to sharing more details at next month's review.",
+      "Good afternoon, everyone. Before we wrap up today's meeting, I want to share a quick update on our quarterly results. Revenue grew twelve percent compared to last quarter, largely thanks to strong sales in the retail division, which outperformed our original projections by a wide margin. Costs also stayed roughly flat, which helped translate that revenue growth directly into improved profit margins. Looking ahead, we expect a slightly slower pace of growth next quarter as we invest more heavily in the new product line, but overall the outlook remains positive. I want to thank each of you for your hard work, and I look forward to sharing more details at next month's review.",
     subQuestions: [
       {
         question: 'What is the main purpose of this talk?',
@@ -720,7 +721,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['streamline', 'feedback'],
     script:
-      "Thank you all for coming today. I'm excited to introduce our newest product line, designed specifically to help small businesses streamline their daily operations. After months of testing and customer feedback, we're confident this launch will set a new standard in the industry. We'll be taking questions after a short demonstration.",
+      "Thank you all for coming today. I'm excited to introduce our newest product line, designed specifically to help small businesses streamline their daily operations, from inventory tracking to scheduling and invoicing, all in a single application. After months of testing and customer feedback from more than two hundred pilot users, we're confident this launch will set a new standard in the industry. We've also worked closely with our support team to make sure onboarding is as smooth as possible, since we know switching software can be stressful for a small team. We'll be taking questions after a short demonstration, and everyone here today will receive an extended free trial as a thank-you for attending.",
     subQuestions: [
       {
         question: 'What is the speaker mainly doing?',
@@ -761,7 +762,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['数字・時刻'],
     keyVocabWords: ['mortgage', 'inquiry'],
     script:
-      'Thank you for calling Meridian Bank customer service. For account balance and recent transactions, press one. To report a lost or stolen card, press two. To speak with a representative about a loan or mortgage, press three. For any other inquiry, please stay on the line and the next available representative will assist you.',
+      'Thank you for calling Meridian Bank customer service. Our office hours have recently changed, so please note that representatives are now available from seven in the morning until nine at night, seven days a week. For account balance and recent transactions, press one. To report a lost or stolen card, press two, and a temporary hold will be placed on the account immediately. To speak with a representative about a loan or mortgage inquiry, press three. For any other inquiry, please stay on the line and the next available representative will assist you as soon as possible. We appreciate your patience during what may be a longer than usual wait time.',
     subQuestions: [
       {
         question: 'What kind of business most likely recorded this message?',
@@ -794,7 +795,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['先読み'],
     keyVocabWords: ['orientation', 'supervisor', 'mentor'],
     script:
-      "Good morning, and welcome to your first day of orientation. Over the next two days, you'll learn about our company policies, meet your department supervisor, and complete a few required training modules. Please keep your employee badge visible at all times, and don't hesitate to ask your mentor if you have any questions.",
+      "Good morning, and welcome to your first day of orientation. Over the next two days, you'll learn about our company policies, meet your department supervisor, and complete a few required training modules covering safety procedures and workplace conduct. On the first afternoon, you'll also get a short tour of the building, including the break rooms, the parking garage, and the emergency exits on each floor. Please keep your employee badge visible at all times, since security staff may ask to see it before allowing you into certain restricted areas. Don't hesitate to ask your mentor if you have any questions, either during orientation or in the weeks after you settle into your role.",
     subQuestions: [
       {
         question: 'Who is this talk intended for?',
@@ -835,7 +836,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
     tags: ['数字・時刻'],
     keyVocabWords: ['commute'],
     script:
-      "Good morning, commuters. Traffic on the downtown expressway is moving slowly this morning due to ongoing construction near exit seven. Drivers should expect delays of up to twenty minutes and may want to consider the riverside route as an alternative. We'll have another update in thirty minutes.",
+      "Good morning, commuters. Traffic on the downtown expressway is moving slowly this morning due to ongoing construction near exit seven, where crews are repairing a section of guardrail damaged in last week's storm. Drivers should expect delays of up to twenty minutes in that area and may want to consider the riverside route as an alternative, although that road also tends to get busy closer to nine. Public transit appears to be running on schedule this morning, so commuters near a bus or train line may want to consider leaving the car at home today. We'll have another update in thirty minutes with the latest conditions.",
     subQuestions: [
       {
         question: 'What is this report mainly about?',
