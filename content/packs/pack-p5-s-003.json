@@ -9,7 +9,7 @@
       730,
       860
     ],
-    "sizeBytes": 52421
+    "sizeBytes": 58132
   },
   "questions": [
     {
@@ -31,22 +31,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "is"
+          "text": "were"
         },
         {
           "key": "B",
-          "text": "are"
-        },
-        {
-          "key": "C",
           "text": "be"
         },
         {
+          "key": "C",
+          "text": "is"
+        },
+        {
           "key": "D",
-          "text": "were"
+          "text": "are"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "主語は\"Each of the regional managers\"で、Eachが主語の核となるため単数扱い。isが正しい。managersにつられてareを選ぶのは典型的な誤り。",
       "translation": "Bramwell Logisticsの地域マネージャーは、それぞれ四半期ごとに更新された資格記録を提出することが求められている。"
     },
@@ -69,23 +69,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "have"
-        },
-        {
-          "key": "B",
           "text": "was"
         },
         {
+          "key": "B",
+          "text": "have"
+        },
+        {
           "key": "C",
-          "text": "is"
+          "text": "has"
         },
         {
           "key": "D",
-          "text": "has"
+          "text": "is"
         }
       ],
-      "answer": "A",
-      "explanation": "\"A number of + 複数名詞\"は複数扱い（\"the number of\"は単数扱いと区別する）。expensesが主語の中心なのでhaveが正しい。",
+      "answer": "B",
+      "explanation": "\"A number of + 複数名詞\"は複数扱い（\"the number of\"は単数扱いと区別する）。expensesが主語の中心なのでhaveが正しい。was（単数過去）・has（単数現在完了）・is（単数現在）は複数現在完了ではなく、この文の主語・時制と一致しない。",
       "translation": "Halden & Coleでの予期しない出費の数々が、新製品ラインの発売を遅らせた。"
     },
     {
@@ -107,23 +107,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "were"
-        },
-        {
-          "key": "B",
-          "text": "has"
-        },
-        {
-          "key": "C",
           "text": "have"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "are"
+        },
+        {
+          "key": "C",
+          "text": "were"
+        },
+        {
+          "key": "D",
+          "text": "has"
         }
       ],
-      "answer": "B",
-      "explanation": "\"The number of + 複数名詞\"は単数扱い。主語の核はThe numberなのでhasが正しい。",
+      "answer": "D",
+      "explanation": "\"The number of + 複数名詞\"は単数扱い。主語の核はThe numberなのでhasが正しい。have（複数現在完了）・are（複数現在）・were（複数過去）は単数現在完了ではなく、この文の主語・時制と一致しない。",
       "translation": "Voss Interactiveがその地域で運営する支店数は、2020年以降着実に増加している。"
     },
     {
@@ -145,23 +145,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "was"
-        },
-        {
-          "key": "B",
           "text": "has"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "were"
+        },
+        {
+          "key": "C",
+          "text": "was"
         },
         {
           "key": "D",
           "text": "is"
         }
       ],
-      "answer": "C",
-      "explanation": "\"Neither A nor B\"では動詞はBに一致する。ここでのBは複数のsubcontractorsなのでwereが正しい。",
+      "answer": "B",
+      "explanation": "\"Neither A nor B\"では動詞はBに一致する。ここでのBは複数のsubcontractorsなのでwereが正しい。has（単数現在完了）・was（単数過去）・is（単数現在）は複数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "業者もMarchetti Groupと組む2社の下請け業者も、価格を下げることに前向きではなかった。"
     },
     {
@@ -183,23 +183,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "were"
-        },
-        {
-          "key": "B",
           "text": "are"
         },
         {
+          "key": "B",
+          "text": "was"
+        },
+        {
           "key": "C",
-          "text": "have been"
+          "text": "were"
         },
         {
           "key": "D",
-          "text": "was"
+          "text": "have been"
         }
       ],
-      "answer": "D",
-      "explanation": "\"Every + 単数名詞\"は単数扱い。assetが単数なのでwasが正しい。",
+      "answer": "B",
+      "explanation": "\"Every + 単数名詞\"は単数扱い。assetが単数なのでwasが正しい。are（複数現在）・were（複数過去）・have been（複数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "Calder Ridge Holdingsが実施した監査に記載されたすべての資産は、合併が確定する前に検査された。"
     },
     {
@@ -237,7 +237,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "\"Neither A nor B\"では動詞はBに一致する。his assistantは単数なのでwasが正しい。",
+      "explanation": "\"Neither A nor B\"では動詞はBに一致する。his assistantは単数なのでwasが正しい。have been（複数現在完了）・were（複数過去）・are（複数現在）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "ダニエル・ウィットフィールド氏も彼のアシスタントも、シャトルの時刻表が変更されたことに気づいていなかった。"
     },
     {
@@ -263,19 +263,19 @@
         },
         {
           "key": "B",
-          "text": "have been"
+          "text": "were"
         },
         {
           "key": "C",
-          "text": "is"
+          "text": "have been"
         },
         {
           "key": "D",
-          "text": "were"
+          "text": "is"
         }
       ],
-      "answer": "C",
-      "explanation": "\"A, along with B\"の場合、動詞はAに一致する。A reportが主語の核となる単数名詞なのでisが正しい。",
+      "answer": "D",
+      "explanation": "\"A, along with B\"の場合、動詞はAに一致する。A reportが主語の核となる単数名詞なのでisが正しい。are（複数現在）・were（複数過去）・have been（複数現在完了）は単数現在ではなく、この文の主語・時制と一致しない。",
       "translation": "都市部の住居費に関する報告書は、Northfield Instrumentsによる地域調査とともに、来月公開される予定だ。"
     },
     {
@@ -297,27 +297,27 @@
       "choices": [
         {
           "key": "A",
-          "text": "have been"
-        },
-        {
-          "key": "B",
           "text": "was"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "were"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "are"
+        },
+        {
+          "key": "D",
+          "text": "have been"
         }
       ],
-      "answer": "B",
-      "explanation": "\"Everyone\"は常に単数扱い。wasが正しい。",
+      "answer": "A",
+      "explanation": "\"Everyone\"は常に単数扱い。wasが正しい。were（複数過去）・are（複数現在）・have been（複数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "Delacroix Partnersの報告書の付録作成に関わった全員が、数値の再確認を求められた。"
     },
     {
-      "id": "part5-redundancy",
+      "id": "part5-modernization",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -326,33 +326,33 @@
       ],
       "keyVocab": [
         {
-          "word": "redundancy",
-          "sense": "人員整理",
+          "word": "modernization",
+          "sense": "近代化",
           "freqRank": "B"
         }
       ],
-      "question": "The percentage of staff affected by the redundancy plan at Osgood Manufacturing ___ expected to reach twelve percent.",
+      "question": "The percentage of budget allocated to the modernization plan at Osgood Manufacturing ___ expected to reach twelve percent.",
       "choices": [
         {
           "key": "A",
-          "text": "are"
-        },
-        {
-          "key": "B",
-          "text": "is"
-        },
-        {
-          "key": "C",
           "text": "were"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "have been"
+        },
+        {
+          "key": "C",
+          "text": "is"
+        },
+        {
+          "key": "D",
+          "text": "are"
         }
       ],
-      "answer": "B",
-      "explanation": "\"The percentage of + 複数名詞\"は単数扱い。The percentageが主語の核なのでisが正しい。",
-      "translation": "Osgood Manufacturingでの人員整理計画の影響を受ける従業員の割合は、12パーセントに達すると見込まれている。"
+      "answer": "C",
+      "explanation": "\"The percentage of + 複数名詞相当\"は単数扱い。The percentageが主語の核なのでisが正しい。were（複数過去）・have been（複数現在完了）・are（複数現在）は単数現在ではなく、この文の主語・時制と一致しない。",
+      "translation": "Osgood Manufacturingでの近代化計画に割り当てられた予算の割合は、12パーセントに達すると見込まれている。"
     },
     {
       "id": "part5-stockpile",
@@ -373,23 +373,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "are"
+          "text": "is"
         },
         {
           "key": "B",
-          "text": "has been"
-        },
-        {
-          "key": "C",
           "text": "was"
         },
         {
+          "key": "C",
+          "text": "has been"
+        },
+        {
           "key": "D",
-          "text": "is"
+          "text": "are"
         }
       ],
-      "answer": "A",
-      "explanation": "\"Either A or B\"では動詞はBに一致する。ここでのBは複数のsupervisorsなのでareが正しい。",
+      "answer": "D",
+      "explanation": "\"Either A or B\"では動詞はBに一致する。ここでのBは複数のsupervisorsなのでareが正しい。is（単数現在）・was（単数過去）・has been（単数現在完了）は複数現在ではなく、この文の主語・時制と一致しない。",
       "translation": "Rennick Data Systemsでは、倉庫管理者かあるいは2名の交代勤務監督者のいずれかが在庫数の確認に責任を負う。"
     },
     {
@@ -411,23 +411,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "have been"
-        },
-        {
-          "key": "B",
           "text": "is"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "are"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "were"
+        },
+        {
+          "key": "D",
+          "text": "have been"
         }
       ],
-      "answer": "B",
-      "explanation": "\"A series of + 複数名詞\"は単数扱い。A seriesが主語の核なのでisが正しい。",
+      "answer": "A",
+      "explanation": "\"A series of + 複数名詞\"は単数扱い。A seriesが主語の核なのでisが正しい。are（複数現在）・were（複数過去）・have been（複数現在完了）は単数現在ではなく、この文の主語・時制と一致しない。",
       "translation": "Thorncastle Financialが保有する一連の複雑な金融派生商品は、外部監査人による審査を受けている。"
     },
     {
@@ -441,7 +441,7 @@
       "keyVocab": [
         {
           "word": "network",
-          "sense": "ネットワーク",
+          "sense": "ネットワーク（回線・人脈）",
           "freqRank": "S"
         }
       ],
@@ -453,11 +453,11 @@
         },
         {
           "key": "B",
-          "text": "were"
+          "text": "are"
         },
         {
           "key": "C",
-          "text": "are"
+          "text": "were"
         },
         {
           "key": "D",
@@ -465,7 +465,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "主語の核は\"The network\"（単数の集合名詞）。hasが正しい。",
+      "explanation": "主語の核は\"The network\"（単数の集合名詞）。hasが正しい。have（複数現在完了）・are（複数現在）・were（複数過去）は単数現在完了ではなく、この文の主語・時制と一致しない。",
       "translation": "Baywater Consultingがこの10年で築いてきた人脈は、はるかに多様になった。"
     },
     {
@@ -487,11 +487,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "is"
+          "text": "have been"
         },
         {
           "key": "B",
-          "text": "were"
+          "text": "is"
         },
         {
           "key": "C",
@@ -499,11 +499,11 @@
         },
         {
           "key": "D",
-          "text": "have been"
+          "text": "were"
         }
       ],
-      "answer": "A",
-      "explanation": "\"Every + 単数名詞\"は単数扱い。batchが単数なのでisが正しい。",
+      "answer": "B",
+      "explanation": "\"Every + 単数名詞\"は単数扱い。batchが単数なのでisが正しい。have been（複数現在完了）・are（複数現在）・were（複数過去）は単数現在ではなく、この文の主語・時制と一致しない。",
       "translation": "Iversen Textilesで生産される織物のロットはそれぞれ、出荷前に耐久性の検査を受ける。"
     },
     {
@@ -525,23 +525,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "have"
+          "text": "were"
         },
         {
           "key": "B",
-          "text": "is"
+          "text": "have"
         },
         {
           "key": "C",
-          "text": "are"
+          "text": "is"
         },
         {
           "key": "D",
-          "text": "were"
+          "text": "are"
         }
       ],
-      "answer": "B",
-      "explanation": "\"A committee of + 複数名詞\"は単数の集合体扱い。A committeeが主語の核なのでisが正しい。",
+      "answer": "C",
+      "explanation": "\"A committee of + 複数名詞\"は単数の集合体扱い。A committeeが主語の核なのでisが正しい。were（複数過去）・have（複数現在完了）・are（複数現在）は単数現在ではなく、この文の主語・時制と一致しない。",
       "translation": "清算を監督する5名の取締役から成る委員会は、30日以内に報告する見込みだ。"
     },
     {
@@ -563,23 +563,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "has been"
+          "text": "were"
         },
         {
           "key": "B",
-          "text": "is"
-        },
-        {
-          "key": "C",
           "text": "was"
         },
         {
+          "key": "C",
+          "text": "has been"
+        },
+        {
           "key": "D",
-          "text": "were"
+          "text": "is"
         }
       ],
-      "answer": "D",
-      "explanation": "主語はThe findings（複数形）。wereが正しい。",
+      "answer": "A",
+      "explanation": "主語はThe findings（複数形）。wereが正しい。was（単数過去）・has been（単数現在完了）・is（単数現在）は複数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "検査官がその古い倉庫の閉鎖を決めるに至った所見は、長い報告書に文書化されている。"
     },
     {
@@ -601,11 +601,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "was"
+          "text": "had"
         },
         {
           "key": "B",
-          "text": "had"
+          "text": "has"
         },
         {
           "key": "C",
@@ -613,10 +613,10 @@
         },
         {
           "key": "D",
-          "text": "has"
+          "text": "was"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "過去のある時点（appraisal system was introduced）よりさらに前の完了を表すため過去完了(had lost)。hadが正しい。",
       "translation": "新しい評価制度が導入される頃には、Marlowe & Vanceはすでに3人のシニアマネージャーを失っていた。"
     },
@@ -639,11 +639,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "will have"
+          "text": "has"
         },
         {
           "key": "B",
-          "text": "has"
+          "text": "had"
         },
         {
           "key": "C",
@@ -651,11 +651,11 @@
         },
         {
           "key": "D",
-          "text": "had"
+          "text": "will have"
         }
       ],
-      "answer": "A",
-      "explanation": "未来のある時点までの完了を表す未来完了(will have traveled)。will haveが正しい。",
+      "answer": "D",
+      "explanation": "未来のある時点までの完了を表す未来完了(will have traveled)。will haveが正しい。has（単数現在完了）・had（過去完了）・was（単数過去）は未来完了ではなく、この文の主語・時制と一致しない。",
       "translation": "来週金曜日までには、Sundgren Aerospaceからの配送分は4つの異なる港を経由していることになる。"
     },
     {
@@ -677,11 +677,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "has"
+          "text": "had"
         },
         {
           "key": "B",
-          "text": "had"
+          "text": "has"
         },
         {
           "key": "C",
@@ -692,8 +692,8 @@
           "text": "have"
         }
       ],
-      "answer": "B",
-      "explanation": "\"until last year\"という過去の基準点より前の完了を表す過去完了。hadが正しい。",
+      "answer": "A",
+      "explanation": "\"until last year\"という過去の基準点より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。",
       "translation": "Castellan Foodsは昨年までセレブリティシェフによる推薦の声を一度も受けたことがなかった。"
     },
     {
@@ -715,7 +715,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "have"
+          "text": "had"
         },
         {
           "key": "B",
@@ -723,15 +723,15 @@
         },
         {
           "key": "C",
-          "text": "had"
+          "text": "was"
         },
         {
           "key": "D",
-          "text": "was"
+          "text": "have"
         }
       ],
-      "answer": "C",
-      "explanation": "\"before the market shifted\"（市場が変動する前）という過去の基準点より前の完了。hadが正しい。",
+      "answer": "A",
+      "explanation": "\"before the market shifted\"（市場が変動する前）という過去の基準点より前の完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。",
       "translation": "アナリストは、Whitmore Realtyが市場が変動するかなり前に不動産評価を完了していたと考えている。"
     },
     {
@@ -761,15 +761,15 @@
         },
         {
           "key": "C",
-          "text": "was"
+          "text": "have"
         },
         {
           "key": "D",
-          "text": "have"
+          "text": "was"
         }
       ],
       "answer": "A",
-      "explanation": "\"Since ~\"（〜以来）は現在完了とともに使う。hasが正しい。",
+      "explanation": "\"Since ~\"（〜以来）は現在完了とともに使う。hasが正しい。had（過去完了）・have（複数現在完了）・was（単数過去）は単数現在完了ではなく、この文の主語・時制と一致しない。",
       "translation": "その提携会社を買収して以来、Kestrel Analyticsは従業員数をほぼ40パーセント増やしてきた。"
     },
     {
@@ -791,11 +791,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "has"
+          "text": "had"
         },
         {
           "key": "B",
-          "text": "had"
+          "text": "have"
         },
         {
           "key": "C",
@@ -803,7 +803,7 @@
         },
         {
           "key": "D",
-          "text": "have"
+          "text": "has"
         }
       ],
       "answer": "C",
@@ -833,7 +833,7 @@
         },
         {
           "key": "B",
-          "text": "have"
+          "text": "has"
         },
         {
           "key": "C",
@@ -841,11 +841,11 @@
         },
         {
           "key": "D",
-          "text": "has"
+          "text": "have"
         }
       ],
       "answer": "A",
-      "explanation": "\"by the time the storm reached the coast\"より前の完了を表す過去完了。hadが正しい。",
+      "explanation": "\"by the time the storm reached the coast\"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。",
       "translation": "嵐が沿岸に到達する頃には、Drayton Freightはすでに2件の荷物の経路を変更していた。"
     },
     {
@@ -859,7 +859,7 @@
       "keyVocab": [
         {
           "word": "campaign",
-          "sense": "キャンペーン",
+          "sense": "キャンペーン（宣伝活動）",
           "freqRank": "S"
         }
       ],
@@ -867,23 +867,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "was"
-        },
-        {
-          "key": "B",
-          "text": "has"
-        },
-        {
-          "key": "C",
           "text": "have"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "had"
+        },
+        {
+          "key": "C",
+          "text": "has"
+        },
+        {
+          "key": "D",
+          "text": "was"
         }
       ],
-      "answer": "D",
-      "explanation": "\"before this year's controversy\"より前の完了を表す過去完了。hadが正しい。",
+      "answer": "B",
+      "explanation": "\"before this year's controversy\"より前の完了を表す過去完了。hadが正しい。have（複数現在完了）・has（単数現在完了）・was（単数過去）は過去完了ではなく、この文の主語・時制と一致しない。",
       "translation": "Amberline Mediaは、今年の物議を醸す出来事より前の10年以上にわたり、似たようなキャンペーンを行ってきていた。"
     },
     {
@@ -905,23 +905,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "have"
-        },
-        {
-          "key": "B",
-          "text": "has"
-        },
-        {
-          "key": "C",
           "text": "was"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "have"
+        },
+        {
+          "key": "C",
           "text": "had"
+        },
+        {
+          "key": "D",
+          "text": "has"
         }
       ],
-      "answer": "D",
-      "explanation": "\"before the scandal broke\"より前の完了を表す過去完了。hadが正しい。",
+      "answer": "C",
+      "explanation": "\"before the scandal broke\"より前の完了を表す過去完了。hadが正しい。was（単数過去）・have（複数現在完了）・has（単数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。",
       "translation": "調査官は、スキャンダルが発覚するより前の数年間、取締役会が縁故主義の兆候を見過ごしていたと結論づけた。"
     },
     {
@@ -943,23 +943,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "had"
+          "text": "has"
         },
         {
           "key": "B",
-          "text": "have"
-        },
-        {
-          "key": "C",
           "text": "was"
         },
         {
+          "key": "C",
+          "text": "have"
+        },
+        {
           "key": "D",
-          "text": "has"
+          "text": "had"
         }
       ],
-      "answer": "A",
-      "explanation": "\"By the time collections began\"より前の完了を表す過去完了。hadが正しい。",
+      "answer": "D",
+      "explanation": "\"By the time collections began\"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。",
       "translation": "回収が始まる頃には、複数の入居者はすでに賃貸料の支払いが滞っていた。"
     },
     {
@@ -981,11 +981,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "will have"
+          "text": "has"
         },
         {
           "key": "B",
-          "text": "has"
+          "text": "had"
         },
         {
           "key": "C",
@@ -993,10 +993,10 @@
         },
         {
           "key": "D",
-          "text": "had"
+          "text": "will have"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "未来のある時点までの完了を表す未来完了。will haveが正しい。",
       "translation": "彼女が研究休暇から戻る頃には、エレナ・コワルスキー氏はまるまる1年間オフィスを離れていることになる。"
     },
@@ -1019,7 +1019,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "had"
+          "text": "was"
         },
         {
           "key": "B",
@@ -1027,15 +1027,15 @@
         },
         {
           "key": "C",
-          "text": "was"
+          "text": "had"
         },
         {
           "key": "D",
           "text": "has"
         }
       ],
-      "answer": "A",
-      "explanation": "\"before the new manager arrived\"より前の完了を表す過去完了。hadが正しい。",
+      "answer": "C",
+      "explanation": "\"before the new manager arrived\"より前の完了を表す過去完了。hadが正しい。was（単数過去）・have（複数現在完了）・has（単数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。",
       "translation": "新しいマネージャーが着任する前に、サポートチームはすでに保留中の問い合わせ一覧のほとんどを解消していた。"
     },
     {
@@ -1057,23 +1057,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "had"
-        },
-        {
-          "key": "B",
           "text": "has"
         },
         {
+          "key": "B",
+          "text": "had"
+        },
+        {
           "key": "C",
-          "text": "did"
+          "text": "was"
         },
         {
           "key": "D",
-          "text": "was"
+          "text": "did"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。",
+      "answer": "C",
+      "explanation": "空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "サミュエル・オカフォル氏が提出した苦情申し立ては、公聴会の前に法務チームによって注意深く見直された。"
     },
     {
@@ -1111,7 +1111,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "空所の後にrenegotiated（過去分詞）が続き、covenantは「再交渉される」対象なので受動態が正しい。",
+      "explanation": "空所の後にrenegotiated（過去分詞）が続き、covenantは「再交渉される」対象なので受動態が正しい。did（過去（doの過去形））・has（単数現在完了）・had（過去完了）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "ナオミ・フジタ氏が返済スケジュールについて懸念を示した後、その融資契約条項は再交渉された。"
     },
     {
@@ -1149,7 +1149,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "空所の後にfiled（過去分詞）が続き、disputeは「提出される」対象なので受動態が正しい。",
+      "explanation": "空所の後にfiled（過去分詞）が続き、disputeは「提出される」対象なので受動態が正しい。had（過去完了）・did（過去（doの過去形））・has（単数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "数か月にわたる調査の後、その仕入先に対して正式な異議申し立てが提出された。"
     },
     {
@@ -1171,7 +1171,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "had"
+          "text": "were"
         },
         {
           "key": "B",
@@ -1183,11 +1183,11 @@
         },
         {
           "key": "D",
-          "text": "were"
+          "text": "had"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後にraised（過去分詞）が続き、Allegations（複数）は「提起される」対象なので受動態(were raised)が正しい。",
+      "answer": "A",
+      "explanation": "空所の後にraised（過去分詞）が続き、Allegations（複数）は「提起される」対象なので受動態(were raised)が正しい。did（過去（doの過去形））・have（複数現在完了）・had（過去完了）は複数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "ビクトル・アラルコン氏の委員会での証言中に、重大な違反の疑惑が提起された。"
     },
     {
@@ -1209,11 +1209,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "did"
+          "text": "have"
         },
         {
           "key": "B",
-          "text": "have"
+          "text": "had"
         },
         {
           "key": "C",
@@ -1221,11 +1221,11 @@
         },
         {
           "key": "D",
-          "text": "had"
+          "text": "did"
         }
       ],
       "answer": "C",
-      "explanation": "空所の後にheld（過去分詞）が続き、fundsは「保管される」対象なので受動態(were held)が正しい。",
+      "explanation": "空所の後にheld（過去分詞）が続き、fundsは「保管される」対象なので受動態(were held)が正しい。have（複数現在完了）・had（過去完了）・did（過去（doの過去形））は複数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "残りの資金は、両当事者が最終合意書に署名するまでエスクロー口座に保管されていた。"
     },
     {
@@ -1247,11 +1247,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "did"
+          "text": "was"
         },
         {
           "key": "B",
-          "text": "was"
+          "text": "did"
         },
         {
           "key": "C",
@@ -1262,8 +1262,8 @@
           "text": "had"
         }
       ],
-      "answer": "B",
-      "explanation": "空所の後にserved（過去分詞）が続き、Ingrid Solbergは「送達される」対象なので受動態が正しい。",
+      "answer": "A",
+      "explanation": "空所の後にserved（過去分詞）が続き、Ingrid Solbergは「送達される」対象なので受動態が正しい。did（過去（doの過去形））・has（単数現在完了）・had（過去完了）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "複数回の家賃支払いを怠った後、イングリッド・ソルベルグ氏には立ち退き通知が送達された。"
     },
     {
@@ -1285,23 +1285,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "did"
-        },
-        {
-          "key": "B",
           "text": "had"
         },
         {
+          "key": "B",
+          "text": "was"
+        },
+        {
           "key": "C",
-          "text": "has"
+          "text": "did"
         },
         {
           "key": "D",
-          "text": "was"
+          "text": "has"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。",
+      "answer": "B",
+      "explanation": "空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。had（過去完了）・did（過去（doの過去形））・has（単数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "内部監査が不正を発見した後、レナータ・シルバ氏に社内通知が発行された。"
     },
     {
@@ -1323,23 +1323,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "did"
-        },
-        {
-          "key": "B",
           "text": "has"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "had"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "was"
+        },
+        {
+          "key": "D",
+          "text": "did"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後にplaced（過去分詞）が続き、companyは「置かれる」対象なので受動態が正しい。",
+      "answer": "C",
+      "explanation": "空所の後にplaced（過去分詞）が続き、companyは「置かれる」対象なので受動態が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "ジョナス・フェルドマン氏がCEOを辞任した直後、その会社は管財人管理下に置かれた。"
     },
     {
@@ -1361,11 +1361,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "had"
+          "text": "has"
         },
         {
           "key": "B",
-          "text": "did"
+          "text": "had"
         },
         {
           "key": "C",
@@ -1373,11 +1373,11 @@
         },
         {
           "key": "D",
-          "text": "has"
+          "text": "did"
         }
       ],
       "answer": "C",
-      "explanation": "空所の後にapproved（過去分詞）が続き、timelineは「承認される」対象なので受動態が正しい。",
+      "explanation": "空所の後にapproved（過去分詞）が続き、timelineは「承認される」対象なので受動態が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "審査が完了するまで合併を遅らせる、修正後のスケジュールが承認された。"
     },
     {
@@ -1399,11 +1399,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "had"
+          "text": "has"
         },
         {
           "key": "B",
-          "text": "did"
+          "text": "had"
         },
         {
           "key": "C",
@@ -1411,11 +1411,11 @@
         },
         {
           "key": "D",
-          "text": "has"
+          "text": "did"
         }
       ],
       "answer": "C",
-      "explanation": "空所の後にissued（過去分詞）が続き、statementは「発行される」対象なので受動態が正しい。",
+      "explanation": "空所の後にissued（過去分詞）が続き、statementは「発行される」対象なので受動態が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "内部審査の後、報告ミスに関連してアイシャ・カリム氏の名を挙げる声明が発表された。"
     },
     {
@@ -1437,23 +1437,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "had"
+          "text": "did"
         },
         {
           "key": "B",
-          "text": "were"
-        },
-        {
-          "key": "C",
           "text": "have"
         },
         {
+          "key": "C",
+          "text": "had"
+        },
+        {
           "key": "D",
-          "text": "did"
+          "text": "were"
         }
       ],
-      "answer": "B",
-      "explanation": "空所の後にwithheld（過去分詞）が続き、sections（複数）は「差し控えられる」対象なので受動態(were withheld)が正しい。",
+      "answer": "D",
+      "explanation": "空所の後にwithheld（過去分詞）が続き、sections（複数）は「差し控えられる」対象なので受動態(were withheld)が正しい。did（過去（doの過去形））・have（複数現在完了）・had（過去完了）は複数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "プロジェクトの節目を記述したいくつかの箇所は、報告書の公開前に監査人の指示により差し控えられた。"
     },
     {
@@ -1475,23 +1475,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "has"
-        },
-        {
-          "key": "B",
-          "text": "did"
-        },
-        {
-          "key": "C",
           "text": "had"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "was"
+        },
+        {
+          "key": "C",
+          "text": "did"
+        },
+        {
+          "key": "D",
+          "text": "has"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後にreferred（過去分詞）が続き、disputeは「付託される」対象なので受動態が正しい。",
+      "answer": "B",
+      "explanation": "空所の後にreferred（過去分詞）が続き、disputeは「付託される」対象なので受動態が正しい。had（過去完了）・did（過去（doの過去形））・has（単数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。",
       "translation": "リアム・ブラットン氏と請負業者が合意に至らなかったため、その紛争は裁定に付託された。"
     },
     {
@@ -1517,18 +1517,18 @@
         },
         {
           "key": "B",
-          "text": "sustainable"
+          "text": "sustain"
         },
         {
           "key": "C",
-          "text": "sustainability"
+          "text": "sustainable"
         },
         {
           "key": "D",
-          "text": "sustain"
+          "text": "sustainability"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "\"as ___ as\"の間には形容詞が入る。sustainableが正しい。sustainabilityは名詞、sustainablyは副詞、sustainは動詞原形で不適。",
       "translation": "ソフィア・マルケッティ氏が開発した新しい梱包は、以前のバージョンが主張していたほど持続可能ではない。"
     },
@@ -1551,7 +1551,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "scalable"
+          "text": "scale"
         },
         {
           "key": "B",
@@ -1559,14 +1559,14 @@
         },
         {
           "key": "C",
-          "text": "scalability"
+          "text": "scalable"
         },
         {
           "key": "D",
-          "text": "scale"
+          "text": "scalability"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "\"as ___ as\"の間には形容詞が入る。scalableが正しい。scalabilityは名詞、scale/scalingは動詞派生形で不適。",
       "translation": "トビアス・グリューン氏が提案したシステムは、業者が当初約束していたほど拡張性が高くない。"
     },
@@ -1593,18 +1593,18 @@
         },
         {
           "key": "B",
-          "text": "punctuality"
+          "text": "punctual"
         },
         {
           "key": "C",
-          "text": "punctual"
+          "text": "punctuality"
         },
         {
           "key": "D",
           "text": "punctually"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "\"as ___ as\"の間には形容詞が入る。punctualが正しい。punctuality/punctualnessは名詞、punctuallyは副詞で不適。",
       "translation": "ハナ・ノヴァーク氏の後任は、以前の配送ドライバーほど時間に正確ではない。"
     },
@@ -1631,7 +1631,7 @@
         },
         {
           "key": "B",
-          "text": "biodegrade"
+          "text": "biodegradably"
         },
         {
           "key": "C",
@@ -1639,7 +1639,7 @@
         },
         {
           "key": "D",
-          "text": "biodegradably"
+          "text": "biodegrade"
         }
       ],
       "answer": "C",
@@ -1665,15 +1665,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "generousness"
-        },
-        {
-          "key": "B",
           "text": "generosity"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "generously"
+        },
+        {
+          "key": "C",
+          "text": "generousness"
         },
         {
           "key": "D",
@@ -1703,22 +1703,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "extensive"
+          "text": "extensiveness"
         },
         {
           "key": "B",
-          "text": "extent"
-        },
-        {
-          "key": "C",
           "text": "extensively"
         },
         {
+          "key": "C",
+          "text": "extent"
+        },
+        {
           "key": "D",
-          "text": "extensiveness"
+          "text": "extensive"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "\"as ___ as\"の間には形容詞が入る。extensiveが正しい。extensivenessは名詞、extensivelyは副詞、extentは別の名詞で不適。",
       "translation": "今年の主力プランは、競合他社が最近の広告で主張しているほど手厚いものではない。"
     },
@@ -1745,15 +1745,15 @@
         },
         {
           "key": "B",
-          "text": "profitably"
+          "text": "profitability"
         },
         {
           "key": "C",
-          "text": "profit"
+          "text": "profitably"
         },
         {
           "key": "D",
-          "text": "profitability"
+          "text": "profit"
         }
       ],
       "answer": "A",
@@ -1779,22 +1779,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "warm"
-        },
-        {
-          "key": "B",
-          "text": "warmest"
-        },
-        {
-          "key": "C",
           "text": "warmth"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "warmly"
+        },
+        {
+          "key": "C",
+          "text": "warmest"
+        },
+        {
+          "key": "D",
+          "text": "warm"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "\"as ___ as\"の間には原級の形容詞が入る。warmが正しい。warmthは名詞、warmlyは副詞、warmestは最上級で不適。",
       "translation": "新しい支店でのおもてなしは、ファティマ・ラーマン氏が長年管理した中心街の店舗ほど温かみがない。"
     },
@@ -1817,22 +1817,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "diversity"
-        },
-        {
-          "key": "B",
-          "text": "diversely"
-        },
-        {
-          "key": "C",
           "text": "diverse"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "diversity"
+        },
+        {
+          "key": "C",
           "text": "diversify"
+        },
+        {
+          "key": "D",
+          "text": "diversely"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "\"as ___ as\"の間には形容詞が入る。diverseが正しい。diversityは名詞、diversifyは動詞、diverselyは副詞で不適。",
       "translation": "そのギフトショップの品揃えは、オリバー・サンドクヴィスト氏が仕入れを引き継ぐ前ほど多様ではない。"
     },
@@ -1855,22 +1855,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "heavily"
+          "text": "heavy"
         },
         {
           "key": "B",
-          "text": "heaviest"
-        },
-        {
-          "key": "C",
           "text": "heaviness"
         },
         {
+          "key": "C",
+          "text": "heavily"
+        },
+        {
           "key": "D",
-          "text": "heavy"
+          "text": "heaviest"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "\"as ___ as\"の間には原級の形容詞が入る。heavyが正しい。heavinessは名詞、heavilyは副詞、heaviestは最上級で不適。",
       "translation": "平日のその店の来客数は、週末の人出ほど多くない傾向にある。"
     },
@@ -1893,7 +1893,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "compatibility"
+          "text": "compatibly"
         },
         {
           "key": "B",
@@ -1901,7 +1901,7 @@
         },
         {
           "key": "C",
-          "text": "compatibly"
+          "text": "compatibility"
         },
         {
           "key": "D",

@@ -380,17 +380,17 @@ describe('generate dictation（M2・T-62）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('APIキー不要で40件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
+  it('APIキー不要で44件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
     const outputPath = join(dir, 'dictation-s.jsonl')
     const { code, output } = await run(['generate', 'dictation', outputPath], {})
     expect(code).toBe(0)
-    expect(output).toContain('40件')
+    expect(output).toContain('44件')
 
     const drafts = parseJsonl<{
       kind: string
       payload: { format: string; blanks: { index: number; answer: string }[] }
     }>(await readFile(outputPath, 'utf-8'))
-    expect(drafts).toHaveLength(40)
+    expect(drafts).toHaveLength(44)
     expect(drafts.every((d) => d.kind === 'dictation')).toBe(true)
     expect(drafts.every((d) => d.payload.blanks.length >= 1 && d.payload.blanks.length <= 3)).toBe(
       true,

@@ -58,7 +58,7 @@ export function shadowingQuestion(entry: ShadowingRawEntry, index: number): Ques
   const durationMs = estimateDurationMs(entry.script)
   return {
     id: entry.id,
-    part: 3,
+    part: entry.part,
     format: 'shadowing',
     difficulty: entry.difficulty,
     tags: entry.tags,
