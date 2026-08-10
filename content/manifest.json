@@ -200,6 +200,16 @@
       ],
       "sizeBytes": 153037,
       "hash": "13195947463e3e99"
+    },
+    {
+      "id": "pack-p2-s-003",
+      "title": "Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）",
+      "targetLevel": [
+        600,
+        600
+      ],
+      "sizeBytes": 101733,
+      "hash": "f1b49b2e8fb6184a"
     }
   ]
 }

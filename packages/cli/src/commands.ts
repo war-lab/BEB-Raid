@@ -50,6 +50,7 @@ import {
 import {
   buildPart2Drafts,
   buildPart2EntriesS2,
+  buildPart2EntriesS3,
   buildPart2Questions,
   validatePart2Questions,
 } from './part2Question.js'
@@ -106,6 +107,7 @@ const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
 const DEFAULT_VOCAB_S2_DRAFT_PATH = 'content/drafts/vocab-card-s2.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
+const DEFAULT_PART2_S3_DRAFT_PATH = 'content/drafts/part2-s3.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
 const DEFAULT_PART5_S3_DRAFT_PATH = 'content/drafts/part5-s3.jsonl'
@@ -174,6 +176,13 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     buildDrafts: () => buildPart2Drafts(buildPart2EntriesS2()),
     validate: validatePart2Questions,
     defaultPath: DEFAULT_PART2_S2_DRAFT_PATH,
+  },
+  // T-349: 平叙文・付加疑問・選択疑問（疑問文以外の出題形式）
+  audio_qa_s3: {
+    buildQuestions: () => buildPart2Questions(buildPart2EntriesS3()),
+    buildDrafts: () => buildPart2Drafts(buildPart2EntriesS3()),
+    validate: validatePart2Questions,
+    defaultPath: DEFAULT_PART2_S3_DRAFT_PATH,
   },
   text_blank: {
     buildQuestions: buildPart5Questions,
