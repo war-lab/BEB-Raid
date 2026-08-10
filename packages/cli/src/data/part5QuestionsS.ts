@@ -302,7 +302,7 @@ export const PART5_ENTRIES_S: Part5Entry[] = [
     ],
     answer: 'B',
     explanation:
-      'will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。D原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。',
+      'will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。notify原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。',
     translation: '従業員はメールで予定変更について通知される。',
     difficulty: 3,
   },
@@ -792,13 +792,13 @@ export const PART5_ENTRIES_S: Part5Entry[] = [
     question: 'The proposal ___ we submitted last week was finally approved.',
     choices: [
       { key: 'A', text: 'which' },
-      { key: 'B', text: 'whose' },
-      { key: 'C', text: 'who' },
-      { key: 'D', text: 'whom' },
+      { key: 'B', text: 'who' },
+      { key: 'C', text: 'whom' },
+      { key: 'D', text: 'where' },
     ],
     answer: 'A',
     explanation:
-      '先行詞proposal（物）を受ける目的格の関係代名詞whichが正しい（省略も可）。whose所有格、who/whomは人物を指す関係代名詞で、物を先行詞にはできない。',
+      '先行詞proposal（物）を受ける目的格の関係代名詞whichが正しい（省略も可）。who/whomは人物を指す関係代名詞、whereは場所を指す関係副詞で、いずれも物を先行詞にはできない。',
     translation: '先週提出した提案書がついに承認された。',
     difficulty: 3,
   },

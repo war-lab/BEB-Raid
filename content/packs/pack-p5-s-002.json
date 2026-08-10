@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 104101
+    "sizeBytes": 105241
   },
   "questions": [
     {
@@ -601,23 +601,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "compliant"
+          "text": "compliantly"
         },
         {
           "key": "B",
-          "text": "compliance"
+          "text": "compliant"
         },
         {
           "key": "C",
-          "text": "comply"
+          "text": "proprietary"
         },
         {
           "key": "D",
-          "text": "compliantly"
+          "text": "confidential"
         }
       ],
-      "answer": "A",
-      "explanation": "空所はbe動詞areの補語となる形容詞。compliantが正しい。complianceは名詞、complyは動詞、compliantlyは副詞で、補語の位置には合わない。",
+      "answer": "B",
+      "explanation": "空所はbe動詞areの補語となる形容詞。compliantが正しい。confidential（機密の）・proprietary（独自の）は形容詞だが意味が合わず、compliantlyは副詞で補語の位置には合わない。",
       "translation": "改訂された建築計画は今や防火基準に完全に準拠している。"
     },
     {
@@ -1551,23 +1551,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
+          "text": "who"
         },
         {
           "key": "B",
-          "text": "which"
+          "text": "when"
         },
         {
           "key": "C",
-          "text": "whose"
+          "text": "whom"
         },
         {
           "key": "D",
-          "text": "who"
+          "text": "which"
         }
       ],
-      "answer": "D",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞raisedが続く）。whomは目的格、whoseは所有格、whichは物を指す関係代名詞で、人物の主格には使えない。",
+      "answer": "A",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞raisedが続く）。whichは物を指す関係代名詞、whomは目的格、whenは時を指す関係副詞で、いずれも人物の主格には使えない。",
       "translation": "異議を唱えたその株主は投票に出席していなかった。"
     },
     {
@@ -1589,7 +1589,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
+          "text": "whoever"
         },
         {
           "key": "B",
@@ -1601,11 +1601,11 @@
         },
         {
           "key": "D",
-          "text": "whose"
+          "text": "whom"
         }
       ],
-      "answer": "A",
-      "explanation": "目的格の関係代名詞whomが正しい（the landlord evictedのevictedの目的語）。whoseは所有格、whichは物を指す関係代名詞、whereは場所を指す関係副詞で、いずれも合わない。",
+      "answer": "D",
+      "explanation": "目的格の関係代名詞whomが正しい（the landlord evictedのevictedの目的語）。whichは物を指す関係代名詞、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。",
       "translation": "大家が立ち退かせたその借家人は苦情を申し立てた。"
     },
     {
@@ -1627,15 +1627,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "who"
+          "text": "which"
         },
         {
           "key": "B",
-          "text": "whom"
+          "text": "whoever"
         },
         {
           "key": "C",
-          "text": "which"
+          "text": "when"
         },
         {
           "key": "D",
@@ -1643,7 +1643,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにproperty=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにproperty=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whenは時を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも所有関係を表せない。",
       "translation": "所有物件が損傷したその大家は保険金を請求した。"
     },
     {
@@ -1665,7 +1665,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
+          "text": "whom"
         },
         {
           "key": "B",
@@ -1677,11 +1677,11 @@
         },
         {
           "key": "D",
-          "text": "whom"
+          "text": "whoever"
         }
       ],
       "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞submittedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞submittedが続く）。whichは物を指し、whomは目的格、whoeverは不特定の人物を指す語で特定のapplicantを指す先行詞には合わない。",
       "translation": "最も優れたポートフォリオを提出した応募者はすぐに採用された。"
     },
     {
@@ -1745,19 +1745,19 @@
         },
         {
           "key": "B",
-          "text": "who"
-        },
-        {
-          "key": "C",
           "text": "which"
         },
         {
+          "key": "C",
+          "text": "when"
+        },
+        {
           "key": "D",
-          "text": "whom"
+          "text": "who"
         }
       ],
       "answer": "A",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにteam=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにteam=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whoは人物を直接指す主格、whenは時を指す関係副詞で、いずれも所有関係を表せない。",
       "translation": "チームが遅延の原因となったその下請け業者は交代させられた。"
     },
     {
@@ -1783,7 +1783,7 @@
         },
         {
           "key": "B",
-          "text": "whom"
+          "text": "whoever"
         },
         {
           "key": "C",
@@ -1795,7 +1795,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞filedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞filedが続く）。whichは物を指し、whoseは所有格、whoeverは不特定の人物を指す語で特定のplaintiffを指す先行詞には合わない。",
       "translation": "訴訟を起こした原告は訴えを取り下げた。"
     },
     {
@@ -1817,7 +1817,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
+          "text": "whom"
         },
         {
           "key": "B",
@@ -1825,15 +1825,15 @@
         },
         {
           "key": "C",
-          "text": "whom"
+          "text": "whoever"
         },
         {
           "key": "D",
-          "text": "where"
+          "text": "when"
         }
       ],
-      "answer": "C",
-      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（the jury acquittedのacquittedの目的語）。whoseは所有格、whichは物を指す、whereは関係副詞で、いずれも合わない。",
+      "answer": "A",
+      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（the jury acquittedのacquittedの目的語）。whichは物を指し、whenは関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。",
       "translation": "陪審が無罪とした被告人は涙を流しながら法廷を後にした。"
     },
     {
@@ -1855,23 +1855,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
-        },
-        {
-          "key": "B",
           "text": "which"
         },
         {
+          "key": "B",
+          "text": "when"
+        },
+        {
           "key": "C",
-          "text": "who"
+          "text": "where"
         },
         {
           "key": "D",
-          "text": "whose"
+          "text": "who"
         }
       ],
-      "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞attendedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "answer": "D",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞attendedが続く）。whichは物を指し、when/whereはそれぞれ時・場所を指す関係副詞で、いずれも人物の主格には使えない。",
       "translation": "式典に出席したその上司は短いスピーチを行った。"
     },
     {
@@ -1901,15 +1901,15 @@
         },
         {
           "key": "C",
-          "text": "which"
+          "text": "when"
         },
         {
           "key": "D",
-          "text": "who"
+          "text": "which"
         }
       ],
       "answer": "B",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにlogo=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにlogo=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whomは目的格、whenは時を指す関係副詞で、いずれも所有関係を表せない。",
       "translation": "ロゴが全ての横断幕に載っていたそのスポンサーがイベント全体に資金を提供した。"
     },
     {
@@ -1969,7 +1969,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "which"
+          "text": "whoever"
         },
         {
           "key": "B",
@@ -1985,7 +1985,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（we interviewedのinterviewedの目的語）。whoseは所有格、whichは物を指す、whereは関係副詞で、いずれも合わない。",
+      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（we interviewedのinterviewedの目的語）。whoseは所有格、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。",
       "translation": "我々がインタビューしたその参加者は基調講演を称賛した。"
     },
     {
@@ -2011,7 +2011,7 @@
         },
         {
           "key": "B",
-          "text": "who"
+          "text": "whoever"
         },
         {
           "key": "C",
@@ -2023,7 +2023,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにRSVP=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにRSVP=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whomは目的格、whoeverは不特定の人物を指す語で所有関係を表せない。",
       "translation": "出欠の返信が遅れたその招待客は後方の席に案内された。"
     },
     {
@@ -2053,7 +2053,7 @@
         },
         {
           "key": "C",
-          "text": "where"
+          "text": "when"
         },
         {
           "key": "D",
@@ -2061,7 +2061,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞openedが続く）。whomは目的格、whoseは所有格、whereは場所を指す関係副詞で、いずれも主格の位置には使えない。",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞openedが続く）。whomは目的格、whoseは所有格、whenは時を指す関係副詞で、いずれも主格の位置には使えない。",
       "translation": "最新の店舗を開いた加盟店主は好調な売上を報告した。"
     },
     {
@@ -2083,23 +2083,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "which"
+          "text": "where"
         },
         {
           "key": "B",
-          "text": "whom"
-        },
-        {
-          "key": "C",
           "text": "who"
         },
         {
+          "key": "C",
+          "text": "which"
+        },
+        {
           "key": "D",
-          "text": "whose"
+          "text": "whoever"
         }
       ],
-      "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞manageが続く。personnelは人を表す集合名詞）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "answer": "B",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞manageが続く。personnelは人を表す集合名詞）。whichは物を指し、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも人物の主格には使えない。",
       "translation": "新しいシステムを管理する職員は特別な研修を受けた。"
     },
     {
@@ -2121,23 +2121,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
+          "text": "whoever"
         },
         {
           "key": "B",
-          "text": "which"
+          "text": "when"
         },
         {
           "key": "C",
-          "text": "whom"
+          "text": "who"
         },
         {
           "key": "D",
-          "text": "who"
+          "text": "which"
         }
       ],
-      "answer": "B",
-      "explanation": "先行詞headcount increase（物・事柄）を受ける主格の関係代名詞whichが正しい。who/whomは人物を指す関係代名詞、whoseは所有格で、物を先行詞にする主格には使えない。",
+      "answer": "D",
+      "explanation": "先行詞headcount increase（物・事柄）を受ける主格の関係代名詞whichが正しい。who/whoeverは人物を指す語、whenは時を指す関係副詞で、いずれも物を先行詞にする主格には使えない。",
       "translation": "皆を驚かせたその増員は先週発表された。"
     },
     {
@@ -2159,23 +2159,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "which"
+          "text": "when"
         },
         {
           "key": "B",
-          "text": "whom"
+          "text": "which"
         },
         {
           "key": "C",
-          "text": "whose"
+          "text": "whom"
         },
         {
           "key": "D",
-          "text": "who"
+          "text": "where"
         }
       ],
-      "answer": "A",
-      "explanation": "先行詞subsidiary（物・組織）を受ける主格の関係代名詞whichが正しい（後ろに動詞wasが続く）。who/whomは人物を指す関係代名詞、whoseは所有格で、物を先行詞にする主格には使えない。",
+      "answer": "B",
+      "explanation": "先行詞subsidiary（物・組織）を受ける主格の関係代名詞whichが正しい（後ろに動詞wasが続く）。whomは目的格、where/whenはそれぞれ場所・時を指す関係副詞で、いずれも物を先行詞にする主格には使えない。",
       "translation": "昨年買収されたその子会社は今では黒字である。"
     },
     {
@@ -2239,7 +2239,7 @@
         },
         {
           "key": "B",
-          "text": "whom"
+          "text": "whoever"
         },
         {
           "key": "C",
@@ -2251,7 +2251,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "先行詞retailer（組織・企業）を受ける主格の関係代名詞whichが正しい（後ろに動詞dominatesが続く）。whereは場所を指す関係副詞、whomは目的格、whoseは所有格で、いずれも主格の位置には使えない。",
+      "explanation": "先行詞retailer（組織・企業）を受ける主格の関係代名詞whichが正しい（後ろに動詞dominatesが続く）。whoseは所有格、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも主格の位置には使えない。",
       "translation": "オンライン市場を支配しているその小売業者は値下げを続けている。"
     },
     {
@@ -2273,11 +2273,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "who"
+          "text": "where"
         },
         {
           "key": "B",
-          "text": "whom"
+          "text": "which"
         },
         {
           "key": "C",
@@ -2285,11 +2285,11 @@
         },
         {
           "key": "D",
-          "text": "which"
+          "text": "when"
         }
       ],
       "answer": "C",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにprices=名詞が続き所有関係を示す。whoseは人・物どちらにも使える）。who/whomは人物を直接指す主格/目的格、whichは所有関係を単独では表せない。",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにprices=名詞が続き所有関係を示す。whoseは人・物どちらにも使える）。whichは所有関係を単独では表せず、where/whenはそれぞれ場所・時を指す関係副詞で、いずれも合わない。",
       "translation": "価格が最も低いその卸売業者はほとんどの地元店舗に供給している。"
     },
     {
@@ -2311,11 +2311,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "due to"
+          "text": "unless"
         },
         {
           "key": "B",
-          "text": "despite"
+          "text": "due to"
         },
         {
           "key": "C",
@@ -2323,11 +2323,11 @@
         },
         {
           "key": "D",
-          "text": "because of"
+          "text": "despite"
         }
       ],
       "answer": "C",
-      "explanation": "空所の後は節（the deficit continued to grow）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆（〜にもかかわらず）で合わない。",
+      "explanation": "空所の後は節（the deficit continued to grow）なので接続詞becauseが正しい。due toは名詞句が必要な前置詞、despiteは意味が逆（〜にもかかわらず）、unlessは条件（〜しない限り）で文意に合わない。",
       "translation": "赤字が拡大し続けたため、その部署は経費を削減した。"
     },
     {
@@ -2349,23 +2349,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
+          "text": "although"
         },
         {
           "key": "B",
-          "text": "because of"
+          "text": "because"
         },
         {
           "key": "C",
-          "text": "due to"
+          "text": "in spite of"
         },
         {
           "key": "D",
-          "text": "despite"
+          "text": "because of"
         }
       ],
-      "answer": "A",
-      "explanation": "空所の後は節（it had a budget surplus）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "answer": "B",
+      "explanation": "空所の後は節（it had a budget surplus）なので接続詞becauseが正しい。because of/in spite ofは名詞句が必要な前置詞、althoughは意味が逆（〜にもかかわらず）で合わない。",
       "translation": "今年は予算に余剰があったため、その会社は新しい設備に投資した。"
     },
     {
@@ -2463,23 +2463,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "unless"
+          "text": "since"
         },
         {
           "key": "B",
-          "text": "due to"
+          "text": "even though"
         },
         {
           "key": "C",
-          "text": "although"
+          "text": "despite"
         },
         {
           "key": "D",
-          "text": "because"
+          "text": "due to"
         }
       ],
-      "answer": "B",
-      "explanation": "空所の後は名詞句（air traffic congestion）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "D",
+      "explanation": "空所の後は名詞句（air traffic congestion）なので前置詞due toが正しい。despiteは意味が逆で名詞句には合うが文意が反転する。since/even thoughは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "航空交通の混雑のため、その便は遅延した。"
     },
     {
@@ -2505,19 +2505,19 @@
         },
         {
           "key": "B",
-          "text": "because of"
-        },
-        {
-          "key": "C",
           "text": "despite"
         },
         {
+          "key": "C",
+          "text": "even though"
+        },
+        {
           "key": "D",
-          "text": "due to"
+          "text": "owing to"
         }
       ],
       "answer": "A",
-      "explanation": "空所の後は節（the consignment lacked...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "explanation": "空所の後は節（the consignment lacked...）なので接続詞becauseが正しい。owing toは名詞句が必要な前置詞、despite/even thoughは意味が逆（〜にもかかわらず）で合わない。",
       "translation": "その委託貨物には適切な書類が欠けていたため、出荷は保留された。"
     },
     {
@@ -2543,19 +2543,19 @@
         },
         {
           "key": "B",
-          "text": "because of"
+          "text": "in spite of"
         },
         {
           "key": "C",
-          "text": "despite"
+          "text": "on account of"
         },
         {
           "key": "D",
-          "text": "due to"
+          "text": "unless"
         }
       ],
       "answer": "A",
-      "explanation": "空所の後は節（the shipment arrived...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "explanation": "空所の後は節（the shipment arrived...）なので接続詞becauseが正しい。on account ofは名詞句が必要な前置詞、in spite ofは意味が逆、unlessは条件で文意に合わない。",
       "translation": "出荷が3日遅れて到着したため、顧客は苦情を言った。"
     },
     {
@@ -2615,23 +2615,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
-        },
-        {
-          "key": "B",
-          "text": "although"
-        },
-        {
-          "key": "C",
           "text": "because of"
         },
         {
+          "key": "B",
+          "text": "because"
+        },
+        {
+          "key": "C",
+          "text": "despite"
+        },
+        {
           "key": "D",
-          "text": "unless"
+          "text": "even though"
         }
       ],
-      "answer": "C",
-      "explanation": "空所の後は名詞句（high overhead costs...）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "A",
+      "explanation": "空所の後は名詞句（high overhead costs...）なので前置詞because ofが正しい。despiteは意味が逆で文意が反転する。because/even thoughは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "都心部の高い諸経費のため、その会社はオフィスを移転した。"
     },
     {
@@ -2653,11 +2653,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "although"
+          "text": "because of"
         },
         {
           "key": "B",
-          "text": "because of"
+          "text": "since"
         },
         {
           "key": "C",
@@ -2665,11 +2665,11 @@
         },
         {
           "key": "D",
-          "text": "because"
+          "text": "in spite of"
         }
       ],
-      "answer": "B",
-      "explanation": "空所の後は名詞句（the new tariff）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "A",
+      "explanation": "空所の後は名詞句（the new tariff）なので前置詞because ofが正しい。in spite ofは意味が逆で文意が反転する。since/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "新しい関税のため、輸入コストが急激に上昇した。"
     },
     {
@@ -2691,23 +2691,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "due to"
+          "text": "notwithstanding"
         },
         {
           "key": "B",
-          "text": "because"
+          "text": "although"
         },
         {
           "key": "C",
-          "text": "because of"
+          "text": "because"
         },
         {
           "key": "D",
-          "text": "despite"
+          "text": "due to"
         }
       ],
-      "answer": "B",
-      "explanation": "空所の後は節（the city introduced...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "answer": "C",
+      "explanation": "空所の後は節（the city introduced...）なので接続詞becauseが正しい。notwithstanding/due toは名詞句が必要な前置詞、althoughは意味が逆で合わない。",
       "translation": "市が新しい課税を導入したため、住民たちは抗議した。"
     },
     {
@@ -2767,7 +2767,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
+          "text": "as"
         },
         {
           "key": "B",
@@ -2775,7 +2775,7 @@
         },
         {
           "key": "C",
-          "text": "unless"
+          "text": "notwithstanding"
         },
         {
           "key": "D",
@@ -2783,7 +2783,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "空所の後は名詞句（evidence of poor oversight）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "explanation": "空所の後は名詞句（evidence of poor oversight）なので前置詞because ofが正しい。notwithstandingは意味が逆で文意が反転する。as/althoughは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "管理不足の証拠のため、そのマネージャーは解雇された。"
     },
     {
@@ -2805,11 +2805,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
+          "text": "due to"
         },
         {
           "key": "B",
-          "text": "although"
+          "text": "as"
         },
         {
           "key": "C",
@@ -2817,11 +2817,11 @@
         },
         {
           "key": "D",
-          "text": "due to"
+          "text": "in spite of"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後は名詞句（ongoing litigation）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "A",
+      "explanation": "空所の後は名詞句（ongoing litigation）なので前置詞due toが正しい。in spite ofは意味が逆で文意が反転する。as/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "進行中の訴訟のため、その合併は延期された。"
     },
     {
@@ -2843,7 +2843,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "due to"
+          "text": "unless"
         },
         {
           "key": "B",
@@ -2851,7 +2851,7 @@
         },
         {
           "key": "C",
-          "text": "despite"
+          "text": "owing to"
         },
         {
           "key": "D",
@@ -2859,7 +2859,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "空所の後は節（the company faced...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "explanation": "空所の後は節（the company faced...）なので接続詞becauseが正しい。because of/owing toは名詞句が必要な前置詞、unlessは条件で文意に合わない。",
       "translation": "その会社が支払不能に陥ったため、銀行は口座を凍結した。"
     },
     {
@@ -2885,19 +2885,19 @@
         },
         {
           "key": "B",
-          "text": "because of"
+          "text": "despite"
         },
         {
           "key": "C",
-          "text": "due to"
+          "text": "on account of"
         },
         {
           "key": "D",
-          "text": "despite"
+          "text": "even though"
         }
       ],
       "answer": "A",
-      "explanation": "空所の後は節（it filed for bankruptcy）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "explanation": "空所の後は節（it filed for bankruptcy）なので接続詞becauseが正しい。on account ofは名詞句が必要な前置詞、despite/even thoughは意味が逆で合わない。",
       "translation": "破産を申請したため、そのチェーン店はいくつかの店舗を閉鎖した。"
     },
     {
@@ -2923,19 +2923,19 @@
         },
         {
           "key": "B",
-          "text": "although"
+          "text": "because of"
         },
         {
           "key": "C",
-          "text": "because"
+          "text": "despite"
         },
         {
           "key": "D",
-          "text": "because of"
+          "text": "since"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後は名詞句（the bank's foreclosure）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "B",
+      "explanation": "空所の後は名詞句（the bank's foreclosure）なので前置詞because ofが正しい。despiteは意味が逆で文意が反転する。since/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "銀行の差し押さえのため、その家族は家を失った。"
     },
     {
@@ -2957,23 +2957,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "unless"
+          "text": "since"
         },
         {
           "key": "B",
-          "text": "due to"
+          "text": "notwithstanding"
         },
         {
           "key": "C",
-          "text": "because"
+          "text": "due to"
         },
         {
           "key": "D",
           "text": "although"
         }
       ],
-      "answer": "B",
-      "explanation": "空所の後は名詞句（a manufacturing defect）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "C",
+      "explanation": "空所の後は名詞句（a manufacturing defect）なので前置詞due toが正しい。notwithstandingは意味が逆で文意が反転する。although/sinceは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "製造上の欠陥のため、その会社は訴えられた。"
     },
     {
@@ -2995,23 +2995,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
+          "text": "although"
         },
         {
           "key": "B",
-          "text": "because of"
+          "text": "because"
         },
         {
           "key": "C",
-          "text": "due to"
+          "text": "in spite of"
         },
         {
           "key": "D",
-          "text": "despite"
+          "text": "due to"
         }
       ],
-      "answer": "A",
-      "explanation": "空所の後は節（a critical audit finding was made public）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "answer": "B",
+      "explanation": "空所の後は節（a critical audit finding was made public）なので接続詞becauseが正しい。in spite of/due toは名詞句が必要な前置詞、althoughは意味が逆で合わない。",
       "translation": "重大な監査結果が公になったため、その職員は辞任した。"
     },
     {
@@ -3037,11 +3037,11 @@
         },
         {
           "key": "B",
-          "text": "due to"
+          "text": "unless"
         },
         {
           "key": "C",
-          "text": "despite"
+          "text": "notwithstanding"
         },
         {
           "key": "D",
@@ -3049,7 +3049,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "空所の後は節（the rent was in arrears）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "explanation": "空所の後は節（the rent was in arrears）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。",
       "translation": "家賃が滞納していたため、その借家人は立ち退かされた。"
     },
     {
@@ -3793,23 +3793,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "lower"
+          "text": "highest"
         },
         {
           "key": "B",
-          "text": "lowly"
+          "text": "lower"
         },
         {
           "key": "C",
-          "text": "lowest"
+          "text": "highly"
         },
         {
           "key": "D",
-          "text": "low"
+          "text": "high"
         }
       ],
-      "answer": "A",
-      "explanation": "\"___ than\"の形は比較級が正しい。lowerが正しく、lowは原級、lowestは最上級、lowlyは別の意味の形容詞で、いずれも合わない。",
+      "answer": "B",
+      "explanation": "\"___ than\"の形は比較級が正しい。lowerが正しい。high（原級）・highest（最上級）はいずれも比較級ではなく、highlyは副詞で、いずれも合わない。",
       "translation": "今年の従業員の離職率は昨年の過去最高よりも低かった。"
     }
   ]
