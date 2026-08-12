@@ -182,6 +182,10 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // T-230（docs/29 Q-68・WAI-ARIA APG Tabsパターン）: 矢印キー移動時にDOMへ直接フォーカスを
   // 当てるためのタブリスト要素参照（roving tabindexは選択状態から算出するため配列refは不要）
   const tabListRef = useRef<HTMLDivElement | null>(null)
+  // T-347（K-89）: 本文の日本語訳は既定で隠し、必要なときだけ開く（英文を読む妨げにしない）。
+  // 「どのpassage.idについて開いたか」を持ち、現在のpassageと比較することで、
+  // 文書切り替え・別の問題への遷移時に自動的に閉じ直す（useEffectでのsetStateは避ける）
+  const [translationShownForId, setTranslationShownForId] = useState<string | null>(null)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
@@ -191,6 +195,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const passage = passages[activePassageIndex] ?? passages[0]
   const activeSub = subQuestions[activeIndex]
   const activeAnswer = answers.get(activeIndex) ?? null
+  const showPassageTranslation = translationShownForId === passage?.id
 
   const subQuestionLookup = useMemo(
     () => (question ? withSubQuestionLookup(question, questions) : questions),
@@ -753,6 +758,22 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
             activeIndex={activeIndex}
             onSelectBlank={handleSelectBlank}
           />
+          {/* T-347（K-89）: 本文の日本語訳。既定で隠し、押すまで英文だけを読ませる */}
+          {passage.translation && (
+            <>
+              {!showPassageTranslation ? (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => setTranslationShownForId(passage.id)}
+                >
+                  本文の日本語訳を見る
+                </button>
+              ) : (
+                <p className="passage-translation">{passage.translation}</p>
+              )}
+            </>
+          )}
         </div>
       )}
       {activeSub && (

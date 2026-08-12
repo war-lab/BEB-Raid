@@ -103,6 +103,11 @@ export interface Passage {
   /** 表示ラベルと出題文脈（PassageKind参照） */
   kind: PassageKind
   text: string
+  /**
+   * 本文の日本語訳（T-347・K-89）。復習時に本文の意味を確認する手段が設問文訳のみだったため追加。
+   * 省略時は本文訳を表示しない（既存コンテンツとの後方互換のためoptional）
+   */
+  translation?: string
 }
 
 /**

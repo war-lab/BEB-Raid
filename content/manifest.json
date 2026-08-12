@@ -188,8 +188,8 @@
         600,
         730
       ],
-      "sizeBytes": 145980,
-      "hash": "e135f4f09883f7bf"
+      "sizeBytes": 165431,
+      "hash": "fe1209d679bef1c4"
     },
     {
       "id": "pack-reading-p7single-s-001",
@@ -198,8 +198,8 @@
         600,
         730
       ],
-      "sizeBytes": 153037,
-      "hash": "13195947463e3e99"
+      "sizeBytes": 180057,
+      "hash": "f6f4705d9674a6a2"
     }
   ]
 }

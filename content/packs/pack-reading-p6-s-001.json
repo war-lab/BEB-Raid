@@ -9,7 +9,7 @@
       600,
       730
     ],
-    "sizeBytes": 145980
+    "sizeBytes": 165431
   },
   "questions": [
     {
@@ -37,7 +37,8 @@
         {
           "id": "p6-001-doc1",
           "kind": "email",
-          "text": "Subject: Office Relocation Update\n\nDear Staff,\n\nAs most of you know, our current facility [[1]] a major renovation next month, so the entire Marketing team will move to the third floor for eight weeks. Please pack any personal items in the boxes provided by Friday. IT will [[2]] all computers and phones over the weekend, so do not attempt to move electronics yourself. [[3]] the move, temporary desks will be assigned on a first-come basis. [[4]] We appreciate your patience during this transition.\n\nBest regards,\nFacilities Team"
+          "text": "Subject: Office Relocation Update\n\nDear Staff,\n\nAs most of you know, our current facility [[1]] a major renovation next month, so the entire Marketing team will move to the third floor for eight weeks. Please pack any personal items in the boxes provided by Friday. IT will [[2]] all computers and phones over the weekend, so do not attempt to move electronics yourself. [[3]] the move, temporary desks will be assigned on a first-come basis. [[4]] We appreciate your patience during this transition.\n\nBest regards,\nFacilities Team",
+          "translation": "件名: オフィス移転に関する最新情報\n\nスタッフの皆様へ\n\nご存知のとおり、現在のオフィスは来月大規模な改装を行う予定のため、マーケティング部門全体が8週間、3階へ移動します。金曜日までに私物を配布された箱にまとめてください。ITが週末にすべてのパソコンと電話の接続を外しますので、電子機器は自分で移動しないでください。引っ越しの間、仮の席は早い者順で割り当てられます。新しい座席番号付きのフロア図を月曜日にメールで送ります。この移行期間中、ご不便をおかけしますがご理解のほどよろしくお願いいたします。\n\n敬具\n施設管理チーム"
         }
       ],
       "subQuestions": [
@@ -168,7 +169,8 @@
         {
           "id": "p6-002-doc1",
           "kind": "notice",
-          "text": "NOTICE: Elevator Maintenance\n\nThe elevator in the West Building [[1]] out of service on Thursday, June 4, from 9 a.m. to 3 p.m. for routine maintenance. A licensed technician will [[2]] a full inspection of the cables and doors during this time. Visitors and staff on the upper floors should use the stairs or the elevator in the East Building. [[3]] the inspection reveals a problem, the elevator may remain closed longer than planned. [[4]] We apologize for any inconvenience this may cause."
+          "text": "NOTICE: Elevator Maintenance\n\nThe elevator in the West Building [[1]] out of service on Thursday, June 4, from 9 a.m. to 3 p.m. for routine maintenance. A licensed technician will [[2]] a full inspection of the cables and doors during this time. Visitors and staff on the upper floors should use the stairs or the elevator in the East Building. [[3]] the inspection reveals a problem, the elevator may remain closed longer than planned. [[4]] We apologize for any inconvenience this may cause.",
+          "translation": "案内: エレベーター保守作業のお知らせ\n\n西棟のエレベーターは6月4日木曜日午前9時から午後3時まで、定期保守のため運転を停止します。その間、有資格の技術者がケーブルとドアの点検を行います。上層階を利用する来訪者・スタッフは階段または東棟のエレベーターをご利用ください。点検で問題が見つかった場合、エレベーターは予定より長く停止することがあります。停止が延びる場合は、更新されたスケジュールをロビーに掲示します。ご不便をおかけしますことをお詫びいたします。"
         }
       ],
       "subQuestions": [
@@ -304,7 +306,8 @@
         {
           "id": "p6-003-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: All Employees\nFrom: Accounting Department\n\nStarting next quarter, the expense reimbursement process [[1]] change. All receipts must be submitted through the new online system rather than on paper forms. The deadline for each month's expenses [[2]] the fifth business day of the following month. [[3]] the deadline is missed, reimbursement may be delayed until the next payment cycle. [[4]] Please direct any questions to the accounting help desk."
+          "text": "MEMO\nTo: All Employees\nFrom: Accounting Department\n\nStarting next quarter, the expense reimbursement process [[1]] change. All receipts must be submitted through the new online system rather than on paper forms. The deadline for each month's expenses [[2]] the fifth business day of the following month. [[3]] the deadline is missed, reimbursement may be delayed until the next payment cycle. [[4]] Please direct any questions to the accounting help desk.",
+          "translation": "社内メモ\n宛先: 全従業員\n発信: 経理部\n\n来四半期から経費精算のプロセスが変更されます。すべての領収書は紙の申請書ではなく、新しいオンラインシステムを通じて提出する必要があります。毎月の経費の締切は翌月の第5営業日です。締切に遅れた場合、精算は次の支払いサイクルまで延びることがあります。新システムの操作を説明する短い研修動画が社内サイトで見られます。ご質問は経理部のヘルプデスクへお問い合わせください。"
         }
       ],
       "subQuestions": [
@@ -435,7 +438,8 @@
         {
           "id": "p6-004-doc1",
           "kind": "email",
-          "text": "Subject: Scheduled Network Upgrade\n\nDear Team,\n\nOur IT department will [[1]] a network upgrade this Saturday to improve connection speed across all offices. During the upgrade, the network [[2]] be unavailable from 6 a.m. to noon. Any files saved [[3]] the shared drive will remain safe, but please save your work locally as a backup. [[4]] Contact IT support if you notice any issues after the upgrade is complete."
+          "text": "Subject: Scheduled Network Upgrade\n\nDear Team,\n\nOur IT department will [[1]] a network upgrade this Saturday to improve connection speed across all offices. During the upgrade, the network [[2]] be unavailable from 6 a.m. to noon. Any files saved [[3]] the shared drive will remain safe, but please save your work locally as a backup. [[4]] Contact IT support if you notice any issues after the upgrade is complete.",
+          "translation": "件名: ネットワーク更新作業のお知らせ\n\nチームの皆様へ\n\nIT部門は今週土曜日、全オフィスの接続速度を改善するためのネットワーク更新を行います。更新中、ネットワークは午前6時から正午まで利用できません。共有ドライブに保存されたファイルは安全なままですが、念のためローカルにも保存してください。この更新はメールや会社のウェブサイトには影響しません。更新完了後に問題があれば、ITサポートまでご連絡ください。"
         }
       ],
       "subQuestions": [
@@ -571,7 +575,8 @@
         {
           "id": "p6-005-doc1",
           "kind": "email",
-          "text": "Subject: Annual Sales Conference — Registration Reminder\n\nDear Attendee,\n\nThis is a reminder that registration for the annual sales conference closes this Friday. The conference venue, [[1]] is located near the airport, offers a shuttle service every thirty minutes. Once you register, you [[2]] receive a full itinerary with session times and room numbers. [[3]] you have already registered, please double-check that your dietary preferences are up to date. [[4]] We look forward to seeing you there."
+          "text": "Subject: Annual Sales Conference — Registration Reminder\n\nDear Attendee,\n\nThis is a reminder that registration for the annual sales conference closes this Friday. The conference venue, [[1]] is located near the airport, offers a shuttle service every thirty minutes. Once you register, you [[2]] receive a full itinerary with session times and room numbers. [[3]] you have already registered, please double-check that your dietary preferences are up to date. [[4]] We look forward to seeing you there.",
+          "translation": "件名: 年次セールスカンファレンス — 登録のリマインダー\n\n参加者の皆様へ\n\n年次セールスカンファレンスの登録は今週金曜日で締め切りとなりますので、リマインダーとしてお知らせします。空港近くにある会議会場では30分おきにシャトルサービスが利用できます。登録すると、セッション時間と会場番号が書かれた全日程表を受け取ります。既に登録済みの方は、食事の希望が最新であるか再確認してください。締切後の登録は、いかなる事情でも受け付けられません。当日お会いできることを楽しみにしております。"
         }
       ],
       "subQuestions": [
@@ -697,7 +702,8 @@
         {
           "id": "p6-006-doc1",
           "kind": "notice",
-          "text": "NOTICE: Updated Security Badge Policy\n\nEffective July 1, all employees must wear their security badge visibly at [[1]] times while inside the building. The new badges include an authentication chip that is [[2]] secure than the previous magnetic strip. Employees who have not been [[3]] to enter restricted areas should not attempt to use side entrances. [[4]] Badges can be updated at the security desk on the ground floor."
+          "text": "NOTICE: Updated Security Badge Policy\n\nEffective July 1, all employees must wear their security badge visibly at [[1]] times while inside the building. The new badges include an authentication chip that is [[2]] secure than the previous magnetic strip. Employees who have not been [[3]] to enter restricted areas should not attempt to use side entrances. [[4]] Badges can be updated at the security desk on the ground floor.",
+          "translation": "案内: セキュリティバッジ規定の更新について\n\n7月1日以降、全従業員は建物内で常にセキュリティバッジを見えるように着用しなければなりません。新しいバッジには、以前の磁気ストライプよりも安全な認証チップが搭載されています。制限区域への入室を許可されていない従業員は、側面の入口を使おうとしないでください。紛失または破損したバッジは、直ちに警備スタッフへ報告してください。バッジは1階の警備デスクで更新できます。"
         }
       ],
       "subQuestions": [
@@ -823,7 +829,8 @@
         {
           "id": "p6-007-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: Department Heads\nFrom: Office Administration\n\nTo make meeting room [[1]] fairer for everyone, we are launching a new booking system next Monday. Each department will receive an equal number of reservation credits [[2]] month. Rooms cannot be booked more than two weeks [[3]] advance under the new system. [[4]] Please share this update with your teams before the launch date."
+          "text": "MEMO\nTo: Department Heads\nFrom: Office Administration\n\nTo make meeting room [[1]] fairer for everyone, we are launching a new booking system next Monday. Each department will receive an equal number of reservation credits [[2]] month. Rooms cannot be booked more than two weeks [[3]] advance under the new system. [[4]] Please share this update with your teams before the launch date.",
+          "translation": "社内メモ\n宛先: 各部門責任者\n発信: 総務部\n\n誰にとっても会議室の予約をより公平にするため、来週月曜から新しい予約システムを開始します。各部署は月ごとに同数の予約枠を受け取ります。新システムでは、会議室は2週間より前に予約することができません。未使用の予約枠は翌月に持ち越されません。開始日までに、この案内を各チームへ共有してください。"
         }
       ],
       "subQuestions": [
@@ -954,7 +961,8 @@
         {
           "id": "p6-008-doc1",
           "kind": "email",
-          "text": "Subject: Invoice Discrepancy — Order 4482\n\nDear Ms. Patel,\n\nWe [[1]] your invoice for order 4482 and noticed the total does not match our purchase order. Our records show a quantity of 200 units, while the invoice [[2]] 250 units. Could you please reconcile this difference and send a corrected invoice [[3]] the end of this week? [[4]] We would like to complete payment before the end of the month."
+          "text": "Subject: Invoice Discrepancy — Order 4482\n\nDear Ms. Patel,\n\nWe [[1]] your invoice for order 4482 and noticed the total does not match our purchase order. Our records show a quantity of 200 units, while the invoice [[2]] 250 units. Could you please reconcile this difference and send a corrected invoice [[3]] the end of this week? [[4]] We would like to complete payment before the end of the month.",
+          "translation": "件名: 請求書の不一致について — 注文4482\n\nPatel様\n\n注文4482の請求書を確認したところ、合計額が発注書と一致しないことに気づきました。当社の記録では200個となっていますが、請求書には250個と記載されています。この差異を確認し、今週末までに修正した請求書を送っていただけますか。必要であれば、当社の経理チームが電話でこの件についてご相談に応じます。今月末までにお支払いを完了したいと考えております。"
         }
       ],
       "subQuestions": [
@@ -1085,7 +1093,8 @@
         {
           "id": "p6-009-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: All Staff\nFrom: Human Resources\n\nBeginning next month, our remote work policy will be updated to give the workforce more flexibility. Employees [[1]] work from home up to three days per week, provided their manager approves the arrangement in advance. [[2]] the new policy takes effect, all employees must complete a short online compliance training. [[3]] the training, employees will confirm they understand the data security requirements for remote work. [[4]] Managers will receive a separate briefing next week."
+          "text": "MEMO\nTo: All Staff\nFrom: Human Resources\n\nBeginning next month, our remote work policy will be updated to give the workforce more flexibility. Employees [[1]] work from home up to three days per week, provided their manager approves the arrangement in advance. [[2]] the new policy takes effect, all employees must complete a short online compliance training. [[3]] the training, employees will confirm they understand the data security requirements for remote work. [[4]] Managers will receive a separate briefing next week.",
+          "translation": "社内メモ\n宛先: 全従業員\n発信: 人事部\n\n来月から、従業員により大きな柔軟性を与えるためリモート勤務規定が更新されます。従業員は、事前に上司の承認があれば週に最大3日まで自宅で勤務できます。新しい制度が施行される前に、全従業員は簡単なオンラインコンプライアンス研修を完了する必要があります。研修中、従業員はリモート勤務のデータセキュリティ要件を理解していることを確認します。この研修はオンラインで完了するまで約20分かかります。管理職向けには来週別途説明会を行います。"
         }
       ],
       "subQuestions": [
@@ -1216,7 +1225,8 @@
         {
           "id": "p6-010-doc1",
           "kind": "notice",
-          "text": "NOTICE: New Recycling Program\n\nStarting this month, the office is launching a recycling program to support our sustainable business goals. Blue bins will be placed [[1]] every floor for paper and cardboard, while green bins will be used [[2]] plastic and glass. Employees are asked to rinse containers [[3]] placing them in the green bins. [[4]] A short guide explaining what belongs in each bin will be posted near the bins."
+          "text": "NOTICE: New Recycling Program\n\nStarting this month, the office is launching a recycling program to support our sustainable business goals. Blue bins will be placed [[1]] every floor for paper and cardboard, while green bins will be used [[2]] plastic and glass. Employees are asked to rinse containers [[3]] placing them in the green bins. [[4]] A short guide explaining what belongs in each bin will be posted near the bins.",
+          "translation": "案内: 新しいリサイクル制度について\n\n今月から、持続可能な事業目標を支えるためオフィスでリサイクル制度を開始します。各フロアには紙・段ボール用の青い箱が設置され、プラスチック・ガラス用には緑の箱が使われます。従業員は緑の箱に入れる前に容器をすすぐようお願いします。電池や電子機器は、依然としてロビーの回収場所へ持って行ってください。各箱に入れるべきものを説明した簡単なガイドを箱の近くに掲示します。"
         }
       ],
       "subQuestions": [
@@ -1341,7 +1351,8 @@
         {
           "id": "p6-011-doc1",
           "kind": "email",
-          "text": "Subject: Cafeteria Menu Change Notice\n\nDear Employees,\n\nOur catering provider [[1]] the lunch menu starting next Monday to include more vegetarian and gluten-free options. The salad bar [[2]] available daily, and hot meal choices will rotate weekly. If you have a specific dietary need not covered by the new menu, please [[3]] the cafeteria manager directly. [[4]] We hope these changes make lunchtime more enjoyable for everyone."
+          "text": "Subject: Cafeteria Menu Change Notice\n\nDear Employees,\n\nOur catering provider [[1]] the lunch menu starting next Monday to include more vegetarian and gluten-free options. The salad bar [[2]] available daily, and hot meal choices will rotate weekly. If you have a specific dietary need not covered by the new menu, please [[3]] the cafeteria manager directly. [[4]] We hope these changes make lunchtime more enjoyable for everyone.",
+          "translation": "件名: カフェテリアのメニュー変更のお知らせ\n\n従業員の皆様へ\n\nケータリング業者は来週月曜からベジタリアン向け・グルテンフリーの選択肢を増やす形でランチメニューを変更します。サラダバーは毎日利用可能で、ホットミールの選択肢は週替わりになります。新しいメニューでは対応できない特別な食事制限がある場合は、直接カフェテリア担当者にご連絡ください。新しいメニューの印刷版はカフェテリアの入口に掲示されます。この変更により、皆様のランチタイムがより快適になれば幸いです。"
         }
       ],
       "subQuestions": [
@@ -1471,7 +1482,8 @@
         {
           "id": "p6-012-doc1",
           "kind": "article",
-          "text": "Local Employees Take Part in Community Volunteer Day\n\nLast Saturday, more than sixty employees from Greenfield Logistics took part in a community volunteer initiative [[1]] focused on cleaning up the riverside park. The event, [[2]] was organized by the human resources department, also included a lunch for all participants. Volunteers [[3]] planted trees were given small certificates to recognize their effort. [[4]] Organizers say they plan to coordinate a similar event again next spring."
+          "text": "Local Employees Take Part in Community Volunteer Day\n\nLast Saturday, more than sixty employees from Greenfield Logistics took part in a community volunteer initiative [[1]] focused on cleaning up the riverside park. The event, [[2]] was organized by the human resources department, also included a lunch for all participants. Volunteers [[3]] planted trees were given small certificates to recognize their effort. [[4]] Organizers say they plan to coordinate a similar event again next spring.",
+          "translation": "地元従業員が地域ボランティアデーに参加\n\n先週土曜日、Greenfield Logisticsの60名を超える従業員が河川公園の清掃に重点を置いた地域ボランティア活動に参加しました。このイベントは人事部が主催し、参加者全員に昼食も提供されました。木を植えたボランティアには、その努力を評価する小さな証明書が贈られました。いくつかの地元企業が、この日のために道具や軽食を提供しました。主催者は来春にも同様のイベントを行う予定だと述べています。"
         }
       ],
       "subQuestions": [
@@ -1607,7 +1619,8 @@
         {
           "id": "p6-013-doc1",
           "kind": "email",
-          "text": "Subject: Vendor Contract Renewal — Action Needed\n\nDear Mr. Sato,\n\nOur contract with your company [[1]] expires at the end of next month. [[2]] we have been satisfied with your service, we would like to discuss renewal terms before the current agreement ends. Please let us know [[3]] you are available for a short call this week. [[4]] We would also appreciate an updated price list for the coming year."
+          "text": "Subject: Vendor Contract Renewal — Action Needed\n\nDear Mr. Sato,\n\nOur contract with your company [[1]] expires at the end of next month. [[2]] we have been satisfied with your service, we would like to discuss renewal terms before the current agreement ends. Please let us know [[3]] you are available for a short call this week. [[4]] We would also appreciate an updated price list for the coming year.",
+          "translation": "件名: 業者契約の更新について — ご対応のお願い\n\nSato様\n\n御社との契約は現在、来月末に期限を迎えます。御社のサービスに満足しているため、契約終了前に更新条件について相談したいと考えています。今週いつ短い電話でお話しできるかお知らせください。双方にとって利益があれば、より長期の契約についても検討する用意があります。来年度の最新の価格表もいただけますと幸いです。"
         }
       ],
       "subQuestions": [
@@ -1738,7 +1751,8 @@
         {
           "id": "p6-014-doc1",
           "kind": "email",
-          "text": "Subject: New Employee Orientation Reminder\n\nDear New Team Members,\n\nWelcome to the company! Your orientation [[1]] will begin this Monday at 9 a.m. in the main conference room. Please bring a valid photo ID and any completed [[2]] forms from human resources. The morning session covers company policies, and the afternoon includes hands-on training [[3]] your department's main software tools. [[4]] Lunch will be provided on the first day."
+          "text": "Subject: New Employee Orientation Reminder\n\nDear New Team Members,\n\nWelcome to the company! Your orientation [[1]] will begin this Monday at 9 a.m. in the main conference room. Please bring a valid photo ID and any completed [[2]] forms from human resources. The morning session covers company policies, and the afternoon includes hands-on training [[3]] your department's main software tools. [[4]] Lunch will be provided on the first day.",
+          "translation": "件名: 新入社員オリエンテーションのご案内（リマインダー）\n\n新しいチームメンバーの皆様へ\n\n入社おめでとうございます！新入社員の皆さんのオリエンテーションは今週月曜午前9時にメイン会議室で始まります。有効な写真付き身分証明書と、人事部から受け取った登録書類の記入済み分をお持ちください。午前は会社の規定について、午後の部では各部署の主要なソフトウェアツールに関する実践研修が行われます。簡単な受付手続きのため、15分早めにお越しください。初日は昼食が用意されています。"
         }
       ],
       "subQuestions": [
@@ -1874,7 +1888,8 @@
         {
           "id": "p6-015-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: All Managers\nFrom: Human Resources\n\nAnnual performance evaluations are [[1]] than they were last year, so please review the updated appraisal form before your meetings. Managers are asked to schedule the evaluation [[2]] two weeks before the deadline to allow time for follow-up discussions. Employees should receive their appraisal form [[3]] three days in advance so they can prepare. [[4]] Completed forms must be submitted to HR by the end of the month."
+          "text": "MEMO\nTo: All Managers\nFrom: Human Resources\n\nAnnual performance evaluations are [[1]] than they were last year, so please review the updated appraisal form before your meetings. Managers are asked to schedule the evaluation [[2]] two weeks before the deadline to allow time for follow-up discussions. Employees should receive their appraisal form [[3]] three days in advance so they can prepare. [[4]] Completed forms must be submitted to HR by the end of the month.",
+          "translation": "社内メモ\n宛先: 全管理職\n発信: 人事部\n\n年次評価は昨年よりも詳細になっているため、面談前に更新された評価フォームを確認してください。評価面談は締切の2週間前には設定し、フォローアップの時間を確保してください。従業員が準備できるよう、評価フォームは遅くとも3日前までに渡してください。追加の指導を希望する管理者向けに、人事部が任意の研修会を開催します。記入済みのフォームは今月末までに人事部へ提出してください。"
         }
       ],
       "subQuestions": [
@@ -2004,7 +2019,8 @@
         {
           "id": "p6-016-doc1",
           "kind": "email",
-          "text": "Subject: Please Share Your Feedback\n\nDear Customer,\n\nThank you for your recent purchase. We would like to [[1]] your opinion through a short survey about your shopping experience. The survey [[2]] about three minutes and can be completed on any device. Everyone who [[3]] the survey by the end of the month will be entered into a prize drawing. [[4]] Your feedback helps us improve our service."
+          "text": "Subject: Please Share Your Feedback\n\nDear Customer,\n\nThank you for your recent purchase. We would like to [[1]] your opinion through a short survey about your shopping experience. The survey [[2]] about three minutes and can be completed on any device. Everyone who [[3]] the survey by the end of the month will be entered into a prize drawing. [[4]] Your feedback helps us improve our service.",
+          "translation": "件名: ご意見をお聞かせください\n\nお客様へ\n\nこの度のご購入ありがとうございます。お客様の購買体験についての短い調査を通じて、ご意見をお聞きしたいと思います。この調査は約3分で完了し、どの端末からでも回答できます。月末までに調査に回答した方全員が抽選に参加できます。抽選の当選者は、来月上旬にメールでお知らせします。皆様のご意見は、サービス向上のために活用させていただきます。"
         }
       ],
       "subQuestions": [
@@ -2130,7 +2146,8 @@
         {
           "id": "p6-017-doc1",
           "kind": "notice",
-          "text": "NOTICE: Scheduled Network Outage\n\nThe company network will be unavailable this Sunday [[1]] 11 p.m. to 2 a.m. while our technicians perform system upgrades. [[2]] the outage, employees will not be able to access shared drives or company email remotely. If you experience connection issues [[3]] the outage window has ended, please contact the help desk. [[4]] We recommend saving your work before the outage begins."
+          "text": "NOTICE: Scheduled Network Outage\n\nThe company network will be unavailable this Sunday [[1]] 11 p.m. to 2 a.m. while our technicians perform system upgrades. [[2]] the outage, employees will not be able to access shared drives or company email remotely. If you experience connection issues [[3]] the outage window has ended, please contact the help desk. [[4]] We recommend saving your work before the outage begins.",
+          "translation": "案内: ネットワーク停止のお知らせ\n\n会社のネットワークは今週日曜午後11時から午前2時まで、技術者がシステム更新を行うため利用できません。停止時間中、従業員はリモートで共有ドライブや会社のメールにアクセスできません。停止時間が終了した後も接続に問題がある場合は、ヘルプデスクにご連絡ください。この更新が完了すれば、全体的な接続速度の改善が見込まれます。停止が始まる前に作業内容を保存しておくことをお勧めします。"
         }
       ],
       "subQuestions": [
@@ -2261,7 +2278,8 @@
         {
           "id": "p6-018-doc1",
           "kind": "article",
-          "text": "Downtown Bank Opens New Branch\n\nRiverstone Bank announced the [[1]] of its newest branch in the downtown business district last week. The branch, which reports directly to headquarters, will offer both retail and small business banking services. Local [[2]] praised the bank for choosing a location close to public transportation. The new branch manager said the team [[3]] over one hundred customers on the first day alone. [[4]] The bank plans to hire additional staff as demand grows."
+          "text": "Downtown Bank Opens New Branch\n\nRiverstone Bank announced the [[1]] of its newest branch in the downtown business district last week. The branch, which reports directly to headquarters, will offer both retail and small business banking services. Local [[2]] praised the bank for choosing a location close to public transportation. The new branch manager said the team [[3]] over one hundred customers on the first day alone. [[4]] The bank plans to hire additional staff as demand grows.",
+          "translation": "都心の銀行が新支店を開設\n\nRiverstone銀行は先週、都心の商業地区に新しい支店を開設したと発表しました。この支店は本部直属で、個人向け・中小企業向けの両方の銀行サービスを提供します。地元住民は、公共交通機関に近い場所を選んだ銀行を評価しました。新しい支店長は、初日だけで100人以上の顧客に対応したと述べました。この支店は祝日を含め週7日営業します。需要の増加に応じて、銀行は追加スタッフを雇用する計画です。"
         }
       ],
       "subQuestions": [
@@ -2392,7 +2410,8 @@
         {
           "id": "p6-019-doc1",
           "kind": "email",
-          "text": "Subject: Business Trip Itinerary and Expense Policy\n\nDear Mr. Klein,\n\nAttached [[1]] your itinerary for next week's trip to the regional office. Please review the flight and hotel details carefully. All travel expenses [[2]] submitted for reimbursement within two weeks of your return. Keep every receipt, [[3]] small ones such as taxi fares. [[4]] If you have any questions about the policy, contact the travel desk before you depart."
+          "text": "Subject: Business Trip Itinerary and Expense Policy\n\nDear Mr. Klein,\n\nAttached [[1]] your itinerary for next week's trip to the regional office. Please review the flight and hotel details carefully. All travel expenses [[2]] submitted for reimbursement within two weeks of your return. Keep every receipt, [[3]] small ones such as taxi fares. [[4]] If you have any questions about the policy, contact the travel desk before you depart.",
+          "translation": "件名: 出張の日程表と経費規定について\n\nKlein様\n\n添付ファイルは来週の地方オフィス出張の日程表です。フライトとホテルの詳細をよくご確認ください。出張費用はすべて、帰任後2週間以内に精算のため申請しなければなりません。タクシー代のような小さなものも含めて、すべてのレシートを保管してください。各レシートのデジタルコピーも、経費アプリからアップロードできます。規定についてご質問があれば、出発前に出張担当窓口にご連絡ください。"
         }
       ],
       "subQuestions": [
@@ -2523,7 +2542,8 @@
         {
           "id": "p6-020-doc1",
           "kind": "notice",
-          "text": "NOTICE: Product Recall — Model X200 Charger\n\nWe have issued a voluntary recall [[1]] the Model X200 charger due to a manufacturing defect found during a routine inspection. Customers who purchased this model should stop using it [[2]] and contact our support line for a free replacement. The defect may cause the charger to overheat [[3]] certain conditions. [[4]] We sincerely apologize for any inconvenience this recall may cause."
+          "text": "NOTICE: Product Recall — Model X200 Charger\n\nWe have issued a voluntary recall [[1]] the Model X200 charger due to a manufacturing defect found during a routine inspection. Customers who purchased this model should stop using it [[2]] and contact our support line for a free replacement. The defect may cause the charger to overheat [[3]] certain conditions. [[4]] We sincerely apologize for any inconvenience this recall may cause.",
+          "translation": "案内: 製品リコール — Model X200充電器\n\n定期検査で見つかった製造上の欠陥のため、Model X200充電器の自主リコールを実施しました。この製品を購入したお客様は、直ちに使用を中止しサポート窓口へご連絡ください。この欠陥により、特定の条件下で充電器が過熱する可能性があります。ご依頼から5営業日以内に交換品を発送いたします。今回のリコールによりご不便をおかけしますことを心よりお詫び申し上げます。"
         }
       ],
       "subQuestions": [
@@ -2649,7 +2669,8 @@
         {
           "id": "p6-021-doc1",
           "kind": "notice",
-          "text": "NOTICE: Parking Permit Renewal\n\nAll employee parking permits expire on August 31. To avoid any [[1]] in your parking access, please complete the renewal form online before that date. The renewal [[2]] takes less than five minutes and requires your employee ID number. Permits [[3]] renewed by the deadline will be deactivated on September 1. [[4]] New permit stickers will be mailed to your home address within one week."
+          "text": "NOTICE: Parking Permit Renewal\n\nAll employee parking permits expire on August 31. To avoid any [[1]] in your parking access, please complete the renewal form online before that date. The renewal [[2]] takes less than five minutes and requires your employee ID number. Permits [[3]] renewed by the deadline will be deactivated on September 1. [[4]] New permit stickers will be mailed to your home address within one week.",
+          "translation": "案内: 駐車許可証の更新について\n\n従業員用の駐車許可証はすべて8月31日に期限を迎えます。駐車利用が中断されないよう、期日前にオンラインで更新手続きを完了してください。この更新手続きは5分以内で完了し、社員IDが必要です。期日までに更新されなかった許可証は、9月1日に無効化されます。許可証が不要になった場合は、他の人のために解約してください。新しい許可証のステッカーは1週間以内にご自宅へ郵送されます。"
         }
       ],
       "subQuestions": [
@@ -2785,7 +2806,8 @@
         {
           "id": "p6-022-doc1",
           "kind": "advertisement",
-          "text": "Office Supply Spring Sale\n\nVisit Parkview Office Supply this month for a storewide sale on stationery and other office merchandise. [[1]] the sale, all printer paper and notebooks are twenty percent off. Customers who spend more than fifty dollars will receive an additional discount coupon [[2]] their next visit. This offer is available [[3]] supplies last, so early shopping is recommended. [[4]] Visit our website for a full list of items included in the sale."
+          "text": "Office Supply Spring Sale\n\nVisit Parkview Office Supply this month for a storewide sale on stationery and other office merchandise. [[1]] the sale, all printer paper and notebooks are twenty percent off. Customers who spend more than fifty dollars will receive an additional discount coupon [[2]] their next visit. This offer is available [[3]] supplies last, so early shopping is recommended. [[4]] Visit our website for a full list of items included in the sale.",
+          "translation": "オフィス用品 春のセール\n\n今月はParkviewオフィス用品店で、文房具など全店舗商品を対象としたセールを実施中です。セール期間中、すべてのプリンター用紙とノートが20%引きになります。50ドル以上お買い上げのお客様には、次回来店用の追加割引クーポンを差し上げます。この特典は在庫がある限り有効ですので、早めのお買い物をお勧めします。当店の会員プログラムにご加入の方は、さらに5%引きになります。セール対象商品の一覧は当店ウェブサイトでご確認ください。"
         }
       ],
       "subQuestions": [
@@ -2915,7 +2937,8 @@
         {
           "id": "p6-023-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: Accounting Staff\nFrom: Finance Director\n\nBefore closing the books each month, all invoices [[1]] against purchase orders to catch any discrepancies early. Last month, several invoices [[2]] not properly reconciled, which delayed our reporting by two days. Going forward, please [[3]] any mismatched invoice to your supervisor within one business day. [[4]] This extra step should help us close the books on time each month."
+          "text": "MEMO\nTo: Accounting Staff\nFrom: Finance Director\n\nBefore closing the books each month, all invoices [[1]] against purchase orders to catch any discrepancies early. Last month, several invoices [[2]] not properly reconciled, which delayed our reporting by two days. Going forward, please [[3]] any mismatched invoice to your supervisor within one business day. [[4]] This extra step should help us close the books on time each month.",
+          "translation": "社内メモ\n宛先: 経理スタッフ\n発信: 財務ディレクター\n\n毎月の締め処理の前に、すべての請求書は発注書と照合して不一致を早期に見つける必要があります。先月、いくつかの請求書が正しく照合されておらず、報告が2日遅れました。今後は、不一致のある請求書は1営業日以内に上司に報告してください。この作業を助けるための新しいチェックリストが共有ドライブに追加されました。この追加の手順により、毎月の締め処理を期日どおりに行えるようになるはずです。"
         }
       ],
       "subQuestions": [
@@ -3045,7 +3068,8 @@
         {
           "id": "p6-024-doc1",
           "kind": "notice",
-          "text": "NOTICE: Gym Facility Now Open to All Staff\n\nWe are pleased to announce that the company gym facility on the second floor is now open [[1]] all employees free of charge. A short orientation session is required [[2]] first-time users to learn about the equipment and safety rules. Sessions are offered every weekday [[3]] 8 a.m. and 6 p.m. [[4]] Towels and water bottles are available for purchase at the front desk."
+          "text": "NOTICE: Gym Facility Now Open to All Staff\n\nWe are pleased to announce that the company gym facility on the second floor is now open [[1]] all employees free of charge. A short orientation session is required [[2]] first-time users to learn about the equipment and safety rules. Sessions are offered every weekday [[3]] 8 a.m. and 6 p.m. [[4]] Towels and water bottles are available for purchase at the front desk.",
+          "translation": "案内: 社内ジム施設が全従業員に開放されました\n\n2階の社内ジム施設は、現在すべての従業員に無料で開放されていることをお知らせいたします。初めて利用する方は、器具や安全ルールを学ぶための短いオリエンテーションが必要です。このセッションは平日午前8時から午後6時の間、毎日開催されます。従業員は自分の運動着とシューズを持参するようお願いします。タオルと水のボトルは受付で購入できます。"
         }
       ],
       "subQuestions": [
@@ -3176,7 +3200,8 @@
         {
           "id": "p6-025-doc1",
           "kind": "article",
-          "text": "Company Launches Sustainability Initiative\n\nGreenline Manufacturing announced a new sustainability program that [[1]] to reduce its carbon footprint by thirty percent over the next five years. The plan, which [[2]] with input from employees across all departments, includes switching to eco-friendly packaging materials. Employees who submitted ideas [[3]] the planning phase will be recognized at next month's company meeting. [[4]] The company expects the changes to also lower long-term operating costs."
+          "text": "Company Launches Sustainability Initiative\n\nGreenline Manufacturing announced a new sustainability program that [[1]] to reduce its carbon footprint by thirty percent over the next five years. The plan, which [[2]] with input from employees across all departments, includes switching to eco-friendly packaging materials. Employees who submitted ideas [[3]] the planning phase will be recognized at next month's company meeting. [[4]] The company expects the changes to also lower long-term operating costs.",
+          "translation": "企業が持続可能性への取組みを開始\n\nGreenline製造は、今後5年間で二酸化炭素排出量を30%削減することを目指す新しい持続可能性プログラムを発表しました。この計画は全部署の従業員の意見を取り入れて策定され、環境に配慮した包装材への切り替えを含んでいます。計画段階でアイデアを提出した従業員は、来月の全社会議で表彰されます。専用のウェブページで、この目標に向けた進捗状況を追跡します。この変更により、長期的な運営コストの低下も期待されています。"
         }
       ],
       "subQuestions": [
@@ -3307,7 +3332,8 @@
         {
           "id": "p6-026-doc1",
           "kind": "form",
-          "text": "ANNUAL PERFORMANCE APPRAISAL FORM — INSTRUCTIONS\n\nPlease complete this evaluation form carefully and return it to your manager by the [[1]] date shown at the top of the page. Each section requires a written [[2]] as well as a numeric rating from one to five. If a section does not apply to your role, write \"not applicable\" instead of [[3]] it blank. [[4]] Employees who need extra time should contact human resources before the deadline."
+          "text": "ANNUAL PERFORMANCE APPRAISAL FORM — INSTRUCTIONS\n\nPlease complete this evaluation form carefully and return it to your manager by the [[1]] date shown at the top of the page. Each section requires a written [[2]] as well as a numeric rating from one to five. If a section does not apply to your role, write \"not applicable\" instead of [[3]] it blank. [[4]] Employees who need extra time should contact human resources before the deadline.",
+          "translation": "年次業績評価フォーム — 記入案内\n\nこのフォームは、上部に記載された期日までに記入し、上司に提出してください。各項目には、1から5の数値評価に加えて記述式のコメントが必要です。該当しない項目がある場合は、空欄にする代わりに「該当なし」と記入してください。記入済みのサンプルフォームは人事部の社内サイトで確認できます。追加の時間が必要な従業員は、期日前に人事部へご連絡ください。"
         }
       ],
       "subQuestions": [
@@ -3433,7 +3459,8 @@
         {
           "id": "p6-027-doc1",
           "kind": "notice",
-          "text": "NOTICE: Visitor Sign-In Procedure Update\n\n[[1]] a recent security review, all visitors must now sign in at the front desk and wear a visitor badge at all times. Employees who are expecting a guest must [[2]] the visit with security at least one hour in advance. Visitors who are not authorized to enter restricted areas will be asked to remain in the lobby [[3]] their host arrives. [[4]] These steps are meant to keep the building safe for everyone."
+          "text": "NOTICE: Visitor Sign-In Procedure Update\n\n[[1]] a recent security review, all visitors must now sign in at the front desk and wear a visitor badge at all times. Employees who are expecting a guest must [[2]] the visit with security at least one hour in advance. Visitors who are not authorized to enter restricted areas will be asked to remain in the lobby [[3]] their host arrives. [[4]] These steps are meant to keep the building safe for everyone.",
+          "translation": "案内: 来訪者受付手続きの更新について\n\n最近の安全性審査を受けて、すべての来訪者は受付で記名し、常に来訪者バッジを着用しなければなりません。来客を予定している従業員は、少なくとも1時間前に警備担当にその訪問を登録しなければなりません。制限区域への入室を許可されていない訪問者は、案内担当者が到着するまでロビーで待つよう求められます。来訪者バッジは、建物を出る前に受付に返却しなければなりません。これらの手続きは、すべての人にとって建物を安全に保つためのものです。"
         }
       ],
       "subQuestions": [
@@ -3568,7 +3595,8 @@
         {
           "id": "p6-028-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: Store Managers\nFrom: Product Safety Team\n\nAs of this morning, all units of the Model X200 charger [[1]] from store shelves following an internal inspection that found a wiring defect. Please [[2]] any remaining stock in the storage room and label it clearly as \"do not sell.\" A full list of affected serial numbers [[3]] to your store email within the hour. [[4]] Customers who ask about the recall should be directed to our customer service line."
+          "text": "MEMO\nTo: Store Managers\nFrom: Product Safety Team\n\nAs of this morning, all units of the Model X200 charger [[1]] from store shelves following an internal inspection that found a wiring defect. Please [[2]] any remaining stock in the storage room and label it clearly as \"do not sell.\" A full list of affected serial numbers [[3]] to your store email within the hour. [[4]] Customers who ask about the recall should be directed to our customer service line.",
+          "translation": "社内メモ\n宛先: 店長各位\n発信: 製品安全チーム\n\n本日午前より、内部検査で配線の欠陥が見つかったため、Model X200充電器の全在庫の店頭からの撤去が進められています。残っている在庫は保管室に置き、「販売禁止」と明確に表示してください。影響を受けるシリアル番号の完全なリストは、1時間以内に貴店のメールに送付されます。会社の担当者が今後2日以内に各店舗を訪問し、対応状況を確認します。リコールについて尋ねるお客様には、カスタマーサービス窓口をご案内してください。"
         }
       ],
       "subQuestions": [
@@ -3699,7 +3727,8 @@
         {
           "id": "p6-029-doc1",
           "kind": "email",
-          "text": "Subject: Delay in Shipment to Regional Warehouse\n\nDear Partner,\n\nWe are writing to inform you [[1]] a short delay in the shipment scheduled to arrive at your regional warehouse this week. The delay is due [[2]] a shortage of shipping containers at our main port. Our distributor expects the shipment to arrive [[3]] three to five days later than originally planned. [[4]] We will send tracking information as soon as the shipment departs."
+          "text": "Subject: Delay in Shipment to Regional Warehouse\n\nDear Partner,\n\nWe are writing to inform you [[1]] a short delay in the shipment scheduled to arrive at your regional warehouse this week. The delay is due [[2]] a shortage of shipping containers at our main port. Our distributor expects the shipment to arrive [[3]] three to five days later than originally planned. [[4]] We will send tracking information as soon as the shipment departs.",
+          "translation": "件名: 地域倉庫への出荷遅延について\n\nパートナー各位\n\n今週貴社の地域倉庫に到着予定の出荷に、短い遅延が生じていることをお知らせいたします。この遅延は、主要港でのコンテナ不足が原因です。当社の配送業者は、当初予定よりおよそ3〜5日遅れて出荷が到着すると見込んでいます。この遅延により貴社の業務にご不便をおかけすることをお詫びいたします。出荷が発送されましたら、直ちに追跡情報をお送りします。"
         }
       ],
       "subQuestions": [
@@ -3829,7 +3858,8 @@
         {
           "id": "p6-030-doc1",
           "kind": "article",
-          "text": "Local Firm Reaches Major Milestone\n\nParkway Consulting [[1]] its five hundredth client project last month, a milestone the company describes as a new benchmark for its ten-year history. The firm's founder said the achievement [[2]] possible by a dedicated staff and loyal clients. To mark the occasion, the company [[3]] a small celebration for employees at its main office. [[4]] The firm plans to open a second office next year to support continued growth."
+          "text": "Local Firm Reaches Major Milestone\n\nParkway Consulting [[1]] its five hundredth client project last month, a milestone the company describes as a new benchmark for its ten-year history. The firm's founder said the achievement [[2]] possible by a dedicated staff and loyal clients. To mark the occasion, the company [[3]] a small celebration for employees at its main office. [[4]] The firm plans to open a second office next year to support continued growth.",
+          "translation": "地元企業が大きな節目を達成\n\nParkwayコンサルティングは先月、通算500件目のクライアント案件を完了し、これを10年の社史における新たな基準と位置付けています。創業者は、この成果は熱心な社員と忠実な顧客のおかげで実現したと述べました。この節目を記念して、会社は本社で社員向けの小さな祝賀会を開きました。この会社は元々、2人の元エンジニアが小さな事務所から始めたものです。今後の成長を支えるため、来年には2つ目の事務所を開設する予定です。"
         }
       ],
       "subQuestions": [
