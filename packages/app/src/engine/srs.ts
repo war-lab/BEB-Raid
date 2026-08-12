@@ -56,12 +56,20 @@ export function applyGrade(card: SrsCardRecord, grade: SrsGrade, now: number): R
   }
 
   const graduated = nextStage >= SRS_INTERVAL_DAYS.length
+  const rawDueAt = localMidnightAfterDays(now, SRS_INTERVAL_DAYS[Math.max(nextStage, 0)] ?? 1)
+  // T-303（K-31）: 値の破損防止のクランプ（時刻そのものの正当性検証はしない=J-124）。
+  // nowが何らかの理由（呼び出し元の計算ミス・端末時計のずれ等）で実際の現在時刻から
+  // 大きく離れた未来値だと、dueAtも同様に未来へ飛び、正しい時刻に戻っても長期間
+  // （実測1521日）キューに現れなくなる。実際の現在時刻（Date.now()）を基準に、
+  // 間隔テーブルの最大値を超えて先には進めない
+  const maxDueAt = localMidnightAfterDays(
+    Date.now(),
+    SRS_INTERVAL_DAYS[SRS_INTERVAL_DAYS.length - 1]!,
+  )
   const next: SrsCardRecord = {
     ...card,
     stage: graduated ? SRS_INTERVAL_DAYS.length - 1 : nextStage,
-    dueAt: graduated
-      ? card.dueAt
-      : localMidnightAfterDays(now, SRS_INTERVAL_DAYS[Math.max(nextStage, 0)] ?? 1),
+    dueAt: graduated ? card.dueAt : Math.min(rawDueAt, maxDueAt),
     lapses,
     introducedDate: introduced ?? toDateString(now),
     graduatedAt: graduated ? now : null,

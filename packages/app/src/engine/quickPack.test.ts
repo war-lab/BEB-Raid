@@ -464,6 +464,46 @@ describe('validateQuickPackConfig（レビューフォローアップ3.8節: all
     }
     expect(() => validateQuickPackConfig(ok)).not.toThrow()
   })
+
+  // 何を防ぐか（T-311・K-41）: 以下は従来検証が無く、不正値がJSON差し替え時に
+  // 静かに素通りしていた
+  it('priorityWeightが0以下は拒否される', () => {
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, priorityWeight: 0 })).toThrow(
+      /priorityWeight/,
+    )
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, priorityWeight: -1 })).toThrow(
+      /priorityWeight/,
+    )
+  })
+
+  it('newCardShareが0未満・1超は拒否される', () => {
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, newCardShare: -0.1 })).toThrow(
+      /newCardShare/,
+    )
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, newCardShare: 1.1 })).toThrow(
+      /newCardShare/,
+    )
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, newCardShare: 0 })).not.toThrow()
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, newCardShare: 1 })).not.toThrow()
+  })
+
+  it('srsCapPerPackが負は拒否される', () => {
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, srsCapPerPack: -1 })).toThrow(
+      /srsCapPerPack/,
+    )
+    expect(() => validateQuickPackConfig({ ...QUICK_PACK_CONFIG, srsCapPerPack: 0 })).not.toThrow()
+  })
+
+  it('durations.*.totalItemsが0以下は拒否される', () => {
+    const broken: QuickPackConfig = {
+      ...QUICK_PACK_CONFIG,
+      durations: {
+        ...QUICK_PACK_CONFIG.durations,
+        '3': { ...QUICK_PACK_CONFIG.durations['3'], totalItems: 0 },
+      },
+    }
+    expect(() => validateQuickPackConfig(broken)).toThrow(/totalItems/)
+  })
 })
 
 // ---------------------------------------------------------------------------
