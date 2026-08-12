@@ -159,6 +159,45 @@ describe('POST /raid/sync', () => {
     expect(body.boss.hp).toBe(700)
   })
 
+  // T-285（K-8）: 当週ボスがまだ生成されていない（週次cron未実行・遅延等）場合、従来は
+  // 応答全体を404にしてacceptedIdsを丸ごと捨てていた。受理済み（前週分等）のIDは
+  // クライアントへ返し、pendingSyncから正しく排出できるようにする。bossはnullで返し、
+  // クライアントはboss=nullのときraidStateの更新をスキップする
+  it('当週ボスが未生成でも200で{acceptedIds, boss:null}を返す（K-8）', async () => {
+    const deviceToken = await registerDevice()
+    const current = isoWeekInfo(Date.now())
+    const previous = previousWeekInfo(current)
+    const previousBossId = bossIdFor(previous)
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(previousBossId))
+    await runInDurableObject(stub, (instance: RaidBossDO) => {
+      instance.init({
+        bossId: previousBossId,
+        profile: bossProfileForWeek(previous.isoWeek),
+        maxHp: 1000,
+        startAt: previous.weekStartAt,
+        endAt: weekEndAt(previous.weekStartAt),
+      })
+    })
+    // 当週ボスはあえて初期化しない
+
+    const res = await SELF.fetch(
+      syncRequest(deviceToken, [
+        {
+          attemptId: 'a-old-week',
+          bossId: previousBossId,
+          damage: 100,
+          questionCount: 1,
+          answeredAt: previous.weekStartAt + HOUR_MS,
+        },
+      ]),
+    )
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { acceptedIds: string[]; boss: unknown }
+    expect(body.acceptedIds).toEqual(['a-old-week'])
+    expect(body.boss).toBeNull()
+  })
+
   // T-243・29のQ-22: bossIdはクライアントの自己申告文字列で、以前は「1〜200字の非空文字列」
   // としか検証していなかった。認証済みメンバーはidFromName(bossId)経由で任意個の
   // RaidBossDOインスタンスを作れてしまい（コンストラクタでSQLiteテーブルをCREATEするため

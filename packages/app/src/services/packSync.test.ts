@@ -84,6 +84,64 @@ function blobResponse(content = 'audio', ok = true, status = ok ? 200 : 404): Re
   return { ok, status, blob: async () => new Blob([content]) } as unknown as Response
 }
 
+// T-284（K-7）: fetchにタイムアウトが無いため、圏外遷移等でリクエストが応答不能な状態のまま
+// 応答を待ち続け、自動再同期が長時間止まっていた。AbortSignal.timeout()を導入する
+// （manifest 5秒・pack 15秒）。fetchImpl呼び出しに AbortSignal を持つ init が渡ることを確認する
+describe('syncPacks: タイムアウトの導入（T-284・K-7）', () => {
+  it('manifest取得にAbortSignalを持つinitが渡される', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const m = manifest([])
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(m))
+
+    await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    const [, init] = fetchImpl.mock.calls[0]!
+    expect((init as RequestInit | undefined)?.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('pack取得にもAbortSignalを持つinitが渡される', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 10 }])
+    const fetchImpl = vi.fn<typeof fetch>(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') return jsonResponse(pack([]))
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+
+    const packCall = fetchImpl.mock.calls.find(([input]) => String(input) === '/packs/pack-a.json')
+    expect(packCall).toBeDefined()
+    const [, init] = packCall!
+    expect((init as RequestInit | undefined)?.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('タイムアウト（AbortError）で失敗したパックは、他のパックの同期を止めない（既存の失敗許容と同じ扱い）', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const m = manifest([
+      { id: 'pack-a', hash: 'h1', sizeBytes: 10 },
+      { id: 'pack-b', hash: 'h2', sizeBytes: 10 },
+    ])
+    const fetchImpl = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') {
+        throw new DOMException('The operation was aborted', 'TimeoutError')
+      }
+      if (url === '/packs/pack-b.json') return jsonResponse(pack([]))
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    expect(result?.synced).toEqual(['pack-b'])
+  })
+})
+
 describe('syncPacks', () => {
   it('manifest取得に失敗したら例外を投げずnullを返す（オフラインが正常系）', async () => {
     const db = newDb()

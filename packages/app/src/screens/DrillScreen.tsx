@@ -4,6 +4,15 @@
 // vocab_card（T-21。クイックパックにkind:'srsVocab'が混在する場合の受け皿）は
 // VocabScreen（S3）と同じ自己評価3段階フローをこの中で再現する（3.4節: 出題理由に
 // 応じてUIが変わる。セッション進行の一本化のためDrillScreen側に統合する）。
+//
+// T-297（K-23）調査メモ・2026-08-06: recoverFromSaveError内のmountedRef.currentを条件に
+// した早期returnがrecordPendingCommitFailure(db)を呼ぶ構成にすると、react-hooks v7の
+// React Compiler向けルール（react-hooks/immutability）がcommitAnswer/finalizeAnswer等
+// （usePendingCommitへ渡す巻き上げ関数）の巻き上げ参照を誤検知する。tscの型検査・
+// 全テストは問題なし。関数分割・ref読み取りの切り出し・条件式の書き換えを個別に試したが
+// 組み合わせ自体がトリガーで再現した。個別行へのdisable-next-lineは効かない
+// （誤検知の報告位置が該当行ではなく無関係な巻き上げ参照側になるため）ためファイル単位で無効化する
+/* eslint-disable react-hooks/immutability */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
@@ -27,6 +36,7 @@ import { useSaveGuard } from '../hooks/useSaveGuard'
 import type { AiClient, AudioPlayer, PlaybackOutcome, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
 import { getOrInitPhaseState } from '../services/phase'
+import { recordPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
   advanceSession,
   completeSession,
@@ -36,6 +46,7 @@ import {
   type SessionItem,
   type SessionSnapshot,
 } from '../services/session'
+import { isQuotaExceededError, QUOTA_EXCEEDED_SAVE_ERROR } from '../services/storageErrors'
 import {
   HAPTICS_ENABLED_KEY,
   AUTO_PLAY_ENABLED_KEY,
@@ -667,9 +678,32 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
     options?: { resyncSnapshot?: boolean; retry?: () => Promise<void> },
   ) {
     console.error('[DrillScreen] 解答の保存に失敗', err)
-    // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
-    // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
-    setSaveError('解答を保存できませんでした。空き容量を確認してください')
+    // T-297（K-23）: アンマウント後（flush経路）の失敗はsaveErrorバナー・再試行ボタンが
+    // 出しても誰にも見えない（画面ごと消えている）。UI復旧を試みる代わりに退避して
+    // 次回起動時に通知する
+    if (!mountedRef.current) {
+      try {
+        await recordPendingCommitFailure(db)
+      } catch (recordErr) {
+        console.error('[DrillScreen] 保存失敗の退避にも失敗', recordErr)
+      }
+      return
+    }
+    if (err instanceof StaleSnapshotError) {
+      // T-298（K-24）: 従来はストレージ不足と同じ文言を出しており、別タブでの新セッション
+      // 開始・二度押しが原因のケースでも「空き容量を確認してください」という誤った
+      // 原因究明をさせていた。この経路は保存先の空き容量とは無関係で、解答が失われた
+      // ことだけが確定している事実
+      setSaveError('この解答は保存されていません（別のセッションが開始された可能性があります）')
+    } else if (isQuotaExceededError(err)) {
+      // T-299（K-25）: 従来は「確認してください」までで終わり、確認した後の具体的な
+      // 回復手段（エクスポートして空き容量を作る）を示していなかった
+      setSaveError(QUOTA_EXCEEDED_SAVE_ERROR)
+    } else {
+      // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+      // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
+      setSaveError('解答を保存できませんでした。空き容量を確認してください')
+    }
     // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
     // 従来は setResult(null) で正誤表示を取り消して再解答を求めていたが、正解が既に
     // 見えている状態で選び直させることになり、操作の意味がなかった。
@@ -1368,6 +1402,16 @@ export function DrillScreen({ db, audioPlayer, aiClient, raidApi }: Props) {
                   onClick={() => void saveGuard.runRetry()}
                 >
                   保存を再試行する
+                </button>
+              )}
+              {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+              {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => navigate('settings')}
+                >
+                  設定でエクスポート
                 </button>
               )}
             </>

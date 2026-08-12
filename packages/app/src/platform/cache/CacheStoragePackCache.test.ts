@@ -1,83 +1,201 @@
-// T-325（K-60）完了条件のテスト:
-// - usage() が全エントリを並列に問い合わせる（逐次だと960ファイル規模で起動が遅くなる）
+// T-294（K-21）: PackCacheの実運用実装（Cache Storage直叩き）に専用テストが無かった。
+// オフラインが正常系という設計の実際の成立点（パックJSON・音声の永続化）を担うため、
+// 主要分岐（有無判定・取得・格納・一括ピン留めの原子性・削除・列挙・使用量算出・全消去）を検証する。
+//
+// jsdomはCache Storage APIを実装しないため、テスト専用の最小フェイクをglobalThis.cachesへ
+// スタブする（本クラスがcaches.open/cache.match等をどう呼ぶかだけを検証する目的のため、
+// 実ブラウザの厳密な仕様準拠までは再現しない）
+//
+// T-325（K-60）: usage()が全エントリを並列に問い合わせることも検証する
+// （旧実装はfor...ofでcache.match()を1件ずつawaitしていた。実測960ファイル規模では
+// 1件あたり数msでも直列だと起動時の合計待ちが大きくなる）。match()に人工的な
+// 非同期遅延を入れ、同時に何件が実行中かを記録することで、usage()の並列度を外部から観測する
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { CacheStoragePackCache } from './CacheStoragePackCache'
 
 /**
- * Cache Storage APIの最小フェイク（jsdomは未実装のため）。
- * match()に人工的な非同期遅延を入れ、同時に何件が実行中かを記録することで、
- * usage()が逐次待ちか並列実行かを外部から観測できるようにする
+ * jsdom環境のグローバルBlobとfetch実装（undici由来）のResponseは別実装で、
+ * `new Response(new Blob([...]))` が `blob.stream is not a function` で失敗する。
+ * Response.blob() が返すBlobはResponse側と同じ実装のため、これ経由で作る
  */
+async function nativeBlob(content: string): Promise<Blob> {
+  return await new Response(content).blob()
+}
+
+/** キャッシュAPIはmatch/put/deleteに文字列URLだけでなくRequest相当のオブジェクトも
+ * 渡せる（usage()はkeys()が返したオブジェクトをそのままmatch()へ渡す）。両方を吸収する */
+function urlOf(request: string | { url: string }): string {
+  return typeof request === 'string' ? request : request.url
+}
+
 class FakeCache {
-  private readonly store = new Map<string, { size: number; withContentLength: boolean }>()
+  store = new Map<string, Response>()
   inFlight = 0
   maxInFlight = 0
 
-  set(url: string, size: number, withContentLength = false): void {
-    this.store.set(url, { size, withContentLength })
-  }
-
-  async match(req: string | Request): Promise<Response | undefined> {
-    const url = typeof req === 'string' ? req : new URL(req.url).pathname
-    const entry = this.store.get(url)
-    if (!entry) return undefined
+  async match(request: string | { url: string }): Promise<Response | undefined> {
     this.inFlight += 1
     this.maxInFlight = Math.max(this.maxInFlight, this.inFlight)
     // 同時実行数を観測するため、他のmatch()呼び出しが追いつけるだけの間だけ待つ
     await new Promise((r) => setTimeout(r, 5))
     this.inFlight -= 1
-    const body = 'x'.repeat(entry.size)
-    const headers: Record<string, string> = entry.withContentLength
-      ? { 'content-length': String(entry.size) }
-      : {}
-    return new Response(body, { headers })
+    return this.store.get(urlOf(request))
   }
 
-  async keys(): Promise<Request[]> {
-    return [...this.store.keys()].map((url) => new Request(new URL(url, 'http://localhost/')))
+  async put(request: string | { url: string }, response: Response): Promise<void> {
+    this.store.set(urlOf(request), response)
+  }
+
+  async delete(request: string | { url: string }): Promise<boolean> {
+    return this.store.delete(urlOf(request))
+  }
+
+  async keys(): Promise<{ url: string }[]> {
+    return [...this.store.keys()].map((url) => ({ url }))
+  }
+
+  /** 実Cache.addAllと同じく、1件でも失敗すると何も書き込まず全体を失敗させる（原子性） */
+  async addAll(urls: string[]): Promise<void> {
+    const responses = await Promise.all(urls.map((url) => fetch(url)))
+    urls.forEach((url, i) => this.store.set(url, responses[i]!))
   }
 }
 
-describe('CacheStoragePackCache.usage()', () => {
-  let fakeCache: FakeCache
+class FakeCacheStorage {
+  caches = new Map<string, FakeCache>()
 
-  beforeEach(() => {
-    fakeCache = new FakeCache()
-    vi.stubGlobal('caches', { open: vi.fn(async () => fakeCache as unknown as Cache) })
+  async open(name: string): Promise<FakeCache> {
+    if (!this.caches.has(name)) this.caches.set(name, new FakeCache())
+    return this.caches.get(name)!
+  }
+
+  async delete(name: string): Promise<boolean> {
+    return this.caches.delete(name)
+  }
+}
+
+let fakeCaches: FakeCacheStorage
+
+beforeEach(() => {
+  fakeCaches = new FakeCacheStorage()
+  vi.stubGlobal('caches', fakeCaches)
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('CacheStoragePackCache', () => {
+  it('put→hasで存在判定できる。未putのurlはfalse', async () => {
+    const cache = new CacheStoragePackCache()
+    expect(await cache.has('/packs/a.json')).toBe(false)
+
+    await cache.put('/packs/a.json', await nativeBlob('{}'))
+    expect(await cache.has('/packs/a.json')).toBe(true)
   })
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
+  it('put→getで格納したBlobの内容を取得できる。未putのurlはnullを返す', async () => {
+    const cache = new CacheStoragePackCache()
+    expect(await cache.get('/packs/missing.json')).toBeNull()
+
+    await cache.put('/packs/a.json', await nativeBlob('{"pack":"a"}'))
+    const got = await cache.get('/packs/a.json')
+    expect(await got?.text()).toBe('{"pack":"a"}')
+  })
+
+  it('addAllは全件成功時にすべて格納される', async () => {
+    const cache = new CacheStoragePackCache()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => new Response(`body:${url}`)),
+    )
+
+    await cache.addAll(['/packs/a.json', '/packs/b.json'])
+
+    expect(await cache.has('/packs/a.json')).toBe(true)
+    expect(await cache.has('/packs/b.json')).toBe(true)
+  })
+
+  it('addAllは1件でも失敗すると何も格納しない（パック単位の整合性）', async () => {
+    const cache = new CacheStoragePackCache()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url === '/packs/bad.json') throw new Error('network error')
+        return new Response(`body:${url}`)
+      }),
+    )
+
+    await expect(cache.addAll(['/packs/a.json', '/packs/bad.json'])).rejects.toThrow()
+    expect(await cache.has('/packs/a.json')).toBe(false)
+  })
+
+  it('deleteは指定urlのみ削除し、他のエントリは残る', async () => {
+    const cache = new CacheStoragePackCache()
+    await cache.put('/packs/a.json', await nativeBlob('a'))
+    await cache.put('/packs/b.json', await nativeBlob('b'))
+
+    await cache.delete(['/packs/a.json'])
+
+    expect(await cache.has('/packs/a.json')).toBe(false)
+    expect(await cache.has('/packs/b.json')).toBe(true)
+  })
+
+  it('keysは格納済みの全url一覧を返す', async () => {
+    const cache = new CacheStoragePackCache()
+    await cache.put('/packs/a.json', await nativeBlob('a'))
+    await cache.put('/audio/x.mp3', await nativeBlob('x'))
+
+    const keys = await cache.keys()
+    expect(new Set(keys)).toEqual(new Set(['/packs/a.json', '/audio/x.mp3']))
   })
 
   // 何を防ぐか（T-325・K-60）: 旧実装はfor...ofでcache.match()を1件ずつawaitしていた。
   // 実測960ファイル規模では、1件あたり数msでも直列だと起動時の合計待ちが大きくなる。
   // Promise.allで並列化すれば、同時に複数件を問い合わせられる
-  it('全エントリを並列に問い合わせる（同時実行数が1件ずつの逐次にならない）', async () => {
-    const packCache = new CacheStoragePackCache()
-    for (let i = 0; i < 5; i++) fakeCache.set(`/audio/${i}.mp3`, 10)
+  it('usageは全エントリを並列に問い合わせる（同時実行数が1件ずつの逐次にならない）', async () => {
+    const cache = new CacheStoragePackCache()
+    for (let i = 0; i < 5; i++) await cache.put(`/audio/${i}.mp3`, await nativeBlob('x'))
 
-    await packCache.usage()
+    const fakeCache = await fakeCaches.open('beb-pack-cache-v1')
+    await cache.usage()
 
     expect(fakeCache.maxInFlight).toBeGreaterThan(1)
   })
 
-  it('content-lengthがあればそれをバイト数として使う', async () => {
-    const packCache = new CacheStoragePackCache()
-    fakeCache.set('/a.mp3', 123, true)
+  it('usageはcontent-lengthヘッダがあればそれを合算する', async () => {
+    // put()は内部でnew Response(blob)へ包み直すため、通常はcontent-lengthが付かない
+    // （下のフォールバックテストで確認する）。ヘッダつきレスポンスが来る経路
+    // （SW経由の取得等）を模擬するため、フェイクの内部ストアへ直接投入する
+    const cache = new CacheStoragePackCache()
+    const fakeCache = await fakeCaches.open('beb-pack-cache-v1')
+    fakeCache.store.set(
+      '/packs/a.json',
+      new Response('12345', { headers: { 'content-length': '5' } }),
+    )
 
-    const usage = await packCache.usage()
-
-    expect(usage).toEqual({ bytes: 123, entries: 1 })
+    const usage = await cache.usage()
+    expect(usage.entries).toBe(1)
+    expect(usage.bytes).toBe(5)
   })
 
-  it('content-lengthが無ければBlobサイズから合算する', async () => {
-    const packCache = new CacheStoragePackCache()
-    fakeCache.set('/a.mp3', 50, false)
-    fakeCache.set('/b.mp3', 70, false)
+  it('usageはcontent-lengthヘッダが無い場合、blob.sizeへフォールバックする', async () => {
+    const cache = new CacheStoragePackCache()
+    await cache.put('/packs/a.json', await nativeBlob('12345')) // 5バイト、ヘッダ無し
 
-    const usage = await packCache.usage()
+    const usage = await cache.usage()
+    expect(usage.entries).toBe(1)
+    expect(usage.bytes).toBe(5)
+  })
 
-    expect(usage).toEqual({ bytes: 120, entries: 2 })
+  it('clearは名前空間ごとキャッシュを削除する（以後の再openは空になる）', async () => {
+    const cache = new CacheStoragePackCache()
+    await cache.put('/packs/a.json', await nativeBlob('a'))
+    expect(await cache.has('/packs/a.json')).toBe(true)
+
+    await cache.clear()
+
+    expect(await cache.has('/packs/a.json')).toBe(false)
   })
 })

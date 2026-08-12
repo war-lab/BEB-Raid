@@ -44,7 +44,9 @@ describe('fetchDrafts', () => {
 
 describe('submitReview', () => {
   it('POST /api/review にfilename/accepted/rejectedを送る', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ acceptedPath: 'a', rejectedPath: 'r' }))
+    const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () =>
+      jsonResponse({ acceptedPath: 'a', rejectedPath: 'r' }),
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     const result = await submitReview(
@@ -56,8 +58,8 @@ describe('submitReview', () => {
     expect(result).toEqual({ acceptedPath: 'a', rejectedPath: 'r' })
     const [url, init] = fetchMock.mock.calls[0]!
     expect(url).toBe('/api/review')
-    expect(init.method).toBe('POST')
-    const body = JSON.parse(init.body as string) as unknown
+    expect(init?.method).toBe('POST')
+    const body = JSON.parse(init?.body as string) as unknown
     expect(body).toEqual({
       filename: 'vocab.jsonl',
       accepted: [{ id: 'v-1' }],

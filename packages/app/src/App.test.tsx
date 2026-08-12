@@ -664,6 +664,51 @@ describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () =
   })
 })
 
+// T-284（K-7）: マウント時同期（起動直後の背後同期）とonline再同期（オンライン復帰時）が
+// それぞれ独立したinFlightフラグを持っていたため、圏外遷移からの復帰直後などで両方が
+// 並行して走り、manifest・パックへの二重fetchが発生しうる状態だった
+describe('App: マウント時同期とonline再同期のinFlight共有（T-284・K-7）', () => {
+  it('マウント時同期のmanifest取得が完了する前にonlineが発火しても、manifestは1回しかfetchされない', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    let manifestFetchCount = 0
+    let resolveManifest: (value: Response) => void = () => {}
+    const manifestPromise = new Promise<Response>((resolve) => {
+      resolveManifest = resolve
+    })
+    const originalFetch = global.fetch
+    global.fetch = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        manifestFetchCount++
+        return manifestPromise
+      }
+      // パック本体・その他のfetchは無関係（loadPackQuestionsが例外を捕捉し[]へ落とす）
+      return Promise.reject(new Error(`unexpected fetch: ${url}`))
+    }) as unknown as typeof fetch
+
+    try {
+      render(<App />)
+      await screen.findByRole('heading', { name: /BEB RAID/ })
+
+      // マウント時同期のmanifest fetchが発行されるまで待つ
+      await vi.waitFor(() => expect(manifestFetchCount).toBe(1))
+
+      // マウント時同期がまだ完了していない間にオンライン復帰が発火する
+      act(() => {
+        window.dispatchEvent(new Event('online'))
+      })
+      await Promise.resolve()
+
+      // inFlightを共有していれば、online側は即returnしmanifestは再fetchされない
+      expect(manifestFetchCount).toBe(1)
+
+      resolveManifest({ ok: true, json: async () => ({ schemaVersion: 2, packs: [] }) } as Response)
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+})
+
 describe('PACK_IDS（手動複製の追加漏れ検知）', () => {
   it('content/manifest.json（build成果物）のパック一覧と一致する', () => {
     // PACK_IDSはcli側のPACK_DEFINITIONSを手動複製したものなので、新パック追加時に

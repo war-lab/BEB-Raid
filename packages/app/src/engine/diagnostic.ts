@@ -26,7 +26,10 @@ export const TOEIC_SCORE_MAX = 990
  * クイックパック構成・予測スコアに波及し、修正手段が診断のやり直ししか無くなるため
  */
 export function initialRatingFromToeic(toeic: number | null, fallbackRating: number): number {
-  if (toeic === null) return fallbackRating
+  // T-312（K-45）: toeicがNaNだと、Math.max/Math.minはNaNを伝播させるだけで実際には
+  // クランプされず、fallbackRatingへの退避も起きない。結果のNaNがinitializeRatings経由で
+  // L/Rレートへ永続化され、以降のレート計算がすべてNaNに汚染される
+  if (toeic === null || !Number.isFinite(toeic)) return fallbackRating
   const clamped = Math.min(TOEIC_SCORE_MAX, Math.max(TOEIC_SCORE_MIN, toeic))
   return (clamped * 1000) / 990
 }

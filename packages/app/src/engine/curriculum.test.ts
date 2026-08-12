@@ -291,6 +291,19 @@ describe('evaluateSetAccuracy', () => {
     expect(result.insufficientData).toBe(true)
   })
 
+  // 何を防ぐか（T-308・K-37）: 3問中2問で中断したセットはtotal=2・correct=2に見え、
+  // correct/total>=2/3の比率判定では「完全正解セット」と誤認される。親のsubQuestions数と
+  // totalが一致するセット（全設問に解答済み）のみを移行判定に採用する
+  it('途中放棄したセット（3問中2問で中断）のみの場合、分母不足になる（「完全正解」への誤認を防ぐ）', () => {
+    const questionLookup = new Map<string, Question>([['set-1', audioSetQuestion('set-1', 3)]])
+    // 3問中2問で放棄。除外されなければ correct/total = 2/2 = 100% で「完全正解」に誤認される
+    const ctx = emptyContext({ attempts: setAttempts('set-1', 2, 2, 0), questionLookup })
+    const result = evaluateSetAccuracy({ type: 'setAccuracy', min: 0.6, windowSets: 1 }, ctx)
+    // 放棄セットが除外されれば有効なセットが0件になり、分母不足でmet=falseに強制される
+    expect(result.insufficientData).toBe(true)
+    expect(result.met).toBe(false)
+  })
+
   it('直近windowSetsセットの正解率が閾値以上なら成立', () => {
     const setIds = Array.from({ length: 20 }, (_, i) => `set-${i}`)
     const attempts = setIds.map((id, i) => setAttempts(id, i < 15 ? 3 : 1, 3, i)).flat()

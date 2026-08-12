@@ -32,12 +32,14 @@ import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { countAttemptsToday } from '../services/dailyStats'
+import { recordPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
   AUTO_PLAY_ENABLED_KEY,
   HAPTICS_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
 } from '../services/settingsKeys'
+import { isQuotaExceededError, QUOTA_EXCEEDED_SAVE_ERROR } from '../services/storageErrors'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
@@ -243,6 +245,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
    */
   const {
     pending: triagePending,
+    mountedRef,
     schedule: scheduleTriageCommit,
     cancel: cancelTriageCommit,
     clearTimer: clearTriageTimer,
@@ -427,12 +430,29 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     setBusy(true)
     try {
       await action()
-      setSaveError(null)
+      if (mountedRef.current) setSaveError(null)
     } catch (err) {
       console.error('[VocabScreen] 記録に失敗', err)
-      // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
-      // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
-      setSaveError('記録を保存できませんでした。空き容量を確認してください')
+      // T-297（K-23）: アンマウント後（flush経路）の失敗はsaveErrorバナーが出しても
+      // 誰にも見えない（画面ごと消えている）。UI復旧を試みる代わりに退避して
+      // 次回起動時に通知する
+      if (!mountedRef.current) {
+        // 退避自体の失敗（DBクローズ済み等）はここで握る。呼び出し元はvoidで
+        // 投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+        try {
+          await recordPendingCommitFailure(db)
+        } catch (recordErr) {
+          console.error('[VocabScreen] 記録失敗の退避にも失敗', recordErr)
+        }
+      } else if (isQuotaExceededError(err)) {
+        // T-299（K-25）: 従来は「確認してください」までで終わり、確認した後の具体的な
+        // 回復手段（エクスポートして空き容量を作る）を示していなかった
+        setSaveError(QUOTA_EXCEEDED_SAVE_ERROR)
+      } else {
+        // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+        // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
+        setSaveError('記録を保存できませんでした。空き容量を確認してください')
+      }
     } finally {
       busyRef.current = false
       setBusy(false)
@@ -729,6 +749,16 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 {saveError}
               </p>
             )}
+            {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+            {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => navigate('settings')}
+              >
+                設定でエクスポート
+              </button>
+            )}
             {quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (answered) {
@@ -903,6 +933,16 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
               <p className="drill-error" role="alert">
                 {saveError}
               </p>
+            )}
+            {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+            {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => navigate('settings')}
+              >
+                設定でエクスポート
+              </button>
             )}
             {/* T-161: 猶予中は仕分けボタンを引っ込めて「取り消し」だけを出す。
                 「知ってる」は語を恒久的に候補から外すため、ドリルの選択肢タップより不可逆である */}

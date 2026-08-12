@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import {
+  DIAGNOSTIC_ITEMS_PER_SECTION,
   DIAGNOSTIC_TOTAL_ITEMS,
   initialRatingFromToeic,
   sectionForTurn,
@@ -585,7 +586,14 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     const finalListening = section === 'L' ? newRating : ratingL
     const finalReading = section === 'R' ? newRating : ratingR
     if (nextTurn >= DIAGNOSTIC_TOTAL_ITEMS) {
-      await initializeRatings(db, { listening: finalListening, reading: finalReading })
+      // T-306（K-34）: 30問診断（L/R各15問）が既に与えたレート変動の実績を早期K
+      // （最初の50問はK=32）の消費量として引き継ぐ。0のままだと診断後さらに
+      // 丸ごと50問分の早期Kが乗り、K=32区間が仕様（50問）より長引く
+      await initializeRatings(db, {
+        listening: finalListening,
+        reading: finalReading,
+        answerCount: DIAGNOSTIC_ITEMS_PER_SECTION,
+      })
       await createProfile(db, {
         displayName: displayName.trim(),
         initialToeic: toeicInput.trim() === '' ? null : Number(toeicInput),

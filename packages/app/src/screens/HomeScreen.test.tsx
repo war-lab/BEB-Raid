@@ -32,6 +32,7 @@ import {
   HomeScreen,
   readingQuestionEstimate,
   remainingAnswerSlots,
+  shouldWarnStorageUsage,
 } from './HomeScreen'
 
 let seq = 0
@@ -2151,6 +2152,88 @@ describe('readingQuestionEstimate（読解の設問数の見積り）', () => {
     expect(formatReadingEstimate({ sets: 1, minQuestions: 3, maxQuestions: 3 })).toBe(
       '約3設問（目安3分）',
     )
+  })
+})
+
+// T-299（K-25）: QuotaExceededErrorで解答保存が失敗する前に、起動時（ホーム表示時）に
+// 気づけるようにする事前警告のしきい値判定
+describe('shouldWarnStorageUsage（T-299・K-25）', () => {
+  it('使用率が80%を超えると警告する', () => {
+    expect(shouldWarnStorageUsage({ usage: 81, quota: 100 } as StorageEstimate)).toBe(true)
+  })
+
+  it('使用率が80%以下なら警告しない', () => {
+    expect(shouldWarnStorageUsage({ usage: 80, quota: 100 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 10, quota: 100 } as StorageEstimate)).toBe(false)
+  })
+
+  it('estimateがnull・usage/quotaが0や未定義なら警告しない（信用できない値のため）', () => {
+    expect(shouldWarnStorageUsage(null)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 0, quota: 100 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 90, quota: 0 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({} as StorageEstimate)).toBe(false)
+  })
+})
+
+describe('HomeScreen: 端末ストレージ使用率の事前警告（T-299・K-25）', () => {
+  afterEach(() => {
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
+  })
+
+  it('使用率が80%を超えると警告と設定への導線が出る', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { estimate: async () => ({ usage: 90, quota: 100 }) },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText(/ストレージ使用量が上限に近づいています/)).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+  })
+
+  it('使用率が80%以下なら警告は出ない', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { estimate: async () => ({ usage: 10, quota: 100 }) },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/ストレージ使用量が上限に近づいています/)).toBeNull()
+  })
+
+  it('navigator.storage.estimateが無い環境（Safari非対応・非HTTPS等）でも破綻しない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/ストレージ使用量が上限に近づいています/)).toBeNull()
   })
 })
 

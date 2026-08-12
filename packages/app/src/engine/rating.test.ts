@@ -137,6 +137,40 @@ describe("applyRatingUpdate: R' = R + K(result − p)", () => {
     expect((await db.ratings.get('total'))?.rating).toBeCloseTo((listening + reading) / 2, 10)
   })
 
+  // 何を防ぐか（T-306・K-34）: 30問診断（L/R各15問）が既に与えたレート変動の実績を
+  // 無視してanswerCount=0で初期化すると、診断後さらに丸ごと50問分の早期K（K=32）が乗り、
+  // K=32区間が仕様（50問）より長引く
+  it('initializeRatingsにanswerCountを渡すと、その分だけ早期K（K=32）区間が短縮される', async () => {
+    const db = newDb()
+    await initializeRatings(db, { listening: 400, reading: 400, answerCount: 15, now: 1000 })
+    expect((await db.ratings.get('L'))?.answerCount).toBe(15)
+    expect((await db.ratings.get('R'))?.answerCount).toBe(15)
+
+    // 診断のanswerCount=15を引き継いだ状態で35問解けば answerCount=50 に達し、
+    // 続く36問目（EARLY_ANSWER_COUNT=50到達後）はK=16になる
+    const d = difficultyToRatingSpace(3)
+    for (let i = 0; i < 35; i++) {
+      await applyRatingUpdate(db, { part: 2, difficulty: 3, isCorrect: true, mode: 'solo' })
+    }
+    expect((await db.ratings.get('L'))?.answerCount).toBe(50)
+    const before = (await db.ratings.get('L'))!.rating
+    const p = expectedAccuracy(before, d)
+    const after36th = await applyRatingUpdate(db, {
+      part: 2,
+      difficulty: 3,
+      isCorrect: false,
+      mode: 'solo',
+    })
+    expect(after36th?.after).toBeCloseTo(before + RATING_K * (0 - p), 10)
+  })
+
+  it('answerCountを渡さない場合は従来どおり0のまま（自己申告スコアでのスキップ等）', async () => {
+    const db = newDb()
+    await initializeRatings(db, { listening: 400, reading: 400, now: 1000 })
+    expect((await db.ratings.get('L'))?.answerCount).toBe(0)
+    expect((await db.ratings.get('R'))?.answerCount).toBe(0)
+  })
+
   it('基礎点は更新前レートで計算して返す（J-4 のリザルト表示用）', async () => {
     const db = newDb()
     await initializeRatings(db, { listening: 400, reading: 400, now: 1000 })

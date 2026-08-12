@@ -195,7 +195,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     return () => window.clearInterval(id)
   }, [phase, deadlineAt, currentIndex, battleSocket])
 
-  async function handleRedraw() {
+  function handleRedraw() {
     setQuestionSet(drawBattleQuestionSet(questionPool, rng))
   }
 

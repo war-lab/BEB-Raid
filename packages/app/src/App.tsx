@@ -324,23 +324,17 @@ export function App() {
   // （`vite build` + `vite preview`）でPlaywrightから実機同等の操作を行い、パックJSON・
   // audioとも同一URLへのGETは1回のみであることを確認済み（2026-08-04）。モバイル回線の
   // 初回コスト倍増という懸念は本番では発生しない。再現しないため修正はしない
-  useEffect(() => {
-    let cancelled = false
-    void syncPacksAndReload(getDb(), packCache).then((pool) => {
-      if (!cancelled && pool) setQuestionPool(pool)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   // T-107(a): オフライン起動でパック取得に失敗した後、オンライン復帰しても再同期されず
-  // 「開き直してください」のまま固まる問題への対処。online復帰のたびに再同期を試みる
+  // 「開き直してください」のまま固まる問題への対処。online復帰のたびに再同期を試みる。
+  // T-284（K-7）: マウント時同期とonline再同期を同じハンドラ（＝同じinFlightフラグ）で
+  // 行う。従来は別々のinFlightを持ち、マウント時同期が完了する前にonlineが発火すると
+  // 2つの同期が並行して走ってしまっていた
   useEffect(() => {
     let cancelled = false
     const handleOnline = createOnlineResyncHandler(getDb(), packCache, (pool) => {
       if (!cancelled) setQuestionPool(pool)
     })
+    handleOnline()
     window.addEventListener('online', handleOnline)
     return () => {
       cancelled = true

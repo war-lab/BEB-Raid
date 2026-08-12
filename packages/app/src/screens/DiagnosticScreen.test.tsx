@@ -140,6 +140,11 @@ describe('DiagnosticScreen: 自己申告なし', () => {
     // 30問全問正解なのでレートは初期値(400)より上がっているはず
     expect(l!.rating).toBeGreaterThan(400)
     expect(r!.rating).toBeGreaterThan(400)
+    // T-306（K-34）: 診断（L/R各15問）が既に与えたレート変動の実績を早期K
+    // （最初の50問はK=32）の消費量として引き継ぐ。0のままだと診断後さらに丸ごと
+    // 50問分の早期Kが乗り、K=32区間が仕様（50問）より長引く
+    expect(l!.answerCount).toBe(15)
+    expect(r!.answerCount).toBe(15)
 
     const profile = await db.profile.get(PROFILE_ID)
     expect(profile?.initialToeic).toBeNull()
@@ -252,6 +257,10 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
     const r = await db.ratings.get('R')
     expect(l?.rating).toBeCloseTo(expectedRating)
     expect(r?.rating).toBeCloseTo(expectedRating)
+    // T-306（K-34）: スキップ経路は実際の解答を経ていないため、早期K（K=32）の
+    // 消費量は0のまま（30問診断のように15を引き継がない）
+    expect(l?.answerCount).toBe(0)
+    expect(r?.answerCount).toBe(0)
 
     const profile = await db.profile.get(PROFILE_ID)
     expect(profile?.initialToeic).toBe(650)
