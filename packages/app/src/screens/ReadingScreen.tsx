@@ -291,20 +291,6 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     mountedRef,
   } = usePendingCommit<ReadingPendingCommit>((payload) => commitSubQuestionAnswer(payload))
 
-  // T-281（K-4）: セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を
-  // 必ず出す（DrillScreenのsessionErrorと同じ理由。握りつぶすと中断ボタンすら無い白画面に固着する）
-  if (sessionError) {
-    return (
-      <ScreenLayout
-        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
-      >
-        <p className="drill-error" role="alert">
-          {sessionError}
-        </p>
-      </ScreenLayout>
-    )
-  }
-
   /**
    * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
    * （T-196・T-267。docs/29 Q-5、DrillScreenの同名関数と同じ理由）。リザルトへ到達する
@@ -336,6 +322,22 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   useEffect(() => {
     if (snapshot && !item) finishSession()
   }, [snapshot, item, finishSession])
+
+  // T-281（K-4）: セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を
+  // 必ず出す（DrillScreenのsessionErrorと同じ理由。握りつぶすと中断ボタンすら無い白画面に固着する）。
+  // **フック呼び出しより後ろに置くこと**——上のuseCallback/useEffectより前だとレンダーごとに
+  // フック数が変わる（rules-of-hooks違反）
+  if (sessionError) {
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+      >
+        <p className="drill-error" role="alert">
+          {sessionError}
+        </p>
+      </ScreenLayout>
+    )
+  }
 
   if (!snapshot || !item || !question) {
     return null

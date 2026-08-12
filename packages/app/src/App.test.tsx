@@ -670,6 +670,24 @@ describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () =
 describe('App: マウント時同期とonline再同期のinFlight共有（T-284・K-7）', () => {
   it('マウント時同期のmanifest取得が完了する前にonlineが発火しても、manifestは1回しかfetchされない', async () => {
     await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    // T-325: 起動チェック（loadQuestionPool→resolvePackIds）もmanifest.jsonをcache-first→
+    // fetchで読むようになった。本テストが検証したいのは「マウント時同期とonline再同期」の
+    // 重複防止（この2つのみ）なので、resolvePackIds側はキャッシュ命中させてfetchさせない
+    // （キャッシュを空のままにすると起動チェックのfetchと検証対象のfetchが同じmanifestPromiseを
+    // 待つことになり、起動チェック自体が完了できず本文の見出しが出ないまま固まる）
+    const manifestJson = JSON.stringify({ schemaVersion: 2, packs: [] })
+    vi.stubGlobal('caches', {
+      open: vi.fn(async () => ({
+        match: vi.fn(async (url: string) =>
+          url === '/manifest.json'
+            ? { blob: async () => ({ text: async () => manifestJson }) }
+            : undefined,
+        ),
+        put: vi.fn(async () => {}),
+        delete: vi.fn(async () => false),
+        keys: vi.fn(async () => []),
+      })),
+    })
     let manifestFetchCount = 0
     let resolveManifest: (value: Response) => void = () => {}
     const manifestPromise = new Promise<Response>((resolve) => {
@@ -705,6 +723,7 @@ describe('App: マウント時同期とonline再同期のinFlight共有（T-284�
       resolveManifest({ ok: true, json: async () => ({ schemaVersion: 2, packs: [] }) } as Response)
     } finally {
       global.fetch = originalFetch
+      vi.unstubAllGlobals()
     }
   })
 })
