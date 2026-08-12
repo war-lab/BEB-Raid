@@ -13,6 +13,18 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // T-286（K-13。docs/32 3節J-126）: 閾値は導入時点（2026-08-06）の実測値をそのまま
+    // 下限として固定する。以後この値を下げない
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      thresholds: {
+        statements: 60.45,
+        branches: 52.4,
+        functions: 56.63,
+        lines: 62.83,
+      },
+    },
     // T-287（K-14）: 消費側がpackage.jsonのexports経由でdistを見るため、
     // shared-schemaを変更してもビルドし直さない限りテストが古いコードを見ていた
     alias: {

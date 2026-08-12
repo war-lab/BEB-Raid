@@ -59,6 +59,18 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // T-286（K-13。docs/32 3節J-126）: 閾値は導入時点（2026-08-06）の実測値をそのまま
+    // 下限として固定する。以後この値を下げない
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      thresholds: {
+        statements: 91.4,
+        branches: 87.42,
+        functions: 88.74,
+        lines: 93.19,
+      },
+    },
     // T-287（K-14）: 消費側がpackage.jsonのexports経由でdistを見るため、
     // shared-schemaを変更してもビルドし直さない限りテストが古いコードを見ていた。
     // テスト実行時のみsrcを直接見る（vite buildの解決方式は変えない。test.aliasはtestブロック
