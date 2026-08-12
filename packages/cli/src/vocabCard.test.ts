@@ -190,8 +190,18 @@ describe('S/A/B語彙カード間で単語が重複しない（M2・T-59）', ()
 describe('validatePhraseVariety', () => {
   it('対象語だけ置換した文型が完全一致すると重複を検出する', () => {
     const entries = [
-      { word: 'submit', back: '提出する', phrase: 'Please submit the report by Friday.' },
-      { word: 'revise', back: '修正する', phrase: 'Please revise the report by Friday.' },
+      {
+        word: 'submit',
+        tags: ['ビジネス'] as [string],
+        back: '提出する',
+        phrase: 'Please submit the report by Friday.',
+      },
+      {
+        word: 'revise',
+        tags: ['ビジネス'] as [string],
+        back: '修正する',
+        phrase: 'Please revise the report by Friday.',
+      },
     ]
     const problems = validatePhraseVariety(entries)
     expect(problems.length).toBeGreaterThan(0)
@@ -199,8 +209,18 @@ describe('validatePhraseVariety', () => {
 
   it('文型が異なれば重複扱いしない', () => {
     const entries = [
-      { word: 'submit', back: '提出する', phrase: 'Please submit the report by Friday.' },
-      { word: 'revise', back: '修正する', phrase: 'The manager asked her to revise the draft.' },
+      {
+        word: 'submit',
+        tags: ['ビジネス'] as [string],
+        back: '提出する',
+        phrase: 'Please submit the report by Friday.',
+      },
+      {
+        word: 'revise',
+        tags: ['ビジネス'] as [string],
+        back: '修正する',
+        phrase: 'The manager asked her to revise the draft.',
+      },
     ]
     expect(validatePhraseVariety(entries)).toEqual([])
   })
