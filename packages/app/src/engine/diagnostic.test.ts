@@ -54,6 +54,18 @@ describe('initialRatingFromToeic', () => {
   it('10未満は10にクランプする（桁誤り6がそのまま伝播しない）', () => {
     expect(initialRatingFromToeic(6, DEFAULT_INITIAL_RATING)).toBeCloseTo((10 * 1000) / 990)
   })
+
+  // 何を防ぐか（T-312・K-45）: toeicがNaNだと、Math.max/Math.minは実際にはクランプせず
+  // NaNを伝播させるだけで、fallbackRatingへの退避も起きない。結果のNaNが
+  // initializeRatings経由でL/Rレートへ永続化され、以降のレート計算が全てNaNに汚染される
+  it('NaNはフォールバック値を返す（クランプが素通りしてNaNが伝播しない）', () => {
+    expect(initialRatingFromToeic(NaN, DEFAULT_INITIAL_RATING)).toBe(DEFAULT_INITIAL_RATING)
+  })
+
+  it('Infinity・-Infinityもフォールバック値を返す', () => {
+    expect(initialRatingFromToeic(Infinity, DEFAULT_INITIAL_RATING)).toBe(DEFAULT_INITIAL_RATING)
+    expect(initialRatingFromToeic(-Infinity, DEFAULT_INITIAL_RATING)).toBe(DEFAULT_INITIAL_RATING)
+  })
 })
 
 describe('selectNextQuestion', () => {

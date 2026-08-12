@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 104101
+    "sizeBytes": 105185
   },
   "questions": [
     {
@@ -31,22 +31,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "revising"
+          "text": "revise"
         },
         {
           "key": "B",
-          "text": "revised"
+          "text": "revising"
         },
         {
           "key": "C",
-          "text": "revision"
+          "text": "revised"
         },
         {
           "key": "D",
-          "text": "revise"
+          "text": "revision"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "空所はrequestedの目的語となる名詞。revisionが正しい。reviseは動詞原形、revisingは動名詞/現在分詞、revisedは過去形/過去分詞で、名詞の位置には合わない。",
       "translation": "顧客は契約条件の全面的な改訂を求めた。"
     },
@@ -73,7 +73,7 @@
         },
         {
           "key": "B",
-          "text": "differentiating"
+          "text": "differentiation"
         },
         {
           "key": "C",
@@ -81,10 +81,10 @@
         },
         {
           "key": "D",
-          "text": "differentiation"
+          "text": "differentiating"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "空所はachievedの目的語となる名詞。differentiationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。",
       "translation": "チームは2つの製品ラインの間で明確な差別化を実現した。"
     },
@@ -107,11 +107,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "diversified"
+          "text": "diversifying"
         },
         {
           "key": "B",
-          "text": "diversifying"
+          "text": "diversified"
         },
         {
           "key": "C",
@@ -145,7 +145,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "consolidate"
+          "text": "consolidating"
         },
         {
           "key": "B",
@@ -157,7 +157,7 @@
         },
         {
           "key": "D",
-          "text": "consolidating"
+          "text": "consolidate"
         }
       ],
       "answer": "C",
@@ -187,18 +187,18 @@
         },
         {
           "key": "B",
-          "text": "automate"
+          "text": "automation"
         },
         {
           "key": "C",
-          "text": "automation"
+          "text": "automate"
         },
         {
           "key": "D",
           "text": "automatic"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "空所は前置詞inの目的語となる名詞。automationが正しい。automateは動詞原形、automaticは形容詞、automatedは過去形/過去分詞で、前置詞の後の名詞位置にはいずれも合わない。",
       "translation": "その工場は昨年、自動化に多額の投資をした。"
     },
@@ -221,11 +221,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "standardize"
+          "text": "standardizing"
         },
         {
           "key": "B",
-          "text": "standardizing"
+          "text": "standardized"
         },
         {
           "key": "C",
@@ -233,7 +233,7 @@
         },
         {
           "key": "D",
-          "text": "standardized"
+          "text": "standardize"
         }
       ],
       "answer": "C",
@@ -259,11 +259,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "optimized"
+          "text": "optimizing"
         },
         {
           "key": "B",
-          "text": "optimizing"
+          "text": "optimized"
         },
         {
           "key": "C",
@@ -297,7 +297,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "compensate"
+          "text": "compensating"
         },
         {
           "key": "B",
@@ -309,7 +309,7 @@
         },
         {
           "key": "D",
-          "text": "compensating"
+          "text": "compensate"
         }
       ],
       "answer": "C",
@@ -335,22 +335,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "escalating"
+          "text": "escalate"
         },
         {
           "key": "B",
-          "text": "escalated"
+          "text": "escalating"
         },
         {
           "key": "C",
-          "text": "escalation"
+          "text": "escalated"
         },
         {
           "key": "D",
-          "text": "escalate"
+          "text": "escalation"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "空所は前置詞ofの目的語となる名詞。escalationが正しい。他の3つは動詞の活用形で、前置詞の後の名詞位置には合わない。",
       "translation": "その紛争は誰も予想しなかったレベルにまで激化した。"
     },
@@ -373,22 +373,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "reconcile"
-        },
-        {
-          "key": "B",
-          "text": "reconciling"
-        },
-        {
-          "key": "C",
           "text": "reconciled"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "reconciliation"
+        },
+        {
+          "key": "C",
+          "text": "reconcile"
+        },
+        {
+          "key": "D",
+          "text": "reconciling"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "空所はcompletedの目的語となる名詞。reconciliationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。",
       "translation": "その経理担当者は月次の照合作業を予定より早く終えた。"
     },
@@ -411,22 +411,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "mediated"
-        },
-        {
-          "key": "B",
           "text": "mediation"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "mediate"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "mediating"
+        },
+        {
+          "key": "D",
+          "text": "mediated"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "空所はagreed toの目的語となる名詞。mediationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。",
       "translation": "双方は提訴する前に専門家による調停に合意した。"
     },
@@ -449,22 +449,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "calibrate"
-        },
-        {
-          "key": "B",
           "text": "calibrating"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "calibrated"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "calibration"
+        },
+        {
+          "key": "D",
+          "text": "calibrate"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "空所はperformの目的語となる名詞。calibrationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。",
       "translation": "技術者たちは毎日、設備の較正を行っている。"
     },
@@ -487,7 +487,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "integrating"
+          "text": "integration"
         },
         {
           "key": "B",
@@ -495,14 +495,14 @@
         },
         {
           "key": "C",
-          "text": "integration"
+          "text": "integrating"
         },
         {
           "key": "D",
           "text": "integrated"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "空所は複合名詞system ___の後半部分。integrationが正しい。他の3つは動詞の活用形で、複合名詞の位置には合わない。",
       "translation": "2つのチームは金曜日の会議で、システム統合の成功を祝った。"
     },
@@ -525,22 +525,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "saturating"
-        },
-        {
-          "key": "B",
-          "text": "saturated"
-        },
-        {
-          "key": "C",
           "text": "saturation"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "saturate"
+        },
+        {
+          "key": "C",
+          "text": "saturating"
+        },
+        {
+          "key": "D",
+          "text": "saturated"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "空所は複合名詞market ___の後半部分。saturationが正しい。他の3つは動詞の活用形で、複合名詞の位置には合わない。",
       "translation": "アナリストたちはスマートフォン業界の市場飽和について警告した。"
     },
@@ -563,11 +563,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "proliferated"
+          "text": "proliferation"
         },
         {
           "key": "B",
-          "text": "proliferation"
+          "text": "proliferate"
         },
         {
           "key": "C",
@@ -575,10 +575,10 @@
         },
         {
           "key": "D",
-          "text": "proliferate"
+          "text": "proliferated"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "空所は前置詞ofの前にある定冠詞theに続く名詞。proliferationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。",
       "translation": "その報告書はオンライン小売業者の急増について論じていた。"
     },
@@ -601,23 +601,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "compliant"
+          "text": "proprietary"
         },
         {
           "key": "B",
-          "text": "compliance"
+          "text": "compliantly"
         },
         {
           "key": "C",
-          "text": "comply"
+          "text": "compliant"
         },
         {
           "key": "D",
-          "text": "compliantly"
+          "text": "confidential"
         }
       ],
-      "answer": "A",
-      "explanation": "空所はbe動詞areの補語となる形容詞。compliantが正しい。complianceは名詞、complyは動詞、compliantlyは副詞で、補語の位置には合わない。",
+      "answer": "C",
+      "explanation": "空所はbe動詞areの補語となる形容詞。compliantが正しい。confidential（機密の）・proprietary（独自の）は形容詞だが意味が合わず、compliantlyは副詞で補語の位置には合わない。",
       "translation": "改訂された建築計画は今や防火基準に完全に準拠している。"
     },
     {
@@ -639,22 +639,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "substantiate"
-        },
-        {
-          "key": "B",
           "text": "substantiating"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "substantiated"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "substantiation"
+        },
+        {
+          "key": "D",
+          "text": "substantiate"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "空所は形容詞furtherに続く名詞。substantiationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。",
       "translation": "その主張は承認前にさらなる立証を必要とした。"
     },
@@ -677,7 +677,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "rectify"
+          "text": "rectified"
         },
         {
           "key": "B",
@@ -685,11 +685,11 @@
         },
         {
           "key": "C",
-          "text": "rectifying"
+          "text": "rectify"
         },
         {
           "key": "D",
-          "text": "rectified"
+          "text": "rectifying"
         }
       ],
       "answer": "B",
@@ -715,22 +715,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "mitigating"
+          "text": "mitigated"
         },
         {
           "key": "B",
-          "text": "mitigate"
-        },
-        {
-          "key": "C",
           "text": "mitigation"
         },
         {
+          "key": "C",
+          "text": "mitigate"
+        },
+        {
           "key": "D",
-          "text": "mitigated"
+          "text": "mitigating"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "空所は複合名詞risk ___の後半部分。mitigationが正しい。他の3つは動詞の活用形で、複合名詞の位置には合わない。",
       "translation": "その計画にはリスク軽減のためのいくつかの戦略が含まれている。"
     },
@@ -753,11 +753,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "dissemination"
+          "text": "disseminated"
         },
         {
           "key": "B",
-          "text": "disseminated"
+          "text": "dissemination"
         },
         {
           "key": "C",
@@ -768,7 +768,7 @@
           "text": "disseminating"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "空所は定冠詞theに続く名詞。disseminationが正しい。他の3つは動詞の活用形で、名詞の位置には合わない。",
       "translation": "その部署は更新されたガイドラインの周知を担当していた。"
     },
@@ -791,15 +791,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "procuring"
+          "text": "procurement"
         },
         {
           "key": "B",
-          "text": "procured"
+          "text": "procuring"
         },
         {
           "key": "C",
-          "text": "procurement"
+          "text": "procured"
         },
         {
           "key": "D",
@@ -829,22 +829,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "expediting"
-        },
-        {
-          "key": "B",
-          "text": "expedited"
-        },
-        {
-          "key": "C",
           "text": "expeditiously"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "expedite"
+        },
+        {
+          "key": "C",
+          "text": "expedited"
+        },
+        {
+          "key": "D",
+          "text": "expediting"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "命令文のため動詞の原形expediteが正しい。expeditedは過去形/過去分詞、expeditingは動名詞/現在分詞、expeditiouslyは副詞で、命令文の主動詞としては使えない。",
       "translation": "この注文をできるだけ早く処理してください。"
     },
@@ -867,27 +867,27 @@
       "choices": [
         {
           "key": "A",
-          "text": "streamline"
-        },
-        {
-          "key": "B",
-          "text": "streamlining"
-        },
-        {
-          "key": "C",
           "text": "streamlines"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "streamline"
+        },
+        {
+          "key": "C",
           "text": "streamlined"
+        },
+        {
+          "key": "D",
+          "text": "streamlining"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "to不定詞の後は動詞の原形が続くため、streamlineが正しい。streamlinedは過去形/過去分詞、streamliningは動名詞/現在分詞、streamlinesは3人称単数現在形で、いずれもto不定詞の形に合わない。",
       "translation": "経営陣は承認プロセスを合理化することを決めた。"
     },
     {
-      "id": "part5-downsize",
+      "id": "part5-modernize",
       "part": 5,
       "format": "text_blank",
       "difficulty": 3,
@@ -896,33 +896,33 @@
       ],
       "keyVocab": [
         {
-          "word": "downsize",
-          "sense": "人員を削減する",
+          "word": "modernize",
+          "sense": "近代化する",
           "freqRank": "B"
         }
       ],
-      "question": "The company had no choice but to ___ its overseas operations.",
+      "question": "The company had no choice but to ___ its aging equipment.",
       "choices": [
         {
           "key": "A",
-          "text": "downsizing"
+          "text": "modernize"
         },
         {
           "key": "B",
-          "text": "downsize"
+          "text": "modernized"
         },
         {
           "key": "C",
-          "text": "downsized"
+          "text": "modernizing"
         },
         {
           "key": "D",
-          "text": "downsizes"
+          "text": "modernizes"
         }
       ],
-      "answer": "B",
-      "explanation": "to不定詞の後は動詞の原形が続くため、downsizeが正しい。他の3つは活用形で、to不定詞の形に合わない。",
-      "translation": "その会社は海外事業を縮小せざるを得なかった。"
+      "answer": "A",
+      "explanation": "to不定詞の後は動詞の原形が続くため、modernizeが正しい。他の3つは活用形で、to不定詞の形に合わない。",
+      "translation": "その会社は老朽化した設備を近代化せざるを得なかった。"
     },
     {
       "id": "part5-restructure",
@@ -943,22 +943,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "restructuring"
-        },
-        {
-          "key": "B",
           "text": "restructured"
         },
         {
+          "key": "B",
+          "text": "restructuring"
+        },
+        {
           "key": "C",
-          "text": "restructure"
+          "text": "restructures"
         },
         {
           "key": "D",
-          "text": "restructures"
+          "text": "restructure"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "to不定詞の後は動詞の原形が続くため、restructureが正しい。他の3つは活用形で、to不定詞の形に合わない。",
       "translation": "取締役会は営業部門を再編することを議決した。"
     },
@@ -981,22 +981,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "retrofit"
-        },
-        {
-          "key": "B",
-          "text": "retrofitted"
-        },
-        {
-          "key": "C",
           "text": "retrofitting"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "retrofits"
+        },
+        {
+          "key": "C",
+          "text": "retrofit"
+        },
+        {
+          "key": "D",
+          "text": "retrofitted"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "to不定詞の後は動詞の原形が続くため、retrofitが正しい。他の3つは活用形で、to不定詞の形に合わない。",
       "translation": "市は古い建物により良い断熱材を後付けする計画だ。"
     },
@@ -1019,22 +1019,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "decommissioning"
+          "text": "decommissions"
         },
         {
           "key": "B",
-          "text": "decommissioned"
-        },
-        {
-          "key": "C",
           "text": "decommission"
         },
         {
+          "key": "C",
+          "text": "decommissioned"
+        },
+        {
           "key": "D",
-          "text": "decommissions"
+          "text": "decommissioning"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "法助動詞willの後は動詞の原形が続くため、decommissionが正しい。他の3つは活用形で、willの後の形に合わない。",
       "translation": "エンジニアたちは来月、古いサーバーを廃止する予定だ。"
     },
@@ -1061,7 +1061,7 @@
         },
         {
           "key": "B",
-          "text": "curtailing"
+          "text": "curtail"
         },
         {
           "key": "C",
@@ -1069,10 +1069,10 @@
         },
         {
           "key": "D",
-          "text": "curtail"
+          "text": "curtailing"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "to不定詞の後は動詞の原形が続くため、curtailが正しい。curtailmentは名詞、他の2つは活用形で、to不定詞の形に合わない。",
       "translation": "経営陣は予算が改善するまで不要不急の出張を削減することを決めた。"
     },
@@ -1095,22 +1095,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "leverages"
+          "text": "leveraging"
         },
         {
           "key": "B",
-          "text": "leverage"
+          "text": "leverages"
         },
         {
           "key": "C",
-          "text": "leveraged"
+          "text": "leverage"
         },
         {
           "key": "D",
-          "text": "leveraging"
+          "text": "leveraged"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "to不定詞の後は動詞の原形が続くため、leverageが正しい。他の3つは活用形で、to不定詞の形に合わない。",
       "translation": "そのスタートアップは投資家ネットワークを活用して新規顧客を獲得する計画だ。"
     },
@@ -1137,18 +1137,18 @@
         },
         {
           "key": "B",
-          "text": "incentivized"
+          "text": "incentivize"
         },
         {
           "key": "C",
-          "text": "incentivizing"
+          "text": "incentivized"
         },
         {
           "key": "D",
-          "text": "incentivize"
+          "text": "incentivizing"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "to不定詞の後は動詞の原形が続くため、incentivizeが正しい。incentiveは名詞、他の2つは活用形で、to不定詞の形に合わない。",
       "translation": "その会社は割引で早期登録を促進したいと考えている。"
     },
@@ -1171,7 +1171,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "retention"
+          "text": "retain"
         },
         {
           "key": "B",
@@ -1183,10 +1183,10 @@
         },
         {
           "key": "D",
-          "text": "retain"
+          "text": "retention"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "法助動詞mustの後は動詞の原形が続くため、retainが正しい。retentionは名詞、他の2つは活用形で、mustの後の形に合わない。",
       "translation": "競争力を維持するため、その会社は優秀な人材をつなぎ止めなければならない。"
     },
@@ -1213,15 +1213,15 @@
         },
         {
           "key": "B",
-          "text": "alienation"
-        },
-        {
-          "key": "C",
           "text": "alienated"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "alienating"
+        },
+        {
+          "key": "D",
+          "text": "alienation"
         }
       ],
       "answer": "A",
@@ -1247,7 +1247,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "appeased"
+          "text": "appeasing"
         },
         {
           "key": "B",
@@ -1259,7 +1259,7 @@
         },
         {
           "key": "D",
-          "text": "appeasing"
+          "text": "appeased"
         }
       ],
       "answer": "C",
@@ -1289,15 +1289,15 @@
         },
         {
           "key": "B",
-          "text": "indemnity"
-        },
-        {
-          "key": "C",
           "text": "indemnified"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "indemnifying"
+        },
+        {
+          "key": "D",
+          "text": "indemnity"
         }
       ],
       "answer": "A",
@@ -1323,7 +1323,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "embarkation"
+          "text": "embarked"
         },
         {
           "key": "B",
@@ -1331,7 +1331,7 @@
         },
         {
           "key": "C",
-          "text": "embarked"
+          "text": "embarkation"
         },
         {
           "key": "D",
@@ -1361,11 +1361,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "disembarking"
+          "text": "disembarkation"
         },
         {
           "key": "B",
-          "text": "disembarkation"
+          "text": "disembark"
         },
         {
           "key": "C",
@@ -1373,10 +1373,10 @@
         },
         {
           "key": "D",
-          "text": "disembark"
+          "text": "disembarking"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "法助動詞mustの後は動詞の原形が続くため、disembarkが正しい。disembarkationは名詞、他の2つは活用形で、mustの後の形に合わない。",
       "translation": "この停車中、乗客は後方のドアから降りなければならない。"
     },
@@ -1399,22 +1399,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "repatriating"
+          "text": "repatriate"
         },
         {
           "key": "B",
-          "text": "repatriation"
-        },
-        {
-          "key": "C",
           "text": "repatriated"
         },
         {
+          "key": "C",
+          "text": "repatriating"
+        },
+        {
           "key": "D",
-          "text": "repatriate"
+          "text": "repatriation"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "to不定詞の後は動詞の原形が続くため、repatriateが正しい。repatriationは名詞、他の2つは活用形で、to不定詞の形に合わない。",
       "translation": "会社は危機の間、従業員を本国へ送還する手配をした。"
     },
@@ -1437,22 +1437,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "deprecating"
+          "text": "deprecate"
         },
         {
           "key": "B",
-          "text": "deprecation"
-        },
-        {
-          "key": "C",
           "text": "deprecated"
         },
         {
+          "key": "C",
+          "text": "deprecating"
+        },
+        {
           "key": "D",
-          "text": "deprecate"
+          "text": "deprecation"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "to不定詞の後は動詞の原形が続くため、deprecateが正しい。deprecationは名詞、他の2つは活用形で、to不定詞の形に合わない。",
       "translation": "開発者たちは年末までに古いAPIを非推奨にする計画だ。"
     },
@@ -1513,11 +1513,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "configure"
+          "text": "configuration"
         },
         {
           "key": "B",
-          "text": "configuring"
+          "text": "configure"
         },
         {
           "key": "C",
@@ -1525,10 +1525,10 @@
         },
         {
           "key": "D",
-          "text": "configuration"
+          "text": "configuring"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "法助動詞willの後は動詞の原形が続くため、configureが正しい。configurationは名詞、他の2つは活用形で、willの後の形に合わない。",
       "translation": "IT担当者は配布前に新しいノートパソコンを設定する。"
     },
@@ -1555,19 +1555,19 @@
         },
         {
           "key": "B",
-          "text": "which"
+          "text": "when"
         },
         {
           "key": "C",
-          "text": "whose"
+          "text": "who"
         },
         {
           "key": "D",
-          "text": "who"
+          "text": "which"
         }
       ],
-      "answer": "D",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞raisedが続く）。whomは目的格、whoseは所有格、whichは物を指す関係代名詞で、人物の主格には使えない。",
+      "answer": "C",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞raisedが続く）。whichは物を指す関係代名詞、whomは目的格、whenは時を指す関係副詞で、いずれも人物の主格には使えない。",
       "translation": "異議を唱えたその株主は投票に出席していなかった。"
     },
     {
@@ -1589,7 +1589,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
+          "text": "which"
         },
         {
           "key": "B",
@@ -1597,15 +1597,15 @@
         },
         {
           "key": "C",
-          "text": "which"
+          "text": "whoever"
         },
         {
           "key": "D",
-          "text": "whose"
+          "text": "whom"
         }
       ],
-      "answer": "A",
-      "explanation": "目的格の関係代名詞whomが正しい（the landlord evictedのevictedの目的語）。whoseは所有格、whichは物を指す関係代名詞、whereは場所を指す関係副詞で、いずれも合わない。",
+      "answer": "D",
+      "explanation": "目的格の関係代名詞whomが正しい（the landlord evictedのevictedの目的語）。whichは物を指す関係代名詞、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。",
       "translation": "大家が立ち退かせたその借家人は苦情を申し立てた。"
     },
     {
@@ -1627,11 +1627,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "who"
+          "text": "whoever"
         },
         {
           "key": "B",
-          "text": "whom"
+          "text": "whose"
         },
         {
           "key": "C",
@@ -1639,11 +1639,11 @@
         },
         {
           "key": "D",
-          "text": "whose"
+          "text": "when"
         }
       ],
-      "answer": "D",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにproperty=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "answer": "B",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにproperty=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whenは時を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも所有関係を表せない。",
       "translation": "所有物件が損傷したその大家は保険金を請求した。"
     },
     {
@@ -1665,23 +1665,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
-        },
-        {
-          "key": "B",
           "text": "which"
         },
         {
+          "key": "B",
+          "text": "whom"
+        },
+        {
           "key": "C",
-          "text": "who"
+          "text": "whoever"
         },
         {
           "key": "D",
-          "text": "whom"
+          "text": "who"
         }
       ],
-      "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞submittedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "answer": "D",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞submittedが続く）。whichは物を指し、whomは目的格、whoeverは不特定の人物を指す語で特定のapplicantを指す先行詞には合わない。",
       "translation": "最も優れたポートフォリオを提出した応募者はすぐに採用された。"
     },
     {
@@ -1711,14 +1711,14 @@
         },
         {
           "key": "C",
-          "text": "whose"
+          "text": "whom"
         },
         {
           "key": "D",
-          "text": "whom"
+          "text": "whose"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（we hiredのhiredの目的語）。whoseは所有格、when/whereはそれぞれ時・場所を指す関係副詞で、いずれも合わない。",
       "translation": "我々が雇ったその請負業者はプロジェクトを早期に完了させた。"
     },
@@ -1741,27 +1741,27 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
-        },
-        {
-          "key": "B",
           "text": "who"
         },
         {
+          "key": "B",
+          "text": "when"
+        },
+        {
           "key": "C",
-          "text": "which"
+          "text": "whose"
         },
         {
           "key": "D",
-          "text": "whom"
+          "text": "which"
         }
       ],
-      "answer": "A",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにteam=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "answer": "C",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにteam=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whoは人物を直接指す主格、whenは時を指す関係副詞で、いずれも所有関係を表せない。",
       "translation": "チームが遅延の原因となったその下請け業者は交代させられた。"
     },
     {
-      "id": "part5-plaintiff",
+      "id": "part5-technician",
       "part": 5,
       "format": "text_blank",
       "difficulty": 3,
@@ -1770,36 +1770,36 @@
       ],
       "keyVocab": [
         {
-          "word": "plaintiff",
-          "sense": "原告",
-          "freqRank": "A"
+          "word": "technician",
+          "sense": "技術者",
+          "freqRank": "S"
         }
       ],
-      "question": "The plaintiff ___ filed the lawsuit withdrew the case.",
+      "question": "The technician ___ repaired the printer left detailed notes for the next visit.",
       "choices": [
         {
           "key": "A",
-          "text": "whose"
+          "text": "whoever"
         },
         {
           "key": "B",
-          "text": "whom"
-        },
-        {
-          "key": "C",
           "text": "who"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "which"
+        },
+        {
+          "key": "D",
+          "text": "whose"
         }
       ],
-      "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞filedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
-      "translation": "訴訟を起こした原告は訴えを取り下げた。"
+      "answer": "B",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞repairedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "translation": "プリンターを修理した技術者は、次回の訪問のために詳しいメモを残した。"
     },
     {
-      "id": "part5-defendant",
+      "id": "part5-employee",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -1808,33 +1808,33 @@
       ],
       "keyVocab": [
         {
-          "word": "defendant",
-          "sense": "被告",
-          "freqRank": "A"
+          "word": "employee",
+          "sense": "従業員",
+          "freqRank": "S"
         }
       ],
-      "question": "The defendant ___ the jury acquitted left the courtroom in tears.",
+      "question": "The employee ___ the committee praised received a bonus.",
       "choices": [
         {
           "key": "A",
-          "text": "whose"
-        },
-        {
-          "key": "B",
           "text": "which"
         },
         {
+          "key": "B",
+          "text": "when"
+        },
+        {
           "key": "C",
-          "text": "whom"
+          "text": "whoever"
         },
         {
           "key": "D",
-          "text": "where"
+          "text": "whom"
         }
       ],
-      "answer": "C",
-      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（the jury acquittedのacquittedの目的語）。whoseは所有格、whichは物を指す、whereは関係副詞で、いずれも合わない。",
-      "translation": "陪審が無罪とした被告人は涙を流しながら法廷を後にした。"
+      "answer": "D",
+      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（the committee praisedのpraisedの目的語）。whoseは所有格、whichは物を指す、whereは関係副詞で、いずれも合わない。",
+      "translation": "委員会が称賛した従業員はボーナスを受け取った。"
     },
     {
       "id": "part5-supervisor",
@@ -1855,23 +1855,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
+          "text": "where"
         },
         {
           "key": "B",
-          "text": "which"
-        },
-        {
-          "key": "C",
           "text": "who"
         },
         {
+          "key": "C",
+          "text": "which"
+        },
+        {
           "key": "D",
-          "text": "whose"
+          "text": "when"
         }
       ],
-      "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞attendedが続く）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "answer": "B",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞attendedが続く）。whichは物を指し、when/whereはそれぞれ時・場所を指す関係副詞で、いずれも人物の主格には使えない。",
       "translation": "式典に出席したその上司は短いスピーチを行った。"
     },
     {
@@ -1893,23 +1893,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
-        },
-        {
-          "key": "B",
-          "text": "whose"
-        },
-        {
-          "key": "C",
           "text": "which"
         },
         {
+          "key": "B",
+          "text": "whom"
+        },
+        {
+          "key": "C",
+          "text": "when"
+        },
+        {
           "key": "D",
-          "text": "who"
+          "text": "whose"
         }
       ],
-      "answer": "B",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにlogo=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "answer": "D",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにlogo=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whomは目的格、whenは時を指す関係副詞で、いずれも所有関係を表せない。",
       "translation": "ロゴが全ての横断幕に載っていたそのスポンサーがイベント全体に資金を提供した。"
     },
     {
@@ -1931,22 +1931,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
-        },
-        {
-          "key": "B",
-          "text": "whom"
-        },
-        {
-          "key": "C",
           "text": "where"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "who"
+        },
+        {
+          "key": "C",
+          "text": "whom"
+        },
+        {
+          "key": "D",
+          "text": "whose"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "主格の関係代名詞whoが正しい（後ろに動詞wonが続く）。whomは目的格、whoseは所有格、whereは場所を指す関係副詞で、いずれも主格の位置には使えない。",
       "translation": "革新賞を受賞したその出展者は主催者に感謝した。"
     },
@@ -1969,23 +1969,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "which"
+          "text": "whoever"
         },
         {
           "key": "B",
-          "text": "where"
-        },
-        {
-          "key": "C",
           "text": "whom"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "whose"
+        },
+        {
+          "key": "D",
+          "text": "where"
         }
       ],
-      "answer": "C",
-      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（we interviewedのinterviewedの目的語）。whoseは所有格、whichは物を指す、whereは関係副詞で、いずれも合わない。",
+      "answer": "B",
+      "explanation": "目的格の関係代名詞whom（口語ではwhoも可）が正しい（we interviewedのinterviewedの目的語）。whoseは所有格、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。",
       "translation": "我々がインタビューしたその参加者は基調講演を称賛した。"
     },
     {
@@ -2007,11 +2007,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
+          "text": "whoever"
         },
         {
           "key": "B",
-          "text": "who"
+          "text": "whose"
         },
         {
           "key": "C",
@@ -2019,11 +2019,11 @@
         },
         {
           "key": "D",
-          "text": "whose"
+          "text": "whom"
         }
       ],
-      "answer": "D",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにRSVP=名詞が続き所有関係を示す）。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
+      "answer": "B",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにRSVP=名詞が続き所有関係を示す）。whichは物を指す関係代名詞、whomは目的格、whoeverは不特定の人物を指す語で所有関係を表せない。",
       "translation": "出欠の返信が遅れたその招待客は後方の席に案内された。"
     },
     {
@@ -2045,23 +2045,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "who"
+          "text": "when"
         },
         {
           "key": "B",
-          "text": "whom"
+          "text": "who"
         },
         {
           "key": "C",
-          "text": "where"
+          "text": "whom"
         },
         {
           "key": "D",
           "text": "whose"
         }
       ],
-      "answer": "A",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞openedが続く）。whomは目的格、whoseは所有格、whereは場所を指す関係副詞で、いずれも主格の位置には使えない。",
+      "answer": "B",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞openedが続く）。whomは目的格、whoseは所有格、whenは時を指す関係副詞で、いずれも主格の位置には使えない。",
       "translation": "最新の店舗を開いた加盟店主は好調な売上を報告した。"
     },
     {
@@ -2083,23 +2083,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "which"
+          "text": "whoever"
         },
         {
           "key": "B",
-          "text": "whom"
-        },
-        {
-          "key": "C",
           "text": "who"
         },
         {
+          "key": "C",
+          "text": "which"
+        },
+        {
           "key": "D",
-          "text": "whose"
+          "text": "where"
         }
       ],
-      "answer": "C",
-      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞manageが続く。personnelは人を表す集合名詞）。whomは目的格、whoseは所有格、whichは物を指し、人物の主格には使えない。",
+      "answer": "B",
+      "explanation": "主格の関係代名詞whoが正しい（後ろに動詞manageが続く。personnelは人を表す集合名詞）。whichは物を指し、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも人物の主格には使えない。",
       "translation": "新しいシステムを管理する職員は特別な研修を受けた。"
     },
     {
@@ -2121,23 +2121,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
+          "text": "when"
         },
         {
           "key": "B",
-          "text": "which"
+          "text": "whoever"
         },
         {
           "key": "C",
-          "text": "whom"
+          "text": "which"
         },
         {
           "key": "D",
           "text": "who"
         }
       ],
-      "answer": "B",
-      "explanation": "先行詞headcount increase（物・事柄）を受ける主格の関係代名詞whichが正しい。who/whomは人物を指す関係代名詞、whoseは所有格で、物を先行詞にする主格には使えない。",
+      "answer": "C",
+      "explanation": "先行詞headcount increase（物・事柄）を受ける主格の関係代名詞whichが正しい。who/whoeverは人物を指す語、whenは時を指す関係副詞で、いずれも物を先行詞にする主格には使えない。",
       "translation": "皆を驚かせたその増員は先週発表された。"
     },
     {
@@ -2167,15 +2167,15 @@
         },
         {
           "key": "C",
-          "text": "whose"
+          "text": "where"
         },
         {
           "key": "D",
-          "text": "who"
+          "text": "when"
         }
       ],
       "answer": "A",
-      "explanation": "先行詞subsidiary（物・組織）を受ける主格の関係代名詞whichが正しい（後ろに動詞wasが続く）。who/whomは人物を指す関係代名詞、whoseは所有格で、物を先行詞にする主格には使えない。",
+      "explanation": "先行詞subsidiary（物・組織）を受ける主格の関係代名詞whichが正しい（後ろに動詞wasが続く）。whomは目的格、where/whenはそれぞれ場所・時を指す関係副詞で、いずれも物を先行詞にする主格には使えない。",
       "translation": "昨年買収されたその子会社は今では黒字である。"
     },
     {
@@ -2197,22 +2197,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "who"
-        },
-        {
-          "key": "B",
           "text": "whose"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "which"
+        },
+        {
+          "key": "C",
+          "text": "who"
         },
         {
           "key": "D",
           "text": "where"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "先行詞workforce（集合的に見た組織・集団）を受ける目的格の関係代名詞whichが正しい（the merger affectedのaffectedの目的語）。whoは人物を指す関係代名詞、whereは場所を指す関係副詞、whoseは所有格で、いずれも合わない。",
       "translation": "その合併の影響を受けた労働力は主に製造部門にいた。"
     },
@@ -2235,23 +2235,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "which"
-        },
-        {
-          "key": "B",
-          "text": "whom"
-        },
-        {
-          "key": "C",
           "text": "whose"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "where"
+        },
+        {
+          "key": "C",
+          "text": "whoever"
+        },
+        {
+          "key": "D",
+          "text": "which"
         }
       ],
-      "answer": "A",
-      "explanation": "先行詞retailer（組織・企業）を受ける主格の関係代名詞whichが正しい（後ろに動詞dominatesが続く）。whereは場所を指す関係副詞、whomは目的格、whoseは所有格で、いずれも主格の位置には使えない。",
+      "answer": "D",
+      "explanation": "先行詞retailer（組織・企業）を受ける主格の関係代名詞whichが正しい（後ろに動詞dominatesが続く）。whoseは所有格、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも主格の位置には使えない。",
       "translation": "オンライン市場を支配しているその小売業者は値下げを続けている。"
     },
     {
@@ -2273,23 +2273,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "who"
+          "text": "when"
         },
         {
           "key": "B",
-          "text": "whom"
-        },
-        {
-          "key": "C",
           "text": "whose"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "which"
+        },
+        {
+          "key": "D",
+          "text": "where"
         }
       ],
-      "answer": "C",
-      "explanation": "所有格の関係代名詞whoseが正しい（後ろにprices=名詞が続き所有関係を示す。whoseは人・物どちらにも使える）。who/whomは人物を直接指す主格/目的格、whichは所有関係を単独では表せない。",
+      "answer": "B",
+      "explanation": "所有格の関係代名詞whoseが正しい（後ろにprices=名詞が続き所有関係を示す。whoseは人・物どちらにも使える）。whichは所有関係を単独では表せず、where/whenはそれぞれ場所・時を指す関係副詞で、いずれも合わない。",
       "translation": "価格が最も低いその卸売業者はほとんどの地元店舗に供給している。"
     },
     {
@@ -2319,15 +2319,15 @@
         },
         {
           "key": "C",
-          "text": "because"
+          "text": "unless"
         },
         {
           "key": "D",
-          "text": "because of"
+          "text": "because"
         }
       ],
-      "answer": "C",
-      "explanation": "空所の後は節（the deficit continued to grow）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆（〜にもかかわらず）で合わない。",
+      "answer": "D",
+      "explanation": "空所の後は節（the deficit continued to grow）なので接続詞becauseが正しい。due toは名詞句が必要な前置詞、despiteは意味が逆（〜にもかかわらず）、unlessは条件（〜しない限り）で文意に合わない。",
       "translation": "赤字が拡大し続けたため、その部署は経費を削減した。"
     },
     {
@@ -2349,23 +2349,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
-        },
-        {
-          "key": "B",
           "text": "because of"
         },
         {
+          "key": "B",
+          "text": "in spite of"
+        },
+        {
           "key": "C",
-          "text": "due to"
+          "text": "although"
         },
         {
           "key": "D",
-          "text": "despite"
+          "text": "because"
         }
       ],
-      "answer": "A",
-      "explanation": "空所の後は節（it had a budget surplus）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "answer": "D",
+      "explanation": "空所の後は節（it had a budget surplus）なので接続詞becauseが正しい。because of/in spite ofは名詞句が必要な前置詞、althoughは意味が逆（〜にもかかわらず）で合わない。",
       "translation": "今年は予算に余剰があったため、その会社は新しい設備に投資した。"
     },
     {
@@ -2387,22 +2387,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
-        },
-        {
-          "key": "B",
-          "text": "since"
-        },
-        {
-          "key": "C",
           "text": "because of"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "because"
+        },
+        {
+          "key": "C",
           "text": "although"
+        },
+        {
+          "key": "D",
+          "text": "since"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "空所の後は名詞句（a backlog...）なので前置詞because ofが正しい。because/since/althoughは後ろに節（主語＋動詞）が必要な接続詞で、名詞句には合わない。",
       "translation": "未処理の注文の滞積のため、配送が遅れた。"
     },
@@ -2425,7 +2425,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "due to"
+          "text": "although"
         },
         {
           "key": "B",
@@ -2433,14 +2433,14 @@
         },
         {
           "key": "C",
-          "text": "because"
+          "text": "due to"
         },
         {
           "key": "D",
-          "text": "although"
+          "text": "because"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "空所の後は名詞句（a bottleneck...）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "サプライチェーンの障害のため、生産が遅くなった。"
     },
@@ -2463,23 +2463,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "unless"
+          "text": "since"
         },
         {
           "key": "B",
-          "text": "due to"
+          "text": "even though"
         },
         {
           "key": "C",
-          "text": "although"
+          "text": "due to"
         },
         {
           "key": "D",
-          "text": "because"
+          "text": "despite"
         }
       ],
-      "answer": "B",
-      "explanation": "空所の後は名詞句（air traffic congestion）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "C",
+      "explanation": "空所の後は名詞句（air traffic congestion）なので前置詞due toが正しい。despiteは意味が逆で名詞句には合うが文意が反転する。since/even thoughは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "航空交通の混雑のため、その便は遅延した。"
     },
     {
@@ -2501,23 +2501,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
-        },
-        {
-          "key": "B",
-          "text": "because of"
-        },
-        {
-          "key": "C",
           "text": "despite"
         },
         {
+          "key": "B",
+          "text": "even though"
+        },
+        {
+          "key": "C",
+          "text": "because"
+        },
+        {
           "key": "D",
-          "text": "due to"
+          "text": "owing to"
         }
       ],
-      "answer": "A",
-      "explanation": "空所の後は節（the consignment lacked...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "answer": "C",
+      "explanation": "空所の後は節（the consignment lacked...）なので接続詞becauseが正しい。owing toは名詞句が必要な前置詞、despite/even thoughは意味が逆（〜にもかかわらず）で合わない。",
       "translation": "その委託貨物には適切な書類が欠けていたため、出荷は保留された。"
     },
     {
@@ -2539,23 +2539,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
+          "text": "unless"
         },
         {
           "key": "B",
-          "text": "because of"
+          "text": "because"
         },
         {
           "key": "C",
-          "text": "despite"
+          "text": "on account of"
         },
         {
           "key": "D",
-          "text": "due to"
+          "text": "in spite of"
         }
       ],
-      "answer": "A",
-      "explanation": "空所の後は節（the shipment arrived...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "answer": "B",
+      "explanation": "空所の後は節（the shipment arrived...）なので接続詞becauseが正しい。on account ofは名詞句が必要な前置詞、in spite ofは意味が逆、unlessは条件で文意に合わない。",
       "translation": "出荷が3日遅れて到着したため、顧客は苦情を言った。"
     },
     {
@@ -2577,7 +2577,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "although"
+          "text": "unless"
         },
         {
           "key": "B",
@@ -2589,7 +2589,7 @@
         },
         {
           "key": "D",
-          "text": "unless"
+          "text": "although"
         }
       ],
       "answer": "B",
@@ -2615,23 +2615,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "because"
+          "text": "despite"
         },
         {
           "key": "B",
-          "text": "although"
+          "text": "because"
         },
         {
           "key": "C",
-          "text": "because of"
+          "text": "even though"
         },
         {
           "key": "D",
-          "text": "unless"
+          "text": "because of"
         }
       ],
-      "answer": "C",
-      "explanation": "空所の後は名詞句（high overhead costs...）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "answer": "D",
+      "explanation": "空所の後は名詞句（high overhead costs...）なので前置詞because ofが正しい。despiteは意味が逆で文意が反転する。because/even thoughは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "都心部の高い諸経費のため、その会社はオフィスを移転した。"
     },
     {
@@ -2653,7 +2653,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "although"
+          "text": "unless"
         },
         {
           "key": "B",
@@ -2661,15 +2661,15 @@
         },
         {
           "key": "C",
-          "text": "unless"
+          "text": "in spite of"
         },
         {
           "key": "D",
-          "text": "because"
+          "text": "since"
         }
       ],
       "answer": "B",
-      "explanation": "空所の後は名詞句（the new tariff）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "explanation": "空所の後は名詞句（the new tariff）なので前置詞because ofが正しい。in spite ofは意味が逆で文意が反転する。since/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
       "translation": "新しい関税のため、輸入コストが急激に上昇した。"
     },
     {
@@ -2691,7 +2691,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "due to"
+          "text": "although"
         },
         {
           "key": "B",
@@ -2699,15 +2699,15 @@
         },
         {
           "key": "C",
-          "text": "because of"
+          "text": "notwithstanding"
         },
         {
           "key": "D",
-          "text": "despite"
+          "text": "due to"
         }
       ],
       "answer": "B",
-      "explanation": "空所の後は節（the city introduced...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "explanation": "空所の後は節（the city introduced...）なので接続詞becauseが正しい。notwithstanding/due toは名詞句が必要な前置詞、althoughは意味が逆で合わない。",
       "translation": "市が新しい課税を導入したため、住民たちは抗議した。"
     },
     {
@@ -2729,22 +2729,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "although"
-        },
-        {
-          "key": "B",
-          "text": "because of"
-        },
-        {
-          "key": "C",
           "text": "despite"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "due to"
+        },
+        {
+          "key": "C",
+          "text": "although"
+        },
+        {
+          "key": "D",
+          "text": "because of"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "空所の後は節（the government subsidy ended）で、文意は逆接（補助金が終わったにもかかわらず黒字を維持）なので接続詞althoughが正しい。because of/despite/due toは後ろに名詞句が必要な前置詞で、節には合わない。",
       "translation": "政府の補助金が終了したにもかかわらず、その工場は黒字を維持した。"
     },
@@ -2763,31 +2763,31 @@
           "freqRank": "B"
         }
       ],
-      "question": "The manager was dismissed ___ evidence of poor oversight.",
+      "question": "The manager was reassigned ___ evidence of poor oversight.",
       "choices": [
         {
           "key": "A",
-          "text": "because"
-        },
-        {
-          "key": "B",
           "text": "because of"
         },
         {
+          "key": "B",
+          "text": "notwithstanding"
+        },
+        {
           "key": "C",
-          "text": "unless"
+          "text": "as"
         },
         {
           "key": "D",
           "text": "although"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "空所の後は名詞句（evidence of poor oversight）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
-      "translation": "管理不足の証拠のため、そのマネージャーは解雇された。"
+      "translation": "管理不足の証拠のため、そのマネージャーは配置転換された。"
     },
     {
-      "id": "part5-litigation",
+      "id": "part5-relocation",
       "part": 5,
       "format": "text_blank",
       "difficulty": 3,
@@ -2796,36 +2796,36 @@
       ],
       "keyVocab": [
         {
-          "word": "litigation",
-          "sense": "訴訟手続き",
+          "word": "relocation",
+          "sense": "移転",
           "freqRank": "A"
         }
       ],
-      "question": "The merger was delayed ___ ongoing litigation.",
+      "question": "The merger was delayed ___ the headquarters relocation.",
       "choices": [
         {
           "key": "A",
-          "text": "because"
-        },
-        {
-          "key": "B",
-          "text": "although"
-        },
-        {
-          "key": "C",
           "text": "unless"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "due to"
+        },
+        {
+          "key": "C",
+          "text": "in spite of"
+        },
+        {
+          "key": "D",
+          "text": "as"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後は名詞句（ongoing litigation）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
-      "translation": "進行中の訴訟のため、その合併は延期された。"
+      "answer": "B",
+      "explanation": "空所の後は名詞句（the headquarters relocation）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "translation": "本社の移転のため、その合併は延期された。"
     },
     {
-      "id": "part5-insolvency",
+      "id": "part5-growth",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -2834,98 +2834,22 @@
       ],
       "keyVocab": [
         {
-          "word": "insolvency",
-          "sense": "支払不能状態",
+          "word": "growth",
+          "sense": "成長",
           "freqRank": "B"
         }
       ],
-      "question": "The bank froze the accounts ___ the company faced insolvency.",
+      "question": "The bank raised the credit limit ___ the company showed strong growth.",
       "choices": [
         {
           "key": "A",
-          "text": "due to"
+          "text": "owing to"
         },
         {
           "key": "B",
-          "text": "because"
-        },
-        {
-          "key": "C",
-          "text": "despite"
-        },
-        {
-          "key": "D",
-          "text": "because of"
-        }
-      ],
-      "answer": "B",
-      "explanation": "空所の後は節（the company faced...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
-      "translation": "その会社が支払不能に陥ったため、銀行は口座を凍結した。"
-    },
-    {
-      "id": "part5-bankruptcy",
-      "part": 5,
-      "format": "text_blank",
-      "difficulty": 3,
-      "tags": [
-        "接続詞vs前置詞"
-      ],
-      "keyVocab": [
-        {
-          "word": "bankruptcy",
-          "sense": "破産",
-          "freqRank": "B"
-        }
-      ],
-      "question": "The chain closed several stores ___ it filed for bankruptcy.",
-      "choices": [
-        {
-          "key": "A",
-          "text": "because"
-        },
-        {
-          "key": "B",
-          "text": "because of"
-        },
-        {
-          "key": "C",
-          "text": "due to"
-        },
-        {
-          "key": "D",
-          "text": "despite"
-        }
-      ],
-      "answer": "A",
-      "explanation": "空所の後は節（it filed for bankruptcy）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
-      "translation": "破産を申請したため、そのチェーン店はいくつかの店舗を閉鎖した。"
-    },
-    {
-      "id": "part5-foreclosure",
-      "part": 5,
-      "format": "text_blank",
-      "difficulty": 3,
-      "tags": [
-        "接続詞vs前置詞"
-      ],
-      "keyVocab": [
-        {
-          "word": "foreclosure",
-          "sense": "差し押さえ",
-          "freqRank": "B"
-        }
-      ],
-      "question": "The family lost their home ___ the bank's foreclosure.",
-      "choices": [
-        {
-          "key": "A",
           "text": "unless"
         },
         {
-          "key": "B",
-          "text": "although"
-        },
-        {
           "key": "C",
           "text": "because"
         },
@@ -2934,9 +2858,85 @@
           "text": "because of"
         }
       ],
-      "answer": "D",
-      "explanation": "空所の後は名詞句（the bank's foreclosure）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
-      "translation": "銀行の差し押さえのため、その家族は家を失った。"
+      "answer": "C",
+      "explanation": "空所の後は節（the company showed...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "translation": "その会社が力強い成長を示したため、銀行は融資限度額を上げた。"
+    },
+    {
+      "id": "part5-modernization",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "接続詞vs前置詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "modernization",
+          "sense": "近代化",
+          "freqRank": "B"
+        }
+      ],
+      "question": "The factory increased output ___ it completed a major modernization.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "on account of"
+        },
+        {
+          "key": "B",
+          "text": "even though"
+        },
+        {
+          "key": "C",
+          "text": "because"
+        },
+        {
+          "key": "D",
+          "text": "despite"
+        }
+      ],
+      "answer": "C",
+      "explanation": "空所の後は節（it completed...）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "translation": "大規模な近代化を完了したため、その工場は生産量を増やした。"
+    },
+    {
+      "id": "part5-investment",
+      "part": 5,
+      "format": "text_blank",
+      "difficulty": 3,
+      "tags": [
+        "接続詞vs前置詞"
+      ],
+      "keyVocab": [
+        {
+          "word": "investment",
+          "sense": "投資",
+          "freqRank": "B"
+        }
+      ],
+      "question": "The startup expanded quickly ___ a major investment from a venture fund.",
+      "choices": [
+        {
+          "key": "A",
+          "text": "because of"
+        },
+        {
+          "key": "B",
+          "text": "despite"
+        },
+        {
+          "key": "C",
+          "text": "since"
+        },
+        {
+          "key": "D",
+          "text": "unless"
+        }
+      ],
+      "answer": "A",
+      "explanation": "空所の後は名詞句（a major investment...）なので前置詞because ofが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
+      "translation": "ベンチャーファンドからの大きな投資のため、そのスタートアップは急速に拡大した。"
     },
     {
       "id": "part5-defect",
@@ -2953,28 +2953,28 @@
           "freqRank": "S"
         }
       ],
-      "question": "The company was sued ___ a manufacturing defect.",
+      "question": "The company recalled the product ___ a manufacturing defect.",
       "choices": [
         {
           "key": "A",
-          "text": "unless"
-        },
-        {
-          "key": "B",
           "text": "due to"
         },
         {
+          "key": "B",
+          "text": "notwithstanding"
+        },
+        {
           "key": "C",
-          "text": "because"
+          "text": "although"
         },
         {
           "key": "D",
-          "text": "although"
+          "text": "since"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "空所の後は名詞句（a manufacturing defect）なので前置詞due toが正しい。because/although/unlessは後ろに節が必要な接続詞で、名詞句には合わない。",
-      "translation": "製造上の欠陥のため、その会社は訴えられた。"
+      "translation": "製造上の欠陥のため、その会社は製品を回収した。"
     },
     {
       "id": "part5-audit",
@@ -2999,7 +2999,7 @@
         },
         {
           "key": "B",
-          "text": "because of"
+          "text": "in spite of"
         },
         {
           "key": "C",
@@ -3007,11 +3007,11 @@
         },
         {
           "key": "D",
-          "text": "despite"
+          "text": "although"
         }
       ],
       "answer": "A",
-      "explanation": "空所の後は節（a critical audit finding was made public）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
+      "explanation": "空所の後は節（a critical audit finding was made public）なので接続詞becauseが正しい。in spite of/due toは名詞句が必要な前置詞、althoughは意味が逆で合わない。",
       "translation": "重大な監査結果が公になったため、その職員は辞任した。"
     },
     {
@@ -3029,28 +3029,28 @@
           "freqRank": "A"
         }
       ],
-      "question": "The tenant was evicted ___ the rent was in arrears.",
+      "question": "The subscription was suspended ___ the payment was in arrears.",
       "choices": [
         {
           "key": "A",
-          "text": "because"
+          "text": "notwithstanding"
         },
         {
           "key": "B",
-          "text": "due to"
+          "text": "because of"
         },
         {
           "key": "C",
-          "text": "despite"
+          "text": "unless"
         },
         {
           "key": "D",
-          "text": "because of"
+          "text": "because"
         }
       ],
-      "answer": "A",
-      "explanation": "空所の後は節（the rent was in arrears）なので接続詞becauseが正しい。because of/due toは名詞句が必要な前置詞、despiteは意味が逆で合わない。",
-      "translation": "家賃が滞納していたため、その借家人は立ち退かされた。"
+      "answer": "D",
+      "explanation": "空所の後は節（the payment was in arrears）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。",
+      "translation": "支払いが滞納していたため、その定期購入は停止された。"
     },
     {
       "id": "part5-durability",
@@ -3071,11 +3071,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "durableness"
+          "text": "durably"
         },
         {
           "key": "B",
-          "text": "durably"
+          "text": "durableness"
         },
         {
           "key": "C",
@@ -3109,11 +3109,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "scalability"
+          "text": "scalable"
         },
         {
           "key": "B",
-          "text": "scalable"
+          "text": "scalability"
         },
         {
           "key": "C",
@@ -3124,7 +3124,7 @@
           "text": "scaling"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "\"more ___ than\"の形は形容詞の比較級を作るため、形容詞scalableが正しい。scalabilityは名詞、scale/scalingは動詞由来の語で、比較級の位置には合わない。",
       "translation": "新しいプラットフォームは旧システムよりもはるかに拡張性が高い。"
     },
@@ -3147,11 +3147,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "compatibly"
+          "text": "compatibleness"
         },
         {
           "key": "B",
-          "text": "compatibleness"
+          "text": "compatible"
         },
         {
           "key": "C",
@@ -3159,10 +3159,10 @@
         },
         {
           "key": "D",
-          "text": "compatible"
+          "text": "compatibly"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "\"more ___ than\"の形は形容詞の比較級を作るため、形容詞compatibleが正しい。compatibilityは名詞、compatiblyは副詞、compatiblenessは非標準的な語で、比較級の位置には合わない。",
       "translation": "このソフトウェアは前回のリリースよりも古い機器との互換性が高い。"
     },
@@ -3189,18 +3189,18 @@
         },
         {
           "key": "B",
-          "text": "punctualness"
+          "text": "punctually"
         },
         {
           "key": "C",
-          "text": "punctual"
+          "text": "punctualness"
         },
         {
           "key": "D",
-          "text": "punctually"
+          "text": "punctual"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "\"more ___ than\"の形は形容詞の比較級を作るため、形容詞punctualが正しい。punctualityは名詞、punctuallyは副詞、punctualnessは非標準的な語で、比較級の位置には合わない。",
       "translation": "新しい配送サービスは以前のものよりも時間に正確だ。"
     },
@@ -3223,22 +3223,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "sustain"
+          "text": "sustainable"
         },
         {
           "key": "B",
-          "text": "sustainably"
-        },
-        {
-          "key": "C",
           "text": "sustainability"
         },
         {
+          "key": "C",
+          "text": "sustainably"
+        },
+        {
           "key": "D",
-          "text": "sustainable"
+          "text": "sustain"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "\"more ___ than\"の形は形容詞の比較級を作るため、形容詞sustainableが正しい。sustainabilityは名詞、sustainablyは副詞、sustainは動詞原形で、比較級の位置には合わない。",
       "translation": "その工場の新しいエネルギー計画は、昨年の方針よりも持続可能性が高い。"
     },
@@ -3303,11 +3303,11 @@
         },
         {
           "key": "B",
-          "text": "perishing"
+          "text": "perish"
         },
         {
           "key": "C",
-          "text": "perish"
+          "text": "perishing"
         },
         {
           "key": "D",
@@ -3341,18 +3341,18 @@
         },
         {
           "key": "B",
-          "text": "confidentiality"
+          "text": "confidential"
         },
         {
           "key": "C",
-          "text": "confidentially"
+          "text": "confidentiality"
         },
         {
           "key": "D",
-          "text": "confidential"
+          "text": "confidentially"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "\"more ___ than\"の形は形容詞の比較級を作るため、形容詞confidentialが正しい。confidentialityは名詞、confidentiallyは副詞、confideは動詞で、比較級の位置には合わない。",
       "translation": "この報告書は前回の草案よりも機密性が高い。"
     },
@@ -3379,15 +3379,15 @@
         },
         {
           "key": "B",
-          "text": "courteously"
+          "text": "courtesy"
         },
         {
           "key": "C",
-          "text": "court"
+          "text": "courteously"
         },
         {
           "key": "D",
-          "text": "courtesy"
+          "text": "court"
         }
       ],
       "answer": "A",
@@ -3413,22 +3413,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "complimenting"
-        },
-        {
-          "key": "B",
-          "text": "complimentary"
-        },
-        {
-          "key": "C",
           "text": "complimented"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "complimenting"
+        },
+        {
+          "key": "C",
           "text": "compliment"
+        },
+        {
+          "key": "D",
+          "text": "complimentary"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "\"more ___ services\"の形は形容詞complimentaryが名詞servicesを修飾する。complimentedは過去形/過去分詞、complimentingは現在分詞、complimentは動詞原形/名詞で、形容詞の位置には合わない。",
       "translation": "そのホテルは競合他社よりも多くの無料サービスを提供している。"
     },
@@ -3451,22 +3451,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "refundable"
-        },
-        {
-          "key": "B",
-          "text": "refunding"
-        },
-        {
-          "key": "C",
           "text": "refunded"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "refundable"
+        },
+        {
+          "key": "C",
           "text": "refund"
+        },
+        {
+          "key": "D",
+          "text": "refunding"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "\"more ___ than\"の形は形容詞の比較級を作るため、形容詞refundableが正しい。refundは動詞原形/名詞、refundingは動名詞/現在分詞、refundedは過去形/過去分詞で、比較級の位置には合わない。",
       "translation": "このチケットは基本のエコノミー運賃よりも払い戻し可能性が高い。"
     },
@@ -3481,7 +3481,7 @@
       "keyVocab": [
         {
           "word": "exclusive",
-          "sense": "限定の",
+          "sense": "独占的な",
           "freqRank": "A"
         }
       ],
@@ -3489,7 +3489,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "exclusion"
+          "text": "exclude"
         },
         {
           "key": "B",
@@ -3497,11 +3497,11 @@
         },
         {
           "key": "C",
-          "text": "exclude"
+          "text": "exclusively"
         },
         {
           "key": "D",
-          "text": "exclusively"
+          "text": "exclusion"
         }
       ],
       "answer": "B",
@@ -3527,7 +3527,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "upscale"
+          "text": "upscaled"
         },
         {
           "key": "B",
@@ -3535,14 +3535,14 @@
         },
         {
           "key": "C",
-          "text": "upscaled"
+          "text": "upscale"
         },
         {
           "key": "D",
           "text": "upscaling"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "\"more ___ than\"の形は形容詞の比較級を作るため、形容詞upscaleが正しい。他の3つは動詞由来の活用形で、比較級の位置には合わない。",
       "translation": "この地区は10年前よりもはるかに高級になった。"
     },
@@ -3565,22 +3565,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "premiums"
-        },
-        {
-          "key": "B",
           "text": "premiering"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "premiered"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "premium"
+        },
+        {
+          "key": "D",
+          "text": "premiums"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "\"a higher ___\"の空所は単数名詞。premiumが正しい。premiumsは複数形で単数冠詞aに合わず、premiering/premieredは無関係の動詞premiereの活用形で文意に合わない。",
       "translation": "顧客は即日配達のためにより高い割増料金を支払う。"
     },
@@ -3595,7 +3595,7 @@
       "keyVocab": [
         {
           "word": "franchise",
-          "sense": "フランチャイズ",
+          "sense": "フランチャイズ（加盟店契約）",
           "freqRank": "A"
         }
       ],
@@ -3603,7 +3603,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "highest"
+          "text": "higher"
         },
         {
           "key": "B",
@@ -3611,14 +3611,14 @@
         },
         {
           "key": "C",
-          "text": "higher"
+          "text": "highest"
         },
         {
           "key": "D",
           "text": "highly"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "\"___ than any other\"の形は比較級が正しい。higherが正しく、highは原級、highestは最上級、highlyは副詞で、\"than\"と共起する比較級の位置には合わない。",
       "translation": "そのフランチャイズ店は今年、他のどの支店よりも高い収益を報告した。"
     },
@@ -3641,22 +3641,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "fast"
-        },
-        {
-          "key": "B",
           "text": "fastest"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "fastly"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "faster"
+        },
+        {
+          "key": "D",
+          "text": "fast"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "\"___ than expected\"の形は比較級が正しい。fasterが正しく、fastは原級、fastestは最上級、fastlyは非標準的な語で、\"than\"と共起する比較級の位置には合わない。",
       "translation": "その改装後、レストランの顧客層は予想より速く拡大した。"
     },
@@ -3679,22 +3679,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "widest"
+          "text": "wide"
         },
         {
           "key": "B",
-          "text": "widely"
+          "text": "widest"
         },
         {
           "key": "C",
-          "text": "wider"
+          "text": "widely"
         },
         {
           "key": "D",
-          "text": "wide"
+          "text": "wider"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "\"___ than\"の形は比較級が正しい。widerが正しく、wideは原級、widestは最上級、widelyは副詞で、\"than\"と共起する比較級の位置には合わない。",
       "translation": "この店の品揃えは最も近い競合店よりも幅広い。"
     },
@@ -3717,7 +3717,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "lower"
+          "text": "low"
         },
         {
           "key": "B",
@@ -3729,10 +3729,10 @@
         },
         {
           "key": "D",
-          "text": "low"
+          "text": "lower"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "\"___ than any other\"の形は比較級が正しい。lowerが正しく、lowは原級、lowestは最上級、lowlyは「地位が低い」という別の意味の形容詞で、いずれも合わない。",
       "translation": "この商人の価格は町の他のどの店よりも安い。"
     },
@@ -3755,22 +3755,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "many"
-        },
-        {
-          "key": "B",
           "text": "more"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "much"
+        },
+        {
+          "key": "C",
+          "text": "many"
         },
         {
           "key": "D",
           "text": "most"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "\"increased ___ than\"の形は比較級moreが正しい（\"increased more than\"=予想以上に増えた）。much/manyは比較級でなく、mostは最上級で、\"than\"と共起しない。",
       "translation": "新しいカフェの来客数は誰の予想よりも増えた。"
     },
@@ -3797,19 +3797,19 @@
         },
         {
           "key": "B",
-          "text": "lowly"
+          "text": "high"
         },
         {
           "key": "C",
-          "text": "lowest"
+          "text": "highest"
         },
         {
           "key": "D",
-          "text": "low"
+          "text": "highly"
         }
       ],
       "answer": "A",
-      "explanation": "\"___ than\"の形は比較級が正しい。lowerが正しく、lowは原級、lowestは最上級、lowlyは別の意味の形容詞で、いずれも合わない。",
+      "explanation": "\"___ than\"の形は比較級が正しい。lowerが正しい。high（原級）・highest（最上級）はいずれも比較級ではなく、highlyは副詞で、いずれも合わない。",
       "translation": "今年の従業員の離職率は昨年の過去最高よりも低かった。"
     }
   ]

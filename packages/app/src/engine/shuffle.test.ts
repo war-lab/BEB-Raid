@@ -22,4 +22,14 @@ describe('shuffle', () => {
     expect(result).toHaveLength(3)
     expect([...result].sort()).toEqual([1, 2, 3])
   })
+
+  // 何を防ぐか（T-312・K-43）: rng()===1（不正なrng実装。Math.random自体は1を返さない）だと
+  // j=i+1で範囲外になり、arr[j]がundefinedで配列が壊れる（要素が欠落してundefinedが混入する）
+  it('rngが常に1を返しても配列が壊れない（要素の欠落・undefined混入が無い）', () => {
+    const original = [1, 2, 3, 4, 5]
+    const result = shuffle(original, () => 1)
+    expect(result).toHaveLength(5)
+    expect([...result].sort()).toEqual([1, 2, 3, 4, 5])
+    expect(result.every((v) => v !== undefined)).toBe(true)
+  })
 })

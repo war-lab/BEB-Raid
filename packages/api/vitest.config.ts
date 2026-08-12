@@ -1,6 +1,13 @@
+import { fileURLToPath } from 'node:url'
 import { cloudflareTest } from '@cloudflare/vitest-pool-workers'
 import { defineConfig } from 'vitest/config'
 
+// T-286（K-13。docs/32 3節J-126）: @vitest/coverage-v8はテストコードをworkerd
+// （simulated Workers runtime）内で実行するため`node:inspector/promises`に依存でき
+// ず、`vitest run --coverage`が全ファイルでエラーになる（実測。cloudflare公式ドキュメントにも
+// coverage対応の記載が無い）。したがってapiパッケージには`test:coverage`スクリプトを
+// 追加していない（他4パッケージ=app・cli・review-ui・shared-schemaのみ対応）。
+//
 // @cloudflare/vitest-pool-workers 0.18系はVitest4のプラグイン方式に対応
 // （旧`defineWorkersProject`/`poolOptions.workers`は廃止。同梱のcodemodで確認済み）。
 // INVITE_CODEはwrangler.tomlに書かない秘密値のため（本番は`wrangler secret`・ローカルは
@@ -18,6 +25,13 @@ export default defineConfig({
     }),
   ],
   test: {
+    // T-287（K-14）: 消費側がpackage.jsonのexports経由でdistを見るため、
+    // shared-schemaを変更してもビルドし直さない限りテストが古いコードを見ていた
+    alias: {
+      '@beb-raid/shared-schema': fileURLToPath(
+        new URL('../shared-schema/src/index.ts', import.meta.url),
+      ),
+    },
     // 【T-247〜T-253統合後のフレーク対策・2026-08-05】@cloudflare/vitest-pool-workersは
     // テストファイルごとに別々のworkerd（simulated Workers runtime）インスタンスを立ち上げ、
     // ストレージ（KV・Durable Object）をファイル単位で自動的に隔離する。ファイルを並列実行

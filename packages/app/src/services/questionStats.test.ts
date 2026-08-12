@@ -10,7 +10,11 @@ import { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
 import type { RaidApi } from '../platform'
 import { resetQuestionStatsFlagsForTest, sendQuestionStats } from './questionStats'
-import { QUESTION_STATS_ENABLED_KEY, QUESTION_STATS_LAST_SENT_AT_KEY } from './settingsKeys'
+import {
+  QUESTION_STATS_ENABLED_KEY,
+  QUESTION_STATS_LAST_SENT_AT_KEY,
+  QUESTION_STATS_PROCESSED_COUNT_KEY,
+} from './settingsKeys'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -173,6 +177,75 @@ describe('sendQuestionStats: watermark集計', () => {
 
     expect(raidApi.sendQuestionStats).not.toHaveBeenCalled()
     expect(await db.settings.get(QUESTION_STATS_LAST_SENT_AT_KEY)).toBeUndefined()
+  })
+})
+
+// T-302（K-30）: 端末の時計が巻き戻ると、新規attemptsのanswered Atが既存watermark以下になり、
+// above()クエリだけでは永続的に取りこぼしていた（時計が進んで watermark を再び超えるまで停止）
+describe('sendQuestionStats: 時計巻き戻り後も送信が継続する（T-302・K-30）', () => {
+  it('新規attemptsのanswered Atがwatermark以下でも、処理済み件数との不整合から検知して送信する', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUESTION_STATS_ENABLED_KEY, value: true })
+    await db.attempts.add(
+      attempt({ id: 'a-1', questionId: 'q-1', isCorrect: true, answeredAt: 1000 }),
+    )
+    const raidApi = new FakeRaidApi(true)
+
+    // 1回目（正常系）。ここでprocessedCount=1が記録される
+    await sendQuestionStats(db, raidApi)
+    expect((await db.settings.get(QUESTION_STATS_LAST_SENT_AT_KEY))?.value).toBe(1000)
+    expect((await db.settings.get(QUESTION_STATS_PROCESSED_COUNT_KEY))?.value).toBe(1)
+
+    // 時計が巻き戻った状態で新規attemptsが1件発生する（answeredAt=500 < watermark=1000）
+    await db.attempts.add(
+      attempt({ id: 'a-2', questionId: 'q-2', isCorrect: false, answeredAt: 500 }),
+    )
+    await sendQuestionStats(db, raidApi)
+
+    // above(1000)では見つからないはずのa-2が、処理済み件数との不整合検知で拾われる
+    expect(raidApi.sendQuestionStats).toHaveBeenCalledTimes(2)
+    const secondSent = raidApi.sendQuestionStats.mock.calls[1]![0]
+    expect(secondSent).toEqual(
+      expect.arrayContaining([{ questionId: 'q-2', correct: 0, wrong: 1, timeout: 0 }]),
+    )
+    expect((await db.settings.get(QUESTION_STATS_PROCESSED_COUNT_KEY))?.value).toBe(2)
+  })
+
+  it('巻き戻り検知時は既送信分を含めて全件を再送する（サーバー側UPSERT加算を前提に許容する）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUESTION_STATS_ENABLED_KEY, value: true })
+    await db.attempts.add(
+      attempt({ id: 'a-1', questionId: 'q-1', isCorrect: true, answeredAt: 1000 }),
+    )
+    const raidApi = new FakeRaidApi(true)
+    await sendQuestionStats(db, raidApi)
+
+    await db.attempts.add(
+      attempt({ id: 'a-2', questionId: 'q-2', isCorrect: false, answeredAt: 500 }),
+    )
+    await sendQuestionStats(db, raidApi)
+
+    const secondSent = raidApi.sendQuestionStats.mock.calls[1]![0]
+    // q-1（既送信済み）もq-2（新規）と一緒に含まれる＝重複送信を許容してでも取りこぼしを防ぐ判断
+    expect(secondSent.map((s) => s.questionId).sort()).toEqual(['q-1', 'q-2'])
+  })
+
+  it('T-302導入前からのwatermark（processedCount未設定）は巻き戻り検知が働かず従来どおり（後方互換）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: QUESTION_STATS_ENABLED_KEY, value: true })
+    // T-302より前のバージョンが書いたwatermarkを模擬（processedCountは無い）
+    await db.settings.put({ key: QUESTION_STATS_LAST_SENT_AT_KEY, value: 1000 })
+    await db.attempts.bulkAdd([
+      attempt({ id: 'a-1', questionId: 'q-1', isCorrect: true, answeredAt: 500 }), // 送信済みのはず
+      attempt({ id: 'a-2', questionId: 'q-2', isCorrect: true, answeredAt: 1500 }), // 新規
+    ])
+    const raidApi = new FakeRaidApi(true)
+
+    await sendQuestionStats(db, raidApi)
+
+    // 誤検知でq-1まで再送しない（従来どおりwatermark超過分のみ）
+    const sent = raidApi.sendQuestionStats.mock.calls[0]![0]
+    expect(sent).toEqual([{ questionId: 'q-2', correct: 1, wrong: 0, timeout: 0 }])
   })
 })
 

@@ -1,0 +1,51 @@
+id	verdict	observation	reviewer	reviewedAt
+part5-qualification	accept		claude-adversarial-review	2026-08-12
+part5-expense	accept		claude-adversarial-review	2026-08-12
+part5-branch	accept		claude-adversarial-review	2026-08-12
+part5-vendor	accept		claude-adversarial-review	2026-08-12
+part5-asset	accept		claude-adversarial-review	2026-08-12
+part5-commuter	accept		claude-adversarial-review	2026-08-12
+part5-dwelling	accept		claude-adversarial-review	2026-08-12
+part5-appendix	accept		claude-adversarial-review	2026-08-12
+part5-redundancy	reject	keyVocabの題材「redundancy(人員整理)」自体が本試験が扱わない題材（人員整理）に該当する。文の修正では解消できず、語彙選定からの変更が必要。	claude-adversarial-review	2026-08-12
+part5-stockpile	accept		claude-adversarial-review	2026-08-12
+part5-derivative	accept		claude-adversarial-review	2026-08-12
+part5-network	accept		claude-adversarial-review	2026-08-12
+part5-batch	accept		claude-adversarial-review	2026-08-12
+part5-liquidation	revise	"board members overseeing the liquidation...report back within thirty days"は会社清算（経営破綻類似）を想起させる記述で、keyVocabのsense「在庫処分」と文脈が不整合。在庫処分（stock clearance sale）の文脈に書き直すべき。	claude-adversarial-review	2026-08-12
+part5-warehouse	accept		claude-adversarial-review	2026-08-12
+part5-appraisal	accept		claude-adversarial-review	2026-08-12
+part5-delivery	accept		claude-adversarial-review	2026-08-12
+part5-testimonial	accept		claude-adversarial-review	2026-08-12
+part5-valuation	accept		claude-adversarial-review	2026-08-12
+part5-affiliate	accept		claude-adversarial-review	2026-08-12
+part5-compliance	accept		claude-adversarial-review	2026-08-12
+part5-freight	accept		claude-adversarial-review	2026-08-12
+part5-campaign	accept		claude-adversarial-review	2026-08-12
+part5-nepotism	revise	"the board had overlooked signs of nepotism...before the scandal broke"は企業不正の隠蔽とスキャンダル露見という題材で、本試験が避ける不正行為・スキャンダル系の話題に近い。中立的な業務変更等の題材に置き換えるべき。	claude-adversarial-review	2026-08-12
+part5-lease	accept		claude-adversarial-review	2026-08-12
+part5-sabbatical	accept		claude-adversarial-review	2026-08-12
+part5-inquiry	accept		claude-adversarial-review	2026-08-12
+part5-complaint	revise	"reviewed by the legal team before the hearing"は訴訟・審問手続きを想起させる設定。legal team/hearingを社内的な確認プロセスに置き換えるべき。	claude-adversarial-review	2026-08-12
+part5-covenant	accept		claude-adversarial-review	2026-08-12
+part5-dispute	accept		claude-adversarial-review	2026-08-12
+part5-breach	revise	"testimony before the committee"＋"allegations of a serious breach"は準訴訟的な証言・審問の場面設定で、本試験が避ける訴訟系題材に近い。証言・委員会という設定を業務報告等に置き換えるべき。	claude-adversarial-review	2026-08-12
+part5-escrow	accept		claude-adversarial-review	2026-08-12
+part5-eviction	revise	実名の個人（Ingrid Solberg）が家賃未払いにより立ち退きを迫られるという個人の不利益を扱っている。主体を法人・商業テナントに変更するなど、個人の経済的困窮を主語にしない書き換えが必要。	claude-adversarial-review	2026-08-12
+part5-memo	revise	実名の個人（Renata Silva）を内部監査で発覚した"irregularities（不正）"に結びつけており、個人の不利益・非難に類する。監査結果を人物名と結びつけない書き換えが必要。	claude-adversarial-review	2026-08-12
+part5-receivership	reject	"placed into receivership"は経営破綻（管財人管理下）そのものを扱う題材で、本試験が扱わない破綻系の題材に該当する。keyVocab自体の変更が必要なため文の修正では解消できない。	claude-adversarial-review	2026-08-12
+part5-timeline	accept		claude-adversarial-review	2026-08-12
+part5-statement	revise	実名の個人（Aisha Karim）を報告ミスに関連づけて公表する内容で、個人の不利益・レピュテーション損害に類する。人物名を伏せるか、個人と結びつけない書き換えが必要。	claude-adversarial-review	2026-08-12
+part5-milestone	accept		claude-adversarial-review	2026-08-12
+part5-agreement	revise	"referred for adjudication"は裁定・仲裁への付託を意味し、訴訟に近い法的手続きを想起させる。社内的な合意形成プロセス等に置き換えるべき。	claude-adversarial-review	2026-08-12
+part5-sustainable	accept		claude-adversarial-review	2026-08-12
+part5-scalable	accept		claude-adversarial-review	2026-08-12
+part5-punctual	accept		claude-adversarial-review	2026-08-12
+part5-biodegradable	accept		claude-adversarial-review	2026-08-12
+part5-benefits	accept		claude-adversarial-review	2026-08-12
+part5-flagship	accept		claude-adversarial-review	2026-08-12
+part5-outlet	accept		claude-adversarial-review	2026-08-12
+part5-hospitality	accept		claude-adversarial-review	2026-08-12
+part5-merchandise	accept		claude-adversarial-review	2026-08-12
+part5-footfall	accept		claude-adversarial-review	2026-08-12
+part5-compatible	accept		claude-adversarial-review	2026-08-12

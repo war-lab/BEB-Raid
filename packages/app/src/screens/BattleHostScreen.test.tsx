@@ -520,6 +520,28 @@ describe('BattleHostScreen: 離脱時の後始末', () => {
     unmount()
     expect(socket.closed).toBe(true)
   })
+
+  // 何を防ぐか（T-315・K-48）: T-221は「画面離脱時に音声を停止」を中断導線と
+  // popstateハンドラのみで実装しており、useEffectのunmount cleanupでの停止が
+  // 1件も無かった（投影中に離脱すると音声が流れ続ける）
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const socket = new FakeBattleSocket()
+    const audioPlayer = new ControllableAudioPlayer()
+    const { unmount } = render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={audioPlayer}
+        questionPool={[textBlankQuestion('q-1')]}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    unmount()
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
 })
 
 // V-11 投影用意匠（docs/25 4.3節・JV-5・JV-6）。防ぐもの:

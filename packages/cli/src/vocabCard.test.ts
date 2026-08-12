@@ -44,12 +44,20 @@ describe('VOCAB_CARDS_S（データ本体）', () => {
     const words = VOCAB_CARDS_S.map((v) => v.word.toLowerCase())
     expect(new Set(words).size).toBe(words.length)
   })
+
+  // T-345（K-86）: 全語にtagsが付与されていること（空配列だと弱点タグ判定が機能しない）
+  it('全語にtagsが1件以上付与されている', () => {
+    for (const entry of VOCAB_CARDS_S) {
+      expect(entry.tags.length).toBeGreaterThan(0)
+    }
+  })
 })
 
 describe('vocabCardQuestion', () => {
   it('vocab_card形式のQuestionを組み立てる（phraseAudioは予約パス）', () => {
     const question = vocabCardQuestion({
       word: 'submit',
+      tags: ['会議・文書・オフィスコミュニケーション'],
       back: '提出する',
       phrase: 'Please submit the report.',
     })
@@ -60,6 +68,38 @@ describe('vocabCardQuestion', () => {
     expect(question.freqRank).toBe('S')
     expect(question.levelBand).toBe(VOCAB_CARD_LEVEL_BAND)
     expect(question.phraseAudio).toBe(reservedPhraseAudioPath('submit'))
+  })
+
+  // T-345（K-86）: 語彙カードのtagsが常に空配列だったため、engine/quickPack.tsの弱点タグ判定
+  // （question.tags.some((t) => weakTags.has(t))）が一度も真にならず、弱点ドメインの語彙カードが
+  // 優先出題されなかった。エントリのtagsをQuestionへ反映する
+  it('エントリのtagsがQuestion.tagsへ反映される（弱点タグ判定に使われるため空配列にしない）', () => {
+    const question = vocabCardQuestion({
+      word: 'submit',
+      tags: ['会議・文書・オフィスコミュニケーション'],
+      back: '提出する',
+      phrase: 'Please submit the report.',
+    })
+    expect(question.tags).toEqual(['会議・文書・オフィスコミュニケーション'])
+  })
+
+  // T-345（K-86）: difficultyが全語一律1固定だったため、S/A/B（易→難）の実態を反映していなかった。
+  // freqRankに応じた難易度を割り当てる
+  it.each([
+    ['S', 2],
+    ['A', 3],
+    ['B', 4],
+  ] as const)('freqRank=%sのときdifficulty=%iになる', (freqRank, expectedDifficulty) => {
+    const question = vocabCardQuestion(
+      {
+        word: 'submit',
+        tags: ['会議・文書・オフィスコミュニケーション'],
+        back: '提出する',
+        phrase: 'Please submit the report.',
+      },
+      freqRank,
+    )
+    expect(question.difficulty).toBe(expectedDifficulty)
   })
 })
 
@@ -121,6 +161,13 @@ describe.each([
     expect(validatePhraseVariety(cards)).toEqual([])
   })
 
+  // T-345（K-86）: 全語にtagsが付与されていること（空配列だと弱点タグ判定が機能しない）
+  it('全語にtagsが1件以上付与されている', () => {
+    for (const entry of cards) {
+      expect(entry.tags.length).toBeGreaterThan(0)
+    }
+  })
+
   it(`freqRank=${rank}・levelBand=${expectedBand}（J-22）でQuestionを組み立て、バリデータを通過する`, () => {
     expect(LEVEL_BAND_FOR_RANK[rank]).toBe(expectedBand)
     const questions = buildVocabCardQuestions(cards, rank)
@@ -143,8 +190,18 @@ describe('S/A/B語彙カード間で単語が重複しない（M2・T-59）', ()
 describe('validatePhraseVariety', () => {
   it('対象語だけ置換した文型が完全一致すると重複を検出する', () => {
     const entries = [
-      { word: 'submit', back: '提出する', phrase: 'Please submit the report by Friday.' },
-      { word: 'revise', back: '修正する', phrase: 'Please revise the report by Friday.' },
+      {
+        word: 'submit',
+        tags: ['ビジネス'] as [string],
+        back: '提出する',
+        phrase: 'Please submit the report by Friday.',
+      },
+      {
+        word: 'revise',
+        tags: ['ビジネス'] as [string],
+        back: '修正する',
+        phrase: 'Please revise the report by Friday.',
+      },
     ]
     const problems = validatePhraseVariety(entries)
     expect(problems.length).toBeGreaterThan(0)
@@ -152,8 +209,18 @@ describe('validatePhraseVariety', () => {
 
   it('文型が異なれば重複扱いしない', () => {
     const entries = [
-      { word: 'submit', back: '提出する', phrase: 'Please submit the report by Friday.' },
-      { word: 'revise', back: '修正する', phrase: 'The manager asked her to revise the draft.' },
+      {
+        word: 'submit',
+        tags: ['ビジネス'] as [string],
+        back: '提出する',
+        phrase: 'Please submit the report by Friday.',
+      },
+      {
+        word: 'revise',
+        tags: ['ビジネス'] as [string],
+        back: '修正する',
+        phrase: 'The manager asked her to revise the draft.',
+      },
     ]
     expect(validatePhraseVariety(entries)).toEqual([])
   })

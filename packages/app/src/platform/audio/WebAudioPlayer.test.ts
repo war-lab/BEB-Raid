@@ -26,12 +26,26 @@ class FakeAudioBufferSourceNode {
 
 /** AudioContext の最小フェイク。decodeAudioData はテキスト内容から仕込んだ長さ・サイズを返す */
 class FakeAudioContext {
-  state: 'suspended' | 'running' | 'closed' = 'suspended'
+  state: 'suspended' | 'running' | 'closed' | 'interrupted' = 'suspended'
   currentTime = 0
   sampleRate = 44100
   destination = {}
   createdSources: FakeAudioBufferSourceNode[] = []
   durations = new Map<string, number>()
+  private stateChangeListeners: Array<() => void> = []
+
+  addEventListener(type: string, listener: () => void): void {
+    if (type === 'statechange') this.stateChangeListeners.push(listener)
+  }
+  removeEventListener(type: string, listener: () => void): void {
+    if (type !== 'statechange') return
+    this.stateChangeListeners = this.stateChangeListeners.filter((l) => l !== listener)
+  }
+  /** テストからiOSの通話割り込み等によるAudioContext状態変化を模擬する（T-324・K-57） */
+  setState(state: 'suspended' | 'running' | 'closed' | 'interrupted'): void {
+    this.state = state
+    for (const listener of this.stateChangeListeners) listener()
+  }
   /**
    * T-222（Q-16）: バイト数基準のキャッシュ上限をテストするため、srcごとに
    * decodeAudioData が返すAudioBufferの疑似サイズ（バイト）を仕込めるようにする。
@@ -691,6 +705,21 @@ describe('WebAudioPlayer: 完走と中断の区別（T-155）', () => {
     await tick()
     player.stop()
     await expect(interrupted).resolves.toBe('interrupted')
+  })
+
+  // 何を防ぐか（T-324・K-57）: iOSの通話・Siri等の割り込みでAudioContextが
+  // running以外へ落ちても、source.onendedは発火しないため誰も待っているPromiseを
+  // 解決せず、呼び出し側（DrillScreen等）が「再生中…」のUIで固着する
+  it("再生中にAudioContextがrunning以外へ落ちると、UIが固着せず'interrupted'を返す", async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3')
+    await tick()
+    ctx.setState('interrupted')
+
+    await expect(done).resolves.toBe('interrupted')
   })
 })
 

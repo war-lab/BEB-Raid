@@ -246,7 +246,19 @@ const READING_R1_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
-/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）+ 初級追加（1）+ 読解R-1（2）= 20パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行、docs/24_読解パート実装計画.md T-142行） */
+/** ウェーブ8・T-349で追加する1パック（Part2 平叙文・付加疑問・選択疑問64問。docs/32 ウェーブ8 T-349行） */
+const T349_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-p2-s-003',
+    title: 'Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆 2026-08（T-349。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    targetLevel: [600, 600],
+    draftPath: 'drafts/part2-s3.jsonl',
+  },
+]
+
+/** M1（4）+ M2（8）+ T-83（1）+ T-84（2）+ T-85（2）+ 初級追加（1）+ 読解R-1（2）+ T-349（1）= 21パック（docs/13 3.10節・T-64、docs/15 T-83〜T-85行、docs/24_読解パート実装計画.md T-142行、docs/32 ウェーブ8） */
 export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...M1_PACK_DEFINITIONS,
   ...M2_PACK_DEFINITIONS,
@@ -256,6 +268,7 @@ export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...T85_PART34_PACK_DEFINITIONS,
   ...DOGFOOD_BEGINNER_PACK_DEFINITIONS,
   ...READING_R1_PACK_DEFINITIONS,
+  ...T349_PACK_DEFINITIONS,
 ]
 
 /** バリデーション前のパック素材（license/origin は validatePack が実行時に再検証する対象なので string のまま持つ） */

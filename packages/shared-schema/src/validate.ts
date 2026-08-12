@@ -204,6 +204,11 @@ function validatePackMeta(
   if (pack.sizeBytes !== undefined && (!isInt(pack.sizeBytes) || pack.sizeBytes < 0)) {
     err('pack.sizeBytes', 'invalid_value', 'sizeBytes は 0 以上の整数')
   }
+  // T-355: AIクロスレビュー＋敵対的検証の工程の記録。任意フィールドのため、有るなら文字列
+  // であることだけ見る（既存パックの移行を止めないため必須化しない）
+  validateOptionalStringField(pack.reviewedBy, 'pack.reviewedBy', 'reviewedBy', err)
+  validateOptionalStringField(pack.reviewedAt, 'pack.reviewedAt', 'reviewedAt', err)
+  validateOptionalStringField(pack.reviewMethod, 'pack.reviewMethod', 'reviewMethod', err)
 }
 
 function validateQuestion(
@@ -700,6 +705,8 @@ function validatePassages(
     if (!isNonEmptyString(p.text)) {
       err(`${pPath}.text`, 'missing_field', 'text が必要')
     }
+    // T-347: 本文訳はoptional（既存コンテンツとの後方互換）。有るなら文字列であることだけ見る
+    validateOptionalStringField(p.translation, `${pPath}.translation`, 'translation', err)
   })
 }
 

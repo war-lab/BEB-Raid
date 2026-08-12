@@ -1,0 +1,31 @@
+id	verdict	observation	reviewer	reviewedAt
+p6-001	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-002	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-003	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-004	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-005	revise	q2「you [[2]] receive a full itinerary」でwill以外にshouldも文法的・意味的に成立し得る（「〜のはずだ」という予期的用法）。explanationは「shouldは義務・助言」としているが、この文脈でのshouldは予期の用法であり説明が実際の競合点を捉えていない。二重正答リスクとして選択肢調整または説明の見直しが必要。他のq1/q3/q4は問題なし。	claude-adversarial-review	2026-08-12
+p6-006	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-007	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-008	accept	q1-q4とも二重正答・題材・実在情報に該当なし。q1のhave reviewedはnoticedとの時制混在がやや不自然だが、選択肢中に単純過去形reviewedが無く消去法で問題なし。	claude-adversarial-review	2026-08-12
+p6-009	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-010	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-011	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-012	accept	q1-q4とも二重正答・題材・実在情報に該当なし。q1のthat/whichは非限定用法（コンマ有無）で明確に切り分けられているTOEIC標準の出題パターン。	claude-adversarial-review	2026-08-12
+p6-013	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-014	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-015	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-016	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-017	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-018	accept	q1-q4とも二重正答・題材・実在情報に該当なし。Riverstone Bankは架空社名で実在企業との衝突は無い。	claude-adversarial-review	2026-08-12
+p6-019	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-020	accept	q1-q4とも二重正答・題材・実在情報に該当なし。製品リコールという題材だが人身被害・訴訟等の言及は無く本試験の題材適格性の範囲内。	claude-adversarial-review	2026-08-12
+p6-021	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-022	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-023	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-024	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-025	accept	q1-q4とも二重正答・題材・実在情報に該当なし。Greenline Manufacturingは架空社名で実在企業との衝突は無い。	claude-adversarial-review	2026-08-12
+p6-026	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-027	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-028	accept	q1-q4とも二重正答・題材・実在情報に該当なし。p6-020と同一製品（Model X200）を扱うが別文書・別観点で重複ではない。	claude-adversarial-review	2026-08-12
+p6-029	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
+p6-030	accept	q1-q4とも二重正答・題材・実在情報に該当なし。	claude-adversarial-review	2026-08-12
