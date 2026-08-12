@@ -99,6 +99,48 @@ describe('localMidnightAfterDays: 月末・年末をまたぐ暦日演算', () =
   })
 })
 
+/**
+ * テスト実行環境のTZを復元する（T-291・K-18）。`process.env.TZ = undefined` は
+ * 環境変数への代入のため文字列 `"undefined"` に変換されてしまい、元がTZ未設定
+ * （多くのCI環境の既定）だった場合に復元後もTZが不正な文字列のまま残ってしまう
+ * （以降のテストがローカルタイムゾーン=Asia/Tokyoへ戻らずUTC相当で動く）。
+ * 元が未設定だった場合は delete で復元する
+ */
+function restoreTz(original: string | undefined): void {
+  if (original === undefined) {
+    delete process.env.TZ
+  } else {
+    process.env.TZ = original
+  }
+}
+
+describe('restoreTz: TZ復元が文字列"undefined"を残さない（T-291・K-18）', () => {
+  it('元がprocess.env.TZ未設定だった場合、復元後は本当に未設定になる', () => {
+    const saved = process.env.TZ
+    try {
+      delete process.env.TZ // 元が未設定だった状況を模擬
+      process.env.TZ = 'America/New_York'
+      restoreTz(undefined)
+      expect(process.env.TZ).toBeUndefined()
+    } finally {
+      restoreTz(saved)
+    }
+  })
+
+  it('元がTZ設定済みだった場合、復元後はその値に戻る', () => {
+    const saved = process.env.TZ
+    try {
+      process.env.TZ = 'Asia/Tokyo'
+      const original = process.env.TZ
+      process.env.TZ = 'America/New_York'
+      restoreTz(original)
+      expect(process.env.TZ).toBe('Asia/Tokyo')
+    } finally {
+      restoreTz(saved)
+    }
+  })
+})
+
 // DST跨ぎの検証: 実行環境（Asia/Tokyo）にはDSTが無いため、process.env.TZを一時的に
 // DSTのある地域へ切り替えて確認する。「epoch + 24h*n」の単純加算だとDST境界で
 // 時刻が0時からずれる（春の時計進めで1時間失われる/秋の時計戻しで1時間増える）ことの
@@ -113,7 +155,7 @@ describe('localMidnightAfterDays / daysBetween: DST跨ぎでも暦日がずれ�
   })
 
   afterAll(() => {
-    process.env.TZ = originalTz
+    restoreTz(originalTz)
   })
 
   it('春の時計進め跨ぎ（3/7→3/9の2日後）でも0時のまま暦日がちょうど2日進む', () => {

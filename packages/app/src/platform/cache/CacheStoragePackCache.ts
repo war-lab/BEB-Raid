@@ -24,7 +24,11 @@ export class CacheStoragePackCache implements PackCache {
 
   async put(url: string, blob: Blob): Promise<void> {
     const cache = await this.open()
-    await cache.put(url, new Response(blob))
+    // BlobをそのままResponseへ渡すと、実行環境によってはBlobインスタンスの型判定に失敗し
+    // ボディがString(blob)（"[object Blob]"）へ化けることがある（テスト環境のjsdomの
+    // グローバルBlobとfetch実装(undici由来)のResponseが別実装のため。T-294クロスレビュー）。
+    // ArrayBufferへ変換して渡せば実装間の型判定に依存せず安定する
+    await cache.put(url, new Response(await blob.arrayBuffer()))
   }
 
   async addAll(urls: string[]): Promise<void> {

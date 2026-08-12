@@ -6,6 +6,9 @@ dist/
 packages/app/dev-dist/
 *.tsbuildinfo
 
+# カバレッジレポート（T-286。npm run test:coverageの出力）
+coverage/
+
 # ローカル環境変数（LLM/TTSキーは環境変数のみ。リポジトリに含めない）
 .env
 .env.*

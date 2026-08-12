@@ -5,9 +5,10 @@
 // - ネットワーク送信が発生しないこと（本モジュールはfetch/WebSocket等を一切importしない。
 //   端末内Dexieのみを参照する構成であることをテストでも裏付ける）
 import 'fake-indexeddb/auto'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import { GROWTH_RANK_LEARNING_DAYS_CACHE_KEY } from '../services/settingsKeys'
 import { DEFAULT_INITIAL_RATING } from './rating'
 import {
   computeRankPoints,
@@ -186,6 +187,60 @@ describe('countLearningDays（ストリーク/ヒートマップと同じ暦日�
     await addShadowAttempt(db, noonOf(2026, 7, 10)) // シャドーイングのみ→除外
     await addAttempt(db, noonOf(2026, 7, 11))
     expect(await countLearningDays(db)).toBe(2)
+  })
+})
+
+// T-301（K-29）: 従来はevery呼び出しでattempts全件をフルスキャンしており、
+// ホーム・ダッシュボード表示のたびに件数に比例したコストがかかっていた
+describe('countLearningDays: 差分加算キャッシュ（T-301・K-29）', () => {
+  it('初回呼び出し後、settingsにキャッシュ（暦日集合とwatermark）が保存される', async () => {
+    const db = newDb()
+    await addAttempt(db, noonOf(2026, 7, 9))
+    await addAttempt(db, noonOf(2026, 7, 10))
+
+    expect(await countLearningDays(db)).toBe(2)
+
+    const stored = await db.settings.get(GROWTH_RANK_LEARNING_DAYS_CACHE_KEY)
+    expect(stored?.value).toMatchObject({
+      dates: expect.arrayContaining(['2026-07-09', '2026-07-10']),
+      watermark: noonOf(2026, 7, 10),
+    })
+  })
+
+  it('2回目以降の呼び出しは、前回watermark以前のattemptsを再走査しない', async () => {
+    const db = newDb()
+    await addAttempt(db, noonOf(2026, 7, 9))
+    await addAttempt(db, noonOf(2026, 7, 10))
+    await countLearningDays(db) // 1回目（コールドスタート。ここまでは全件走査でよい）
+
+    // 2回目以降で「watermark以前」を読むクエリが発生しないことを確認する。
+    // db.attempts.each（フィルタ無しの全件走査）が呼ばれないことをもって検証する
+    const eachSpy = vi.spyOn(db.attempts, 'each')
+    await addAttempt(db, noonOf(2026, 7, 11))
+
+    expect(await countLearningDays(db)).toBe(3)
+    expect(eachSpy).not.toHaveBeenCalled()
+    eachSpy.mockRestore()
+  })
+
+  it('新しいattemptsが無ければキャッシュへの書き込みも発生しない（無駄なsettings.putを避ける）', async () => {
+    const db = newDb()
+    await addAttempt(db, noonOf(2026, 7, 9))
+    await countLearningDays(db)
+
+    const putSpy = vi.spyOn(db.settings, 'put')
+    expect(await countLearningDays(db)).toBe(1)
+    expect(putSpy).not.toHaveBeenCalled()
+    putSpy.mockRestore()
+  })
+
+  it('同日に新しいattemptsが追加されても暦日数は増えない（既存日への差分追加）', async () => {
+    const db = newDb()
+    await addAttempt(db, noonOf(2026, 7, 9))
+    expect(await countLearningDays(db)).toBe(1)
+
+    await addAttempt(db, noonOf(2026, 7, 9) + 1000)
+    expect(await countLearningDays(db)).toBe(1)
   })
 })
 
