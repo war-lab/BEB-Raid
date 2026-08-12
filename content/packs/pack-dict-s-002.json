@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 40423
+    "sizeBytes": 39777
   },
   "questions": [
     {
@@ -32,8 +32,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3082
+        "voice": "pending-tts",
+        "durationMs": 3850
       },
       "script": "The agenda for the meeting was sent to everyone this morning.",
       "translation": "会議の議題は今朝、全員に送られた。",
@@ -69,8 +69,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3422
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The logistics team and the warehouse staff met this afternoon.",
       "translation": "物流チームと倉庫のスタッフは今日の午後に会った。",
@@ -106,8 +106,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3396
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The company reported a rise in staff turnover this year.",
       "translation": "その会社は今年、離職率の上昇を報告した。",
@@ -143,8 +143,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3788
+        "voice": "pending-tts",
+        "durationMs": 3850
       },
       "script": "The workforce is expected to grow by ten percent next year.",
       "translation": "従業員数は来年10パーセント増える見込みだ。",
@@ -180,8 +180,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3971
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "Our department froze its headcount and postponed the hiring plan.",
       "translation": "私たちの部署は人員数を凍結し、採用計画を延期した。",
@@ -217,8 +217,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 4049
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "The client should review the proposal before Friday afternoon.",
       "translation": "顧客は金曜日の午後までにその提案書を確認すべきだ。",
@@ -254,8 +254,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3239
+        "voice": "pending-tts",
+        "durationMs": 2800
       },
       "script": "Please open the attachment for our updated schedule.",
       "translation": "当社の更新されたスケジュールについては添付ファイルを開いてください。",
@@ -291,8 +291,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3579
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "We counted the inventory and updated our records last night.",
       "translation": "私たちは昨夜、在庫を数えて記録を更新した。",
@@ -328,8 +328,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3500
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "The procurement team is responsible for all vendor contracts.",
       "translation": "調達チームはすべての業者契約に責任を持つ。",
@@ -365,8 +365,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2769
+        "voice": "pending-tts",
+        "durationMs": 2800
       },
       "script": "She has already registered for the annual conference.",
       "translation": "彼女はすでに年次会議に登録済みだ。",
@@ -402,8 +402,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2952
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "Our manager handled the complaint within a few minutes.",
       "translation": "当社の部長はその苦情に数分以内に対応した。",
@@ -439,8 +439,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3291
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The product will need an endorsement from a well-known athlete.",
       "translation": "その製品には有名なアスリートによる推薦が必要になるだろう。",
@@ -476,8 +476,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3396
+        "voice": "pending-tts",
+        "durationMs": 2800
       },
       "script": "Small businesses can qualify for a government subsidy.",
       "translation": "中小企業は政府の補助金を受ける資格があるかもしれない。",
@@ -513,8 +513,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3918
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "A happy customer wrote a testimonial and shared it online.",
       "translation": "満足した顧客が推薦の声を書き、それをネット上で共有した。",
@@ -550,8 +550,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2952
+        "voice": "pending-tts",
+        "durationMs": 2800
       },
       "script": "The results were measured against an industry benchmark.",
       "translation": "その結果は業界の基準と照らして測定された。",
@@ -587,8 +587,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3161
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The company could face liability if the claim is proven.",
       "translation": "その申し立てが立証されれば、その会社は法的責任を負うかもしれない。",
@@ -605,7 +605,7 @@
       ]
     },
     {
-      "id": "dictation-severance",
+      "id": "dictation-retirement",
       "part": 2,
       "format": "dictation",
       "difficulty": 4,
@@ -615,28 +615,28 @@
       ],
       "keyVocab": [
         {
-          "word": "severance",
-          "sense": "退職金",
-          "freqRank": "A"
+          "word": "retirement",
+          "sense": "退職",
+          "freqRank": "S"
         }
       ],
-      "audio": "audio/dictation/severance.mp3",
+      "audio": "audio/dictation/retirement.mp3",
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 4127
+        "voice": "pending-tts",
+        "durationMs": 4200
       },
-      "script": "Laid-off staff will receive severance and extended health coverage.",
-      "translation": "解雇された従業員は退職金と延長された健康保険を受け取る。",
+      "script": "Staff choosing early retirement will receive a pension and extended health coverage.",
+      "translation": "早期退職を選ぶ従業員は年金と延長された健康保険を受け取る。",
       "explanation": "弱形になりやすいwill/andを穴にしている。",
       "blanks": [
         {
-          "index": 2,
+          "index": 4,
           "answer": "will"
         },
         {
-          "index": 5,
+          "index": 8,
           "answer": "and"
         }
       ]
@@ -661,8 +661,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3187
+        "voice": "pending-tts",
+        "durationMs": 4200
       },
       "script": "Tenants pay their own utility bills at the end of the month.",
       "translation": "入居者は月末に自分で公共料金を支払う。",
@@ -698,8 +698,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3396
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "Guests must leave a deposit before checking into the room.",
       "translation": "宿泊客は部屋にチェックインする前に保証金を預けなければならない。",
@@ -735,8 +735,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3736
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The contractor needs a permit for the rooftop construction work.",
       "translation": "その請負業者は屋上の建設作業のために許可証を必要としている。",
@@ -764,7 +764,7 @@
       "keyVocab": [
         {
           "word": "printer",
-          "sense": "プリンター",
+          "sense": "プリンター（印刷機）",
           "freqRank": "S"
         }
       ],
@@ -772,8 +772,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2769
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "The printer is broken and should be replaced soon.",
       "translation": "そのプリンターは故障しており、近く交換されるべきだ。",
@@ -801,7 +801,7 @@
       "keyVocab": [
         {
           "word": "survey",
-          "sense": "アンケート",
+          "sense": "アンケート（調査）",
           "freqRank": "S"
         }
       ],
@@ -809,8 +809,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3161
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "Customers can complete the survey in under five minutes.",
       "translation": "顧客は5分もかからずにその調査を完了できる。",
@@ -846,8 +846,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3553
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "The new office will reduce overhead and improve efficiency.",
       "translation": "新しいオフィスは諸経費を削減し、効率を改善するだろう。",
@@ -883,8 +883,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3056
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "One state raised the minimum wage for all workers.",
       "translation": "ある州はすべての労働者の最低賃金を引き上げた。",
@@ -920,8 +920,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3709
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "Retired staff can access their pension after they turn sixty.",
       "translation": "退職した職員は60歳になった後、年金を受け取れる。",
@@ -957,7 +957,7 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
+        "voice": "pending-tts",
         "durationMs": 3500
       },
       "script": "New hires remain on probation for the first ninety days.",
@@ -994,8 +994,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3187
+        "voice": "pending-tts",
+        "durationMs": 3850
       },
       "script": "She has updated her resume and sent it to the recruiter.",
       "translation": "彼女は履歴書を更新し、採用担当者に送った。",
@@ -1031,8 +1031,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3814
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The university will mail an official transcript to the employer.",
       "translation": "大学は公式の成績証明書を雇用主に郵送する予定だ。",
@@ -1068,8 +1068,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 2978
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The photocopier and the scanner are on the third floor.",
       "translation": "コピー機とスキャナーは3階にある。",
@@ -1105,8 +1105,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3422
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "Our office ordered new stationery for the coming quarter.",
       "translation": "当社のオフィスは来る四半期のために新しい文房具を注文した。",
@@ -1142,8 +1142,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3344
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "A courier will deliver the documents before noon tomorrow.",
       "translation": "配送業者が明日の正午前にその書類を届ける予定だ。",
@@ -1179,8 +1179,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3291
+        "voice": "pending-tts",
+        "durationMs": 3850
       },
       "script": "The warehouse will dispatch the order and confirm it by email.",
       "translation": "倉庫はその注文を発送し、メールで確認する予定だ。",
@@ -1216,7 +1216,7 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
+        "voice": "pending-tts",
         "durationMs": 3500
       },
       "script": "Members receive a discount on every purchase over fifty dollars.",
@@ -1253,8 +1253,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2978
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "The retailer must reveal its markup to the customer.",
       "translation": "その小売業者は顧客に利幅を明かさなければならない。",
@@ -1290,8 +1290,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3762
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The hotel advertised a vacancy for the front desk position.",
       "translation": "そのホテルはフロント係の欠員の求人を出した。",
@@ -1327,8 +1327,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 2247
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "Each tenant must sign the lease at the office.",
       "translation": "各入居者は事務所で賃貸契約書に署名しなければならない。",
@@ -1364,8 +1364,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3004
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "A company renewed the lease for another three years.",
       "translation": "ある会社は賃貸契約をさらに3年間更新した。",
@@ -1401,8 +1401,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 4101
+        "voice": "pending-tts",
+        "durationMs": 3500
       },
       "script": "The developer will need a zoning permit before construction starts.",
       "translation": "その開発業者は着工前に用途地域の許可証が必要になるだろう。",
@@ -1438,8 +1438,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3683
+        "voice": "pending-tts",
+        "durationMs": 3850
       },
       "script": "A local bank agreed to sponsor the charity marathon this year.",
       "translation": "地元の銀行が今年のチャリティーマラソンを後援することに同意した。",
@@ -1475,8 +1475,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 4545
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "Employees can request reimbursement and attach the original receipt.",
       "translation": "従業員は払い戻しを請求し、原本の領収書を添付できる。",
@@ -1511,8 +1511,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 3370
+        "voice": "pending-tts",
+        "durationMs": 3150
       },
       "script": "The travel agency confirmed the itinerary for next week.",
       "translation": "旅行代理店は来週の旅程表を確認した。",
@@ -1544,8 +1544,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 3396
+        "voice": "pending-tts",
+        "durationMs": 3850
       },
       "script": "The supervisor is going to send a voucher for the delay.",
       "translation": "上司は遅延のための金券を送る予定だ。",
