@@ -42,6 +42,7 @@ import {
 } from '../services/settingsKeys'
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import { InstallHint } from '../pwa/InstallHint'
+import { UpdateHint } from '../pwa/UpdateHint'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -1236,6 +1237,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         </div>
       )}
       <InstallHint />
+      {/* T-280（K-3）: 更新の適用はユーザー操作（このボタン）に限定する。セッション非進行中の
+          ホーム表示に限定するJ-118の条件を、ホーム画面のみに置くことで自然に満たす */}
+      <UpdateHint />
       {loaded && <span data-testid="home-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>
   )

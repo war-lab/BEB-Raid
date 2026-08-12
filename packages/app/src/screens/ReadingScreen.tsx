@@ -170,6 +170,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // T-281（K-4）: スキップ失敗・advanceReadingItemの失敗を握りつぶすと、中断ボタンすら無い
+  // 白画面に固着する（DrillScreenのsessionErrorと同じ理由）
+  const [sessionError, setSessionError] = useState<string | null>(null)
   // T-176: 保存の進行ガードと再試行導線（多重実行・保存中の進行のガードはフック側）
   const saveGuard = useSaveGuard()
   // T-162（docs/27 のS-7）: 中断の確認
@@ -248,7 +251,12 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           setDisplayIndex((i) => i + 1)
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        if (cancelled) return
+        // T-281（K-4）: 握りつぶすと中断ボタンすら無い白画面に固着する（DrillScreenと同じ理由）
+        console.warn('[ReadingScreen] セッションを進められませんでした', err)
+        setSessionError('セッションを進められませんでした')
+      })
     return () => {
       cancelled = true
     }
@@ -273,18 +281,29 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
    * ここで先に参照しても本文の関数定義は解決済みになっている（DrillScreenのcommitAnswer・
    * VocabScreenのcommitGrade/commitTriageと同じパターン）。
    */
-  /* eslint-disable react-hooks/immutability -- 関数宣言の巻き上げにより実行時は問題ないが、
-     react-compilerの静的解析がこの参照順を追えず誤検知する（DrillScreen・VocabScreenの
-     同型コードでは発生しない。原因未特定だが巻き上げにより実害は無い） */
   const {
     pending: readingPending,
+    pendingRef: readingPendingRef,
     schedule: scheduleReadingCommit,
     cancel: cancelReadingCommit,
     clearTimer: clearReadingTimer,
     clearPending: clearReadingPending,
     mountedRef,
   } = usePendingCommit<ReadingPendingCommit>((payload) => commitSubQuestionAnswer(payload))
-  /* eslint-enable react-hooks/immutability */
+
+  // T-281（K-4）: セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を
+  // 必ず出す（DrillScreenのsessionErrorと同じ理由。握りつぶすと中断ボタンすら無い白画面に固着する）
+  if (sessionError) {
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+      >
+        <p className="drill-error" role="alert">
+          {sessionError}
+        </p>
+      </ScreenLayout>
+    )
+  }
 
   if (!snapshot || !item || !question) {
     if (snapshot && !item) finishSession()
@@ -528,23 +547,39 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
    * サブ設問が残っていない＝この設問の分だけ未記録のまま進める）の両方から呼ぶ
    */
   async function advanceReadingItem() {
-    const nextSnapshot = await advanceSession(db, snapshot!)
-    useSessionStore.setState({ snapshot: nextSnapshot })
-    // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
-    // total（T-175）はサブ設問を展開した解答数なので、複数設問を含むセッションでは
-    // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
-    // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
-    if (displayIndex + 1 >= snapshot!.items.length) {
-      finishSession()
-      return
+    // T-281（K-46・K-47）: 猶予中（400ms未満）の解答が残っていると、advanceSessionで
+    // itemを進めてしまった後にタイマーが発火してもpayloadの参照先が古いitemのままになり、
+    // 解答が失われたまま次のパッセージへ進んでしまう。アンマウント時flushと同じ規律で、
+    // 進める前にここで確定させる
+    if (readingPendingRef.current) {
+      const payload = readingPendingRef.current
+      clearReadingTimer()
+      clearReadingPending()
+      await commitSubQuestionAnswer(payload)
     }
-    setDisplayIndex((i) => i + 1)
-    setAnswers(new Map())
-    setGhostDefenseByIndex(new Map())
-    setActiveIndex(0)
-    setActivePassageIndex(0)
-    setStartedAt(now())
-    setElapsedSec(0)
+    try {
+      const nextSnapshot = await advanceSession(db, snapshot!)
+      useSessionStore.setState({ snapshot: nextSnapshot })
+      // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
+      // total（T-175）はサブ設問を展開した解答数なので、複数設問を含むセッションでは
+      // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
+      // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
+      if (displayIndex + 1 >= snapshot!.items.length) {
+        finishSession()
+        return
+      }
+      setDisplayIndex((i) => i + 1)
+      setAnswers(new Map())
+      setGhostDefenseByIndex(new Map())
+      setActiveIndex(0)
+      setActivePassageIndex(0)
+      setStartedAt(now())
+      setElapsedSec(0)
+    } catch (err) {
+      // T-281（K-4）: 握りつぶすと中断ボタンすら無い白画面に固着する（DrillScreenと同じ理由）
+      console.warn('[ReadingScreen] セッションを進められませんでした', err)
+      setSessionError('セッションを進められませんでした')
+    }
   }
 
   async function handleNext() {

@@ -4,6 +4,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import type { ProfileRecord } from '../db/schema'
 import { PROFILE_ID, STREAK_ID } from '../db/schema'
 import {
   BACKUP_FORMAT_VERSION,
@@ -126,6 +127,16 @@ describe('エクスポート→全消去→インポートの往復', () => {
     for (const table of source.tables) {
       const before = await table.toArray()
       const after = await restored.table(table.name).toArray()
+      if (table.name === 'profile') {
+        // T-279（K-2）: deviceTokenは意図的に往復させない（復元先に既存トークンが無いため
+        // 新規発行される）。他のフィールドは往復することを確認する
+        expect(
+          after.map((r: ProfileRecord) => ({ ...r, deviceToken: undefined })),
+          'ストア profile が復元されていない',
+        ).toEqual(before.map((r: ProfileRecord) => ({ ...r, deviceToken: undefined })))
+        expect(after[0]?.deviceToken).toBeTruthy()
+        continue
+      }
       expect(after, `ストア ${table.name} が復元されていない`).toEqual(before)
     }
   })
@@ -319,6 +330,73 @@ describe('BYOKキーのエクスポート除外（T-42=C-2改訂。レビュー�
     const keys = (await target.settings.toArray()).filter((s) => s.key === BYOK_API_KEY_KEY)
     expect(keys).toHaveLength(1)
     expect(keys[0]?.value).toBe('sk-ant-local-key')
+  })
+})
+
+// T-279（K-2）: profile.deviceTokenは共有APIのBearer資格情報だが、exportAllが
+// profileストアを無加工で書き出すため、バックアップJSONに平文で含まれていた
+describe('deviceTokenのエクスポート除外（T-279・K-2）', () => {
+  it('exportAll の出力でprofile.deviceTokenが伏せられる（空文字になる）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+
+    const exported = await exportAll(source)
+    const profile = exported.stores.profile[0]
+    expect(profile?.deviceToken).toBe('')
+    expect(profile?.displayName).toBe('テスト') // 他のprofileフィールドは伏せられない
+  })
+
+  it('importAll は復元先に既存のdeviceTokenがあれば、それを優先して保持する', async () => {
+    const source = newDb()
+    await seedAllStores(source) // source.profile.deviceToken = 'token-1'
+    const exported = await exportAll(source)
+
+    const target = newDb()
+    await target.profile.put({
+      id: PROFILE_ID,
+      displayName: '復元先の既存プロフィール',
+      initialToeic: 400,
+      createdAt: 500,
+      deviceToken: 'token-target-existing',
+    })
+    await importAll(target, exported)
+
+    const restored = await target.profile.get(PROFILE_ID)
+    expect(restored?.deviceToken).toBe('token-target-existing')
+    expect(restored?.displayName).toBe('テスト') // deviceToken以外はバックアップの内容で置き換わる
+  })
+
+  it('importAll は復元先にdeviceTokenが無い（新規端末）場合、新しいdeviceTokenを発行する（再登録の導線）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const target = newDb() // profile未作成の新規端末
+    await importAll(target, exported)
+
+    const restored = await target.profile.get(PROFILE_ID)
+    expect(restored?.deviceToken).toBeTruthy()
+    expect(restored?.deviceToken).not.toBe('') // 空のまま（再登録できない状態）にはしない
+  })
+
+  it('外部編集でdeviceTokenが混入したバックアップでも、復元先の既存トークンが優先される（多層防御）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+    // 伏せられているはずのdeviceTokenを外部編集で復元した状況を模擬
+    exported.stores.profile[0]!.deviceToken = 'token-injected'
+
+    const target = newDb()
+    await target.profile.put({
+      id: PROFILE_ID,
+      displayName: '既存',
+      initialToeic: null,
+      createdAt: 500,
+      deviceToken: 'token-target-existing',
+    })
+    await importAll(target, exported)
+
+    expect((await target.profile.get(PROFILE_ID))?.deviceToken).toBe('token-target-existing')
   })
 })
 

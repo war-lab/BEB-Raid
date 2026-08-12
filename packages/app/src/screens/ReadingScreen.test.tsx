@@ -1172,6 +1172,59 @@ describe('ReadingScreen: 誤タップの取り消し猶予（T-268。ADR 0009）
   })
 })
 
+describe('ReadingScreen: セッション進行の失敗時に白画面で固まらない（T-281・K-4）', () => {
+  // 何を防ぐか: questionIdが解決できないitemのスキップ（advanceSession）失敗が握りつぶされると、
+  // renderがnullのまま固定され「中断ボタンすら無い白画面」で固まる
+  it('スキップ処理が失敗した場合はエラーと「ホームへ戻る」を表示し、白画面で固まらない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-skip-fail', 1)
+    const snapshot = await setupSession(
+      db,
+      [
+        { questionId: 'missing-q', mode: 'solo' }, // questionsに無いID→スキップ経路に入る
+        { questionId: q.id, mode: 'solo' },
+      ],
+      [q],
+    )
+    // 裏でDB上のスナップショットだけ進めてstaleにし、スキップのadvanceSessionを失敗させる
+    await advanceSession(db, snapshot)
+
+    render(<ReadingScreen db={db} />)
+
+    expect(await screen.findByText('セッションを進められませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ戻る'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  // 何を防ぐか: advanceReadingItem（全問解答後の「次へ」でitemを進める処理）の失敗が
+  // 握りつぶされると、同様に白画面で固まる
+  it('全問解答後にadvanceReadingItemが失敗した場合もエラーと「ホームへ戻る」を表示する', async () => {
+    const db = newDb()
+    const q1 = part7Question('p7-advance-fail-1', 1)
+    const q2 = part7Question('p7-advance-fail-2', 1)
+    const snapshot = await setupSession(
+      db,
+      [
+        { questionId: q1.id, mode: 'solo' },
+        { questionId: q2.id, mode: 'solo' },
+      ],
+      [q1, q2],
+    )
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    await screen.findByText('次へ')
+
+    // 裏でDB上のスナップショットだけ進めてstaleにし、「次へ」のadvanceSessionを失敗させる
+    await advanceSession(db, snapshot)
+    fireEvent.click(screen.getByText('次へ'))
+
+    expect(await screen.findByText('セッションを進められませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ戻る'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+})
+
 describe('readingPaceLabel（T-164。docs/27 のS-13）', () => {
   // 何を防ぐか: 目安を超えても数値が増え続けること（制限時間ではないのに圧だけが増える）
   it('目安（60秒）未満は経過秒数を出し、以降は「1分超」に切り替える', () => {

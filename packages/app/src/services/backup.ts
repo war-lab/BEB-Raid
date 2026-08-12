@@ -134,10 +134,17 @@ export async function exportAll(db: BebRaidDatabase): Promise<BackupFile> {
     const stores = {} as Record<keyof BackupStores, unknown[]>
     for (const name of STORE_NAMES) {
       const rows = await db.table(name).toArray()
-      stores[name] =
-        name === 'settings'
-          ? (rows as SettingRecord[]).filter((r) => !EXPORT_EXCLUDED_KEYS.includes(r.key))
-          : rows
+      if (name === 'settings') {
+        stores[name] = (rows as SettingRecord[]).filter(
+          (r) => !EXPORT_EXCLUDED_KEYS.includes(r.key),
+        )
+      } else if (name === 'profile') {
+        // T-279（K-2）: deviceTokenは共有APIのBearer資格情報。バックアップファイルに
+        // 平文で含めない（05の5節の不変条件と同種。BYOK APIキーと同じ扱い）
+        stores[name] = (rows as ProfileRecord[]).map((r) => ({ ...r, deviceToken: '' }))
+      } else {
+        stores[name] = rows
+      }
     }
     return {
       formatVersion: BACKUP_FORMAT_VERSION,
@@ -369,6 +376,23 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
         const existing = await db.attempts.bulkGet(incoming.map((r) => r.id))
         const fresh = incoming.filter((_, i) => existing[i] === undefined)
         await db.attempts.bulkAdd(fresh)
+      } else if (name === 'profile') {
+        // T-279（K-2）: deviceTokenはexportAllで伏せられている（空文字）。復元先に既存の
+        // トークンがあればそれを優先し（別端末の識別子で上書きしない）、無ければ
+        // 新規発行する（services/profile.tsの初回作成と同じ方式。空のままにすると
+        // 共有APIへ一切登録できず「再登録」導線にすら到達できないため）。
+        // 外部編集で非空のdeviceTokenが混入していても、復元先の既存値を常に優先する
+        const incoming = rows as ProfileRecord[]
+        const existing = await db.table(name).toArray()
+        const existingToken = (existing[0] as ProfileRecord | undefined)?.deviceToken
+        await db.table(name).clear()
+        await db.table(name).bulkPut(
+          incoming.map((r) => ({
+            ...r,
+            deviceToken:
+              existingToken && existingToken !== '' ? existingToken : crypto.randomUUID(),
+          })),
+        )
       } else if (name === 'phase') {
         // T-190: phaseストアは「常に1行だけ存在する」が不変条件（services/phase.ts）。
         // 通常のexportAllは0〜1行しか出力しないが、改ざん・破損したバックアップで

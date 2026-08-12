@@ -320,6 +320,36 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     }
   }, [phase])
 
+  /**
+   * 再参加（「もう一度試す」→別ルームへhandleJoin）のたびに前回のルームの状態を消す
+   * （T-282・K-5）。従来はhasConnectedRefしかリセットしていなかったため、前回未解答の
+   * まま切断されたquestionがcurrentQuestionRef等に残り、再参加後最初のquestionOpenで
+   * finalizeUnansweredQuestionが誤ってそれを時間切れattemptとして記録していた
+   */
+  function resetBattleState(): void {
+    hasConnectedRef.current = false
+    answeredThisQuestion.current = false
+    answerRecords.current = []
+    finalized.current = false
+    currentQuestionRef.current = null
+    questionOpenedAtRef.current = 0
+    setParticipants([])
+    setCurrentQuestionIndex(null)
+    setCurrentQuestion(null)
+    setPackMissing(false)
+    setDeadlineAt(null)
+    setRemainingSec(0)
+    setSelectedKey(null)
+    setOwnPoints(null)
+    setStandings([])
+    setResultEntries([])
+    setBestGrowthName(null)
+    setWrongCount(0)
+    setReviewIds([])
+    setCloseReason('')
+    setQuestionSeconds(null)
+  }
+
   async function handleJoin() {
     const code = normalizeRoomCode(codeInput)
     if (code.length !== 4) {
@@ -327,8 +357,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
       return
     }
     setErrorMessage(null)
-    // T-212: 再試行のたびに接続実績をリセットする（前回の失敗を今回の判定に持ち越さない）
-    hasConnectedRef.current = false
+    resetBattleState()
     setPhase('connecting')
     try {
       const [profile, totalRating] = await Promise.all([
