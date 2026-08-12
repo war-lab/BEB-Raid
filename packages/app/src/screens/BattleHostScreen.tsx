@@ -170,6 +170,14 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     return () => battleSocket.close()
   }, [battleSocket])
 
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
+
   // 出題中のカウントダウン。0になったらホストが closeQuestion を送る
   // （DO側タイマーが正=22の3.2節。ホストのタイマーは締切送信の契機に過ぎない）
   useEffect(() => {

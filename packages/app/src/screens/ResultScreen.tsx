@@ -124,6 +124,17 @@ export function ResultScreen({ db, raidApi }: Props) {
   const [phaseOutcome, setPhaseOutcome] = useState<PhaseTransitionOutcome | null>(null)
   // T-77: reduced-motion環境では最初から静止表示。タップで途中スキップも可能にする
   const [skipAnimation, setSkipAnimation] = useState(prefersReducedMotion)
+
+  // T-319（K-52）: 演出スキップは`.result-content`のonClickのみで、キーボード操作からは
+  // 到達できなかった（divはタブ順に入らずEnter/Spaceも拾わない）。700ms後に自動で
+  // 確定させることで、キーボード利用者も待てば（追加操作無しで）演出後の状態に進める
+  useEffect(() => {
+    if (skipAnimation) return
+    const timer = setTimeout(() => setSkipAnimation(true), POINTS_COUNTUP_MS)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 初回マウント時に1回だけ仕掛ける
+  }, [])
+
   // T-109: 中断・再開を跨いだセッション全体の正解数・問題リスト集計（3.2節J-52）。
   // snapshot.attemptIdsはstartSessionから完了まで累積するため、resultsストア
   // （このマウント後に解答した分のみ）よりも正確な全体集計の入力に使える

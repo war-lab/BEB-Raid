@@ -160,6 +160,14 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   // 初回ロード失敗時のフラグ。trueならエラー表示＋ホーム導線を出す（永久 return null を防ぐ）
   const [loadError, setLoadError] = useState(false)
 
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
+
   // 初回ロード: 復習キュー（期限到来＋新規導入。4節）と仕分け候補（未SRS化の語彙）を用意する
   useEffect(() => {
     let cancelled = false

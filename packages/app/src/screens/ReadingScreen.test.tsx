@@ -14,6 +14,7 @@ import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
 import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
+  ACTIVE_SESSION_KEY,
   advanceSession,
   answerCurrentSubQuestion,
   resumeSession,
@@ -1169,6 +1170,30 @@ describe('ReadingScreen: 誤タップの取り消し猶予（T-268。ADR 0009）
     // 空所1の猶予が明けると記録され、空所2は再び操作できるようになる
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     await waitFor(() => expect(screen.getByText('a').closest('button')?.disabled).toBe(false))
+  })
+})
+
+describe('ReadingScreen: 全item解答済みのsnapshotでの初回レンダー（T-320・K-53）', () => {
+  // 何を防ぐか: snapshotはあるがitemが無い（=全item解答済み）状態でのfinishSession()
+  // 呼び出しが、レンダー本体（return null直前）に書かれていた。通常は最終設問の
+  // 「次へ」ボタン（イベントハンドラ）を経由するが、中断復帰などでsnapshot自体が
+  // 「既に全問解答済み」のままReadingScreenが最初にレンダーされることもあり、その場合は
+  // ボタンクリックを経由せずレンダー本体のガードが初回レンダーで直接実行される。
+  // レンダー本体からnavigate/completeSessionを直接呼ぶのはReactのレンダー純粋性に反するため
+  // useEffectへ移した（T-320）。この経路が退行してリザルトへ進まなくなることを防ぐ
+  it('既に全問解答済みのsnapshotで初回レンダーされた場合もリザルトへ進み、セッションが完了する', async () => {
+    const db = newDb()
+    const q = part7Question('p7-320', 1)
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'solo' }]
+    const snapshot = await startSession(db, { items })
+    const answeredSnapshot = { ...snapshot, answeredCount: items.length }
+    useSessionStore.getState().begin(answeredSnapshot, [q], { L: 400, R: 400 })
+
+    render(<ReadingScreen db={db} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    const active = await db.settings.get(ACTIVE_SESSION_KEY)
+    expect(active).toBeUndefined()
   })
 })
 

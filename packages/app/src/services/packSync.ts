@@ -49,6 +49,55 @@ export interface SyncPacksOptions {
   /** テスト注入用。省略時は import.meta.env.BASE_URL（Pagesサブパス対応。App.tsxの音声パス修正と同じ理由） */
   baseUrl?: string
   now?: number
+  /**
+   * 音声取得の進捗通知（T-321・K-59）。パックごとに呼ばれる（音声を持たないパックでは
+   * 呼ばれない）。取得中の帯域・接続状況をUIに出すための用途で、失敗したURLも
+   * completedに数える（進捗が止まって見えることを防ぐ）
+   */
+  onAudioProgress?: (info: { packId: string; completed: number; total: number }) => void
+}
+
+/**
+ * 音声URL群の並行度を絞った逐次fetch+put（T-321・K-54）。
+ * 旧実装はパックJSON＋全音声を1回のPackCache.addAllへ渡していたが、addAllは1件でも
+ * 失敗すると全件を巻き戻す仕様（キャッシュに書き込みし積んだ0バイトも残らない）。
+ * 駅間の20〜40秒の接続では大きいパック（9MiB超）を1本のバッチで取り切れないことがあり、
+ * 帯域だけ消費してキャッシュが1バイトも増えない。1URL単位のfetch+putに分ければ、
+ * 途中で切断しても取得済み分はキャッシュに残る
+ */
+const AUDIO_FETCH_CONCURRENCY = 4
+
+async function fetchAndCacheAudio(
+  packCache: PackCache,
+  fetchImpl: typeof fetch,
+  packId: string,
+  urls: string[],
+  onProgress?: SyncPacksOptions['onAudioProgress'],
+): Promise<void> {
+  const total = urls.length
+  if (total === 0) return
+  let completed = 0
+  let nextIndex = 0
+  async function worker(): Promise<void> {
+    for (;;) {
+      const index = nextIndex
+      nextIndex += 1
+      if (index >= urls.length) return
+      const url = urls[index]!
+      try {
+        const res = await fetchImpl(url)
+        if (res.ok) {
+          await packCache.put(url, await res.blob())
+        }
+      } catch {
+        // 個別音声の取得失敗は無視する（このURLだけ次回同期時に再試行される。T-322）
+      }
+      completed += 1
+      onProgress?.({ packId, completed, total })
+    }
+  }
+  const workerCount = Math.min(AUDIO_FETCH_CONCURRENCY, total)
+  await Promise.all(Array.from({ length: workerCount }, () => worker()))
 }
 
 export interface SyncPacksResult {
@@ -106,6 +155,27 @@ async function collectCachedAudioUrls(
   }
 }
 
+/** skip判定でハッシュ一致・実体確認に加えて音声の実在をどれだけ確認するか（T-322・K-55） */
+const AUDIO_SAMPLE_CHECK_SIZE = 3
+
+/**
+ * skipするパックの音声が実際にキャッシュに残っているかをサンプル確認する（T-322・K-55）。
+ * T-321で音声取得が1URL単位のfetch+putになったことで、パックJSON自体は同期成功として
+ * hashが更新されても、一部の音声だけが欠けた状態になり得る。従来のskip判定は
+ * パックJSONの実体しか見ておらず、この「音声だけ欠けた」状態を検知できず
+ * 永久にskipし続けてしまう（K-55）。全音声を確認すると起動ごとの走査コストが大きいため、
+ * 先頭のAUDIO_SAMPLE_CHECK_SIZE件だけを確認する（サンプル。全件保証ではない）
+ */
+async function hasAudioSample(
+  packCache: PackCache,
+  audioUrls: readonly string[],
+): Promise<boolean> {
+  for (const url of audioUrls.slice(0, AUDIO_SAMPLE_CHECK_SIZE)) {
+    if (!(await packCache.has(url))) return false
+  }
+  return true
+}
+
 /**
  * manifest.jsonを取得し、ハッシュに変化のあるパックだけをPackCacheへピン留めする。
  * オフライン・manifest取得失敗時はnullを返す（呼び出し側はエラーUIを出さない）。
@@ -120,9 +190,10 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   const baseUrl = options.baseUrl ?? import.meta.env.BASE_URL
   const now = options.now ?? Date.now()
 
+  const manifestUrl = `${baseUrl}manifest.json`
   let manifest: Manifest
   try {
-    const res = await fetchImpl(`${baseUrl}manifest.json`, {
+    const res = await fetchImpl(manifestUrl, {
       signal: AbortSignal.timeout(MANIFEST_FETCH_TIMEOUT_MS),
     })
     if (!res.ok) return null
@@ -132,13 +203,24 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   } catch {
     return null
   }
+  // T-325（K-60）: App.tsx起動時のloadQuestionPoolがPACK_IDS由来ではなく、この
+  // manifest.jsonから対象パックID一覧をcache-firstで読めるようにキャッシュへ書き戻す
+  // （loadPackQuestionsのT-183 Q-13書き戻しと同じ理由でJSON.stringifyから作る。
+  // res.blob()に依存するとテストダブルのResponseがblob()未実装のことがあるため避ける）。
+  // 書き戻し失敗は無視する（次回同期のfetchで再試行されるだけで、同期自体は止めない）
+  try {
+    await packCache.put(manifestUrl, new Blob([JSON.stringify(manifest)]))
+  } catch {
+    // 無視
+  }
 
   const state = await loadPackSyncState(db)
   const packHashes = { ...state.packHashes }
   const synced: string[] = []
   const skipped: string[] = []
   // T-73: 現行manifestに対応するURL集合（パックJSON＋全音声）。掃除処理の「削除してよいか」判定に使う
-  const validUrls = new Set<string>()
+  // T-325: manifest.json自体もキャッシュに書き戻すため、掃除で消されないよう保護対象に含める
+  const validUrls = new Set<string>([manifestUrl])
 
   for (const entry of manifest.packs) {
     const packUrl = `${baseUrl}packs/${entry.id}.json`
@@ -147,11 +229,15 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
     // iOSのストレージ退避で実体が失われていてもハッシュは残るため、skipすると
     // 二度と再取得されなくなる。実体の有無を確認し、無ければ通常の同期経路へ落とす
     if (packHashes[entry.id] === entry.hash && (await packCache.has(packUrl))) {
-      skipped.push(entry.id)
-      for (const url of await collectCachedAudioUrls(packCache, baseUrl, packUrl)) {
-        validUrls.add(url)
+      const cachedAudioUrls = await collectCachedAudioUrls(packCache, baseUrl, packUrl)
+      // T-322（K-55）: T-321で音声が1URL単位のfetch+putになったため、パックJSONは
+      // 完全でも音声だけ一部欠けた状態がありうる。サンプル確認して欠けていればskipせず
+      // 通常の同期経路（再fetch+put）へ落として自己修復する
+      if (await hasAudioSample(packCache, cachedAudioUrls)) {
+        skipped.push(entry.id)
+        for (const url of cachedAudioUrls) validUrls.add(url)
+        continue
       }
-      continue
     }
     let syncSucceeded = false
     try {
@@ -160,11 +246,12 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
       })
       if (packRes.ok) {
         const pack = (await packRes.json()) as QuestionPack
-        const urls = [packUrl, ...collectAudioUrls(baseUrl, pack.questions)]
-        await packCache.addAll(urls)
+        await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
+        const audioUrls = collectAudioUrls(baseUrl, pack.questions)
+        await fetchAndCacheAudio(packCache, fetchImpl, entry.id, audioUrls, options.onAudioProgress)
         packHashes[entry.id] = entry.hash
         synced.push(entry.id)
-        for (const url of urls) validUrls.add(url)
+        for (const url of [packUrl, ...audioUrls]) validUrls.add(url)
         syncSucceeded = true
       }
     } catch {
@@ -179,18 +266,25 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   }
 
   // 現行manifestに含まれないURL（旧バージョンのパック・差し替え済み音声）を掃除する。
-  // 掃除自体が失敗しても同期の成立には影響しないため無視する（次回同期時に再試行される）
-  try {
-    const cachedKeys = await packCache.keys()
-    // keys()は絶対URLを返しうるため、双方を絶対URLへ正規化してから比較する
-    // （deleteに渡すのはkeys()が返した元の文字列。正規化はあくまで比較専用）
-    const validAbsoluteUrls = new Set([...validUrls].map(toAbsoluteUrl))
-    const staleUrls = cachedKeys.filter((url) => !validAbsoluteUrls.has(toAbsoluteUrl(url)))
-    if (staleUrls.length > 0) {
-      await packCache.delete(staleUrls)
+  // T-323（K-56）: 取得失敗したパックはcollectCachedAudioUrls（JSONパース等）に
+  // 依存したvalidUrls保護しか無く、それ自体が失敗すれば保護が効かず現行の音声を
+  // 誤って削除しうる。「manifest取得成功かつ全パックがsyncedまたはskipped」を掃除実行の
+  // 必須条件にし、1パックでも失敗していれば掃除自体を全面的に見送る（次回同期時に再試行）
+  const allPacksHandled = synced.length + skipped.length === manifest.packs.length
+  if (allPacksHandled) {
+    // 掃除自体が失敗しても同期の成立には影響しないため無視する（次回同期時に再試行される）
+    try {
+      const cachedKeys = await packCache.keys()
+      // keys()は絶対URLを返しうるため、双方を絶対URLへ正規化してから比較する
+      // （deleteに渡すのはkeys()が返した元の文字列。正規化はあくまで比較専用）
+      const validAbsoluteUrls = new Set([...validUrls].map(toAbsoluteUrl))
+      const staleUrls = cachedKeys.filter((url) => !validAbsoluteUrls.has(toAbsoluteUrl(url)))
+      if (staleUrls.length > 0) {
+        await packCache.delete(staleUrls)
+      }
+    } catch {
+      // 無視（掃除は次回同期時にも再試行される）
     }
-  } catch {
-    // 無視（掃除は次回同期時にも再試行される）
   }
 
   const totalSizeBytes = manifest.packs.reduce((sum, p) => sum + p.sizeBytes, 0)

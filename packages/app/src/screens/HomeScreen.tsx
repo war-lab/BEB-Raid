@@ -34,6 +34,7 @@ import {
   type SessionSnapshot,
 } from '../services/session'
 import {
+  DIAGNOSTIC_PROGRESS_KEY,
   LAST_SEEN_STREAK_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
@@ -219,6 +220,10 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   // T-121(J-60): 生成パックが0問だったときの案内（今日のクエスト・単独モード共通）。
   // セッション開始成功時・単独モード開始時にクリアする。自動では消さない
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
+  // T-316（K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のためApp.tsxの
+  // 起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで働かない。
+  // 同一セッション内でホームに来られるようになった以上、続きへ戻る導線をここに出す
+  const [pendingDiagnostic, setPendingDiagnostic] = useState(false)
   /**
    * T-162（docs/27 のS-38）: 進行中セッションがある状態で新規開始したときの確認。
    * 選択が決まるまで開始要求を保持しておく（window.confirm を置き換えたため、
@@ -306,6 +311,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         questDurationSetting,
         singleModeCountSetting,
         readingSetCountSetting,
+        diagnosticProgressSetting,
         storageEstimate,
       ] = await Promise.all([
         evaluateStreak(db),
@@ -318,10 +324,12 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         db.settings.get(QUEST_DURATION_KEY),
         db.settings.get(SINGLE_MODE_COUNT_KEY),
         db.settings.get(READING_SET_COUNT_KEY),
+        db.settings.get(DIAGNOSTIC_PROGRESS_KEY),
         // T-299（K-25）: navigator.storage未対応（Safari非対応・非HTTPS等）ならnullのまま
         navigator.storage?.estimate?.() ?? Promise.resolve(null),
       ])
       if (cancelled) return
+      setPendingDiagnostic(diagnosticProgressSetting !== undefined)
       setStorageWarning(shouldWarnStorageUsage(storageEstimate))
       setRaidState(raidStateRecord ?? null)
       // T-112: 「今日のクエスト」の時間チップ選択を画面遷移・再起動を跨いで復元する
@@ -1100,6 +1108,14 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       {resumeSnapshot && (
         <button type="button" className="secondary-action" onClick={() => void handleResume()}>
           続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
+        </button>
+      )}
+      {/* T-316（K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のため
+          App.tsxの起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで
+          働かない。同一セッション内でホームに来られる以上、続きへ戻る導線をここに出す */}
+      {pendingDiagnostic && (
+        <button type="button" className="secondary-action" onClick={() => navigate('diagnostic')}>
+          初期診断の続きから再開
         </button>
       )}
       {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、

@@ -345,24 +345,53 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     }
   }
 
-  /** 12パック全てにcacheヒットするfetchImpl（実fetchへのフォールバックを起こさせないため） */
+  const CACHED_PACK_IDS = [
+    'pack-vocab-s-001',
+    'pack-p2-s-001',
+    'pack-p5-s-001',
+    'pack-p5-similar-s-001',
+    'pack-vocab-a-001',
+    'pack-vocab-b-001',
+    'pack-p2-s-002',
+    'pack-p5-s-002',
+    'pack-p34-s-001',
+    'pack-dict-s-001',
+    'pack-shadow-s-001',
+    'pack-p5-similar-s-002',
+  ]
+
+  /**
+   * T-325: loadQuestionPoolは対象パックID一覧をmanifest.json経由（cache-first→fetch）で
+   * 解決する。このfetchImplはmanifest.jsonにCACHED_PACK_IDSを返す（実fetchへの
+   * フォールバックを起こさせないため。manifest.json自体はpackCacheに無い前提でよい）
+   */
+  function manifestFetchImpl(): typeof fetch {
+    return vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        return {
+          ok: true,
+          json: async () => ({
+            schemaVersion: 2,
+            packs: CACHED_PACK_IDS.map((id) => ({
+              id,
+              title: id,
+              targetLevel: [600, 600],
+              sizeBytes: 10,
+              hash: `h-${id}`,
+            })),
+          }),
+        } as Response
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+  }
+
+  /** 12パック全てにcacheヒットするPackCache（実fetchへのフォールバックを起こさせないため） */
   function allPacksCached(overrides: Record<string, () => Promise<Blob | null>> = {}) {
-    const ids = [
-      'pack-vocab-s-001',
-      'pack-p2-s-001',
-      'pack-p5-s-001',
-      'pack-p5-similar-s-001',
-      'pack-vocab-a-001',
-      'pack-vocab-b-001',
-      'pack-p2-s-002',
-      'pack-p5-s-002',
-      'pack-p34-s-001',
-      'pack-dict-s-001',
-      'pack-shadow-s-001',
-      'pack-p5-similar-s-002',
-    ]
     return fakePackCache(async (url) => {
-      const id = ids.find((i) => url === `/packs/${i}.json`)
+      if (url === '/manifest.json') return null
+      const id = CACHED_PACK_IDS.find((i) => url === `/packs/${i}.json`)
       if (!id) throw new Error(`unexpected url: ${url}`)
       if (overrides[id]) return overrides[id]!()
       return new Blob([JSON.stringify(pack(id, []))])
@@ -376,7 +405,7 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
       'pack-p2-s-001': async () =>
         new Blob([JSON.stringify(pack('pack-p2-s-001', [{ id: 'p2-1' } as never]))]),
     })
-    const pool = await loadQuestionPool(packCache, '/')
+    const pool = await loadQuestionPool(packCache, '/', manifestFetchImpl())
     expect(pool.map((q) => q.id)).toEqual(['v-1', 'p2-1'])
   })
 
@@ -388,8 +417,62 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
       'pack-p2-s-001': async () =>
         new Blob([JSON.stringify(pack('pack-p2-s-001', [{ id: 'p2-1' } as never]))]),
     })
-    const pool = await loadQuestionPool(packCache, '/')
+    const pool = await loadQuestionPool(packCache, '/', manifestFetchImpl())
     expect(pool.map((q) => q.id)).toEqual(['p2-1'])
+  })
+
+  // 何を防ぐか（T-325・K-60）: PACK_IDSはcli側パック定義の手動複製のため、新パック追加時に
+  // 追記を忘れると出題プールから静かに漏れる。manifest.json由来で解決すれば、
+  // PACK_IDSに載っていない新パックでもmanifestに載っていれば読み込まれる
+  it('PACK_IDSに含まれない新パックでも、manifestに載っていれば読み込まれる', async () => {
+    const newPackId = 'pack-not-in-PACK_IDS-001'
+    const packCache = fakePackCache(async (url) => {
+      if (url === '/manifest.json') return null
+      if (url === `/packs/${newPackId}.json`) {
+        return new Blob([JSON.stringify(pack(newPackId, [{ id: 'new-pack-question' } as never]))])
+      }
+      throw new Error(`unexpected url: ${url}`)
+    })
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        return {
+          ok: true,
+          json: async () => ({
+            schemaVersion: 2,
+            packs: [
+              {
+                id: newPackId,
+                title: newPackId,
+                targetLevel: [600, 600],
+                sizeBytes: 10,
+                hash: 'h',
+              },
+            ],
+          }),
+        } as Response
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+
+    const pool = await loadQuestionPool(packCache, '/', fetchImpl)
+    expect(pool.map((q) => q.id)).toEqual(['new-pack-question'])
+  })
+
+  // 何を防ぐか: manifestが全く読めない（PackCacheにも無く、fetchも失敗する）完全オフライン
+  // 初回起動でパック一覧が空にならないよう、PACK_IDSへフォールバックする
+  it('manifestが読めない場合はPACK_IDSへフォールバックする', async () => {
+    const packCache = fakePackCache(async () => null)
+    const fetchImpl = vi.fn(async () => {
+      throw new Error('network error')
+    }) as unknown as typeof fetch
+
+    const pool = await loadQuestionPool(packCache, '/', fetchImpl)
+    // PACK_IDSの各パックはcacheにも無くfetchも失敗するため、プールは空になる
+    // （フォールバックのID一覧自体は使われている＝各IDでloadPackQuestionsが試行される）
+    expect(pool).toEqual([])
+    expect(fetchImpl).toHaveBeenCalledWith('/manifest.json')
+    expect(fetchImpl).toHaveBeenCalledWith(`/packs/${PACK_IDS[0]}.json`)
   })
 })
 
@@ -587,6 +670,24 @@ describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () =
 describe('App: マウント時同期とonline再同期のinFlight共有（T-284・K-7）', () => {
   it('マウント時同期のmanifest取得が完了する前にonlineが発火しても、manifestは1回しかfetchされない', async () => {
     await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    // T-325: 起動チェック（loadQuestionPool→resolvePackIds）もmanifest.jsonをcache-first→
+    // fetchで読むようになった。本テストが検証したいのは「マウント時同期とonline再同期」の
+    // 重複防止（この2つのみ）なので、resolvePackIds側はキャッシュ命中させてfetchさせない
+    // （キャッシュを空のままにすると起動チェックのfetchと検証対象のfetchが同じmanifestPromiseを
+    // 待つことになり、起動チェック自体が完了できず本文の見出しが出ないまま固まる）
+    const manifestJson = JSON.stringify({ schemaVersion: 2, packs: [] })
+    vi.stubGlobal('caches', {
+      open: vi.fn(async () => ({
+        match: vi.fn(async (url: string) =>
+          url === '/manifest.json'
+            ? { blob: async () => ({ text: async () => manifestJson }) }
+            : undefined,
+        ),
+        put: vi.fn(async () => {}),
+        delete: vi.fn(async () => false),
+        keys: vi.fn(async () => []),
+      })),
+    })
     let manifestFetchCount = 0
     let resolveManifest: (value: Response) => void = () => {}
     const manifestPromise = new Promise<Response>((resolve) => {
@@ -622,6 +723,7 @@ describe('App: マウント時同期とonline再同期のinFlight共有（T-284�
       resolveManifest({ ok: true, json: async () => ({ schemaVersion: 2, packs: [] }) } as Response)
     } finally {
       global.fetch = originalFetch
+      vi.unstubAllGlobals()
     }
   })
 })

@@ -620,3 +620,58 @@ describe('ShadowingScreen: 中断は周回に数えない（T-157。docs/27 のS
     expect(await db.attempts.count()).toBe(1)
   })
 })
+
+// 何を防ぐか（T-315・K-48）: 旧素材の再生中に移動・離脱しても止めていなかった。
+// onPositionが生きたまま新素材の原稿上で旧音声の時計に沿ったハイライトが進み、
+// 旧音声が自然終了すると（stop()を経ないため'ended'として解決される）旧素材の周回が
+// 加算されてしまう（T-157「中断は周回に数えない」規約への退行）
+describe('ShadowingScreen: 素材移動・離脱時の音声停止（T-315・K-48）', () => {
+  it('次の素材へ移動すると再生中の音声を止める', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2' })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+
+    fireEvent.click(screen.getByText('再生'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+
+    fireEvent.click(screen.getByText('次の素材へ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
+  it('前の素材へ移動すると再生中の音声を止める', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const q1 = shadowingQuestion()
+    const q2 = shadowingQuestion({ id: 'shadow-2' })
+    render(<ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[q1, q2]} />)
+    fireEvent.click(screen.getByText('次の素材へ'))
+    await waitFor(() => expect(screen.getByText(/素材 2\/2/)).toBeTruthy())
+
+    fireEvent.click(screen.getByText('再生'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+    audioPlayer.stop.mockClear()
+
+    fireEvent.click(screen.getByText('前の素材へ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    const question = shadowingQuestion()
+    const view = render(
+      <ShadowingScreen db={db} audioPlayer={audioPlayer} shadowingQuestions={[question]} />,
+    )
+    fireEvent.click(screen.getByText('再生'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalled())
+    audioPlayer.stop.mockClear()
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+})

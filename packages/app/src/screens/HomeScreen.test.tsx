@@ -17,6 +17,7 @@ import * as shuffleModule from '../engine/shuffle'
 import type { RaidApi } from '../platform'
 import { syncRaidDamage } from '../services/raidSync'
 import {
+  DIAGNOSTIC_PROGRESS_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
   RAID_REGISTERED_AT_KEY,
@@ -2359,5 +2360,54 @@ describe('HomeScreen: モーダルのアクセシビリティ作法（T-203）',
     await screen.findByRole('dialog', { name: '読解のパッセージ数を選択' })
     fireEvent.click(screen.getByRole('dialog', { name: '読解のパッセージ数を選択' }))
     expect(screen.queryByRole('dialog', { name: '読解のパッセージ数を選択' })).toBeNull()
+  })
+})
+
+// 何を防ぐか（T-316・K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のため
+// App.tsxの起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで働かない。
+// 同一セッション内でホームに来られる以上、続きへ戻る導線が無いとここで詰む
+describe('HomeScreen: 初期診断の再開導線（T-316・K-49）', () => {
+  it('診断の途中経過が残っていると「初期診断の続きから再開」が出る', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: DIAGNOSTIC_PROGRESS_KEY,
+      value: {
+        displayName: 'てすと',
+        toeicInput: '',
+        turn: 3,
+        ratingL: 400,
+        ratingR: 400,
+        askedL: [],
+        askedR: [],
+      },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const button = screen.getByText('初期診断の続きから再開')
+    fireEvent.click(button)
+    expect(useAppStore.getState().screen).toBe('diagnostic')
+  })
+
+  it('診断の途中経過が無ければ導線は出ない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText('初期診断の続きから再開')).toBeNull()
   })
 })

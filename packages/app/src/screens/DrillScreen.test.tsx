@@ -17,6 +17,7 @@ import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer, PlaybackOutcome } from '../platform'
 import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
+  ACTIVE_SESSION_KEY,
   advanceSession,
   answerCurrentQuestion,
   resumeSession,
@@ -191,6 +192,28 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     fireEvent.click(await screen.findByText('次へ'))
 
     expect(useAppStore.getState().screen).toBe('result')
+  })
+
+  // 何を防ぐか（T-320・K-53）: snapshotはあるがitemが無い（=全item解答済み）状態での
+  // finishSession()呼び出しが、レンダー本体（return null直前）に書かれていた。
+  // このケースは通常、最終問の「次へ」ボタン（onClick={finishSession}、イベント
+  // ハンドラなので問題ない）を経由するが、中断復帰などでsnapshot自体が
+  // 「既に全問解答済み」の状態のままDrillScreenが最初にレンダーされることもある
+  // （ボタンクリックを経由せずレンダー本体のガードが初回レンダーで直接実行される経路）。
+  // レンダー本体からnavigate/completeSessionを直接呼ぶのはReactのレンダー純粋性に反するため
+  // useEffectへ移した（T-320）。この経路が退行してリザルトへ進まなくなることを防ぐ
+  it('既に全問解答済みのsnapshotで初回レンダーされた場合もリザルトへ進み、セッションが完了する（T-320・K-53）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const snapshot = await startSession(db, { items })
+    const answeredSnapshot = { ...snapshot, answeredCount: items.length }
+    useSessionStore.getState().begin(answeredSnapshot, QUESTIONS, { L: 400, R: 400 })
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    const active = await db.settings.get(ACTIVE_SESSION_KEY)
+    expect(active).toBeUndefined()
   })
 
   it('全問完走してリザルトへ進んだ時点でDB上のセッションを完了させる（T-267・Q-5）', async () => {
@@ -2853,5 +2876,25 @@ describe('DrillScreen: 英文要素のlang="en"（T-224・J-108）', () => {
 
     const span = container.querySelector('.question-text [lang="en"]')
     expect(span?.textContent).toBe(q.script)
+  })
+})
+
+// 何を防ぐか（T-315・K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラ
+// のみで実装しており、useEffectのunmount cleanupでの停止が1件も無かった。最終問で再生中に
+// リザルトへ進むと、再生中の音声がリザルト画面まで流れ続ける
+describe('DrillScreen: unmount時の音声停止（T-315・K-48）', () => {
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-unmount', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    const view = render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
   })
 })

@@ -5,6 +5,11 @@
 // jsdomはCache Storage APIを実装しないため、テスト専用の最小フェイクをglobalThis.cachesへ
 // スタブする（本クラスがcaches.open/cache.match等をどう呼ぶかだけを検証する目的のため、
 // 実ブラウザの厳密な仕様準拠までは再現しない）
+//
+// T-325（K-60）: usage()が全エントリを並列に問い合わせることも検証する
+// （旧実装はfor...ofでcache.match()を1件ずつawaitしていた。実測960ファイル規模では
+// 1件あたり数msでも直列だと起動時の合計待ちが大きくなる）。match()に人工的な
+// 非同期遅延を入れ、同時に何件が実行中かを記録することで、usage()の並列度を外部から観測する
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CacheStoragePackCache } from './CacheStoragePackCache'
@@ -26,8 +31,15 @@ function urlOf(request: string | { url: string }): string {
 
 class FakeCache {
   store = new Map<string, Response>()
+  inFlight = 0
+  maxInFlight = 0
 
   async match(request: string | { url: string }): Promise<Response | undefined> {
+    this.inFlight += 1
+    this.maxInFlight = Math.max(this.maxInFlight, this.inFlight)
+    // 同時実行数を観測するため、他のmatch()呼び出しが追いつけるだけの間だけ待つ
+    await new Promise((r) => setTimeout(r, 5))
+    this.inFlight -= 1
     return this.store.get(urlOf(request))
   }
 
@@ -137,6 +149,19 @@ describe('CacheStoragePackCache', () => {
 
     const keys = await cache.keys()
     expect(new Set(keys)).toEqual(new Set(['/packs/a.json', '/audio/x.mp3']))
+  })
+
+  // 何を防ぐか（T-325・K-60）: 旧実装はfor...ofでcache.match()を1件ずつawaitしていた。
+  // 実測960ファイル規模では、1件あたり数msでも直列だと起動時の合計待ちが大きくなる。
+  // Promise.allで並列化すれば、同時に複数件を問い合わせられる
+  it('usageは全エントリを並列に問い合わせる（同時実行数が1件ずつの逐次にならない）', async () => {
+    const cache = new CacheStoragePackCache()
+    for (let i = 0; i < 5; i++) await cache.put(`/audio/${i}.mp3`, await nativeBlob('x'))
+
+    const fakeCache = await fakeCaches.open('beb-pack-cache-v1')
+    await cache.usage()
+
+    expect(fakeCache.maxInFlight).toBeGreaterThan(1)
   })
 
   it('usageはcontent-lengthヘッダがあればそれを合算する', async () => {

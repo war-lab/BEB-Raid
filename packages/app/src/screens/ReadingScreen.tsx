@@ -23,7 +23,7 @@
 // question.formatを見て、text_passageならこの画面、それ以外ならDrillScreenへ自動的に
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
 // 「通常セッションからreading画面への遷移方式」の設計判断はここで確定した
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Question, SubQuestion } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
@@ -291,8 +291,42 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     mountedRef,
   } = usePendingCommit<ReadingPendingCommit>((payload) => commitSubQuestionAnswer(payload))
 
+  /**
+   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
+   * （T-196・T-267。docs/29 Q-5、DrillScreenの同名関数と同じ理由）。リザルトへ到達する
+   * 経路はすべてここを通す: 「ここで終了して結果を見る」（早期終了）・全問解答後の
+   * 「次へ」（正規完走）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
+   * ときの描画フォールバック。当初は早期終了のみT-196で対処したが、全問完走の方が
+   * 通過頻度が高く、同じ欠陥がQ-5の症状として日常的に発生しうると判断してT-267で
+   * 経路を揃えた。
+   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
+   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
+   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
+   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）。
+   * useCallbackで安定化するのは、下のuseEffectの依存配列に含めるため（T-320・K-53）
+   */
+  const finishSession = useCallback(() => {
+    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
+    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
+    if (snapshot) {
+      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
+        console.warn('[ReadingScreen] セッション完了処理に失敗', e)
+      })
+    }
+    navigate('result')
+  }, [snapshot, db, navigate])
+
+  // T-320（K-53）: 全item解答済み（snapshotはあるがitemが無い）でのfinishSession()呼び出しが
+  // レンダー本体（return null直前）にあり、レンダー中にnavigate（内部的にstateを更新する
+  // pushState相当の操作）を呼んでいた
+  useEffect(() => {
+    if (snapshot && !item) finishSession()
+  }, [snapshot, item, finishSession])
+
   // T-281（K-4）: セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を
-  // 必ず出す（DrillScreenのsessionErrorと同じ理由。握りつぶすと中断ボタンすら無い白画面に固着する）
+  // 必ず出す（DrillScreenのsessionErrorと同じ理由。握りつぶすと中断ボタンすら無い白画面に固着する）。
+  // **フック呼び出しより後ろに置くこと**——上のuseCallback/useEffectより前だとレンダーごとに
+  // フック数が変わる（rules-of-hooks違反）
   if (sessionError) {
     return (
       <ScreenLayout
@@ -306,7 +340,6 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   }
 
   if (!snapshot || !item || !question) {
-    if (snapshot && !item) finishSession()
     return null
   }
   // text_passage以外はこのコンポーネントの担当外（上のeffectがdrill画面へ切り替える）。
@@ -515,30 +548,6 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       return i
     }
     return null
-  }
-
-  /**
-   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
-   * （T-196・T-267。docs/29 Q-5、DrillScreenの同名関数と同じ理由）。リザルトへ到達する
-   * 経路はすべてここを通す: 「ここで終了して結果を見る」（早期終了）・全問解答後の
-   * 「次へ」（正規完走）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
-   * ときの描画フォールバック。当初は早期終了のみT-196で対処したが、全問完走の方が
-   * 通過頻度が高く、同じ欠陥がQ-5の症状として日常的に発生しうると判断してT-267で
-   * 経路を揃えた。
-   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
-   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
-   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
-   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）
-   */
-  function finishSession() {
-    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
-    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
-    if (snapshot) {
-      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
-        console.warn('[ReadingScreen] セッション完了処理に失敗', e)
-      })
-    }
-    navigate('result')
   }
 
   /**
