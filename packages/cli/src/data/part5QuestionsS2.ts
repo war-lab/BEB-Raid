@@ -898,12 +898,12 @@ export const PART5_ENTRIES_S2_RAW: Part5RawEntry[] = [
   {
     keyVocabWord: 'arrears',
     tags: ['接続詞vs前置詞'],
-    question: 'The tenant was evicted ___ the rent was in arrears.',
+    question: 'The subscription was suspended ___ the payment was in arrears.',
     correctText: 'because',
     distractors: ['notwithstanding', 'because of', 'unless'],
     explanation:
-      '空所の後は節（the rent was in arrears）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。',
-    translation: '家賃が滞納していたため、その借家人は立ち退かされた。',
+      '空所の後は節（the payment was in arrears）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。',
+    translation: '支払いが滞納していたため、その定期購入は停止された。',
     difficulty: 3,
   },
 
