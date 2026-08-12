@@ -89,4 +89,15 @@ describe('selectGhostBossQuestions', () => {
     const result = selectGhostBossQuestions(pool)
     expect(result).toBeNull()
   })
+
+  it('Part7（長文）はテンポが崩れるためバトル系のボス役出題から除外される（T-363・K-97）', () => {
+    const part7 = (id: string): Question => ({ ...q(id, 'text_passage', 4), part: 7 })
+    const pool = [
+      ...Array.from({ length: 40 }, (_, i) => part7(`p7-${i}`)),
+      ...Array.from({ length: 40 }, (_, i) => q(`p5-${i}`, 'text_blank', 4)),
+    ]
+    const result = selectGhostBossQuestions(pool, fixedRng([0.1, 0.5, 0.9]))
+    expect(result).not.toBeNull()
+    expect(result!.questions.some((question) => question.part === 7)).toBe(false)
+  })
 })
