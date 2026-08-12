@@ -15,7 +15,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer, PlaybackOutcome } from '../platform'
+import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
+  ACTIVE_SESSION_KEY,
   advanceSession,
   answerCurrentQuestion,
   resumeSession,
@@ -190,6 +192,28 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     fireEvent.click(await screen.findByText('次へ'))
 
     expect(useAppStore.getState().screen).toBe('result')
+  })
+
+  // 何を防ぐか（T-320・K-53）: snapshotはあるがitemが無い（=全item解答済み）状態での
+  // finishSession()呼び出しが、レンダー本体（return null直前）に書かれていた。
+  // このケースは通常、最終問の「次へ」ボタン（onClick={finishSession}、イベント
+  // ハンドラなので問題ない）を経由するが、中断復帰などでsnapshot自体が
+  // 「既に全問解答済み」の状態のままDrillScreenが最初にレンダーされることもある
+  // （ボタンクリックを経由せずレンダー本体のガードが初回レンダーで直接実行される経路）。
+  // レンダー本体からnavigate/completeSessionを直接呼ぶのはReactのレンダー純粋性に反するため
+  // useEffectへ移した（T-320）。この経路が退行してリザルトへ進まなくなることを防ぐ
+  it('既に全問解答済みのsnapshotで初回レンダーされた場合もリザルトへ進み、セッションが完了する（T-320・K-53）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const snapshot = await startSession(db, { items })
+    const answeredSnapshot = { ...snapshot, answeredCount: items.length }
+    useSessionStore.getState().begin(answeredSnapshot, QUESTIONS, { L: 400, R: 400 })
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    const active = await db.settings.get(ACTIVE_SESSION_KEY)
+    expect(active).toBeUndefined()
   })
 
   it('全問完走してリザルトへ進んだ時点でDB上のセッションを完了させる（T-267・Q-5）', async () => {
@@ -845,6 +869,32 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     expect(useSessionStore.getState().snapshot?.answeredCount).toBe(2)
   })
 
+  // 何を防ぐか（T-297・K-23）: アンマウント時のflushでcommitAnswerが失敗すると、
+  // 従来はconsole.errorに流すだけで解答が無言で失われていた（saveErrorバナー・再試行ボタンは
+  // アンマウント済みの画面には効かない）。次回起動時に気づけるよう退避されているか検証する
+  it('猶予中にアンマウント→flushが失敗すると、次回起動時の通知用に退避される（K-23）', async () => {
+    const db = newDb()
+    const snapshot = await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    const view = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // 画面が持つsnapshotを裏でstaleにする（他タブ・多重解答の再現。DBは正常なまま）。
+    // flush時のrecordAnswerPipelineはこのstale snapshotで呼ばれ、StaleSnapshotErrorになる
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    view.unmount()
+
+    await waitFor(async () => expect(await loadPendingCommitFailure(db)).not.toBeNull())
+    // 猶予中の解答自体は書かれない（元の設計どおり、失われたデータは再送できない）
+    expect(await db.attempts.count()).toBe(1) // answerCurrentQuestionで直接書いた1件のみ
+  })
+
   it('設定OFFなら従来どおり即記録する（回帰）', async () => {
     const db = newDb()
     // setupSession が OFF にするのでそのまま使う
@@ -1151,10 +1201,11 @@ describe('DrillScreen: 解答保存失敗リカバリ（T-76。J-35のpipeline�
 
     fireEvent.click(screen.getByText('b')) // q-1（正解はA）に解答を試みる
 
-    // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
-    // 圏外利用者に誤った原因究明をさせるため外す（空き容量への言及は残す）
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
 
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
@@ -1449,8 +1500,11 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
 
     fireEvent.click(screen.getByText('OK'))
 
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
@@ -1569,10 +1623,16 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
     const audioPlayer = new FakeAudioPlayer()
 
+    // T-309（K-38）: fireEventは即時発火するためresponseMsが実質0msになり、GUESS_THRESHOLD_MS
+    // （2000ms）未満の「速答」としてtagStatsの重みが0.5に下がってしまう。この時刻経過は
+    // テストの本題（レート対象外でもtagStatsは更新される）とは無関係なので、Date.nowを
+    // 進めて実際に3秒かけて解答したのと同じ状態を作る
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
     fireEvent.click(screen.getByText('submit'))
+    nowSpy.mockReturnValue(1_003_000)
     fireEvent.click(screen.getByText('確定'))
 
     await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
@@ -1581,6 +1641,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     expect(await db.ratings.get('R')).toBeUndefined()
     const tagStat = await db.tagStats.get('弱形・連結')
     expect(tagStat?.windowTotal).toBe(1)
+    nowSpy.mockRestore()
   })
 
   it('「やり直す」で穴の記入をリセットできる', async () => {
@@ -1658,8 +1719,11 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
 
     fireEvent.click(screen.getByText('確定'))
 
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
@@ -2480,6 +2544,31 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     addSpy.mockRestore()
   })
 
+  // 何を防ぐか（T-299・K-25）: 容量不足（QuotaExceededError）でも一律「空き容量を
+  // 確認してください」だけで、確認した後の具体的な回復手段（エクスポート）を示していなかった
+  it('QuotaExceededErrorのときは専用の文言とエクスポート導線が出る', async () => {
+    const db = newDb()
+    const q = part5Question('q-quota', 'A', 'submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new DOMException('quota exceeded', 'QuotaExceededError'))
+
+    fireEvent.click(await screen.findByText('a'))
+
+    expect(
+      await screen.findByText(
+        '端末のストレージ容量が不足しています。データをエクスポートして空き容量を確保してください',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+    addSpy.mockRestore()
+  })
+
   // 何を防ぐか（レビュー指摘、2026-08-03）: 保存の完了前に「次へ」で進めること。
   // 正誤表示は保存処理より先に出るため、保存中でも進行導線が出ていた
   it('保存が完了するまで「次へ」「ここで終了」を出さない', async () => {
@@ -2566,8 +2655,11 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
 
     fireEvent.click(screen.getByText('b'))
 
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
     // やり直しても同じ検知で弾かれるため再試行は出さない
     expect(screen.queryByText('保存を再試行する')).toBeNull()
@@ -2784,5 +2876,25 @@ describe('DrillScreen: 英文要素のlang="en"（T-224・J-108）', () => {
 
     const span = container.querySelector('.question-text [lang="en"]')
     expect(span?.textContent).toBe(q.script)
+  })
+})
+
+// 何を防ぐか（T-315・K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラ
+// のみで実装しており、useEffectのunmount cleanupでの停止が1件も無かった。最終問で再生中に
+// リザルトへ進むと、再生中の音声がリザルト画面まで流れ続ける
+describe('DrillScreen: unmount時の音声停止（T-315・K-48）', () => {
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-unmount', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    const view = render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
   })
 })

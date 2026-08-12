@@ -82,12 +82,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'reception',
     tags: ['ビジネス名詞'],
-    question: 'Please leave your bag at the ___ desk.',
+    question:
+      'Please leave your bag at the ___ desk when you arrive at our office for the interview.',
     correctText: 'reception',
     distractors: ['checkpoint', 'gateway', 'concierge'],
     explanation:
-      '来客対応の「受付」はreception。checkpoint（検問所）・gateway（玄関口）・concierge（コンシェルジュ、人を指す名詞）は受付デスクの名称として不自然。',
-    translation: 'かばんは受付のデスクに預けてください。',
+      '来客対応の「受付」はreception。checkpoint（検問所）・gateway（玄関口）は受付デスクの名称として不自然。concierge（コンシェルジュ）はホテル等の接客係を指す語で、一般的な会社の受付には使わない（2026-08-07訂正・T-342・K-80: 旧設問は場面が曖昧で"concierge desk"というホテル用語とも解釈でき二重正答の疑いがあったため、面接で訪れる一般オフィスという場面を明示した）。',
+    translation: '面接のため当社オフィスにいらっしゃる際は、かばんを受付のデスクに預けてください。',
     difficulty: 2,
   },
   {
@@ -104,12 +105,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'estate',
     tags: ['ビジネス名詞'],
-    question: 'The company purchased a large real ___ near the airport last spring.',
+    question: 'The company hired a local ___ agent to help find office space downtown.',
     correctText: 'estate',
-    distractors: ['premises', 'facility', 'venue'],
+    distractors: ['venue', 'facility', 'premises'],
     explanation:
-      '"real estate"（不動産）は定番表現。premises（構内）・facility（施設）・venue（会場）はこの決まり文句には当てはまらない。',
-    translation: 'その会社は昨春、空港近くの広大な不動産を購入した。',
+      '不動産業者を表す"estate agent"（不動産仲介業者）は定番表現。venue（会場）・facility（施設）・premises（構内）はagentと結びつく業種を表さない（2026-08-07訂正・T-342・K-80: 旧設問"a large real ___"は空所前のrealに固定され、estate以外を入れると非文になる欠陥があった）。',
+    translation:
+      'その会社は、中心街でオフィススペースを見つけるのを手伝ってもらうため、地元の不動産仲介業者を雇った。',
     difficulty: 3,
   },
   {
@@ -638,12 +640,14 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'premises',
     tags: ['ビジネス名詞'],
-    question: 'Visitors must sign in before entering the ___ during regular business hours.',
+    question:
+      'Visitors must sign in at the front gate before entering the ___, which includes the parking area and every building on site.',
     correctText: 'premises',
     distractors: ['facility', 'estate', 'venue'],
     explanation:
-      '建物・敷地全体を指す「構内」はpremises。facility（施設という機能面の語）・estate（地所）・venue（会場）はこの文脈では代わりにくい。',
-    translation: '訪問者は、通常の営業時間内に構内に入る前に署名しなければならない。',
+      '建物・敷地全体（駐車場や複数棟を含む一区画）を指す「構内」はpremises。facility（単一の施設・建物を指す語で、駐車場や複数棟をまとめては指さない）・estate（地所）・venue（会場）はこの文脈では代わりにくい（2026-08-07訂正・T-342・K-80: 旧設問は"敷地全体"という限定が無くfacilityでも二重正答になり得たため、駐車場・複数棟を含む区画であることを明示した）。',
+    translation:
+      '訪問者は、駐車場と敷地内のすべての建物を含む構内に入る前に、正門で署名しなければならない。',
     difficulty: 3,
   },
   {
@@ -704,12 +708,14 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'retail',
     tags: ['ビジネス名詞'],
-    question: 'The brand plans to expand into the ___ market across several new countries.',
+    question:
+      'The clothing brand plans to expand into the ___ market by opening standalone stores across several new countries.',
     correctText: 'retail',
     distractors: ['freight', 'catering', 'hospitality'],
     explanation:
-      '「小売」市場はretail market。freight（貨物輸送）・catering（ケータリング）・hospitality（もてなし業）は市場の種類として合わない。',
-    translation: 'そのブランドは、いくつかの新しい国々にまたがって小売市場への進出を計画している。',
+      '「小売」市場はretail market。freight（貨物輸送）・catering（ケータリング）・hospitality（もてなし業。ホテルやレストラン業を指し、衣料品の店舗展開には当てはまらない）は市場の種類として合わない（2026-08-07訂正・T-342・K-80: 旧設問はブランドの業種が不明でhospitality marketとも読め二重正答の疑いがあったため、衣料品ブランドが実店舗を展開する場面と明示した）。',
+    translation:
+      'その衣料品ブランドは、いくつかの新しい国々で単独店舗を展開することにより、小売市場への進出を計画している。',
     difficulty: 3,
   },
   {
@@ -1139,14 +1145,14 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     difficulty: 3,
   },
   {
-    word: 'infringement',
+    word: 'relocation',
     tags: ['ビジネス名詞'],
-    question: 'The lawsuit involved a patent ___ claim filed by a rival manufacturer.',
-    correctText: 'infringement',
-    distractors: ['dispute', 'condemnation', 'acquittal'],
+    question: 'The board approved the ___ of the regional office to a larger building downtown.',
+    correctText: 'relocation',
+    distractors: ['acquisition', 'renovation', 'expansion'],
     explanation:
-      '権利の「侵害」はinfringement。dispute（紛争一般）・condemnation（使用不可宣告）・acquittal（無罪判決）は権利侵害という具体的行為を意味しない。',
-    translation: 'その訴訟は、競合の製造会社が提起した特許侵害の主張を含んでいた。',
+      '事業拠点の「移転」はrelocation。acquisition（買収）・renovation（改装）・expansion（拡大）はこの文脈に合わない。',
+    translation: '取締役会は、地域オフィスを中心街のより大きなビルへ移転することを承認した。',
     difficulty: 4,
   },
   {
@@ -1172,25 +1178,25 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     difficulty: 2,
   },
   {
-    word: 'redundancy',
+    word: 'turnaround',
     tags: ['ビジネス名詞'],
-    question: 'The merger led to significant staff ___ across both companies within a year.',
-    correctText: 'redundancy',
-    distractors: ['downsizing', 'attrition', 'retention'],
+    question: 'The new management team engineered a remarkable ___ within just one year.',
+    correctText: 'turnaround',
+    distractors: ['stagnation', 'decline', 'shortage'],
     explanation:
-      '役職廃止に伴う「人員整理」はredundancy。downsizing（全体的な人員削減。近い意味だが規模縮小の視点）・attrition（自然減）・retention（定着）はこの文脈での言い換えとしては不正確。',
-    translation: 'その合併は、1年以内に両社にわたる大幅な人員整理につながった。',
+      '業績の「立て直し」はturnaround。stagnation（停滞）・decline（衰退）・shortage（不足）は好転を意味しない。',
+    translation: '新しい経営陣は、わずか1年で見事な業績の立て直しを成し遂げた。',
     difficulty: 4,
   },
   {
-    word: 'downsizing',
+    word: 'modernization',
     tags: ['ビジネス名詞'],
-    question: 'The company announced a major ___ plan that will affect several offices.',
-    correctText: 'downsizing',
-    distractors: ['redundancy', 'retention', 'attrition'],
+    question: 'The company announced a major ___ plan that will affect several factories.',
+    correctText: 'modernization',
+    distractors: ['consolidation', 'diversification', 'expansion'],
     explanation:
-      '組織全体の規模を縮小する「人員削減」はdownsizing。redundancy（個々の役職廃止）・retention（定着）・attrition（自然減）はこの文脈での言い換えとしては不正確。',
-    translation: 'その会社は、複数の拠点に影響する大規模な人員削減計画を発表した。',
+      '設備・体制を「近代化する」計画はmodernization。consolidation（統合）・diversification（多角化）・expansion（拡大）はこの文脈での言い換えとしては不正確。',
+    translation: 'その会社は、複数の工場に影響する大規模な近代化計画を発表した。',
     difficulty: 4,
   },
   {

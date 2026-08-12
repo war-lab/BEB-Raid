@@ -140,6 +140,11 @@ describe('DiagnosticScreen: 自己申告なし', () => {
     // 30問全問正解なのでレートは初期値(400)より上がっているはず
     expect(l!.rating).toBeGreaterThan(400)
     expect(r!.rating).toBeGreaterThan(400)
+    // T-306（K-34）: 診断（L/R各15問）が既に与えたレート変動の実績を早期K
+    // （最初の50問はK=32）の消費量として引き継ぐ。0のままだと診断後さらに丸ごと
+    // 50問分の早期Kが乗り、K=32区間が仕様（50問）より長引く
+    expect(l!.answerCount).toBe(15)
+    expect(r!.answerCount).toBe(15)
 
     const profile = await db.profile.get(PROFILE_ID)
     expect(profile?.initialToeic).toBeNull()
@@ -252,6 +257,10 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
     const r = await db.ratings.get('R')
     expect(l?.rating).toBeCloseTo(expectedRating)
     expect(r?.rating).toBeCloseTo(expectedRating)
+    // T-306（K-34）: スキップ経路は実際の解答を経ていないため、早期K（K=32）の
+    // 消費量は0のまま（30問診断のように15を引き継がない）
+    expect(l?.answerCount).toBe(0)
+    expect(r?.answerCount).toBe(0)
 
     const profile = await db.profile.get(PROFILE_ID)
     expect(profile?.initialToeic).toBe(650)
@@ -442,7 +451,9 @@ describe('DiagnosticScreen: 途中保存・離脱確認（T-113）', () => {
     })
   })
 
-  it('「中断」でホームへ戻れる（プロフィール未作成のままでよい）', async () => {
+  // T-316（K-49）: 従来は「中断」ボタンが確認なしで即ホームへ遷移していた（誤タップで
+  // 測定中の解答を無言で切り上げる）。DrillScreen・VocabScreenと同じ確認導線を挟む
+  it('「中断」を押しても確認するまでは診断画面に留まる', async () => {
     const db = newDb()
     render(
       <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
@@ -452,8 +463,40 @@ describe('DiagnosticScreen: 途中保存・離脱確認（T-113）', () => {
 
     fireEvent.click(screen.getByText('中断'))
 
+    // 確認ダイアログが出て、診断画面自体はまだ表示されたまま（即離脱しない）
+    expect(await screen.findByText(/中断してホームへ戻りますか/)).toBeTruthy()
+    expect(screen.getByText('1/30')).toBeTruthy()
+  })
+
+  it('確認して「中断してホームへ」を押すとホームへ戻る（プロフィール未作成のままでよい）', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={buildPool()} />)
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('中断してホームへ'))
+
     expect(useAppStore.getState().screen).toBe('home')
     expect(await db.profile.get(PROFILE_ID)).toBeUndefined()
+    // T-315（K-48）: 中断導線でも再生中の音声を止める
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
+  it('確認して「キャンセル」を押すと診断画面に留まる', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('キャンセル'))
+
+    expect(screen.queryByText(/中断してホームへ戻りますか/)).toBeNull()
+    expect(screen.getByText('1/30')).toBeTruthy()
   })
 })
 
@@ -645,5 +688,21 @@ describe('DiagnosticScreen: 英文要素のlang="en"（T-224・J-108）', () => 
     for (const note of notes) {
       expect(note.querySelectorAll('[lang="en"]').length).toBe(2)
     }
+  })
+})
+
+// 何を防ぐか（T-315・K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstate
+// ハンドラのみで実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+describe('DiagnosticScreen: unmount時の音声停止（T-315・K-48）', () => {
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const pool = buildPool()
+    const audioPlayer = new FakeAudioPlayer()
+    const view = render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={pool} />)
+    await startDiagnostic('')
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
   })
 })

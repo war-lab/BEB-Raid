@@ -71,6 +71,29 @@ export function validateQuickPackConfig(config: QuickPackConfig): void {
       `quickPackConfig の recentlyCorrectWeight は0より大きい必要がある（実際: ${config.recentlyCorrectWeight}）`,
     )
   }
+  // T-311（K-41）: 以下は従来検証が無く、不正値がJSON差し替え時に静かに素通りしていた
+  if (!(config.priorityWeight > 0)) {
+    throw new Error(
+      `quickPackConfig の priorityWeight は0より大きい必要がある（実際: ${config.priorityWeight}）`,
+    )
+  }
+  if (!(config.newCardShare >= 0 && config.newCardShare <= 1)) {
+    throw new Error(
+      `quickPackConfig の newCardShare は0以上1以下である必要がある（実際: ${config.newCardShare}）`,
+    )
+  }
+  if (!(config.srsCapPerPack >= 0)) {
+    throw new Error(
+      `quickPackConfig の srsCapPerPack は0以上である必要がある（実際: ${config.srsCapPerPack}）`,
+    )
+  }
+  for (const [key, durationConfig] of Object.entries(config.durations)) {
+    if (!(durationConfig.totalItems > 0)) {
+      throw new Error(
+        `quickPackConfig の durations.${key}.totalItems は0より大きい必要がある（実際: ${durationConfig.totalItems}）`,
+      )
+    }
+  }
 }
 
 export const QUICK_PACK_CONFIG: QuickPackConfig = rawConfig

@@ -15,7 +15,7 @@
 
 import type { DamageSyncPayload, RaidBossState } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
-import type { RaidBossTypeCache } from '../db/schema'
+import type { PendingSyncRecord, RaidBossTypeCache } from '../db/schema'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { useRaidSyncStore } from '../store/raidSyncStore'
@@ -59,6 +59,47 @@ async function grantRaidBadgesIfDefeated(db: BebRaidDatabase, boss: RaidBossStat
       await db.badges.put({ badgeId, earnedAt: now })
     }
   }
+}
+
+/**
+ * T-278（K-1）: 400（invalid_body）応答時の隔離と復旧。
+ * 送信前の丸め（T-274・answerPipeline.ts）以前にキューへ入った小数damage等の
+ * レコードが混ざると、サーバーがバッチ全体を400で拒否し以後syncRaidDamageが
+ * 恒久停止する。非整数damageはMath.roundして書き戻し、丸めても不正
+ * （NaN・負値等）なら警告してpendingSyncから削除する（attemptsには一切触れない）
+ */
+async function repairInvalidDamagePayloads(
+  db: BebRaidDatabase,
+  pending: PendingSyncRecord[],
+): Promise<{ pending: PendingSyncRecord[]; payloads: DamageSyncPayload[] }> {
+  const repairedPending: PendingSyncRecord[] = []
+  const repairedPayloads: DamageSyncPayload[] = []
+  const deleteIds: number[] = []
+
+  for (const record of pending) {
+    const payload = JSON.parse(record.payloadJson) as DamageSyncPayload
+    if (Number.isInteger(payload.damage)) {
+      repairedPending.push(record)
+      repairedPayloads.push(payload)
+      continue
+    }
+
+    const rounded = Math.round(payload.damage)
+    if (Number.isInteger(rounded) && rounded >= 0) {
+      const fixedPayload: DamageSyncPayload = { ...payload, damage: rounded }
+      await db.pendingSync.update(record.id!, { payloadJson: JSON.stringify(fixedPayload) })
+      repairedPending.push(record)
+      repairedPayloads.push(fixedPayload)
+    } else {
+      console.warn(
+        `raidSync: 丸めても復旧不能なdamageを持つpendingSyncレコードを削除する (id=${record.id})`,
+      )
+      deleteIds.push(record.id!)
+    }
+  }
+  if (deleteIds.length > 0) await db.pendingSync.bulkDelete(deleteIds)
+
+  return { pending: repairedPending, payloads: repairedPayloads }
 }
 
 /** 1リクエストで送る上限（3.6節。超過分は次回のトリガーに回る） */
@@ -118,8 +159,8 @@ export async function syncRaidDamage(
     // payloadJsonが破損したレコード（外部編集されたバックアップのインポート等）は、
     // 残すと毎回の同期でJSON.parseが例外になりキュー全体が恒久的に詰まるため、
     // 警告して削除し、残りの送信を続行する
-    const pending: typeof candidates = []
-    const payloads: DamageSyncPayload[] = []
+    let pending: typeof candidates = []
+    let payloads: DamageSyncPayload[] = []
     const corruptedIds: number[] = []
     for (const record of candidates) {
       try {
@@ -142,12 +183,34 @@ export async function syncRaidDamage(
       boss = result.boss
       useRaidSyncStore.getState().recordSuccess()
     } catch (e) {
-      const unauthorized = e instanceof RaidApiError && e.kind === 'unauthorized'
-      useRaidSyncStore.getState().recordFailure(unauthorized)
-      return { ok: false }
+      // T-278（K-1）: 400（invalid_body）はバッチ中の不正なdamageが原因である可能性が高い。
+      // 隔離・復旧してから1回だけ再送し、この呼び出し内で復旧を完了させる
+      // （次回の自然な再送を待たない。他のエラー種別は復旧を試みず従来どおり保持する）
+      if (e instanceof RaidApiError && e.status === 400) {
+        const repaired = await repairInvalidDamagePayloads(db, pending)
+        pending = repaired.pending
+        payloads = repaired.payloads
+        try {
+          const result = await raidApi.syncDamage(payloads)
+          acceptedIds = result.acceptedIds
+          boss = result.boss
+          useRaidSyncStore.getState().recordSuccess()
+        } catch (e2) {
+          const unauthorized2 = e2 instanceof RaidApiError && e2.kind === 'unauthorized'
+          useRaidSyncStore.getState().recordFailure(unauthorized2)
+          return { ok: false }
+        }
+      } else {
+        const unauthorized = e instanceof RaidApiError && e.kind === 'unauthorized'
+        useRaidSyncStore.getState().recordFailure(unauthorized)
+        return { ok: false }
+      }
     }
 
-    const weekRolledOver = boss.bossId !== raidState.bossId
+    // T-285（K-8）: 当週ボスが未生成のときサーバーはboss:nullを返す（acceptedIdsは
+    // 前週分等を含みうるため有効）。この場合はweekRolledOverを判定できないため、
+    // raidStateの更新（bossId切替・joinedリセット等）は一切行わない
+    const weekRolledOver = boss !== null && boss.bossId !== raidState.bossId
 
     if (pending.length > 0) {
       const accepted = new Set(acceptedIds)
@@ -174,26 +237,28 @@ export async function syncRaidDamage(
       }
     }
 
-    await db.raidState.put({
-      id: RAID_STATE_ID,
-      bossId: boss.bossId,
-      profileJson: JSON.stringify({ name: boss.name }),
-      hp: boss.hp,
-      maxHp: boss.maxHp,
-      myDamage: boss.myDamage,
-      // 週替わり（レスポンスのbossが端末の知るbossIdと別）ならjoinedを引き継がずfalseへ
-      // リセットする。「参加」はS5の参加ボタンによるraidState書込と定義されており（docs/17）、
-      // 引き継ぐと参加操作を経ないまま新ボスへ自動参加してしまう
-      joined: weekRolledOver ? false : raidState.joined,
-      startAt: boss.startAt,
-      endAt: boss.endAt,
-      lastSyncedAt: Date.now(),
-      ...buildRaidStateBossCache(boss),
-    })
+    if (boss !== null) {
+      await db.raidState.put({
+        id: RAID_STATE_ID,
+        bossId: boss.bossId,
+        profileJson: JSON.stringify({ name: boss.name }),
+        hp: boss.hp,
+        maxHp: boss.maxHp,
+        myDamage: boss.myDamage,
+        // 週替わり（レスポンスのbossが端末の知るbossIdと別）ならjoinedを引き継がずfalseへ
+        // リセットする。「参加」はS5の参加ボタンによるraidState書込と定義されており（docs/17）、
+        // 引き継ぐと参加操作を経ないまま新ボスへ自動参加してしまう
+        joined: weekRolledOver ? false : raidState.joined,
+        startAt: boss.startAt,
+        endAt: boss.endAt,
+        lastSyncedAt: Date.now(),
+        ...buildRaidStateBossCache(boss),
+      })
 
-    await grantRaidBadgesIfDefeated(db, boss)
+      await grantRaidBadgesIfDefeated(db, boss)
+    }
 
-    return { ok: true, boss }
+    return { ok: true, boss: boss ?? undefined }
   } finally {
     syncInFlight = false
   }

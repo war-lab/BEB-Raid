@@ -3,7 +3,9 @@
 export function shuffle<T>(items: readonly T[], rng: () => number = Math.random): T[] {
   const arr = [...items]
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1))
+    // T-312（K-43）: rng()===1（不正なrng実装。Math.random自体は1を返さない）だと
+    // j=i+1で範囲外になり、arr[j]がundefinedで配列が壊れる。有効範囲[0,i]にクランプする
+    const j = Math.min(Math.floor(rng() * (i + 1)), i)
     ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
   }
   return arr

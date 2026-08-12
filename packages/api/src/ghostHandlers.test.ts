@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { bossProfileForWeek } from './bossProfiles'
 import { ghostKey, type GhostRecord } from './ghostStore'
 import type { RaidBossDO } from './raidBossDo'
-import { bossIdFor, isoWeekInfo } from './raidWeek'
+import { bossIdFor, isoWeekInfo, previousWeekInfo } from './raidWeek'
 
 const VALID_INVITE_CODE = 'test-invite-code'
 const HOUR_MS = 60 * 60 * 1000
@@ -252,5 +252,52 @@ describe('DELETE /ghosts/own', () => {
     const deviceToken = await registerDevice()
     const res = await SELF.fetch(deleteGhostOwn(deviceToken))
     expect(res.status).toBe(200)
+  })
+
+  // 何を防ぐか（T-335・K-70）: 同意画面は「いつでも撤回でき撤回すると記録がサーバーから
+  // 即時削除される」と説明する（ADR 0013）。旧実装は当週DOしか差し替えず、この記録が
+  // 直近の別の週（今週は選ばれていない＝lastUsedBossIdが今週と異なる）で使われていた場合、
+  // その週のRaidBossDOには問題別正誤詳細（defense）が残り続けていた
+  it('直近使用週（lastUsedBossId）が当週と異なる場合、そちらのDOも差し替わる', async () => {
+    const deviceToken = await registerDevice()
+    await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
+
+    // 直近使用週は先週だった、というシナリオを再現する（今週は別のghost or syntheticのため
+    // lastUsedBossIdが更新されず先週のbossIdのまま残っている状態）
+    const previous = previousWeekInfo(isoWeekInfo(Date.now()))
+    const previousBossId = bossIdFor(previous)
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    await env.MEMBERS.put(
+      ghostKey(deviceToken),
+      JSON.stringify({ ...record, lastUsedBossId: previousBossId }),
+    )
+
+    const previousStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(previousBossId))
+    await runInDurableObject(previousStub, (instance: RaidBossDO) => {
+      instance.init({
+        bossId: previousBossId,
+        profile: { name: 'ゴースト・太郎', flavor: 'テスト用ゴースト' },
+        maxHp: 1000,
+        startAt: previous.weekStartAt,
+        endAt: Date.now(),
+        bossType: 'ghost',
+        defense: [{ questionId: 'q-1', multiplier: 0.5 }],
+        ghost: { displayName: '太郎', defeatedCount: 0 },
+        ghostSourceToken: deviceToken,
+      })
+    })
+
+    // 今週は無関係（未生成）のまま撤回する
+    const res = await SELF.fetch(deleteGhostOwn(deviceToken))
+    expect(res.status).toBe(200)
+
+    const previousState = await runInDurableObject(previousStub, (instance: RaidBossDO) =>
+      instance.getBossState(Date.now()),
+    )
+    // 修正前はここがbossType='ghost'のまま（defenseが残り続ける）だった
+    expect(previousState?.bossType).toBe('synthetic')
+    expect(previousState?.defense).toBeUndefined()
+    expect(previousState?.ghost).toBeUndefined()
   })
 })

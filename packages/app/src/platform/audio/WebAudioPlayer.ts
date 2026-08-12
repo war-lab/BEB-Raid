@@ -65,6 +65,12 @@ export class WebAudioPlayer implements AudioPlayer {
    * 「再生中…」のまま固まる）。await 復帰時に世代が古ければ何もせず正常終了させる
    */
   private playGeneration = 0
+  /**
+   * 再生中に登録したAudioContextのstatechangeリスナー（T-324・K-57）。iOSの通話・Siri等の
+   * 割り込みでrunning以外へ落ちるとsource.onendedが発火せず、誰も呼び出し側のPromiseを
+   * 解決しないままUIが「再生中…」で固着する。stop()経由で確実に解除できるよう保持する
+   */
+  private ctxStateChangeHandler: (() => void) | null = null
 
   constructor(
     private readonly packCache: PackCache,
@@ -130,6 +136,10 @@ export class WebAudioPlayer implements AudioPlayer {
     this.currentAudioElements = []
     this.revokeObjectUrls()
     this.clearPositionTimer()
+    if (this.ctxStateChangeHandler && this.ctx) {
+      this.ctx.removeEventListener('statechange', this.ctxStateChangeHandler)
+      this.ctxStateChangeHandler = null
+    }
     if (this.pendingResolve) {
       const resolve = this.pendingResolve
       this.pendingResolve = null
@@ -193,9 +203,20 @@ export class WebAudioPlayer implements AudioPlayer {
           onPosition(baseMs + Math.max(0, (ctx.currentTime - sequenceStartTime) * 1000))
         }, POSITION_NOTIFY_INTERVAL_MS)
       }
+      // T-324（K-57）: iOSの通話・Siri等の割り込みでctx.stateがrunning以外へ落ちると
+      // source.onendedは発火しない（鳴っていた音が無音のまま止まるだけ）。誰も
+      // pendingResolveを解決しないままUIが「再生中…」で固着するため、stop()経由で
+      // 'interrupted' として解決する
+      const onStateChange = () => {
+        if (ctx.state !== 'running') this.stop()
+      }
+      this.ctxStateChangeHandler = onStateChange
+      ctx.addEventListener('statechange', onStateChange)
       const finishOne = () => {
         remaining -= 1
         if (remaining <= 0) {
+          ctx.removeEventListener('statechange', onStateChange)
+          this.ctxStateChangeHandler = null
           this.clearPositionTimer()
           this.pendingResolve = null
           resolve('ended')

@@ -64,7 +64,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Candidates will take a technical coding test',
         ],
         explanation:
-          '本文に"a short writing exercise related to social media planning"と明記されている。プレゼン・顧客対応・コーディングテストへの言及はない。',
+          '本文に"a short writing exercise related to social media planning"と明記されている。プレゼン・顧客対応・コーディングテストへの言及はない。他の選択肢（"Candidates will give a formal presentation"／"Candidates will take a technical coding test"／"Candidates will meet with company clients"）は本文中で述べられていない。',
         translation: '面接ではどのようなことが行われると考えられますか。',
       },
       {
@@ -76,7 +76,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Wait for a follow-up phone call',
         ],
         explanation:
-          '本文に"please reply to this email within two business days"とあり、返信の方法と期限が明記されている。',
+          '本文に"please reply to this email within two business days"とあり、返信の方法と期限が明記されている。他の選択肢（"Visit the office in person"／"Wait for a follow-up phone call"／"Call the hiring manager immediately"）は本文中で述べられていない。',
         translation: '提案された時間が都合が悪い場合、Alvarezさんは何をすべきですか。',
       },
     ],
@@ -101,7 +101,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'To request volunteers for a safety committee',
         ],
         explanation:
-          '本文冒頭で"A scheduled fire drill will take place"と述べており、今後実施される避難訓練の案内であることが分かる。',
+          '本文冒頭で"A scheduled fire drill will take place"と述べており、今後実施される避難訓練の案内であることが分かる。他の選択肢（"To request volunteers for a safety committee"／"To announce a change in office hours"／"To report the results of a past inspection"）は本文中で述べられていない。',
         translation: 'この案内の目的は何ですか。',
       },
       {
@@ -183,7 +183,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A change in delivery pricing',
         ],
         explanation:
-          '会話は出荷状況とその遅延について話しており、従業員の問題・注文取消・料金変更には触れていない。',
+          '会話は出荷状況とその遅延について話しており、従業員の問題・注文取消・料金変更には触れていない。他の選択肢（"A request to cancel an order"／"A problem with a warehouse employee"／"A change in delivery pricing"）は本文中で述べられていない。',
         translation: 'Dana LeeとMarco Diazは主に何について話していますか。',
       },
       {
@@ -282,7 +282,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A discount on future purchases only',
           'A membership to a loyalty program',
         ],
-        explanation: '本文に"The first fifty customers will receive a free gift"と明記されている。',
+        explanation:
+          '本文に"The first fifty customers will receive a free gift"と明記されている。他の選択肢（"A discount on future purchases only"／"A store credit card"／"A membership to a loyalty program"）は本文中で述べられていない。',
         translation: '最初の50名の顧客は何を受け取りますか。',
       },
     ],
@@ -319,7 +320,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Contact the shipping carrier directly',
         ],
         explanation:
-          '本文に"we would like to compensate you in one of two ways"とあり、返金か交換のどちらかを選ぶよう依頼されている。',
+          '本文に"we would like to compensate you in one of two ways"とあり、返金か交換のどちらかを選ぶよう依頼されている。他の選択肢（"Return the item to a physical store"／"Send a photo of the damaged item"／"Contact the shipping carrier directly"）は本文中で述べられていない。',
         translation: 'Owusuさんは何をするよう求められていますか。',
       },
       {
@@ -339,7 +340,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         correctText: 'marked for attention',
         distractors: ['canceled', 'shipped again', 'discounted'],
         explanation:
-          '"flagged this order with our warehouse team"は「この注文を倉庫チームに注意喚起として伝えた」という意味で、marked for attentionが最も近い。',
+          '"flagged this order with our warehouse team"は「この注文を倉庫チームに注意喚起として伝えた」という意味で、marked for attentionが最も近い。他の選択肢（"discounted"／"shipped again"／"canceled"）は本文中で述べられていない。',
         translation: 'メール中の"flagged"に最も意味が近いのは。',
       },
     ],
@@ -363,7 +364,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'For a company-wide training event',
           'For a scheduled power outage',
         ],
-        explanation: '本文に"in observance of the public holiday"と明記されている。',
+        explanation:
+          '本文に"in observance of the public holiday"と明記されている。他の選択肢（"For a scheduled power outage"／"For a company-wide training event"／"For a building inspection"）は本文中で述べられていない。',
         translation: 'オフィスはなぜ休業しますか。',
       },
       {
@@ -461,7 +463,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'She has not finished preparing the materials',
         ],
         explanation:
-          '本文に"I have a call at 11 that day, so we\'d need to keep it short"と明記されている。',
+          '本文に"I have a call at 11 that day, so we\'d need to keep it short"と明記されている。他の選択肢（"She will be out of the office on Thursday"／"The client requested a shorter meeting"／"She has not finished preparing the materials"）は本文中で述べられていない。',
         translation: 'Priya Nairはなぜ会議を短くする必要があると言っていますか。',
       },
       {
@@ -473,7 +475,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'He disagrees with the proposed schedule',
         ],
         explanation:
-          '直前でPriyaが11時に電話があるため短くする必要があると述べたことへの応答であり、その制約を了解したという意味。',
+          '直前でPriyaが11時に電話があるため短くする必要があると述べたことへの応答であり、その制約を了解したという意味。他の選択肢（"He disagrees with the proposed schedule"／"He has received a document from the client"／"He has already spoken with the client"）は本文中で述べられていない。',
         translation: '午後3時17分にTom Fischerが「了解」と書いているのはどういう意味ですか。',
       },
     ],
@@ -595,7 +597,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'She opened a new regional branch',
           'She trained new finance employees',
         ],
-        explanation: '本文に"led a successful cost-reduction program"と明記されている。',
+        explanation:
+          '本文に"led a successful cost-reduction program"と明記されている。他の選択肢（"She opened a new regional branch"／"She trained new finance employees"／"She managed a marketing campaign"）は本文中で述べられていない。',
         translation: 'Rina Kobayashiさんは以前の職務で何をしましたか。',
       },
       {
@@ -644,7 +647,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'By using a temporary bus pass',
         ],
         explanation:
-          '本文に"A shuttle will run every fifteen minutes between the overflow lot and the main entrance"と明記されている。',
+          '本文に"A shuttle will run every fifteen minutes between the overflow lot and the main entrance"と明記されている。他の選択肢（"By walking through an underground tunnel"／"By requesting a ride from security staff"／"By using a temporary bus pass"）は本文中で述べられていない。',
         translation: '従業員はオーバーフロー駐車場から建物までどのように移動できますか。',
       },
       {
@@ -656,7 +659,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Escort visitors to the overflow lot personally',
         ],
         explanation:
-          '本文最後に"reception staff will provide shuttle information at check-in"と明記されている。',
+          '本文最後に"reception staff will provide shuttle information at check-in"と明記されている。他の選択肢（"Direct visitors to a different building entirely"／"Escort visitors to the overflow lot personally"／"Collect parking fees from visitors"）は本文中で述べられていない。',
         translation: '閉鎖期間中、受付スタッフは何をすると想定されていますか。',
       },
     ],
@@ -713,7 +716,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         correctText: 'not extreme',
         distractors: ['very fast', 'uncertain', 'declining'],
         explanation:
-          '"a more moderate pace"は「より緩やかな速度」という意味で、極端でない、という意味のnot extremeが最も近い。',
+          '"a more moderate pace"は「より緩やかな速度」という意味で、極端でない、という意味のnot extremeが最も近い。他の選択肢（"declining"／"very fast"／"uncertain"）は本文中で述べられていない。',
         translation: '記事中の"moderate"に最も意味が近いのは。',
       },
     ],
@@ -750,7 +753,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Reschedule the presentation to next week',
         ],
         explanation:
-          '本文最後に"could you check it tomorrow afternoon?"とあり、翌日午後にスライドを確認してほしいと依頼している。',
+          '本文最後に"could you check it tomorrow afternoon?"とあり、翌日午後にスライドを確認してほしいと依頼している。他の選択肢（"Reserve a meeting room for Friday"／"Attend the client meeting on Friday"／"Reschedule the presentation to next week"）は本文中で述べられていない。',
         translation: 'Becca LinはYusuf Demirに何をするよう頼んでいますか。',
       },
     ],
@@ -824,7 +827,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A private meeting with a keynote speaker',
         ],
         explanation:
-          '本文に"save fifteen percent off the standard registration fee"と明記されている。',
+          '本文に"save fifteen percent off the standard registration fee"と明記されている。他の選択肢（"Priority seating at all sessions"／"A free ticket to next year\'s conference"／"A private meeting with a keynote speaker"）は本文中で述べられていない。',
         translation: '7月15日より前に登録するとどのような利点がありますか。',
       },
       {
@@ -836,7 +839,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'An extended registration deadline',
         ],
         explanation:
-          '本文に"Group discounts are available for companies registering five or more attendees"と明記されている。',
+          '本文に"Group discounts are available for companies registering five or more attendees"と明記されている。他の選択肢（"A dedicated conference room"／"Free hotel accommodations"／"An extended registration deadline"）は本文中で述べられていない。',
         translation: '5名以上の参加者がいる企業には何が利用できますか。',
       },
     ],
@@ -873,7 +876,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A delay at the customs office',
         ],
         explanation:
-          '本文に"Due to a change in freight carriers at our logistics partner"と明記されている。',
+          '本文に"Due to a change in freight carriers at our logistics partner"と明記されている。他の選択肢（"An error in the shipping address"／"A shortage of available trucks"／"A delay at the customs office"）は本文中で述べられていない。',
         translation: '配送スケジュールの変更の原因は何ですか。',
       },
       {
@@ -893,7 +896,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         correctText: 'show',
         distractors: ['question', 'delay', 'remove'],
         explanation:
-          '"should reflect the new carrier"は「新しい配送業者の情報を反映して表示する」という意味で、showが最も近い。',
+          '"should reflect the new carrier"は「新しい配送業者の情報を反映して表示する」という意味で、showが最も近い。他の選択肢（"question"／"delay"／"remove"）は本文中で述べられていない。',
         translation: 'メール中の"reflect"に最も意味が近いのは。',
       },
     ],
@@ -917,7 +920,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Because of low employee attendance',
           'Because of a staffing shortage',
         ],
-        explanation: '見出しと本文に改装のための休業であると明記されている。',
+        explanation:
+          '見出しと本文に改装のための休業であると明記されている。他の選択肢（"For a health inspection"／"Because of a staffing shortage"／"Because of low employee attendance"）は本文中で述べられていない。',
         translation: 'カフェテリアはなぜ閉鎖されますか。',
       },
       {
@@ -966,7 +970,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Experience handling customer complaints',
         ],
         explanation:
-          '本文に"she coordinated store operations across multiple locations"と明記されている。',
+          '本文に"she coordinated store operations across multiple locations"と明記されている。他の選択肢（"Experience managing a bank\'s investment portfolio"／"Experience handling customer complaints"／"Experience training new bank tellers"）は本文中で述べられていない。',
         translation: 'Sarita Menonさんは新しい役職にどのような経験を持っていますか。',
       },
       {
@@ -999,7 +1003,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         correctText: 'A malfunctioning printer',
         distractors: ['A slow internet connection', 'A broken elevator', 'A missing shipment'],
         explanation:
-          '会話冒頭で"The printer on the third floor is jammed again"と述べられており、プリンターの不具合について話していることが分かる。',
+          '会話冒頭で"The printer on the third floor is jammed again"と述べられており、プリンターの不具合について話していることが分かる。他の選択肢（"A missing shipment"／"A broken elevator"／"A slow internet connection"）は本文中で述べられていない。',
         translation: 'Owen BaxterとMei Zhangは何の問題について話し合っていますか。',
       },
       {
@@ -1011,7 +1015,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Move the printer to another floor',
         ],
         explanation:
-          '本文に"I\'ll put in a request for a technician to come take a look"と明記されている。',
+          '本文に"I\'ll put in a request for a technician to come take a look"と明記されている。他の選択肢（"Attempt to repair the printer himself"／"Move the printer to another floor"／"Order a replacement printer"）は本文中で述べられていない。',
         translation: 'Owen Baxterは次に何をすると考えられますか。',
       },
       {
@@ -1097,7 +1101,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A list of references',
         ],
         explanation:
-          '本文に"Candidates are encouraged to bring several copies of their resume"と明記されている。',
+          '本文に"Candidates are encouraged to bring several copies of their resume"と明記されている。他の選択肢（"A completed job application"／"A letter of recommendation"／"A list of references"）は本文中で述べられていない。',
         translation: '参加者は何を持参するよう勧められていますか。',
       },
       {
@@ -1145,7 +1149,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A new government tax on shipping',
           'An expansion into new markets',
         ],
-        explanation: '本文に"This adjustment reflects rising material costs"と明記されている。',
+        explanation:
+          '本文に"This adjustment reflects rising material costs"と明記されている。他の選択肢（"A new government tax on shipping"／"An expansion into new markets"／"A decrease in customer demand"）は本文中で述べられていない。',
         translation: '価格上昇の理由として何が挙げられていますか。',
       },
       {
@@ -1242,7 +1247,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A gift card to a local store',
           'A printed catalog of all products',
         ],
-        explanation: '本文に"Attendees were given free samples to try at home"と明記されている。',
+        explanation:
+          '本文に"Attendees were given free samples to try at home"と明記されている。他の選択肢（"A gift card to a local store"／"A printed catalog of all products"／"A discount coupon for future purchases"）は本文中で述べられていない。',
         translation: '参加者はこのイベントで何を受け取りましたか。',
       },
       {
@@ -1426,7 +1432,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           "A copy of the contractor's business license",
         ],
         explanation:
-          '本文に"a detailed cost estimate, a proposed timeline, and references from at least two similar projects"と明記されている。',
+          '本文に"a detailed cost estimate, a proposed timeline, and references from at least two similar projects"と明記されている。他の選択肢（"A sample floor plan of the office"／"A list of subcontractors only"／"A copy of the contractor\'s business license"）は本文中で述べられていない。',
         translation: '提案書には何を含める必要がありますか。',
       },
       {
@@ -1438,7 +1444,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Before the references are checked',
         ],
         explanation:
-          '本文に"Work would need to begin no later than mid-September"と明記されている。',
+          '本文に"Work would need to begin no later than mid-September"と明記されている。他の選択肢（"Immediately after the proposal is submitted"／"By the end of August"／"Before the references are checked"）は本文中で述べられていない。',
         translation: '工事はいつまでに開始する必要がありますか。',
       },
       {
@@ -1449,7 +1455,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Because the lighting is a safety hazard',
           'Because the current contractor is unavailable later',
         ],
-        explanation: '本文に"to avoid conflicts with our busiest season"と明記されている。',
+        explanation:
+          '本文に"to avoid conflicts with our busiest season"と明記されている。他の選択肢（"Because the building will be sold soon"／"Because the current contractor is unavailable later"／"Because the lighting is a safety hazard"）は本文中で述べられていない。',
         translation: 'なぜその時期までに工事を開始する必要があるのですか。',
       },
     ],
@@ -1534,7 +1541,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'It depends on approval from local government',
         ],
         explanation:
-          '本文に"The company\'s current lease expires at the end of the year, which...made this an ideal time to move"とあり、リース期限と移転時期が関連していることが分かる。',
+          '本文に"The company\'s current lease expires at the end of the year, which...made this an ideal time to move"とあり、リース期限と移転時期が関連していることが分かる。他の選択肢（"It was delayed due to a construction problem"／"It depends on approval from local government"／"It was moved earlier than originally planned"）は本文中で述べられていない。',
         translation: '移転のタイミングについて何が示唆されていますか。',
       },
       {
@@ -1558,7 +1565,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Limited access to public transit',
         ],
         explanation:
-          '本文に"Some employees have expressed concern about longer commute times"と明記されている。',
+          '本文に"Some employees have expressed concern about longer commute times"と明記されている。他の選択肢（"Limited access to public transit"／"Higher parking costs"／"A lack of meeting space"）は本文中で述べられていない。',
         translation: '一部の従業員は新しい場所についてどのような懸念を示していますか。',
       },
     ],
@@ -1746,7 +1753,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A delay in processing payments',
           'An outdated invoice template',
         ],
-        explanation: '本文に"due to an error in our new billing system"と明記されている。',
+        explanation:
+          '本文に"due to an error in our new billing system"と明記されている。他の選択肢（"An outdated invoice template"／"A mistake made by the customer"／"A delay in processing payments"）は本文中で述べられていない。',
         translation: '課金の誤りの原因は何でしたか。',
       },
       {
@@ -1770,7 +1778,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A complimentary product sample',
         ],
         explanation:
-          '本文に"we would like to offer a ten percent discount on your next order"と明記されている。',
+          '本文に"we would like to offer a ten percent discount on your next order"と明記されている。他の選択肢（"Free shipping for one year"／"A complimentary product sample"／"A full refund of the original invoice"）は本文中で述べられていない。',
         translation: '誠意のしるしとして何が提供されていますか。',
       },
     ],
@@ -1794,7 +1802,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'A new network system will be installed permanently',
           'All employees will receive new equipment',
         ],
-        explanation: '見出しと本文全体が予定されたネットワークメンテナンスについて述べている。',
+        explanation:
+          '見出しと本文全体が予定されたネットワークメンテナンスについて述べている。他の選択肢（"All employees will receive new equipment"／"A new network system will be installed permanently"／"The office will be closed for cleaning"）は本文中で述べられていない。',
         translation: '今週土曜日に何が行われますか。',
       },
       {
@@ -1818,7 +1827,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Complete a special access request form',
         ],
         explanation:
-          '本文に"anyone working remotely during this time should plan accordingly"と明記されている。',
+          '本文に"anyone working remotely during this time should plan accordingly"と明記されている。他の選択肢（"Complete a special access request form"／"Come into the office instead"／"Contact the help desk in advance"）は本文中で述べられていない。',
         translation: 'その間リモートで働く従業員は何をすべきですか。',
       },
     ],
@@ -1914,7 +1923,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           'Ask Priya to drive instead',
           "Pay for Kwame's parking at the venue",
         ],
-        explanation: '本文に"Happy to pick you up if that helps"と明記されている。',
+        explanation:
+          '本文に"Happy to pick you up if that helps"と明記されている。他の選択肢（"Book a rental car for the group"／"Ask Priya to drive instead"／"Pay for Kwame\'s parking at the venue"）は本文中で述べられていない。',
         translation: 'Lucia Ferreiraは何をすると申し出ていますか。',
       },
       {

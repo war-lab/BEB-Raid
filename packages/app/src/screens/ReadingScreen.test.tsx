@@ -12,7 +12,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
-import { advanceSession, resumeSession, startSession, type SessionItem } from '../services/session'
+import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
+import {
+  ACTIVE_SESSION_KEY,
+  advanceSession,
+  answerCurrentSubQuestion,
+  resumeSession,
+  startSession,
+  type SessionItem,
+} from '../services/session'
 import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -1018,6 +1026,30 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     spy.mockRestore()
   })
 
+  // 何を防ぐか（T-299・K-25）: 容量不足（QuotaExceededError）でも一律「空き容量を
+  // 確認してください」だけで、確認した後の具体的な回復手段（エクスポート）を示していなかった
+  it('QuotaExceededErrorのときは専用の文言とエクスポート導線が出る', async () => {
+    const db = newDb()
+    const q = part7Question('p7-quota', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new DOMException('quota exceeded', 'QuotaExceededError'))
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    expect(
+      await screen.findByText(
+        '端末のストレージ容量が不足しています。データをエクスポートして空き容量を確保してください',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+    addSpy.mockRestore()
+  })
+
   // 何を防ぐか: 終了判定に解答スロット数（total）を使うこと（レビュー指摘のP2）。
   // displayIndex は item 単位なので、サブ設問を持つセッションでは最終itemでも判定が
   // 成立せず、範囲外のindexへ進んだ次のレンダーのフォールバックに拾われていた。
@@ -1120,6 +1152,35 @@ describe('ReadingScreen: 誤タップの取り消し猶予（T-268。ADR 0009）
     expect(useSessionStore.getState().snapshot?.attemptIds).toEqual([])
   })
 
+  // 何を防ぐか（T-297・K-23）: アンマウント時のflushでfinalizeSubQuestionAnswerが失敗すると、
+  // 従来はconsole.errorに流すだけで解答が無言で失われていた（saveErrorバナー・再試行ボタンは
+  // アンマウント済みの画面には効かない）。次回起動時に気づけるよう退避されているか検証する
+  it('猶予中にアンマウント→flushが失敗すると、次回起動時の通知用に退避される（K-23）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-k23', 1)
+    const snapshot = await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const view = render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // 同じサブ設問を裏で先に記録してしまう（他タブ・多重解答の再現。DBは正常なまま）。
+    // flush時のfinalizeSubQuestionAnswerはこの状態でrecordAnswerPipelineを呼び、
+    // 「既に記録済み」のStaleSnapshotErrorになる
+    await answerCurrentSubQuestion(db, snapshot, {
+      questionId: `${q.id}-q0`,
+      isCorrect: true,
+      responseMs: 1000,
+      selectedKey: 'A',
+    })
+
+    view.unmount()
+
+    await waitFor(async () => expect(await loadPendingCommitFailure(db)).not.toBeNull())
+    // 猶予中の解答自体は書かれない（元の設計どおり、失われたデータは再送できない）
+    expect(await db.attempts.count()).toBe(1) // answerCurrentSubQuestionで直接書いた1件のみ
+  })
+
   it('Part6: 別の空所が猶予中の間は、表示中の空所の選択肢が無効化される', async () => {
     const db = newDb()
     const q = part6Question('p6-undo-1')
@@ -1143,6 +1204,83 @@ describe('ReadingScreen: 誤タップの取り消し猶予（T-268。ADR 0009）
     // 空所1の猶予が明けると記録され、空所2は再び操作できるようになる
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     await waitFor(() => expect(screen.getByText('a').closest('button')?.disabled).toBe(false))
+  })
+})
+
+describe('ReadingScreen: 全item解答済みのsnapshotでの初回レンダー（T-320・K-53）', () => {
+  // 何を防ぐか: snapshotはあるがitemが無い（=全item解答済み）状態でのfinishSession()
+  // 呼び出しが、レンダー本体（return null直前）に書かれていた。通常は最終設問の
+  // 「次へ」ボタン（イベントハンドラ）を経由するが、中断復帰などでsnapshot自体が
+  // 「既に全問解答済み」のままReadingScreenが最初にレンダーされることもあり、その場合は
+  // ボタンクリックを経由せずレンダー本体のガードが初回レンダーで直接実行される。
+  // レンダー本体からnavigate/completeSessionを直接呼ぶのはReactのレンダー純粋性に反するため
+  // useEffectへ移した（T-320）。この経路が退行してリザルトへ進まなくなることを防ぐ
+  it('既に全問解答済みのsnapshotで初回レンダーされた場合もリザルトへ進み、セッションが完了する', async () => {
+    const db = newDb()
+    const q = part7Question('p7-320', 1)
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'solo' }]
+    const snapshot = await startSession(db, { items })
+    const answeredSnapshot = { ...snapshot, answeredCount: items.length }
+    useSessionStore.getState().begin(answeredSnapshot, [q], { L: 400, R: 400 })
+
+    render(<ReadingScreen db={db} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    const active = await db.settings.get(ACTIVE_SESSION_KEY)
+    expect(active).toBeUndefined()
+  })
+})
+
+describe('ReadingScreen: セッション進行の失敗時に白画面で固まらない（T-281・K-4）', () => {
+  // 何を防ぐか: questionIdが解決できないitemのスキップ（advanceSession）失敗が握りつぶされると、
+  // renderがnullのまま固定され「中断ボタンすら無い白画面」で固まる
+  it('スキップ処理が失敗した場合はエラーと「ホームへ戻る」を表示し、白画面で固まらない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-skip-fail', 1)
+    const snapshot = await setupSession(
+      db,
+      [
+        { questionId: 'missing-q', mode: 'solo' }, // questionsに無いID→スキップ経路に入る
+        { questionId: q.id, mode: 'solo' },
+      ],
+      [q],
+    )
+    // 裏でDB上のスナップショットだけ進めてstaleにし、スキップのadvanceSessionを失敗させる
+    await advanceSession(db, snapshot)
+
+    render(<ReadingScreen db={db} />)
+
+    expect(await screen.findByText('セッションを進められませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ戻る'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  // 何を防ぐか: advanceReadingItem（全問解答後の「次へ」でitemを進める処理）の失敗が
+  // 握りつぶされると、同様に白画面で固まる
+  it('全問解答後にadvanceReadingItemが失敗した場合もエラーと「ホームへ戻る」を表示する', async () => {
+    const db = newDb()
+    const q1 = part7Question('p7-advance-fail-1', 1)
+    const q2 = part7Question('p7-advance-fail-2', 1)
+    const snapshot = await setupSession(
+      db,
+      [
+        { questionId: q1.id, mode: 'solo' },
+        { questionId: q2.id, mode: 'solo' },
+      ],
+      [q1, q2],
+    )
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    await screen.findByText('次へ')
+
+    // 裏でDB上のスナップショットだけ進めてstaleにし、「次へ」のadvanceSessionを失敗させる
+    await advanceSession(db, snapshot)
+    fireEvent.click(screen.getByText('次へ'))
+
+    expect(await screen.findByText('セッションを進められませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ戻る'))
+    expect(useAppStore.getState().screen).toBe('home')
   })
 })
 

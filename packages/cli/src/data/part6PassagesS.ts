@@ -58,7 +58,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
         correctText: 'is undergoing',
         distractors: ['undergo', 'undergone', 'had undergone'],
         explanation:
-          '主語facilityは単数で、来月から始まる予定の進行中の出来事を表すため現在進行形が適切。原形・過去分詞・過去完了は時制・主語一致の点で不適。',
+          '主語facilityは単数で、来月から始まる予定の進行中の出来事を表すため現在進行形が適切。undergo（原形）・undergone（過去分詞）・had undergone（過去完了）はいずれも時制・主語一致の点で不適。',
         translation: '現在の施設は来月大規模な改装を行う予定です。',
       },
       {
@@ -305,7 +305,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
         correctText: 'all',
         distractors: ['every', 'each', 'most'],
         explanation:
-          '「常時」という意味の定型表現はat all timesであり、all以外の語はこの慣用句では使えない。',
+          '「常時」という意味の定型表現はat all timesであり、every・each・mostはこの慣用句では使えない。',
         translation:
           '7月1日以降、全従業員は建物内で常にセキュリティバッジを見えるように着用しなければなりません。',
       },

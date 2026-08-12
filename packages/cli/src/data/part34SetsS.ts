@@ -45,31 +45,32 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Reviewing a budget report',
         ],
         explanation:
-          '会話全体はB氏が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。',
+          '会話全体は男性が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。',
         translation: '話者たちは主に何について話していますか。',
       },
       {
-        question: 'Why does B want to change the meeting time?',
-        correctText: 'B has a client call scheduled at the same time',
+        question: 'Why does the man want to change the meeting time?',
+        correctText: 'The man has a client call scheduled at the same time',
         distractors: [
-          'B will be out of the office all week',
-          'B has not finished the budget report',
-          'B is waiting for a new team member',
+          'The man will be out of the office all week',
+          'The man has not finished the budget report',
+          'The man is waiting for a new team member',
         ],
         explanation:
-          'Bは"I just found out I have a client call at the same time"と述べている。他の理由はscript中に出てこない。',
-        translation: 'Bはなぜ会議の時間を変更したいのですか。',
+          '男性は"I just found out I have a client call at the same time"と述べている。他の理由はscript中に出てこない。',
+        translation: '男性はなぜ会議の時間を変更したいのですか。',
       },
       {
-        question: 'What will A most likely do next?',
+        question: 'What will the woman most likely do next?',
         correctText: 'Send a new meeting invitation',
         distractors: [
           'Call the client directly',
           'Cancel the meeting entirely',
-          'Ask B to lead the meeting',
+          'Ask the man to lead the meeting',
         ],
-        explanation: 'Aは"I\'ll send a new invite this afternoon"と明言している。',
-        translation: 'Aは次に何をする可能性が高いですか。',
+        explanation:
+          '女性は"I\'ll send a new invite this afternoon"と明言している。他の選択肢（"Call the client directly"／"Cancel the meeting entirely"／"Ask the man to lead the meeting"）はこの会話・トークの中で述べられていない。',
+        translation: '女性は次に何をする可能性が高いですか。',
       },
     ],
     difficulty: 2,
@@ -90,27 +91,29 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'An email account was hacked',
           'A conference room is already booked',
         ],
-        explanation: '冒頭でAが"the shared server seems to be malfunctioning"と述べている。',
+        explanation:
+          '冒頭でAが"the shared server seems to be malfunctioning"と述べている。他の選択肢（"An email account was hacked"／"A conference room is already booked"／"A printer has run out of ink"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちはどんな問題について話していますか。',
       },
       {
         question: 'When will the technician arrive?',
         correctText: 'Tomorrow morning',
         distractors: ['Later this afternoon', 'Next week', 'He has already arrived'],
-        explanation: 'Bが"he can\'t come until tomorrow morning"と述べている。',
+        explanation:
+          'Bが"he can\'t come until tomorrow morning"と述べている。他の選択肢（"Later this afternoon"／"Next week"／"He has already arrived"）はこの会話・トークの中で述べられていない。',
         translation: '技術者はいつ到着しますか。',
       },
       {
-        question: 'What does B imply will happen next?',
+        question: 'What does the man imply will happen next?',
         correctText: 'A temporary way to access the files will be provided',
         distractors: [
           'The server will be fixed immediately without help',
-          'A will be asked to work from home',
+          'The woman will be asked to work from home',
           "The day's meetings will be canceled",
         ],
         explanation:
-          'Bは"I\'ll check with IT and email you a temporary link"と述べており、代替アクセス手段を提供する意図を示している。',
-        translation: 'Bは次に何をするつもりだとほのめかしていますか。',
+          '男性は"I\'ll check with IT and email you a temporary link"と述べており、代替アクセス手段を提供する意図を示している。他の選択肢（"The woman will be asked to work from home"／"The day\'s meetings will be canceled"／"The server will be fixed immediately without help"）はこの会話・トークの中で述べられていない。',
+        translation: '男性は次に何をするつもりだとほのめかしていますか。',
       },
     ],
     difficulty: 3,
@@ -131,11 +134,12 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Planning a training session',
           'Scheduling a delivery truck',
         ],
-        explanation: '冒頭でAが用紙とトナーの残量が少ないことを伝えている。',
+        explanation:
+          '冒頭でAが用紙とトナーの残量が少ないことを伝えている。他の選択肢（"Planning a training session"／"Scheduling a delivery truck"／"Hiring new interns"）はこの会話・トークの中で述べられていない。',
         translation: '会話は主に何についてですか。',
       },
       {
-        question: 'According to A, why are supplies running low?',
+        question: 'According to the woman, why are supplies running low?',
         correctText: 'New interns have been printing a lot of materials',
         distractors: [
           'The supplier raised its prices',
@@ -143,19 +147,20 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The printer is broken',
         ],
         explanation:
-          'Aが"the new interns have been printing a lot of training materials"と説明している。',
-        translation: 'Aによると、なぜ備品が少なくなっているのですか。',
+          '女性が"the new interns have been printing a lot of training materials"と説明している。',
+        translation: '女性によると、なぜ備品が少なくなっているのですか。',
       },
       {
-        question: 'What does B suggest doing?',
+        question: 'What does the man suggest doing?',
         correctText: 'Submitting a new order today',
         distractors: [
           'Asking the interns to stop printing',
           'Waiting until next month',
           'Borrowing supplies from another office',
         ],
-        explanation: 'Bは"Let\'s submit a request today"と提案している。',
-        translation: 'Bは何をすることを提案していますか。',
+        explanation:
+          '男性は"Let\'s submit a request today"と提案している。他の選択肢（"Asking the interns to stop printing"／"Waiting until next month"／"Borrowing supplies from another office"）はこの会話・トークの中で述べられていない。',
+        translation: '男性は何をすることを提案していますか。',
       },
     ],
     difficulty: 2,
@@ -176,7 +181,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'A carrier raised its shipping rates',
           'A client requested a refund',
         ],
-        explanation: '冒頭でAが顧客の荷物がまだ届いていないと伝えている。',
+        explanation:
+          '冒頭で女性が顧客の荷物がまだ届いていないと伝えている。他の選択肢（"A client canceled an order"／"A carrier raised its shipping rates"／"A client requested a refund"）はこの会話・トークの中で述べられていない。',
         translation: '主に話し合われている問題は何ですか。',
       },
       {
@@ -187,19 +193,20 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Bad weather along the route',
           'An error in the shipping address',
         ],
-        explanation: 'Aは"a warehouse backlog"と述べている。',
+        explanation:
+          '女性は"a warehouse backlog"と述べている。他の選択肢（"A shortage of delivery trucks"／"Bad weather along the route"／"An error in the shipping address"）はこの会話・トークの中で述べられていない。',
         translation: '運送業者は遅延の理由として何を挙げましたか。',
       },
       {
-        question: 'What does B propose doing for the client?',
+        question: 'What does the man propose doing for the client?',
         correctText: 'Offering a discount on a future order',
         distractors: [
           "Canceling the client's account",
           'Filing a complaint against the carrier',
           'Sending a written apology letter only',
         ],
-        explanation: 'Bは"offer the client a discount on their next order"と提案している。',
-        translation: 'Bは顧客に対して何をすることを提案していますか。',
+        explanation: '男性は"offer the client a discount on their next order"と提案している。',
+        translation: '男性は顧客に対して何をすることを提案していますか。',
       },
     ],
     difficulty: 3,
@@ -220,11 +227,12 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           "An employee's resignation",
           'A training program schedule',
         ],
-        explanation: '会話は今朝面接した候補者についての感想と次のステップを話している。',
+        explanation:
+          '会話は今朝面接した候補者についての感想と次のステップを話している。他の選択肢（"A performance review"／"An employee\'s resignation"／"A training program schedule"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは主に何について話していますか。',
       },
       {
-        question: 'According to B, what was impressive about the candidate?',
+        question: 'According to the man, what was impressive about the candidate?',
         correctText: 'Her relevant experience and thoughtful questions',
         distractors: [
           'Her availability to start immediately',
@@ -232,8 +240,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           "Her previous employer's reputation",
         ],
         explanation:
-          'Bは"her experience matches the role closely, and she asked great questions"と述べている。',
-        translation: 'Bは候補者の何に感心したと言っていますか。',
+          '男性は"her experience matches the role closely, and she asked great questions"と述べている。',
+        translation: '男性は候補者の何に感心したと言っていますか。',
       },
       {
         question: 'What will most likely happen next?',
@@ -244,7 +252,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The candidate will be rejected',
         ],
         explanation:
-          'Bは"let\'s schedule it for early next week"と述べ、2回目の面接の設定を提案している。',
+          '男性は"let\'s schedule it for early next week"と述べ、2回目の面接の設定を提案している。',
         translation: '次に何が起こる可能性が高いですか。',
       },
     ],
@@ -266,22 +274,24 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           "A new employee's first day",
           'A software rollout',
         ],
-        explanation: '会話全体が金曜日のイベントのケータリング手配について。',
+        explanation:
+          '会話全体が金曜日のイベントのケータリング手配について。他の選択肢（"A software rollout"／"A quarterly budget review"／"A new employee\'s first day"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは何の準備をしていますか。',
       },
       {
-        question: 'What information is B still waiting for?',
+        question: 'What information is the man still waiting for?',
         correctText: 'The number of vegetarian guests',
         distractors: [
           'The total event budget',
           "The venue's opening time",
           'The guest list itself',
         ],
-        explanation: 'Bは"waiting to hear back about how many guests are vegetarian"と述べている。',
-        translation: 'Bはまだどんな情報を待っていますか。',
+        explanation:
+          '男性は"waiting to hear back about how many guests are vegetarian"と述べている。',
+        translation: '男性はまだどんな情報を待っていますか。',
       },
       {
-        question: 'What will A do this afternoon?',
+        question: 'What will the woman do this afternoon?',
         correctText: 'Send a survey to attendees',
         distractors: [
           'Call the caterer directly',
@@ -289,8 +299,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Book a larger venue',
         ],
         explanation:
-          'Aは"I\'ll send a quick survey to the attendee list this afternoon"と述べている。',
-        translation: 'Aは今日の午後、何をしますか。',
+          '女性は"I\'ll send a quick survey to the attendee list this afternoon"と述べている。',
+        translation: '女性は今日の午後、何をしますか。',
       },
     ],
     difficulty: 3,
@@ -311,11 +321,12 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'A new employee training session',
           'A change in office hours',
         ],
-        explanation: '会話は週末のソフトウェアアップグレードの通知について。',
+        explanation:
+          '会話は週末のソフトウェアアップグレードの通知について。他の選択肢（"A change in office hours"／"A hardware replacement plan"／"A new employee training session"）はこの会話・トークの中で述べられていない。',
         translation: '会話は主に何についてですか。',
       },
       {
-        question: 'According to B, what will happen before the update?',
+        question: 'According to the man, what will happen before the update?',
         correctText: 'Files will be automatically synchronized',
         distractors: [
           'All computers will be replaced',
@@ -323,11 +334,11 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The office will be closed',
         ],
         explanation:
-          'Bは"all our files will automatically synchronize before the update starts"と述べている。',
-        translation: 'Bによると、更新前に何が起こりますか。',
+          '男性は"all our files will automatically synchronize before the update starts"と述べている。',
+        translation: '男性によると、更新前に何が起こりますか。',
       },
       {
-        question: 'What does B suggest doing on Friday?',
+        question: 'What does the man suggest doing on Friday?',
         correctText: 'Saving all files again as a precaution',
         distractors: [
           'Postponing the update',
@@ -335,8 +346,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Backing up only the largest files',
         ],
         explanation:
-          'Bは"let\'s just save everything one more time on Friday to be safe"と提案している。',
-        translation: 'Bは金曜日に何をすることを提案していますか。',
+          '男性は"let\'s just save everything one more time on Friday to be safe"と提案している。他の選択肢（"Postponing the update"／"Calling the IT department"／"Backing up only the largest files"）はこの会話・トークの中で述べられていない。',
+        translation: '男性は金曜日に何をすることを提案していますか。',
       },
     ],
     difficulty: 3,
@@ -350,21 +361,22 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
       "A: Have you finished putting together my itinerary for the conference next month? B: Almost — I booked your flight and hotel, but I'm still waiting on the shuttle reservation. A: No rush, just make sure I land with enough time before the opening reception. B: Understood, I'll confirm everything by the end of the week.",
     subQuestions: [
       {
-        question: 'What is B helping A prepare for?',
+        question: 'What is the man helping the woman prepare for?',
         correctText: 'An upcoming business trip',
         distractors: ['A job interview', 'A product demonstration', 'A performance review'],
-        explanation: '会話は来月のカンファレンスに向けた旅程の準備について。',
-        translation: 'Bは何のためにAをサポートしていますか。',
+        explanation:
+          '会話は来月のカンファレンスに向けた旅程の準備について。他の選択肢（"A job interview"／"A product demonstration"／"A performance review"）はこの会話・トークの中で述べられていない。',
+        translation: '男性は何のために女性をサポートしていますか。',
       },
       {
-        question: 'What has B not finished yet?',
+        question: 'What has the man not finished yet?',
         correctText: 'Booking the shuttle reservation',
         distractors: ['Booking the flight', 'Booking the hotel', 'Printing the conference badge'],
-        explanation: 'Bは"I\'m still waiting on the shuttle reservation"と述べている。',
-        translation: 'Bはまだ何を終えていませんか。',
+        explanation: '男性は"I\'m still waiting on the shuttle reservation"と述べている。',
+        translation: '男性はまだ何を終えていませんか。',
       },
       {
-        question: 'What does A ask B to make sure of?',
+        question: 'What does the woman ask the man to make sure of?',
         correctText: 'That there is enough time to arrive before the opening reception',
         distractors: [
           'That the hotel has a gym',
@@ -372,8 +384,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'That the shuttle is free of charge',
         ],
         explanation:
-          'Aは"make sure I land with enough time before the opening reception"と述べている。',
-        translation: 'Aは何を確実にするようBに求めていますか。',
+          '女性は"make sure I land with enough time before the opening reception"と述べている。',
+        translation: '女性は何を確実にするよう男性に求めていますか。',
       },
     ],
     difficulty: 2,
@@ -387,18 +399,19 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
       "A: The shelves in the front section look almost empty again. B: I know, our best-selling items keep selling out faster than we can restock them. A: Should we increase the order size for next month? B: Yes, and let's also move some inventory from the stockroom out front today.",
     subQuestions: [
       {
-        question: 'What problem does A point out?',
+        question: 'What problem does the woman point out?',
         correctText: 'The shelves are nearly empty',
         distractors: [
           'The store is losing customers',
           'Prices are too high',
           'The store is understaffed',
         ],
-        explanation: 'Aは"the shelves in the front section look almost empty again"と述べている。',
-        translation: 'Aはどんな問題を指摘していますか。',
+        explanation:
+          '女性は"the shelves in the front section look almost empty again"と述べている。',
+        translation: '女性はどんな問題を指摘していますか。',
       },
       {
-        question: 'Why are the shelves emptying quickly, according to B?',
+        question: 'Why are the shelves emptying quickly, according to the man?',
         correctText: 'Best-selling items sell out faster than they can restock',
         distractors: [
           'A delivery truck broke down',
@@ -406,8 +419,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Customers are returning items',
         ],
         explanation:
-          'Bは"our best-selling items keep selling out faster than we can restock them"と述べている。',
-        translation: 'Bによると、なぜ棚がすぐ空になるのですか。',
+          '男性は"our best-selling items keep selling out faster than we can restock them"と述べている。',
+        translation: '男性によると、なぜ棚がすぐ空になるのですか。',
       },
       {
         question: 'What will the speakers do today?',
@@ -418,7 +431,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Interview new staff',
         ],
         explanation:
-          'Bは"let\'s also move some inventory from the stockroom out front today"と述べている。',
+          '男性は"let\'s also move some inventory from the stockroom out front today"と述べている。',
         translation: '話者たちは今日、何をしますか。',
       },
     ],
@@ -440,7 +453,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'A budget cut across departments',
           'A customer complaint about pricing',
         ],
-        explanation: '会話は来年度の契約条件についてで、更新期間の交渉が話題。',
+        explanation:
+          '会話は来年度の契約条件についてで、更新期間の交渉が話題。他の選択肢（"A budget cut across departments"／"A customer complaint about pricing"／"A new vendor selection process"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは何について話し合っていますか。',
       },
       {
@@ -455,15 +469,16 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         translation: '業者はどんな変更を望んでいますか。',
       },
       {
-        question: 'What does B want to do before signing?',
+        question: 'What does the man want to do before signing?',
         correctText: 'Negotiate for a full-year term',
         distractors: [
           'Cancel the contract entirely',
           "Accept the vendor's terms as is",
           'Switch to a different vendor',
         ],
-        explanation: 'Bは"Let\'s negotiate for a full year before we sign anything"と述べている。',
-        translation: 'Bは署名する前に何をしたいと考えていますか。',
+        explanation:
+          '男性は"Let\'s negotiate for a full year before we sign anything"と述べている。他の選択肢（"Cancel the contract entirely"／"Accept the vendor\'s terms as is"／"Switch to a different vendor"）はこの会話・トークの中で述べられていない。',
+        translation: '男性は署名する前に何をしたいと考えていますか。',
       },
     ],
     difficulty: 3,
@@ -487,7 +502,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Airline passengers',
         ],
         explanation:
-          '冒頭"Attention all building tenants"から建物のテナント（入居者）向けの案内だと分かる。',
+          '冒頭"Attention all building tenants"から建物のテナント（入居者）向けの案内だと分かる。他の選択肢（"Job applicants visiting for interviews"／"Customers of a retail store"／"Airline passengers"）はこの会話・トークの中で述べられていない。',
         translation: 'この案内はおそらく誰に向けたものですか。',
       },
       {
@@ -523,7 +538,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         question: 'What is being advertised?',
         correctText: "A store's clearance sale",
         distractors: ['A new store opening', 'A job fair', 'A charity fundraiser'],
-        explanation: '冒頭で"our biggest clearance sale of the year"と明言している。',
+        explanation:
+          '冒頭で"our biggest clearance sale of the year"と明言している。他の選択肢（"A charity fundraiser"／"A new store opening"／"A job fair"）はこの会話・トークの中で述べられていない。',
         translation: '何が宣伝されていますか。',
       },
       {
@@ -546,7 +562,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'A raffle ticket',
         ],
         explanation:
-          '"the first fifty customers will receive a complimentary gift bag"と述べている。',
+          '"the first fifty customers will receive a complimentary gift bag"と述べている。他の選択肢（"A free membership card"／"A raffle ticket"／"A discount coupon for next time"）はこの会話・トークの中で述べられていない。',
         translation: '最初の50人の客は何を受け取りますか。',
       },
     ],
@@ -569,14 +585,15 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'To remind about an annual checkup',
         ],
         explanation:
-          '"your appointment...needs to be moved due to a scheduling conflict"と述べている。',
+          '"your appointment...needs to be moved due to a scheduling conflict"と述べている。他の選択肢（"To remind about an annual checkup"／"To confirm a payment was received"／"To cancel a membership"）はこの会話・トークの中で述べられていない。',
         translation: 'デイナはなぜ電話をかけていますか。',
       },
       {
         question: 'What day was the appointment originally scheduled for?',
         correctText: 'Tuesday',
         distractors: ['Monday', 'Wednesday', 'Thursday'],
-        explanation: '"originally scheduled for Tuesday at ten"と述べている。',
+        explanation:
+          '"originally scheduled for Tuesday at ten"と述べている。他の選択肢（"Monday"／"Wednesday"／"Thursday"）はこの会話・トークの中で述べられていない。',
         translation: '予約はもともと何曜日に予定されていましたか。',
       },
       {
@@ -587,7 +604,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Bring updated insurance information',
           'Cancel the appointment entirely',
         ],
-        explanation: '"Please call us back at your convenience to confirm"と述べている。',
+        explanation:
+          '"Please call us back at your convenience to confirm"と述べている。他の選択肢（"Arrive early for the new appointment"／"Bring updated insurance information"／"Cancel the appointment entirely"）はこの会話・トークの中で述べられていない。',
         translation: 'デイナは聞き手に何をするよう頼んでいますか。',
       },
     ],
@@ -610,7 +628,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'To call for volunteers to give up seats',
         ],
         explanation:
-          '"your departure gate has changed from gate twelve to gate twenty-three"と述べている。',
+          '"your departure gate has changed from gate twelve to gate twenty-three"と述べている。他の選択肢（"To announce a flight delay"／"To announce a flight cancellation"／"To call for volunteers to give up seats"）はこの会話・トークの中で述べられていない。',
         translation: 'この案内の目的は何ですか。',
       },
       {
@@ -628,7 +646,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Their baggage claim ticket',
           'Their seat upgrade voucher',
         ],
-        explanation: '"have your boarding pass ready for the agent"と述べている。',
+        explanation:
+          '"have your boarding pass ready for the agent"と述べている。他の選択肢（"Their passport only"／"Their baggage claim ticket"／"Their seat upgrade voucher"）はこの会話・トークの中で述べられていない。',
         translation: '乗客は何を準備しておくよう求められていますか。',
       },
     ],
@@ -650,7 +669,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'A ticket sales clerk',
           'A history professor giving a lecture',
         ],
-        explanation: '"I\'ll be your guide for the next hour"と自己紹介している。',
+        explanation:
+          '"I\'ll be your guide for the next hour"と自己紹介している。他の選択肢（"A ticket sales clerk"／"A history professor giving a lecture"／"A museum security officer"）はこの会話・トークの中で述べられていない。',
         translation: 'カルロスはおそらく誰ですか。',
       },
       {
@@ -690,7 +710,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'To introduce a new employee',
           'To explain a change in company policy',
         ],
-        explanation: '"I want to share a quick update on our quarterly results"と述べている。',
+        explanation:
+          '"I want to share a quick update on our quarterly results"と述べている。他の選択肢（"To explain a change in company policy"／"To announce a new product launch"／"To introduce a new employee"）はこの会話・トークの中で述べられていない。',
         translation: 'この話の主な目的は何ですか。',
       },
       {
@@ -708,7 +729,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'A new marketing campaign',
           'An increase in prices',
         ],
-        explanation: '"largely thanks to strong sales in the retail division"と述べている。',
+        explanation:
+          '"largely thanks to strong sales in the retail division"と述べている。他の選択肢（"A reduction in expenses"／"A new marketing campaign"／"An increase in prices"）はこの会話・トークの中で述べられていない。',
         translation: '話者は何が最も成長に貢献したと述べていますか。',
       },
     ],
@@ -730,7 +752,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Reviewing customer complaints',
           'Explaining a pricing change',
         ],
-        explanation: '"I\'m excited to introduce our newest product line"と述べている。',
+        explanation:
+          '"I\'m excited to introduce our newest product line"と述べている。他の選択肢（"Announcing a company merger"／"Reviewing customer complaints"／"Explaining a pricing change"）はこの会話・トークの中で述べられていない。',
         translation: '話者は主に何をしていますか。',
       },
       {
@@ -738,7 +761,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         correctText: 'Small businesses',
         distractors: ['Large corporations only', 'Individual consumers', 'Government agencies'],
         explanation:
-          '"designed specifically to help small businesses streamline their daily operations"と述べている。',
+          '"designed specifically to help small businesses streamline their daily operations"と述べている。他の選択肢（"Large corporations only"／"Individual consumers"／"Government agencies"）はこの会話・トークの中で述べられていない。',
         translation: '新製品は誰のために設計されていますか。',
       },
       {
@@ -749,7 +772,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The event will end without further discussion',
           'Refreshments will be served',
         ],
-        explanation: '"We\'ll be taking questions after a short demonstration"と述べている。',
+        explanation:
+          '"We\'ll be taking questions after a short demonstration"と述べている。他の選択肢（"The product will go on sale immediately"／"The event will end without further discussion"／"Refreshments will be served"）はこの会話・トークの中で述べられていない。',
         translation: 'デモンストレーションの後、何が行われますか。',
       },
     ],
@@ -767,7 +791,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         question: 'What kind of business most likely recorded this message?',
         correctText: 'A bank',
         distractors: ['An airline', 'A retail store', 'A dental office'],
-        explanation: '"Thank you for calling Meridian Bank customer service"と述べている。',
+        explanation:
+          '"Thank you for calling Meridian Bank customer service"と述べている。他の選択肢（"An airline"／"A retail store"／"A dental office"）はこの会話・トークの中で述べられていない。',
         translation: 'この案内はおそらくどんな業種の企業が録音したものですか。',
       },
       {
@@ -804,7 +829,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Long-time employees receiving an award',
           'Visiting clients',
         ],
-        explanation: '"welcome to your first day of orientation"と述べている。',
+        explanation:
+          '"welcome to your first day of orientation"と述べている。他の選択肢（"Job candidates being interviewed"／"Long-time employees receiving an award"／"Visiting clients"）はこの会話・トークの中で述べられていない。',
         translation: 'この話は誰に向けたものですか。',
       },
       {
@@ -842,14 +868,15 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         correctText: 'Traffic conditions during the morning commute',
         distractors: ['A change in bus fares', 'A new highway opening', 'A weather warning'],
         explanation:
-          '"Good morning, commuters. Traffic on the downtown expressway is moving slowly"と述べている。',
+          '"Good morning, commuters. Traffic on the downtown expressway is moving slowly"と述べている。他の選択肢（"A new highway opening"／"A weather warning"／"A change in bus fares"）はこの会話・トークの中で述べられていない。',
         translation: 'この報道は主に何についてですか。',
       },
       {
         question: 'Why is traffic moving slowly?',
         correctText: 'Ongoing construction near exit seven',
         distractors: ['A traffic accident', 'A public event downtown', 'Heavy rain'],
-        explanation: '"due to ongoing construction near exit seven"と述べている。',
+        explanation:
+          '"due to ongoing construction near exit seven"と述べている。他の選択肢（"A traffic accident"／"A public event downtown"／"Heavy rain"）はこの会話・トークの中で述べられていない。',
         translation: 'なぜ交通の流れが遅くなっていますか。',
       },
       {
@@ -860,7 +887,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Using public transportation instead',
           'Leaving earlier than usual',
         ],
-        explanation: '"may want to consider the riverside route as an alternative"と述べている。',
+        explanation:
+          '"may want to consider the riverside route as an alternative"と述べている。他の選択肢（"Waiting until after exit seven reopens"／"Using public transportation instead"／"Leaving earlier than usual"）はこの会話・トークの中で述べられていない。',
         translation: '話者はどんな代替案を提案していますか。',
       },
     ],
