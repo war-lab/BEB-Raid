@@ -197,3 +197,20 @@ describe('buildPart34Drafts', () => {
     }
   })
 })
+
+describe('本試験長尺化（T-352・docs/32のK-81完了ゲート）', () => {
+  it('S/S2/S3を通したscript語数の中央値が90語以上になる', () => {
+    const words = [...PART34_ENTRIES_S, ...PART34_ENTRIES_S2, ...PART34_ENTRIES_S3]
+      .map(
+        (e) =>
+          e.script
+            .replace(/^[AB]:\s*/gm, '')
+            .split(/\s+/)
+            .filter(Boolean).length,
+      )
+      .sort((a, b) => a - b)
+    const mid = Math.floor(words.length / 2)
+    const median = words.length % 2 ? words[mid]! : (words[mid - 1]! + words[mid]!) / 2
+    expect(median).toBeGreaterThanOrEqual(90)
+  })
+})

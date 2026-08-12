@@ -10,6 +10,25 @@ import damageConfig from './damageConfig.json'
 
 export type DamageModeConfig = Partial<Record<AttemptMode, number>>
 
+/**
+ * damageConfig.json の整合性検証（T-311・K-41。growthRankConfig・quickPackConfigの
+ * 前例に倣う）。従来は検証が無く、負値・非数値がJSON差し替え時に静かに素通りし、
+ * ダメージが負・NaNになりうる。定義済みの係数のみ検査する（未定義modeは0固定で扱う=
+ * computeDamageの既定挙動と同じ）
+ */
+export function validateDamageConfig(config: DamageModeConfig): void {
+  for (const [mode, coefficient] of Object.entries(config)) {
+    if (coefficient === undefined) continue
+    if (!(Number.isFinite(coefficient) && coefficient >= 0)) {
+      throw new Error(
+        `damageConfig の係数は0以上の有限数である必要がある（${mode}: ${coefficient}）`,
+      )
+    }
+  }
+}
+
+validateDamageConfig(damageConfig)
+
 /** 基礎点をレイドダメージへ換算する（03の6.1: ダメージ=基礎点×モード係数） */
 export function computeDamage(
   basePoints: number,

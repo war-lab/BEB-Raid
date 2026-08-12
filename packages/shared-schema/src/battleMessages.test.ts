@@ -70,7 +70,10 @@ describe('BattleServerMessage: JSON往復', () => {
   it('roomState', () => {
     const msg: BattleRoomStateMessage = {
       type: 'roomState',
-      participants: [{ displayName: '太郎' }, { displayName: '花子' }],
+      participants: [
+        { displayName: '太郎', connected: true },
+        { displayName: '花子', connected: false },
+      ],
     }
     expect(roundTrip(msg)).toEqual(msg)
     expect(isBattleServerMessage(roundTrip(msg))).toBe(true)
@@ -91,8 +94,8 @@ describe('BattleServerMessage: JSON往復', () => {
     const msg: BattleStandingsMessage = {
       type: 'standings',
       entries: [
-        { displayName: '太郎', totalPoints: 48 },
-        { displayName: '花子', totalPoints: 40 },
+        { displayName: '太郎', totalPoints: 48, connected: true },
+        { displayName: '花子', totalPoints: 40, connected: false },
       ],
     }
     expect(roundTrip(msg)).toEqual(msg)
@@ -103,8 +106,8 @@ describe('BattleServerMessage: JSON往復', () => {
     const msg: BattleResultMessage = {
       type: 'result',
       entries: [
-        { displayName: '太郎', totalPoints: 240 },
-        { displayName: '花子', totalPoints: 200 },
+        { displayName: '太郎', totalPoints: 240, connected: true },
+        { displayName: '花子', totalPoints: 200, connected: false },
       ],
       bestGrowth: { displayName: '花子' },
     }
@@ -154,6 +157,32 @@ describe('未知typeの判別（discriminated unionの受信側ガード）', ()
     expect(isBattleClientMessage(null)).toBe(false)
     expect(isBattleClientMessage('join')).toBe(false)
     expect(isBattleServerMessage(undefined)).toBe(false)
+  })
+})
+
+// T-275（K-12）: isBattleServerMessageはtypeフィールドしか検証していなかったため、
+// roomState.participants[]・standings.entries[]がconnectedを欠いた不正なJSONでも
+// 既知メッセージとして受理してしまっていた（実測。修正前は以下2件が失敗する）
+describe('isBattleServerMessage: roomState/standingsの要素にconnectedが無い場合の検証（T-275・K-12）', () => {
+  it('roomState.participants[]の要素がconnectedを欠く場合はfalseになる', () => {
+    const malformed = {
+      type: 'roomState',
+      participants: [{ displayName: '太郎' }],
+    }
+    expect(isBattleServerMessage(malformed)).toBe(false)
+  })
+
+  it('standings.entries[]の要素がconnectedを欠く場合はfalseになる', () => {
+    const malformed = {
+      type: 'standings',
+      entries: [{ displayName: '太郎', totalPoints: 48 }],
+    }
+    expect(isBattleServerMessage(malformed)).toBe(false)
+  })
+
+  it('roomState.participantsが空配列の場合はconnected検証が無いためtrueのまま', () => {
+    const msg = { type: 'roomState', participants: [] }
+    expect(isBattleServerMessage(msg)).toBe(true)
   })
 })
 

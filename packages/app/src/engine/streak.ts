@@ -31,14 +31,21 @@ export async function getStreak(db: BebRaidDatabase): Promise<StreakRecord> {
   )
 }
 
-/** 指定暦日のSRS解答数（attempts の mode='srs' を数える） */
+/**
+ * 指定暦日のSRS解答数（attempts の mode='srs' を数える）。
+ *
+ * T-307（K-35）: シャドーイングは `mode: 'solo'`・`shadow:` プレフィックスのquestionIdで
+ * 記録される（ShadowingScreen）。docs/03 8節は「ストリーク成立にはカウントする」と
+ * 書いているが、mode==='srs'のみを見るこの関数はシャドーイングを一切算入していなかった
+ * （実装漏れ）。mode==='srs' に加えて questionId が `shadow:` で始まる解答も数える
+ */
 export async function countSrsAnswersOn(db: BebRaidDatabase, date: string): Promise<number> {
   const from = parseDateString(date)
   const to = localMidnightAfterDays(from, 1)
   return db.attempts
     .where('answeredAt')
     .between(from, to, true, false)
-    .filter((a) => a.mode === 'srs')
+    .filter((a) => a.mode === 'srs' || a.questionId.startsWith('shadow:'))
     .count()
 }
 
@@ -109,16 +116,13 @@ export async function evaluateStreak(
       currentDays = 1
     } else {
       const gap = daysBetween(record.lastActiveDate, today)
-      if (gap <= 0) {
-        // 時計の巻き戻し等。put せず終了する（lastActiveDate を過去日付で
-        // 上書きすると、日付が戻った時に同じ日が二重加算されるため）
-        return {
-          currentDays: record.currentDays,
-          bestDays: record.bestDays,
-          todaySrsCount,
-          todayCompleted: false,
-          protectionUsed: false,
-        }
+      if (gap < 0) {
+        // T-304（K-32）: lastActiveDateが未来値（端末時計を進めて評価した後、実時刻へ
+        // 戻した等）だと従来はput せず終了しており、実日付がlastActiveDateへ追いつくまで
+        // （時計操作次第で恒久的に）ストリークが1日も成立しなかった。
+        // 今日へ巻き戻し、1から再開する。alreadyCounted（この関数の先頭でlastActiveDate
+        // ===todayを見ている）に守られているため、この巻き戻し自体が二重加算にはならない
+        currentDays = 1
       } else if (gap === 1) {
         currentDays = record.currentDays + 1
       } else if (gap === 2) {

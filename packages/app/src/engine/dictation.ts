@@ -5,16 +5,33 @@
 // 選択式前提のため）。tagStatsには反映する（弱形タグがL1卒業判定の入力になる）
 
 import type { DictationBlank, Question } from '@beb-raid/shared-schema'
-import { DICTATION_DISTRACTOR_POOL } from './dictationDistractors'
+import {
+  DICTATION_CONTENT_DISTRACTOR_POOL,
+  DICTATION_DISTRACTOR_POOL,
+} from './dictationDistractors'
 import { shuffle } from './shuffle'
 import type { DictationAnswer, DictationJudgement, DictationWordBank } from './types'
 
 const WORD_BANK_SIZE = 6
 
+const FUNCTION_WORD_SET = new Set(DICTATION_DISTRACTOR_POOL.map((w) => w.toLowerCase()))
+
+/**
+ * 機能語か内容語かを判定する（T-341。K-79の再発防止）。DICTATION_DISTRACTOR_POOLに
+ * 含まれる語は機能語、それ以外は内容語として扱う
+ */
+function isFunctionWord(word: string): boolean {
+  return FUNCTION_WORD_SET.has(word.toLowerCase())
+}
+
 /**
  * ワードバンクを組み立てる（13の3.4節: 正解語N＋ダミー(6−N)語）。
- * ダミーは同一パック内の他dictation問題のblanks正解語を優先し、不足分は
- * DICTATION_DISTRACTOR_POOL（固定の弱形・混同語プール）から補う。重複は除く
+ * 【T-341】ダミーは正解語と同じクラス（機能語/内容語）から選ぶ。機能語の穴に内容語の
+ * ダミーが混ざる（またはその逆）と、語の見た目だけで正解が分かってしまい聞き取りの
+ * 訓練にならないため（K-79）。クラスは1問目の正解語で代表させる（本ファイルが生成する
+ * 問題は1問内で機能語・内容語を混在させない設計のため=docs/32 T-341）。
+ * 同一パック内の他dictation問題のうち同クラスの正解語を優先し、不足分は
+ * DICTATION_DISTRACTOR_POOL/DICTATION_CONTENT_DISTRACTOR_POOL（固定プール）から補う。重複は除く
  */
 export function buildWordBank(
   target: Question,
@@ -24,11 +41,13 @@ export function buildWordBank(
   const correctWords = (target.blanks ?? []).map((b) => b.answer)
   const seen = new Set(correctWords.map((w) => w.toLowerCase()))
   const distractorCount = Math.max(WORD_BANK_SIZE - correctWords.length, 0)
+  const wantFunctionWord = correctWords.length === 0 || isFunctionWord(correctWords[0]!)
 
   const distractors: string[] = []
   const otherAnswers = pool
     .filter((q) => q.format === 'dictation' && q.id !== target.id)
     .flatMap((q) => (q.blanks ?? []).map((b) => b.answer))
+    .filter((w) => isFunctionWord(w) === wantFunctionWord)
   for (const word of shuffle(otherAnswers, rng)) {
     if (distractors.length >= distractorCount) break
     const key = word.toLowerCase()
@@ -37,7 +56,10 @@ export function buildWordBank(
     distractors.push(word)
   }
   if (distractors.length < distractorCount) {
-    for (const word of shuffle(DICTATION_DISTRACTOR_POOL, rng)) {
+    const fallbackPool = wantFunctionWord
+      ? DICTATION_DISTRACTOR_POOL
+      : DICTATION_CONTENT_DISTRACTOR_POOL
+    for (const word of shuffle(fallbackPool, rng)) {
       if (distractors.length >= distractorCount) break
       const key = word.toLowerCase()
       if (seen.has(key)) continue

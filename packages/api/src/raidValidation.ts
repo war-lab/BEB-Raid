@@ -5,9 +5,14 @@ import type { DamageSyncPayload, RaidSyncRequest } from '@beb-raid/shared-schema
 /**
  * 1payloadあたりのdamage上限。クライアント算出値を信用する設計（J-47）のため
  * 厳密な検算はしないが、負数（HP回復・討伐判定の逆行）や桁違いの値で
- * 集計が破壊されることだけは構造的に防ぐ。1問の理論値は128前後（raidConfig.ts）
+ * 集計が破壊されることだけは構造的に防ぐ。1問の理論値は128前後（raidConfig.ts）で、
+ * 基礎点の上限は130（docs/03 5.3節のクランプ[40,130]）×raid係数1.0のため実際の最大値は130。
+ * 【T-330・K-65】旧値10,000は実HPの30倍のダメージを1リクエストで送れる余地を残していた
+ * （MAX_SYNC_PAYLOADS=500と組み合わせると最大5,000,000）。500へ下げても実測最大値130の
+ * 3.8倍の余裕があり、raidBossDo.ts側の週次累計上限（MAX_DEVICE_SHARE_OF_MAX_HP）と
+ * 二重で単独討伐を防ぐ
  */
-const MAX_DAMAGE_PER_PAYLOAD = 10_000
+const MAX_DAMAGE_PER_PAYLOAD = 500
 /** 1リクエストあたりのpayload件数上限（クライアントのバッチ上限200に余裕を持たせた値） */
 export const MAX_SYNC_PAYLOADS = 500
 

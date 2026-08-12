@@ -27,6 +27,8 @@ export const PART6_URL_ENTRIES_S: Part6RawEntry[] = [
     passageKind: 'email' as PassageKind,
     passageText:
       'Subject: Password Reset Confirmation\n\nDear Team,\n\nAs part of our annual security update, all employees [[1]] required to reset their account passwords by Friday, May 22. To begin, visit the login page at portal.harborcrestlogistics.example.com and click "Forgot Password." A confirmation link will [[2]] to the email address on file within a few minutes. [[3]] the confirmation link does not arrive within ten minutes, please check your spam folder or contact the IT help desk at ithelp@harborcrestlogistics.example.com. [[4]]\n\nThank you for your cooperation.\n\nIT Security Team',
+    passageTranslation:
+      '件名: パスワードリセットの確認について\n\nチームの皆様へ\n\n年次セキュリティ更新の一環として、全従業員は5月22日金曜日までにアカウントのパスワードをリセットする必要があります。まず、ログインページ（portal.harborcrestlogistics.example.com）にアクセスし、「パスワードをお忘れの方」をクリックしてください。確認リンクは数分以内に登録済みのメールアドレスへ送信されます。確認リンクが10分以内に届かない場合は、迷惑メールフォルダを確認するか、ithelp@harborcrestlogistics.example.com のITヘルプデスクに連絡してください。期限までにリセットを完了しない従業員は、一時的にシステムからロックアウトされます。\n\nご協力ありがとうございます。\n\nITセキュリティチーム',
     subQuestions: [
       {
         kind: 'grammar',

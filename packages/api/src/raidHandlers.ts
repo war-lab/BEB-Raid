@@ -81,9 +81,11 @@ export async function handleRaidSync(
     }
   }
 
+  // T-285（K-8）: 当週ボスが未生成（週次cron未実行・遅延等）でも、受理済み
+  // acceptedIds（前週分等）は捨てずに返す。404にすると応答全体が失敗扱いになり、
+  // クライアントがpendingSyncを排出できず溜め込む。boss:nullで200を返す
   const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(currentBossId(receivedAt)))
   const boss = await stub.getBossState(receivedAt, deviceToken)
-  if (!boss) return errorResponse(404, 'boss_not_found', '今週のボスがまだ生成されていません')
 
-  return jsonResponse({ acceptedIds, boss })
+  return jsonResponse({ acceptedIds, boss: boss ?? null })
 }

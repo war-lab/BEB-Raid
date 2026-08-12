@@ -26,6 +26,15 @@ import { timingSafeStringEqual } from './timingSafeEqual.js'
 
 const MEMBER_KEY_PREFIX = 'member:'
 
+/**
+ * 表示名→deviceTokenの逆引き索引キー（T-331・K-66）。
+ * 全件スキャンで一意性を確認する代わりにO(1)で既存の持ち主を引けるようにする。
+ * displayNameOwnerKeyの値には保持者のdeviceTokenをそのまま入れる（他情報は持たない）
+ */
+function displayNameOwnerKey(displayName: string): string {
+  return `displayNameOwner:${displayName}`
+}
+
 function isDailyGoal(value: unknown): value is DailyGoal {
   return value === 'light' || value === 'normal' || value === 'heavy'
 }
@@ -55,20 +64,14 @@ export const MAX_REGISTERED_MEMBERS = 500
 /**
  * 【③招待コード誤りのレート制限】IPごとにウィンドウ内の失敗回数を数える。
  * 正しいコードでの登録成功時にカウンタをクリアするため、正規ユーザーの誤入力の
- * 誤爆で長時間ロックされることはない
+ * 誤爆で長時間ロックされることはない。
+ *
+ * 【T-329・K-64】カウンタ本体はKVではなくInviteRateLimitDo（IPごとに1インスタンス）に
+ * 置く。旧実装はKVへの素朴なread-modify-writeで、並列リクエストだと複数のgetが
+ * 同じ古いcountを読んでから書き込むため加算が失われ（lost update）、閾値超の並列アクセスでも
+ * 一切429にならないことを実測で確認した。DOは単一スレッドで動くため、同一インスタンスへの
+ * メソッド呼び出しは自動的に直列化され、この種の競合が起きない
  */
-const INVITE_FAILURE_WINDOW_MS = 15 * 60 * 1000
-const MAX_INVITE_FAILURES_PER_WINDOW = 10
-
-interface InviteFailureRecord {
-  count: number
-  windowStart: number
-}
-
-function registerFailKey(ip: string): string {
-  return `registerFail:${ip}`
-}
-
 function clientIp(request: Request): string {
   // CF-Connecting-IPはCloudflareのエッジが設定する実接続元IPで、クライアントからは
   // 偽装できない。ローカル開発・テスト環境等でヘッダが無い場合は共有バケットへ落ちる
@@ -76,26 +79,8 @@ function clientIp(request: Request): string {
   return request.headers.get('CF-Connecting-IP') ?? 'unknown'
 }
 
-async function isInviteRateLimited(env: Env, ip: string, now: number): Promise<boolean> {
-  const raw = await env.MEMBERS.get(registerFailKey(ip))
-  if (!raw) return false
-  const record = JSON.parse(raw) as InviteFailureRecord
-  if (now - record.windowStart > INVITE_FAILURE_WINDOW_MS) return false
-  return record.count >= MAX_INVITE_FAILURES_PER_WINDOW
-}
-
-async function recordInviteFailure(env: Env, ip: string, now: number): Promise<void> {
-  const raw = await env.MEMBERS.get(registerFailKey(ip))
-  const record = raw ? (JSON.parse(raw) as InviteFailureRecord) : undefined
-  const windowExpired = !record || now - record.windowStart > INVITE_FAILURE_WINDOW_MS
-  const next: InviteFailureRecord = windowExpired
-    ? { count: 1, windowStart: now }
-    : { count: record.count + 1, windowStart: record.windowStart }
-  await env.MEMBERS.put(registerFailKey(ip), JSON.stringify(next))
-}
-
-async function clearInviteFailures(env: Env, ip: string): Promise<void> {
-  await env.MEMBERS.delete(registerFailKey(ip))
+function inviteRateLimitStub(env: Env, ip: string) {
+  return env.INVITE_RATE_LIMIT.get(env.INVITE_RATE_LIMIT.idFromName(ip))
 }
 
 function isRegisterRequest(body: unknown): body is RegisterRequest {
@@ -137,24 +122,26 @@ export async function handleRegister(
 
   const ip = clientIp(request)
 
-  // ③レート制限: 既に閾値を超えている場合は招待コードの正誤を見る前に拒否する
+  // タイミングセーフな比較（T-250・29のQ-32）。`!==`は不一致文字までの応答時間差から
+  // 招待コードを推測されうる。レート制限判定の前に比較すること自体はタイミングからの
+  // 推測可能性に影響しない（比較自体は常に一定時間で終わり、結果はDOへ渡すだけ）
+  const isValidCode = timingSafeStringEqual(body.inviteCode, env.INVITE_CODE)
+
+  // ③レート制限（T-329・K-64）: 判定・記録・クリアを1回のDO呼び出し（evaluate）に
+  // まとめる。既に閾値を超えている場合は招待コードの正誤に関わらず一律429にする
   // （正誤を見てから拒否すると、閾値ちょうどで待っては試すパターンに対して
-  // 「このリクエストの正誤」を漏らしてしまうため、挙動ベースで一律ブロックする）
-  if (await isInviteRateLimited(env, ip, now)) {
+  // 「このリクエストの正誤」を漏らしてしまうため）
+  const outcome = await inviteRateLimitStub(env, ip).evaluate(now, isValidCode)
+  if (outcome === 'rate_limited') {
     return errorResponse(
       429,
       'rate_limited',
       '招待コードの試行回数が多すぎます。しばらく待ってから再試行してください',
     )
   }
-
-  // タイミングセーフな比較（T-250・29のQ-32）。`!==`は不一致文字までの応答時間差から
-  // 招待コードを推測されうる
-  if (!timingSafeStringEqual(body.inviteCode, env.INVITE_CODE)) {
-    await recordInviteFailure(env, ip, now)
+  if (outcome === 'invalid_code') {
     return errorResponse(401, 'invalid_invite_code', '招待コードが一致しません')
   }
-  await clearInviteFailures(env, ip)
 
   const existingRaw = await env.MEMBERS.get(memberKey(body.deviceToken))
   const existing = existingRaw ? (JSON.parse(existingRaw) as MemberRecord) : undefined
@@ -172,14 +159,36 @@ export async function handleRegister(
     }
   }
 
+  const displayName = body.displayName.trim()
+
+  // T-331（K-66）: 表示名の一意性を検証する。検証しないと、参加者がイベントバトルの
+  // joinメッセージで他メンバー（ホスト含む）の登録済み表示名をそのまま名乗れてしまい、
+  // なりすまし対策（battleRoomDo.tsが採用する登録済み表示名）が無意味になる。
+  // 表示名を変えていない再登録（既存メンバーの表示名更新以外の項目変更）は
+  // 自分自身が持ち主なので対象外にする
+  if (displayName !== existing?.displayName) {
+    const ownerRaw = await env.MEMBERS.get(displayNameOwnerKey(displayName))
+    if (ownerRaw !== null && ownerRaw !== body.deviceToken) {
+      return errorResponse(409, 'display_name_taken', 'その表示名は既に使用されています')
+    }
+  }
+
   const record: MemberRecord = {
-    displayName: body.displayName.trim(),
+    displayName,
     dailyGoal: body.dailyGoal,
     registeredAt: existing?.registeredAt ?? now,
     emaDailyDamage: existing?.emaDailyDamage,
   }
 
   await env.MEMBERS.put(memberKey(body.deviceToken), JSON.stringify(record))
+  // 表示名を変更した場合は逆引き索引を更新する（旧名の索引は消す。放置すると別ユーザーが
+  // 旧名を新規登録しようとした際に「使用中」の誤判定になる）
+  if (displayName !== existing?.displayName) {
+    if (existing?.displayName) {
+      await env.MEMBERS.delete(displayNameOwnerKey(existing.displayName))
+    }
+    await env.MEMBERS.put(displayNameOwnerKey(displayName), body.deviceToken)
+  }
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,

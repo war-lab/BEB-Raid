@@ -214,6 +214,13 @@ function checkAnswerKeyCycle(questions: readonly Question[], packId: string): st
  * 解消は packages/cli/scripts/shuffle-cyclic-choices.mjs（text_blankは選択肢シャッフル、
  * audio_qaは音声・選択肢を変えない出題順の並べ替え）で行う。
  */
+/**
+ * 隣接差分の最頻値がこの比率以上を占めるパックを統計的な循環とみなす（T-339・K-75）。
+ * pack-p5-s-001の実測（1次マルコフ的中率83.7%）を検出でき、既存の「シャッフル済み」
+ * フィクスチャ（最頻差分は5割程度）を誤検出しない値として0.7を採る
+ */
+const CYCLE_RATIO_THRESHOLD = 0.7
+
 function checkFlatAnswerKeyCycle(questions: readonly Question[], packId: string): string[] {
   const problems: string[] = []
   for (const format of ['text_blank', 'audio_qa'] as const) {
@@ -227,21 +234,24 @@ function checkFlatAnswerKeyCycle(questions: readonly Question[], packId: string)
     const keys = ANSWER_KEYS.slice(0, choiceCount)
     const indices = subset.map((q) => keys.indexOf(q.answer as (typeof ANSWER_KEYS)[number]))
     if (indices.some((i) => i < 0)) continue
-    const delta = (indices[1]! - indices[0]! + choiceCount) % choiceCount
+    const deltas = indices.slice(1).map((idx, i) => (idx - indices[i]! + choiceCount) % choiceCount)
     // delta=0（正答キーが常に同じ）は別種の問題（テストフィクスチャ等で偶発しやすい）で
     // rotatePart5Choices/rotatePart2Choicesが生む「一定の非ゼロ差分で回転する」循環とは
-    // 性質が違うため対象外にする（誤検出防止）
-    if (delta === 0) continue
-    let cyclic = true
-    for (let i = 1; i < indices.length - 1; i++) {
-      if ((indices[i + 1]! - indices[i]! + choiceCount) % choiceCount !== delta) {
-        cyclic = false
-        break
-      }
-    }
-    if (cyclic) {
+    // 性質が違うため統計判定の母数から除外する（誤検出防止）
+    const nonZeroDeltas = deltas.filter((d) => d !== 0)
+    if (nonZeroDeltas.length === 0) continue
+    const counts = new Map<number, number>()
+    for (const d of nonZeroDeltas) counts.set(d, (counts.get(d) ?? 0) + 1)
+    const [dominantDelta, dominantCount] = [...counts.entries()].reduce((max, entry) =>
+      entry[1] > max[1] ? entry : max,
+    )
+    const ratio = dominantCount / nonZeroDeltas.length
+    if (ratio >= CYCLE_RATIO_THRESHOLD) {
+      const pct = Math.round(ratio * 100)
       problems.push(
-        `[警告] ${packId}: ${format}全${subset.length}問の正答キーが一定差分${delta}の決定的循環になっている（出題順から正答位置が予測できる可能性）`,
+        ratio === 1
+          ? `[警告] ${packId}: ${format}全${subset.length}問の正答キーが一定差分${dominantDelta}の決定的循環になっている（出題順から正答位置が予測できる可能性）`
+          : `[警告] ${packId}: ${format}全${subset.length}問の正答キーが差分${dominantDelta}の統計的循環になっている（隣接差分の${pct}%が同一。出題順から正答位置が高確率で予測できる）`,
       )
     }
   }
@@ -339,6 +349,44 @@ function checkChoiceTagText(
   return problems
 }
 
+/**
+ * Part3話者ラベルと性別指示の整合検出（⑩。T-338・K-73）。
+ * TTS音声は script の "A:" を女声、"B:" を男声に固定して合成する（ttsBatch.ts/tts.ts）。
+ * 解説が「男性は"（引用）"と述べている」「女性の"（引用）"という提案」のように scriptの発言を
+ * 引用しつつ性別ラベルを付ける形式を取っているため、引用文が実際にscript上のどちらの話者の
+ * 発言かをA:/B:の出現位置から逆引きし、解説側のラベルと食い違っていないかを検査する。
+ * Part4は単一話者のモノローグでA/B表記自体が無いため対象外
+ */
+function checkPart34SpeakerGenderConsistency(q: Question): string[] {
+  if (q.format !== 'audio_set' || q.part !== 3 || !q.script) return []
+  const problems: string[] = []
+  const labelPattern = /(男性|女性)(?:は|の)"([^"]{6,})"/g
+  for (const sq of q.subQuestions ?? []) {
+    const text = sq.explanation ?? ''
+    let m: RegExpExecArray | null
+    labelPattern.lastIndex = 0
+    while ((m = labelPattern.exec(text))) {
+      const claimedLabel = m[1]!
+      const quote = m[2]!
+      const claimedSpeaker = claimedLabel === '男性' ? 'B' : 'A'
+      const quoteIndex = q.script.indexOf(quote)
+      if (quoteIndex === -1) continue
+      const upToQuote = q.script.slice(0, quoteIndex)
+      const lastA = upToQuote.lastIndexOf('A:')
+      const lastB = upToQuote.lastIndexOf('B:')
+      if (lastA === -1 && lastB === -1) continue
+      const actualSpeaker = lastA > lastB ? 'A' : 'B'
+      if (actualSpeaker !== claimedSpeaker) {
+        const actualLabel = actualSpeaker === 'A' ? '女性' : '男性'
+        problems.push(
+          `[警告] ${q.id}/${sq.id}: 解説の引用"${quote}"を${claimedLabel}に誤帰属している（script上は${actualLabel}=話者${actualSpeaker}の発言）`,
+        )
+      }
+    }
+  }
+  return problems
+}
+
 /** パック内の全問（audio_set・text_passageはsubQuestions単位）を検査する */
 function checkChoiceTagConsistency(q: Question): string[] {
   if (q.format === 'text_passage' || q.format === 'audio_set') {
@@ -370,6 +418,7 @@ export function validateContentLintBlocking(
   const problems: string[] = []
   for (const q of questions) {
     problems.push(...checkChoiceTagConsistency(q))
+    problems.push(...checkPart34SpeakerGenderConsistency(q))
   }
   problems.push(...checkAnswerKeyCycle(questions, packId))
   problems.push(...checkFlatAnswerKeyCycle(questions, packId))

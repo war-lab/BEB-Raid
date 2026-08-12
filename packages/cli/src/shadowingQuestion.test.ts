@@ -35,6 +35,36 @@ describe('SHADOWING_ENTRIES_S（データ本体）', () => {
       expect(entry.script.toLowerCase()).toContain(entry.keyVocabWord.toLowerCase())
     }
   })
+
+  // T-340（K-87）: idのプレフィックス（p2/p3/p4）と実際の抜粋元partが一致すること。
+  // 修正前はshadowingQuestion.tsがpart:3を全問固定していたため、p4-verbatim・p2-response
+  // 由来の20件がPart3として誤配信されていた
+  it('idのプレフィックス（p2/p3/p4）とpartフィールドが一致する', () => {
+    for (const entry of SHADOWING_ENTRIES_S) {
+      const expectedPart = Number(entry.id.match(/^shadow-p(\d)-/)?.[1])
+      expect(entry.part).toBe(expectedPart)
+    }
+  })
+
+  // T-340（K-87）: part2QuestionsS.ts/S2.tsの正答choiceと完全一致する文言が残っていないこと。
+  // 完全一致していると、シャドーイングを先に学習した利用者がPart2側の正答を覚えてしまう
+  it('part2の正答choiceと完全一致するscriptが無い（正答の先出し防止）', () => {
+    const leakedAnswers = [
+      'It comes with a two-year warranty.',
+      'Yes, we passed the audit last week.',
+      'We are still waiting on client feedback.',
+      'Yes, but the technician already fixed it.',
+      'We plan to partner with a local distributor.',
+      'Our procurement manager will handle it.',
+      "I'll check with the warehouse right away.",
+      "We're still discussing the budget for it.",
+      "We're still waiting to hear from headquarters.",
+      'The company has sponsored local events for years.',
+    ]
+    for (const entry of SHADOWING_ENTRIES_S) {
+      expect(leakedAnswers).not.toContain(entry.script)
+    }
+  })
 })
 
 describe('shadowingQuestion', () => {

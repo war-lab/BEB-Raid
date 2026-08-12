@@ -21,6 +21,7 @@ import {
 import { rotationAmount } from './choiceRotation.js'
 import { PART2_ENTRIES_S, type Part2Entry } from './data/part2QuestionsS.js'
 import { PART2_ENTRIES_S2_RAW, type Part2RawEntry } from './data/part2QuestionsS2.js'
+import { PART2_ENTRIES_S3_RAW } from './data/part2QuestionsS3.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
@@ -141,6 +142,13 @@ export function part2EntryFromRaw(raw: Part2RawEntry): Part2Entry {
 /** Part2追加分（M2・T-60・S2）100問をPart2Entry形式に組み立てる */
 export function buildPart2EntriesS2(
   raw: readonly Part2RawEntry[] = PART2_ENTRIES_S2_RAW,
+): Part2Entry[] {
+  return raw.map((r) => part2EntryFromRaw(r))
+}
+
+/** Part2追加分（T-349・S3。平叙文・付加疑問・選択疑問）をPart2Entry形式に組み立てる */
+export function buildPart2EntriesS3(
+  raw: readonly Part2RawEntry[] = PART2_ENTRIES_S3_RAW,
 ): Part2Entry[] {
   return raw.map((r) => part2EntryFromRaw(r))
 }

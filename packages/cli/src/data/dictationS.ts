@@ -44,7 +44,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   {
     keyVocabWord: 'invoice',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'Please send the invoice to the accounting department today.',
+    script: 'Please send the invoice to our accounting department today.',
     blanks: [
       {
         index: 2,
@@ -56,7 +56,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
       },
     ],
     explanation: '弱形になりやすいthe/toを穴にしている。',
-    translation: 'その請求書を今日、経理部に送ってください。',
+    translation: 'その請求書を今日、当社の経理部に送ってください。',
     difficulty: 2,
   },
   {
@@ -98,19 +98,19 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   {
     keyVocabWord: 'contract',
     tags: ['弱形・連結', '助動詞弱形'],
-    script: 'They should review the contract before they sign it.',
+    script: 'The parties should review the contract before they sign it.',
     blanks: [
       {
-        index: 1,
+        index: 2,
         answer: 'should',
       },
       {
-        index: 6,
+        index: 7,
         answer: 'they',
       },
     ],
     explanation: '弱形になりやすいshould/theyを穴にしている。',
-    translation: '彼らは署名する前にその契約書を確認すべきだ。',
+    translation: '契約当事者は署名する前にその契約書を確認すべきだ。',
     difficulty: 3,
   },
   {
@@ -206,7 +206,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   {
     keyVocabWord: 'budget',
     tags: ['弱形・連結', '助動詞弱形'],
-    script: 'The budget was approved, but it was later revised.',
+    script: 'The budget was approved, but it got revised later.',
     blanks: [
       {
         index: 2,
@@ -638,7 +638,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
   {
     keyVocabWord: 'shuttle',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'The shuttle leaves every hour from the main entrance.',
+    script: 'Our shuttle leaves every hour from the main entrance.',
     blanks: [
       {
         index: 5,
@@ -650,7 +650,7 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
       },
     ],
     explanation: '弱形になりやすいfrom/theを穴にしている。',
-    translation: 'シャトルバスは正面玄関から毎時発車する。',
+    translation: '当社のシャトルバスは正面玄関から毎時発車する。',
     difficulty: 2,
   },
   {
@@ -742,5 +742,78 @@ export const DICTATION_ENTRIES_S: DictationRawEntry[] = [
     explanation: '弱形になりやすいwas/becauseを穴にしている。',
     translation: 'その委託荷物は税関の問題のため遅延した。',
     difficulty: 4,
+  },
+  // 【T-341（K-79）追加】機能語の弱形だけでなく、内容語の穴・複数語ブロックの穴も混ぜる。
+  // 内容語の穴は文脈推測ではなく語そのものの聞き取り力を試す（ワードバンクのダミーは
+  // engine/dictation.tsのbuildWordBankが内容語プールから選ぶ。混同を避けるため機能語とは
+  // 別クラス扱いにしている）
+  {
+    keyVocabWord: 'courier',
+    tags: ['内容語'],
+    script: 'The courier delivered the package to the office before noon.',
+    blanks: [
+      {
+        index: 1,
+        answer: 'courier',
+      },
+    ],
+    explanation:
+      '文脈からの推測ではなく、内容語courierの音そのものを正確に聞き取れるかを試す穴にしている。',
+    translation: '配達員はその荷物を正午前にオフィスへ届けた。',
+    difficulty: 3,
+  },
+  {
+    keyVocabWord: 'backlog',
+    tags: ['内容語'],
+    script: 'The warehouse is dealing with a large backlog.',
+    blanks: [
+      {
+        index: 7,
+        answer: 'backlog',
+      },
+    ],
+    explanation:
+      '文脈からの推測ではなく、内容語backlogの音そのものを正確に聞き取れるかを試す穴にしている。',
+    translation: 'その倉庫は大量の滞貨に対応している。',
+    difficulty: 3,
+  },
+  // 隣接する2語をひと続きの連結音として穴にする（複数語ブロック）
+  {
+    keyVocabWord: 'premium',
+    tags: ['弱形・連結', '複数語ブロック'],
+    script: 'Customers have to pay a premium for next-day delivery.',
+    blanks: [
+      {
+        index: 1,
+        answer: 'have',
+      },
+      {
+        index: 2,
+        answer: 'to',
+      },
+    ],
+    explanation:
+      '"have to"は/hæftə/のように連結して発音されやすいため、隣接する2語をひと続きのブロックとして穴にしている。',
+    translation: '顧客は翌日配達のために割増料金を払わなければならない。',
+    difficulty: 3,
+  },
+  {
+    keyVocabWord: 'overhead',
+    tags: ['弱形・連結', '複数語ブロック'],
+    script: 'The company used to spend more on overhead each month.',
+    blanks: [
+      {
+        index: 2,
+        answer: 'used',
+      },
+      {
+        index: 3,
+        answer: 'to',
+      },
+    ],
+    explanation:
+      '"used to"は/juːstə/のように連結して発音されやすいため、隣接する2語をひと続きのブロックとして穴にしている。',
+    translation: 'その会社はかつて、毎月もっと諸経費をかけていた。',
+    difficulty: 3,
   },
 ]

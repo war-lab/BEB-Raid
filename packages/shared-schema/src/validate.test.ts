@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { part2ResponsesDigest } from './part2Responses.js'
-import type { Manifest, Question, QuestionPack } from './types.js'
+import type { Manifest, PassageKind, Question, QuestionPack } from './types.js'
 import { validateManifest, validatePack } from './validate.js'
 
 /** docs/04_データ設計.md 2節のサンプルJSON（コメントを除きそのまま） */
@@ -1115,6 +1115,30 @@ describe('validatePack: translation/explanation の型検証（T-239・Q-82）',
   })
 })
 
+describe('validatePack: pack.reviewedBy/reviewedAt/reviewMethod（T-355）', () => {
+  it('省略なら通る（既存パックとの後方互換）', () => {
+    const pack = docsSamplePack()
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('文字列を指定すれば通る', () => {
+    const pack = docsSamplePack()
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedBy = 'claude-opus-5'
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedAt = '2026-08-12'
+    ;(pack.pack as unknown as Record<string, unknown>).reviewMethod = '敵対的検証（6観点）'
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('文字列以外なら拒否する', () => {
+    const pack = docsSamplePack()
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedBy = 123
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'pack.reviewedBy', code: 'invalid_value' }),
+    )
+  })
+})
+
 describe('validatePack: imageFiles 指定時の image 存在チェック（T-239・Q-82）', () => {
   function audioPhotoPack(image: string): QuestionPack {
     const pack = docsSamplePack()
@@ -1153,7 +1177,8 @@ describe('validatePack: passages[].kind のenum検証（T-239・Q-82）', () => 
         part: 6,
         choices: null,
         answer: null,
-        passages: [{ id: 'p1', kind, text: 'Please [[1]] your plan.' }],
+        // 不正なkind文字列を検証する目的で意図的にPassageKindの範囲外を渡す
+        passages: [{ id: 'p1', kind: kind as PassageKind, text: 'Please [[1]] your plan.' }],
         subQuestions: [
           {
             id: 'sq-1',
