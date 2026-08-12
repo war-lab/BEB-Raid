@@ -5,6 +5,14 @@
 
 /** epoch ms → ローカル暦日 'YYYY-MM-DD' */
 export function toDateString(epochMs: number): string {
+  // T-312（K-45）: epochMsがNaN等の非有限値だと、new Date(NaN)は例外を投げず
+  // 「Invalid Date」を返し、getFullYear()等もNaNを返すため "NaN-NaN-NaN" という
+  // 一見文字列に見える壊れた値が素通りしていた（学習日集計・ヒートマップ等の
+  // 日付キーに紛れ込むと検出しづらい）。parseDateStringの不正入力の扱いと揃え、
+  // ここでも即座に検出する
+  if (!Number.isFinite(epochMs)) {
+    throw new Error(`toDateStringに非有限のepochMsが渡された: ${epochMs}`)
+  }
   const d = new Date(epochMs)
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')

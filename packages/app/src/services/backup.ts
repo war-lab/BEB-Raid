@@ -134,10 +134,17 @@ export async function exportAll(db: BebRaidDatabase): Promise<BackupFile> {
     const stores = {} as Record<keyof BackupStores, unknown[]>
     for (const name of STORE_NAMES) {
       const rows = await db.table(name).toArray()
-      stores[name] =
-        name === 'settings'
-          ? (rows as SettingRecord[]).filter((r) => !EXPORT_EXCLUDED_KEYS.includes(r.key))
-          : rows
+      if (name === 'settings') {
+        stores[name] = (rows as SettingRecord[]).filter(
+          (r) => !EXPORT_EXCLUDED_KEYS.includes(r.key),
+        )
+      } else if (name === 'profile') {
+        // T-279（K-2）: deviceTokenは共有APIのBearer資格情報。バックアップファイルに
+        // 平文で含めない（05の5節の不変条件と同種。BYOK APIキーと同じ扱い）
+        stores[name] = (rows as ProfileRecord[]).map((r) => ({ ...r, deviceToken: '' }))
+      } else {
+        stores[name] = rows
+      }
     }
     return {
       formatVersion: BACKUP_FORMAT_VERSION,
@@ -146,6 +153,32 @@ export async function exportAll(db: BebRaidDatabase): Promise<BackupFile> {
       stores: stores as unknown as BackupStores,
     }
   })
+}
+
+/**
+ * エクスポート督促のしきい値（T-296・K-22）。非インストールのSafariタブ等では
+ * 7日間開かないとIndexedDBごと退避されうるが、規定の督促間隔は無いため妥当な
+ * 既定値を置く。14日＝月2回程度促す間隔、50件＝1日の平均解答数を大きく超える蓄積量
+ */
+export const EXPORT_NUDGE_DAYS = 14
+export const EXPORT_NUDGE_ATTEMPT_COUNT = 50
+
+/**
+ * エクスポートを促すべきかどうかを判定する（T-296・K-22）。
+ * 一度もエクスポートしていない場合は、学習データが1件以上あれば促す
+ * （診断直後で解答が無い状態では促さない）。エクスポート済みの場合は、
+ * 経過日数・件数のいずれかがしきい値を超えたら促す
+ */
+export function shouldNudgeExport(params: {
+  lastExportedAt: number | null
+  attemptsSinceLastExport: number
+  now: number
+}): boolean {
+  if (params.lastExportedAt === null) return params.attemptsSinceLastExport > 0
+  const elapsedDays = (params.now - params.lastExportedAt) / (24 * 60 * 60 * 1000)
+  return (
+    elapsedDays >= EXPORT_NUDGE_DAYS || params.attemptsSinceLastExport >= EXPORT_NUDGE_ATTEMPT_COUNT
+  )
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -166,12 +199,28 @@ function isNumOrNull(v: unknown): boolean {
 function isStrOrNull(v: unknown): boolean {
   return v === null || isStr(v)
 }
+// T-300（K-27・K-28）: isNumは型のみでNaN/Infinity/負値を素通りさせる。answeredAt等が
+// NaNだとIndexedDBの範囲インデックスから実質的に消える（K-28と同じ危険性）ため、
+// 時刻・件数・スコア等の「意味のある数値」フィールドは有限かつ非負であることまで見る
+function isNonNegativeFiniteNum(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0
+}
+function isNonNegativeFiniteNumOrNull(v: unknown): boolean {
+  return v === null || isNonNegativeFiniteNum(v)
+}
+function isOneOf<T extends string>(v: unknown, values: readonly T[]): v is T {
+  return typeof v === 'string' && (values as readonly string[]).includes(v)
+}
+
+const ATTEMPT_MODES = ['solo', 'raid', 'battle', 'srs'] as const
+const SRS_REF_TYPES = ['vocab', 'question'] as const
+const RATING_SECTIONS = ['L', 'R', 'total'] as const
 
 /**
  * 各ストアのレコード単位の型検証（T-190・Q-100）。「storesが配列か」だけでは、
  * id欠落のattempts・型不正のsrsCards等がそのままbulkAdd/bulkPutされてしまう
  * （実行時エラー、あるいはサイレントな不整合データの混入）。網羅的なスキーマ検証ではなく、
- * 破損・改ざんされたバックアップの取込を防ぐ最低限（必須フィールドの型）の検査
+ * 破損・改ざんされたバックアップの取込を防ぐ最低限（必須フィールドの型・値域・列挙）の検査
  */
 const RECORD_VALIDATORS: Record<keyof BackupStores, (r: unknown) => boolean> = {
   profile: (r) =>
@@ -179,60 +228,77 @@ const RECORD_VALIDATORS: Record<keyof BackupStores, (r: unknown) => boolean> = {
     isStr(r.id) &&
     isStr(r.displayName) &&
     isNumOrNull(r.initialToeic) &&
-    isNum(r.createdAt) &&
+    isNonNegativeFiniteNum(r.createdAt) &&
     isStr(r.deviceToken),
   attempts: (r) =>
     isObj(r) &&
     isStr(r.id) &&
     isStr(r.questionId) &&
-    isStr(r.mode) &&
+    isOneOf(r.mode, ATTEMPT_MODES) &&
     isBool(r.isCorrect) &&
-    isNum(r.responseMs) &&
+    isNonNegativeFiniteNum(r.responseMs) &&
     isBool(r.isTimeout) &&
     isBool(r.isGuess) &&
-    isNum(r.answeredAt),
+    isNonNegativeFiniteNum(r.answeredAt),
   srsCards: (r) =>
     isObj(r) &&
     isStr(r.id) &&
-    isStr(r.refType) &&
+    isOneOf(r.refType, SRS_REF_TYPES) &&
     isStr(r.refId) &&
-    isNum(r.stage) &&
-    isNum(r.dueAt) &&
-    isNum(r.lapses),
-  ratings: (r) => isObj(r) && isStr(r.section) && isNum(r.rating) && isNum(r.updatedAt),
-  ratingHistory: (r) => isObj(r) && isStr(r.date) && isStr(r.section) && isNum(r.rating),
-  tagStats: (r) => isObj(r) && isStr(r.tag) && isNum(r.windowCorrect) && isNum(r.windowTotal),
-  phase: (r) => isObj(r) && isStr(r.season) && isStr(r.criteriaJson) && isNumOrNull(r.achievedAt),
+    isNonNegativeFiniteNum(r.stage) &&
+    isNonNegativeFiniteNum(r.dueAt) &&
+    isNonNegativeFiniteNum(r.lapses),
+  ratings: (r) =>
+    isObj(r) &&
+    isOneOf(r.section, RATING_SECTIONS) &&
+    isNonNegativeFiniteNum(r.rating) &&
+    isNonNegativeFiniteNum(r.updatedAt),
+  ratingHistory: (r) =>
+    isObj(r) &&
+    isStr(r.date) &&
+    isOneOf(r.section, RATING_SECTIONS) &&
+    isNonNegativeFiniteNum(r.rating),
+  tagStats: (r) =>
+    isObj(r) &&
+    isStr(r.tag) &&
+    isNonNegativeFiniteNum(r.windowCorrect) &&
+    isNonNegativeFiniteNum(r.windowTotal),
+  phase: (r) =>
+    isObj(r) &&
+    isStr(r.season) &&
+    isStr(r.criteriaJson) &&
+    isNonNegativeFiniteNumOrNull(r.achievedAt),
   streak: (r) =>
     isObj(r) &&
     isStr(r.id) &&
-    isNum(r.currentDays) &&
-    isNum(r.bestDays) &&
+    isNonNegativeFiniteNum(r.currentDays) &&
+    isNonNegativeFiniteNum(r.bestDays) &&
     isStrOrNull(r.lastActiveDate) &&
     isStrOrNull(r.protectionUsedAt),
-  badges: (r) => isObj(r) && isStr(r.badgeId) && isNum(r.earnedAt),
-  pendingSync: (r) => isObj(r) && isStr(r.kind) && isStr(r.payloadJson) && isNum(r.createdAt),
+  badges: (r) => isObj(r) && isStr(r.badgeId) && isNonNegativeFiniteNum(r.earnedAt),
+  pendingSync: (r) =>
+    isObj(r) && isStr(r.kind) && isStr(r.payloadJson) && isNonNegativeFiniteNum(r.createdAt),
   settings: (r) => isObj(r) && isStr(r.key),
   examScores: (r) =>
     isObj(r) &&
     isStr(r.id) &&
     isStr(r.date) &&
-    isNum(r.listening) &&
-    isNum(r.reading) &&
-    isNum(r.total) &&
+    isNonNegativeFiniteNum(r.listening) &&
+    isNonNegativeFiniteNum(r.reading) &&
+    isNonNegativeFiniteNum(r.total) &&
     isStr(r.source),
   raidState: (r) =>
     isObj(r) &&
     isStr(r.id) &&
     isStr(r.bossId) &&
     isStr(r.profileJson) &&
-    isNum(r.hp) &&
-    isNum(r.maxHp) &&
-    isNum(r.myDamage) &&
+    isNonNegativeFiniteNum(r.hp) &&
+    isNonNegativeFiniteNum(r.maxHp) &&
+    isNonNegativeFiniteNum(r.myDamage) &&
     isBool(r.joined) &&
-    isNum(r.startAt) &&
-    isNum(r.endAt) &&
-    isNum(r.lastSyncedAt),
+    isNonNegativeFiniteNum(r.startAt) &&
+    isNonNegativeFiniteNum(r.endAt) &&
+    isNonNegativeFiniteNum(r.lastSyncedAt),
 }
 
 /**
@@ -310,6 +376,23 @@ export async function importAll(db: BebRaidDatabase, data: unknown): Promise<voi
         const existing = await db.attempts.bulkGet(incoming.map((r) => r.id))
         const fresh = incoming.filter((_, i) => existing[i] === undefined)
         await db.attempts.bulkAdd(fresh)
+      } else if (name === 'profile') {
+        // T-279（K-2）: deviceTokenはexportAllで伏せられている（空文字）。復元先に既存の
+        // トークンがあればそれを優先し（別端末の識別子で上書きしない）、無ければ
+        // 新規発行する（services/profile.tsの初回作成と同じ方式。空のままにすると
+        // 共有APIへ一切登録できず「再登録」導線にすら到達できないため）。
+        // 外部編集で非空のdeviceTokenが混入していても、復元先の既存値を常に優先する
+        const incoming = rows as ProfileRecord[]
+        const existing = await db.table(name).toArray()
+        const existingToken = (existing[0] as ProfileRecord | undefined)?.deviceToken
+        await db.table(name).clear()
+        await db.table(name).bulkPut(
+          incoming.map((r) => ({
+            ...r,
+            deviceToken:
+              existingToken && existingToken !== '' ? existingToken : crypto.randomUUID(),
+          })),
+        )
       } else if (name === 'phase') {
         // T-190: phaseストアは「常に1行だけ存在する」が不変条件（services/phase.ts）。
         // 通常のexportAllは0〜1行しか出力しないが、改ざん・破損したバックアップで

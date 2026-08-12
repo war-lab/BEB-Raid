@@ -389,6 +389,68 @@ describe('BattleScreen: 切断・離脱時の後始末', () => {
   })
 })
 
+// T-282（K-5）: handleJoinがhasConnectedRefしかリセットしないため、前回のルームで
+// 未解答のまま切断されたquestionがcurrentQuestionRefに残り、再参加後の最初のquestionOpenで
+// finalizeUnansweredQuestionが誤ってそれを時間切れattemptとして記録してしまっていた
+describe('BattleScreen: 再参加時の状態リセット（T-282・K-5）', () => {
+  it('前回のルームで未解答だった問題が、再参加後に偽の時間切れattemptとして記録されない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const q1 = textBlankQuestion('q-1', 'A')
+    const q2 = textBlankQuestion('q-2', 'A')
+    const socket = new FakeBattleSocket()
+
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q1, q2]} />)
+
+    // ルームA: 参加し、q1が出題されるが未解答のまま切断される
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'aaaa' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('AAAA'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByText(q1.question!)
+    socket.emitClose(1006) // 未解答のまま切断
+    await screen.findByText('接続が切れました')
+
+    // ルームBへ再参加する
+    fireEvent.click(screen.getByRole('button', { name: 'もう一度試す' }))
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'bbbb' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('BBBB'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-2',
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByText(q2.question!)
+
+    // ルームAのq1が偽の時間切れattemptとして紛れ込んでいないこと
+    await waitFor(async () => {
+      const attempts = await db.attempts.toArray()
+      expect(attempts.some((a) => a.questionId === 'q-1')).toBe(false)
+    })
+  })
+})
+
 describe('BattleScreen: ルームコードの正規化', () => {
   it('小文字・4文字超は大文字化・切り詰めされる', async () => {
     const db = newDb()

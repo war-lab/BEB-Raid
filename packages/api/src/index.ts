@@ -11,9 +11,16 @@ import { handleRaidCurrent, handleRaidSync } from './raidHandlers'
 import { handleGetRaidSummary } from './raidSummaryHandlers'
 import { handleRegister } from './register'
 import { generateWeeklyBoss } from './scheduled'
-import { handleGetStats, handlePostReport, handlePostStats } from './statsHandlers'
+import {
+  errorResponse,
+  handleGetStats,
+  handlePostReport,
+  handlePostStats,
+  parseStatsRequestBody,
+} from './statsHandlers'
 
 export { BattleRoomDO } from './battleRoomDo'
+export { InviteRateLimitDo } from './inviteRateLimitDo'
 export { RaidBossDO } from './raidBossDo'
 export { StatsDO } from './statsDo'
 
@@ -35,7 +42,8 @@ const BATTLE_WS_PATH = /^\/battle\/rooms\/([A-Z0-9]{4})\/ws$/
  * 場合に発火日を別の誤った曜日へ動かしてしまう。generateWeeklyBossはRaidBossDO側で週の
  * 生成権を主張する形で完全に冪等化した（T-179）ため、日次発火でも週1回しか生成されない
  */
-const CRON_WEEKLY_BOSS = '0 0 * * *'
+// T-288（K-15）: index.test.tsがwrangler.tomlのcronsと直接照合するためexportする
+export const CRON_WEEKLY_BOSS = '0 0 * * *'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -74,7 +82,17 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (request.method === 'POST' && url.pathname === '/stats/questions') {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
-    return handlePostStats(request, env)
+    // T-334（K-69）: リクエスト本体の解析・検証はここで完結させ、handlePostStats本体には
+    // 検証済みペイロードのみを渡す（Requestを渡さない。questionStatsの匿名性を
+    // 伝送・処理経路全体で保つため。parseStatsRequestBodyのコメント参照）
+    const parsed = await parseStatsRequestBody(request)
+    if (parsed === 'invalid_json') {
+      return errorResponse(400, 'invalid_body', 'JSONの解析に失敗しました')
+    }
+    if (parsed === 'invalid_shape') {
+      return errorResponse(400, 'invalid_body', 'リクエストボディの形式が不正です')
+    }
+    return handlePostStats(env, parsed)
   }
 
   // 【T-249・29のQ-31】管理用エンドポイント。以前は一般メンバーのBearer
@@ -83,7 +101,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (request.method === 'GET' && url.pathname === '/stats/questions') {
     const authError = authenticateAdminRequest(request, env)
     if (authError) return authError
-    return handleGetStats(env)
+    return handleGetStats(env, request)
   }
 
   if (request.method === 'POST' && url.pathname === '/reports') {

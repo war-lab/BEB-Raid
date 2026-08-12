@@ -37,7 +37,13 @@ export function buildAttempt(input: RecordAttemptInput): AttemptRecord {
     responseMs: input.responseMs,
     isTimeout,
     isGuess: !isTimeout && !isCorrect && input.responseMs < GUESS_THRESHOLD_MS,
-    answeredAt: input.answeredAt ?? Date.now(),
+    // T-300（K-28）: answeredAtがNaN/Infinityだと、IndexedDBのansweredAtインデックスが
+    // 範囲クエリでこのレコードを拾えなくなる（物理的には存在するのに日次集計・ストリーク等
+    // から無音で消える）。呼び出し側の計算ミスで非有限値が来ても保存前にフォールバックする
+    answeredAt:
+      input.answeredAt !== undefined && Number.isFinite(input.answeredAt)
+        ? input.answeredAt
+        : Date.now(),
   }
 }
 
