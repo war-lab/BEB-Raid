@@ -467,7 +467,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'merger',
     tags: ['ビジネス名詞'],
-    question: 'Employees worried about job security after the ___.',
+    question: 'Employees needed extra training after the ___.',
     choices: [
       { key: 'A', text: 'extension' },
       { key: 'B', text: 'inspection' },
@@ -476,8 +476,8 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     ],
     answer: 'C',
     explanation:
-      '雇用不安の原因になり得るのはmerger（合併）。extension（延長）・inspection（検査）・endorsement（推薦）は雇用不安の典型的な原因にならない。',
-    translation: '従業員は合併後の雇用の安定を心配した。',
+      '追加の研修が必要になった原因はmerger（合併。新しい体制への適応）。extension（延長）・inspection（検査）・endorsement（推薦）は研修が必要になる典型的な原因にならない。',
+    translation: '従業員は合併後に追加の研修を必要とした。',
     difficulty: 2,
   },
   {
@@ -515,7 +515,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'negotiate',
     tags: ['頻出動詞'],
-    question: 'Both sides agreed to ___ rather than go to court.',
+    question: 'Both sides agreed to ___ rather than escalate the dispute further.',
     choices: [
       { key: 'A', text: 'merge' },
       { key: 'B', text: 'negotiate' },
@@ -524,8 +524,8 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     ],
     answer: 'B',
     explanation:
-      '裁判の代わりに選ぶのはnegotiate（交渉する）。merge（合併する）・endorse（推薦する）・certify（認定する）は裁判の代替手段にならない。',
-    translation: '両者は裁判に訴える代わりに交渉することに合意した。',
+      '対立を悪化させる代わりに選ぶのはnegotiate（交渉する）。merge（合併する）・endorse（推薦する）・certify（認定する）は対立解決の代替手段にならない。',
+    translation: '両者は対立を悪化させる代わりに交渉することに合意した。',
     difficulty: 2,
   },
   {
@@ -611,7 +611,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'promotion',
     tags: ['ビジネス名詞'],
-    question: 'His hard work finally led to a well-deserved ___.',
+    question: 'His hard work finally led to a well-deserved ___ to team leader.',
     choices: [
       { key: 'A', text: 'merger' },
       { key: 'B', text: 'promotion' },
@@ -620,8 +620,8 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     ],
     answer: 'B',
     explanation:
-      '努力の結果として得るのはpromotion（昇進）。merger（合併）・budget（予算）・certification（認定）は個人の努力の直接の結果として得るものではない。',
-    translation: '彼の努力はついに当然の昇進につながった。',
+      '「役職への昇進」を表すのはpromotion（"promotion to team leader"は定番の言い方）。merger（合併）・budget（予算）・certification（認定。通常"certification as"を使い、役職には使わない）は文脈に合わない。',
+    translation: '彼の努力はついに、チームリーダーへの当然の昇進につながった。',
     difficulty: 2,
   },
   {

@@ -53,13 +53,13 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'complaint',
     tags: ['動詞の形'],
     question:
-      'The complaint submitted by Samuel Okafor ___ carefully reviewed by the legal team before the hearing.',
+      'The complaint submitted through the customer portal ___ carefully reviewed by the support team before a response was sent.',
     correctText: 'was',
     distractors: ['did', 'has', 'had'],
     explanation:
       '空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。',
     translation:
-      'サミュエル・オカフォル氏が提出した苦情申し立ては、公聴会の前に法務チームによって注意深く見直された。',
+      'カスタマーポータルを通じて提出された苦情申し立ては、回答が送られる前にサポートチームによって注意深く見直された。',
     difficulty: 4,
   },
   {
@@ -200,12 +200,12 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'breach',
     tags: ['動詞の形'],
     question:
-      "Allegations of a serious breach ___ raised during Victor Alarcón's testimony before the committee.",
+      'Allegations of a serious safety breach ___ raised during the quarterly review before the committee.',
     correctText: 'were',
     distractors: ['did', 'have', 'had'],
     explanation:
       '空所の後にraised（過去分詞）が続き、Allegations（複数）は「提起される」対象なので受動態(were raised)が正しい。',
-    translation: 'ビクトル・アラルコン氏の委員会での証言中に、重大な違反の疑惑が提起された。',
+    translation: '委員会の前の四半期レビュー中に、重大な安全上の違反の疑惑が提起された。',
     difficulty: 4,
   },
   {
@@ -298,14 +298,12 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
   {
     keyVocabWord: 'eviction',
     tags: ['動詞の形'],
-    question:
-      'Ingrid Solberg ___ served with an eviction notice after missing several rent payments.',
+    question: 'A tenant ___ served with an eviction notice after missing several rent payments.',
     correctText: 'was',
     distractors: ['is', 'have', 'did'],
     explanation:
-      '空所の後にserved（過去分詞）が続き、Ingrid Solbergは「送達される」対象なので受動態が正しい。isは時制が現在で合わず、haveは主語Ingrid Solberg（単数）に合わず、didの後には過去分詞servedは続かない。',
-    translation:
-      '複数回の家賃支払いを怠った後、イングリッド・ソルベルグ氏には立ち退き通知が送達された。',
+      '空所の後にserved（過去分詞）が続き、tenantは「送達される」対象なので受動態が正しい。isは時制が現在で合わず、haveは主語tenant（単数）に合わず、didの後には過去分詞servedは続かない。',
+    translation: '複数回の家賃支払いを怠った後、その入居者には立ち退き通知が送達された。',
     difficulty: 4,
   },
   {
@@ -349,12 +347,13 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'memo',
     tags: ['動詞の形'],
     question:
-      'A memo ___ issued to Renata Silva after the internal audit uncovered irregularities.',
+      'A memo ___ issued to warehouse staff after the internal audit found several process gaps.',
     correctText: 'was',
     distractors: ['are', 'has', 'will have'],
     explanation:
       '空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。areは主語memo（単数）に合わず、has/will haveはいずれも能動の完了形として読めてしまい、memoが自ら「発行する」ことはできないので意味が成立しない。',
-    translation: '内部監査が不正を発見した後、レナータ・シルバ氏に社内通知が発行された。',
+    translation:
+      '内部監査でいくつかの手順上の不備が見つかった後、倉庫スタッフに社内通知が発行された。',
     difficulty: 4,
   },
   {
@@ -394,15 +393,14 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'receivership',
+    keyVocabWord: 'oversight',
     tags: ['動詞の形'],
-    question:
-      'The company ___ placed into receivership shortly after Jonas Feldman resigned as CEO.',
+    question: 'The company ___ placed under new oversight shortly after the previous CEO resigned.',
     correctText: 'was',
     distractors: ['is', 'had', 'will have'],
     explanation:
       '空所の後にplaced（過去分詞）が続き、companyは「置かれる」対象なので受動態が正しい。isは時制が現在で合わず、had/will haveはいずれも能動の完了形として読めてしまい、companyが自ら「置く」ことはできないので意味が成立しない。',
-    translation: 'ジョナス・フェルドマン氏がCEOを辞任した直後、その会社は管財人管理下に置かれた。',
+    translation: '前任のCEOが退任した直後、その会社は新たな監督体制の下に置かれた。',
     difficulty: 4,
   },
   {
@@ -419,29 +417,29 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'redundancy',
+    keyVocabWord: 'training',
     tags: ['動詞の形'],
     question:
-      'The percentage of staff affected by the redundancy plan at Osgood Manufacturing ___ expected to reach twelve percent.',
+      'The percentage of staff affected by the training plan at Osgood Manufacturing ___ expected to reach twelve percent.',
     correctText: 'is',
     distractors: ['are', 'had been', 'has been'],
     explanation:
       '"The percentage of + 複数名詞"は単数扱い。The percentageが主語の核なのでisが正しい。areは複数扱いの誤り、had been/has beenは時制のずれで合わない。',
     translation:
-      'Osgood Manufacturingでの人員整理計画の影響を受ける従業員の割合は、12パーセントに達すると見込まれている。',
+      'Osgood Manufacturingでの研修計画の影響を受ける従業員の割合は、12パーセントに達すると見込まれている。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'nepotism',
+    keyVocabWord: 'overstock',
     tags: ['動詞の形'],
     question:
-      'Investigators concluded that the board ___ overlooked signs of nepotism for several years before the scandal broke.',
+      'Investigators concluded that the board ___ overlooked signs of overstock for several years before costs spiraled out of control.',
     correctText: 'had',
     distractors: ['have', 'will have', 'did'],
     explanation:
-      '"before the scandal broke"より前の完了を表す過去完了。hadが正しい。haveは時制が現在完了で合わず、will haveは未来完了で時点が合わず、didの後には過去分詞overlookedは続かない。',
+      '"before costs spiraled out of control"より前の完了を表す過去完了。hadが正しい。haveは時制が現在完了で合わず、will haveは未来完了で時点が合わず、didの後には過去分詞overlookedは続かない。',
     translation:
-      '調査官は、スキャンダルが発覚するより前の数年間、取締役会が縁故主義の兆候を見過ごしていたと結論づけた。',
+      '調査官は、コストが制御不能になるより前の数年間、取締役会が過剰在庫の兆候を見過ごしていたと結論づけた。',
     difficulty: 4,
   },
   {
@@ -496,13 +494,12 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
   {
     keyVocabWord: 'statement',
     tags: ['動詞の形'],
-    question:
-      'A statement ___ issued naming Aisha Karim in connection with the reporting error after an internal review.',
+    question: 'A statement ___ issued clarifying the reporting error after an internal review.',
     correctText: 'was',
     distractors: ['are', 'have', 'did'],
     explanation:
       '空所の後にissued（過去分詞）が続き、statementは「発行される」対象なので受動態が正しい。areは主語statement（単数）に合わず、haveは能動の完了形として読めてしまい意味が成立せず、didの後には過去分詞issuedは続かない。',
-    translation: '内部審査の後、報告ミスに関連してアイシャ・カリム氏の名を挙げる声明が発表された。',
+    translation: '内部審査の後、報告ミスを説明する声明が発表された。',
     difficulty: 4,
   },
   {
@@ -597,13 +594,12 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'agreement',
     tags: ['動詞の形'],
     question:
-      'The dispute ___ referred for adjudication after Liam Bratton and the contractor failed to reach an agreement.',
+      'The dispute ___ referred for adjudication after the two parties failed to reach an agreement.',
     correctText: 'was',
     distractors: ['are', 'did', 'will have'],
     explanation:
       '空所の後にreferred（過去分詞）が続き、disputeは「付託される」対象なので受動態が正しい。areは主語dispute（単数）に合わず、will haveは能動の完了形として読めてしまい意味が成立せず、didの後には過去分詞referredは続かない。',
-    translation:
-      'リアム・ブラットン氏と請負業者が合意に至らなかったため、その紛争は裁定に付託された。',
+    translation: '両者が合意に至らなかったため、その紛争は裁定に付託された。',
     difficulty: 4,
   },
   {
@@ -620,15 +616,15 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'liquidation',
+    keyVocabWord: 'renovation',
     tags: ['動詞の形'],
     question:
-      'A committee of five board members overseeing the liquidation ___ expected to report back within thirty days.',
+      'A committee of five board members overseeing the renovation ___ expected to report back within thirty days.',
     correctText: 'is',
     distractors: ['are', 'were', 'have'],
     explanation:
       '"A committee of + 複数名詞"は単数の集合体扱い。A committeeが主語の核なのでisが正しい。',
-    translation: '清算を監督する5名の取締役から成る委員会は、30日以内に報告する見込みだ。',
+    translation: '改修を監督する5名の取締役から成る委員会は、30日以内に報告する見込みだ。',
     difficulty: 4,
   },
   {

@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 59634
+    "sizeBytes": 59829
   },
   "questions": [
     {
@@ -35,7 +35,7 @@
         },
         {
           "key": "B",
-          "text": "warranty"
+          "text": "invoice"
         },
         {
           "key": "C",
@@ -43,7 +43,7 @@
         },
         {
           "key": "D",
-          "text": "invoice"
+          "text": "warranty"
         }
       ],
       "answer": "A",
@@ -73,18 +73,18 @@
         },
         {
           "key": "B",
-          "text": "certification"
+          "text": "account"
         },
         {
           "key": "C",
-          "text": "account"
+          "text": "certification"
         },
         {
           "key": "D",
           "text": "strategy"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "\"balance on an account\"（口座の残高）は定番のコロケーション。proposal（提案書）・certification（認定）・strategy（戦略）は残高を持つ対象ではない。",
       "translation": "この口座の残高を確認していただけますか？"
     },
@@ -107,22 +107,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "subscription"
-        },
-        {
-          "key": "B",
-          "text": "merger"
-        },
-        {
-          "key": "C",
           "text": "inspection"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "subscription"
+        },
+        {
+          "key": "C",
           "text": "account"
+        },
+        {
+          "key": "D",
+          "text": "merger"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "\"open an account\"（口座を開設する）が正しいコロケーション。inspection（検査）・subscription（購読）・merger（合併）は「開設する」対象として不自然。",
       "translation": "新入社員は提携銀行に口座を開設することが求められる。"
     },
@@ -145,22 +145,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "inspection"
-        },
-        {
-          "key": "B",
           "text": "submission"
         },
         {
+          "key": "B",
+          "text": "inspection"
+        },
+        {
           "key": "C",
-          "text": "acquisition"
+          "text": "warranty"
         },
         {
           "key": "D",
-          "text": "warranty"
+          "text": "acquisition"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "「小規模な会社の買収」はacquisition of the firmが自然。submission（提出）・inspection（検査）・warranty（保証）はいずれも会社を「拡大させる」文脈に合わない。",
       "translation": "その小規模な会社の買収により、会社は急速に拡大した。"
     },
@@ -183,7 +183,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "extension"
+          "text": "acquisition"
         },
         {
           "key": "B",
@@ -191,14 +191,14 @@
         },
         {
           "key": "C",
-          "text": "acquisition"
+          "text": "subscription"
         },
         {
           "key": "D",
-          "text": "subscription"
+          "text": "extension"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "株主総会で承認される対象として自然なのはacquisition（買収）。certification（認定）・subscription（購読）・extension（延長）は株主総会の承認事項として不自然。",
       "translation": "株主は昨日の会議でその買収を承認した。"
     },
@@ -225,11 +225,11 @@
         },
         {
           "key": "B",
-          "text": "candidate"
+          "text": "quality"
         },
         {
           "key": "C",
-          "text": "quality"
+          "text": "candidate"
         },
         {
           "key": "D",
@@ -259,22 +259,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "candidate"
-        },
-        {
-          "key": "B",
           "text": "budget"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "warranty"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "merger"
+        },
+        {
+          "key": "D",
+          "text": "candidate"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "\"stay within a budget\"（予算内に収める）は定番表現。warranty（保証書）・merger（合併）・candidate（候補者）は「収める」対象にならない。",
       "translation": "マーケティング部門は今四半期、予算内に収めた。"
     },
@@ -301,18 +301,18 @@
         },
         {
           "key": "B",
-          "text": "certification"
+          "text": "budget"
         },
         {
           "key": "C",
-          "text": "strategy"
+          "text": "certification"
         },
         {
           "key": "D",
-          "text": "budget"
+          "text": "strategy"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "「増額する」対象として自然なのはbudget（予算）。account（口座）・certification（認定）・strategy（戦略）は増額する対象として不自然。",
       "translation": "このプロジェクトの予算を増やす前に承認が必要だ。"
     },
@@ -335,7 +335,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "budget"
+          "text": "acquisition"
         },
         {
           "key": "B",
@@ -343,14 +343,14 @@
         },
         {
           "key": "C",
-          "text": "acquisition"
+          "text": "endorsement"
         },
         {
           "key": "D",
-          "text": "endorsement"
+          "text": "budget"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "財務チームが準備するのはbudget（予算）。acquisition（買収）・inspection（検査）・endorsement（推薦）は財務チームが毎年準備するものではない。",
       "translation": "財務チームは来年度の予算を10月に準備した。"
     },
@@ -377,11 +377,11 @@
         },
         {
           "key": "B",
-          "text": "endorsement"
+          "text": "inspection"
         },
         {
           "key": "C",
-          "text": "inspection"
+          "text": "endorsement"
         },
         {
           "key": "D",
@@ -411,7 +411,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "proposals"
+          "text": "subscriptions"
         },
         {
           "key": "B",
@@ -419,14 +419,14 @@
         },
         {
           "key": "C",
-          "text": "subscriptions"
+          "text": "candidates"
         },
         {
           "key": "D",
-          "text": "candidates"
+          "text": "proposals"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "採用委員会が面接するのはcandidates（候補者）。subscriptions（購読）・inspections（検査）・proposals（提案書）は面接の対象にならない。",
       "translation": "採用委員会はその職に5名の候補者を面接した。"
     },
@@ -453,7 +453,7 @@
         },
         {
           "key": "B",
-          "text": "extension"
+          "text": "candidate"
         },
         {
           "key": "C",
@@ -461,10 +461,10 @@
         },
         {
           "key": "D",
-          "text": "candidate"
+          "text": "extension"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "必須資格を満たすのはcandidate（候補者）。account（口座）・strategy（戦略）・extension（延長）は資格を持つ主体にならない。",
       "translation": "必要な資格を全て満たした候補者は1名だけだった。"
     },
@@ -487,22 +487,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "budget"
-        },
-        {
-          "key": "B",
           "text": "certification"
         },
         {
+          "key": "B",
+          "text": "merger"
+        },
+        {
           "key": "C",
-          "text": "candidate"
+          "text": "budget"
         },
         {
           "key": "D",
-          "text": "merger"
+          "text": "candidate"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "講座修了後に得るのはcertification（認定）。merger（合併）・budget（予算）・candidate（候補者）は講座修了で得られるものではない。",
       "translation": "彼女は講座を修了した後、専門認定を取得した。"
     },
@@ -525,7 +525,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "certification"
+          "text": "proposal"
         },
         {
           "key": "B",
@@ -533,14 +533,14 @@
         },
         {
           "key": "C",
-          "text": "warranty"
+          "text": "certification"
         },
         {
           "key": "D",
-          "text": "proposal"
+          "text": "warranty"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "安全基準を満たして得るのはcertification（認定）。proposal（提案書）・extension（延長）・warranty（保証書）は安全基準達成の証にならない。",
       "translation": "その工場は安全基準を満たして認定を受けた。"
     },
@@ -563,22 +563,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "strategy"
-        },
-        {
-          "key": "B",
           "text": "acquisition"
         },
         {
+          "key": "B",
+          "text": "account"
+        },
+        {
           "key": "C",
-          "text": "certification"
+          "text": "strategy"
         },
         {
           "key": "D",
-          "text": "account"
+          "text": "certification"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "3年ごとに更新するのはcertification（認定）。acquisition（買収）・account（口座）・strategy（戦略）は「更新」の対象として不自然。",
       "translation": "この認定は3年ごとに更新しなければならない。"
     },
@@ -601,22 +601,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "budget"
-        },
-        {
-          "key": "B",
           "text": "endorsement"
         },
         {
+          "key": "B",
+          "text": "inspection"
+        },
+        {
           "key": "C",
-          "text": "account"
+          "text": "budget"
         },
         {
           "key": "D",
-          "text": "inspection"
+          "text": "account"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "有名人から得るのはendorsement（宣伝起用・推薦）。inspection（検査）・budget（予算）・account（口座）は有名人が提供するものではない。",
       "translation": "会社は新製品のために有名人の宣伝起用を獲得した。"
     },
@@ -639,22 +639,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "merger"
-        },
-        {
-          "key": "B",
-          "text": "proposal"
-        },
-        {
-          "key": "C",
           "text": "certification"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "endorsement"
+        },
+        {
+          "key": "C",
+          "text": "merger"
+        },
+        {
+          "key": "D",
+          "text": "proposal"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "複合名詞\"endorsement deal\"（宣伝起用契約）が正しい。certification（認定）・merger（合併）・proposal（提案書）はdealの前に置いても自然な複合語にならない。",
       "translation": "その選手の宣伝起用契約がニュースで報じられた。"
     },
@@ -677,7 +677,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "endorsement"
+          "text": "extension"
         },
         {
           "key": "B",
@@ -689,10 +689,10 @@
         },
         {
           "key": "D",
-          "text": "extension"
+          "text": "endorsement"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "信頼されるブランドから得て売上を伸ばすのはendorsement（推薦・宣伝）。extension（延長）・warranty（保証書）・candidate（候補者）は売上を直接押し上げる推薦にならない。",
       "translation": "信頼されるブランドからの強い推薦は売上を押し上げることがある。"
     },
@@ -715,22 +715,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "account"
+          "text": "extension"
         },
         {
           "key": "B",
-          "text": "certification"
-        },
-        {
-          "key": "C",
           "text": "merger"
         },
         {
+          "key": "C",
+          "text": "certification"
+        },
+        {
           "key": "D",
-          "text": "extension"
+          "text": "account"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "ローン返済に対して銀行が与えるのはextension（延長）。merger（合併）・certification（認定）・account（口座）はローン返済に対して与えるものではない。",
       "translation": "銀行は顧客にローン返済の短期延長を認めることに合意した。"
     },
@@ -757,7 +757,7 @@
         },
         {
           "key": "B",
-          "text": "candidate"
+          "text": "extension"
         },
         {
           "key": "C",
@@ -765,10 +765,10 @@
         },
         {
           "key": "D",
-          "text": "extension"
+          "text": "candidate"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "賃貸契約に対して大家が認めるのはextension（延長）。acquisition（買収）・budget（予算）・candidate（候補者）は賃貸契約に対して認められるものではない。",
       "translation": "大家は賃貸契約の1ヶ月延長を認めた。"
     },
@@ -795,18 +795,18 @@
         },
         {
           "key": "B",
-          "text": "extension"
+          "text": "inspection"
         },
         {
           "key": "C",
-          "text": "subscription"
+          "text": "extension"
         },
         {
           "key": "D",
-          "text": "inspection"
+          "text": "subscription"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "休暇に対して申請するのはextension（延長）。proposal（提案書）・inspection（検査）・subscription（購読）は休暇の延長として申請するものではない。",
       "translation": "従業員は休暇の短期延長を申請できる。"
     },
@@ -829,7 +829,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "budget"
+          "text": "inspection"
         },
         {
           "key": "B",
@@ -837,14 +837,14 @@
         },
         {
           "key": "C",
-          "text": "endorsement"
+          "text": "budget"
         },
         {
           "key": "D",
-          "text": "inspection"
+          "text": "endorsement"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "工場が「合格する」対象はinspection（検査）。merger（合併）・budget（予算）・endorsement（推薦）は合格の対象にならない。",
       "translation": "その工場は年次安全検査に合格した。"
     },
@@ -867,7 +867,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "subscription"
+          "text": "proposal"
         },
         {
           "key": "B",
@@ -875,11 +875,11 @@
         },
         {
           "key": "C",
-          "text": "strategy"
+          "text": "subscription"
         },
         {
           "key": "D",
-          "text": "proposal"
+          "text": "strategy"
         }
       ],
       "answer": "B",
@@ -905,7 +905,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "certification"
+          "text": "acquisition"
         },
         {
           "key": "B",
@@ -913,7 +913,7 @@
         },
         {
           "key": "C",
-          "text": "acquisition"
+          "text": "certification"
         },
         {
           "key": "D",
@@ -943,22 +943,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "candidate"
-        },
-        {
-          "key": "B",
           "text": "liability"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "warranty"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "budget"
+        },
+        {
+          "key": "D",
+          "text": "candidate"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "現場での偶発的な損害に対して保険がカバーするのはliability（責任）。warranty（保証書）・budget（予算）・candidate（候補者）は保険がカバーする対象にならない。",
       "translation": "請負業者の保険は現場での偶発的な損害に対する責任をカバーしている。"
     },
@@ -981,7 +981,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "liability"
+          "text": "certification"
         },
         {
           "key": "B",
@@ -989,14 +989,14 @@
         },
         {
           "key": "C",
-          "text": "certification"
+          "text": "liability"
         },
         {
           "key": "D",
           "text": "proposal"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "確認せずに契約すると生じかねないのはliability（責任・法的責任）。certification（認定）・merger（合併）・proposal（提案書）は契約リスクとして生じるものではない。",
       "translation": "確認せずに契約書に署名すると法的責任が生じる可能性がある。"
     },
@@ -1019,22 +1019,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "extension"
+          "text": "subscription"
         },
         {
           "key": "B",
-          "text": "inspection"
+          "text": "extension"
         },
         {
           "key": "C",
-          "text": "liability"
+          "text": "inspection"
         },
         {
           "key": "D",
-          "text": "subscription"
+          "text": "liability"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "免責事項によって制限するのはliability（責任）。subscription（購読）・extension（延長）・inspection（検査）は免責事項で制限する対象にならない。",
       "translation": "その会社は明確な免責事項を含めることで責任を限定した。"
     },
@@ -1057,22 +1057,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "subscription"
-        },
-        {
-          "key": "B",
           "text": "merger"
         },
         {
+          "key": "B",
+          "text": "inspection"
+        },
+        {
           "key": "C",
-          "text": "endorsement"
+          "text": "subscription"
         },
         {
           "key": "D",
-          "text": "inspection"
+          "text": "endorsement"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "アナリストが事前に予測していたのはmerger（合併）。inspection（検査）・subscription（購読）・endorsement（推薦）は業界アナリストが予測する企業間の出来事ではない。",
       "translation": "業界アナリストはその合併を、確定する何ヶ月も前から予測していた。"
     },
@@ -1091,7 +1091,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "Employees worried about job security after the ___.",
+      "question": "Employees needed extra training after the ___.",
       "choices": [
         {
           "key": "A",
@@ -1099,20 +1099,20 @@
         },
         {
           "key": "B",
-          "text": "merger"
+          "text": "inspection"
         },
         {
           "key": "C",
-          "text": "endorsement"
+          "text": "merger"
         },
         {
           "key": "D",
-          "text": "inspection"
+          "text": "endorsement"
         }
       ],
-      "answer": "B",
-      "explanation": "雇用不安の原因になり得るのはmerger（合併）。extension（延長）・inspection（検査）・endorsement（推薦）は雇用不安の典型的な原因にならない。",
-      "translation": "従業員は合併後の雇用の安定を心配した。"
+      "answer": "C",
+      "explanation": "追加の研修が必要になった原因はmerger（合併。新しい体制への適応）。extension（延長）・inspection（検査）・endorsement（推薦）は研修が必要になる典型的な原因にならない。",
+      "translation": "従業員は合併後に追加の研修を必要とした。"
     },
     {
       "id": "similar-merger-3",
@@ -1133,22 +1133,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "account"
-        },
-        {
-          "key": "B",
           "text": "subscription"
         },
         {
+          "key": "B",
+          "text": "proposal"
+        },
+        {
           "key": "C",
-          "text": "merger"
+          "text": "account"
         },
         {
           "key": "D",
-          "text": "proposal"
+          "text": "merger"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "業界最大級の会社を生み出したのはmerger（合併）。subscription（購読）・proposal（提案書）・account（口座）は会社を生み出す出来事にならない。",
       "translation": "その合併により業界最大級の企業の一つが誕生した。"
     },
@@ -1175,15 +1175,15 @@
         },
         {
           "key": "B",
-          "text": "certify"
-        },
-        {
-          "key": "C",
           "text": "inspect"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "subscribe"
+        },
+        {
+          "key": "D",
+          "text": "certify"
         }
       ],
       "answer": "A",
@@ -1205,7 +1205,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "Both sides agreed to ___ rather than go to court.",
+      "question": "Both sides agreed to ___ rather than escalate the dispute further.",
       "choices": [
         {
           "key": "A",
@@ -1213,20 +1213,20 @@
         },
         {
           "key": "B",
-          "text": "endorse"
+          "text": "negotiate"
         },
         {
           "key": "C",
-          "text": "certify"
+          "text": "endorse"
         },
         {
           "key": "D",
-          "text": "negotiate"
+          "text": "certify"
         }
       ],
-      "answer": "D",
-      "explanation": "裁判の代わりに選ぶのはnegotiate（交渉する）。merge（合併する）・endorse（推薦する）・certify（認定する）は裁判の代替手段にならない。",
-      "translation": "両者は裁判に訴える代わりに交渉することに合意した。"
+      "answer": "B",
+      "explanation": "対立を悪化させる代わりに選ぶのはnegotiate（交渉する）。merge（合併する）・endorse（推薦する）・certify（認定する）は対立解決の代替手段にならない。",
+      "translation": "両者は対立を悪化させる代わりに交渉することに合意した。"
     },
     {
       "id": "similar-negotiate-3",
@@ -1247,11 +1247,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "extend"
+          "text": "inspect"
         },
         {
           "key": "B",
-          "text": "inspect"
+          "text": "extend"
         },
         {
           "key": "C",
@@ -1285,11 +1285,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "inspections"
+          "text": "projections"
         },
         {
           "key": "B",
-          "text": "extensions"
+          "text": "inspections"
         },
         {
           "key": "C",
@@ -1297,10 +1297,10 @@
         },
         {
           "key": "D",
-          "text": "projections"
+          "text": "extensions"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "複合名詞\"financial projections\"（財務予測）が正しい。inspections（検査）・subscriptions（購読）・extensions（延長）はfinancialの後に続く語として不自然。",
       "translation": "来四半期の財務予測は有望に見えた。"
     },
@@ -1323,22 +1323,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "merger"
+          "text": "projection"
         },
         {
           "key": "B",
-          "text": "candidate"
+          "text": "merger"
         },
         {
           "key": "C",
-          "text": "warranty"
+          "text": "candidate"
         },
         {
           "key": "D",
-          "text": "projection"
+          "text": "warranty"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "前年のデータを基に作るのはprojection（予測）。merger（合併）・candidate（候補者）・warranty（保証書）はデータを基に作られるものではない。",
       "translation": "その売上予測は前年のデータに基づいていた。"
     },
@@ -1361,7 +1361,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "projection"
+          "text": "certification"
         },
         {
           "key": "B",
@@ -1369,14 +1369,14 @@
         },
         {
           "key": "C",
-          "text": "account"
+          "text": "projection"
         },
         {
           "key": "D",
-          "text": "certification"
+          "text": "account"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "アナリストが下方修正するのはprojection（予測）。certification（認定）・liability（責任）・account（口座）は下方修正する対象にならない。",
       "translation": "アナリストは成長予測を下方修正した。"
     },
@@ -1399,7 +1399,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "extension"
+          "text": "promotion"
         },
         {
           "key": "B",
@@ -1407,14 +1407,14 @@
         },
         {
           "key": "C",
-          "text": "promotion"
+          "text": "subscription"
         },
         {
           "key": "D",
-          "text": "subscription"
+          "text": "extension"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "5年間の勤務の末に提示されるのはpromotion（昇進）。inspection（検査）・subscription（購読）・extension（延長）は勤続年数の末に提示されるものではない。",
       "translation": "その会社に5年間勤めた後、彼はついに昇進を打診された。"
     },
@@ -1433,11 +1433,11 @@
           "freqRank": "S"
         }
       ],
-      "question": "His hard work finally led to a well-deserved ___.",
+      "question": "His hard work finally led to a well-deserved ___ to team leader.",
       "choices": [
         {
           "key": "A",
-          "text": "certification"
+          "text": "merger"
         },
         {
           "key": "B",
@@ -1445,16 +1445,16 @@
         },
         {
           "key": "C",
-          "text": "merger"
+          "text": "budget"
         },
         {
           "key": "D",
-          "text": "budget"
+          "text": "certification"
         }
       ],
       "answer": "B",
-      "explanation": "努力の結果として得るのはpromotion（昇進）。merger（合併）・budget（予算）・certification（認定）は個人の努力の直接の結果として得るものではない。",
-      "translation": "彼の努力はついに当然の昇進につながった。"
+      "explanation": "「役職への昇進」を表すのはpromotion（\"promotion to team leader\"は定番の言い方）。merger（合併）・budget（予算）・certification（認定。通常\"certification as\"を使い、役職には使わない）は文脈に合わない。",
+      "translation": "彼の努力はついに、チームリーダーへの当然の昇進につながった。"
     },
     {
       "id": "similar-promotion-3",
@@ -1475,22 +1475,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "accounts"
-        },
-        {
-          "key": "B",
-          "text": "promotions"
-        },
-        {
-          "key": "C",
           "text": "liabilities"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "proposals"
+        },
+        {
+          "key": "C",
+          "text": "accounts"
+        },
+        {
+          "key": "D",
+          "text": "promotions"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "営業チーム内で発表されるのはpromotions（昇進）。liabilities（責任）・proposals（提案書）・accounts（口座）は人事発表として不自然。",
       "translation": "会社は営業チーム内でいくつかの昇進を発表した。"
     },
@@ -1513,7 +1513,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "merger"
+          "text": "proposal"
         },
         {
           "key": "B",
@@ -1525,10 +1525,10 @@
         },
         {
           "key": "D",
-          "text": "proposal"
+          "text": "merger"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "コンサル会社が提出するのはproposal（提案書）。inspection（検査）・certification（認定）・merger（合併）はコンサル会社が「提出する」ものではない。",
       "translation": "コンサルティング会社は詳細な提案書を提出した。"
     },
@@ -1555,18 +1555,18 @@
         },
         {
           "key": "B",
-          "text": "proposal"
+          "text": "subscription"
         },
         {
           "key": "C",
-          "text": "extension"
+          "text": "proposal"
         },
         {
           "key": "D",
-          "text": "subscription"
+          "text": "extension"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "取締役会がコスト理由で却下するのはproposal（提案書）。candidate（候補者）・subscription（購読）・extension（延長）はコスト理由で却下される文脈に合わない。",
       "translation": "取締役会はコストの高さを理由にその提案を却下した。"
     },
@@ -1589,15 +1589,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "account"
-        },
-        {
-          "key": "B",
           "text": "liability"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "endorsement"
+        },
+        {
+          "key": "C",
+          "text": "account"
         },
         {
           "key": "D",
@@ -1627,22 +1627,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "merger"
-        },
-        {
-          "key": "B",
           "text": "quality"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "budget"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "candidate"
+        },
+        {
+          "key": "D",
+          "text": "merger"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "顧客が称賛するのはquality（品質）。budget（予算）・candidate（候補者）・merger（合併）は製品ラインについて顧客が称賛するものではない。",
       "translation": "顧客は新製品ラインの品質を称賛した。"
     },
@@ -1665,11 +1665,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "quality"
+          "text": "extension"
         },
         {
           "key": "B",
-          "text": "extension"
+          "text": "quality"
         },
         {
           "key": "C",
@@ -1680,7 +1680,7 @@
           "text": "proposal"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "複合名詞\"product quality\"（製品品質）が正しい。extension（延長）・subscription（購読）・proposal（提案書）はproductの後に続く語として不自然。",
       "translation": "その工場は監査の後、製品品質を改善した。"
     },
@@ -1703,22 +1703,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "quality"
+          "text": "liability"
         },
         {
           "key": "B",
-          "text": "acquisition"
-        },
-        {
-          "key": "C",
           "text": "certification"
         },
         {
+          "key": "C",
+          "text": "acquisition"
+        },
+        {
           "key": "D",
-          "text": "liability"
+          "text": "quality"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "素材が「高いこと」で知られるのはquality（品質）。liability（責任）・certification（認定）・acquisition（買収）は素材の特性として不自然。",
       "translation": "この素材は高品質であることで知られている。"
     },
@@ -1741,22 +1741,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "warranty"
-        },
-        {
-          "key": "B",
           "text": "strategy"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "inspection"
+        },
+        {
+          "key": "C",
+          "text": "warranty"
         },
         {
           "key": "D",
           "text": "candidate"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "複合名詞\"marketing strategy\"（マーケティング戦略）が正しい。inspection（検査）・warranty（保証書）・candidate（候補者）はmarketingの後に続く語として不自然。",
       "translation": "その会社は今年、新しいマーケティング戦略を採用した。"
     },
@@ -1779,22 +1779,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "strategy"
-        },
-        {
-          "key": "B",
           "text": "subscription"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "endorsement"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "extension"
+        },
+        {
+          "key": "D",
+          "text": "strategy"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "経営陣が見直すのはstrategy（戦略）。subscription（購読）・endorsement（推薦）・extension（延長）は経営陣が見直す長期方針にならない。",
       "translation": "経営陣は長期的な事業戦略を見直している。"
     },
@@ -1817,15 +1817,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "merger"
+          "text": "liability"
         },
         {
           "key": "B",
-          "text": "certification"
+          "text": "merger"
         },
         {
           "key": "C",
-          "text": "liability"
+          "text": "certification"
         },
         {
           "key": "D",
@@ -1855,7 +1855,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "negotiate"
+          "text": "inspect"
         },
         {
           "key": "B",
@@ -1863,11 +1863,11 @@
         },
         {
           "key": "C",
-          "text": "endorse"
+          "text": "negotiate"
         },
         {
           "key": "D",
-          "text": "inspect"
+          "text": "endorse"
         }
       ],
       "answer": "B",
@@ -1893,22 +1893,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "inspected"
-        },
-        {
-          "key": "B",
-          "text": "endorsed"
-        },
-        {
-          "key": "C",
           "text": "submitted"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "inspected"
+        },
+        {
+          "key": "C",
           "text": "negotiated"
+        },
+        {
+          "key": "D",
+          "text": "endorsed"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "審査のために電子的に行う動作はsubmitted（提出される）。inspected（検査される）・negotiated（交渉される）・endorsed（推薦される）は原稿の審査提出の文脈に合わない。",
       "translation": "すべての原稿は審査のため電子的に提出されなければならない。"
     },
@@ -1931,22 +1931,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "negotiate"
-        },
-        {
-          "key": "B",
-          "text": "submit"
-        },
-        {
-          "key": "C",
           "text": "merge"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "subscribe"
+        },
+        {
+          "key": "C",
+          "text": "submit"
+        },
+        {
+          "key": "D",
+          "text": "negotiate"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "経費申請を出張後1週間以内に行う動作はsubmit（提出する）。merge（合併する）・subscribe（購読する）・negotiate（交渉する）は経費申請の場面に合わない。",
       "translation": "従業員は出張後1週間以内に経費申請を提出するよう求められる。"
     },
@@ -1973,15 +1973,15 @@
         },
         {
           "key": "B",
-          "text": "liability"
+          "text": "certification"
         },
         {
           "key": "C",
-          "text": "merger"
+          "text": "liability"
         },
         {
           "key": "D",
-          "text": "certification"
+          "text": "merger"
         }
       ],
       "answer": "A",
@@ -2045,22 +2045,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "budget"
-        },
-        {
-          "key": "B",
           "text": "inspection"
         },
         {
+          "key": "B",
+          "text": "budget"
+        },
+        {
           "key": "C",
-          "text": "subscription"
+          "text": "strategy"
         },
         {
           "key": "D",
-          "text": "strategy"
+          "text": "subscription"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "オンラインで更新できるのはsubscription（購読）。inspection（検査）・budget（予算）・strategy（戦略）はオンラインで更新する契約対象ではない。",
       "translation": "顧客はオンラインで購読を更新できる。"
     },
@@ -2083,7 +2083,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "candidate"
+          "text": "warranty"
         },
         {
           "key": "B",
@@ -2095,10 +2095,10 @@
         },
         {
           "key": "D",
-          "text": "warranty"
+          "text": "candidate"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "延長できるか販売担当者に尋ねるのはwarranty（保証）。subscription（購読）・proposal（提案書）・candidate（候補者）は「延長できるか」を尋ねる対象にならない。",
       "translation": "延長保証が利用できるか販売担当者に尋ねてください。"
     },
@@ -2121,22 +2121,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "warranty"
-        },
-        {
-          "key": "B",
           "text": "merger"
         },
         {
+          "key": "B",
+          "text": "certification"
+        },
+        {
           "key": "C",
-          "text": "account"
+          "text": "warranty"
         },
         {
           "key": "D",
-          "text": "certification"
+          "text": "account"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "店が守って無料修理するのはwarranty（保証）。merger（合併）・certification（認定）・account（口座）は店が「守る」ことで無料修理につながるものではない。",
       "translation": "店は保証を守り、無料で商品を修理した。"
     },
@@ -2159,22 +2159,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "extension"
-        },
-        {
-          "key": "B",
-          "text": "warranty"
-        },
-        {
-          "key": "C",
           "text": "liability"
         },
         {
-          "key": "D",
+          "key": "B",
+          "text": "extension"
+        },
+        {
+          "key": "C",
           "text": "endorsement"
+        },
+        {
+          "key": "D",
+          "text": "warranty"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "領収書と一緒に必要になり得るのはwarranty（保証）。liability（責任）・extension（延長）・endorsement（推薦）は領収書とセットで必要になるものではない。",
       "translation": "保証が必要になる場合に備えて、領収書を保管しておいてください。"
     }

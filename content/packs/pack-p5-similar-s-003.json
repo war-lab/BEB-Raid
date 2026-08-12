@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 129541
+    "sizeBytes": 129539
   },
   "questions": [
     {
@@ -3889,7 +3889,7 @@
       "translation": "その会社は週末セールを宣伝するため、地元紙に広告を掲載した。"
     },
     {
-      "id": "similar-redundancy-1",
+      "id": "similar-consolidation-1",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -3898,12 +3898,12 @@
       ],
       "keyVocab": [
         {
-          "word": "redundancy",
-          "sense": "人員整理",
+          "word": "consolidation",
+          "sense": "集約",
           "freqRank": "B"
         }
       ],
-      "question": "The merger led to significant staff ___ across both companies within a year.",
+      "question": "The merger led to significant operational ___ across both companies within a year.",
       "choices": [
         {
           "key": "A",
@@ -3915,7 +3915,7 @@
         },
         {
           "key": "C",
-          "text": "redundancy"
+          "text": "consolidation"
         },
         {
           "key": "D",
@@ -3923,11 +3923,11 @@
         }
       ],
       "answer": "C",
-      "explanation": "役職廃止に伴う「人員整理」はredundancy。recall（製品回収）・liquidation（会社清算）・embargo（禁輸措置）はいずれも人員に関する語ではなく、この文脈に合わない。",
-      "translation": "その合併は、1年以内に両社にわたる大幅な人員整理につながった。"
+      "explanation": "複数拠点の業務を一つにまとめる「統合」はconsolidation。recall（製品回収）・liquidation（会社清算）・embargo（禁輸措置）はいずれも業務統合とは異なる意味で、この文脈に合わない。",
+      "translation": "その合併は、1年以内に両社にわたる大幅な業務統合につながった。"
     },
     {
-      "id": "similar-downsizing-1",
+      "id": "similar-renovation-1",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -3936,20 +3936,20 @@
       ],
       "keyVocab": [
         {
-          "word": "downsizing",
-          "sense": "人員削減",
-          "freqRank": "B"
+          "word": "renovation",
+          "sense": "改装",
+          "freqRank": "S"
         }
       ],
       "question": "The company announced a major ___ plan that will affect several offices.",
       "choices": [
         {
           "key": "A",
-          "text": "moratorium"
+          "text": "embargo"
         },
         {
           "key": "B",
-          "text": "embargo"
+          "text": "moratorium"
         },
         {
           "key": "C",
@@ -3957,12 +3957,12 @@
         },
         {
           "key": "D",
-          "text": "downsizing"
+          "text": "renovation"
         }
       ],
       "answer": "D",
-      "explanation": "組織全体の規模を縮小する「人員削減」はdownsizing。moratorium（一時停止措置）・audit（監査）・embargo（禁輸措置）はいずれも人員削減とは異なる意味で、この文脈に合わない。",
-      "translation": "その会社は、複数の拠点に影響する大規模な人員削減計画を発表した。"
+      "explanation": "複数の拠点にまたがる改修は renovation。moratorium（一時停止措置）・audit（監査）・embargo（禁輸措置）はいずれも改修とは異なる意味で、この文脈に合わない。",
+      "translation": "その会社は、複数の拠点に影響する大規模な改修計画を発表した。"
     },
     {
       "id": "similar-nonrefundable-1",
