@@ -23,7 +23,7 @@
 // question.formatを見て、text_passageならこの画面、それ以外ならDrillScreenへ自動的に
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
 // 「通常セッションからreading画面への遷移方式」の設計判断はここで確定した
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Question, SubQuestion } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
@@ -32,14 +32,17 @@ import { shuffle } from '../engine/shuffle'
 import type { QuestionLookup } from '../engine/types'
 import type { AiClient, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
+import { recordPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
   advanceSession,
   completeSession,
   currentSubAnswers,
+  StaleSnapshotError,
   type SessionItem,
   type SessionSnapshot,
 } from '../services/session'
 import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
+import { isQuotaExceededError, QUOTA_EXCEEDED_SAVE_ERROR } from '../services/storageErrors'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -167,6 +170,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // T-281（K-4）: スキップ失敗・advanceReadingItemの失敗を握りつぶすと、中断ボタンすら無い
+  // 白画面に固着する（DrillScreenのsessionErrorと同じ理由）
+  const [sessionError, setSessionError] = useState<string | null>(null)
   // T-176: 保存の進行ガードと再試行導線（多重実行・保存中の進行のガードはフック側）
   const saveGuard = useSaveGuard()
   // T-162（docs/27 のS-7）: 中断の確認
@@ -245,7 +251,12 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           setDisplayIndex((i) => i + 1)
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        if (cancelled) return
+        // T-281（K-4）: 握りつぶすと中断ボタンすら無い白画面に固着する（DrillScreenと同じ理由）
+        console.warn('[ReadingScreen] セッションを進められませんでした', err)
+        setSessionError('セッションを進められませんでした')
+      })
     return () => {
       cancelled = true
     }
@@ -270,21 +281,65 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
    * ここで先に参照しても本文の関数定義は解決済みになっている（DrillScreenのcommitAnswer・
    * VocabScreenのcommitGrade/commitTriageと同じパターン）。
    */
-  /* eslint-disable react-hooks/immutability -- 関数宣言の巻き上げにより実行時は問題ないが、
-     react-compilerの静的解析がこの参照順を追えず誤検知する（DrillScreen・VocabScreenの
-     同型コードでは発生しない。原因未特定だが巻き上げにより実害は無い） */
   const {
     pending: readingPending,
+    pendingRef: readingPendingRef,
     schedule: scheduleReadingCommit,
     cancel: cancelReadingCommit,
     clearTimer: clearReadingTimer,
     clearPending: clearReadingPending,
     mountedRef,
   } = usePendingCommit<ReadingPendingCommit>((payload) => commitSubQuestionAnswer(payload))
-  /* eslint-enable react-hooks/immutability */
+
+  /**
+   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
+   * （T-196・T-267。docs/29 Q-5、DrillScreenの同名関数と同じ理由）。リザルトへ到達する
+   * 経路はすべてここを通す: 「ここで終了して結果を見る」（早期終了）・全問解答後の
+   * 「次へ」（正規完走）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
+   * ときの描画フォールバック。当初は早期終了のみT-196で対処したが、全問完走の方が
+   * 通過頻度が高く、同じ欠陥がQ-5の症状として日常的に発生しうると判断してT-267で
+   * 経路を揃えた。
+   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
+   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
+   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
+   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）。
+   * useCallbackで安定化するのは、下のuseEffectの依存配列に含めるため（T-320・K-53）
+   */
+  const finishSession = useCallback(() => {
+    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
+    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
+    if (snapshot) {
+      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
+        console.warn('[ReadingScreen] セッション完了処理に失敗', e)
+      })
+    }
+    navigate('result')
+  }, [snapshot, db, navigate])
+
+  // T-320（K-53）: 全item解答済み（snapshotはあるがitemが無い）でのfinishSession()呼び出しが
+  // レンダー本体（return null直前）にあり、レンダー中にnavigate（内部的にstateを更新する
+  // pushState相当の操作）を呼んでいた
+  useEffect(() => {
+    if (snapshot && !item) finishSession()
+  }, [snapshot, item, finishSession])
+
+  // T-281（K-4）: セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を
+  // 必ず出す（DrillScreenのsessionErrorと同じ理由。握りつぶすと中断ボタンすら無い白画面に固着する）。
+  // **フック呼び出しより後ろに置くこと**——上のuseCallback/useEffectより前だとレンダーごとに
+  // フック数が変わる（rules-of-hooks違反）
+  if (sessionError) {
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+      >
+        <p className="drill-error" role="alert">
+          {sessionError}
+        </p>
+      </ScreenLayout>
+    )
+  }
 
   if (!snapshot || !item || !question) {
-    if (snapshot && !item) finishSession()
     return null
   }
   // text_passage以外はこのコンポーネントの担当外（上のeffectがdrill画面へ切り替える）。
@@ -426,9 +481,32 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       saveGuard.clearRetry()
     } catch (err) {
       console.error('[ReadingScreen] 解答の保存に失敗', err)
-      // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
-      // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
-      if (mountedRef.current) {
+      // T-297（K-23）: アンマウント後（flush経路）の失敗はsaveErrorバナー・再試行ボタンが
+      // 出しても誰にも見えない（画面ごと消えている）。UI復旧を試みる代わりに退避して
+      // 次回起動時に通知する
+      if (!mountedRef.current) {
+        // 退避自体の失敗（DBクローズ済み等）はここで握る。呼び出し元はvoidで
+        // 投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+        try {
+          await recordPendingCommitFailure(db)
+        } catch (recordErr) {
+          console.error('[ReadingScreen] 保存失敗の退避にも失敗', recordErr)
+        }
+        return
+      }
+      if (err instanceof StaleSnapshotError) {
+        // T-298（K-24）: 従来はストレージ不足と同じ文言を出しており、別タブでの新セッション
+        // 開始・二度押しが原因のケースでも「空き容量を確認してください」という誤った
+        // 原因究明をさせていた。この経路は保存先の空き容量とは無関係で、解答が失われた
+        // ことだけが確定している事実
+        setSaveError('この解答は保存されていません（別のセッションが開始された可能性があります）')
+      } else if (isQuotaExceededError(err)) {
+        // T-299（K-25）: 従来は「確認してください」までで終わり、確認した後の具体的な
+        // 回復手段（エクスポートして空き容量を作る）を示していなかった
+        setSaveError(QUOTA_EXCEEDED_SAVE_ERROR)
+      } else {
+        // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+        // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
         setSaveError('解答を保存できませんでした。空き容量を確認してください')
       }
       // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
@@ -473,52 +551,44 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   }
 
   /**
-   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
-   * （T-196・T-267。docs/29 Q-5、DrillScreenの同名関数と同じ理由）。リザルトへ到達する
-   * 経路はすべてここを通す: 「ここで終了して結果を見る」（早期終了）・全問解答後の
-   * 「次へ」（正規完走）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
-   * ときの描画フォールバック。当初は早期終了のみT-196で対処したが、全問完走の方が
-   * 通過頻度が高く、同じ欠陥がQ-5の症状として日常的に発生しうると判断してT-267で
-   * 経路を揃えた。
-   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
-   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
-   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
-   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）
-   */
-  function finishSession() {
-    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
-    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
-    if (snapshot) {
-      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
-        console.warn('[ReadingScreen] セッション完了処理に失敗', e)
-      })
-    }
-    navigate('result')
-  }
-
-  /**
    * 現在のitem（パッセージ）を消化済みとして次のitemへ進める。全問解答後の「次へ」
    * （handleNext）と、取り消しが最後の1問だった場合（handleReadingUndo。他に未解答の
    * サブ設問が残っていない＝この設問の分だけ未記録のまま進める）の両方から呼ぶ
    */
   async function advanceReadingItem() {
-    const nextSnapshot = await advanceSession(db, snapshot!)
-    useSessionStore.setState({ snapshot: nextSnapshot })
-    // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
-    // total（T-175）はサブ設問を展開した解答数なので、複数設問を含むセッションでは
-    // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
-    // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
-    if (displayIndex + 1 >= snapshot!.items.length) {
-      finishSession()
-      return
+    // T-281（K-46・K-47）: 猶予中（400ms未満）の解答が残っていると、advanceSessionで
+    // itemを進めてしまった後にタイマーが発火してもpayloadの参照先が古いitemのままになり、
+    // 解答が失われたまま次のパッセージへ進んでしまう。アンマウント時flushと同じ規律で、
+    // 進める前にここで確定させる
+    if (readingPendingRef.current) {
+      const payload = readingPendingRef.current
+      clearReadingTimer()
+      clearReadingPending()
+      await commitSubQuestionAnswer(payload)
     }
-    setDisplayIndex((i) => i + 1)
-    setAnswers(new Map())
-    setGhostDefenseByIndex(new Map())
-    setActiveIndex(0)
-    setActivePassageIndex(0)
-    setStartedAt(now())
-    setElapsedSec(0)
+    try {
+      const nextSnapshot = await advanceSession(db, snapshot!)
+      useSessionStore.setState({ snapshot: nextSnapshot })
+      // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
+      // total（T-175）はサブ設問を展開した解答数なので、複数設問を含むセッションでは
+      // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
+      // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
+      if (displayIndex + 1 >= snapshot!.items.length) {
+        finishSession()
+        return
+      }
+      setDisplayIndex((i) => i + 1)
+      setAnswers(new Map())
+      setGhostDefenseByIndex(new Map())
+      setActiveIndex(0)
+      setActivePassageIndex(0)
+      setStartedAt(now())
+      setElapsedSec(0)
+    } catch (err) {
+      // T-281（K-4）: 握りつぶすと中断ボタンすら無い白画面に固着する（DrillScreenと同じ理由）
+      console.warn('[ReadingScreen] セッションを進められませんでした', err)
+      setSessionError('セッションを進められませんでした')
+    }
   }
 
   async function handleNext() {
@@ -621,6 +691,16 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                   onClick={() => void saveGuard.runRetry()}
                 >
                   保存を再試行する
+                </button>
+              )}
+              {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+              {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => navigate('settings')}
+                >
+                  設定でエクスポート
                 </button>
               )}
             </>

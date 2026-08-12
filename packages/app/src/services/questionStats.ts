@@ -12,7 +12,11 @@ import { buildQuestionStatPayload, type QuestionStatPayload } from '@beb-raid/sh
 import type { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
 import type { RaidApi } from '../platform'
-import { QUESTION_STATS_ENABLED_KEY, QUESTION_STATS_LAST_SENT_AT_KEY } from './settingsKeys'
+import {
+  QUESTION_STATS_ENABLED_KEY,
+  QUESTION_STATS_LAST_SENT_AT_KEY,
+  QUESTION_STATS_PROCESSED_COUNT_KEY,
+} from './settingsKeys'
 
 function isCountableForStats(attempt: AttemptRecord): boolean {
   return !attempt.questionId.startsWith('shadow:')
@@ -61,10 +65,28 @@ export async function sendQuestionStats(db: BebRaidDatabase, raidApi: RaidApi): 
   try {
     const watermark =
       ((await db.settings.get(QUESTION_STATS_LAST_SENT_AT_KEY))?.value as number | undefined) ?? 0
+    // T-302導入前からのwatermarkのみを持つ既存ユーザーはprocessedCountが未設定（=undefined）。
+    // これを0と区別しないと、初回実行時に「above()の結果が総件数に届かない」という
+    // 見せかけの巻き戻り検知が必ず発生し、過去の送信済み分を含めて毎回全件再送してしまう
+    const processedCountSetting = await db.settings.get(QUESTION_STATS_PROCESSED_COUNT_KEY)
+    const processedCount = processedCountSetting?.value as number | undefined
 
+    const totalCount = await db.attempts.count()
     // 狭義超過（above）: watermarkと同一msのattemptは対象外になる。同一msでの追記を
     // 取りこぼす理論上の可能性より、境界一致分の重複送信を避けることを優先する
-    const attempts = await db.attempts.where('answeredAt').above(watermark).toArray()
+    let attempts = await db.attempts.where('answeredAt').above(watermark).toArray()
+
+    // T-302（K-30）: 端末の時計が巻き戻ると、新規attemptsのanswered Atがwatermark以下に
+    // なりabove()クエリで永続的に取りこぼす（時計が戻った分より進むまで恒久的に停止する）。
+    // 処理済み件数（processedCount）との整合を見て、above()の結果が総件数との差分に
+    // 届いていなければ巻き戻りが起きたと判断し、全件を対象に取り直す。
+    // サーバー側はUPSERT加算のみで重複送信を許容する設計（45行のコメント）なので、
+    // 復旧時に既送信分を含めて再送しても壊れない（匿名の近似統計であり厳密なexactly-onceは求めない）。
+    // processedCountが未設定（このコード導入前からのwatermark）の間は検知を働かせない
+    if (processedCount !== undefined && processedCount + attempts.length < totalCount) {
+      attempts = await db.attempts.toArray()
+    }
+
     if (attempts.length === 0) return
     const newWatermark = attempts.reduce((max, a) => Math.max(max, a.answeredAt), watermark)
 
@@ -73,12 +95,13 @@ export async function sendQuestionStats(db: BebRaidDatabase, raidApi: RaidApi): 
       try {
         await raidApi.sendQuestionStats(stats)
       } catch {
-        // 失敗時はwatermarkを進めない（次回トリガーで同じ範囲を再集計・再送する）
+        // 失敗時はwatermark・processedCountを進めない（次回トリガーで同じ範囲を再集計・再送する）
         return
       }
     }
 
     await db.settings.put({ key: QUESTION_STATS_LAST_SENT_AT_KEY, value: newWatermark })
+    await db.settings.put({ key: QUESTION_STATS_PROCESSED_COUNT_KEY, value: totalCount })
   } finally {
     sendInFlight = false
   }

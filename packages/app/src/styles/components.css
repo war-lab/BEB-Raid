@@ -940,8 +940,13 @@
 }
 /* 文中リンク風のトリガー（SRS間隔・当て勘/速度不足の説明。ボタン群の下に単独で置く） */
 .info-help-link {
-  display: block;
+  /* T-317（K-50）: padding上下4px＋line-height1.5の内容高18pxで合計26pxしかなく、
+     48px規則（--tap-min）を満たしていなかった。語彙カードでは56pxの自己評価ボタン
+     直下に密着するため、揺れる車内での誤タップがSRS間隔の確定につながっていた */
+  display: flex;
+  align-items: center;
   width: 100%;
+  min-height: var(--tap-min);
   margin-top: var(--sp-1);
   padding: var(--sp-half) 0;
   background: none;

@@ -4,11 +4,16 @@ import 'fake-indexeddb/auto'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
+import type { ProfileRecord } from '../db/schema'
 import { PROFILE_ID, STREAK_ID } from '../db/schema'
 import {
+  BACKUP_FORMAT_VERSION,
+  EXPORT_NUDGE_ATTEMPT_COUNT,
+  EXPORT_NUDGE_DAYS,
   exportAll,
   EXPORT_EXCLUDED_KEYS,
   importAll,
+  shouldNudgeExport,
   validateBackup,
   type BackupFile,
 } from './backup'
@@ -122,6 +127,16 @@ describe('エクスポート→全消去→インポートの往復', () => {
     for (const table of source.tables) {
       const before = await table.toArray()
       const after = await restored.table(table.name).toArray()
+      if (table.name === 'profile') {
+        // T-279（K-2）: deviceTokenは意図的に往復させない（復元先に既存トークンが無いため
+        // 新規発行される）。他のフィールドは往復することを確認する
+        expect(
+          after.map((r: ProfileRecord) => ({ ...r, deviceToken: undefined })),
+          'ストア profile が復元されていない',
+        ).toEqual(before.map((r: ProfileRecord) => ({ ...r, deviceToken: undefined })))
+        expect(after[0]?.deviceToken).toBeTruthy()
+        continue
+      }
       expect(after, `ストア ${table.name} が復元されていない`).toEqual(before)
     }
   })
@@ -315,6 +330,73 @@ describe('BYOKキーのエクスポート除外（T-42=C-2改訂。レビュー�
     const keys = (await target.settings.toArray()).filter((s) => s.key === BYOK_API_KEY_KEY)
     expect(keys).toHaveLength(1)
     expect(keys[0]?.value).toBe('sk-ant-local-key')
+  })
+})
+
+// T-279（K-2）: profile.deviceTokenは共有APIのBearer資格情報だが、exportAllが
+// profileストアを無加工で書き出すため、バックアップJSONに平文で含まれていた
+describe('deviceTokenのエクスポート除外（T-279・K-2）', () => {
+  it('exportAll の出力でprofile.deviceTokenが伏せられる（空文字になる）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+
+    const exported = await exportAll(source)
+    const profile = exported.stores.profile[0]
+    expect(profile?.deviceToken).toBe('')
+    expect(profile?.displayName).toBe('テスト') // 他のprofileフィールドは伏せられない
+  })
+
+  it('importAll は復元先に既存のdeviceTokenがあれば、それを優先して保持する', async () => {
+    const source = newDb()
+    await seedAllStores(source) // source.profile.deviceToken = 'token-1'
+    const exported = await exportAll(source)
+
+    const target = newDb()
+    await target.profile.put({
+      id: PROFILE_ID,
+      displayName: '復元先の既存プロフィール',
+      initialToeic: 400,
+      createdAt: 500,
+      deviceToken: 'token-target-existing',
+    })
+    await importAll(target, exported)
+
+    const restored = await target.profile.get(PROFILE_ID)
+    expect(restored?.deviceToken).toBe('token-target-existing')
+    expect(restored?.displayName).toBe('テスト') // deviceToken以外はバックアップの内容で置き換わる
+  })
+
+  it('importAll は復元先にdeviceTokenが無い（新規端末）場合、新しいdeviceTokenを発行する（再登録の導線）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+
+    const target = newDb() // profile未作成の新規端末
+    await importAll(target, exported)
+
+    const restored = await target.profile.get(PROFILE_ID)
+    expect(restored?.deviceToken).toBeTruthy()
+    expect(restored?.deviceToken).not.toBe('') // 空のまま（再登録できない状態）にはしない
+  })
+
+  it('外部編集でdeviceTokenが混入したバックアップでも、復元先の既存トークンが優先される（多層防御）', async () => {
+    const source = newDb()
+    await seedAllStores(source)
+    const exported = await exportAll(source)
+    // 伏せられているはずのdeviceTokenを外部編集で復元した状況を模擬
+    exported.stores.profile[0]!.deviceToken = 'token-injected'
+
+    const target = newDb()
+    await target.profile.put({
+      id: PROFILE_ID,
+      displayName: '既存',
+      initialToeic: null,
+      createdAt: 500,
+      deviceToken: 'token-target-existing',
+    })
+    await importAll(target, exported)
+
+    expect((await target.profile.get(PROFILE_ID))?.deviceToken).toBe('token-target-existing')
   })
 })
 
@@ -524,6 +606,186 @@ describe('validateBackup / importAll: レコード単位の型検証（T-190・Q
   })
 })
 
+// T-300（K-27）: レコード単位検証が型のみで値域・列挙を見ておらず、attempts.modeに
+// 任意の文字列（'solo'/'raid'/'battle'/'srs'以外）・answeredAtにNaN・stage/currentDaysに
+// 負値が入っても素通りしていた。値域外・未知の列挙値を持つ改ざん/破損バックアップを拒否する
+describe('validateBackup: 値域・列挙の検証（T-300・K-27）', () => {
+  /** 1件だけ差し替えたいストアを上書きできる最小の妥当バックアップを作る */
+  function minimalBackup(overrides: Partial<BackupFile['stores']>): BackupFile {
+    const empty = {
+      profile: [],
+      attempts: [],
+      srsCards: [],
+      ratings: [],
+      ratingHistory: [],
+      tagStats: [],
+      phase: [],
+      streak: [],
+      badges: [],
+      pendingSync: [],
+      settings: [],
+      examScores: [],
+      raidState: [],
+    }
+    return {
+      formatVersion: BACKUP_FORMAT_VERSION,
+      dbVersion: 3,
+      exportedAt: 0,
+      stores: { ...empty, ...overrides } as BackupFile['stores'],
+    }
+  }
+
+  it('attempts.modeが未知の値（列挙外）なら拒否する', () => {
+    const backup = minimalBackup({
+      attempts: [
+        {
+          id: 'a-1',
+          questionId: 'q-1',
+          mode: 'not-a-real-mode' as never,
+          isCorrect: true,
+          responseMs: 1000,
+          isTimeout: false,
+          isGuess: false,
+          answeredAt: 1000,
+        },
+      ],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('attempts'))).toBe(true)
+  })
+
+  it('attempts.answeredAtがNaNなら拒否する（K-28と同じ非有限値の危険性）', () => {
+    const backup = minimalBackup({
+      attempts: [
+        {
+          id: 'a-1',
+          questionId: 'q-1',
+          mode: 'solo',
+          isCorrect: true,
+          responseMs: 1000,
+          isTimeout: false,
+          isGuess: false,
+          answeredAt: Number.NaN,
+        },
+      ],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('attempts'))).toBe(true)
+  })
+
+  it('attempts.responseMsが負値なら拒否する', () => {
+    const backup = minimalBackup({
+      attempts: [
+        {
+          id: 'a-1',
+          questionId: 'q-1',
+          mode: 'solo',
+          isCorrect: true,
+          responseMs: -100,
+          isTimeout: false,
+          isGuess: false,
+          answeredAt: 1000,
+        },
+      ],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('attempts'))).toBe(true)
+  })
+
+  it('srsCards.stageが負値なら拒否する', () => {
+    const backup = minimalBackup({
+      srsCards: [
+        {
+          id: 'vocab:submit',
+          refType: 'vocab',
+          refId: 'submit',
+          stage: -1,
+          dueAt: 5000,
+          lapses: 0,
+        },
+      ],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('srsCards'))).toBe(true)
+  })
+
+  it('srsCards.refTypeが未知の値（列挙外）なら拒否する', () => {
+    const backup = minimalBackup({
+      srsCards: [
+        {
+          id: 'x:1',
+          refType: 'not-a-real-type' as never,
+          refId: '1',
+          stage: 0,
+          dueAt: 5000,
+          lapses: 0,
+        },
+      ],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('srsCards'))).toBe(true)
+  })
+
+  it('ratings.sectionが未知の値（列挙外）なら拒否する', () => {
+    const backup = minimalBackup({
+      ratings: [{ section: 'X' as never, rating: 400, updatedAt: 1000 }],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('ratings'))).toBe(true)
+  })
+
+  it('streak.currentDaysが負値なら拒否する', () => {
+    const backup = minimalBackup({
+      streak: [
+        {
+          id: 'streak',
+          currentDays: -1,
+          bestDays: 5,
+          lastActiveDate: null,
+          protectionUsedAt: null,
+        },
+      ],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('streak'))).toBe(true)
+  })
+
+  it('raidState.hpが負値なら拒否する', () => {
+    const backup = minimalBackup({
+      raidState: [
+        {
+          id: 'raid',
+          bossId: 'boss-2026-W01',
+          profileJson: '{}',
+          hp: -1,
+          maxHp: 1000,
+          myDamage: 0,
+          joined: true,
+          startAt: 0,
+          endAt: 1000,
+          lastSyncedAt: 0,
+        },
+      ],
+    })
+    expect(validateBackup(backup).some((p) => p.includes('raidState'))).toBe(true)
+  })
+
+  it('値域・列挙ともに妥当なレコードは通過する（既定の妥当系は壊さない）', () => {
+    const backup = minimalBackup({
+      attempts: [
+        {
+          id: 'a-1',
+          questionId: 'q-1',
+          mode: 'battle',
+          isCorrect: true,
+          responseMs: 1000,
+          isTimeout: false,
+          isGuess: false,
+          answeredAt: 1000,
+        },
+      ],
+      srsCards: [
+        { id: 'q:q-1', refType: 'question', refId: 'q-1', stage: 2, dueAt: 5000, lapses: 1 },
+      ],
+      ratings: [{ section: 'total', rating: 400, updatedAt: 1000 }],
+    })
+    expect(validateBackup(backup)).toEqual([])
+  })
+})
+
 // T-190（Q-101）: 同一バックアップファイル内にattemptsのIDが重複していると、
 // 従来はbulkAddのBulkErrorでトランザクション全体が中断し、原因の分かりにくい失敗になっていた
 describe('importAll: バックアップ内のattempts重複IDに耐える（T-190・Q-101）', () => {
@@ -664,5 +926,50 @@ describe('importAll: phaseストアは常に1行に強制される（T-190）', 
     await importAll(target, broken)
 
     expect(await target.phase.count()).toBe(1)
+  })
+})
+
+// T-296（K-22）: navigator.storage.persist()が拒否されても告知が無く、バックアップの
+// 督促も無かった。エクスポート督促の判定ロジック（純関数）を検証する
+describe('shouldNudgeExport（T-296・K-22）', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const now = 1_700_000_000_000
+
+  it('一度もエクスポートしていない状態で解答が1件でもあれば督促する', () => {
+    expect(shouldNudgeExport({ lastExportedAt: null, attemptsSinceLastExport: 1, now })).toBe(true)
+  })
+
+  it('一度もエクスポートしていなくても解答が0件なら督促しない（診断直後）', () => {
+    expect(shouldNudgeExport({ lastExportedAt: null, attemptsSinceLastExport: 0, now })).toBe(false)
+  })
+
+  it('エクスポート済みで、期間・件数のいずれも下回っていれば督促しない', () => {
+    expect(
+      shouldNudgeExport({
+        lastExportedAt: now - (EXPORT_NUDGE_DAYS - 1) * DAY_MS,
+        attemptsSinceLastExport: EXPORT_NUDGE_ATTEMPT_COUNT - 1,
+        now,
+      }),
+    ).toBe(false)
+  })
+
+  it('しきい値日数を超えたら督促する（件数は0でも）', () => {
+    expect(
+      shouldNudgeExport({
+        lastExportedAt: now - EXPORT_NUDGE_DAYS * DAY_MS,
+        attemptsSinceLastExport: 0,
+        now,
+      }),
+    ).toBe(true)
+  })
+
+  it('しきい値件数を超えたら督促する（期間は直後でも）', () => {
+    expect(
+      shouldNudgeExport({
+        lastExportedAt: now - DAY_MS,
+        attemptsSinceLastExport: EXPORT_NUDGE_ATTEMPT_COUNT,
+        now,
+      }),
+    ).toBe(true)
   })
 })

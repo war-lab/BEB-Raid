@@ -42,7 +42,8 @@ const BATTLE_WS_PATH = /^\/battle\/rooms\/([A-Z0-9]{4})\/ws$/
  * 場合に発火日を別の誤った曜日へ動かしてしまう。generateWeeklyBossはRaidBossDO側で週の
  * 生成権を主張する形で完全に冪等化した（T-179）ため、日次発火でも週1回しか生成されない
  */
-const CRON_WEEKLY_BOSS = '0 0 * * *'
+// T-288（K-15）: index.test.tsがwrangler.tomlのcronsと直接照合するためexportする
+export const CRON_WEEKLY_BOSS = '0 0 * * *'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

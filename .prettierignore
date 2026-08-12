@@ -3,6 +3,11 @@ dist/
 dev-dist/
 package-lock.json
 
+# T-293（K-20）: .claude/worktrees/配下は git worktree add が張るリポジトリ全体の
+# 別チェックアウトで、他の無視パターン（docs/design/等）はルート基準のためこの中には
+# 効かず、ネストしたコピーの内容がそのままチェック対象に混入してしまう
+.claude/
+
 # 設計ドキュメント（正本）と既存Markdownは整形対象にしない（差分ノイズ防止）
 *.md
 

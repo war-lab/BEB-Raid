@@ -128,7 +128,7 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
 
   // 週の生成権の主張（冪等化。docs/30 J-101・T-179）。①EMA更新が非冪等なため、
   // ここで取得できなければ即returnする。取得できなければ他の呼び出しが既に処理中/済みである
-  const claimed = await stub.claimGeneration()
+  const claimed = await stub.claimGeneration(now)
   if (!claimed) {
     console.log(`週次ボス生成: 生成権を取得できず終了しました bossId=${bossId}`)
     return false

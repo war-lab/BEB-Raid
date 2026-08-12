@@ -42,6 +42,13 @@ const LATE_ARRIVAL_GRACE_MS = 7 * DAY_MS
 const MAX_DEVICE_SHARE_OF_MAX_HP = 0.5
 
 /**
+ * generation_claimの主張が「リークした」とみなすまでの時間（T-283・K-6・docs/32 3節J-115系）。
+ * generateWeeklyBossの生成処理（EMA更新・KV走査を含む）は無料枠の制約内で数十秒〜数分の
+ * オーダーに収まる想定のため、30分は正常系の実行時間を大きく超えた安全マージンである
+ */
+const GENERATION_CLAIM_STALE_MS = 30 * 60 * 1000
+
+/**
  * 表示名キャッシュのTTL（正本: docs/30_改修計画_全量レビュー棚卸し.md T-246・29のQ-28）。
  * buildBossStateは貢献者1人につきKV getを1回発行しており、これがGET /raid/current・
  * POST /raid/syncの両方の応答経路で毎回走る。メンバーがポーリングすると読取が増幅し、
@@ -136,31 +143,39 @@ export class RaidBossDO extends DurableObject<Env> {
         claimed INTEGER PRIMARY KEY
       )
     `)
+    // T-283（K-6）: claimGeneration後にプロセスクラッシュ等でreleaseGenerationClaim()が
+    // 呼ばれずに終わると、この行が永久に残り週次ボス生成が復旧不能になる。主張時刻を持たせ、
+    // 一定時間（GENERATION_CLAIM_STALE_MS）を過ぎた主張は上書き可能にする
+    this.ensureColumn('generation_claim', 'claimedAt', 'claimedAt INTEGER NOT NULL DEFAULT 0')
     // M4: ゴースト関連カラムの追加（正本: docs/22 3.3節）。
     // 既存のCREATE TABLE IF NOT EXISTSは既存テーブルへ新カラムを足せないため、
     // PRAGMA table_infoで存在確認してから足りないカラムだけALTER TABLEする
     // （本番データがまだ無い開発段階だが、後方互換な移行処理として実装しておく）
-    this.ensureColumn('bossType', "bossType TEXT NOT NULL DEFAULT 'synthetic'")
-    this.ensureColumn('defenseJson', 'defenseJson TEXT')
-    this.ensureColumn('ghostJson', 'ghostJson TEXT')
-    this.ensureColumn('ghostSourceToken', 'ghostSourceToken TEXT')
+    this.ensureColumn('state', 'bossType', "bossType TEXT NOT NULL DEFAULT 'synthetic'")
+    this.ensureColumn('state', 'defenseJson', 'defenseJson TEXT')
+    this.ensureColumn('state', 'ghostJson', 'ghostJson TEXT')
+    this.ensureColumn('state', 'ghostSourceToken', 'ghostSourceToken TEXT')
     // T-327（K-62）: totalDamageをこのタイミングで新設した場合のみ、既存のdamage_attempts
     // 合計で初期値をバックフィルする（移行時1回だけのコスト。以後はこの列をランニング合計として
     // 使い、syncDamageの1件ごとにSUMクエリを走らせない）
-    if (this.ensureColumn('totalDamage', 'totalDamage INTEGER NOT NULL DEFAULT 0')) {
+    if (this.ensureColumn('state', 'totalDamage', 'totalDamage INTEGER NOT NULL DEFAULT 0')) {
       this.ctx.storage.sql.exec(
         'UPDATE state SET totalDamage = (SELECT COALESCE(SUM(damage), 0) FROM damage_attempts)',
       )
     }
   }
 
-  /** stateテーブルに指定カラムが無ければALTER TABLEで追加する（冪等）。追加したらtrueを返す */
-  private ensureColumn(column: string, addColumnDdl: string): boolean {
+  /**
+   * 指定テーブルに指定カラムが無ければALTER TABLEで追加する（冪等）。追加したらtrueを返す。
+   * tableは呼び出し元が渡す固定のテーブル名リテラルのみで、外部入力は含まれない
+   * （SQLite PRAGMA/ALTER TABLEはテーブル名のプレースホルダをサポートしないための文字列展開）
+   */
+  private ensureColumn(table: string, column: string, addColumnDdl: string): boolean {
     const columns = this.ctx.storage.sql
-      .exec<{ name: string }>('PRAGMA table_info(state)')
+      .exec<{ name: string }>(`PRAGMA table_info(${table})`)
       .toArray()
     if (columns.some((c) => c.name === column)) return false
-    this.ctx.storage.sql.exec(`ALTER TABLE state ADD COLUMN ${addColumnDdl}`)
+    this.ctx.storage.sql.exec(`ALTER TABLE ${table} ADD COLUMN ${addColumnDdl}`)
     return true
   }
 
@@ -176,11 +191,22 @@ export class RaidBossDO extends DurableObject<Env> {
    * このテーブルが空のままになる。`state` 行の存在も同時に確認しないと、デプロイ後
    * 最初の呼び出しで誤って主張が成立し、既存週のEMAが二重に平滑化されてしまう
    * （`state` 行こそが「この週は生成済み」の実質的な正本であるため）
+   *
+   * T-283（K-6）: 生成処理中の例外・プロセスクラッシュ等でreleaseGenerationClaim()が
+   * 呼ばれないと、この主張が永久に残り以後の生成が復旧不能になる。GENERATION_CLAIM_STALE_MS
+   * を過ぎた主張は「リークした主張」とみなし上書きを許す
    */
-  claimGeneration(): boolean {
-    if (this.hasGenerationClaim()) return false
+  claimGeneration(now: number): boolean {
+    const claimedAt = this.getGenerationClaimedAt()
+    if (claimedAt !== undefined) {
+      if (now - claimedAt < GENERATION_CLAIM_STALE_MS) return false
+      this.ctx.storage.sql.exec('DELETE FROM generation_claim')
+    }
     if (this.getStateRow()) return false
-    this.ctx.storage.sql.exec('INSERT INTO generation_claim (claimed) VALUES (1)')
+    this.ctx.storage.sql.exec(
+      'INSERT INTO generation_claim (claimed, claimedAt) VALUES (1, ?)',
+      now,
+    )
     return true
   }
 
@@ -192,11 +218,10 @@ export class RaidBossDO extends DurableObject<Env> {
     this.ctx.storage.sql.exec('DELETE FROM generation_claim')
   }
 
-  private hasGenerationClaim(): boolean {
-    return (
-      this.ctx.storage.sql.exec<{ c: number }>('SELECT COUNT(*) as c FROM generation_claim').one()
-        .c > 0
-    )
+  private getGenerationClaimedAt(): number | undefined {
+    return this.ctx.storage.sql
+      .exec<{ claimedAt: number }>('SELECT claimedAt FROM generation_claim')
+      .toArray()[0]?.claimedAt
   }
 
   /** ボス未初期化のときだけ初期化する（冪等。週次cronの再実行・重複呼び出し対策） */
