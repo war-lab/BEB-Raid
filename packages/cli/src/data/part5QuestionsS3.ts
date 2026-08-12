@@ -355,7 +355,8 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     distractors: ['did', 'has', 'had'],
     explanation:
       '空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。had（過去完了）・did（過去（doの過去形））・has（単数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。',
-    translation: '内部監査でいくつかの手順上の不備が見つかった後、倉庫スタッフに社内通知が発行された。',
+    translation:
+      '内部監査でいくつかの手順上の不備が見つかった後、倉庫スタッフに社内通知が発行された。',
     difficulty: 4,
   },
   {
