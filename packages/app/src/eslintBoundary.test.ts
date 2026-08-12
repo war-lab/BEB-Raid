@@ -7,10 +7,11 @@
 // そこで意図的に違反するコードをESLintへ渡し、実際にエラーになることをここで確かめる。
 //
 // 実コードのlintは `npm run lint` が担う。本テストは設定の穴を回帰的に見張る目的に限る。
+import { unlinkSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { ESLint } from 'eslint'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 /** リポジトリルート（このファイルは packages/app/src 配下） */
 const REPO_ROOT = resolve(__dirname, '../../..')
@@ -86,5 +87,95 @@ describe('platform境界のESLintルール（T-263）', { timeout: 120_000 }, ()
     })
     const ruleIds = results.flatMap((r) => r.messages.map((m) => m.ruleId))
     expect(ruleIds).not.toContain('no-restricted-properties')
+  })
+
+  // T-295（K-58）: 実ESLintに違反コードを投入して確認したところ、以下4件が
+  // 素通りしていた（このテストファイル自身が「遮断される側だけ」を検証しており、
+  // 抜け穴自体は対象外になっていたため実態より被覆範囲を広く見せていた）
+  it('document.createElement("audio")（Audio識別子を経由しない生成）を検出する', async () => {
+    const ruleIds = await lintAsAppSource('export const a = document.createElement("audio")\n')
+    expect(ruleIds.has('no-restricted-syntax')).toBe(true)
+  })
+
+  it('self.caches（windowとglobalThisのみ列挙していたため素通り）を検出する', async () => {
+    const ruleIds = await lintAsAppSource('export const c = self.caches\n')
+    expect(ruleIds.has('no-restricted-properties')).toBe(true)
+  })
+
+  it('speechSynthesis（AudioPlayerの外の音声出力経路）を検出する', async () => {
+    const bare = await lintAsAppSource('export const s = speechSynthesis\n')
+    expect(bare.has('no-restricted-globals')).toBe(true)
+
+    const viaWindow = await lintAsAppSource('export const s = window.speechSynthesis\n')
+    expect(viaWindow.has('no-restricted-properties')).toBe(true)
+  })
+
+  it('showNotification（Notifier抽象の迂回路。iOS PWAで通知を出す唯一のWeb手段）を検出する', async () => {
+    // ServiceWorkerRegistration.showNotificationは`navigator.serviceWorker.getRegistration()`
+    // 等で得たオブジェクト経由で呼ばれ、オブジェクト名が固定されないためプロパティ名一致で検出する
+    // （webkitAudioContextと同じ理由）
+    const ruleIds = await lintAsAppSource(
+      'declare const registration: ServiceWorkerRegistration\nregistration.showNotification("x")\n',
+    )
+    expect(ruleIds.has('no-restricted-syntax')).toBe(true)
+  })
+})
+
+// T-289（K-16）: 型情報つきESLintを使っておらず、未awaitのPromiseを検出できていなかった
+// （no-floating-promises・no-misused-promises）。型検査つきルールはprojectServiceが
+// 実ファイルをtsconfigのプログラムに含める必要があり、上のlintText（存在しない仮想パス）では
+// 「project serviceに見つからない」エラーになるため、実ファイルを一時的に書いて検証する
+describe('packages/app/src/**の未awaitPromise検出（T-289・K-16）', { timeout: 120_000 }, () => {
+  const probePath = resolve(REPO_ROOT, 'packages/app/src/__eslint_promise_probe__.ts')
+
+  afterEach(() => {
+    try {
+      unlinkSync(probePath)
+    } catch {
+      // 既に無ければ無視
+    }
+  })
+
+  async function lintRealFile(code: string): Promise<Set<string>> {
+    // 共有ESLintインスタンス（eslintInstance()）はprojectServiceのファイル一覧を
+    // 初回利用時にキャッシュするため、後から書いたこのプローブファイルを認識しない
+    // ことがある。この検証専用に毎回新しいインスタンスを使う
+    writeFileSync(probePath, code)
+    const results = await new ESLint({ cwd: REPO_ROOT }).lintFiles([probePath])
+    const ruleIds = new Set<string>()
+    for (const result of results) {
+      for (const message of result.messages) {
+        if (message.ruleId !== null) ruleIds.add(message.ruleId)
+      }
+    }
+    return ruleIds
+  }
+
+  it('未awaitのPromiseを検出する', async () => {
+    const ruleIds = await lintRealFile(
+      'async function f(): Promise<void> {}\nexport function g() { f() }\n',
+    )
+    expect(ruleIds.has('@typescript-eslint/no-floating-promises')).toBe(true)
+  })
+
+  it('voidで明示的に無視した場合は検出しない', async () => {
+    const ruleIds = await lintRealFile(
+      'async function f(): Promise<void> {}\nexport function g() { void f() }\n',
+    )
+    expect(ruleIds.has('@typescript-eslint/no-floating-promises')).toBe(false)
+  })
+
+  it('Promiseを返す関数をvoid期待の場所（onClick相当）へ渡すと検出する', async () => {
+    const ruleIds = await lintRealFile(
+      [
+        'async function f(): Promise<void> {}',
+        'export function g(handler: () => void) {',
+        '  handler()',
+        '}',
+        'g(f)',
+        '',
+      ].join('\n'),
+    )
+    expect(ruleIds.has('@typescript-eslint/no-misused-promises')).toBe(true)
   })
 })

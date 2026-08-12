@@ -292,7 +292,17 @@ export type ForecastBehind = ForecastBase & {
   addDaysPerWeek: number
 }
 
-export type ForecastResult = ForecastMeasuring | ForecastOnTrack | ForecastBehind
+/**
+ * 現ペースでは到達しないが、既に週7日（毎日）学習しているため
+ * 「学習日数をあとN日増やす」という助言が成立しない状態（T-310・K-40）。
+ * 日数以外の助言（表示側の固定文言）に分岐させる
+ */
+export type ForecastBehindDaily = ForecastBase & {
+  kind: 'behindDaily'
+}
+
+export type ForecastResult =
+  ForecastMeasuring | ForecastOnTrack | ForecastBehind | ForecastBehindDaily
 
 // ---------------------------------------------------------------------------
 // ディクテーション（M2・T-44=C-4改訂→T-47で実装。13の3.4節）

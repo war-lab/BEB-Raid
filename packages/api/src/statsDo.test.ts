@@ -19,7 +19,8 @@ describe('StatsDO.addStats / getAllStats', () => {
       instance.addStats([{ questionId: 'q-1', correct: 3, wrong: 1, timeout: 0 }])
     })
 
-    const stats = await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats())
+    const stats = (await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats()))
+      .items
     expect(stats).toEqual([{ questionId: 'q-1', correct: 3, wrong: 1, timeout: 0 }])
   })
 
@@ -29,7 +30,8 @@ describe('StatsDO.addStats / getAllStats', () => {
       instance.addStats([{ questionId: 'q-1', correct: 2, wrong: 0, timeout: 1 }])
     })
 
-    const stats = await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats())
+    const stats = (await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats()))
+      .items
     expect(stats).toEqual([{ questionId: 'q-1', correct: 5, wrong: 1, timeout: 1 }])
   })
 
@@ -41,11 +43,37 @@ describe('StatsDO.addStats / getAllStats', () => {
       ])
     })
 
-    const stats = await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats())
+    const stats = (await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats()))
+      .items
     expect(stats).toEqual([
       { questionId: 'q-1', correct: 0, wrong: 2, timeout: 0 },
       { questionId: 'q-2', correct: 1, wrong: 0, timeout: 0 },
     ])
+  })
+
+  // 何を防ぐか（T-333・K-68）: question_statsはパック配信ごとに増え続ける。
+  // 全件を1レスポンスで返す旧実装は応答サイズ・メモリの両方で無制限に肥大する。
+  // limitを指定すると、その件数までしか1ページに含まれないことを確認する
+  it('limitを指定すると、その件数までしかページに含まれない（ページネーション）', async () => {
+    await runInDurableObject(stub(), (instance: StatsDO) => {
+      instance.addStats([
+        { questionId: 'q-1', correct: 1, wrong: 0, timeout: 0 },
+        { questionId: 'q-2', correct: 1, wrong: 0, timeout: 0 },
+        { questionId: 'q-3', correct: 1, wrong: 0, timeout: 0 },
+      ])
+    })
+
+    const page1 = await runInDurableObject(stub(), (instance: StatsDO) =>
+      instance.getAllStats(null, 2),
+    )
+    expect(page1.items.map((s) => s.questionId)).toEqual(['q-1', 'q-2'])
+    expect(page1.nextCursor).toBe('q-2')
+
+    const page2 = await runInDurableObject(stub(), (instance: StatsDO) =>
+      instance.getAllStats(page1.nextCursor, 2),
+    )
+    expect(page2.items.map((s) => s.questionId)).toEqual(['q-3'])
+    expect(page2.nextCursor).toBeNull()
   })
 
   it('保存レコードにdeviceTokenフィールドが存在しない（型レベル＋実行時検証。14の4.4-④）', async () => {
@@ -53,7 +81,8 @@ describe('StatsDO.addStats / getAllStats', () => {
       instance.addStats([{ questionId: 'q-1', correct: 1, wrong: 0, timeout: 0 }])
     })
 
-    const stats = await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats())
+    const stats = (await runInDurableObject(stub(), (instance: StatsDO) => instance.getAllStats()))
+      .items
     for (const row of stats) {
       // addStatsの引数型（QuestionStatPayload）自体がdeviceTokenを持たないため、
       // 呼び出し側の実装ミスで紛れ込むことも構造的にできない

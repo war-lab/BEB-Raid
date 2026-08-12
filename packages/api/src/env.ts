@@ -4,6 +4,7 @@
 import type { DailyGoal } from '@beb-raid/shared-schema'
 
 import type { BattleRoomDO } from './battleRoomDo'
+import type { InviteRateLimitDo } from './inviteRateLimitDo'
 import type { RaidBossDO } from './raidBossDo'
 import type { StatsDO } from './statsDo'
 
@@ -21,6 +22,8 @@ export interface Env {
   RAID_BOSS: DurableObjectNamespace<RaidBossDO>
   STATS: DurableObjectNamespace<StatsDO>
   BATTLE_ROOM: DurableObjectNamespace<BattleRoomDO>
+  /** T-329（K-64）: 招待コード誤りのレート制限カウンタ（IPごとに1インスタンス） */
+  INVITE_RATE_LIMIT: DurableObjectNamespace<InviteRateLimitDo>
 }
 
 /** KVの `member:<deviceToken>` キーに保存する値（正本: docs/17 3.2節） */

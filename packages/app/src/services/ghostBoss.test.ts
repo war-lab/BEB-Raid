@@ -1,8 +1,17 @@
 // 同意の構造的強制テスト（docs/22 3.5節・T-128完了条件）:
 // 「同意なしでは記録送信の経路が存在しない（送信関数へ到達しない）」ことを検証する
-import { describe, expect, it, vi } from 'vitest'
+import 'fake-indexeddb/auto'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { BebRaidDatabase } from '../db/database'
 import type { RaidApi } from '../platform'
-import { sendGhostBossRecord, withdrawGhostBossRecord } from './ghostBoss'
+import {
+  clearPendingGhostBossResult,
+  loadPendingGhostBossResult,
+  savePendingGhostBossResult,
+  sendGhostBossRecord,
+  withdrawGhostBossRecord,
+} from './ghostBoss'
+import { GHOST_BOSS_PENDING_RESULT_KEY } from './settingsKeys'
 
 function fakeRaidApi(): RaidApi {
   return {
@@ -69,5 +78,66 @@ describe('withdrawGhostBossRecord', () => {
     const raidApi = fakeRaidApi()
     await withdrawGhostBossRecord(raidApi)
     expect(raidApi.deleteOwnGhostRecord).toHaveBeenCalledTimes(1)
+  })
+})
+
+// T-294（K-21）: 未送信のボス役結果の一時保存3関数（T-272）に専用テストが無かった。
+// 送信成功前にアプリを終了・再読み込みしても結果が失われないための唯一の保全経路であり、
+// ここが壊れると「解き切った結果」が無音で消える
+describe('savePendingGhostBossResult / loadPendingGhostBossResult / clearPendingGhostBossResult（T-272）', () => {
+  let seq = 0
+  const dbs: BebRaidDatabase[] = []
+
+  function newDb(): BebRaidDatabase {
+    const db = new BebRaidDatabase(`ghost-boss-pending-test-${++seq}`)
+    dbs.push(db)
+    return db
+  }
+
+  afterEach(async () => {
+    await Promise.all(dbs.splice(0).map((db) => db.delete()))
+  })
+
+  it('未保存の状態ではloadがnullを返す', async () => {
+    const db = newDb()
+    expect(await loadPendingGhostBossResult(db)).toBeNull()
+  })
+
+  it('save→loadで保存した内容がそのまま読み戻せる', async () => {
+    const db = newDb()
+    const records = [
+      { questionId: 'q-1', correct: true },
+      { questionId: 'q-2', correct: false },
+    ]
+
+    await savePendingGhostBossResult(db, records)
+    const loaded = await loadPendingGhostBossResult(db)
+
+    expect(loaded?.records).toEqual(records)
+    expect(typeof loaded?.savedAt).toBe('number')
+  })
+
+  it('saveは既存の保存を上書きする（settings.putの冪等性）', async () => {
+    const db = newDb()
+    await savePendingGhostBossResult(db, [{ questionId: 'q-1', correct: true }])
+    await savePendingGhostBossResult(db, [{ questionId: 'q-2', correct: false }])
+
+    const loaded = await loadPendingGhostBossResult(db)
+    expect(loaded?.records).toEqual([{ questionId: 'q-2', correct: false }])
+    expect(await db.settings.where('key').equals(GHOST_BOSS_PENDING_RESULT_KEY).count()).toBe(1)
+  })
+
+  it('clearで保存を削除するとloadがnullに戻る', async () => {
+    const db = newDb()
+    await savePendingGhostBossResult(db, [{ questionId: 'q-1', correct: true }])
+
+    await clearPendingGhostBossResult(db)
+
+    expect(await loadPendingGhostBossResult(db)).toBeNull()
+  })
+
+  it('clearは保存が無い状態で呼んでも例外にならない（冪等）', async () => {
+    const db = newDb()
+    await expect(clearPendingGhostBossResult(db)).resolves.not.toThrow()
   })
 })

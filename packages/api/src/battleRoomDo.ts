@@ -26,7 +26,7 @@ import type {
 } from '@beb-raid/shared-schema'
 import { isBattleClientMessage } from '@beb-raid/shared-schema'
 
-import type { Env } from './env'
+import type { Env, MemberRecord } from './env'
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
 const QUESTION_OPEN_MS = 30 * 1000
@@ -101,6 +101,13 @@ interface ParticipantState {
   deviceToken: string
   role: ConnectionRole
   displayName: string | null
+  /**
+   * MEMBERS（KV）に登録済みの表示名（T-331・K-66）。joinで採用する表示名の正本はこちらで、
+   * クライアントがjoinメッセージで送るdisplayNameは無視する。自由入力のdisplayNameを
+   * そのまま採用すると、参加者が他メンバー（ホスト含む）の登録済み表示名を名乗って
+   * なりすませてしまうため
+   */
+  registeredDisplayName: string
   expectedPointsPerQuestion: number | null
   totalPoints: number
   answeredQuestionIndexes: number[]
@@ -122,6 +129,18 @@ interface ParticipantState {
 interface ConnectionAttachment {
   participant: ParticipantState
   meta: RoomMeta
+  /**
+   * 切断中の参加者のロスター退避（T-328・K-63）。ホストの接続にのみ載せる。
+   * `participantsByToken` はDOインスタンスのメモリ上にしか無く、ハイバネーション退避
+   * （インスタンスの再構築）はattachmentを持つ生存中のWebSocketからしか復元できない。
+   * 切断済み（webSocketCloseが発火済み）の参加者の接続は`ctx.getWebSockets()`に
+   * もう含まれないため、通常の復元経路では得点等が失われる。ホストの接続が生きている限り
+   * （切断してもT-253の猶予期間内は同一インスタンスがメモリを保持し続けるため実害は無く、
+   * インスタンスが退避されるケースのみが対象）、この退避データから復元できるようにする。
+   * 全接続へ複製すると参加人数に比例してattachmentが肥大するため（T-245と同じ理由）、
+   * ホストの接続にのみ載せる
+   */
+  disconnectedRoster?: Record<string, ParticipantState>
 }
 
 interface Connection {
@@ -180,6 +199,7 @@ export class BattleRoomDO extends DurableObject<Env> {
     super(ctx, env)
     // Hibernation復帰時の状態復元: コンストラクタで全WebSocketのattachmentから
     // インスタンスフィールドを再構築する（永続ストレージを使わないため、これが唯一の復元経路）
+    let disconnectedRoster: Record<string, ParticipantState> | undefined
     for (const ws of ctx.getWebSockets()) {
       const attachment = ws.deserializeAttachment() as ConnectionAttachment | null
       if (!attachment) continue
@@ -189,6 +209,17 @@ export class BattleRoomDO extends DurableObject<Env> {
         participant: attachment.participant,
       })
       this.participantsByToken.set(attachment.participant.deviceToken, attachment.participant)
+      if (attachment.disconnectedRoster) disconnectedRoster = attachment.disconnectedRoster
+    }
+    // T-328（K-63）: 切断済み（生存中のWebSocketが無い＝上のループで復元できない）参加者を
+    // ホストのattachmentへ退避したロスターから復元する。既にconnections経由で復元済み
+    // （再接続済み）のdeviceTokenは上書きしない（そちらが最新の状態のため）
+    if (disconnectedRoster) {
+      for (const [deviceToken, participant] of Object.entries(disconnectedRoster)) {
+        if (!this.participantsByToken.has(deviceToken)) {
+          this.participantsByToken.set(deviceToken, participant)
+        }
+      }
     }
     // 【T-245・29のQ-24】attachmentにはmeta.currentAnswersを含めていない（attachmentMeta参照）
     // ため、各参加者が持つpendingAnswerのうち現在の設問（currentQuestionIndex）に対する
@@ -256,12 +287,12 @@ export class BattleRoomDO extends DurableObject<Env> {
     const client = pair[0]
     const server = pair[1]
 
-    const registered = deviceToken ? await this.isRegisteredMember(deviceToken) : false
+    const member = deviceToken ? await this.getMemberRecord(deviceToken) : null
     const roomAvailable = this.meta !== null && this.meta.phase !== 'closed'
 
     this.ctx.acceptWebSocket(server)
 
-    if (!deviceToken || !registered || !roomAvailable) {
+    if (!deviceToken || !member || !roomAvailable) {
       closeWithReason(server, 1008, !roomAvailable ? 'room_not_found' : 'unauthorized')
       return new Response(null, { status: 101, webSocket: client, headers: upgradeHeaders })
     }
@@ -284,6 +315,7 @@ export class BattleRoomDO extends DurableObject<Env> {
       deviceToken,
       role,
       displayName: null,
+      registeredDisplayName: member.displayName,
       expectedPointsPerQuestion: null,
       totalPoints: 0,
       answeredQuestionIndexes: [],
@@ -355,8 +387,15 @@ export class BattleRoomDO extends DurableObject<Env> {
 
   private handleJoin(conn: Connection, msg: BattleJoinMessage): void {
     if (!this.meta) return
-    const expected = msg.expectedPointsPerQuestion > 0 ? msg.expectedPointsPerQuestion : 1
-    conn.participant.displayName = msg.displayName
+    // T-337（K-72）: 旧実装は0以下だけを1へ床上げしており、0より大きい極小値
+    // （例: 0.001）はそのまま通っていた。handleFinishのgrowth算出（totalPoints/denom。
+    // denomはexpectedPointsPerQuestion×出題数）はこの値が分母に入るため、極小値だと
+    // ベストグロース賞が不当に有利になる。1（最小の1問あたり点）を下限として床上げする
+    const expected = Math.max(1, msg.expectedPointsPerQuestion)
+    // T-331（K-66）: msg.displayName（クライアントの自由入力）は採用しない。
+    // 登録済み表示名（registeredDisplayName）を正本にすることで、他メンバーの
+    // 表示名を名乗るなりすましを構造的に防ぐ
+    conn.participant.displayName = conn.participant.registeredDisplayName
     conn.participant.expectedPointsPerQuestion = expected
     if (conn.participant.joinOrder === null) {
       conn.participant.joinOrder = this.meta.nextJoinOrder
@@ -424,11 +463,21 @@ export class BattleRoomDO extends DurableObject<Env> {
     const ordered = [...this.meta.currentAnswers.entries()].sort(
       ([, a], [, b]) => a.receivedAt - b.receivedAt,
     )
+    // T-336（K-71）: participantCountは「現在接続中」の参加者数（connections基準）だが、
+    // 解答してから本クローズまでの間に瞬断した参加者がいると、実際に解答した人数
+    // （ordered.length）がparticipantCountを上回ることがある。分母がordered.lengthより
+    // 小さいと (rank-1)/denominator が1を超え、括弧内が負になって最後発の回答者の
+    // ボーナスが負値になり、基礎点そのものを削ってしまう（=遅い回答者の得点が減る）。
+    // 分母を「接続中人数」と「実際の解答者数」の大きい方にすれば、この逆転は起きない
+    const denominator = Math.max(participantCount, ordered.length)
     ordered.forEach(([deviceToken, answer], index) => {
       const rank = index + 1
       const bonus =
-        answer.points > 0 && participantCount > 0
-          ? Math.round(answer.points * SPEED_BONUS_RATE * (1 - (rank - 1) / participantCount))
+        answer.points > 0 && denominator > 0
+          ? Math.max(
+              0,
+              Math.round(answer.points * SPEED_BONUS_RATE * (1 - (rank - 1) / denominator)),
+            )
           : 0
       const finalPoints = answer.points + bonus
       // participantsByToken（deviceToken単位のroster）から加点する。connectionsではなく
@@ -558,19 +607,29 @@ export class BattleRoomDO extends DurableObject<Env> {
     return undefined
   }
 
-  private async isRegisteredMember(deviceToken: string): Promise<boolean> {
+  /**
+   * 登録済みメンバーのレコードを返す（未登録ならnull）。T-331（K-66）で真偽値からの
+   * 変更: 認可判定だけでなく、登録済み表示名（なりすまし防止の正本）もここから得る
+   */
+  private async getMemberRecord(deviceToken: string): Promise<MemberRecord | null> {
     const raw = await this.env.MEMBERS.get(`member:${deviceToken}`)
-    return raw !== null
+    return raw ? (JSON.parse(raw) as MemberRecord) : null
   }
 
   /** 全接続のattachmentを現在のmeta＋各自のparticipantで再シリアライズする */
   private syncAttachments(): void {
     if (!this.meta) return
     const meta = attachmentMeta(this.meta)
+    // T-328（K-63）: 切断済み（connectionsに無い）参加者のロスターをホストの接続にのみ退避する
+    const disconnectedRoster: Record<string, ParticipantState> = {}
+    for (const [deviceToken, participant] of this.participantsByToken) {
+      if (!this.connections.has(deviceToken)) disconnectedRoster[deviceToken] = participant
+    }
     for (const conn of this.connections.values()) {
       conn.ws.serializeAttachment({
         participant: conn.participant,
         meta,
+        ...(conn.participant.role === 'host' ? { disconnectedRoster } : {}),
       } satisfies ConnectionAttachment)
     }
   }

@@ -34,6 +34,7 @@ import {
   type SessionSnapshot,
 } from '../services/session'
 import {
+  DIAGNOSTIC_PROGRESS_KEY,
   LAST_SEEN_STREAK_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
@@ -42,6 +43,7 @@ import {
 } from '../services/settingsKeys'
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import { InstallHint } from '../pwa/InstallHint'
+import { UpdateHint } from '../pwa/UpdateHint'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -182,6 +184,16 @@ export function formatReadingEstimate(estimate: ReadingEstimate): string {
   return `約${minQuestions}〜${maxQuestions}設問（目安${minQuestions}〜${maxQuestions}分）`
 }
 
+/**
+ * 端末ストレージ使用率が事前警告のしきい値（80%）を超えたか（T-299・K-25）。
+ * QuotaExceededErrorで解答保存が失敗する前に、起動時（ホーム表示時）に気づけるようにする。
+ * quotaが0または取得不可（Safari非対応・非HTTPS等）ならestimate自体が信用できないため警告しない
+ */
+export function shouldWarnStorageUsage(estimate: StorageEstimate | null): boolean {
+  if (!estimate || !estimate.usage || !estimate.quota) return false
+  return estimate.usage / estimate.quota > 0.8
+}
+
 export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
@@ -208,6 +220,10 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   // T-121(J-60): 生成パックが0問だったときの案内（今日のクエスト・単独モード共通）。
   // セッション開始成功時・単独モード開始時にクリアする。自動では消さない
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
+  // T-316（K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のためApp.tsxの
+  // 起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで働かない。
+  // 同一セッション内でホームに来られるようになった以上、続きへ戻る導線をここに出す
+  const [pendingDiagnostic, setPendingDiagnostic] = useState(false)
   /**
    * T-162（docs/27 のS-38）: 進行中セッションがある状態で新規開始したときの確認。
    * 選択が決まるまで開始要求を保持しておく（window.confirm を置き換えたため、
@@ -257,6 +273,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [raidState, setRaidState] = useState<RaidStateRecord | null>(null)
   // T-105: 60秒tickで相対時刻・raidEnded判定を更新するための現在時刻state
   const [nowMs, setNowMs] = useState(now())
+  // T-299（K-25）: 起動時（ホーム表示時）の端末ストレージ使用率の事前警告。
+  // QuotaExceededErrorで解答保存が失敗した後ではなく、失敗する前に気づけるようにする
+  const [storageWarning, setStorageWarning] = useState(false)
   // T-105: 日付跨ぎ検出用。読込完了時点の日付を覚えておき、visibilitychange時に比較する
   const loadedDateRef = useRef(toDateString(now()))
   /**
@@ -292,6 +311,8 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         questDurationSetting,
         singleModeCountSetting,
         readingSetCountSetting,
+        diagnosticProgressSetting,
+        storageEstimate,
       ] = await Promise.all([
         evaluateStreak(db),
         getStreak(db),
@@ -303,8 +324,13 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         db.settings.get(QUEST_DURATION_KEY),
         db.settings.get(SINGLE_MODE_COUNT_KEY),
         db.settings.get(READING_SET_COUNT_KEY),
+        db.settings.get(DIAGNOSTIC_PROGRESS_KEY),
+        // T-299（K-25）: navigator.storage未対応（Safari非対応・非HTTPS等）ならnullのまま
+        navigator.storage?.estimate?.() ?? Promise.resolve(null),
       ])
       if (cancelled) return
+      setPendingDiagnostic(diagnosticProgressSetting !== undefined)
+      setStorageWarning(shouldWarnStorageUsage(storageEstimate))
       setRaidState(raidStateRecord ?? null)
       // T-112: 「今日のクエスト」の時間チップ選択を画面遷移・再起動を跨いで復元する
       const savedDuration = questDurationSetting?.value as QuickPackDuration | undefined
@@ -1084,6 +1110,14 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
           続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
         </button>
       )}
+      {/* T-316（K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のため
+          App.tsxの起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで
+          働かない。同一セッション内でホームに来られる以上、続きへ戻る導線をここに出す */}
+      {pendingDiagnostic && (
+        <button type="button" className="secondary-action" onClick={() => navigate('diagnostic')}>
+          初期診断の続きから再開
+        </button>
+      )}
       {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
           ボタン・チップをひとつのグループにまとめラベルを付ける（Part2瞬発等には作用しない） */}
       <div className="home-quest-group">
@@ -1105,6 +1139,15 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
           </p>
         )}
         {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
+        {/* T-299（K-25）: QuotaExceededErrorで解答保存が失敗する前に、起動時に気づけるようにする */}
+        {storageWarning && (
+          <p className="home-pool-empty-hint">
+            端末のストレージ使用量が上限に近づいています。解答が保存できなくなる前にエクスポートしてください
+            <button type="button" onClick={() => navigate('settings')}>
+              設定でエクスポート
+            </button>
+          </p>
+        )}
         <p className="home-duration-chips__label">クエストの長さ</p>
         <div className="home-duration-chips">
           {/* T-228（Q-66）: 選択状態が枠色（--line→--gold）と文字色のみで符号化され、
@@ -1210,6 +1253,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         </div>
       )}
       <InstallHint />
+      {/* T-280（K-3）: 更新の適用はユーザー操作（このボタン）に限定する。セッション非進行中の
+          ホーム表示に限定するJ-118の条件を、ホーム画面のみに置くことで自然に満たす */}
+      <UpdateHint />
       {loaded && <span data-testid="home-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>
   )

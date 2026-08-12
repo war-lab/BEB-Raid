@@ -3,7 +3,7 @@
 // - セッション途中でアプリを閉じて再起動すると同じ問題から再開する
 // T-16（3.3節）: SessionItem 化（per-item mode）後の同条件の回帰確認＋旧形式破棄を追加
 import 'fake-indexeddb/auto'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import {
@@ -147,6 +147,49 @@ describe('completeSession: sessionId照合（複数タブ。T-193・Q-103）', (
     await completeSession(db, s.sessionId)
 
     await expect(completeSession(db, s.sessionId)).resolves.not.toThrow()
+  })
+})
+
+// T-298（K-24）: completeSessionのsessionId照合（T-193）と非対称に、startSessionは
+// 既存の進行中セッションを無条件に上書きしていた。別タブが未完了のまま進行中だと、
+// 旧タブの次の解答がStaleSnapshotErrorで失われる（DrillScreen/ReadingScreen側は別途対応）。
+// ここではブロックせず検出（console.warn）だけ行う——同一タブの「新しく始める」
+// （discardConfirmで確認済み）も同じ経路を通るため、ブロックは正規の操作を壊す
+describe('startSession: 進行中セッションの上書き検出（T-298・K-24）', () => {
+  it('未完了の別セッションを上書きするとconsole.warnで検出される', async () => {
+    const db = newDb()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const sessionA = await startSession(db, { items: items() })
+    // sessionAは1問も解答していない（answeredCount=0 < items.length=3）ため未完了
+
+    await startSession(db, { items: items() })
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(sessionA.sessionId))
+    warnSpy.mockRestore()
+  })
+
+  it('既存セッションが完了済み（answeredCount===items.length）なら警告しない', async () => {
+    const db = newDb()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    let sessionA = await startSession(db, { items: items() })
+    for (let i = 0; i < sessionA.items.length; i++) {
+      sessionA = await answerCurrentQuestion(db, sessionA, { isCorrect: true, responseMs: 1000 })
+    }
+
+    await startSession(db, { items: items() })
+
+    expect(warnSpy).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
+
+  it('既存セッションが無ければ警告しない（初回起動）', async () => {
+    const db = newDb()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await startSession(db, { items: items() })
+
+    expect(warnSpy).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 })
 

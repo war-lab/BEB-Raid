@@ -150,6 +150,6 @@ describe('GET /stats/questions', () => {
   it('ADMIN_TOKENでは読める。未送信状態では空配列を返す', async () => {
     const res = await SELF.fetch(getStatsAsAdmin())
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ stats: [] })
+    expect(await res.json()).toEqual({ stats: [], nextCursor: null })
   })
 })
