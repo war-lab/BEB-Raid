@@ -75,6 +75,77 @@ describe('RaidBossDO', () => {
     expect(afterDefeat.boss.myDamage).toBe(0)
   })
 
+  // 何を防ぐか（T-327・K-62）: 旧実装は挿入1件ごとにdamage_attempts全体のSUMクエリを
+  // 走らせていた（totalDamage()）。既存の行数が増えるほど1件あたりの読取コストが増え、
+  // 200件バッチのようなまとまった送信で挿入件数に比例したSQLite行読取が発生する。
+  // ランニング合計（state.totalDamage）に置き換えれば、SUMクエリの呼び出し回数は
+  // バッチサイズに関わらず一定になる（buildBossStateの貢献者ランキング用GROUP BY SUMが
+  // 呼び出し1回につき1回走るのは意図した挙動で、これは変えない）
+  async function countSumCalls(batchSize: number): Promise<number> {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1_000_000 })
+    const receivedAt = START_AT + HOUR_MS
+    const entries = Array.from({ length: batchSize }, (_, i) => ({
+      attemptId: `batch-${i}`,
+      damage: 10,
+      questionCount: 1,
+      answeredAt: receivedAt,
+    }))
+    return runInDurableObject(stub, async (instance: RaidBossDO) => {
+      const sql = (instance as unknown as { ctx: { storage: { sql: SqlStorage } } }).ctx.storage.sql
+      const execSpy = vi.spyOn(sql, 'exec')
+      await instance.syncDamage('device-1', entries, receivedAt)
+      return execSpy.mock.calls.filter((call) => String(call[0]).includes('SUM(damage)')).length
+    })
+  }
+
+  it('SUMクエリの呼び出し回数がバッチサイズに比例して増えない（挿入件数と無関係な一定回数）', async () => {
+    const smallBatch = await countSumCalls(5)
+    const largeBatch = await countSumCalls(50)
+
+    expect(largeBatch).toBe(smallBatch)
+  })
+
+  // 何を防ぐか（T-330・K-65）: raidValidation.tsの1payload上限（500）とMAX_SYNC_PAYLOADS
+  // （500件）だけでは、1台の端末が複数リクエストに分割して送れば理論上ボスHPの何倍もの
+  // ダメージを注ぎ込め、他の参加者の貢献なしに単独で討伐できてしまう。1台の端末の週次累計を
+  // maxHpの50%までに抑えることで、単独討伐が構造的に不可能になることを確認する
+  it('1台の端末だけではmaxHpの50%を超えて削れず、単独討伐できない', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000 })
+
+    const receivedAt = START_AT + HOUR_MS
+    // 500ダメージ×10件=5000（maxHpの5倍）を同一端末から送る
+    const entries = Array.from({ length: 10 }, (_, i) => ({
+      attemptId: `solo-${i}`,
+      damage: 500,
+      questionCount: 1,
+      answeredAt: receivedAt,
+    }))
+
+    const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage('solo-device', entries, receivedAt),
+    )
+
+    // 全attemptIdはacceptedIds（クライアント側pendingSyncの掃除用）には含まれるが、
+    // maxHpの50%（500）を超える分は加算されず、HPは半分（500）を下回らない
+    expect(result.acceptedIds).toHaveLength(10)
+    expect(result.boss.hp).toBe(500)
+    expect(result.boss.status).toBe('active')
+
+    // 別の端末が参戦すれば、残りのHPは通常どおり削れる（単独討伐の防止だけが目的で、
+    // 複数端末の合算討伐自体は妨げない）
+    const otherResult = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'other-device',
+        [{ attemptId: 'other-1', damage: 500, questionCount: 1, answeredAt: receivedAt }],
+        receivedAt,
+      ),
+    )
+    expect(otherResult.boss.hp).toBe(0)
+    expect(otherResult.boss.status).toBe('defeated')
+  })
+
   it('同一attemptIdの二重送信は無視され、二重計上されない（冪等）', async () => {
     const stub = freshStub(crypto.randomUUID())
     await initBoss(stub, { maxHp: 1000 })
@@ -146,6 +217,53 @@ describe('RaidBossDO', () => {
     expect(result.acceptedIds).toEqual(['late-1'])
     expect(result.boss.hp).toBe(800) // オフライン滞留分は期限後の受信でも加算される
     expect(result.boss.status).toBe('closed') // 表示上は期限切れのまま（討伐はしていない）
+  })
+
+  // 何を防ぐか（T-332・K-67）: J-49はreceivedAtが期限後でもanswaredAtが期間内なら
+  // 無条件に加算していた。上限が無いと、週次cronが前週のEMA・raidSummaryを
+  // 生成完了させた後になっても、確定済みの週へ無期限にダメージを追加できてしまう
+  it('receivedAtが期限（endAt）から7日を超えて遅延すると、answeredAtが期間内でも加算されない（T-332・K-67）', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000, startAt: START_AT, endAt: END_AT })
+
+    const DAY_MS = 24 * HOUR_MS
+    const wayTooLate = END_AT + 7 * DAY_MS + HOUR_MS // 7日+1時間後
+    const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'device-1',
+        [{ attemptId: 'very-late-1', damage: 200, questionCount: 1, answeredAt: END_AT - HOUR_MS }],
+        wayTooLate,
+      ),
+    )
+
+    // acceptedIdsには含める（クライアント側pendingSyncの掃除用）が、加算はしない
+    expect(result.acceptedIds).toEqual(['very-late-1'])
+    expect(result.boss.hp).toBe(1000)
+  })
+
+  it('receivedAtが期限（endAt）から7日以内なら、従来どおり加算される（境界確認）', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000, startAt: START_AT, endAt: END_AT })
+
+    const DAY_MS = 24 * HOUR_MS
+    const justInTime = END_AT + 7 * DAY_MS - HOUR_MS // 7日-1時間後（境界内）
+    const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'device-1',
+        [
+          {
+            attemptId: 'late-in-grace-1',
+            damage: 200,
+            questionCount: 1,
+            answeredAt: END_AT - HOUR_MS,
+          },
+        ],
+        justInTime,
+      ),
+    )
+
+    expect(result.acceptedIds).toEqual(['late-in-grace-1'])
+    expect(result.boss.hp).toBe(800)
   })
 
   it('answeredAt自体が期間外（endAtより後）なら加算されない（クランプの影響を受けないよう受信時刻も同時刻にする）', async () => {

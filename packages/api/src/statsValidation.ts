@@ -18,6 +18,25 @@ function isQuestionReportReason(value: unknown): value is QuestionReportReason {
 }
 
 /**
+ * questionIdの形式（T-333・K-68）。以前は「1〜200字の非空文字列」としか検証しておらず、
+ * question_statsが任意の文字列で無制限に増えうる構造的な弱点だった（bossIdのT-243と同種）。
+ * content/packs/*.jsonの実際のquestionId（part2-submit・p34-p3-01・vocab-meeting・
+ * similar-account-1等）と、audio_set/読解のサブ設問合成ID（`<parentId>-q<index>`）は
+ * いずれも「小文字英数字のハイフン区切り」で表現できるため、この構造だけを強制する
+ * （個別のプレフィックスを列挙すると新パック追加のたびに追随が必要になり脆いため避ける）
+ */
+const QUESTION_ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
+const MAX_QUESTION_ID_LENGTH = 100
+
+function isValidQuestionId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length <= MAX_QUESTION_ID_LENGTH &&
+    QUESTION_ID_PATTERN.test(value)
+  )
+}
+
+/**
  * 1問・1バッチあたりの回数上限。UPSERT加算のみの集計のため、負数を許すと
  * 統計を減算破壊できる（非負・整数・桁違い排除だけを構造的に保証する）
  */
@@ -37,21 +56,14 @@ function isCountValue(value: unknown): boolean {
 export function isQuestionReportPayload(value: unknown): value is QuestionReportPayload {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
-  return (
-    typeof v.questionId === 'string' &&
-    v.questionId.length > 0 &&
-    v.questionId.length <= 200 &&
-    isQuestionReportReason(v.reason)
-  )
+  return isValidQuestionId(v.questionId) && isQuestionReportReason(v.reason)
 }
 
 function isQuestionStatPayload(value: unknown): value is QuestionStatPayload {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
   return (
-    typeof v.questionId === 'string' &&
-    v.questionId.length > 0 &&
-    v.questionId.length <= 200 &&
+    isValidQuestionId(v.questionId) &&
     isCountValue(v.correct) &&
     isCountValue(v.wrong) &&
     isCountValue(v.timeout)
