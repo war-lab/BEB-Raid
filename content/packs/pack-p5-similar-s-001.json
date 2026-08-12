@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 59613
+    "sizeBytes": 59617
   },
   "questions": [
     {
@@ -389,7 +389,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "筆記試験を受けるのはcandidate（候補者）。budget（予算）・warranty（保証書）・merger（合併）は試験を受ける主体になれない。",
+      "explanation": "筆記試験を受けるのはcandidate（候補者）。warranty（保証）・merger（合併）・budget（予算）は試験を受ける主体になれない。",
       "translation": "各候補者は短い筆記試験を受けるよう求められた。"
     },
     {
@@ -1061,19 +1061,19 @@
         },
         {
           "key": "B",
-          "text": "certification"
+          "text": "inspection"
         },
         {
           "key": "C",
-          "text": "budget"
+          "text": "subscription"
         },
         {
           "key": "D",
-          "text": "candidate"
+          "text": "endorsement"
         }
       ],
       "answer": "A",
-      "explanation": "アナリストが事前に予測していたのはmerger（合併）。certification（認定）・budget（予算）・candidate（候補者）は業界アナリストが予測する企業間の出来事ではない。",
+      "explanation": "アナリストが事前に予測していたのはmerger（合併）。inspection（検査）・subscription（購読）・endorsement（推薦）は業界アナリストが予測する企業間の出来事ではない。",
       "translation": "業界アナリストはその合併を、確定する何ヶ月も前から予測していた。"
     },
     {

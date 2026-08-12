@@ -79,6 +79,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"please reply to this email within two business days"とあり、返信の方法と期限が明記されている。他の選択肢（"Visit the office in person"／"Wait for a follow-up phone call"／"Call the hiring manager immediately"）は本文中で述べられていない。',
         translation: '提案された時間が都合が悪い場合、Alvarezさんは何をすべきですか。',
       },
+      {
+        question: 'All of the following are mentioned in the email EXCEPT',
+        correctText: 'a video call option for the interview',
+        distractors: [
+          'a writing exercise related to social media planning',
+          'a request to bring a portfolio',
+          'a deadline for replying if the time is inconvenient',
+        ],
+        explanation:
+          '面接はdowntown officeで行うと明記されており、ビデオ通話については触れられていない。他の3つは本文に明記されている。',
+        translation: '次のうち、メールで言及されていないものはどれですか。',
+      },
     ],
   },
   {
@@ -112,6 +124,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"gather in the parking lot on the east side of the building"と明記されている。',
         translation: '訓練中、人々はどこに集まるべきですか。',
       },
+      {
+        question: 'The word "gather" in the notice is closest in meaning to',
+        correctText: 'assemble',
+        distractors: ['depart', 'search', 'complain'],
+        explanation:
+          '"gather in the parking lot"は「駐車場に集まる」という意味で、assemble（集合する）が最も近い。',
+        translation: '案内の中の"gather"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -121,7 +141,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['campaign', 'endorsement', 'coordinate'],
     passageKind: 'article',
     passageText:
-      "Local Charity Drive Raises Record Amount\n\nThe annual charity drive organized by the Riverside Business Association raised more than forty thousand dollars this year, the highest total in the event's twelve-year history. The campaign, which ran for three weeks in April, was supported by an endorsement from the city's mayor and coordinated by a team of volunteers from local businesses. Funds raised will be split between the regional food bank and a scholarship program for high school students. Organizers said the increase was largely due to a new online donation platform that allowed contributions from outside the immediate area. Next year's drive is expected to run for an additional week to build on this momentum.",
+      "Local Charity Drive Raises Record Amount\n\nThe annual charity drive organized by the Riverside Business Association raised more than forty thousand dollars this year, the highest total in the event's twelve-year history. [1] The campaign, which ran for three weeks in April, was supported by an endorsement from the city's mayor and coordinated by a team of volunteers from local businesses. [2] Funds raised will be split between the regional food bank and a scholarship program for high school students. [3] Organizers said the increase was largely due to a new online donation platform that allowed contributions from outside the immediate area. [4] Next year's drive is expected to run for an additional week to build on this momentum.",
     passageTranslation:
       '地元チャリティー活動が過去最高額を記録\n\nRiverside Business Associationが主催する年次チャリティー活動は、今年4万ドルを超える金額を集め、12年の活動史上最高額となりました。4月に3週間実施されたこの運動は、市長の支援と地元企業から集まったボランティアチームの調整により行われました。集まった資金は地域のフードバンクと高校生向けの奨学金プログラムに分配されます。主催者によると、この増加は、地域外からの寄付を可能にした新しいオンライン寄付プラットフォームによるものが大きいとのことです。来年の活動は、この勢いを生かすため1週間長く実施される見込みです。',
     subQuestions: [
@@ -161,6 +181,16 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"Funds raised will be split between the regional food bank and a scholarship program"と明記されている。',
         translation: '集まった資金はどのように使われますか。',
       },
+      {
+        question:
+          'In which position marked [1], [2], [3], and [4] does the following sentence best belong?\n"This approach also reduced printing costs for paper invitations."',
+        correctText: '[3]',
+        distractors: ['[1]', '[2]', '[4]'],
+        explanation:
+          '挿入文は「このオンライン化の方法により紙の招待状の印刷費も削減された」という意味で、直前の"a new online donation platform"に関する記述の直後[3]に置くのが最も自然。',
+        translation:
+          '次の文が入る最も適切な位置はどれですか。「この方法により紙の招待状の印刷費も削減された。」',
+      },
     ],
   },
   {
@@ -199,6 +229,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '直前でDanaが「今日中に知らせられるか」と尋ね、Marcoが新しい配達日と追跡番号を伝えると答えているため、顧客への連絡を指している。',
         translation:
           '午前10時6分にMarco Diazが「アップデートを送る」と書いているのはどういう意味ですか。',
+      },
+      {
+        question: 'According to the chat, all of the following are true EXCEPT',
+        correctText: 'The shipment has already arrived at its destination',
+        distractors: [
+          'The delivery left the warehouse this morning',
+          'Marco Diaz will contact the client with a tracking number',
+          'The new arrival date is later than originally promised',
+        ],
+        explanation:
+          '会話では出荷が木曜日に到着する予定だとされており、すでに到着したとは述べられていない。他の3つは本文に明記されている。',
+        translation: '次のうち、チャットで述べられていない、または誤っているものはどれですか。',
       },
     ],
   },
@@ -249,6 +291,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"A confirmation email with your badge information will be sent within five business days of payment"と明記されている。',
         translation: '登録者はどのようにバッジ情報を受け取りますか。',
       },
+      {
+        question: 'The word "accommodations" in the form is closest in meaning to',
+        correctText: 'lodging',
+        distractors: ['transportation', 'registration', 'refreshments'],
+        explanation:
+          '"Hotel accommodations near the venue"は「会場近くの宿泊施設」という意味で、lodging（宿泊）が最も近い。',
+        translation: 'フォーム中の"accommodations"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -258,7 +308,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['merchandise', 'discount'],
     passageKind: 'advertisement',
     passageText:
-      'GRAND OPENING — Parkside Home Goods\n\nJoin us this Saturday for the grand opening of Parkside Home Goods, your new neighborhood store for kitchenware, furniture, and decor. The first fifty customers will receive a free gift, and all merchandise in the store will be offered at a twenty percent discount for opening weekend only. Doors open at 9 a.m. Free parking is available in the lot behind the building.',
+      'GRAND OPENING — Parkside Home Goods\n\nJoin us this Saturday for the grand opening of Parkside Home Goods, your new neighborhood store for kitchenware, furniture, and decor. [1] The first fifty customers will receive a free gift, and all merchandise in the store will be offered at a twenty percent discount for opening weekend only. [2] Doors open at 9 a.m. [3] Free parking is available in the lot behind the building. [4]',
     passageTranslation:
       '開店記念 — Parkside Home Goods\n\n今週土曜日、近隣の新しいキッチン用品・家具・インテリア雑貨店、Parkside Home Goodsのグランドオープンにぜひお越しください。最初の50名様には無料プレゼントを差し上げ、オープン週末限定で店内全商品が20%引きになります。開店は午前9時です。建物裏の駐車場を無料でご利用いただけます。',
     subQuestions: [
@@ -285,6 +335,16 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"The first fifty customers will receive a free gift"と明記されている。他の選択肢（"A discount on future purchases only"／"A store credit card"／"A membership to a loyalty program"）は本文中で述べられていない。',
         translation: '最初の50名の顧客は何を受け取りますか。',
+      },
+      {
+        question:
+          'In which position marked [1], [2], [3], and [4] does the following sentence best belong?\n"The store will also raffle off a $200 gift card at noon."',
+        correctText: '[3]',
+        distractors: ['[1]', '[2]', '[4]'],
+        explanation:
+          '挿入文は開店当日正午の追加イベントを述べており、開店時刻"Doors open at 9 a.m."の直後[3]に置くのが最も自然。',
+        translation:
+          '次の文が入る最も適切な位置はどれですか。「店舗では正午に200ドルの商品券の抽選も行う。」',
       },
     ],
   },
@@ -380,6 +440,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"should notify their supervisor before the closure"とあり、休業前に上司へ知らせるよう求めている。',
         translation: '緊急の依頼がある場合、従業員は何をすべきですか。',
       },
+      {
+        question: 'The word "resume" in the notice is closest in meaning to',
+        correctText: 'start again',
+        distractors: ['end early', 'move to another location', 'become available online'],
+        explanation:
+          '"Normal business hours will resume"は「通常営業時間が再開する」という意味で、start again（再び始まる）が最も近い。',
+        translation: '案内の中の"resume"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -389,7 +457,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['sustainability', 'benchmark'],
     passageKind: 'article',
     passageText:
-      "Local Manufacturer Recognized for Sustainability Efforts\n\nGreenline Manufacturing received the Regional Sustainability Award last week for its efforts to reduce waste and energy use across its production facilities. The company set a new benchmark in the region by cutting water use by forty percent over the past three years through a closed-loop cooling system. Company representatives said the recognition reflects years of investment in equipment upgrades rather than a single recent change. The award committee noted that Greenline's approach could serve as a model for other manufacturers in the area. Company leaders said they plan to share details of their process at an upcoming industry conference.",
+      "Local Manufacturer Recognized for Sustainability Efforts\n\nGreenline Manufacturing received the Regional Sustainability Award last week for its efforts to reduce waste and energy use across its production facilities. [1] The company set a new benchmark in the region by cutting water use by forty percent over the past three years through a closed-loop cooling system. [2] Company representatives said the recognition reflects years of investment in equipment upgrades rather than a single recent change. [3] The award committee noted that Greenline's approach could serve as a model for other manufacturers in the area. [4] Company leaders said they plan to share details of their process at an upcoming industry conference.",
     passageTranslation:
       '地元製造業者が持続可能性への取組みで表彰\n\nGreenline製造は先週、生産施設全体での廃棄物削減と省エネルギーの取組みにより、地域持続可能性賞を受賞しました。同社は過去3年間、閉鎖循環式冷却システムの導入により水使用量を40%削減し、地域内で新たな基準を打ち立てました。会社の担当者は、この受賞は最近の単発の変更ではなく、長年にわたる設備更新への投資の成果だと述べています。審査委員会は、Greenlineの取組みが地域の他の製造業者にとってモデルとなり得ると指摘しました。経営陣は、今後の業界会議でその手法の詳細を共有する予定だと述べています。',
     subQuestions: [
@@ -428,6 +496,16 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文最後に"plan to share details of their process at an upcoming industry conference"と明記されている。',
         translation: '会社は次に何をする予定ですか。',
+      },
+      {
+        question:
+          'In which position marked [1], [2], [3], and [4] does the following sentence best belong?\n"The system recycles nearly all of the water used in the cooling process."',
+        correctText: '[2]',
+        distractors: ['[1]', '[3]', '[4]'],
+        explanation:
+          '挿入文は"a closed-loop cooling system"を指す"The system"で始まるため、その直後[2]に置くのが最も自然。',
+        translation:
+          '次の文が入る最も適切な位置はどれですか。「このシステムは冷却工程で使う水のほぼ全てを再利用する。」',
       },
     ],
   },
@@ -478,6 +556,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '直前でPriyaが11時に電話があるため短くする必要があると述べたことへの応答であり、その制約を了解したという意味。他の選択肢（"He disagrees with the proposed schedule"／"He has received a document from the client"／"He has already spoken with the client"）は本文中で述べられていない。',
         translation: '午後3時17分にTom Fischerが「了解」と書いているのはどういう意味ですか。',
       },
+      {
+        question: 'According to the chat, all of the following are true EXCEPT',
+        correctText: 'Priya Nair will lead the rescheduled meeting alone',
+        distractors: [
+          'The meeting was moved from tomorrow to Thursday',
+          'Priya Nair has another call at 11 a.m. on Thursday',
+          'The meeting will need to end by 10:45',
+        ],
+        explanation:
+          '会話ではPriyaが単独で会議を進めるとは述べられていない。他の3つは本文に明記されている。',
+        translation: '次のうち、チャットで述べられていない、または誤っているものはどれですか。',
+      },
     ],
   },
   {
@@ -515,6 +605,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"Renewals submitted after the deadline will be charged the new rate that takes effect next month"と明記されている。',
         translation: '25日以降に更新した会員はどうなりますか。',
       },
+      {
+        question: 'The word "benefits" in the form is closest in meaning to',
+        correctText: 'advantages',
+        distractors: ['fees', 'complaints', 'locations'],
+        explanation:
+          '"enjoying your current benefits"は「現在の特典を享受する」という意味で、advantages（利点）が最も近い。',
+        translation: 'フォーム中の"benefits"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -524,7 +622,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['upgrade'],
     passageKind: 'advertisement',
     passageText:
-      "Limited-Time Offer: Save on CloudDesk Software\n\nUpgrade your team's productivity with CloudDesk, the project management software trusted by thousands of businesses. For a limited time, new subscribers can save thirty percent on their first year when signing up for an annual plan. Monthly plans are also available but are not included in this discount. All plans include unlimited projects, file storage, and customer support. Sign up before the end of the month to lock in this rate for a full year.",
+      "Limited-Time Offer: Save on CloudDesk Software\n\nUpgrade your team's productivity with CloudDesk, the project management software trusted by thousands of businesses. [1] For a limited time, new subscribers can save thirty percent on their first year when signing up for an annual plan. [2] Monthly plans are also available but are not included in this discount. [3] All plans include unlimited projects, file storage, and customer support. [4] Sign up before the end of the month to lock in this rate for a full year.",
     passageTranslation:
       '期間限定オファー: CloudDeskソフトウェアをお得に\n\nCloudDeskで貴チームの生産性を向上させましょう。数千の企業に信頼されているプロジェクト管理ソフトウェアです。期間限定で、年間プランにご登録いただいた新規契約者様は初年度30%オフになります。月額プランもご利用いただけますが、この割引の対象外です。すべてのプランには無制限のプロジェクト数、ファイルストレージ、カスタマーサポートが含まれます。この料金を1年間確定するには、今月末までにご登録ください。',
     subQuestions: [
@@ -563,6 +661,15 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"Monthly plans are also available but are not included in this discount"とあり、月額プランは今回の割引対象外であることが分かる。',
         translation: '月額プランについて何が示唆されていますか。',
+      },
+      {
+        question:
+          'In the advertisement, where is the following sentence best placed?\n"This introductory rate cannot be combined with any other promotional offer."',
+        correctText: '[2]',
+        distractors: ['[1]', '[3]', '[4]'],
+        explanation:
+          '挿入文は「この初回特典は他のキャンペーンと併用できない」という内容で、30%割引の説明の直後[2]に置くと自然に続く。',
+        translation: '広告の中で、次の文が入る最も適切な位置はどこですか。',
       },
     ],
   },
@@ -613,6 +720,19 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文最後に"A welcome reception will be held in the main office on her first day"と明記されている。',
         translation: 'Rina Kobayashiさんの初日には何が行われますか。',
       },
+      {
+        question: 'All of the following are mentioned about Rina Kobayashi EXCEPT',
+        correctText: 'She previously served as CEO of a logistics company',
+        distractors: [
+          'She led a cost-reduction program at her previous company',
+          'She will report directly to the CEO',
+          'A welcome reception will be held on her first day',
+        ],
+        explanation:
+          '本文ではRina Kobayashiさんは物流会社の財務ディレクターだったと述べられており、CEOだったとは書かれていない。他の3つは本文に明記されている。',
+        translation:
+          '次のうち、Rina Kobayashiさんについて述べられていない、または誤っているものはどれですか。',
+      },
     ],
   },
   {
@@ -661,6 +781,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文最後に"reception staff will provide shuttle information at check-in"と明記されている。他の選択肢（"Direct visitors to a different building entirely"／"Escort visitors to the overflow lot personally"／"Collect parking fees from visitors"）は本文中で述べられていない。',
         translation: '閉鎖期間中、受付スタッフは何をすると想定されていますか。',
+      },
+      {
+        question: 'The word "scheduled" in the notice is closest in meaning to',
+        correctText: 'planned',
+        distractors: ['canceled', 'urgent', 'optional'],
+        explanation:
+          '"scheduled maintenance"は「予定されている、計画されている保守」という意味で、plannedが最も近い。',
+        translation: '案内中の"scheduled"に最も意味が近いのは。',
       },
     ],
   },
@@ -756,6 +884,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文最後に"could you check it tomorrow afternoon?"とあり、翌日午後にスライドを確認してほしいと依頼している。他の選択肢（"Reserve a meeting room for Friday"／"Attend the client meeting on Friday"／"Reschedule the presentation to next week"）は本文中で述べられていない。',
         translation: 'Becca LinはYusuf Demirに何をするよう頼んでいますか。',
       },
+      {
+        question: 'All of the following are mentioned in the conversation EXCEPT',
+        correctText: 'Yusuf Demir will deliver the presentation to the client',
+        distractors: [
+          'Becca Lin still needs to add a pricing slide',
+          'Yusuf Demir will send the final pricing numbers',
+          'Yusuf Demir will review the slides tomorrow afternoon',
+        ],
+        explanation:
+          '会話ではYusuf Demirが顧客にプレゼンを行うとは述べられていない。他の3つは会話に明記されている。',
+        translation: '次のうち、会話で述べられていない、または誤っているものはどれですか。',
+      },
     ],
   },
   {
@@ -805,6 +945,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"Forms without complete receipts will be returned to the employee for correction before processing"と明記されている。',
         translation: '必要なレシートが不足している場合、フォームはどうなりますか。',
       },
+      {
+        question: 'The word "itemized" in the form is closest in meaning to',
+        correctText: 'listed in detail',
+        distractors: ['discounted', 'delayed', 'approved'],
+        explanation:
+          '"All expenses must be itemized"は「費用を一つ一つ詳細に記載する」という意味で、listed in detailが最も近い。',
+        translation: 'フォーム中の"itemized"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -814,7 +962,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['conference', 'discount'],
     passageKind: 'advertisement',
     passageText:
-      "Early-Bird Registration Now Open\n\nRegister for the Northeast Business Conference before July 15 and save fifteen percent off the standard registration fee. This year's conference features keynote speakers from several major industries and more than thirty breakout sessions. Group discounts are available for companies registering five or more attendees. Space is limited, so early registration is recommended.",
+      "Early-Bird Registration Now Open\n\nRegister for the Northeast Business Conference before July 15 and save fifteen percent off the standard registration fee. [1] This year's conference features keynote speakers from several major industries and more than thirty breakout sessions. [2] Group discounts are available for companies registering five or more attendees. [3] Space is limited, so early registration is recommended. [4]",
     passageTranslation:
       '早期登録受付中\n\n7月15日までにNortheast Business Conferenceへご登録いただくと、通常登録料から15%割引になります。今年の会議では、複数の主要業界からの基調講演者と30以上の分科会セッションを予定しています。5名以上でご登録の企業には団体割引が適用されます。席数に限りがあるため、早めのご登録をお勧めします。',
     subQuestions: [
@@ -841,6 +989,15 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"Group discounts are available for companies registering five or more attendees"と明記されている。他の選択肢（"A dedicated conference room"／"Free hotel accommodations"／"An extended registration deadline"）は本文中で述べられていない。',
         translation: '5名以上の参加者がいる企業には何が利用できますか。',
+      },
+      {
+        question:
+          'In the advertisement, where is the following sentence best placed?\n"A full schedule of speakers and session topics is available on the conference website."',
+        correctText: '[2]',
+        distractors: ['[1]', '[3]', '[4]'],
+        explanation:
+          '挿入文は基調講演者とセッションの詳細情報について述べており、それらを紹介する文の直後[2]に置くと自然に続く。',
+        translation: '広告の中で、次の文が入る最も適切な位置はどこですか。',
       },
     ],
   },
@@ -936,6 +1093,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"a limited catering service will be set up in the first-floor lobby"と明記されている。',
         translation: '閉鎖期間中、食事はどこで利用できますか。',
       },
+      {
+        question: 'The word "expanded" in the notice is closest in meaning to',
+        correctText: 'enlarged',
+        distractors: ['reduced', 'shortened', 'canceled'],
+        explanation:
+          '"an expanded menu"は「拡充された、拡大されたメニュー」という意味で、enlargedが最も近い。',
+        translation: '案内中の"expanded"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -945,7 +1110,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['branch', 'coordinate'],
     passageKind: 'article',
     passageText:
-      "New Branch Manager Brings Retail Experience\n\nSarita Menon has been named the new branch manager of Coastal Bank's downtown location, replacing a manager who retired earlier this year. Menon previously spent eight years at a national retail chain, where she coordinated store operations across multiple locations. She said her retail background taught her the importance of customer service, which she plans to emphasize in her new role. Menon's first project will be extending the branch's hours on weekends, a change she says was frequently requested by customers. She will officially begin the position on the first of next month.",
+      "New Branch Manager Brings Retail Experience\n\nSarita Menon has been named the new branch manager of Coastal Bank's downtown location, replacing a manager who retired earlier this year. [1] Menon previously spent eight years at a national retail chain, where she coordinated store operations across multiple locations. [2] She said her retail background taught her the importance of customer service, which she plans to emphasize in her new role. [3] Menon's first project will be extending the branch's hours on weekends, a change she says was frequently requested by customers. [4] She will officially begin the position on the first of next month.",
     passageTranslation:
       '新しい支店長が小売業での経験を活かす\n\nSarita Menonさんが、今年初めに退職した支店長の後任として、Coastal Bankの都心支店の新しい支店長に就任しました。Menonさんは以前、全国規模の小売チェーンで8年間勤務し、複数拠点の店舗運営を統括していました。彼女は、小売業での経験から顧客サービスの重要性を学んだと述べ、これを新しい職務でも重視していく方針です。Menonさんの最初のプロジェクトは、顧客から頻繁に要望されていた週末の営業時間拡大です。彼女は来月1日付で正式に着任します。',
     subQuestions: [
@@ -984,6 +1149,15 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"Menon\'s first project will be extending the branch\'s hours on weekends"と明記されている。',
         translation: 'Menonさんの最初のプロジェクトは何になりますか。',
+      },
+      {
+        question:
+          'In the article, where is the following sentence best placed?\n"During her time there, she also helped launch an employee training program that was later adopted company-wide."',
+        correctText: '[2]',
+        distractors: ['[1]', '[3]', '[4]'],
+        explanation:
+          '挿入文の"her time there"は前の文の小売チェーンでの8年間を指すため、その説明の直後[2]に置くと自然に続く。',
+        translation: '記事の中で、次の文が入る最も適切な位置はどこですか。',
       },
     ],
   },
@@ -1030,6 +1204,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文最後に"I\'ll let the team know to use the printer on the fourth floor"と明記されている。',
         translation: 'Mei Zhangは何をすると言っていますか。',
       },
+      {
+        question: 'All of the following are mentioned in the conversation EXCEPT',
+        correctText: 'Mei Zhang found the paper causing the jam',
+        distractors: [
+          'A technician will be requested to look at the printer',
+          'The team will use the printer on the fourth floor in the meantime',
+          'The problem may be a bigger malfunction',
+        ],
+        explanation:
+          '会話ではMei Zhangが紙詰まりの原因の紙を見つけられなかったと述べられており、見つけたとは書かれていない。他の3つは会話に明記されている。',
+        translation: '次のうち、会話で述べられていない、または誤っているものはどれですか。',
+      },
     ],
   },
   {
@@ -1067,6 +1253,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"should not make non-refundable travel arrangements until they receive written approval"と明記されている。',
         translation: '承認を受ける前に、従業員は何をしないよう助言されていますか。',
       },
+      {
+        question: 'The word "exceptional" in the form is closest in meaning to',
+        correctText: 'unusual',
+        distractors: ['common', 'minor', 'expected'],
+        explanation:
+          '"only be approved in exceptional circumstances"は「例外的な、通常とは異なる状況」という意味で、unusualが最も近い。',
+        translation: 'フォーム中の"exceptional"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -1076,7 +1270,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['recruit', 'candidate'],
     passageKind: 'advertisement',
     passageText:
-      'Job Fair — Meet Local Employers\n\nJoin us on Saturday, April 12, at the Riverside Convention Center for a job fair featuring more than thirty local employers looking to recruit new staff. Candidates are encouraged to bring several copies of their resume and dress professionally, as some employers may conduct brief interviews on the spot. Free resume review sessions will be offered throughout the day by career counselors. Admission is free, and the event runs from 10 a.m. to 3 p.m.',
+      'Job Fair — Meet Local Employers\n\nJoin us on Saturday, April 12, at the Riverside Convention Center for a job fair featuring more than thirty local employers looking to recruit new staff. [1] Candidates are encouraged to bring several copies of their resume and dress professionally, as some employers may conduct brief interviews on the spot. [2] Free resume review sessions will be offered throughout the day by career counselors. [3] Admission is free, and the event runs from 10 a.m. to 3 p.m. [4]',
     passageTranslation:
       '就職フェア — 地元企業と出会う\n\n4月12日土曜日、Riverside Convention Centerで開催される就職フェアにご参加ください。新規スタッフの採用を検討する30社を超える地元企業が出展します。応募者は履歴書を数部持参し、服装を整えてお越しください。一部の企業はその場で簡単な面接を行う場合があります。キャリアカウンセラーによる無料の履歴書添削も終日実施されます。入場は無料で、開催時間は午前10時から午後3時までです。',
     subQuestions: [
@@ -1115,6 +1309,15 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"some employers may conduct brief interviews on the spot"とあり、当日その場で面接を行う可能性があることが読み取れる。',
         translation: '参加企業の一部について何が示唆されていますか。',
+      },
+      {
+        question:
+          'In the advertisement, where is the following sentence best placed?\n"Attendees are also welcome to attend industry-specific workshops held throughout the venue."',
+        correctText: '[2]',
+        distractors: ['[1]', '[3]', '[4]'],
+        explanation:
+          '挿入文は会場内で参加者ができる追加の活動について述べており、履歴書と服装に関する案内の直後[2]に置くと自然に続く。',
+        translation: '広告の中で、次の文が入る最も適切な位置はどこですか。',
       },
     ],
   },
@@ -1214,6 +1417,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"Routine maintenance will still take place on the first Monday of each month"と明記されている。',
         translation: '定期メンテナンスはいつ行われますか。',
       },
+      {
+        question: 'The word "routine" in the notice is closest in meaning to',
+        correctText: 'regular',
+        distractors: ['urgent', 'unexpected', 'optional'],
+        explanation:
+          '"Routine maintenance"は「定期的に行われる保守」という意味で、regularが最も近い。',
+        translation: '案内中の"routine"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -1223,7 +1434,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['launch', 'sample', 'feedback'],
     passageKind: 'article',
     passageText:
-      "New Product Line Debuts to Positive Response\n\nHomeware brand Everclare launched its new line of kitchen storage containers at a company event last Friday, drawing a larger crowd than expected. Attendees were given free samples to try at home and asked to submit feedback through an online form within two weeks. Early feedback has focused on the containers' stackable design, which many attendees said would help save space in small kitchens. The company said it plans to use this feedback to adjust the product line before a wider retail launch planned for early next year.",
+      "New Product Line Debuts to Positive Response\n\nHomeware brand Everclare launched its new line of kitchen storage containers at a company event last Friday, drawing a larger crowd than expected. [1] Attendees were given free samples to try at home and asked to submit feedback through an online form within two weeks. [2] Early feedback has focused on the containers' stackable design, which many attendees said would help save space in small kitchens. [3] The company said it plans to use this feedback to adjust the product line before a wider retail launch planned for early next year. [4]",
     passageTranslation:
       '新製品ラインが好意的な反応でデビュー\n\n住宅用品ブランドEverclareは先週金曜日、会社主催のイベントで新しいキッチン保存容器シリーズを発表し、想定を上回る来場者を集めました。参加者には自宅で試せる無料サンプルが配布され、2週間以内にオンラインフォームでフィードバックを提出するよう依頼されました。初期のフィードバックは容器の積み重ね可能な設計に集中しており、多くの参加者が小さなキッチンでの省スペースに役立つと述べています。会社は、来年初めに予定されている広範な店頭発売の前に、このフィードバックを製品ラインの調整に活用する計画だと述べています。',
     subQuestions: [
@@ -1263,6 +1474,15 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"plans to use this feedback to adjust the product line before a wider retail launch"と明記されている。',
         translation: '会社は受け取ったフィードバックをどのように活用しますか。',
       },
+      {
+        question:
+          'In the article, where is the following sentence best placed?\n"Several attendees also praised the containers\' airtight lids, which were designed to keep food fresh longer."',
+        correctText: '[3]',
+        distractors: ['[1]', '[2]', '[4]'],
+        explanation:
+          '挿入文は参加者からの好意的な反応について述べており、スタッカブルデザインへの反応を紹介する文の直後[3]に置くと自然に続く。',
+        translation: '記事の中で、次の文が入る最も適切な位置はどこですか。',
+      },
     ],
   },
   {
@@ -1299,6 +1519,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"I\'ll call the caterer and ask them to send a correction right away"と明記されている。',
         translation: 'Jerome Wallaceは次に何をすると考えられますか。',
+      },
+      {
+        question: 'All of the following are mentioned in the conversation EXCEPT',
+        correctText: 'Nadia Petrov will call the caterer herself',
+        distractors: [
+          'The catering order contained the wrong type of sandwiches',
+          'The meeting is scheduled to start at noon',
+          'Jerome Wallace will ask the caterer to rush the correction',
+        ],
+        explanation:
+          '会話ではJerome Wallaceがケータリング業者に電話すると述べられており、Nadia Petrovが自分で電話するとは書かれていない。他の3つは会話に明記されている。',
+        translation: '次のうち、会話で述べられていない、または誤っているものはどれですか。',
       },
     ],
   },
@@ -1349,6 +1581,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"A laptop will be provided for the session, but participants may bring their own if preferred"と明記されている。',
         translation: '参加者にはセッション中に何が提供されますか。',
       },
+      {
+        question: 'The word "limited" in the form is closest in meaning to',
+        correctText: 'restricted',
+        distractors: ['expanded', 'discounted', 'extended'],
+        explanation:
+          '"Sessions are limited to fifteen participants"は「人数が制限されている」という意味で、restrictedが最も近い。',
+        translation: 'フォーム中の"limited"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -1358,7 +1598,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['lease', 'tenant', 'maintenance'],
     passageKind: 'advertisement',
     passageText:
-      'Office Space Available for Lease\n\nA newly renovated office suite is now available for lease in the downtown business district. The premises include three private offices, an open work area, and a shared conference room, totaling approximately 2,000 square feet. The lease term is flexible, with options ranging from one to five years. Interested tenants should contact the property manager to schedule a viewing. Utilities and building maintenance are included in the monthly rate.',
+      'Office Space Available for Lease\n\nA newly renovated office suite is now available for lease in the downtown business district. [1] The premises include three private offices, an open work area, and a shared conference room, totaling approximately 2,000 square feet. [2] The lease term is flexible, with options ranging from one to five years. [3] Interested tenants should contact the property manager to schedule a viewing. [4] Utilities and building maintenance are included in the monthly rate.',
     passageTranslation:
       '賃貸オフィススペースのご案内\n\n都心の商業地区に、改装済みの新しいオフィススイートが賃貸で利用可能になりました。個室オフィス3室、オープンワークスペース、共有会議室を含み、総面積は約2,000平方フィートです。契約期間は1年から5年まで柔軟に選択できます。ご興味のあるテナントの方は、物件管理者に連絡し内覧を予約してください。ユーティリティおよび建物の維持管理費は月額料金に含まれます。',
     subQuestions: [
@@ -1397,6 +1637,15 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"Interested tenants should contact the property manager to schedule a viewing"と明記されている。',
         translation: '興味を持ったテナントは次に何をすべきですか。',
+      },
+      {
+        question:
+          'In the advertisement, where is the following sentence best placed?\n"On-site parking is also available for an additional monthly fee."',
+        correctText: '[2]',
+        distractors: ['[1]', '[3]', '[4]'],
+        explanation:
+          '挿入文は物件の設備について追加で述べており、物件の内容を説明する文の直後[2]に置くと自然に続く。',
+        translation: '広告の中で、次の文が入る最も適切な位置はどこですか。',
       },
     ],
   },
@@ -1506,6 +1755,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文に"Temporary badges are available for same-day use while a replacement is processed"と明記されている。',
         translation: '交換バッジの手続き中には何が利用できますか。',
+      },
+      {
+        question: 'The word "authorized" in the notice is closest in meaning to',
+        correctText: 'approved',
+        distractors: ['denied', 'canceled', 'ignored'],
+        explanation:
+          '"Badges must be authorized by your department"は「部署の承認を受ける」という意味で、approvedが最も近い。',
+        translation: '案内中の"authorized"に最も意味が近いのは。',
       },
     ],
   },
@@ -1617,6 +1874,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文最後に"I\'ll confirm the new time with the platform support team as well"と明記されている。',
         translation: 'Carlos Mendezは何をすると言っていますか。',
       },
+      {
+        question: 'All of the following are mentioned in the conversation EXCEPT',
+        correctText: 'Carlos Mendez will email the registered attendees',
+        distractors: [
+          'The webinar platform is having technical issues',
+          'The webinar will be rescheduled to Thursday',
+          'Carlos Mendez will confirm the new time with platform support',
+        ],
+        explanation:
+          '会話ではElena Vossが参加者にメールすると述べられており、Carlos Mendezがメールするとは書かれていない。他の3つは会話に明記されている。',
+        translation: '次のうち、会話で述べられていない、または誤っているものはどれですか。',
+      },
     ],
   },
   {
@@ -1682,7 +1951,7 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     keyVocabWords: ['warehouse', 'inventory', 'shipment'],
     passageKind: 'advertisement',
     passageText:
-      'Now Hiring: Warehouse Associate\n\nParkline Distribution is looking for full-time warehouse associates to join our growing team. Responsibilities include receiving shipments, managing inventory records, and preparing orders for delivery. No previous warehouse experience is required, as full training will be provided during the first two weeks. Candidates must be able to lift up to fifty pounds and stand for extended periods. This position offers a starting wage above the local minimum along with health benefits after ninety days of employment.',
+      'Now Hiring: Warehouse Associate\n\nParkline Distribution is looking for full-time warehouse associates to join our growing team. [1] Responsibilities include receiving shipments, managing inventory records, and preparing orders for delivery. [2] No previous warehouse experience is required, as full training will be provided during the first two weeks. [3] Candidates must be able to lift up to fifty pounds and stand for extended periods. [4] This position offers a starting wage above the local minimum along with health benefits after ninety days of employment.',
     passageTranslation:
       '求人募集: 倉庫スタッフ\n\nParkline Distributionでは、成長中のチームに加わっていただける正社員の倉庫スタッフを募集しています。業務内容は、荷物の受け入れ、在庫記録の管理、配送用の注文準備などです。倉庫勤務の経験は不要で、最初の2週間で十分な研修を提供します。応募者は50ポンドまでの持ち上げと長時間の立ち仕事に対応できることが必要です。この職種は地域の最低賃金を上回る初任給に加え、勤務90日後から健康保険の福利厚生が適用されます。',
     subQuestions: [
@@ -1719,6 +1988,15 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         ],
         explanation: '本文に"health benefits after ninety days of employment"と明記されている。',
         translation: '健康保険の福利厚生はいつから始まりますか。',
+      },
+      {
+        question:
+          'In the advertisement, where is the following sentence best placed?\n"New hires will be paired with an experienced associate during their first week on the job."',
+        correctText: '[3]',
+        distractors: ['[1]', '[2]', '[4]'],
+        explanation:
+          '挿入文は新人研修の方法について述べており、研修が提供されると説明する文の直後[3]に置くと自然に続く。',
+        translation: '広告の中で、次の文が入る最も適切な位置はどこですか。',
       },
     ],
   },
@@ -1830,6 +2108,14 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
           '本文に"anyone working remotely during this time should plan accordingly"と明記されている。他の選択肢（"Complete a special access request form"／"Come into the office instead"／"Contact the help desk in advance"）は本文中で述べられていない。',
         translation: 'その間リモートで働く従業員は何をすべきですか。',
       },
+      {
+        question: 'The word "monitoring" in the notice is closest in meaning to',
+        correctText: 'watching',
+        distractors: ['ignoring', 'delaying', 'canceling'],
+        explanation:
+          '"Technicians will be monitoring the process"は「作業を見守る、注視する」という意味で、watchingが最も近い。',
+        translation: '案内中の"monitoring"に最も意味が近いのは。',
+      },
     ],
   },
   {
@@ -1938,6 +2224,18 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
         explanation:
           '本文最後に"I\'ll send over my address and a pickup time based on the conference itinerary"と明記されている。',
         translation: 'Lucia Ferreiraは次に何をしますか。',
+      },
+      {
+        question: 'All of the following are mentioned in the conversation EXCEPT',
+        correctText: 'Kwame Asante will drive everyone to the conference',
+        distractors: [
+          'Lucia Ferreira offered to pick up Kwame Asante',
+          'Priya may also need a ride to the conference',
+          "Lucia Ferreira's car can fit three people",
+        ],
+        explanation:
+          '会話ではLucia Ferreiraが運転すると述べられており、Kwame Asanteが全員を運転するとは書かれていない。他の3つは会話に明記されている。',
+        translation: '次のうち、会話で述べられていない、または誤っているものはどれですか。',
       },
     ],
   },

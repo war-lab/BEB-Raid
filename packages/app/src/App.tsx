@@ -45,14 +45,17 @@ import { useAppStore, type ScreenName } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
 
 /**
- * 配布パックID一覧のフォールバック（T-325・K-60より前の実装。手動複製のため追加漏れが
- * 起きうる——App.test.tsxでcontent/manifest.json（build成果物）のパック一覧との
- * 一致をテストで検証する）。
+ * 配布パック全21件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1。
+ * T-32/T-64/T-83〜T-85/T-107/T-349のPACK_DEFINITIONSと対応。cli側の定義を
+ * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
+ * idはここに複製する）。
  *
  * T-325（K-60）: 通常はresolvePackIds()がmanifest.json（PackCacheのcache-first→
  * fetchフォールバック）からパックID一覧を動的に解決するため、このリストは
  * 「manifest.jsonを一切読めない」完全オフライン初回起動時のみのフォールバックとして残す
- * （PACK_IDSとmanifestの二重管理そのものはこの用途のために意図的に残す判断）
+ * （PACK_IDSとmanifestの二重管理そのものはこの用途のために意図的に残す判断。手動複製のため
+ * 追加漏れが起きうる——App.test.tsxでcontent/manifest.json（build成果物）のパック一覧との
+ * 一致をテストで検証する）
  */
 export const PACK_IDS = [
   'pack-vocab-s-001',
@@ -75,6 +78,7 @@ export const PACK_IDS = [
   'pack-vocab-s-002',
   'pack-reading-p6-s-001',
   'pack-reading-p7single-s-001',
+  'pack-p2-s-003',
 ]
 
 /**

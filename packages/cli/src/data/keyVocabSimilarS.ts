@@ -172,7 +172,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     ],
     answer: 'C',
     explanation:
-      '筆記試験を受けるのはcandidate（候補者）。budget（予算）・warranty（保証書）・merger（合併）は試験を受ける主体になれない。',
+      '筆記試験を受けるのはcandidate（候補者）。warranty（保証）・merger（合併）・budget（予算）は試験を受ける主体になれない。',
     translation: '各候補者は短い筆記試験を受けるよう求められた。',
     difficulty: 1,
   },
@@ -454,13 +454,13 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     question: 'Industry analysts had predicted the ___ months before it was confirmed.',
     choices: [
       { key: 'A', text: 'merger' },
-      { key: 'B', text: 'certification' },
-      { key: 'C', text: 'budget' },
-      { key: 'D', text: 'candidate' },
+      { key: 'B', text: 'inspection' },
+      { key: 'C', text: 'subscription' },
+      { key: 'D', text: 'endorsement' },
     ],
     answer: 'A',
     explanation:
-      'アナリストが事前に予測していたのはmerger（合併）。certification（認定）・budget（予算）・candidate（候補者）は業界アナリストが予測する企業間の出来事ではない。',
+      'アナリストが事前に予測していたのはmerger（合併）。inspection（検査）・subscription（購読）・endorsement（推薦）は業界アナリストが予測する企業間の出来事ではない。',
     translation: '業界アナリストはその合併を、確定する何ヶ月も前から予測していた。',
     difficulty: 2,
   },
