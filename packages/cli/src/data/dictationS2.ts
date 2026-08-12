@@ -212,15 +212,15 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'severance',
+    keyVocabWord: 'retirement',
     tags: ['弱形・連結', '音の連結'],
-    script: 'Laid-off staff will receive severance and extended health coverage.',
+    script: 'Staff choosing early retirement will receive a pension and extended health coverage.',
     blanks: [
-      { index: 2, answer: 'will' },
-      { index: 5, answer: 'and' },
+      { index: 4, answer: 'will' },
+      { index: 8, answer: 'and' },
     ],
     explanation: '弱形になりやすいwill/andを穴にしている。',
-    translation: '解雇された従業員は退職金と延長された健康保険を受け取る。',
+    translation: '早期退職を選ぶ従業員は年金と延長された健康保険を受け取る。',
     difficulty: 4,
   },
   {

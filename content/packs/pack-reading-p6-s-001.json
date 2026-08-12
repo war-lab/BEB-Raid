@@ -9,7 +9,7 @@
       600,
       730
     ],
-    "sizeBytes": 145980
+    "sizeBytes": 146074
   },
   "questions": [
     {
@@ -571,7 +571,7 @@
         {
           "id": "p6-005-doc1",
           "kind": "email",
-          "text": "Subject: Annual Sales Conference — Registration Reminder\n\nDear Attendee,\n\nThis is a reminder that registration for the annual sales conference closes this Friday. The conference venue, [[1]] is located near the airport, offers a shuttle service every thirty minutes. Once you register, you [[2]] receive a full itinerary with session times and room numbers. [[3]] you have already registered, please double-check that your dietary preferences are up to date. [[4]] We look forward to seeing you there."
+          "text": "Subject: Annual Sales Conference — Registration Reminder\n\nDear Attendee,\n\nThis is a reminder that registration for the annual sales conference closes this Friday. The conference venue, [[1]] is located near the airport, offers a shuttle service every thirty minutes. Once you register, you [[2]] automatically receive a full itinerary with session times and room numbers. [[3]] you have already registered, please double-check that your dietary preferences are up to date. [[4]] We look forward to seeing you there."
         }
       ],
       "subQuestions": [
@@ -622,8 +622,8 @@
             }
           ],
           "answer": "D",
-          "explanation": "登録後に自動的に届く未来の出来事を述べているためwillが適切。wouldは仮定、shouldは義務・助言、mustは強い義務でここでは意味が合わない。",
-          "translation": "登録すると、セッション時間と会場番号が書かれた全日程表を受け取ります。"
+          "explanation": "直後のautomaticallyと組み合わさる未来の出来事を述べているためwillが適切。wouldは仮定、shouldは義務・助言（automaticallyとは意味的に噛み合わない）、mustは強い義務でここでは意味が合わない。",
+          "translation": "登録すると、セッション時間と会場番号が書かれた全日程表を自動的に受け取ります。"
         },
         {
           "id": "p6-005-q3",

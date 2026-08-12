@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 75898
+    "sizeBytes": 75883
   },
   "questions": [
     {
@@ -316,7 +316,7 @@
       "front": "supply",
       "phrase": "The factory can supply spare parts on short notice.",
       "phraseAudio": "audio/vocab/supply.mp3",
-      "back": "供給（する）・備品",
+      "back": "供給する",
       "freqRank": "S",
       "levelBand": 600
     },

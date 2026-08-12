@@ -400,12 +400,12 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     choices: [
       { key: 'A', text: 'compensate' },
       { key: 'B', text: 'appease' },
-      { key: 'C', text: 'indemnify' },
+      { key: 'C', text: 'notify' },
       { key: 'D', text: 'placate' },
     ],
     answer: 'A',
     explanation:
-      '欠航の乗客に金銭等で埋め合わせるのはcompensate。appease/placate（なだめる）は感情的な鎮静を表し金銭補償に限らない。indemnify（契約上の損害補償）はより法的・限定的な文脈で使う。',
+      '欠航の乗客に金銭等で埋め合わせるのはcompensate。appease/placate（なだめる）は感情的な鎮静を表し金銭補償に限らない。notify（知らせる）は補償の意味を持たない。',
     translation: 'その航空会社は欠航便の乗客に補償することに同意した。',
     difficulty: 2,
   },
@@ -561,11 +561,11 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
       { key: 'A', text: 'consolidation' },
       { key: 'B', text: 'diversification' },
       { key: 'C', text: 'litigation' },
-      { key: 'D', text: 'negotiation' },
+      { key: 'D', text: 'inflation' },
     ],
     answer: 'C',
     explanation:
-      '"ongoing litigation"（進行中の訴訟）は定番の言い方。negotiation（交渉）・consolidation（統合）・diversification（多角化）は「訴訟」を表さない。',
+      '"ongoing litigation"（進行中の訴訟）は定番の言い方。inflation（インフレ）は「両社間で」という語句に合わず、consolidation（統合）・diversification（多角化）も「訴訟」を表さない。',
     translation: '両社間で進行中の訴訟のため、合併は延期された。',
     difficulty: 2,
   },
@@ -620,16 +620,16 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
   {
     word: 'sustainability',
     tags: ['言い換え語彙'],
-    question: 'Investors are increasingly focused on the ___ of the business model.',
+    question: 'Investors are increasingly focused on the long-term ___ of the business model.',
     choices: [
       { key: 'A', text: 'amortization' },
-      { key: 'B', text: 'valuation' },
+      { key: 'B', text: 'taxation' },
       { key: 'C', text: 'sustainability' },
       { key: 'D', text: 'depreciation' },
     ],
     answer: 'C',
     explanation:
-      '投資家が注目する「事業モデルの持続可能性」はsustainability。depreciation/amortization（減価償却）・valuation（評価額）は文脈に合わない。',
+      '投資家が注目する「事業モデルの長期的な持続可能性」はsustainability。depreciation/amortization（減価償却）・taxation（課税）は文脈に合わない。',
     translation: '投資家はビジネスモデルの持続可能性にますます注目している。',
     difficulty: 3,
   },
@@ -832,12 +832,12 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     choices: [
       { key: 'A', text: 'reservation' },
       { key: 'B', text: 'shipment' },
-      { key: 'C', text: 'consignment' },
+      { key: 'C', text: 'inventory' },
       { key: 'D', text: 'subscription' },
     ],
     answer: 'B',
     explanation:
-      '税関の問題で遅れた「出荷物」はshipment。consignment（委託荷物。文脈的にやや近いがここでは自社発送を指すためshipmentがより自然）・subscription（定期購読）・reservation（予約）は文脈に合わない。',
+      '税関の問題で遅れた「出荷物」はshipment。inventory（在庫。静的な保有量を指し「遅延する」という動きを表せない）・subscription（定期購読）・reservation（予約）は文脈に合わない。',
     translation: 'その出荷は税関での問題により遅延した。',
     difficulty: 2,
   },
@@ -876,17 +876,17 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
   {
     word: 'tenant',
     tags: ['ビジネス名詞'],
-    question: 'The building has more than fifty ___ across ten floors.',
+    question: 'The building has leased office space to more than fifty ___ across ten floors.',
     choices: [
       { key: 'A', text: 'landlord' },
       { key: 'B', text: 'contractor' },
       { key: 'C', text: 'tenant' },
-      { key: 'D', text: 'occupant' },
+      { key: 'D', text: 'visitor' },
     ],
     answer: 'C',
     explanation:
-      'このビルの10階建てに入る「賃借人」を数える文脈にはtenantが合う（occupantは単に「居住・使用している人」の意味でtenantより広い）。landlord（大家）・contractor（請負業者）は文脈に合わない。',
-    translation: 'このビルには10フロアにわたって50以上の借家人がいる。',
+      'オフィスを賃貸している「賃借人」を数える文脈にはtenantが合う。visitor（訪問者。賃貸契約とは無関係）・landlord（大家）・contractor（請負業者）は文脈に合わない。',
+    translation: 'このビルは10フロアにわたって50以上の賃借人にオフィススペースを貸している。',
     difficulty: 2,
   },
   {

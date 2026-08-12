@@ -690,28 +690,27 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'insolvency',
+    keyVocabWord: 'order',
     tags: ['米英アクセント'],
-    script:
-      'Is the supplier really facing insolvency? — That’s what the news is reporting, anyway.',
-    correctText: 'That’s what the news is reporting, anyway.',
-    distractors: ['They have three factories.', 'The contract ends in June.'],
+    script: 'Is the order really delayed? — That’s what the tracking page is reporting, anyway.',
+    correctText: 'That’s what the tracking page is reporting, anyway.',
+    distractors: ['It has three tracking numbers.', 'The warehouse is downtown.'],
     explanation:
-      '間接応答: 「とにかく報道ではそうなっている」は断定を避けつつ情報源を示す間接的な回答。他の2つは質問（本当に経営難か）に直接答えていない。',
+      '間接応答: 「とにかく追跡ページではそう表示されている」は断定を避けつつ情報源を示す間接的な回答。他の2つは質問（本当に遅れているか）に直接答えていない。',
     translation:
-      'その仕入先は本当に経営破綻しかけているのですか？ — とにかく報道ではそう言われています。',
+      'その注文は本当に遅延していますか？ — とにかく追跡ページではそう表示されています。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'foreclosure',
+    keyVocabWord: 'reservation',
     tags: ['米英アクセント'],
     script:
-      'Did the bank go through with the foreclosure? — The owner made a payment at the last minute.',
-    correctText: 'The owner made a payment at the last minute.',
-    distractors: ['The property is quite old.', 'The bank is downtown.'],
+      'Did the venue cancel the reservation? — The client confirmed payment at the last minute.',
+    correctText: 'The client confirmed payment at the last minute.',
+    distractors: ['The venue is quite new.', 'The manager is downtown.'],
     explanation:
-      '間接応答: 「所有者が土壇場で支払った」は「差し押さえは実行されなかった」ことを暗に示す。他の2つは質問に直接答えていない。',
-    translation: '銀行は差し押さえを実行したのですか？ — 所有者が土壇場で支払いをしました。',
+      '間接応答: 「顧客が土壇場で支払いを確認した」は「予約は取り消されなかった」ことを暗に示す。他の2つは質問に直接答えていない。',
+    translation: '会場は予約を取り消したのですか？ — 顧客が土壇場で支払いを確認しました。',
     difficulty: 4,
   },
   {
@@ -727,14 +726,14 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'litigation',
+    keyVocabWord: 'renewal',
     tags: ['米英アクセント'],
-    script: 'Has the litigation been settled? — Both sides are still reviewing the latest offer.',
+    script: 'Has the renewal been settled? — Both sides are still reviewing the latest offer.',
     correctText: 'Both sides are still reviewing the latest offer.',
-    distractors: ['It started two years ago.', 'The judge is very experienced.'],
+    distractors: ['It started two years ago.', 'The manager is very experienced.'],
     explanation:
-      '間接応答: 「双方がまだ最新の提案を検討中」は「まだ和解していない」ことを示す。他の2つは質問に直接答えていない。',
-    translation: '訴訟は解決しましたか？ — 双方ともまだ最新の提案を検討中です。',
+      '間接応答: 「双方がまだ最新の提案を検討中」は「まだ更新契約がまとまっていない」ことを示す。他の2つは質問に直接答えていない。',
+    translation: '更新契約はまとまりましたか？ — 双方ともまだ最新の提案を検討中です。',
     difficulty: 4,
   },
   {
@@ -750,15 +749,15 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'infringement',
+    keyVocabWord: 'upgrade',
     tags: ['米英アクセント'],
     script:
-      'Did the court find any patent infringement? — The ruling won’t come out until next month.',
-    correctText: 'The ruling won’t come out until next month.',
-    distractors: ['The patent was filed in 2019.', 'Both companies hired lawyers.'],
+      'Did the reviewer approve the software upgrade? — The results won’t come out until next month.',
+    correctText: 'The results won’t come out until next month.',
+    distractors: ['The upgrade was requested in 2019.', 'Both teams hired consultants.'],
     explanation:
-      '間接応答: 「判決は来月まで出ない」は「まだ結論が出ていない」ことを示す。他の2つは質問（侵害が認定されたか）に直接答えていない。',
-    translation: '裁判所は特許侵害を認定しましたか？ — 判決は来月まで出ません。',
+      '間接応答: 「結果は来月まで出ない」は「まだ結論が出ていない」ことを示す。他の2つは質問（更新が承認されたか）に直接答えていない。',
+    translation: '審査担当はソフトウェアの更新を承認しましたか？ — 結果は来月まで出ません。',
     difficulty: 4,
   },
   {
@@ -786,27 +785,27 @@ export const PART2_ENTRIES_S2_RAW: Part2RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'redundancy',
+    keyVocabWord: 'meeting',
     tags: ['米英アクセント'],
     script:
-      'Is staff redundancy being considered for next quarter? — Management hasn’t made a final decision.',
+      'Is a follow-up meeting being scheduled for next quarter? — Management hasn’t made a final decision.',
     correctText: 'Management hasn’t made a final decision.',
-    distractors: ['Twenty positions were cut already.', 'It happened in the logistics department.'],
+    distractors: ['Twenty meetings were held already.', 'It happened in the logistics department.'],
     explanation:
       '間接応答: 「経営陣はまだ最終決定していない」は「未定・分からない」ことを示す。他の2つは既に起きた過去の情報で、今後の予定を尋ねる質問には合わない。',
     translation:
-      '来四半期にさらなる人員整理が予定されていますか？ — 経営陣はまだ最終決定していません。',
+      '来四半期にフォローアップ会議の予定はありますか？ — 経営陣はまだ最終決定していません。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'downsizing',
+    keyVocabWord: 'agenda',
     tags: ['米英アクセント'],
-    script: 'Is the downsizing plan finalized? — We’re still waiting to hear from headquarters.',
+    script: 'Is the new agenda finalized? — We’re still waiting to hear from headquarters.',
     correctText: 'We’re still waiting to hear from headquarters.',
     distractors: ['It affects the sales team.', 'It was announced in May.'],
     explanation:
-      '間接応答: 「本社からの連絡待ち」は「まだ確定していない」ことを示す。他の2つは質問（計画が確定したか）に直接答えていない。',
-    translation: '人員削減計画は確定しましたか？ — まだ本社からの連絡を待っているところです。',
+      '間接応答: 「本社からの連絡待ち」は「まだ確定していない」ことを示す。他の2つは質問（議題が確定したか）に直接答えていない。',
+    translation: '新しい議題は確定しましたか？ — まだ本社からの連絡を待っているところです。',
     difficulty: 4,
   },
   {

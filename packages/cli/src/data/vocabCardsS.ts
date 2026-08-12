@@ -104,7 +104,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
   },
   {
     word: 'supply',
-    back: '供給（する）・備品',
+    back: '供給する',
     phrase: 'The factory can supply spare parts on short notice.',
   },
   { word: 'equipment', back: '機材', phrase: 'All safety equipment must be inspected before use.' },

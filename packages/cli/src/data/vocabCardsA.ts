@@ -353,7 +353,7 @@ export const VOCAB_CARDS_A: VocabCardEntry[] = [
   // --- マーケティング・広告・販売 ---
   {
     word: 'demographic',
-    back: '人口統計上の',
+    back: '人口層・客層',
     phrase: 'The campaign targets a younger demographic than before.',
   },
   {
