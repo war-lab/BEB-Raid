@@ -17,6 +17,7 @@ import * as shuffleModule from '../engine/shuffle'
 import type { RaidApi } from '../platform'
 import { syncRaidDamage } from '../services/raidSync'
 import {
+  DIAGNOSTIC_PROGRESS_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
   RAID_REGISTERED_AT_KEY,
@@ -31,6 +32,7 @@ import {
   HomeScreen,
   readingQuestionEstimate,
   remainingAnswerSlots,
+  shouldWarnStorageUsage,
 } from './HomeScreen'
 
 let seq = 0
@@ -2153,6 +2155,88 @@ describe('readingQuestionEstimate（読解の設問数の見積り）', () => {
   })
 })
 
+// T-299（K-25）: QuotaExceededErrorで解答保存が失敗する前に、起動時（ホーム表示時）に
+// 気づけるようにする事前警告のしきい値判定
+describe('shouldWarnStorageUsage（T-299・K-25）', () => {
+  it('使用率が80%を超えると警告する', () => {
+    expect(shouldWarnStorageUsage({ usage: 81, quota: 100 } as StorageEstimate)).toBe(true)
+  })
+
+  it('使用率が80%以下なら警告しない', () => {
+    expect(shouldWarnStorageUsage({ usage: 80, quota: 100 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 10, quota: 100 } as StorageEstimate)).toBe(false)
+  })
+
+  it('estimateがnull・usage/quotaが0や未定義なら警告しない（信用できない値のため）', () => {
+    expect(shouldWarnStorageUsage(null)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 0, quota: 100 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 90, quota: 0 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({} as StorageEstimate)).toBe(false)
+  })
+})
+
+describe('HomeScreen: 端末ストレージ使用率の事前警告（T-299・K-25）', () => {
+  afterEach(() => {
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
+  })
+
+  it('使用率が80%を超えると警告と設定への導線が出る', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { estimate: async () => ({ usage: 90, quota: 100 }) },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText(/ストレージ使用量が上限に近づいています/)).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+  })
+
+  it('使用率が80%以下なら警告は出ない', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { estimate: async () => ({ usage: 10, quota: 100 }) },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/ストレージ使用量が上限に近づいています/)).toBeNull()
+  })
+
+  it('navigator.storage.estimateが無い環境（Safari非対応・非HTTPS等）でも破綻しない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/ストレージ使用量が上限に近づいています/)).toBeNull()
+  })
+})
+
 // 何を防ぐか（T-203。docs/29 Q-37）: Part2再生方法・Part5問数・読解パッセージ数の
 // 3モーダルは role="dialog" aria-modal="true" を宣言しながら、フォーカストラップ・
 // 初期フォーカス・Esc・閉時のフォーカス復帰・背景タップ閉じがいずれも無かった。
@@ -2276,5 +2360,54 @@ describe('HomeScreen: モーダルのアクセシビリティ作法（T-203）',
     await screen.findByRole('dialog', { name: '読解のパッセージ数を選択' })
     fireEvent.click(screen.getByRole('dialog', { name: '読解のパッセージ数を選択' }))
     expect(screen.queryByRole('dialog', { name: '読解のパッセージ数を選択' })).toBeNull()
+  })
+})
+
+// 何を防ぐか（T-316・K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のため
+// App.tsxの起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで働かない。
+// 同一セッション内でホームに来られる以上、続きへ戻る導線が無いとここで詰む
+describe('HomeScreen: 初期診断の再開導線（T-316・K-49）', () => {
+  it('診断の途中経過が残っていると「初期診断の続きから再開」が出る', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: DIAGNOSTIC_PROGRESS_KEY,
+      value: {
+        displayName: 'てすと',
+        toeicInput: '',
+        turn: 3,
+        ratingL: 400,
+        ratingR: 400,
+        askedL: [],
+        askedR: [],
+      },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const button = screen.getByText('初期診断の続きから再開')
+    fireEvent.click(button)
+    expect(useAppStore.getState().screen).toBe('diagnostic')
+  })
+
+  it('診断の途中経過が無ければ導線は出ない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText('初期診断の続きから再開')).toBeNull()
   })
 })

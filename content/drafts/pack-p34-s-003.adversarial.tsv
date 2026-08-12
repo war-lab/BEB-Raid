@@ -1,0 +1,11 @@
+id	verdict	observation	reviewer	reviewedAt
+p34-p3-21	accept	3問とも根拠がscript本文と一致し、話者性別の指示（A=woman/B=man、音声lessac+ryan）も整合。二重正答・実在情報混入・題材上の問題も無し。	claude-adversarial-review	2026-08-12
+p34-p3-22	revise	p34-p3-22-q2: "Huh, I hadn't considered that."はscript順序上Aの発言（音声jenny_dioco=woman）だが、questionは"the man"と誤って指示している。explanationも直前の提案（実際はBの発言、音声alan=man）を「女性の…提案」と逆に帰属しており、話者性別がquestion・explanationの両方で入れ替わっている。	claude-adversarial-review	2026-08-12
+p34-p3-23	revise	p34-p3-23-q1: "passed every benchmark test we ran except battery life…"はAの発言（音声lessac=woman）だがexplanationは「男性は…と述べている」と誤って帰属。p34-p3-23-q2: "That's exactly what worries me, honestly"もAの発言（woman）だがquestionは"the man"と誤って指示。p34-p3-23-q3: "Let's ask engineering for a firm answer by Friday"はBの発言（音声ryan=man）だがquestionは"the woman"と誤って指示。3問すべてで話者性別が本文の音声設定と逆転している。	claude-adversarial-review	2026-08-12
+p34-p3-24	reject	セット全体が元販売代理店との訴訟(litigation)・和解交渉を題材にしており、本試験が扱わない題材（訴訟）に該当するため題材の全面差し替えが必要。加えてp34-p3-24-q2でも、"Fair point"はBの発言（音声alan=man）だがquestionは"the woman"と誤って指示し、直前のAの発言（音声jenny_dioco=woman）をexplanationは「男性の…」と逆に帰属しており、話者性別も入れ替わっている。	claude-adversarial-review	2026-08-12
+p34-p3-25	revise	p34-p3-25-q2: "That's a good point when you put it that way"はAの発言（音声lessac=woman）だがquestionは"the man"と誤って指示。explanationも直前のBの発言（音声ryan=man）を「女性の…理由づけ」と逆に帰属しており、話者性別がquestion・explanationの両方で入れ替わっている。	claude-adversarial-review	2026-08-12
+p34-p4-21	reject	セット全体が組織再編に伴う地域拠点の統合・退職金(severance)を題材にしており、本試験が扱わない題材（人員整理）に該当するため題材の全面差し替えが必要。モノローグでman/woman言及は無いため話者性別の問題は無し。	claude-adversarial-review	2026-08-12
+p34-p4-22	accept	買収後の統合というビジネス題材で、二重正答・不当な易しさ・実在情報混入・禁止題材のいずれにも該当せず問題無し。	claude-adversarial-review	2026-08-12
+p34-p4-23	accept	製品リコールを題材とするが、訴訟・破綻・人員整理・個人の不利益のいずれにも該当せず本試験でも扱われる範囲。二重正答等の問題も無し。	claude-adversarial-review	2026-08-12
+p34-p4-24	accept	新規市場展開の計画というビジネス題材で、二重正答・不当な易しさ・実在情報混入等の問題も無し。	claude-adversarial-review	2026-08-12
+p34-p4-25	accept	カスタマーサポートの外部委託を題材とし、二重正答・不当な易しさ・実在情報混入・禁止題材のいずれにも該当せず問題無し。	claude-adversarial-review	2026-08-12

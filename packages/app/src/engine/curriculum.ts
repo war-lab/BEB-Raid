@@ -145,6 +145,11 @@ interface SetAggregate {
  * （docs/03 3.6節・docs/24 3.1節）で正規表現だけでは区別できないため、親を引いて
  * `format === 'audio_set'` を確認する（readingPace.ts の isReadingSubQuestionId と同じ手法）。
  * これが無いと読解の解答がsetAccuracy判定（P2→P3・L3→L4）に混入する（T-185）
+ *
+ * T-308（K-37）: 途中放棄したセット（例: 3問中2問で中断）は total=2・correct=2 のように
+ * 見え、`correct/total>=2/3`の比率判定では「完全正解セット」と誤認されうる。
+ * 親の `subQuestions.length` と `total` が一致するセット（全設問に解答済み）のみを
+ * 採用し、放棄セットを移行判定から除外する
  */
 function aggregateSets(
   attempts: readonly CriterionAttempt[],
@@ -161,6 +166,10 @@ function aggregateSets(
     if (a.isCorrect) current.correct += 1
     current.lastAnsweredAt = Math.max(current.lastAnsweredAt, a.answeredAt)
     sets.set(setId, current)
+  }
+  for (const [setId, aggregate] of sets) {
+    const expectedTotal = questionLookup.get(setId)?.subQuestions?.length ?? 0
+    if (aggregate.total !== expectedTotal) sets.delete(setId)
   }
   return sets
 }

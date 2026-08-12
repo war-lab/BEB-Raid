@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { STREAK_ID } from '../db/schema'
-import { evaluateStreak, STREAK_REQUIRED_SRS_ANSWERS } from './streak'
+import { countSrsAnswersOn, evaluateStreak, STREAK_REQUIRED_SRS_ANSWERS } from './streak'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -47,6 +47,22 @@ async function studyOn(db: BebRaidDatabase, y: number, m: number, d: number) {
   const at = noonOf(y, m, d)
   await answerSrs(db, at, STREAK_REQUIRED_SRS_ANSWERS)
   return evaluateStreak(db, at)
+}
+
+/** 指定時刻に count 件のシャドーイング実施ログを記録する（ShadowingScreenと同型） */
+async function answerShadow(db: BebRaidDatabase, at: number, count: number): Promise<void> {
+  for (let i = 0; i < count; i++) {
+    await db.attempts.add({
+      id: `shadow-a-${++attemptSeq}`,
+      questionId: `shadow:q-${attemptSeq}`,
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 3000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: at + i,
+    })
+  }
 }
 
 describe('成立条件: SRS 5問', () => {
@@ -145,21 +161,79 @@ describe('日付跨ぎ', () => {
   })
 })
 
-describe('時計の巻き戻し', () => {
-  it('過去日付での成立は無視され、日付が戻っても二重加算されない', async () => {
+// T-304（K-32）改修前は、lastActiveDateが未来値（端末時計を進めた状態で成立させた後に
+// 実時刻へ戻した状況を再現）だとput せず終了しており、実日付がlastActiveDateへ
+// 追いつくまで（時計操作次第で恒久的に）ストリークが1日も成立しなかった。
+// 今日へ巻き戻り、1から再開する（二重加算は起きない）のが改修後の挙動
+describe('時計の巻き戻し（T-304・K-32）', () => {
+  it('lastActiveDateが未来値のとき、今日へ巻き戻り1から再開する', async () => {
     const db = newDb()
     await studyOn(db, 2026, 7, 9)
-    await studyOn(db, 2026, 7, 10) // currentDays=2, lastActiveDate=7/10
+    await studyOn(db, 2026, 7, 10) // currentDays=2, lastActiveDate=7/10（端末時計を進めた想定）
 
-    // 時計が 7/9 に巻き戻った状態で5問解く → 保存されない
+    // 時計が 7/9 に戻った状態で5問解く → 今日(7/9)へ巻き戻り、1から再開する
     const rolledBack = await studyOn(db, 2026, 7, 9)
-    expect(rolledBack.currentDays).toBe(2)
-    expect(rolledBack.todayCompleted).toBe(false)
-    expect((await db.streak.get(STREAK_ID))?.lastActiveDate).toBe('2026-07-10')
+    expect(rolledBack.currentDays).toBe(1)
+    expect(rolledBack.todayCompleted).toBe(true)
+    expect((await db.streak.get(STREAK_ID))?.lastActiveDate).toBe('2026-07-09')
 
-    // 日付が 7/10 に戻って再評価しても 7/10 が再加算されない
-    const restored = await evaluateStreak(db, noonOf(2026, 7, 10) + 1000)
-    expect(restored.currentDays).toBe(2)
+    // 同日内の再評価では二重加算されない（alreadyCounted）
+    const again = await evaluateStreak(db, noonOf(2026, 7, 9) + 1000)
+    expect(again.currentDays).toBe(1)
+    expect(again.todayCompleted).toBe(true)
+  })
+
+  it('巻き戻り後、翌日の学習で通常どおり+1される（据え置きのbestDaysは維持）', async () => {
+    const db = newDb()
+    await studyOn(db, 2026, 7, 9)
+    await studyOn(db, 2026, 7, 10) // currentDays=2, bestDays=2
+    await studyOn(db, 2026, 7, 9) // 巻き戻り。currentDays=1
+
+    const next = await studyOn(db, 2026, 7, 10)
+    expect(next.currentDays).toBe(2)
+    expect(next.bestDays).toBe(2) // 巻き戻り前の最高値は下がらない
+  })
+})
+
+// 何を防ぐか（T-307・K-35）: シャドーイングはmode:'solo'・shadow:プレフィックスの
+// questionIdで記録される（ShadowingScreen）。docs/03 8節は「ストリーク成立には
+// カウントする」と書いているが、mode==='srs'のみを見る実装漏れでシャドーイングが
+// 一切算入されていなかった
+describe('シャドーイングのストリーク算入（T-307・K-35）', () => {
+  it('countSrsAnswersOnはmode=srsに加えてshadow:プレフィックスの解答も数える', async () => {
+    const db = newDb()
+    const at = noonOf(2026, 7, 9)
+    await answerSrs(db, at, 2)
+    await answerShadow(db, at + 100, 3)
+
+    expect(await countSrsAnswersOn(db, '2026-07-09')).toBe(5)
+  })
+
+  it('シャドーイングのみでもストリークが成立する（SRS 0問・シャドーイング5件）', async () => {
+    const db = newDb()
+    const at = noonOf(2026, 7, 9)
+    await answerShadow(db, at, STREAK_REQUIRED_SRS_ANSWERS)
+
+    const status = await evaluateStreak(db, at)
+    expect(status.todayCompleted).toBe(true)
+    expect(status.currentDays).toBe(1)
+  })
+
+  it('shadow:以外のquestionIdでmode=solo記録した通常ドリルは数えない（誤検知防止）', async () => {
+    const db = newDb()
+    const at = noonOf(2026, 7, 9)
+    await db.attempts.add({
+      id: 'solo-a-1',
+      questionId: 'q-1', // shadow:プレフィックスなし
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 1000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: at,
+    })
+
+    expect(await countSrsAnswersOn(db, '2026-07-09')).toBe(0)
   })
 })
 

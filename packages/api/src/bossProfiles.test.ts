@@ -15,6 +15,17 @@ describe('bossProfileForWeek', () => {
     expect(a).toEqual(b)
   })
 
+  // T-292（K-19）: 上の2件は「決定的」「周期性」しか見ておらず、周期を縮める変更
+  // （例: `% BOSS_PROFILES.length` を誤って `% (BOSS_PROFILES.length - 1)` にする、
+  // 配列に重複を混入させる）があっても検出できない。連続する週の出力集合が
+  // 全プロファイルと一致することまで確認する
+  it('連続するBOSS_PROFILES.length週の出力集合が全プロファイルと一致する', () => {
+    const produced = new Set(
+      Array.from({ length: BOSS_PROFILES.length }, (_, week) => bossProfileForWeek(week)),
+    )
+    expect(produced).toEqual(new Set(BOSS_PROFILES))
+  })
+
   it('全プロファイルにnameとflavorが存在する', () => {
     for (const profile of BOSS_PROFILES) {
       expect(profile.name.length).toBeGreaterThan(0)

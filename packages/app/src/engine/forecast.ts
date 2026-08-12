@@ -7,7 +7,7 @@
 // M2時点ではDashboardScreenが直接db.ratingHistory等を読んで渡す構成にする）。
 
 import { daysBetween, parseDateString } from './date'
-import type { ForecastResult, ScoreBand } from './types'
+import type { ForecastBehind, ForecastBehindDaily, ForecastResult, ScoreBand } from './types'
 
 export interface RatingHistoryPoint {
   date: string
@@ -29,6 +29,12 @@ const MIN_HISTORY_DAYS = 14
 const REFERENCE_DAYS = 90
 /** 週の学習日数の増分提案の上限（1–7に切り上げ） */
 const MAX_ADD_DAYS_PER_WEEK = 7
+/**
+ * daysToTargetの上限（約3年）。T-310（K-39）: 傾きがわずかに正だと
+ * daysToTargetが極端に大きくなり「2127年」等の非現実的な表示になりうる。
+ * この上限を超える場合はonTrackとして扱わず、到達しない側（behind）へ倒す
+ */
+const MAX_DAYS_TO_TARGET = 1095
 
 export function computeScoreBand(totalRating: number): ScoreBand {
   const center = totalRating * FORECAST_COEFFICIENT
@@ -107,6 +113,39 @@ function monthsFromNow(now: number, days: number): { year: number; month: number
  * currentRating は最新の総合レート（db.ratings.get('total')。historyの最終点と
  * 必ずしも一致しない=同日内の解答で更新されている場合があるため引数で受ける）
  */
+/**
+ * 「このペースでは到達しない」場合の判定（T-310・K-39・K-40）。
+ * - 週7日（毎日）学習済みなら「あとN日増やす」提案が成立しないため、日数以外の
+ *   助言（behindDaily。表示側の固定文言）に分岐させる
+ * - それ以外は従来どおり不足日数を算出する
+ */
+function computeBehind(
+  windowed: readonly RatingHistoryPoint[],
+  currentRating: number,
+  scoreBand: ScoreBand,
+): ForecastBehind | ForecastBehindDaily {
+  const requiredSlope = (TARGET_RATING - currentRating) / REFERENCE_DAYS
+  const totalDays = daysBetween(windowed[0]!.date, windowed[windowed.length - 1]!.date) || 1
+  const currentDaysPerWeek = (activeDayCount(windowed) / totalDays) * 7
+
+  if (currentDaysPerWeek >= MAX_ADD_DAYS_PER_WEEK) {
+    return { kind: 'behindDaily', scoreBand }
+  }
+
+  const avgGain = averageGainPerActiveDay(windowed)
+  let addDaysPerWeek: number
+  if (avgGain > 0) {
+    const neededDaysPerWeek = (requiredSlope * 7) / avgGain
+    addDaysPerWeek = Math.ceil(Math.max(0, neededDaysPerWeek - currentDaysPerWeek))
+  } else {
+    // 学習した日ですら伸びていない特殊ケース。安全側で最大値を提案する
+    addDaysPerWeek = MAX_ADD_DAYS_PER_WEEK
+  }
+  addDaysPerWeek = Math.min(Math.max(addDaysPerWeek, 1), MAX_ADD_DAYS_PER_WEEK)
+
+  return { kind: 'behind', scoreBand, addDaysPerWeek }
+}
+
 export function computeForecast(
   history: readonly RatingHistoryPoint[],
   currentRating: number,
@@ -129,25 +168,14 @@ export function computeForecast(
       const { year, month } = monthsFromNow(now, 0)
       return { kind: 'onTrack', scoreBand, year, month }
     }
-    const { year, month } = monthsFromNow(now, daysToTarget)
-    return { kind: 'onTrack', scoreBand, year, month }
+    // T-310（K-39）: 傾きがわずかに正だとdaysToTargetが極端に大きくなり
+    // 「2127年」等の非現実的な表示になりうる。上限を超える・有限値でない場合は
+    // onTrackとして扱わず、到達しない側（behind）へ倒す
+    if (Number.isFinite(daysToTarget) && daysToTarget <= MAX_DAYS_TO_TARGET) {
+      const { year, month } = monthsFromNow(now, daysToTarget)
+      return { kind: 'onTrack', scoreBand, year, month }
+    }
   }
 
-  // s<=0: 「このペースでは到達しない」＋不足量
-  const requiredSlope = (TARGET_RATING - currentRating) / REFERENCE_DAYS
-  const totalDays = daysBetween(windowed[0]!.date, windowed[windowed.length - 1]!.date) || 1
-  const currentDaysPerWeek = (activeDayCount(windowed) / totalDays) * 7
-  const avgGain = averageGainPerActiveDay(windowed)
-
-  let addDaysPerWeek: number
-  if (avgGain > 0) {
-    const neededDaysPerWeek = (requiredSlope * 7) / avgGain
-    addDaysPerWeek = Math.ceil(Math.max(0, neededDaysPerWeek - currentDaysPerWeek))
-  } else {
-    // 学習した日ですら伸びていない特殊ケース。安全側で最大値を提案する
-    addDaysPerWeek = MAX_ADD_DAYS_PER_WEEK
-  }
-  addDaysPerWeek = Math.min(Math.max(addDaysPerWeek, 1), MAX_ADD_DAYS_PER_WEEK)
-
-  return { kind: 'behind', scoreBand, addDaysPerWeek }
+  return computeBehind(windowed, currentRating, scoreBand)
 }

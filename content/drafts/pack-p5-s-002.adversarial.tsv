@@ -1,0 +1,101 @@
+id	verdict	observation	reviewer	reviewedAt
+part5-revise	accept		claude-adversarial-review	2026-08-12
+part5-differentiate	accept		claude-adversarial-review	2026-08-12
+part5-diversify	accept		claude-adversarial-review	2026-08-12
+part5-consolidate	accept		claude-adversarial-review	2026-08-12
+part5-automate	accept		claude-adversarial-review	2026-08-12
+part5-standardize	accept		claude-adversarial-review	2026-08-12
+part5-optimize	accept		claude-adversarial-review	2026-08-12
+part5-compensate	accept		claude-adversarial-review	2026-08-12
+part5-escalate	accept		claude-adversarial-review	2026-08-12
+part5-reconcile	accept		claude-adversarial-review	2026-08-12
+part5-mediate	accept		claude-adversarial-review	2026-08-12
+part5-calibrate	accept		claude-adversarial-review	2026-08-12
+part5-integrate	accept		claude-adversarial-review	2026-08-12
+part5-saturate	accept		claude-adversarial-review	2026-08-12
+part5-proliferate	accept		claude-adversarial-review	2026-08-12
+part5-compliant	accept		claude-adversarial-review	2026-08-12
+part5-substantiate	accept		claude-adversarial-review	2026-08-12
+part5-rectify	accept		claude-adversarial-review	2026-08-12
+part5-mitigate	accept		claude-adversarial-review	2026-08-12
+part5-disseminate	accept		claude-adversarial-review	2026-08-12
+part5-procure	accept		claude-adversarial-review	2026-08-12
+part5-expedite	accept		claude-adversarial-review	2026-08-12
+part5-streamline	accept		claude-adversarial-review	2026-08-12
+part5-downsize	revise	「他に選択肢がなく海外事業を縮小せざるを得なかった(had no choice but to downsize)」という、人員整理・事業縮小を強いられるニュアンスの題材。	claude-adversarial-review	2026-08-12
+part5-restructure	accept		claude-adversarial-review	2026-08-12
+part5-retrofit	accept		claude-adversarial-review	2026-08-12
+part5-decommission	accept		claude-adversarial-review	2026-08-12
+part5-curtail	accept		claude-adversarial-review	2026-08-12
+part5-leverage	accept		claude-adversarial-review	2026-08-12
+part5-incentivize	accept		claude-adversarial-review	2026-08-12
+part5-retain	accept		claude-adversarial-review	2026-08-12
+part5-alienate	accept		claude-adversarial-review	2026-08-12
+part5-appease	accept		claude-adversarial-review	2026-08-12
+part5-indemnify	accept		claude-adversarial-review	2026-08-12
+part5-embark	accept		claude-adversarial-review	2026-08-12
+part5-disembark	accept		claude-adversarial-review	2026-08-12
+part5-repatriate	accept		claude-adversarial-review	2026-08-12
+part5-deprecate	accept		claude-adversarial-review	2026-08-12
+part5-synchronize	accept		claude-adversarial-review	2026-08-12
+part5-configure	accept		claude-adversarial-review	2026-08-12
+part5-shareholder	accept		claude-adversarial-review	2026-08-12
+part5-tenant	revise	大家が借家人を立ち退かせる(evicted)という、個人の不利益に触れる題材で本試験が避ける傾向がある。選択肢セット(where/which/whom/whose)としては本問が初出。	claude-adversarial-review	2026-08-12
+part5-landlord	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-applicant	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-contractor	accept		claude-adversarial-review	2026-08-12
+part5-subcontractor	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-plaintiff	reject	訴訟(lawsuit)の提起・取り下げという、本試験が避ける法廷・訴訟テーマ。加えて選択肢セット(which/who/whom/whose)がshareholder(初出)と重複。	claude-adversarial-review	2026-08-12
+part5-defendant	reject	陪審が無罪とし被告人が法廷で涙を流すという刑事裁判・感情描写を含み、本試験が明確に避ける題材。加えて選択肢セット(where/which/whom/whose)がtenant(初出)と重複。	claude-adversarial-review	2026-08-12
+part5-supervisor	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-sponsor	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-exhibitor	accept		claude-adversarial-review	2026-08-12
+part5-attendee	revise	選択肢セット(where/which/whom/whose)がtenant(初出)と完全重複。	claude-adversarial-review	2026-08-12
+part5-invitee	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-franchisee	revise	選択肢セット(where/who/whom/whose)がexhibitor(初出)と完全重複。	claude-adversarial-review	2026-08-12
+part5-personnel	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-headcount	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-subsidiary	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-workforce	accept		claude-adversarial-review	2026-08-12
+part5-retailer	revise	選択肢セット(where/which/whom/whose)がtenant(初出)と完全重複。	claude-adversarial-review	2026-08-12
+part5-wholesaler	revise	選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。	claude-adversarial-review	2026-08-12
+part5-deficit	accept		claude-adversarial-review	2026-08-12
+part5-surplus	revise	選択肢セット(because/because of/despite/due to)がdeficit(初出)と完全重複。この4択の中では正解は常に"because"（空所後が節か句かだけで機械的に判定できる）で、同一パターンが繰り返されている。	claude-adversarial-review	2026-08-12
+part5-backlog	accept		claude-adversarial-review	2026-08-12
+part5-bottleneck	accept		claude-adversarial-review	2026-08-12
+part5-congestion	revise	選択肢セット(although/because/due to/unless)がbottleneck(初出)と完全重複（正解は常に"due to"）。	claude-adversarial-review	2026-08-12
+part5-consignment	revise	選択肢セット(because/because of/despite/due to)がdeficit(初出)と完全重複。この4択の中では正解は常に"because"（空所後が節か句かだけで機械的に判定できる）で、同一パターンが繰り返されている。	claude-adversarial-review	2026-08-12
+part5-shipment	revise	選択肢セット(because/because of/despite/due to)がdeficit(初出)と完全重複。この4択の中では正解は常に"because"（空所後が節か句かだけで機械的に判定できる）で、同一パターンが繰り返されている。	claude-adversarial-review	2026-08-12
+part5-inventory	accept		claude-adversarial-review	2026-08-12
+part5-overhead	revise	選択肢セット(although/because/because of/unless)がinventory(初出)と完全重複（正解は常に"because of"）。	claude-adversarial-review	2026-08-12
+part5-tariff	revise	選択肢セット(although/because/because of/unless)がinventory(初出)と完全重複（正解は常に"because of"）。	claude-adversarial-review	2026-08-12
+part5-levy	revise	選択肢セット(because/because of/despite/due to)がdeficit(初出)と重複（正解は常に"because"）。加えて住民が新税に抗議するという政治・論争色のある題材で、本試験が避ける傾向がある。	claude-adversarial-review	2026-08-12
+part5-subsidy	accept		claude-adversarial-review	2026-08-12
+part5-oversight	revise	選択肢セット(although/because/because of/unless)がinventory(初出)と重複（正解は常に"because of"）。加えて管理不備を理由に解雇されるという題材で、軽度ながら個人の不利益寄り。	claude-adversarial-review	2026-08-12
+part5-litigation	revise	選択肢セット(although/because/due to/unless)がbottleneck(初出)と重複（正解は常に"due to"）。加えて「訴訟(litigation)」という法廷関連語を明示的に含む。	claude-adversarial-review	2026-08-12
+part5-insolvency	reject	会社が経営破綻(insolvency)に陥り銀行が口座を凍結するという、本試験が避ける破綻テーマ。加えて選択肢セット(because/because of/despite/due to)がdeficit(初出)と重複。	claude-adversarial-review	2026-08-12
+part5-bankruptcy	reject	破産を申請(filed for bankruptcy)するという、本試験が明確に避ける経営破綻テーマ。加えて選択肢セット(because/because of/despite/due to)がdeficit(初出)と重複。	claude-adversarial-review	2026-08-12
+part5-foreclosure	reject	銀行の差し押さえで一家が家を失うという、個人の不利益・経済的破綻に踏み込んだ本試験が避ける題材。加えて選択肢セット(although/because/because of/unless)がinventory(初出)と重複。	claude-adversarial-review	2026-08-12
+part5-defect	revise	選択肢セット(although/because/due to/unless)がbottleneck(初出)と重複（正解は常に"due to"）。加えて「訴えられた(sued)」という提訴の描写を含む。	claude-adversarial-review	2026-08-12
+part5-audit	revise	選択肢セット(because/because of/despite/due to)がdeficit(初出)と重複（正解は常に"because"）。加えて幹部が監査結果の公表を受けて辞任するという不祥事寄りの題材。	claude-adversarial-review	2026-08-12
+part5-arrears	reject	賃借人が家賃滞納で立ち退かされるという、個人の不利益に踏み込んだ題材。加えて選択肢セット(because/because of/despite/due to)がdeficit(初出)と重複。	claude-adversarial-review	2026-08-12
+part5-durability	accept		claude-adversarial-review	2026-08-12
+part5-scalability	accept		claude-adversarial-review	2026-08-12
+part5-compatibility	accept		claude-adversarial-review	2026-08-12
+part5-punctuality	accept		claude-adversarial-review	2026-08-12
+part5-sustainability	accept		claude-adversarial-review	2026-08-12
+part5-habitable	accept		claude-adversarial-review	2026-08-12
+part5-perishable	accept		claude-adversarial-review	2026-08-12
+part5-confidential	accept		claude-adversarial-review	2026-08-12
+part5-courteous	accept		claude-adversarial-review	2026-08-12
+part5-complimentary	accept		claude-adversarial-review	2026-08-12
+part5-refundable	accept		claude-adversarial-review	2026-08-12
+part5-exclusive	accept		claude-adversarial-review	2026-08-12
+part5-upscale	accept		claude-adversarial-review	2026-08-12
+part5-premium	accept		claude-adversarial-review	2026-08-12
+part5-franchise	accept		claude-adversarial-review	2026-08-12
+part5-clientele	accept		claude-adversarial-review	2026-08-12
+part5-assortment	accept		claude-adversarial-review	2026-08-12
+part5-merchant	accept		claude-adversarial-review	2026-08-12
+part5-patronage	accept		claude-adversarial-review	2026-08-12
+part5-turnover	revise	選択肢セット(low/lower/lowest/lowly)がmerchant(初出)と完全重複。	claude-adversarial-review	2026-08-12

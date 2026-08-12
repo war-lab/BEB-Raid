@@ -68,13 +68,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'headcount',
     tags: ['弱形・連結', '音の連結'],
-    script: 'The department froze its headcount and postponed the hiring plan.',
+    script: 'Our department froze its headcount and postponed the hiring plan.',
     blanks: [
       { index: 5, answer: 'and' },
       { index: 7, answer: 'the' },
     ],
     explanation: '弱形になりやすいand/theを穴にしている。',
-    translation: 'その部署は人員数を凍結し、採用計画を延期した。',
+    translation: '私たちの部署は人員数を凍結し、採用計画を延期した。',
     difficulty: 4,
   },
   {
@@ -92,19 +92,19 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'attachment',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'Please open the attachment for the updated schedule.',
+    script: 'Please open the attachment for our updated schedule.',
     blanks: [
       { index: 2, answer: 'the' },
       { index: 4, answer: 'for' },
     ],
     explanation: '弱形になりやすいthe/forを穴にしている。',
-    translation: '更新されたスケジュールについては添付ファイルを開いてください。',
+    translation: '当社の更新されたスケジュールについては添付ファイルを開いてください。',
     difficulty: 2,
   },
   {
     keyVocabWord: 'inventory',
     tags: ['弱形・連結', '音の連結'],
-    script: 'We counted the inventory and updated the records last night.',
+    script: 'We counted the inventory and updated our records last night.',
     blanks: [
       { index: 2, answer: 'the' },
       { index: 4, answer: 'and' },
@@ -140,13 +140,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'complaint',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'The manager handled the complaint within a few minutes.',
+    script: 'Our manager handled the complaint within a few minutes.',
     blanks: [
       { index: 3, answer: 'the' },
       { index: 5, answer: 'within' },
     ],
     explanation: '弱形になりやすいthe/withinを穴にしている。',
-    translation: '部長はその苦情に数分以内に対応した。',
+    translation: '当社の部長はその苦情に数分以内に対応した。',
     difficulty: 2,
   },
   {
@@ -212,15 +212,15 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'severance',
+    keyVocabWord: 'retirement',
     tags: ['弱形・連結', '音の連結'],
-    script: 'Laid-off staff will receive severance and extended health coverage.',
+    script: 'Staff choosing early retirement will receive a pension and extended health coverage.',
     blanks: [
-      { index: 2, answer: 'will' },
-      { index: 5, answer: 'and' },
+      { index: 4, answer: 'will' },
+      { index: 8, answer: 'and' },
     ],
     explanation: '弱形になりやすいwill/andを穴にしている。',
-    translation: '解雇された従業員は退職金と延長された健康保険を受け取る。',
+    translation: '早期退職を選ぶ従業員は年金と延長された健康保険を受け取る。',
     difficulty: 4,
   },
   {
@@ -298,13 +298,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'wage',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'The state raised the minimum wage for all workers.',
+    script: 'One state raised the minimum wage for all workers.',
     blanks: [
       { index: 3, answer: 'the' },
       { index: 6, answer: 'for' },
     ],
     explanation: '弱形になりやすいthe/forを穴にしている。',
-    translation: '州はすべての労働者の最低賃金を引き上げた。',
+    translation: 'ある州はすべての労働者の最低賃金を引き上げた。',
     difficulty: 3,
   },
   {
@@ -372,13 +372,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'stationery',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'The office ordered new stationery for the coming quarter.',
+    script: 'Our office ordered new stationery for the coming quarter.',
     blanks: [
       { index: 5, answer: 'for' },
       { index: 6, answer: 'the' },
     ],
     explanation: '弱形になりやすいfor/theを穴にしている。',
-    translation: 'オフィスは来る四半期のために新しい文房具を注文した。',
+    translation: '当社のオフィスは来る四半期のために新しい文房具を注文した。',
     difficulty: 2,
   },
   {
@@ -434,7 +434,7 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'vacancy',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'The hotel advertised a vacancy for a front desk position.',
+    script: 'The hotel advertised a vacancy for the front desk position.',
     blanks: [
       { index: 3, answer: 'a' },
       { index: 5, answer: 'for' },
@@ -459,13 +459,13 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
   {
     keyVocabWord: 'lease',
     tags: ['弱形・連結', '冠詞・前置詞'],
-    script: 'The company renewed the lease for another three years.',
+    script: 'A company renewed the lease for another three years.',
     blanks: [
       { index: 3, answer: 'the' },
       { index: 5, answer: 'for' },
     ],
     explanation: '弱形になりやすいthe/forを穴にしている。',
-    translation: 'その会社は賃貸契約をさらに3年間更新した。',
+    translation: 'ある会社は賃貸契約をさらに3年間更新した。',
     difficulty: 3,
   },
   {
@@ -502,6 +502,41 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
     ],
     explanation: '弱形になりやすいcan/andを穴にしている。',
     translation: '従業員は払い戻しを請求し、原本の領収書を添付できる。',
+    difficulty: 3,
+  },
+  // 【T-341（K-79）追加】機能語の弱形だけでなく、内容語の穴・複数語ブロックの穴も混ぜる
+  {
+    keyVocabWord: 'itinerary',
+    tags: ['内容語'],
+    script: 'The travel agency confirmed the itinerary for next week.',
+    blanks: [
+      {
+        index: 5,
+        answer: 'itinerary',
+      },
+    ],
+    explanation:
+      '文脈からの推測ではなく、内容語itineraryの音そのものを正確に聞き取れるかを試す穴にしている。',
+    translation: '旅行代理店は来週の旅程表を確認した。',
+    difficulty: 3,
+  },
+  {
+    keyVocabWord: 'voucher',
+    tags: ['弱形・連結', '複数語ブロック'],
+    script: 'The supervisor is going to send a voucher for the delay.',
+    blanks: [
+      {
+        index: 3,
+        answer: 'going',
+      },
+      {
+        index: 4,
+        answer: 'to',
+      },
+    ],
+    explanation:
+      '"going to"は/gənə/のように連結して発音されやすいため、隣接する2語をひと続きのブロックとして穴にしている。',
+    translation: '上司は遅延のための金券を送る予定だ。',
     difficulty: 3,
   },
 ]

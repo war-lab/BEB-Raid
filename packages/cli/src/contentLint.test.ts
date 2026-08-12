@@ -437,6 +437,113 @@ describe('checkFlatAnswerKeyCycle（⑨。text_blank/audio_qaのパック全体�
     const problems = validateContentLint(questions, 'pack-p5-test')
     expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
   })
+
+  it('完全な循環でなくても大半（84%）が同一差分なら統計的に警告する（pack-p5-s-001の再現。T-339・K-75）', () => {
+    const choices = [
+      { key: 'A', text: 'submit' },
+      { key: 'B', text: 'submits' },
+      { key: 'C', text: 'submitting' },
+      { key: 'D', text: 'submitted' },
+    ]
+    // 20問連続A→D→C→Bの後、循環を崩す4問を挟む（docs/31 K-75の実測値=的中率83.7%相当）
+    const cyclicPart = Array.from({ length: 20 }, (_, i) =>
+      part5Question({ id: `p5-cyc-${i}`, choices, answer: ['A', 'D', 'C', 'B'][i % 4]! }),
+    )
+    const brokenPart = ['A', 'A', 'B', 'B'].map((answer, i) =>
+      part5Question({ id: `p5-brk-${i}`, choices, answer }),
+    )
+    const questions = [...cyclicPart, ...brokenPart]
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('text_blank') && p.includes('循環'),
+      ),
+    ).toBe(true)
+  })
+
+  it('シャッフル済み（最頻差分が5割程度）は統計判定でも警告しない（誤検出防止の下限確認）', () => {
+    const pattern = ['A', 'B', 'A', 'D', 'C', 'C', 'B', 'D', 'A', 'B', 'C', 'D', 'A', 'D', 'B', 'C']
+    const questions = pattern.map((answer, i) => part5Question({ id: `p5-mix2-${i}`, answer }))
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('循環'))).toBe(false)
+  })
+})
+
+describe('checkPart34SpeakerGenderConsistency（⑩。Part3話者ラベルと性別指示の整合検出。T-338・K-73）', () => {
+  function part34SetQuestion(overrides: Partial<Question> = {}): Question {
+    return {
+      id: 'p3-gender-test',
+      part: 3,
+      format: 'audio_set',
+      difficulty: 4,
+      tags: ['意図推定'],
+      keyVocab: [{ word: 'lease', sense: '賃貸借', freqRank: 'S' }],
+      audio: 'audio/part34/p3-gender-test.mp3',
+      audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 20000 },
+      script: "A: I saw the numbers already. B: Let's bring that to the meeting.",
+      subQuestions: [
+        {
+          id: 'p3-gender-test-q1',
+          question: 'What will the man do next?',
+          choices: [
+            { key: 'A', text: 'Bring it to the meeting' },
+            { key: 'B', text: 'Cancel the meeting' },
+          ],
+          answer: 'A',
+          explanation: '男性は"Let\'s bring that to the meeting"と述べている。',
+          translation: '男性は次に何をしますか。',
+        },
+      ],
+      ...overrides,
+    }
+  }
+
+  it('引用文の話者（script上のA/B）と解説の性別ラベルが一致していれば警告しない', () => {
+    const problems = validateContentLint([part34SetQuestion()], 'pack-p34-test')
+    expect(problems.some((p) => p.includes('K-73') || p.includes('誤帰属'))).toBe(false)
+  })
+
+  it('B（男性）の発言を解説が「女性は」と誤帰属していたら警告する（K-73の再現）', () => {
+    const question = part34SetQuestion({
+      subQuestions: [
+        {
+          id: 'p3-gender-test-q1',
+          question: 'What will the woman do next?',
+          choices: [
+            { key: 'A', text: 'Bring it to the meeting' },
+            { key: 'B', text: 'Cancel the meeting' },
+          ],
+          answer: 'A',
+          explanation: '女性は"Let\'s bring that to the meeting"と述べている。',
+          translation: '女性は次に何をしますか。',
+        },
+      ],
+    })
+    const problems = validateContentLint([question], 'pack-p34-test')
+    expect(problems.some((p) => p.startsWith('[警告]') && p.includes('誤帰属'))).toBe(true)
+  })
+
+  it('Part4（単一話者）は対象外で警告しない', () => {
+    const question = part34SetQuestion({
+      part: 4,
+      script: 'Attention all staff: the meeting has been moved.',
+      subQuestions: [
+        {
+          id: 'p4-gender-test-q1',
+          question: 'What is the announcement about?',
+          choices: [
+            { key: 'A', text: 'A meeting change' },
+            { key: 'B', text: 'A holiday schedule' },
+          ],
+          answer: 'A',
+          explanation: '女性は"the meeting has been moved"と述べている。',
+          translation: '発表は何についてですか。',
+        },
+      ],
+    })
+    const problems = validateContentLint([question], 'pack-p34-test')
+    expect(problems.some((p) => p.includes('誤帰属'))).toBe(false)
+  })
 })
 
 describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベルの不一致検出。T-236）', () => {

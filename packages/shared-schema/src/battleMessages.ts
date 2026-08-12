@@ -107,15 +107,37 @@ export function isBattleClientMessage(value: unknown): value is BattleClientMess
   }
 }
 
+/** 配列の各要素がconnected:booleanを持つかどうか（要素が無い場合はtrue=検証対象なし） */
+function everyElementHasConnectedFlag(value: unknown): boolean {
+  if (!Array.isArray(value)) return false
+  return value.every(
+    (v) =>
+      typeof v === 'object' &&
+      v !== null &&
+      typeof (v as { connected?: unknown }).connected === 'boolean',
+  )
+}
+
 /**
- * 受信JSONが既知のBattleServerMessage typeを持つかどうかを判別する。
- * 未知のtypeはfalseを返す
+ * 受信JSONが既知のBattleServerMessage typeを持つかどうかを判別する（T-275・K-12）。
+ * 未知のtypeはfalseを返す。roomState・standingsはtypeに加えて、配列要素が
+ * connected（現在接続中かどうか。BattleParticipant/BattleStandingEntryの必須フィールド）
+ * を持つことまで検証する。これを怠ると、connectedを欠いた不正なJSONも
+ * 既知メッセージとしてクライアントに渡り、UIが未定義動作になる
  */
 export function isBattleServerMessage(value: unknown): value is BattleServerMessage {
-  return (
-    hasStringTypeField(value) &&
-    (BATTLE_SERVER_MESSAGE_TYPES as readonly string[]).includes(value.type)
-  )
+  if (!hasStringTypeField(value)) return false
+  if (!(BATTLE_SERVER_MESSAGE_TYPES as readonly string[]).includes(value.type)) return false
+
+  const payload = value as Record<string, unknown>
+  switch (value.type) {
+    case 'roomState':
+      return everyElementHasConnectedFlag(payload.participants)
+    case 'standings':
+      return everyElementHasConnectedFlag(payload.entries)
+    default:
+      return true
+  }
 }
 
 /**

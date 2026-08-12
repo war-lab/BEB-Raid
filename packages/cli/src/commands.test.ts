@@ -25,12 +25,14 @@ async function run(argv: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('コマンド体系（04の5節）', () => {
-  it('generate / freq-list / review-export / review-import / tts / calibrate / kpi / build / verify-content の9コマンドがある', () => {
+  it('generate / freq-list / review-export / review-import / adversarial-init / adversarial-summary / tts / calibrate / kpi / build / verify-content の11コマンドがある', () => {
     expect(commands.map((c) => c.name)).toEqual([
       'generate',
       'freq-list',
       'review-export',
       'review-import',
+      'adversarial-init',
+      'adversarial-summary',
       'tts',
       'calibrate',
       'kpi',
@@ -68,6 +70,78 @@ describe('コマンド体系（04の5節）', () => {
     expect((await run(['review-export', 'a.jsonl'])).code).toBe(1)
     expect((await run(['review-import'])).code).toBe(1)
     expect((await run(['review-import', 'a.jsonl', 'b.tsv', 'c.jsonl'])).code).toBe(1)
+  })
+
+  it('adversarial-init / adversarial-summary は引数不足だと使い方をstderrに出して異常終了する', async () => {
+    expect((await run(['adversarial-init'])).code).toBe(1)
+    expect((await run(['adversarial-init', 'a.jsonl'])).code).toBe(1)
+    expect((await run(['adversarial-summary'])).code).toBe(1)
+  })
+})
+
+describe('adversarial-init / adversarial-summary（T-355）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-adversarial-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('ドラフトJSONLからidを抽出して雛形TSVを書き出す', async () => {
+    const draftPath = join(dir, 'draft.jsonl')
+    const tsvPath = join(dir, 'adversarial.tsv')
+    await run(['generate', 'vocab_card', draftPath], {})
+    const { code, output } = await run(['adversarial-init', draftPath, tsvPath])
+    expect(code).toBe(0)
+    expect(output).toContain('200件')
+    const tsv = await readFile(tsvPath, 'utf-8')
+    expect(tsv.trim().split('\n')).toHaveLength(201) // ヘッダー + 200件
+  })
+
+  it('パックJSONのquestions[].idから雛形TSVを書き出す', async () => {
+    const packPath = join(dir, 'pack.json')
+    const tsvPath = join(dir, 'adversarial.tsv')
+    await writeFile(
+      packPath,
+      JSON.stringify({ questions: [{ id: 'q1' }, { id: 'q2' }, { id: 'q3' }] }),
+      'utf-8',
+    )
+    const { code, output } = await run(['adversarial-init', packPath, tsvPath])
+    expect(code).toBe(0)
+    expect(output).toContain('3件')
+  })
+
+  it('記入済みTSVを集計し、revise/rejectを一覧する', async () => {
+    const tsvPath = join(dir, 'reviewed.tsv')
+    await writeFile(
+      tsvPath,
+      [
+        'id\tverdict\tobservation\treviewer\treviewedAt',
+        'q1\taccept\t\tclaude-opus-5\t2026-08-12',
+        'q2\trevise\t二重正答の疑い\tclaude-opus-5\t2026-08-12',
+      ].join('\n'),
+      'utf-8',
+    )
+    const { code, output } = await run(['adversarial-summary', tsvPath])
+    expect(code).toBe(0)
+    expect(output).toContain('accept 1件')
+    expect(output).toContain('revise 1件')
+    expect(output).toContain('q2（revise）')
+  })
+
+  it('verdictが不正な値ならエラーで異常終了する', async () => {
+    const tsvPath = join(dir, 'bad.tsv')
+    await writeFile(
+      tsvPath,
+      ['id\tverdict\tobservation\treviewer\treviewedAt', 'q1\tmaybe\t\t\t'].join('\n'),
+      'utf-8',
+    )
+    const { code, errOutput } = await run(['adversarial-summary', tsvPath])
+    expect(code).toBe(1)
+    expect(errOutput).toContain('q1')
   })
 })
 
@@ -380,17 +454,17 @@ describe('generate dictation（M2・T-62）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('APIキー不要で40件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
+  it('APIキー不要で44件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
     const outputPath = join(dir, 'dictation-s.jsonl')
     const { code, output } = await run(['generate', 'dictation', outputPath], {})
     expect(code).toBe(0)
-    expect(output).toContain('40件')
+    expect(output).toContain('44件')
 
     const drafts = parseJsonl<{
       kind: string
       payload: { format: string; blanks: { index: number; answer: string }[] }
     }>(await readFile(outputPath, 'utf-8'))
-    expect(drafts).toHaveLength(40)
+    expect(drafts).toHaveLength(44)
     expect(drafts.every((d) => d.kind === 'dictation')).toBe(true)
     expect(drafts.every((d) => d.payload.blanks.length >= 1 && d.payload.blanks.length <= 3)).toBe(
       true,

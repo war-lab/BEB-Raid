@@ -166,6 +166,94 @@ describe('POST /register', () => {
     expect(secondRecord.registeredAt).toBe(firstRecord.registeredAt)
   })
 
+  // 何を防ぐか（T-331・K-66）: 表示名の一意性を検証しないと、参加者がイベントバトルの
+  // joinメッセージで他メンバー（ホスト含む）の登録済み表示名をそのまま名乗れてしまい、
+  // なりすまし対策（battleRoomDo.tsが採用する登録済み表示名）が無意味になる
+  describe('表示名の一意性（T-331・K-66）', () => {
+    it('既に他のdeviceTokenが使っている表示名で新規登録すると409になる', async () => {
+      const firstToken = crypto.randomUUID()
+      const first = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken: firstToken,
+          displayName: '花子',
+          dailyGoal: 'normal',
+        }),
+      )
+      expect(first.status).toBe(200)
+
+      const secondToken = crypto.randomUUID()
+      const second = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken: secondToken,
+          displayName: '花子',
+          dailyGoal: 'normal',
+        }),
+      )
+      expect(second.status).toBe(409)
+      // 2人目のレコードはKVへ書き込まれない
+      expect(await env.MEMBERS.get(memberKey(secondToken))).toBeNull()
+    })
+
+    it('自分自身の表示名を変更していない再登録（daily Goal更新のみ）は409にならない', async () => {
+      const deviceToken = crypto.randomUUID()
+      const first = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken,
+          displayName: '一郎',
+          dailyGoal: 'light',
+        }),
+      )
+      expect(first.status).toBe(200)
+
+      const second = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken,
+          displayName: '一郎',
+          dailyGoal: 'heavy',
+        }),
+      )
+      expect(second.status).toBe(200)
+    })
+
+    it('表示名を別の未使用の名前へ変更する再登録は成功する', async () => {
+      const deviceToken = crypto.randomUUID()
+      await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken,
+          displayName: '次郎',
+          dailyGoal: 'normal',
+        }),
+      )
+
+      const renamed = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken,
+          displayName: '次郎（改名）',
+          dailyGoal: 'normal',
+        }),
+      )
+      expect(renamed.status).toBe(200)
+
+      // 旧名は解放され、別のdeviceTokenが新規登録に使える
+      const otherToken = crypto.randomUUID()
+      const other = await SELF.fetch(
+        registerRequest({
+          inviteCode: VALID_INVITE_CODE,
+          deviceToken: otherToken,
+          displayName: '次郎',
+          dailyGoal: 'normal',
+        }),
+      )
+      expect(other.status).toBe(200)
+    })
+  })
+
   // T-242・29のQ-21（J-103）: 以前はdeviceTokenが1〜200字の非空文字列であれば何でも
   // 通っており、招待コードを知る者が任意個の偽deviceTokenを登録できた（登録者全員が
   // HP算出の母数になるためボスHPを恣意的に吊り上げられる）。新規登録・表示名更新
@@ -307,6 +395,31 @@ describe('POST /register', () => {
         ),
       )
       expect(res.status).toBe(200)
+    })
+
+    // 何を防ぐか（T-329・K-64）: 旧実装（KVへのread-modify-write）は並列リクエストだと
+    // 複数のgetが同じ古いcountを読んでから書き込むため、加算が失われる（lost update）。
+    // 20件を並列に送っても429が一切出ない（＝レート制限が実質無効化される）ことを
+    // 実測で確認済み（DOへ移す前は本テストが確実に失敗した）
+    it('並列リクエストでも一定回数を超えると429になる（KVのlost updateで無効化されない）', async () => {
+      const ip = '203.0.113.99'
+      const results = await Promise.all(
+        Array.from({ length: 20 }, () =>
+          SELF.fetch(
+            registerRequest(
+              {
+                inviteCode: 'wrong-code',
+                deviceToken: crypto.randomUUID(),
+                displayName: '太郎',
+                dailyGoal: 'normal',
+              },
+              { 'CF-Connecting-IP': ip },
+            ),
+          ),
+        ),
+      )
+      const statuses = results.map((r) => r.status)
+      expect(statuses).toContain(429)
     })
   })
 })

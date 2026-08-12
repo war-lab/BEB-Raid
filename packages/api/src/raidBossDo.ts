@@ -19,6 +19,34 @@ import type { Env, MemberRecord } from './env'
 import { memberKey } from './env'
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * J-49（オフライン滞留分の遅延到着を減点しない）はanswaredAtが期間内なら
+ * receivedAtが期限後でも加算を許すが、上限が無いと無期限に「あの週のボスへ」
+ * ダメージを追加できてしまう（T-332・K-67）。週次cronは前週のEMA・raidSummaryを
+ * 生成完了直後に確定させる（scheduled.ts）ため、それより大幅に遅れた到着は
+ * もはや正当な「オフライン滞留」ではなく、確定済みの集計を後から書き換えるだけになる。
+ * 7日はRAID_DAYS（5日）に休日を挟んだ通勤サイクル1往復分の余裕を持たせた値
+ */
+const LATE_ARRIVAL_GRACE_MS = 7 * DAY_MS
+
+/**
+ * 1 deviceTokenが週次で貢献できるダメージの上限（ボスの現在maxHpに対する比率。T-330・K-65）。
+ * MAX_DAMAGE_PER_PAYLOAD（raidValidation.ts）とMAX_SYNC_PAYLOADSだけでは、1リクエストの
+ * 上限が実HPの30倍にもなり、複数リクエストへ分割すれば1台の端末が単独でボスを討伐できた。
+ * maxHpに対する比率にするのは、絶対値だとボスの規模（登録人数）に応じてスケールしないため。
+ * 0.5（50%）なら、1台の端末だけではmaxHpの半分までしか削れず、他の参加者の貢献なしに
+ * 単独討伐することが構造的に不可能になる
+ */
+const MAX_DEVICE_SHARE_OF_MAX_HP = 0.5
+
+/**
+ * generation_claimの主張が「リークした」とみなすまでの時間（T-283・K-6・docs/32 3節J-115系）。
+ * generateWeeklyBossの生成処理（EMA更新・KV走査を含む）は無料枠の制約内で数十秒〜数分の
+ * オーダーに収まる想定のため、30分は正常系の実行時間を大きく超えた安全マージンである
+ */
+const GENERATION_CLAIM_STALE_MS = 30 * 60 * 1000
 
 /**
  * 表示名キャッシュのTTL（正本: docs/30_改修計画_全量レビュー棚卸し.md T-246・29のQ-28）。
@@ -73,6 +101,8 @@ interface StateRow extends Record<string, string | number | null> {
   defenseJson: string | null
   ghostJson: string | null
   ghostSourceToken: string | null
+  /** T-327（K-62）: damage_attempts合計のランニング値。SUMクエリの代わりにこれを読む */
+  totalDamage: number
 }
 
 export class RaidBossDO extends DurableObject<Env> {
@@ -113,23 +143,40 @@ export class RaidBossDO extends DurableObject<Env> {
         claimed INTEGER PRIMARY KEY
       )
     `)
+    // T-283（K-6）: claimGeneration後にプロセスクラッシュ等でreleaseGenerationClaim()が
+    // 呼ばれずに終わると、この行が永久に残り週次ボス生成が復旧不能になる。主張時刻を持たせ、
+    // 一定時間（GENERATION_CLAIM_STALE_MS）を過ぎた主張は上書き可能にする
+    this.ensureColumn('generation_claim', 'claimedAt', 'claimedAt INTEGER NOT NULL DEFAULT 0')
     // M4: ゴースト関連カラムの追加（正本: docs/22 3.3節）。
     // 既存のCREATE TABLE IF NOT EXISTSは既存テーブルへ新カラムを足せないため、
     // PRAGMA table_infoで存在確認してから足りないカラムだけALTER TABLEする
     // （本番データがまだ無い開発段階だが、後方互換な移行処理として実装しておく）
-    this.ensureColumn('bossType', "bossType TEXT NOT NULL DEFAULT 'synthetic'")
-    this.ensureColumn('defenseJson', 'defenseJson TEXT')
-    this.ensureColumn('ghostJson', 'ghostJson TEXT')
-    this.ensureColumn('ghostSourceToken', 'ghostSourceToken TEXT')
+    this.ensureColumn('state', 'bossType', "bossType TEXT NOT NULL DEFAULT 'synthetic'")
+    this.ensureColumn('state', 'defenseJson', 'defenseJson TEXT')
+    this.ensureColumn('state', 'ghostJson', 'ghostJson TEXT')
+    this.ensureColumn('state', 'ghostSourceToken', 'ghostSourceToken TEXT')
+    // T-327（K-62）: totalDamageをこのタイミングで新設した場合のみ、既存のdamage_attempts
+    // 合計で初期値をバックフィルする（移行時1回だけのコスト。以後はこの列をランニング合計として
+    // 使い、syncDamageの1件ごとにSUMクエリを走らせない）
+    if (this.ensureColumn('state', 'totalDamage', 'totalDamage INTEGER NOT NULL DEFAULT 0')) {
+      this.ctx.storage.sql.exec(
+        'UPDATE state SET totalDamage = (SELECT COALESCE(SUM(damage), 0) FROM damage_attempts)',
+      )
+    }
   }
 
-  /** stateテーブルに指定カラムが無ければALTER TABLEで追加する（冪等） */
-  private ensureColumn(column: string, addColumnDdl: string): void {
+  /**
+   * 指定テーブルに指定カラムが無ければALTER TABLEで追加する（冪等）。追加したらtrueを返す。
+   * tableは呼び出し元が渡す固定のテーブル名リテラルのみで、外部入力は含まれない
+   * （SQLite PRAGMA/ALTER TABLEはテーブル名のプレースホルダをサポートしないための文字列展開）
+   */
+  private ensureColumn(table: string, column: string, addColumnDdl: string): boolean {
     const columns = this.ctx.storage.sql
-      .exec<{ name: string }>('PRAGMA table_info(state)')
+      .exec<{ name: string }>(`PRAGMA table_info(${table})`)
       .toArray()
-    if (columns.some((c) => c.name === column)) return
-    this.ctx.storage.sql.exec(`ALTER TABLE state ADD COLUMN ${addColumnDdl}`)
+    if (columns.some((c) => c.name === column)) return false
+    this.ctx.storage.sql.exec(`ALTER TABLE ${table} ADD COLUMN ${addColumnDdl}`)
+    return true
   }
 
   /**
@@ -144,11 +191,22 @@ export class RaidBossDO extends DurableObject<Env> {
    * このテーブルが空のままになる。`state` 行の存在も同時に確認しないと、デプロイ後
    * 最初の呼び出しで誤って主張が成立し、既存週のEMAが二重に平滑化されてしまう
    * （`state` 行こそが「この週は生成済み」の実質的な正本であるため）
+   *
+   * T-283（K-6）: 生成処理中の例外・プロセスクラッシュ等でreleaseGenerationClaim()が
+   * 呼ばれないと、この主張が永久に残り以後の生成が復旧不能になる。GENERATION_CLAIM_STALE_MS
+   * を過ぎた主張は「リークした主張」とみなし上書きを許す
    */
-  claimGeneration(): boolean {
-    if (this.hasGenerationClaim()) return false
+  claimGeneration(now: number): boolean {
+    const claimedAt = this.getGenerationClaimedAt()
+    if (claimedAt !== undefined) {
+      if (now - claimedAt < GENERATION_CLAIM_STALE_MS) return false
+      this.ctx.storage.sql.exec('DELETE FROM generation_claim')
+    }
     if (this.getStateRow()) return false
-    this.ctx.storage.sql.exec('INSERT INTO generation_claim (claimed) VALUES (1)')
+    this.ctx.storage.sql.exec(
+      'INSERT INTO generation_claim (claimed, claimedAt) VALUES (1, ?)',
+      now,
+    )
     return true
   }
 
@@ -160,11 +218,10 @@ export class RaidBossDO extends DurableObject<Env> {
     this.ctx.storage.sql.exec('DELETE FROM generation_claim')
   }
 
-  private hasGenerationClaim(): boolean {
-    return (
-      this.ctx.storage.sql.exec<{ c: number }>('SELECT COUNT(*) as c FROM generation_claim').one()
-        .c > 0
-    )
+  private getGenerationClaimedAt(): number | undefined {
+    return this.ctx.storage.sql
+      .exec<{ claimedAt: number }>('SELECT claimedAt FROM generation_claim')
+      .toArray()[0]?.claimedAt
   }
 
   /** ボス未初期化のときだけ初期化する（冪等。週次cronの再実行・重複呼び出し対策） */
@@ -259,7 +316,7 @@ export class RaidBossDO extends DurableObject<Env> {
   getSummary(): RaidSummary | undefined {
     const state = this.getStateRow()
     if (!state) return undefined
-    const remainingHp = Math.max(0, state.maxHp - this.totalDamage())
+    const remainingHp = Math.max(0, state.maxHp - state.totalDamage)
     const participantCount = this.ctx.storage.sql
       .exec<{ c: number }>('SELECT COUNT(DISTINCT deviceToken) as c FROM damage_attempts')
       .one().c
@@ -298,6 +355,14 @@ export class RaidBossDO extends DurableObject<Env> {
 
     const acceptedIds: string[] = []
     let defeated = state.defeatedAt !== null
+    // T-327（K-62）: 旧実装は挿入1件ごとにdamage_attempts全体のSUMクエリ（totalDamage()）を
+    // 走らせていたため、200件バッチの行読取が既存の挿入件数に比例して増えていた。
+    // stateのランニング合計（totalDamage列）をここで1回だけ読み、以後はメモリ上で加算する
+    let runningTotal = state.totalDamage
+    // T-330（K-65）: この端末の週次累計をここで1回だけ読み、以後はメモリ上で加算する
+    // （syncDamageは1問=1payloadで呼ばれるため、通常は既存のバッチ内get回数を増やさない）
+    let deviceTotal = this.deviceTotalDamage(deviceToken)
+    const deviceCap = Math.round(state.maxHp * MAX_DEVICE_SHARE_OF_MAX_HP)
 
     for (const entry of entries) {
       if (this.hasAttempt(entry.attemptId)) {
@@ -309,11 +374,24 @@ export class RaidBossDO extends DurableObject<Env> {
       const answeredAt =
         entry.answeredAt > receivedAt + FIVE_MINUTES_MS ? receivedAt : entry.answeredAt
       const inPeriod = answeredAt >= state.startAt && answeredAt <= state.endAt
+      // T-332（K-67）: J-49はreceivedAtが期限後でもanswaredAtが期間内なら加算を許すが、
+      // 上限が無いと確定済みの週（EMA・raidSummaryが生成済み）へ無期限に後から
+      // ダメージを追加できてしまう。7日を超えた到着はもはや正当な遅延到着ではないとみなす
+      const tooLateToArrive = receivedAt > state.endAt + LATE_ARRIVAL_GRACE_MS
 
       // J-49: 受信(receivedAt)がボスの期限を過ぎていても、answeredAtが期間内なら加算する
       // （オフライン滞留分の正当な遅延到着を減点しない=01のオフライン正常系の原則）。
-      // 拒否するのは「既に討伐済み」か「answeredAt自体が期間外」のときだけ
-      if (defeated || !inPeriod) {
+      // 拒否するのは「既に討伐済み」か「answeredAt自体が期間外」か「7日を超えて遅延到着」のとき
+      if (defeated || !inPeriod || tooLateToArrive) {
+        acceptedIds.push(entry.attemptId)
+        continue
+      }
+
+      // T-330（K-65）: この端末の週次累計が上限（maxHpの50%）に達していれば、
+      // このpayloadは加算せず捨てる（クライアント側pendingSyncは掃除させるため
+      // acceptedIdsには含める。悪意ある端末の暴走を止める用途で、正規ユーザーの
+      // 学習記録自体（IndexedDB側）には一切影響しない）
+      if (deviceTotal >= deviceCap) {
         acceptedIds.push(entry.attemptId)
         continue
       }
@@ -328,8 +406,10 @@ export class RaidBossDO extends DurableObject<Env> {
         receivedAt,
       )
       acceptedIds.push(entry.attemptId)
+      runningTotal += entry.damage
+      deviceTotal += entry.damage
 
-      if (!defeated && this.totalDamage() >= state.maxHp) {
+      if (!defeated && runningTotal >= state.maxHp) {
         defeated = true
         this.ctx.storage.sql.exec(
           'UPDATE state SET defeatedAt = ? WHERE bossId = ?',
@@ -337,6 +417,14 @@ export class RaidBossDO extends DurableObject<Env> {
           state.bossId,
         )
       }
+    }
+
+    if (runningTotal !== state.totalDamage) {
+      this.ctx.storage.sql.exec(
+        'UPDATE state SET totalDamage = ? WHERE bossId = ?',
+        runningTotal,
+        state.bossId,
+      )
     }
 
     const finalState = this.getStateRow()!
@@ -357,14 +445,18 @@ export class RaidBossDO extends DurableObject<Env> {
     return Object.fromEntries(rows.map((row) => [row.deviceToken, row.damage]))
   }
 
-  private getStateRow(): StateRow | undefined {
-    return this.ctx.storage.sql.exec<StateRow>('SELECT * FROM state LIMIT 1').toArray()[0]
+  /** T-330（K-65）: 1台の端末（deviceToken）の現在の週次累計ダメージ */
+  private deviceTotalDamage(deviceToken: string): number {
+    return this.ctx.storage.sql
+      .exec<{ total: number }>(
+        'SELECT COALESCE(SUM(damage), 0) as total FROM damage_attempts WHERE deviceToken = ?',
+        deviceToken,
+      )
+      .one().total
   }
 
-  private totalDamage(): number {
-    return this.ctx.storage.sql
-      .exec<{ total: number }>('SELECT COALESCE(SUM(damage), 0) as total FROM damage_attempts')
-      .one().total
+  private getStateRow(): StateRow | undefined {
+    return this.ctx.storage.sql.exec<StateRow>('SELECT * FROM state LIMIT 1').toArray()[0]
   }
 
   private hasAttempt(attemptId: string): boolean {
@@ -409,7 +501,7 @@ export class RaidBossDO extends DurableObject<Env> {
     now: number,
     forDeviceToken?: string,
   ): Promise<RaidBossState> {
-    const hp = Math.max(0, state.maxHp - this.totalDamage())
+    const hp = Math.max(0, state.maxHp - state.totalDamage)
     const status = this.computeStatus(state, now)
 
     // 貢献一覧はランキングとして表示されるため、並び順（ダメージ降順）をサーバー側で保証する

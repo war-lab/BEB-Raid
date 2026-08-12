@@ -752,12 +752,12 @@
         "accent": "UK",
         "tts": true,
         "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14550,
-        "questionEndMs": 3544,
+        "durationMs": 14315,
+        "questionEndMs": 3230,
         "responseOffsetsMs": [
-          3744,
-          7046,
-          11718
+          3430,
+          6698,
+          11452
         ],
         "responsesTextDigest": "3f4d6eab"
       },
