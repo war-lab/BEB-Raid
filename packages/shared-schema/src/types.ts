@@ -162,6 +162,14 @@ export interface PackMeta {
   targetLevel: [number, number]
   /** オフラインキャッシュの容量表示用。ビルド時（T-32）に確定するため生成段階では省略可 */
   sizeBytes?: number
+  /**
+   * AIクロスレビュー＋敵対的検証の工程（T-355・docs/32 8節）の記録。任意フィールドで、
+   * 既存パックの移行を止めないため必須化しない。origin文字列にも工程名・日付を記録するが、
+   * ここでは同じ内容を機械可読な形で持つ
+   */
+  reviewedBy?: string
+  reviewedAt?: string
+  reviewMethod?: string
 }
 
 /** 問題パックJSON全体（コンテンツ層の配信単位） */
