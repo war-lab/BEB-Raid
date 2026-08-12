@@ -691,6 +691,40 @@ describe('ReadingScreen: Part7複数文書のタブ切替（T-165。docs/27 のS
   })
 })
 
+describe('ReadingScreen: 本文の日本語訳（T-347・K-89）', () => {
+  it('translationがあるパッセージでは既定で訳を隠し、ボタンを押すと表示する', async () => {
+    const db = newDb()
+    const q: Question = {
+      ...part7Question('p7-translation', 1),
+      passages: [
+        {
+          id: 'p7-translation-p1',
+          kind: 'email',
+          text: 'English passage text.',
+          translation: '日本語訳のテキストです。',
+        },
+      ],
+    }
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.queryByText('日本語訳のテキストです。')).toBeNull()
+    fireEvent.click(screen.getByText('本文の日本語訳を見る'))
+    expect(screen.getByText('日本語訳のテキストです。')).toBeTruthy()
+  })
+
+  it('translationが無いパッセージでは訳を見るボタン自体を出さない（後方互換）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-no-translation', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.queryByText('本文の日本語訳を見る')).toBeNull()
+  })
+})
+
 describe('ReadingScreen: 読解タブのWAI-ARIA APG準拠（T-230。docs/29 Q-68）', () => {
   /** 複数文書のPart7（相互参照型）。従来は1通目しか読めず解答不能になりえた */
   function part7MultiQuestion(id: string): Question {

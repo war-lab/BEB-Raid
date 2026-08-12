@@ -578,6 +578,17 @@
      ことがあったため、任意の位置で折り返す */
   overflow-wrap: anywhere;
 }
+/* 本文の日本語訳（T-347）。英文（.passage-text）と区別できるよう罫線で仕切るだけに留め、
+   面上の--ink-2で.passage-kindと同じコントラスト方針にする */
+.passage-translation {
+  margin: var(--sp-1) 0 0;
+  padding-top: var(--sp-1);
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
 /* Part6の空所（未解答=___(n)___・解答済み=選択結果を反映。タップで該当設問へジャンプ） */
 .passage-blank {
   display: inline;

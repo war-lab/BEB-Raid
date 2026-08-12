@@ -26,6 +26,8 @@ export interface Part7SingleRawEntry {
   keyVocabWords: string[]
   passageKind: PassageKind
   passageText: string
+  /** 本文の日本語訳（T-347。挿入文問題の[1]〜[4]は原文のまま訳に残す） */
+  passageTranslation: string
   subQuestions: readonly Part7SingleRawSubQuestion[]
 }
 
@@ -38,6 +40,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       'Subject: Interview Invitation — Marketing Coordinator Position\n\nDear Ms. Alvarez,\n\nThank you for applying for the Marketing Coordinator position at Brightview Media. After reviewing your resume, we would like to invite you to an interview with our hiring team on Tuesday, June 10, at 2 p.m. at our downtown office. The interview will last approximately forty-five minutes and will include a short writing exercise related to social media planning. Please bring a copy of your portfolio if you have one. If this time does not work for you, please reply to this email within two business days so we can arrange an alternative. We look forward to speaking with you.\n\nBest regards,\nHiring Team, Brightview Media',
+    passageTranslation:
+      '件名: 面接のご案内 — マーケティングコーディネーター職\n\nAlvarez様\n\nBrightview Mediaのマーケティングコーディネーター職にご応募いただきありがとうございます。履歴書を確認させていただいた結果、6月10日火曜日午後2時に当社の都心オフィスにて、採用チームとの面接にお越しいただきたく存じます。面接は約45分間で、ソーシャルメディア企画に関する簡単な作文課題を含みます。ポートフォリオをお持ちの場合はご持参ください。この日時のご都合が悪い場合は、2営業日以内に本メールへご返信いただければ、別の日時を調整いたします。お会いできることを楽しみにしております。\n\n敬具\n採用チーム、Brightview Media',
     subQuestions: [
       {
         question: 'Why was the email written?',
@@ -85,6 +89,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'FIRE DRILL NOTICE\n\nA scheduled fire drill will take place in this facility on Wednesday, May 14, at 10:30 a.m. All employees and visitors must exit through the nearest marked stairwell and gather in the parking lot on the east side of the building. Elevators should not be used during the drill. The entire exercise is expected to take about fifteen minutes. Department managers will notify their teams of the exact meeting point before the drill begins.',
+    passageTranslation:
+      '消防訓練のお知らせ\n\n5月14日水曜日午前10時30分に、当施設で消防訓練を実施します。全従業員および来訪者は最寄りの表示された階段から避難し、建物東側の駐車場に集合してください。訓練中はエレベーターを使用しないでください。訓練全体の所要時間は約15分の見込みです。各部門の管理者は、訓練開始前に集合場所の詳細をチームに伝えます。',
     subQuestions: [
       {
         question: 'What is the purpose of the notice?',
@@ -116,6 +122,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'article',
     passageText:
       "Local Charity Drive Raises Record Amount\n\nThe annual charity drive organized by the Riverside Business Association raised more than forty thousand dollars this year, the highest total in the event's twelve-year history. The campaign, which ran for three weeks in April, was supported by an endorsement from the city's mayor and coordinated by a team of volunteers from local businesses. Funds raised will be split between the regional food bank and a scholarship program for high school students. Organizers said the increase was largely due to a new online donation platform that allowed contributions from outside the immediate area. Next year's drive is expected to run for an additional week to build on this momentum.",
+    passageTranslation:
+      '地元チャリティー活動が過去最高額を記録\n\nRiverside Business Associationが主催する年次チャリティー活動は、今年4万ドルを超える金額を集め、12年の活動史上最高額となりました。4月に3週間実施されたこの運動は、市長の支援と地元企業から集まったボランティアチームの調整により行われました。集まった資金は地域のフードバンクと高校生向けの奨学金プログラムに分配されます。主催者によると、この増加は、地域外からの寄付を可能にした新しいオンライン寄付プラットフォームによるものが大きいとのことです。来年の活動は、この勢いを生かすため1週間長く実施される見込みです。',
     subQuestions: [
       {
         question: 'What is mainly being reported in the article?',
@@ -163,6 +171,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Dana Lee [10:02 a.m.]\nHi Marco, do we have an update on the shipment for the Grant account? They're asking again.\n\nMarco Diaz [10:04 a.m.]\nJust checked with the warehouse. The delivery left this morning and should arrive by Thursday.\n\nDana Lee [10:05 a.m.]\nThat's later than we told them. Can we let them know today?\n\nMarco Diaz [10:06 a.m.]\nSure, I'll send them an update this afternoon with the new delivery date and tracking number.",
+    passageTranslation:
+      'Dana Lee [午前10:02]\nこんにちはMarco、Grantアカウントの出荷について最新情報はある？また問い合わせが来てるの。\n\nMarco Diaz [午前10:04]\nちょうど倉庫に確認したところ。今朝出荷されて、木曜日までに到着する予定。\n\nDana Lee [午前10:05]\nそれは伝えていた予定より遅いね。今日中に先方に伝えられる？\n\nMarco Diaz [午前10:06]\nもちろん、今日の午後に新しい配達日と追跡番号を伝える連絡を送るよ。',
     subQuestions: [
       {
         question: 'What are Dana Lee and Marco Diaz mainly discussing?',
@@ -200,6 +210,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'form',
     passageText:
       'ANNUAL INDUSTRY SUMMIT — REGISTRATION FORM (INSTRUCTIONS)\n\nThank you for your interest in the Annual Industry Summit, taking place October 8–9 at the Lakeside Convention Center. To register, complete all fields below and submit payment by September 1 to receive the early registration rate of $250. Registrations submitted after this date will be charged the standard rate of $325. Please note that the registration fee includes access to all sessions, a printed itinerary, and lunch on both days. Hotel accommodations near the venue are not included and must be booked separately. A confirmation email with your badge information will be sent within five business days of payment.',
+    passageTranslation:
+      '年次業界サミット — 参加登録フォーム（記入案内）\n\n10月8日〜9日にLakeside Convention Centerで開催される年次業界サミットにご関心をお寄せいただきありがとうございます。登録には以下の項目をすべて記入し、9月1日までに支払いを完了することで、早期登録料金250ドルが適用されます。この日付を過ぎて提出された登録には、通常料金325ドルが適用されます。登録料には全セッションへの参加、印刷された日程表、両日の昼食が含まれます。会場周辺の宿泊施設は含まれておらず、別途手配が必要です。お支払い後5営業日以内に、バッジ情報を記載した確認メールをお送りします。',
     subQuestions: [
       {
         question: 'What is included in the registration fee?',
@@ -247,6 +259,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'advertisement',
     passageText:
       'GRAND OPENING — Parkside Home Goods\n\nJoin us this Saturday for the grand opening of Parkside Home Goods, your new neighborhood store for kitchenware, furniture, and decor. The first fifty customers will receive a free gift, and all merchandise in the store will be offered at a twenty percent discount for opening weekend only. Doors open at 9 a.m. Free parking is available in the lot behind the building.',
+    passageTranslation:
+      '開店記念 — Parkside Home Goods\n\n今週土曜日、近隣の新しいキッチン用品・家具・インテリア雑貨店、Parkside Home Goodsのグランドオープンにぜひお越しください。最初の50名様には無料プレゼントを差し上げ、オープン週末限定で店内全商品が20%引きになります。開店は午前9時です。建物裏の駐車場を無料でご利用いただけます。',
     subQuestions: [
       {
         question: 'What is being advertised?',
@@ -282,6 +296,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       "Subject: Re: Order 8834 — Damaged Item\n\nDear Mr. Owusu,\n\nThank you for letting us know about the damaged item you received in order 8834. We sincerely apologize for the inconvenience this has caused. After reviewing your account, we would like to compensate you in one of two ways: a full refund of the item's price, or a replacement shipped at no charge with a fifteen percent discount code for a future purchase. Please reply with your preference by Friday, and we will process it the same day. We have also flagged this order with our warehouse team so they can review the packaging process for fragile items. We value your business and hope to resolve this quickly.\n\nSincerely,\nCustomer Care Team",
+    passageTranslation:
+      '件名: Re: 注文8834 — 商品の破損について\n\nOwusu様\n\n注文8834で届いた商品の破損について、ご連絡いただきありがとうございます。ご不便をおかけしましたことを心よりお詫び申し上げます。お客様のアカウントを確認したうえで、次の2つの方法のいずれかで対応させていただきます。商品代金の全額返金、または追加費用なしでの交換品発送（次回のご購入に使える15%割引コードを付与）です。ご希望を金曜日までにご返信いただければ、同日中に処理いたします。また、破損しやすい商品の梱包工程を見直すため、倉庫チームにこの注文を申告いたしました。お客様との今後のお取引を大切にし、迅速な解決を目指してまいります。\n\n敬具\nカスタマーケアチーム',
     subQuestions: [
       {
         question: 'Why did the customer contact the company?',
@@ -337,6 +353,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'OFFICE CLOSURE NOTICE\n\nThe office will be closed on Monday, September 2, in observance of the public holiday. Normal business hours will resume on Tuesday, September 3. Employees who need to submit urgent requests should notify their supervisor before the closure. Voicemail and email will not be checked until the office reopens.',
+    passageTranslation:
+      '案内: 休業のお知らせ\n\n祝日のため、9月2日月曜日は休業いたします。通常営業は9月3日火曜日より再開します。緊急の依頼がある従業員は、休業前に上司へ連絡してください。ボイスメールとメールは、営業再開まで確認されません。',
     subQuestions: [
       {
         question: 'Why will the office be closed?',
@@ -372,6 +390,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'article',
     passageText:
       "Local Manufacturer Recognized for Sustainability Efforts\n\nGreenline Manufacturing received the Regional Sustainability Award last week for its efforts to reduce waste and energy use across its production facilities. The company set a new benchmark in the region by cutting water use by forty percent over the past three years through a closed-loop cooling system. Company representatives said the recognition reflects years of investment in equipment upgrades rather than a single recent change. The award committee noted that Greenline's approach could serve as a model for other manufacturers in the area. Company leaders said they plan to share details of their process at an upcoming industry conference.",
+    passageTranslation:
+      '地元製造業者が持続可能性への取組みで表彰\n\nGreenline製造は先週、生産施設全体での廃棄物削減と省エネルギーの取組みにより、地域持続可能性賞を受賞しました。同社は過去3年間、閉鎖循環式冷却システムの導入により水使用量を40%削減し、地域内で新たな基準を打ち立てました。会社の担当者は、この受賞は最近の単発の変更ではなく、長年にわたる設備更新への投資の成果だと述べています。審査委員会は、Greenlineの取組みが地域の他の製造業者にとってモデルとなり得ると指摘しました。経営陣は、今後の業界会議でその手法の詳細を共有する予定だと述べています。',
     subQuestions: [
       {
         question: 'Why did Greenline Manufacturing receive the award?',
@@ -419,6 +439,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Priya Nair [3:12 p.m.]\nHey, are we still on for the client meeting tomorrow at 10?\n\nTom Fischer [3:14 p.m.]\nActually, the client just asked to reschedule to Thursday at the same time. Is that okay with you?\n\nPriya Nair [3:16 p.m.]\nThursday works for me, but I have a call at 11 that day, so we'd need to keep it short.\n\nTom Fischer [3:17 p.m.]\nGot it. I'll confirm Thursday at 10 and let them know we'll need to wrap up by 10:45.\n\nPriya Nair [3:18 p.m.]\nSounds good, thanks for handling that.",
+    passageTranslation:
+      'Priya Nair [午後3:12]\nねえ、明日10時のクライアントミーティングは予定通り？\n\nTom Fischer [午後3:14]\n実は、クライアントから同じ時間で木曜日に変更してほしいと頼まれたんだ。それで大丈夫？\n\nPriya Nair [午後3:16]\n木曜日は大丈夫だけど、その日は11時に電話があるから、短めにする必要があるね。\n\nTom Fischer [午後3:17]\n了解。木曜10時で確定させて、10時45分までに終える必要があると先方に伝えるよ。\n\nPriya Nair [午後3:18]\nよかった、対応してくれてありがとう。',
     subQuestions: [
       {
         question: 'What are Priya Nair and Tom Fischer discussing?',
@@ -466,6 +488,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'form',
     passageText:
       'MEMBERSHIP RENEWAL — INSTRUCTIONS\n\nYour annual membership with the Downtown Fitness Club expires at the end of this month. To continue enjoying your current benefits, including unlimited class access and locker rental, please complete the renewal section below and return it to the front desk by the 25th. Members who renew before the deadline will keep their current rate. Renewals submitted after the deadline will be charged the new rate that takes effect next month.',
+    passageTranslation:
+      '会員更新 — 記入案内\n\nDowntown Fitness Clubでの年間会員資格は今月末に期限を迎えます。クラス無制限利用やロッカー利用などの現在の特典を継続してご利用いただくには、以下の更新欄にご記入のうえ、25日までに受付までご提出ください。期日前に更新した会員は、現在の料金を維持できます。期日後に提出された更新には、来月から適用される新料金が適用されます。',
     subQuestions: [
       {
         question: 'What is the purpose of this form?',
@@ -501,6 +525,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'advertisement',
     passageText:
       "Limited-Time Offer: Save on CloudDesk Software\n\nUpgrade your team's productivity with CloudDesk, the project management software trusted by thousands of businesses. For a limited time, new subscribers can save thirty percent on their first year when signing up for an annual plan. Monthly plans are also available but are not included in this discount. All plans include unlimited projects, file storage, and customer support. Sign up before the end of the month to lock in this rate for a full year.",
+    passageTranslation:
+      '期間限定オファー: CloudDeskソフトウェアをお得に\n\nCloudDeskで貴チームの生産性を向上させましょう。数千の企業に信頼されているプロジェクト管理ソフトウェアです。期間限定で、年間プランにご登録いただいた新規契約者様は初年度30%オフになります。月額プランもご利用いただけますが、この割引の対象外です。すべてのプランには無制限のプロジェクト数、ファイルストレージ、カスタマーサポートが含まれます。この料金を1年間確定するには、今月末までにご登録ください。',
     subQuestions: [
       {
         question: 'What is being advertised?',
@@ -548,6 +574,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       'Subject: Introducing Our New Chief Financial Officer\n\nDear Colleagues,\n\nI am pleased to announce that Rina Kobayashi will join our headquarters team as Chief Financial Officer starting next month. Rina previously served as finance director at a regional branch of a national logistics company, where she led a successful cost-reduction program. In her new role, she will oversee the finance and accounting departments and report directly to the CEO. Please join me in welcoming Rina when she begins her new position. A welcome reception will be held in the main office on her first day.',
+    passageTranslation:
+      '件名: 新しい最高財務責任者のご紹介\n\n同僚各位\n\nRina Kobayashiさんが来月より最高財務責任者(CFO)として本社チームに加わることをお知らせいたします。Rinaさんは以前、大手物流会社の地方支店で財務ディレクターを務め、成功したコスト削減プログラムを主導しました。新しい職務では、財務・会計部門を統括し、CEOに直接報告します。Rinaさんが着任した際には、ぜひ皆さんで歓迎してください。初日には本社で歓迎会を開催します。',
     subQuestions: [
       {
         question: 'What is the main purpose of the email?',
@@ -595,6 +623,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'NOTICE: Parking Garage Closure\n\nThe main parking garage will be closed from Monday, March 3, through Friday, March 7, for scheduled maintenance and a structural inspection. During this period, employees should use the overflow lot on Elm Street, located about a five-minute walk from the building. A shuttle will run every fifteen minutes between the overflow lot and the main entrance from 7 a.m. to 7 p.m. Visitors should be directed to the overflow lot as well, and reception staff will provide shuttle information at check-in.',
+    passageTranslation:
+      '案内: 駐車場閉鎖のお知らせ\n\nメイン駐車場は、定期メンテナンスと構造検査のため、3月3日月曜日から3月7日金曜日まで閉鎖します。この期間中、従業員は建物から徒歩約5分のElm Streetのオーバーフロー駐車場をご利用ください。オーバーフロー駐車場と正面入口の間を、午前7時から午後7時まで15分おきにシャトルバスが運行します。来訪者もオーバーフロー駐車場へご案内しますので、受付スタッフがチェックイン時にシャトル情報をお伝えします。',
     subQuestions: [
       {
         question: 'Why is the parking garage being closed?',
@@ -642,6 +672,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'article',
     passageText:
       'Annual Report Highlights Strong Growth\n\nParkway Consulting released its annual report this week, showing total revenue grew twelve percent compared to the previous year, exceeding earlier projections. The report attributes much of the growth to a new division focused on digital strategy consulting, which was launched eighteen months ago and now accounts for nearly a quarter of total revenue. At the same time, overall expenditure rose only slightly, as the company avoided major new hiring outside the digital division. Company leaders said they expect growth to continue but at a more moderate pace next year, citing broader economic uncertainty. Investors reacted positively to the report, with company shares rising shortly after it was released.',
+    passageTranslation:
+      '年次報告書が力強い成長を示す\n\nParkwayコンサルティングは今週、年次報告書を発表し、総収益が前年比12%増となり、当初の予測を上回ったことを示しました。この成長の多くは、18か月前に立ち上げられ現在は総収益の4分の1近くを占めるデジタル戦略コンサルティングの新部門によるものだとしています。同時に、デジタル部門以外での大規模な新規採用を控えたことで、全体の支出はわずかな増加に留まりました。経営陣は、広範な経済の不確実性を理由に、来年も成長は続くものの、より緩やかなペースになると予想していると述べました。投資家はこの報告書に好意的な反応を示し、発表直後に株価が上昇しました。',
     subQuestions: [
       {
         question: 'What is mainly being reported in the article?',
@@ -697,6 +729,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Yusuf Demir [9:05 a.m.]\nHow's the client presentation coming along for Friday?\n\nBecca Lin [9:07 a.m.]\nMostly done, just need to add the updated pricing slide. Can you send me the final numbers?\n\nYusuf Demir [9:10 a.m.]\nSending them now. Let me know if you want me to look over the slides before Friday.\n\nBecca Lin [9:11 a.m.]\nThat would help — could you check it tomorrow afternoon?",
+    passageTranslation:
+      'Yusuf Demir [午前9:05]\n金曜のクライアントプレゼンの準備はどう？\n\nBecca Lin [午前9:07]\nだいたい終わったけど、最新の価格スライドを追加する必要があるの。最終的な数字を送ってもらえる？\n\nYusuf Demir [午前9:10]\n今送るよ。金曜前にスライドを確認してほしければ言ってね。\n\nBecca Lin [午前9:11]\nそれは助かる — 明日の午後に確認してもらえる？',
     subQuestions: [
       {
         question: 'What is Becca Lin currently working on?',
@@ -732,6 +766,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'form',
     passageText:
       "EXPENSE REIMBURSEMENT FORM — INSTRUCTIONS\n\nUse this form to request reimbursement for business-related expenses incurred while traveling or entertaining clients. All expenses must be itemized, and receipts must be attached for any single expense over ten dollars. Meals with clients require the client's name and company to be listed in the notes section. Forms without complete receipts will be returned to the employee for correction before processing. Completed forms should be submitted to the accounting department within fourteen days of the expense date.",
+    passageTranslation:
+      '経費精算フォーム — 記入案内\n\nこのフォームは、出張中や顧客接待時に発生した業務関連費用の精算を申請するために使用します。すべての費用は項目別に記載し、1件10ドルを超える費用にはレシートを添付してください。顧客との食事については、備考欄に顧客名と所属企業名を記載する必要があります。レシートが不完全なフォームは、処理前に修正のため従業員へ返却されます。記入済みフォームは、費用発生日から14日以内に経理部へ提出してください。',
     subQuestions: [
       {
         question: 'What is required for expenses over ten dollars?',
@@ -779,6 +815,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'advertisement',
     passageText:
       "Early-Bird Registration Now Open\n\nRegister for the Northeast Business Conference before July 15 and save fifteen percent off the standard registration fee. This year's conference features keynote speakers from several major industries and more than thirty breakout sessions. Group discounts are available for companies registering five or more attendees. Space is limited, so early registration is recommended.",
+    passageTranslation:
+      '早期登録受付中\n\n7月15日までにNortheast Business Conferenceへご登録いただくと、通常登録料から15%割引になります。今年の会議では、複数の主要業界からの基調講演者と30以上の分科会セッションを予定しています。5名以上でご登録の企業には団体割引が適用されます。席数に限りがあるため、早めのご登録をお勧めします。',
     subQuestions: [
       {
         question: 'What is the benefit of registering before July 15?',
@@ -814,6 +852,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       'Subject: Update on Shipment Tracking Number 5521-A\n\nDear Ms. Alonso,\n\nWe are writing to update you on the status of shipment 5521-A. Due to a change in freight carriers at our logistics partner, the shipment was transferred to a new carrier on Tuesday, which added an unexpected day to the delivery timeline. The shipment is now expected to arrive at your facility on Friday instead of Thursday as originally planned. Tracking information has been updated on our website and should reflect the new carrier within a few hours. We understand this delay may affect your schedule, and we are happy to discuss options such as expedited handling for your next order at no additional cost. Please let us know if you have any questions in the meantime.\n\nSincerely,\nLogistics Support Team',
+    passageTranslation:
+      '件名: 追跡番号5521-Aの出荷状況について\n\nAlonso様\n\n出荷5521-Aの状況についてご連絡いたします。物流パートナー先での配送業者変更により、火曜日に新しい配送業者へ荷物が引き継がれ、配送予定に想定外の1日が追加されました。当初予定の木曜日ではなく、金曜日に貴施設へ到着する見込みです。追跡情報は当社ウェブサイトで更新済みで、数時間以内に新しい配送業者の情報が反映される予定です。この遅延が貴社のスケジュールに影響することを理解しており、次回のご注文について追加費用なしでの優先配送などのご相談も承ります。ご質問がございましたらお知らせください。\n\n敬具\n物流サポートチーム',
     subQuestions: [
       {
         question: 'Why is the email being sent?',
@@ -869,6 +909,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'NOTICE: Cafeteria Renovation Schedule\n\nThe employee cafeteria will be closed for renovation from June 16 to June 27. During this time, a limited catering service will be set up in the first-floor lobby, offering sandwiches, salads, and beverages from 11:30 a.m. to 1:30 p.m. each weekday. The cafeteria is expected to reopen on June 30 with new seating and an expanded menu.',
+    passageTranslation:
+      '案内: カフェテリア改装スケジュール\n\n従業員用カフェテリアは、改装のため6月16日から6月27日まで休業します。この期間中、1階ロビーに簡易ケータリングサービスを設置し、平日午前11時30分から午後1時30分までサンドイッチ・サラダ・飲料を提供します。カフェテリアは6月30日に、新しい座席と拡充されたメニューで再開する予定です。',
     subQuestions: [
       {
         question: 'Why will the cafeteria be closed?',
@@ -904,6 +946,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'article',
     passageText:
       "New Branch Manager Brings Retail Experience\n\nSarita Menon has been named the new branch manager of Coastal Bank's downtown location, replacing a manager who retired earlier this year. Menon previously spent eight years at a national retail chain, where she coordinated store operations across multiple locations. She said her retail background taught her the importance of customer service, which she plans to emphasize in her new role. Menon's first project will be extending the branch's hours on weekends, a change she says was frequently requested by customers. She will officially begin the position on the first of next month.",
+    passageTranslation:
+      '新しい支店長が小売業での経験を活かす\n\nSarita Menonさんが、今年初めに退職した支店長の後任として、Coastal Bankの都心支店の新しい支店長に就任しました。Menonさんは以前、全国規模の小売チェーンで8年間勤務し、複数拠点の店舗運営を統括していました。彼女は、小売業での経験から顧客サービスの重要性を学んだと述べ、これを新しい職務でも重視していく方針です。Menonさんの最初のプロジェクトは、顧客から頻繁に要望されていた週末の営業時間拡大です。彼女は来月1日付で正式に着任します。',
     subQuestions: [
       {
         question: 'What is the article mainly about?',
@@ -951,6 +995,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Owen Baxter [1:20 p.m.]\nThe printer on the third floor is jammed again and won't print anything.\n\nMei Zhang [1:22 p.m.]\nI tried to troubleshoot it earlier but couldn't find the paper causing the jam. Might be a bigger malfunction.\n\nOwen Baxter [1:23 p.m.]\nOkay, I'll put in a request for a technician to come take a look.\n\nMei Zhang [1:24 p.m.]\nGood idea. In the meantime, I'll let the team know to use the printer on the fourth floor.",
+    passageTranslation:
+      'Owen Baxter [午後1:20]\n3階のプリンターがまた紙詰まりして、何も印刷できない。\n\nMei Zhang [午後1:22]\n私も先ほど直そうとしたけど、詰まりの原因の紙が見つからなかった。もっと大きな故障かもしれない。\n\nOwen Baxter [午後1:23]\nわかった、技術者に見てもらうよう依頼するよ。\n\nMei Zhang [午後1:24]\nいい考え。それまでの間、チームには4階のプリンターを使うよう伝えておくね。',
     subQuestions: [
       {
         question: 'What problem are Owen Baxter and Mei Zhang discussing?',
@@ -994,6 +1040,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'form',
     passageText:
       'VACATION REQUEST FORM — POLICY NOTICE\n\nAll vacation requests must be submitted at least two weeks in advance and approved by your supervisor before time off is confirmed. Requests submitted with less notice will only be approved in exceptional circumstances. Employees should not make non-refundable travel arrangements until they receive written approval. Vacation balances can be checked at any time through the employee portal.',
+    passageTranslation:
+      '休暇申請フォーム — 規定のお知らせ\n\nすべての休暇申請は、休暇取得の少なくとも2週間前までに提出し、上司の承認を得なければ確定しません。それより短い通知で提出された申請は、例外的な事情がある場合のみ承認されます。従業員は、書面での承認を受け取るまで、変更不可の旅行の予約をしないでください。休暇残日数は、いつでも従業員用ポータルから確認できます。',
     subQuestions: [
       {
         question: 'When must vacation requests be submitted?',
@@ -1029,6 +1077,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'advertisement',
     passageText:
       'Job Fair — Meet Local Employers\n\nJoin us on Saturday, April 12, at the Riverside Convention Center for a job fair featuring more than thirty local employers looking to recruit new staff. Candidates are encouraged to bring several copies of their resume and dress professionally, as some employers may conduct brief interviews on the spot. Free resume review sessions will be offered throughout the day by career counselors. Admission is free, and the event runs from 10 a.m. to 3 p.m.',
+    passageTranslation:
+      '就職フェア — 地元企業と出会う\n\n4月12日土曜日、Riverside Convention Centerで開催される就職フェアにご参加ください。新規スタッフの採用を検討する30社を超える地元企業が出展します。応募者は履歴書を数部持参し、服装を整えてお越しください。一部の企業はその場で簡単な面接を行う場合があります。キャリアカウンセラーによる無料の履歴書添削も終日実施されます。入場は無料で、開催時間は午前10時から午後3時までです。',
     subQuestions: [
       {
         question: 'What is the purpose of the event?',
@@ -1076,6 +1126,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       'Subject: Notice of Price Adjustment — Effective Next Quarter\n\nDear Valued Partner,\n\nAfter reviewing our costs, we must inform you that prices for several product lines will increase by an average of six percent starting next quarter. This adjustment reflects rising material costs and is intended to keep our markup at a sustainable level rather than to expand profit margins. To help offset the impact, we plan to consolidate several smaller shipments into fewer, larger deliveries, which should reduce your overall shipping costs. Customers who sign a twelve-month supply agreement before the increase takes effect will be able to lock in current pricing for that period. Please contact your account representative if you would like to discuss this option.\n\nSincerely,\nSales Department',
+    passageTranslation:
+      '件名: 価格改定のお知らせ — 来四半期より適用\n\n取引先各位\n\nコストを見直した結果、複数の製品ラインの価格を来四半期から平均6%引き上げることをお知らせいたします。この改定は原材料費の上昇を反映したものであり、利益率を拡大するためではなく、マークアップを持続可能な水準に保つことを目的としています。この影響を軽減するため、小口の出荷を統合してより大口・少数の配送にまとめ、貴社の全体的な配送コストを削減する予定です。値上げ実施前に12か月間の供給契約を締結されたお客様は、その期間について現行価格を維持できます。この選択肢についてご相談がございましたら、担当者へご連絡ください。\n\n敬具\n営業部',
     subQuestions: [
       {
         question: 'Why is the email being sent?',
@@ -1135,6 +1187,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'NOTICE: Elevator Inspection Results\n\nThe annual elevator inspection was completed last week, and both elevators in the East Building passed all safety requirements. Routine maintenance will still take place on the first Monday of each month, during which one elevator may be temporarily out of service. The inspection certificate is posted inside each elevator car as required by local regulations.',
+    passageTranslation:
+      '案内: エレベーター検査結果について\n\n年次エレベーター検査が先週完了し、東棟の両エレベーターとも安全基準をすべて満たしていることが確認されました。定期メンテナンスは引き続き毎月第1月曜日に実施され、その間1台のエレベーターが一時的に利用できなくなる場合があります。検査証明書は、地域の規制に従い各エレベーター内に掲示されています。',
     subQuestions: [
       {
         question: 'What is the notice mainly about?',
@@ -1170,6 +1224,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'article',
     passageText:
       "New Product Line Debuts to Positive Response\n\nHomeware brand Everclare launched its new line of kitchen storage containers at a company event last Friday, drawing a larger crowd than expected. Attendees were given free samples to try at home and asked to submit feedback through an online form within two weeks. Early feedback has focused on the containers' stackable design, which many attendees said would help save space in small kitchens. The company said it plans to use this feedback to adjust the product line before a wider retail launch planned for early next year.",
+    passageTranslation:
+      '新製品ラインが好意的な反応でデビュー\n\n住宅用品ブランドEverclareは先週金曜日、会社主催のイベントで新しいキッチン保存容器シリーズを発表し、想定を上回る来場者を集めました。参加者には自宅で試せる無料サンプルが配布され、2週間以内にオンラインフォームでフィードバックを提出するよう依頼されました。初期のフィードバックは容器の積み重ね可能な設計に集中しており、多くの参加者が小さなキッチンでの省スペースに役立つと述べています。会社は、来年初めに予定されている広範な店頭発売の前に、このフィードバックを製品ラインの調整に活用する計画だと述べています。',
     subQuestions: [
       {
         question: 'What is the article mainly about?',
@@ -1217,6 +1273,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Nadia Petrov [11:40 a.m.]\nThe catering order for today's lunch meeting came with the wrong sandwiches — we ordered vegetarian and got all turkey.\n\nJerome Wallace [11:42 a.m.]\nOh no. I'll call the caterer and ask them to send a correction right away.\n\nNadia Petrov [11:43 a.m.]\nThanks. The meeting starts at noon, so we don't have much time.\n\nJerome Wallace [11:44 a.m.]\nUnderstood, I'll ask them to rush it and let you know what they say.",
+    passageTranslation:
+      'Nadia Petrov [午前11:40]\n今日のランチミーティング用のケータリング注文、サンドイッチが間違っていたの — ベジタリアンを注文したのに全部ターキーが来た。\n\nJerome Wallace [午前11:42]\nそれは大変。今すぐケータリング業者に電話して、すぐに訂正を送ってもらうよう頼むよ。\n\nNadia Petrov [午前11:43]\nありがとう。会議は正午に始まるから、あまり時間がないの。\n\nJerome Wallace [午前11:44]\nわかった、急いでもらうよう頼んで、向こうの回答をまた伝えるね。',
     subQuestions: [
       {
         question: 'What problem is being discussed?',
@@ -1252,6 +1310,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'form',
     passageText:
       'TRAINING SESSION SIGN-UP FORM — INSTRUCTIONS\n\nUse this form to register for one of the upcoming software training sessions offered by the IT department. Sessions are limited to fifteen participants each, so early sign-up is recommended. Each session runs for two hours and covers the same material, so employees only need to attend one session. A laptop will be provided for the session, but participants may bring their own if preferred. Confirmation of your registered session will be sent by email within two business days.',
+    passageTranslation:
+      '研修セッション登録フォーム — 記入案内\n\nこのフォームは、IT部門が提供する今後のソフトウェア研修セッションのいずれかに登録するために使用します。各セッションの参加人数は15名までのため、早めの登録をお勧めします。各セッションは2時間で、内容は同一のため、いずれか1回のみ参加すれば十分です。セッション用のノートPCが用意されますが、ご希望であれば自分のものを持参いただいても構いません。登録セッションの確認は、2営業日以内にメールで送付されます。',
     subQuestions: [
       {
         question: 'What is this form used for?',
@@ -1299,6 +1359,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'advertisement',
     passageText:
       'Office Space Available for Lease\n\nA newly renovated office suite is now available for lease in the downtown business district. The premises include three private offices, an open work area, and a shared conference room, totaling approximately 2,000 square feet. The lease term is flexible, with options ranging from one to five years. Interested tenants should contact the property manager to schedule a viewing. Utilities and building maintenance are included in the monthly rate.',
+    passageTranslation:
+      '賃貸オフィススペースのご案内\n\n都心の商業地区に、改装済みの新しいオフィススイートが賃貸で利用可能になりました。個室オフィス3室、オープンワークスペース、共有会議室を含み、総面積は約2,000平方フィートです。契約期間は1年から5年まで柔軟に選択できます。ご興味のあるテナントの方は、物件管理者に連絡し内覧を予約してください。ユーティリティおよび建物の維持管理費は月額料金に含まれます。',
     subQuestions: [
       {
         question: 'What is being advertised?',
@@ -1346,6 +1408,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       'Subject: Request for Proposal — Office Renovation Project\n\nDear Mr. Ibrahim,\n\nWe are seeking a contractor for a renovation project at our downtown office and would like to invite your company to submit a proposal. The project includes updating the second-floor conference rooms and replacing outdated lighting throughout the building. Please include a detailed cost estimate, a proposed timeline, and references from at least two similar projects completed within the past three years. Proposals must be submitted by August 15, and we plan to select a contractor by the end of the month. Work would need to begin no later than mid-September to avoid conflicts with our busiest season. Please let us know if you have any questions about the scope of work.\n\nBest regards,\nFacilities Management',
+    passageTranslation:
+      '件名: 提案依頼 — オフィス改装プロジェクト\n\nIbrahim様\n\n当社の都心オフィスの改装プロジェクトについて施工業者を探しており、貴社にご提案の提出をお願いしたく存じます。このプロジェクトには、2階会議室の更新と建物全体の古い照明の交換が含まれます。詳細な費用見積り、想定スケジュール、過去3年以内に完了した類似案件2件以上の実績をご提出ください。提案書の提出期限は8月15日で、今月末までに施工業者を選定する予定です。当社の最も繁忙な時期との重複を避けるため、工事は9月中旬までに開始する必要があります。作業範囲についてご質問があればお知らせください。\n\n敬具\n施設管理部',
     subQuestions: [
       {
         question: 'What is the purpose of the email?',
@@ -1405,6 +1469,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'NOTICE: Security Badge Policy Reminder\n\nAll employees are reminded to wear their security badge visibly while inside the building, in compliance with company policy. Badges must be authorized by your department before they can be used to access restricted floors. Employees who lose their badge should report it to the security desk immediately so it can be deactivated. Temporary badges are available for same-day use while a replacement is processed.',
+    passageTranslation:
+      '案内: セキュリティバッジ規定に関するリマインダー\n\n会社の規定に従い、全従業員は建物内でセキュリティバッジを常に見えるように着用するようお願いいたします。バッジは制限フロアへの入室に使用する前に、所属部署の承認が必要です。バッジを紛失した従業員は、直ちに警備デスクに報告し、無効化してもらってください。交換手続き中は、当日利用可能な仮バッジをご用意しています。',
     subQuestions: [
       {
         question: 'What are employees reminded to do?',
@@ -1451,6 +1517,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'article',
     passageText:
       "Tech Firm to Relocate Headquarters\n\nBrightline Technologies announced this week that it will relocate its headquarters from the suburbs to a larger building in the downtown core, citing the need for better infrastructure to support its growing workforce. The company's current lease expires at the end of the year, which company leaders said made this an ideal time to move rather than renew in a building that no longer meets its needs. The new headquarters will include expanded server rooms and additional meeting space, both of which have been in short supply at the current location. The move is expected to be completed over a single weekend to minimize disruption, with most employees working remotely during the transition. Some employees have expressed concern about longer commute times, though the company says the new location is closer to major public transit lines.",
+    passageTranslation:
+      'テック企業が本社を移転へ\n\nBrightline Technologiesは今週、成長する従業員数を支えるより良い基盤設備を確保するため、郊外から都心部の大きなビルへ本社を移転すると発表しました。同社の現在のリース契約は年末に期限を迎え、経営陣はニーズに合わなくなった建物を更新するよりも移転する好機だと判断したと述べています。新本社には、現在の拠点で不足していたサーバー室と会議スペースが拡充されます。移転による混乱を最小限にするため、作業は週末の1回で完了する予定で、移行期間中は大半の従業員がリモート勤務となります。一部の従業員は通勤時間が長くなることへの懸念を示していますが、会社は新拠点が主要な公共交通路線に近いと説明しています。',
     subQuestions: [
       {
         question: 'Why is the company relocating its headquarters?',
@@ -1510,6 +1578,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Elena Voss [4:05 p.m.]\nHeads up, the webinar platform we booked is having technical issues today. Should we still go ahead tomorrow?\n\nCarlos Mendez [4:07 p.m.]\nProbably not worth the risk. Let's reschedule to Thursday and give the platform time to fix things.\n\nElena Voss [4:08 p.m.]\nAgreed. I'll email the registered attendees today to let them know.\n\nCarlos Mendez [4:09 p.m.]\nSounds good. I'll confirm the new time with the platform support team as well.",
+    passageTranslation:
+      'Elena Voss [午後4:05]\n伝えておくね、予約したウェビナープラットフォームが今日技術的な問題を起こしているの。明日はこのまま進める？\n\nCarlos Mendez [午後4:07]\nリスクを取る価値はなさそう。木曜日に延期して、プラットフォーム側に修正の時間を与えよう。\n\nElena Voss [午後4:08]\n同意。今日中に登録済みの参加者へメールで知らせておく。\n\nCarlos Mendez [午後4:09]\nよかった。プラットフォームのサポートチームにも新しい時間を確認しておくよ。',
     subQuestions: [
       {
         question: 'What are Elena Voss and Carlos Mendez discussing?',
@@ -1557,6 +1627,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'form',
     passageText:
       'CUSTOMER SATISFACTION SURVEY — INSTRUCTIONS\n\nThank you for choosing Parkview Appliance Repair. Please take a few minutes to complete this satisfaction survey about your recent service visit. Your feedback helps us train our technicians and improve our scheduling process. The survey includes ten short questions and should take about five minutes to complete. All responses are kept confidential and are not shared with the technician who visited your home. Customers who complete the survey within one week of their service visit will receive a small discount on their next repair.',
+    passageTranslation:
+      '顧客満足度調査 — 記入案内\n\nParkview Appliance Repairをご利用いただきありがとうございます。今回のサービス訪問について、この満足度調査に少しお時間をいただければ幸いです。皆様のご意見は、技術者の研修やスケジュール調整の改善に役立てられます。調査は10の短い質問から構成され、回答には約5分かかります。回答内容はすべて機密として扱われ、訪問した技術者本人には共有されません。サービス訪問から1週間以内に調査を完了したお客様には、次回の修理で使える小さな割引を差し上げます。',
     subQuestions: [
       {
         question: 'What is the purpose of the survey?',
@@ -1611,6 +1683,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'advertisement',
     passageText:
       'Now Hiring: Warehouse Associate\n\nParkline Distribution is looking for full-time warehouse associates to join our growing team. Responsibilities include receiving shipments, managing inventory records, and preparing orders for delivery. No previous warehouse experience is required, as full training will be provided during the first two weeks. Candidates must be able to lift up to fifty pounds and stand for extended periods. This position offers a starting wage above the local minimum along with health benefits after ninety days of employment.',
+    passageTranslation:
+      '求人募集: 倉庫スタッフ\n\nParkline Distributionでは、成長中のチームに加わっていただける正社員の倉庫スタッフを募集しています。業務内容は、荷物の受け入れ、在庫記録の管理、配送用の注文準備などです。倉庫勤務の経験は不要で、最初の2週間で十分な研修を提供します。応募者は50ポンドまでの持ち上げと長時間の立ち仕事に対応できることが必要です。この職種は地域の最低賃金を上回る初任給に加え、勤務90日後から健康保険の福利厚生が適用されます。',
     subQuestions: [
       {
         question: 'What is being advertised?',
@@ -1656,6 +1730,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       'Subject: Apology for Duplicate Billing\n\nDear Mr. Fontaine,\n\nWe recently discovered that your account was billed twice for invoice 7729 due to an error in our new billing system. We sincerely apologize for this mistake and any confusion it may have caused. Our accounting team has already reconciled your account, and the duplicate charge of $340 has been refunded to the card on file. You should see the refund reflected on your statement within three to five business days. We have also flagged this account to ensure no similar errors occur with future invoices. As a gesture of goodwill, we would like to offer a ten percent discount on your next order. Please let us know if the refund does not appear as expected.\n\nSincerely,\nBilling Department',
+    passageTranslation:
+      '件名: 二重課金についてのお詫び\n\nFontaine様\n\n新しい課金システムの不具合により、請求書7729番の代金がお客様に二重に課金されていたことが判明しました。このミスとそれによりご迷惑をおかけしましたことを心よりお詫び申し上げます。当社の経理チームは既にお客様のアカウントを確認し、二重に課金された340ドルを登録済みのカードへ返金いたしました。この返金は3〜5営業日以内にご利用明細に反映される見込みです。また、今後同様のミスが発生しないよう、このアカウントに注意フラグを設定いたしました。誠意のしるしとして、次回のご注文に使える10%の割引もご用意しております。返金が予定通り反映されない場合はお知らせください。\n\n敬具\n請求部',
     subQuestions: [
       {
         question: 'Why was the email sent?',
@@ -1715,6 +1791,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'NOTICE: Scheduled Network Maintenance\n\nThe company network will undergo scheduled maintenance this Saturday from 1 a.m. to 5 a.m. During this window, remote access to shared files and internal systems will be unavailable. Technicians will be monitoring the process throughout the night and expect no disruption to services once maintenance is complete. Employees do not need to take any action, but anyone working remotely during this time should plan accordingly.',
+    passageTranslation:
+      '案内: 定期ネットワークメンテナンスについて\n\n会社のネットワークは、今週土曜日午前1時から午前5時まで定期メンテナンスを実施します。この間、共有ファイルおよび社内システムへのリモートアクセスはご利用いただけません。技術者が夜通し作業状況を監視し、メンテナンス完了後はサービスへの支障は生じない見込みです。従業員側での特別な対応は不要ですが、この時間帯にリモートで作業する方は、あらかじめご計画ください。',
     subQuestions: [
       {
         question: 'What will happen this Saturday?',
@@ -1762,6 +1840,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'article',
     passageText:
       "Family-Owned Bakery Celebrates Twenty Years\n\nMillhouse Bakery marked a significant milestone this month, celebrating twenty years of business in the same downtown location. The bakery, still run by its founding family, held a weekend celebration featuring free samples and a display of photographs from its early years. Longtime customers were invited to share testimonials about their favorite memories, several of which will be featured on the bakery's newly redesigned website. The owner said the bakery's loyalty program, launched five years ago, has played a major role in maintaining a steady customer base despite competition from larger chains. Looking ahead, the family plans to open a second, smaller location within the next two years.",
+    passageTranslation:
+      '家族経営のベーカリーが創業20周年を祝う\n\nMillhouse Bakeryは今月、同じ都心の場所で20年間営業を続けてきたという大きな節目を迎えました。今も創業家が経営するこのベーカリーは、無料サンプルの提供と創業当時の写真展示を含む週末の祝賀イベントを開催しました。長年の顧客は思い出についての感想を寄せるよう招かれ、その一部は新しくリニューアルされたベーカリーのウェブサイトに掲載される予定です。経営者は、5年前に開始したロイヤルティプログラムが、大手チェーンとの競争の中で安定した顧客基盤を維持する大きな要因になったと述べています。今後の展望として、家族は今後2年以内に2店目となる小規模な店舗を開設する計画です。',
     subQuestions: [
       {
         question: 'What is the article mainly about?',
@@ -1821,6 +1901,8 @@ export const PART7_SINGLE_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Kwame Asante [8:15 a.m.]\nAre you driving to the conference next week, or should we coordinate a carpool?\n\nLucia Ferreira [8:17 a.m.]\nI was planning to drive. Happy to pick you up if that helps.\n\nKwame Asante [8:18 a.m.]\nThat would be great, thanks. Priya mentioned she might need a ride too.\n\nLucia Ferreira [8:19 a.m.]\nNo problem, my car fits three easily. I'll send over my address and a pickup time based on the conference itinerary.",
+    passageTranslation:
+      'Kwame Asante [午前8:15]\n来週の会議は車で行く？それとも相乗りを調整したほうがいい？\n\nLucia Ferreira [午前8:17]\n車で行く予定だったよ。助かるなら迎えに行くよ。\n\nKwame Asante [午前8:18]\nそれは助かる、ありがとう。Priyaも乗せてほしいかもって言ってたよ。\n\nLucia Ferreira [午前8:19]\n問題ないよ、私の車は3人乗っても余裕がある。会議の日程に合わせて、私の住所と迎えの時間を送るね。',
     subQuestions: [
       {
         question: 'What are Kwame Asante and Lucia Ferreira discussing?',
