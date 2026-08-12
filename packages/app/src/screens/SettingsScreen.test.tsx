@@ -258,6 +258,108 @@ describe('SettingsScreen: 永続化', () => {
   })
 })
 
+// T-296（K-22）: persisted()拒否時の告知もバックアップ督促も無かった
+// （非インストールのSafariタブ等では7日間開かないとIndexedDBごと退避されうる）
+describe('SettingsScreen: 永続化拒否時のエクスポート導線とエクスポート督促（T-296・K-22）', () => {
+  afterEach(() => {
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
+  })
+
+  it('persisted=falseのとき、注意表示に加えてエクスポート導線（ボタン）が出る', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { persisted: async () => false, estimate: async () => null },
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText('永続化: 無効')).toBeTruthy()
+    expect(screen.getByText('今すぐエクスポート')).toBeTruthy()
+  })
+
+  it('一度もエクスポートしていない状態で解答が1件でもあると督促メッセージが出る', async () => {
+    const db = newDb()
+    await db.attempts.add({
+      id: 'a-1',
+      questionId: 'q-1',
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 1000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: Date.now(),
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText(/エクスポートしていません/)).toBeTruthy()
+  })
+
+  it('解答が0件（診断直後）なら督促しない', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.queryByText(/エクスポートしていません/)).toBeNull()
+  })
+
+  it('督促表示中に「今すぐエクスポート」を押すと督促が消える（lastExportedAtが記録される）', async () => {
+    const db = newDb()
+    await db.attempts.add({
+      id: 'a-1',
+      questionId: 'q-1',
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 1000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: Date.now(),
+    })
+    const createObjectURL = vi.fn((blob: Blob) => `blob:mock:${blob.size}`)
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.getByText(/エクスポートしていません/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('今すぐエクスポート'))
+    await screen.findByText('エクスポートしました。')
+
+    expect(screen.queryByText(/エクスポートしていません/)).toBeNull()
+    expect(await db.settings.get('lastExportedAt')).toBeDefined()
+  })
+})
+
+// T-297（K-23）: アンマウント時flush失敗の退避は、次回起動時に気づける通知が無ければ
+// 記録するだけで実際には誰にも見えない（画面ごと消えた後の話なので、その場のエラー表示は
+// 効かない）。設定画面で通知が出るか・確認で消えるかを検証する
+describe('SettingsScreen: アンマウント時flush失敗の通知（T-297・K-23）', () => {
+  it('退避が無ければ通知は出ない', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.queryByText(/保存できなかった解答/)).toBeNull()
+  })
+
+  it('退避があれば通知が出て、確認すると消える（settingsから削除される）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'pendingCommitFailedAt', value: Date.now() })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText(/保存できなかった解答/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('確認した'))
+
+    await vi.waitFor(() => expect(screen.queryByText(/保存できなかった解答/)).toBeNull())
+    expect(await db.settings.get('pendingCommitFailedAt')).toBeUndefined()
+  })
+})
+
 describe('SettingsScreen: エクスポート/インポート', () => {
   // T-279（K-2）: バックアップに共有APIの認証情報（deviceToken）が含まれないことをUIで明示する
   it('エクスポート/インポートの説明に、学習データを含み共有APIの認証情報を含まない旨が表示される', async () => {

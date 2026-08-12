@@ -100,7 +100,16 @@ function isValidSnapshot(value: unknown): value is SessionSnapshot {
   )
 }
 
-/** セッションを開始し、スナップショットを保存して返す（既存の進行中セッションは上書き） */
+/**
+ * セッションを開始し、スナップショットを保存して返す（既存の進行中セッションは上書き）。
+ *
+ * ブロックはしない——HomeScreenの「新しく始める」（discardConfirm）は同一タブ内で
+ * 未完了セッションを確認の上で上書きする正規の操作で、ここを通る。
+ * T-193（completeSessionのsessionId照合）とここが非対称だった（K-24）: 別タブが
+ * 未完了のまま進行中に新セッションを開始されると、旧タブの次の解答は
+ * StaleSnapshotErrorで失われる。ここでは検出（console.warn）だけ行い、
+ * 実際の通知は失敗した解答側（recoverFromSaveError。T-298）に委ねる
+ */
 export async function startSession(
   db: BebRaidDatabase,
   input: { items: SessionItem[]; startedAt?: number },
@@ -117,6 +126,16 @@ export async function startSession(
     subAnswers: [],
     startedAt: now,
     updatedAt: now,
+  }
+  const existing = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as SessionSnapshot | undefined
+  if (
+    existing &&
+    existing.sessionId !== snapshot.sessionId &&
+    existing.answeredCount < existing.items.length
+  ) {
+    console.warn(
+      `[session] 進行中セッション(${existing.sessionId})が完了前に上書きされる（新sessionId=${snapshot.sessionId}）`,
+    )
   }
   await db.settings.put({ key: ACTIVE_SESSION_KEY, value: snapshot })
   return snapshot

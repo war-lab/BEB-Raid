@@ -156,7 +156,12 @@ export function DashboardScreen({ db, questionPool }: Props) {
         setReadingPace(computeReadingPace(attempts, lookup))
       }
     }
-    void load()
+    // T-301（K-29）フォローアップ: load()にcatchが無く、アンマウント後（DBクローズ・削除等）に
+    // 内部のDB操作が失敗すると未処理rejectionになっていた（従来はcountLearningDaysが読み取り
+    // 1回だけで完了が速く表面化しにくかったが、キャッシュ化で読み書きの往復が増えて顕在化した）
+    void load().catch((err: unknown) => {
+      console.error('[DashboardScreen] データ読み込みに失敗', err)
+    })
     return () => {
       cancelled = true
     }

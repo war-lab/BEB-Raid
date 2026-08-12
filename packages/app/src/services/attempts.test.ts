@@ -53,6 +53,33 @@ describe('buildAttempt: 時間切れの別カウント', () => {
   })
 })
 
+// T-300（K-28）: answeredAtにNaNが入るとIndexedDBの範囲インデックス（answeredAt）から
+// 実質的に見えなくなり、レコードは物理的に存在するのに日次集計・ストリーク等の
+// 範囲クエリから無音で消える。呼び出し側の計算ミス（0除算・未初期化の引き算等）で
+// NaNが渡っても、保存前にDate.now()へフォールバックする
+describe('buildAttempt: answeredAtが非有限値の場合のフォールバック（T-300・K-28）', () => {
+  const base = { questionId: 'q-1', mode: 'solo' as const, isCorrect: true, responseMs: 1000 }
+
+  it('answeredAtがNaNならDate.now()相当にフォールバックする', () => {
+    const before = Date.now()
+    const a = buildAttempt({ ...base, answeredAt: Number.NaN })
+    const after = Date.now()
+    expect(Number.isFinite(a.answeredAt)).toBe(true)
+    expect(a.answeredAt).toBeGreaterThanOrEqual(before)
+    expect(a.answeredAt).toBeLessThanOrEqual(after)
+  })
+
+  it('answeredAtがInfinityでもフォールバックする', () => {
+    const a = buildAttempt({ ...base, answeredAt: Number.POSITIVE_INFINITY })
+    expect(Number.isFinite(a.answeredAt)).toBe(true)
+  })
+
+  it('answeredAtが有効な数値ならその値をそのまま使う', () => {
+    const a = buildAttempt({ ...base, answeredAt: 1_700_000_000_000 })
+    expect(a.answeredAt).toBe(1_700_000_000_000)
+  })
+})
+
 describe('recordAttempt: 即時保存', () => {
   it('保存後すぐに別のDBハンドル（リロード相当）から読める', async () => {
     const name = `attempts-test-reload-${++seq}`
