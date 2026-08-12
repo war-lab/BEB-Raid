@@ -42,30 +42,31 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A software installation problem',
           'An upcoming office move',
         ],
-        explanation: '会話全体は新しいノートPCの見積もり価格について話している。',
+        explanation:
+          '会話全体は新しいノートPCの見積もり価格について話している。他の選択肢（"An upcoming office move"／"A delayed job interview"／"A software installation problem"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは主に何について話していますか。',
       },
       {
-        question: 'What problem does B mention about the estimate?',
+        question: 'What problem does the man mention about the estimate?',
         correctText: 'It is higher than the budget',
         distractors: [
           'It arrived after the deadline',
           'It does not include installation',
           'It was sent to the wrong department',
         ],
-        explanation: 'Bは"the price is higher than we budgeted"と述べている。',
-        translation: 'Bは見積もりについてどんな問題を挙げていますか。',
+        explanation: '男性は"the price is higher than we budgeted"と述べている。',
+        translation: '男性は見積もりについてどんな問題を挙げていますか。',
       },
       {
-        question: 'What does B suggest doing next?',
+        question: 'What does the man suggest doing next?',
         correctText: 'Getting quotes from two more suppliers',
         distractors: [
           'Canceling the laptop purchase',
           'Approving the estimate immediately',
           'Asking for a discount from the same supplier',
         ],
-        explanation: 'Bは"we should ask two more suppliers before we decide"と提案している。',
-        translation: 'Bは次に何をすることを提案していますか。',
+        explanation: '男性は"we should ask two more suppliers before we decide"と提案している。',
+        translation: '男性は次に何をすることを提案していますか。',
       },
     ],
     difficulty: 3,
@@ -86,7 +87,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           "Complaints from last year's attendees",
           'A budget cut for the event',
         ],
-        explanation: '会話は会議への登録者数について話している。',
+        explanation:
+          '会話は会議への登録者数について話している。他の選択肢（"A schedule for a training workshop"／"Complaints from last year\'s attendees"／"A budget cut for the event"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは何について話していますか。',
       },
       {
@@ -98,19 +100,20 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'The numbers are exactly the same',
           'No one has registered yet',
         ],
-        explanation: 'Aは"That\'s more than last year already"と述べている。',
+        explanation:
+          '女性は"That\'s more than last year already"と述べている。他の選択肢（"Fewer people have registered"／"The numbers are exactly the same"／"No one has registered yet"）はこの会話・トークの中で述べられていない。',
         translation: '今年の登録者数は去年と比べてどうですか。',
       },
       {
-        question: 'What will B most likely do next?',
+        question: 'What will the man most likely do next?',
         correctText: 'Contact the venue about a larger hall',
         distractors: [
           'Cancel the conference',
           'Close registration early',
-          'Ask A to lead the conference',
+          'Ask the woman to lead the conference',
         ],
-        explanation: 'Bは"I\'ll check with the venue today"と述べている。',
-        translation: 'Bは次に何をする可能性が高いですか。',
+        explanation: '男性は"I\'ll check with the venue today"と述べている。',
+        translation: '男性は次に何をする可能性が高いですか。',
       },
     ],
     difficulty: 2,
@@ -131,14 +134,16 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Hiring a new building manager',
           'Selling an office building',
         ],
-        explanation: '会話は入居者の賃貸契約更新について話している。',
+        explanation:
+          '会話は入居者の賃貸契約更新について話している。他の選択肢（"Selling an office building"／"Repairing a broken elevator"／"Hiring a new building manager"）はこの会話・トークの中で述べられていない。',
         translation: '会話は主に何についてですか。',
       },
       {
         question: 'What does the tenant want in addition to renewing?',
         correctText: 'A small discount',
         distractors: ['A larger unit', 'A shorter lease term', 'A private parking space'],
-        explanation: 'Aは"they\'re asking about a small discount"と述べている。',
+        explanation:
+          'Aは"they\'re asking about a small discount"と述べている。他の選択肢（"A larger unit"／"A shorter lease term"／"A private parking space"）はこの会話・トークの中で述べられていない。',
         translation: 'その入居者は更新に加えて何を求めていますか。',
       },
       {
@@ -167,7 +172,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'The number of office locations',
           'The marketing budget',
         ],
-        explanation: 'Aが"our workforce grew by twelve percent"と述べている。',
+        explanation:
+          'Aが"our workforce grew by twelve percent"と述べている。他の選択肢（"The marketing budget"／"The company\'s annual revenue"／"The number of office locations"）はこの会話・トークの中で述べられていない。',
         translation: '何が12パーセント増加しましたか。',
       },
       {
@@ -203,7 +209,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         question: 'What department has an open position?',
         correctText: 'Accounting',
         distractors: ['Marketing', 'Human resources', 'Customer service'],
-        explanation: 'Aが"the vacancy in the accounting department"と述べている。',
+        explanation:
+          'Aが"the vacancy in the accounting department"と述べている。他の選択肢（"Customer service"／"Marketing"／"Human resources"）はこの会話・トークの中で述べられていない。',
         translation: 'どの部署に欠員がありますか。',
       },
       {
@@ -245,7 +252,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A client canceled an order',
           'The warehouse closed early',
         ],
-        explanation: 'Aは荷物が予定どおり発送されなかったと述べている。',
+        explanation:
+          '女性は荷物が予定どおり発送されなかったと述べている。他の選択肢（"A client canceled an order"／"The warehouse closed early"／"A courier lost a package"）はこの会話・トークの中で述べられていない。',
         translation: 'どんな問題について話していますか。',
       },
       {
@@ -256,11 +264,11 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'The client changed the delivery address',
           'The package was damaged',
         ],
-        explanation: 'Aは"the warehouse ran out of the right size box"と述べている。',
+        explanation: '女性は"the warehouse ran out of the right size box"と述べている。',
         translation: 'なぜその荷物は発送されなかったのですか。',
       },
       {
-        question: 'What does B want to do?',
+        question: 'What does the man want to do?',
         correctText: 'Send the right size box so it can still ship today',
         distractors: [
           'Cancel the shipment entirely',
@@ -268,8 +276,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Ask the client to pick it up',
         ],
         explanation:
-          'Bは"Can we get the right size box sent over so it can still go out today?"と述べている。',
-        translation: 'Bは何をしたいと考えていますか。',
+          '男性は"Can we get the right size box sent over so it can still go out today?"と述べている。',
+        translation: '男性は何をしたいと考えていますか。',
       },
     ],
     difficulty: 3,
@@ -290,7 +298,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A refund policy change',
           'A new premium feature',
         ],
-        explanation: '会話は年間契約更新の割引について話している。',
+        explanation:
+          '会話は年間契約更新の割引について話している。他の選択肢（"A price increase for new customers"／"A refund policy change"／"A new premium feature"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは何について話していますか。',
       },
       {
@@ -301,11 +310,12 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Customers must contact support first',
           'Customers must upgrade to the premium tier',
         ],
-        explanation: 'Bは"ten percent if customers renew before their plan expires"と述べている。',
+        explanation:
+          '男性は"ten percent if customers renew before their plan expires"と述べている。',
         translation: 'その割引にはどんな条件が付きますか。',
       },
       {
-        question: 'What will B do next?',
+        question: 'What will the man do next?',
         correctText: 'Confirm with the billing team and update the website',
         distractors: [
           'Cancel the discount program',
@@ -313,8 +323,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Raise the discount to twenty percent',
         ],
         explanation:
-          'Bは"let me confirm with the billing team and update the website today"と述べている。',
-        translation: 'Bは次に何をしますか。',
+          '男性は"let me confirm with the billing team and update the website today"と述べている。',
+        translation: '男性は次に何をしますか。',
       },
     ],
     difficulty: 3,
@@ -331,21 +341,24 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         question: 'What is the topic of this conversation?',
         correctText: "A new employee's probation period",
         distractors: ['A delayed job offer', 'A performance complaint', 'A training budget'],
-        explanation: '会話は新入社員の試用期間について話している。',
+        explanation:
+          '会話は新入社員の試用期間について話している。他の選択肢（"A delayed job offer"／"A performance complaint"／"A training budget"）はこの会話・トークの中で述べられていない。',
         translation: 'この会話の話題は何ですか。',
       },
       {
         question: "How did the new hire's onboarding go?",
         correctText: 'It went smoothly',
         distractors: ['It was delayed by a week', 'It did not go well', 'It has not started yet'],
-        explanation: 'Bは"Her onboarding went smoothly"と述べている。',
+        explanation:
+          'Bは"Her onboarding went smoothly"と述べている。他の選択肢（"It has not started yet"／"It was delayed by a week"／"It did not go well"）はこの会話・トークの中で述べられていない。',
         translation: 'その新入社員の新人研修はどうでしたか。',
       },
       {
         question: 'When does the ninety-day period end?',
         correctText: 'In about two weeks',
         distractors: ['Tomorrow', 'In three months', 'It already ended'],
-        explanation: 'Bは"In about two weeks, on the fifteenth"と述べている。',
+        explanation:
+          'Bは"In about two weeks, on the fifteenth"と述べている。他の選択肢（"It already ended"／"Tomorrow"／"In three months"）はこの会話・トークの中で述べられていない。',
         translation: '90日間の期間はいつ終わりますか。',
       },
     ],
@@ -367,7 +380,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A new supplier for office snacks',
           'A speaker for a conference',
         ],
-        explanation: '会話はチャリティーランのスポンサー探しについて話している。',
+        explanation:
+          '会話はチャリティーランのスポンサー探しについて話している。他の選択肢（"A venue for a company party"／"A new supplier for office snacks"／"A speaker for a conference"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは何を手配しようとしていますか。',
       },
       {
@@ -378,11 +392,11 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A hotel across the street',
           'No one has shown interest',
         ],
-        explanation: 'Bは"one bakery seemed interested"と述べている。',
+        explanation: '男性は"one bakery seemed interested"と述べている。',
         translation: 'これまでに関心を示したのは誰ですか。',
       },
       {
-        question: 'What does A ask B to collect?',
+        question: 'What does the woman ask the man to collect?',
         correctText: "A testimonial from last year's sponsor",
         distractors: [
           'A quote from the bakery owner',
@@ -390,8 +404,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           "A photo from last year's event",
         ],
         explanation:
-          'Aは"could you also collect a testimonial from last year\'s sponsor"と述べている。',
-        translation: 'Aは何を集めるようBに依頼していますか。',
+          '女性は"could you also collect a testimonial from last year\'s sponsor"と述べている。',
+        translation: '女性は何を集めるよう男性に依頼していますか。',
       },
     ],
     difficulty: 3,
@@ -412,14 +426,16 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A response from a job applicant',
           'A shipment of building materials',
         ],
-        explanation: '会話は用途地域の許可証の承認待ちについて話している。',
+        explanation:
+          '会話は用途地域の許可証の承認待ちについて話している。他の選択肢（"A response from a job applicant"／"A shipment of building materials"／"A final construction bill"）はこの会話・トークの中で述べられていない。',
         translation: '話者たちは何を待っていますか。',
       },
       {
         question: 'How long might the review take?',
         correctText: 'Another three weeks',
         distractors: ['One more day', 'Six months', 'It has already been approved'],
-        explanation: 'Bは"it could take another three weeks to review"と述べている。',
+        explanation:
+          'Bは"it could take another three weeks to review"と述べている。他の選択肢（"One more day"／"Six months"／"It has already been approved"）はこの会話・トークの中で述べられていない。',
         translation: '審査にはどのくらいかかる可能性がありますか。',
       },
       {
@@ -456,7 +472,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Attend a store event',
         ],
         explanation:
-          '"we would appreciate it if you could complete a short survey"と依頼している。',
+          '"we would appreciate it if you could complete a short survey"と依頼している。他の選択肢（"Attend a store event"／"Sign up for a loyalty card"／"Return an item for a refund"）はこの会話・トークの中で述べられていない。',
         translation: '聞き手は何をするよう求められていますか。',
       },
       {
@@ -471,7 +487,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         correctText: 'A discount on their next visit',
         distractors: ['A free gift today', 'A membership card', 'Nothing extra'],
         explanation:
-          '"everyone who finishes the survey this month will receive a small discount"と述べている。',
+          '"everyone who finishes the survey this month will receive a small discount"と述べている。他の選択肢（"A free gift today"／"A membership card"／"Nothing extra"）はこの会話・トークの中で述べられていない。',
         translation: '聞き手はその調査を完了すると何を受け取りますか。',
       },
     ],
@@ -493,7 +509,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A staff training session',
           'A visit from company executives',
         ],
-        explanation: '"we will be conducting a full inventory count this Saturday"と述べている。',
+        explanation:
+          '"we will be conducting a full inventory count this Saturday"と述べている。他の選択肢（"A visit from company executives"／"A fire safety inspection"／"A staff training session"）はこの会話・トークの中で述べられていない。',
         translation: 'どんな出来事が案内されていますか。',
       },
       {
@@ -536,7 +553,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A new employee handbook',
           'A building safety drill',
         ],
-        explanation: '案内全体はリーダーシップセミナーについてである。',
+        explanation:
+          '案内全体はリーダーシップセミナーについてである。他の選択肢（"A building safety drill"／"A change in office hours"／"A new employee handbook"）はこの会話・トークの中で述べられていない。',
         translation: 'この案内は主に何についてですか。',
       },
       {
@@ -634,7 +652,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         question: 'When is the technician expected to arrive?',
         correctText: 'This afternoon',
         distractors: ['Tomorrow morning', 'Next week', 'The technician has already left'],
-        explanation: '"should arrive sometime this afternoon"と述べている。',
+        explanation:
+          '"should arrive sometime this afternoon"と述べている。他の選択肢（"Tomorrow morning"／"Next week"／"The technician has already left"）はこの会話・トークの中で述べられていない。',
         translation: '技術者はいつ到着する見込みですか。',
       },
     ],
@@ -658,7 +677,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Vendors submitting bids',
         ],
         explanation:
-          '"a recorded message from the recruiting office for all applicants who completed an interview last week"と述べている。',
+          '"a recorded message from the recruiting office for all applicants who completed an interview last week"と述べている。他の選択肢（"Current employees requesting a transfer"／"University professors"／"Vendors submitting bids"）はこの会話・トークの中で述べられていない。',
         translation: 'このメッセージは誰を対象にしていますか。',
       },
       {
@@ -702,7 +721,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A change in store hours',
         ],
         explanation:
-          '"all winter clothing is available at a twenty percent discount"と述べている。',
+          '"all winter clothing is available at a twenty percent discount"と述べている。他の選択肢（"A new store opening"／"A change in store hours"／"A permanent price increase"）はこの会話・トークの中で述べられていない。',
         translation: '何が案内されていますか。',
       },
       {
@@ -713,14 +732,16 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Because of a pricing error',
           'Because of a delivery delay',
         ],
-        explanation: '"to make room for new spring inventory"と述べている。',
+        explanation:
+          '"to make room for new spring inventory"と述べている。他の選択肢（"Because the store is closing permanently"／"Because of a pricing error"／"Because of a delivery delay"）はこの会話・トークの中で述べられていない。',
         translation: 'なぜこの店はこのセールを行っているのですか。',
       },
       {
         question: 'When does the sale end?',
         correctText: "At six o'clock",
         distractors: ['At noon', 'At midnight', 'It has already ended'],
-        explanation: '"The sale ends at six o\'clock sharp"と述べている。',
+        explanation:
+          '"The sale ends at six o\'clock sharp"と述べている。他の選択肢（"It has already ended"／"At noon"／"At midnight"）はこの会話・トークの中で述べられていない。',
         translation: 'そのセールはいつ終わりますか。',
       },
     ],
@@ -742,7 +763,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'The department is merging with another team',
           'The department is hiring new staff',
         ],
-        explanation: '"As part of our office relocation"と述べている。',
+        explanation:
+          '"As part of our office relocation"と述べている。他の選択肢（"The department is being closed"／"The department is merging with another team"／"The department is hiring new staff"）はこの会話・トークの中で述べられていない。',
         translation: 'デザイン部門に何が起こっていますか。',
       },
       {

@@ -9,15 +9,17 @@
       600,
       600
     ],
-    "sizeBytes": 18266
+    "sizeBytes": 19766
   },
   "questions": [
     {
       "id": "vocab-buy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "buy",
       "phrase": "I want to buy a new laptop for work.",
@@ -30,8 +32,10 @@
       "id": "vocab-sell",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "sell",
       "phrase": "This store does not sell tickets on weekends.",
@@ -44,8 +48,10 @@
       "id": "vocab-price",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "price",
       "phrase": "The price of the hotel room includes breakfast.",
@@ -58,8 +64,10 @@
       "id": "vocab-cheap",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "cheap",
       "phrase": "We found a cheap flight to Osaka.",
@@ -72,8 +80,10 @@
       "id": "vocab-expensive",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "expensive",
       "phrase": "That restaurant is too expensive for lunch.",
@@ -86,8 +96,10 @@
       "id": "vocab-open",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "open",
       "phrase": "The bank does not open until nine.",
@@ -100,8 +112,10 @@
       "id": "vocab-close",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "close",
       "phrase": "Please close the window before you leave.",
@@ -114,8 +128,10 @@
       "id": "vocab-early",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "early",
       "phrase": "She arrived early to prepare the room.",
@@ -128,8 +144,10 @@
       "id": "vocab-late",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "late",
       "phrase": "Sorry, I am late because of the train.",
@@ -142,8 +160,10 @@
       "id": "vocab-busy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "busy",
       "phrase": "He is too busy to answer the phone now.",
@@ -156,8 +176,10 @@
       "id": "vocab-help",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "help",
       "phrase": "Can you help me carry these boxes?",
@@ -170,8 +192,10 @@
       "id": "vocab-need",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "need",
       "phrase": "We need more chairs for the meeting.",
@@ -184,8 +208,10 @@
       "id": "vocab-use",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "use",
       "phrase": "You can use this room for the interview.",
@@ -198,8 +224,10 @@
       "id": "vocab-learn",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "learn",
       "phrase": "I want to learn how the new system works.",
@@ -212,8 +240,10 @@
       "id": "vocab-teach",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "teach",
       "phrase": "She will teach the new staff next week.",
@@ -226,8 +256,10 @@
       "id": "vocab-answer",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "answer",
       "phrase": "He could not answer the difficult question.",
@@ -240,8 +272,10 @@
       "id": "vocab-question",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "question",
       "phrase": "Do you have a question about the schedule?",
@@ -254,8 +288,10 @@
       "id": "vocab-problem",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "problem",
       "phrase": "There is a small problem with the printer.",
@@ -268,8 +304,10 @@
       "id": "vocab-easy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "easy",
       "phrase": "The test was easy for most of the students.",
@@ -282,8 +320,10 @@
       "id": "vocab-difficult",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "difficult",
       "phrase": "This report is difficult to finish today.",
@@ -296,8 +336,10 @@
       "id": "vocab-large",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "large",
       "phrase": "They moved to a large office downtown.",
@@ -310,8 +352,10 @@
       "id": "vocab-small",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "small",
       "phrase": "We only have a small budget this month.",
@@ -324,8 +368,10 @@
       "id": "vocab-increase",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "increase",
       "phrase": "The company wants to increase its sales.",
@@ -338,8 +384,10 @@
       "id": "vocab-decrease",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "decrease",
       "phrase": "Sales began to decrease after the summer.",
@@ -352,8 +400,10 @@
       "id": "vocab-arrive",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "arrive",
       "phrase": "The guests will arrive at ten in the morning.",
@@ -366,8 +416,10 @@
       "id": "vocab-return",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "return",
       "phrase": "Please return the book by Friday.",
@@ -380,8 +432,10 @@
       "id": "vocab-borrow",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "borrow",
       "phrase": "May I borrow your pen for a moment?",
@@ -394,8 +448,10 @@
       "id": "vocab-lend",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "lend",
       "phrase": "Could you lend me your umbrella today?",
@@ -408,8 +464,10 @@
       "id": "vocab-choose",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "choose",
       "phrase": "You can choose any seat you like.",
@@ -422,8 +480,10 @@
       "id": "vocab-decide",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "decide",
       "phrase": "We will decide the date at the meeting.",
@@ -436,8 +496,10 @@
       "id": "vocab-explain",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "explain",
       "phrase": "Let me explain the plan one more time.",
@@ -450,8 +512,10 @@
       "id": "vocab-introduce",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "introduce",
       "phrase": "I would like to introduce our new manager.",
@@ -464,8 +528,10 @@
       "id": "vocab-improve",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "improve",
       "phrase": "The team worked hard to improve the service.",
@@ -478,8 +544,10 @@
       "id": "vocab-prepare",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "prepare",
       "phrase": "She needs time to prepare for the presentation.",
@@ -492,8 +560,10 @@
       "id": "vocab-finish",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "finish",
       "phrase": "I will finish this task before lunch.",
@@ -506,8 +576,10 @@
       "id": "vocab-begin",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "begin",
       "phrase": "The class will begin in ten minutes.",
@@ -520,8 +592,10 @@
       "id": "vocab-repair",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "repair",
       "phrase": "They came to repair the air conditioner.",
@@ -534,8 +608,10 @@
       "id": "vocab-compare",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "compare",
       "phrase": "Let's compare the two plans carefully.",
@@ -548,8 +624,10 @@
       "id": "vocab-contain",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "contain",
       "phrase": "This box does not contain any documents.",
@@ -562,8 +640,10 @@
       "id": "vocab-provide",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "provide",
       "phrase": "The hotel will provide free parking.",
@@ -576,8 +656,10 @@
       "id": "vocab-receive",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "receive",
       "phrase": "Did you receive my email yesterday?",
@@ -590,8 +672,10 @@
       "id": "vocab-accept",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "accept",
       "phrase": "We are happy to accept your offer.",
@@ -604,8 +688,10 @@
       "id": "vocab-refuse",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "refuse",
       "phrase": "He decided to refuse the extra work.",
@@ -618,8 +704,10 @@
       "id": "vocab-allow",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "allow",
       "phrase": "The company does not allow pets in the office.",
@@ -632,8 +720,10 @@
       "id": "vocab-avoid",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "avoid",
       "phrase": "Try to avoid the busy roads this morning.",
@@ -646,8 +736,10 @@
       "id": "vocab-discuss",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "discuss",
       "phrase": "We will discuss the budget tomorrow.",
@@ -660,8 +752,10 @@
       "id": "vocab-suggest",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "suggest",
       "phrase": "I suggest we take a short break now.",
@@ -674,8 +768,10 @@
       "id": "vocab-mention",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "mention",
       "phrase": "He did not mention the price in his email.",
@@ -688,8 +784,10 @@
       "id": "vocab-measure",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "measure",
       "phrase": "Please measure the room before you order the desk.",
@@ -702,8 +800,10 @@
       "id": "vocab-remain",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "基礎語彙"
+      ],
       "keyVocab": [],
       "front": "remain",
       "phrase": "A few seats still remain for the event.",
