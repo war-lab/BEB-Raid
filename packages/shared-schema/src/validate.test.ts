@@ -1115,6 +1115,30 @@ describe('validatePack: translation/explanation の型検証（T-239・Q-82）',
   })
 })
 
+describe('validatePack: pack.reviewedBy/reviewedAt/reviewMethod（T-355）', () => {
+  it('省略なら通る（既存パックとの後方互換）', () => {
+    const pack = docsSamplePack()
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('文字列を指定すれば通る', () => {
+    const pack = docsSamplePack()
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedBy = 'claude-opus-5'
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedAt = '2026-08-12'
+    ;(pack.pack as unknown as Record<string, unknown>).reviewMethod = '敵対的検証（6観点）'
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('文字列以外なら拒否する', () => {
+    const pack = docsSamplePack()
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedBy = 123
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'pack.reviewedBy', code: 'invalid_value' }),
+    )
+  })
+})
+
 describe('validatePack: imageFiles 指定時の image 存在チェック（T-239・Q-82）', () => {
   function audioPhotoPack(image: string): QuestionPack {
     const pack = docsSamplePack()

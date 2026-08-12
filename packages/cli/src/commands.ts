@@ -67,6 +67,7 @@ import {
   buildPart5Questions,
   validatePart5Questions,
 } from './part5Question.js'
+import { buildAdversarialTsvTemplate, parseAdversarialTsv } from './adversarial.js'
 import {
   buildReviewTsv,
   parseJsonl,
@@ -400,6 +401,63 @@ export const commands: CliCommand[] = [
       ctx.out(`破棄 ${rejected.length}件 → ${rejectedPath}`)
       if (skipped > 0) {
         ctx.out(`レビュー未完了（status未記入等） ${skipped}件はスキップ（次回に持ち越し）`)
+      }
+      return 0
+    },
+  },
+  {
+    name: 'adversarial-init',
+    description:
+      '敵対的検証（6観点。docs/32 8節）の記録用TSVの雛形を、パックJSON（questions[].id）またはドラフトJSONL（各行のid）から生成する（T-355）',
+    run: async (ctx) => {
+      const [inputPath, outputPath] = ctx.args
+      if (!inputPath || !outputPath) {
+        ctx.errOut('使い方: beb adversarial-init <パック.json|ドラフト.jsonl> <出力.tsv>')
+        return 1
+      }
+      const raw = await readFile(inputPath, 'utf-8')
+      let ids: string[]
+      if (inputPath.endsWith('.jsonl')) {
+        ids = parseJsonl<GeneratedItemDraft>(raw).map((d) => d.id)
+      } else {
+        const parsed = JSON.parse(raw) as { questions?: readonly { id: string }[] }
+        if (!Array.isArray(parsed.questions)) {
+          ctx.errOut('パックJSONに questions 配列が無い')
+          return 1
+        }
+        ids = parsed.questions.map((q) => q.id)
+      }
+      await writeFile(outputPath, buildAdversarialTsvTemplate(ids), 'utf-8')
+      ctx.out(`${ids.length}件のidから雛形を ${outputPath} に書き出しました`)
+      return 0
+    },
+  },
+  {
+    name: 'adversarial-summary',
+    description: '記入済みの敵対的検証TSVを集計し、revise/rejectとなったidを一覧する（T-355）',
+    run: async (ctx) => {
+      const [tsvPath] = ctx.args
+      if (!tsvPath) {
+        ctx.errOut('使い方: beb adversarial-summary <記入済み.tsv>')
+        return 1
+      }
+      const tsv = await readFile(tsvPath, 'utf-8')
+      const { records, skipped, errors } = parseAdversarialTsv(tsv)
+      if (errors.length > 0) {
+        for (const e of errors) ctx.errOut(e)
+        return 1
+      }
+      const counts = { accept: 0, revise: 0, reject: 0 }
+      const needsFollowUp: string[] = []
+      for (const r of records) {
+        counts[r.verdict]++
+        if (r.verdict !== 'accept') needsFollowUp.push(`${r.id}（${r.verdict}）: ${r.observation}`)
+      }
+      ctx.out(`accept ${counts.accept}件 / revise ${counts.revise}件 / reject ${counts.reject}件`)
+      if (skipped > 0) ctx.out(`verdict未記入 ${skipped}件はスキップ`)
+      if (needsFollowUp.length > 0) {
+        ctx.out('要修正:')
+        for (const line of needsFollowUp) ctx.out(`  ${line}`)
       }
       return 0
     },
