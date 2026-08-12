@@ -270,7 +270,12 @@ export interface RaidSyncResponse {
    * クライアントは期間外になりうるpayloadをそもそもエンキューしない責務を持つ）
    */
   acceptedIds: string[]
-  boss: RaidBossState
+  /**
+   * 当週ボスが未生成（週次cron未実行・遅延等）の場合はnull（T-285・K-8）。
+   * 受理済みのacceptedIdsは（前週分等が含まれる場合があるため）nullでも意味を持つため、
+   * この場合も200で返す。クライアントはboss===nullのときraidStateの更新をスキップする
+   */
+  boss: RaidBossState | null
 }
 
 /**

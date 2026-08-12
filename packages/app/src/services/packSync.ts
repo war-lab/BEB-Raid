@@ -57,6 +57,13 @@ export interface SyncPacksResult {
   totalSizeBytes: number
 }
 
+// T-284（K-7）: 圏外遷移・電波不良でfetchが応答不能なまま待ち続けると、マウント時同期・
+// online再同期のどちらも長時間止まる（inFlightが解放されず次回再同期の機会も失う）。
+// manifestは小さく速いことを期待する一方、パック本体は音声参照を含むJSONでやや大きいため
+// 別値にする
+const MANIFEST_FETCH_TIMEOUT_MS = 5_000
+const PACK_FETCH_TIMEOUT_MS = 15_000
+
 /**
  * 掃除処理の比較専用にURLを絶対URLへ正規化する。
  * validUrlsはBASE_URL相対（例: `/packs/a.json`）で組み立てられる一方、実ブラウザの
@@ -115,7 +122,9 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
 
   let manifest: Manifest
   try {
-    const res = await fetchImpl(`${baseUrl}manifest.json`)
+    const res = await fetchImpl(`${baseUrl}manifest.json`, {
+      signal: AbortSignal.timeout(MANIFEST_FETCH_TIMEOUT_MS),
+    })
     if (!res.ok) return null
     const body: unknown = await res.json()
     if (!validateManifest(body).ok) return null
@@ -146,7 +155,9 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
     }
     let syncSucceeded = false
     try {
-      const packRes = await fetchImpl(packUrl)
+      const packRes = await fetchImpl(packUrl, {
+        signal: AbortSignal.timeout(PACK_FETCH_TIMEOUT_MS),
+      })
       if (packRes.ok) {
         const pack = (await packRes.json()) as QuestionPack
         const urls = [packUrl, ...collectAudioUrls(baseUrl, pack.questions)]

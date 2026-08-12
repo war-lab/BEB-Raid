@@ -652,6 +652,9 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
         </section>
 
         <section>
+          {/* T-279（K-2）: deviceToken（共有APIのBearer資格情報）はexportAllで伏せられるが、
+              バックアップに学習ログ等の個人データは含まれるため、UIでも明示する */}
+          <p>このファイルは学習データを含みます。共有APIの認証情報は含まれません。</p>
           <button type="button" onClick={() => void handleExport()}>
             エクスポート
           </button>

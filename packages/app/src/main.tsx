@@ -3,12 +3,14 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { registerServiceWorkerUpdates } from './pwa/registerServiceWorkerUpdates'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/components.css'
 
-// アプリシェルの precache 登録（autoUpdate: 新版検知で次回起動時に更新）
-registerSW({ immediate: true })
+// アプリシェルの precache 登録。T-280（K-3）: onNeedRefreshを渡さないと新版検知時に
+// 無条件でリロードされ、セッション中の進行が失われる。適用はユーザー操作に限定する
+registerServiceWorkerUpdates(registerSW)
 
 const root = document.getElementById('root')
 if (!root) throw new Error('#root が見つからない')

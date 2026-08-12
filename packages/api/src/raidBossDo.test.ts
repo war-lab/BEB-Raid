@@ -385,4 +385,51 @@ describe('RaidBossDO', () => {
       expect(state?.maxHp).toBe(42)
     })
   })
+
+  // T-283（K-6）: 生成処理の例外・プロセスクラッシュ等でreleaseGenerationClaim()が
+  // 呼ばれずに終わると、generation_claimが永久に残り週次ボスの生成が復旧不能になっていた。
+  // claimedAtを持たせ、30分以上前の主張は上書き可能にする
+  describe('claimGeneration: 主張のリーク復旧（T-283・K-6）', () => {
+    it('30分未満の主張が残っている間は、後続のclaimGenerationがfalseを返す', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const t0 = START_AT
+      const first = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0),
+      )
+      expect(first).toBe(true)
+
+      const stillWithinWindow = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0 + 29 * 60 * 1000),
+      )
+      expect(stillWithinWindow).toBe(false)
+    })
+
+    it('30分以上前の主張（リーク＝releaseGenerationClaim未呼び出し）は上書きして主張できる', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const t0 = START_AT
+      const first = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0),
+      )
+      expect(first).toBe(true)
+      // releaseGenerationClaim()を呼ばずに放棄する（プロセスクラッシュ等のリークを模擬）
+
+      const afterStaleWindow = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0 + 30 * 60 * 1000),
+      )
+      expect(afterStaleWindow).toBe(true)
+    })
+
+    it('主張成立後にinit()された週は、リーク解放後でも既存stateにより再度falseになる', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const t0 = START_AT
+      await runInDurableObject(stub, (instance: RaidBossDO) => instance.claimGeneration(t0))
+      await initBoss(stub, { maxHp: 555 })
+      // releaseGenerationClaim()を呼ばずに放棄する
+
+      const afterStaleWindow = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0 + 30 * 60 * 1000),
+      )
+      expect(afterStaleWindow).toBe(false)
+    })
+  })
 })
