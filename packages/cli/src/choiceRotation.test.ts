@@ -4,7 +4,7 @@
 // FNV-1aの既知の性質（決定性・分散）とrotationAmountの値域を検証する
 import { describe, expect, it } from 'vitest'
 
-import { fnv1a, rotationAmount } from './choiceRotation'
+import { fnv1a, rotationAmount } from './choiceRotation.js'
 
 describe('fnv1a', () => {
   it('同じ文字列は常に同じハッシュ値を返す（決定的）', () => {
