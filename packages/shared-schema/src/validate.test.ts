@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { part2ResponsesDigest } from './part2Responses.js'
-import type { Manifest, Question, QuestionPack } from './types.js'
+import type { Manifest, PassageKind, Question, QuestionPack } from './types.js'
 import { validateManifest, validatePack } from './validate.js'
 
 /** docs/04_データ設計.md 2節のサンプルJSON（コメントを除きそのまま） */
@@ -1177,7 +1177,8 @@ describe('validatePack: passages[].kind のenum検証（T-239・Q-82）', () => 
         part: 6,
         choices: null,
         answer: null,
-        passages: [{ id: 'p1', kind, text: 'Please [[1]] your plan.' }],
+        // 不正なkind文字列を検証する目的で意図的にPassageKindの範囲外を渡す
+        passages: [{ id: 'p1', kind: kind as PassageKind, text: 'Please [[1]] your plan.' }],
         subQuestions: [
           {
             id: 'sq-1',

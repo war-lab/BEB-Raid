@@ -16,6 +16,7 @@
 // 挙動は変えない）。
 
 import { SCHEMA_VERSION, validatePack, type FreqRank, type Question } from '@beb-raid/shared-schema'
+import { rotationAmount } from './choiceRotation.js'
 import { KEY_VOCAB_SIMILAR_ENTRIES, type KeyVocabSimilarEntry } from './data/keyVocabSimilarS.js'
 import { KEY_VOCAB_SIMILAR_ENTRIES_S2 } from './data/keyVocabSimilarS2.js'
 import {
@@ -127,16 +128,19 @@ export function validateTargetWordCoverage(entries: readonly KeyVocabSimilarEntr
 
 /**
  * T-83（J-44）: q1語（類題ゼロ）120語×1問の正答キーローテーション。
- * rawエントリは常にcorrectTextを「正解」・distractors（3件）を「誤答」として書き、
- * index%4の回転で4択の並び順・正答キーを機械的に決める（rotatePart2Choicesと同方式。
- * 4択なのでindex%4になる点のみ異なる）
+ * rawエントリは常にcorrectTextを「正解」・distractors（3件）を「誤答」として書く。
+ * 【T-342（K-80再検証で発覚）】ローテーション量はwordのハッシュから導出する
+ * （配列内のindexは使わない）。indexをそのまま使うと、part5Question.tsのrotatePart5Choicesが
+ * T-266で修正したのと同じ理由で、rawエントリの並び順が変わらない限り正答キーが一定差分で
+ * 循環してしまう（実測: pack-p5-similar-s-003で120問中119件が差分3の完全な決定的循環に
+ * なっていた）。本ファイルは1語1問（S/S2の1語3問と異なり重複しない）のため、wordをそのまま
+ * エントリ固有のシードとして使える
  */
 export function rotateKeyVocabSimilarS3Choices(
   raw: KeyVocabSimilarS3RawEntry,
-  index: number,
 ): Pick<KeyVocabSimilarEntry, 'choices' | 'answer'> {
   const texts = [raw.correctText, raw.distractors[0], raw.distractors[1], raw.distractors[2]]
-  const rotation = index % 4
+  const rotation = rotationAmount(raw.word, 4)
   const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
   const keys = ['A', 'B', 'C', 'D']
   const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
@@ -147,9 +151,8 @@ export function rotateKeyVocabSimilarS3Choices(
 /** rawエントリ（correctText/distractors形式）→KeyVocabSimilarEntry（choices/answer確定済み）への変換 */
 export function keyVocabSimilarS3EntryFromRaw(
   raw: KeyVocabSimilarS3RawEntry,
-  index: number,
 ): KeyVocabSimilarEntry {
-  const { choices, answer } = rotateKeyVocabSimilarS3Choices(raw, index)
+  const { choices, answer } = rotateKeyVocabSimilarS3Choices(raw)
   return {
     word: raw.word,
     tags: raw.tags,
@@ -166,5 +169,5 @@ export function keyVocabSimilarS3EntryFromRaw(
 export function buildKeyVocabSimilarS3Entries(
   raw: readonly KeyVocabSimilarS3RawEntry[] = KEY_VOCAB_SIMILAR_S3_RAW,
 ): KeyVocabSimilarEntry[] {
-  return raw.map((r, i) => keyVocabSimilarS3EntryFromRaw(r, i))
+  return raw.map((r) => keyVocabSimilarS3EntryFromRaw(r))
 }

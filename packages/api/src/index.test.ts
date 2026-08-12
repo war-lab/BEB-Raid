@@ -1,3 +1,6 @@
+// workerd（vitest-pool-workers）内ではホストのファイルシステムをnode:fsで読めないため、
+// Viteの?raw importでビルド時（Node側）に文字列として埋め込む（raw-imports.d.ts参照）
+import wranglerToml from '../wrangler.toml?raw'
 import {
   createExecutionContext,
   env,
@@ -8,7 +11,7 @@ import {
 } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import worker from './index'
+import worker, { CRON_WEEKLY_BOSS } from './index'
 import type { RaidBossDO } from './raidBossDo'
 import { bossIdFor, isoWeekInfo } from './raidWeek'
 
@@ -83,15 +86,26 @@ describe('CORS', () => {
 // 翌週以降のボスHPが無症状で狂う。generateWeeklyBoss単体の検証はscheduled.test.tsが
 // 担当し、ここでは「どのcronで呼ばれるか／呼ばれないか」だけを見る
 describe('scheduled（cron出し分け）', () => {
-  /**
-   * wrangler.tomlの `[triggers] crons` の唯一のエントリ（週次ボス生成用）。
-   * 日次発火（docs/30 J-100・T-180）。曜日フィールドを使わず、generateWeeklyBoss側の
-   * 冪等化（T-179）で週1回だけ生成されることに委ねる
-   */
-  const WEEKLY_CRON = '0 0 * * *'
   /** 将来追加されうる別時刻のcronの例（正午発火。wrangler.tomlには未追加） */
   const OTHER_CRON = '0 12 * * *'
   const HOUR_MS = 60 * 60 * 1000
+
+  // T-288（K-15）: wrangler.toml・index.tsのCRON_WEEKLY_BOSS・このテストファイルの3箇所が
+  // 一字一句一致していないと、controller.cronがCRON_WEEKLY_BOSSと不一致になりdefault分岐
+  // （何もしない）に落ちる。従来はこのテストファイル内にcron式を独自にハードコードしており、
+  // wrangler.toml自体は一度も読んでいなかったため、wrangler.tomlだけを書き換えても
+  // 検出できなかった。実際にwrangler.tomlを読んで照合する
+  it('wrangler.tomlのcronsがCRON_WEEKLY_BOSS 1件と一致する', () => {
+    const match = /crons\s*=\s*\[([^\]]*)\]/.exec(wranglerToml)
+    if (!match) throw new Error('wrangler.tomlに[triggers] cronsが見つからない')
+    const crons = match[1]!
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .map((s) => s.replace(/^"(.*)"$/, '$1'))
+
+    expect(crons).toEqual([CRON_WEEKLY_BOSS])
+  })
 
   // KV(MEMBERS)とボスDOの状態が後続テストへ漏れないようにする（scheduled.test.tsと同じ方針）
   afterEach(async () => {
@@ -124,21 +138,18 @@ describe('scheduled（cron出し分け）', () => {
     const scheduledTime = Date.UTC(2028, 0, 3) // 月曜。他テストと週が衝突しない
     const warn = vi.spyOn(console, 'warn')
 
-    await runScheduled(WEEKLY_CRON, scheduledTime)
+    await runScheduled(CRON_WEEKLY_BOSS, scheduledTime)
 
     expect(await isBossInitialized(scheduledTime)).toBe(true)
     expect(warn).not.toHaveBeenCalled()
   })
 
-  // T-180の完了条件: 日次発火にしても週1回だけ生成される。
-  // wrangler.toml・index.ts・index.test.tsの3箇所のcron式が一字一句一致していないと、
-  // controller.cronがCRON_WEEKLY_BOSSと不一致になりdefault分岐（何もしない）に落ちるため、
-  // このテストはその不一致も検出する
+  // T-180の完了条件: 日次発火にしても週1回だけ生成される（3箇所の一致自体は上のテストで見る）
   it('日次発火として週内の複数日で発火しても週1回だけボスが生成される', async () => {
     const monday = Date.UTC(2028, 1, 7) // 月曜。他テストと週が衝突しない
     const wednesday = monday + 2 * 24 * HOUR_MS // 同じISO週の水曜
 
-    await runScheduled(WEEKLY_CRON, monday)
+    await runScheduled(CRON_WEEKLY_BOSS, monday)
     const bossId = bossIdFor(isoWeekInfo(monday))
     const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
     const afterMonday = await runInDurableObject(stub, (instance: RaidBossDO) =>
@@ -146,7 +157,7 @@ describe('scheduled（cron出し分け）', () => {
     )
     expect(afterMonday).toBeDefined()
 
-    await runScheduled(WEEKLY_CRON, wednesday)
+    await runScheduled(CRON_WEEKLY_BOSS, wednesday)
     const afterWednesday = await runInDurableObject(stub, (instance: RaidBossDO) =>
       instance.getBossState(wednesday),
     )

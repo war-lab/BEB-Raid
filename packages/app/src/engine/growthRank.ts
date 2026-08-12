@@ -13,6 +13,10 @@
 //              （累積の継続装置であり表示ウィンドウを切る対象ではないため）。
 
 import type { BebRaidDatabase } from '../db/database'
+import {
+  GROWTH_RANK_LEARNING_DAYS_CACHE_KEY,
+  GROWTH_RANK_MAX_POINTS_KEY,
+} from '../services/settingsKeys'
 import { toDateString } from './date'
 import rawConfig from './growthRankConfig.json'
 import { DEFAULT_INITIAL_RATING } from './rating'
@@ -96,34 +100,89 @@ export function resolveGrowthRank(
   }
 }
 
+/** countLearningDaysの差分加算キャッシュの保存形（T-301・K-29） */
+interface LearningDaysCache {
+  /** これまでに1件以上attemptsがあった暦日の集合（toDateString形式） */
+  dates: string[]
+  /** 処理済みのうち最大のanswered At（この値以下のattemptsは次回スキップする） */
+  watermark: number
+}
+
 /**
- * 学習日数: attempts が1件以上存在する暦日の数（全期間。ストリーク/ヒートマップと
- * 同じ日付基準=toDateStringで暦日キー化してから distinct を取る）
+ * 学習日数: 正誤判定を伴う解答が1件以上存在する暦日の数（全期間。ストリーク/ヒートマップと
+ * 同じ日付基準=toDateStringで暦日キー化してから distinct を取る）。
+ *
+ * T-307（K-36）: シャドーイングは `shadow:` プレフィックスのquestionIdで記録されるが、
+ * `isCorrect` は固定値（客観的な正誤判定を伴わない再生ログ）。フィルタが無いと
+ * 1日1件の再生を続けるだけで学習日数が積み上がり、レートが不変でも230日で
+ * 最上位ランクに到達しうる（questionStats・カリキュラム判定は既にshadow:を除外している
+ * のと同じ理由で、こちらも除外する）
+ *
+ * T-301（K-29）: 従来はevery呼び出しでattempts全件をフルスキャンしており、
+ * ホーム・ダッシュボード表示のたびに件数に比例したコストがかかっていた。
+ * attemptsは追記のみ（削除されない）ため、前回のwatermarkより新しい分だけを
+ * 差分で読めば足りる。同じ日を2回集合に加えても副作用が無いため、
+ * watermark境界の重複走査があっても結果は狂わない
  */
 export async function countLearningDays(db: BebRaidDatabase): Promise<number> {
-  const dates = new Set<string>()
-  await db.attempts.each((a) => {
-    dates.add(toDateString(a.answeredAt))
-  })
+  const stored = (await db.settings.get(GROWTH_RANK_LEARNING_DAYS_CACHE_KEY))?.value as
+    LearningDaysCache | undefined
+  const cache: LearningDaysCache = stored ?? { dates: [], watermark: 0 }
+  const dates = new Set(cache.dates)
+  let watermark = cache.watermark
+  await db.attempts
+    .where('answeredAt')
+    .above(cache.watermark)
+    .each((a) => {
+      if (!a.questionId.startsWith('shadow:')) dates.add(toDateString(a.answeredAt))
+      if (a.answeredAt > watermark) watermark = a.answeredAt
+    })
+  if (watermark !== cache.watermark || dates.size !== cache.dates.length) {
+    // キャッシュ更新の失敗（DBクローズ済み等）は握る。呼び出し元の画面が
+    // アンマウント後もこの関数の完了を待たずに進む構成のため、ここから例外が
+    // 漏れると未処理rejectionになる。更新に失敗しても次回呼び出し時に
+    // watermark=前回値からやり直すだけで、返り値（今回のdates.size）自体は正しい
+    try {
+      await db.settings.put({
+        key: GROWTH_RANK_LEARNING_DAYS_CACHE_KEY,
+        value: { dates: [...dates], watermark } satisfies LearningDaysCache,
+      })
+    } catch (err) {
+      console.error('[growthRank] 学習日数キャッシュの更新に失敗', err)
+    }
+  }
   return dates.size
 }
 
 /**
  * 成長ランクをDBから導出する（端末内のみ。サーバー送信は一切行わない=J-68）。
  * ratingHistory が無い新規ユーザーは currentRating を初期レートとみなし
- * 差分0（学習日数のみ加点。学習前なら0）として扱う
+ * 差分0（学習日数のみ加点。学習前なら0）として扱う。
+ *
+ * T-305（K-33）: rankPointsはratingHistoryの最古行をinitialRatingとして算定するため、
+ * 過去日付でスナップショットが書かれて最古行が入れ替わると、初期値が現在レートへ移動して
+ * rankPointsが下落しうる（実測でマスター→ゴールドへ退行）。「累積の継続装置」という
+ * 位置づけ（docs/22 3.7節）に反するため、到達済みの最大値をsettingsへ永続化し、
+ * 今回の算定値がそれ未満なら永続化済みの最大値を使う（単調性の保証。時刻の正当性検証は
+ * しない=J-124と同じ方針で、値そのものの単調性だけを守る）
  */
 export async function getGrowthRank(
   db: BebRaidDatabase,
   config: GrowthRankConfig = GROWTH_RANK_CONFIG,
 ): Promise<GrowthRankResult> {
-  const [totalRating, history, learningDays] = await Promise.all([
+  const [totalRating, history, learningDays, maxPointsSetting] = await Promise.all([
     db.ratings.get('total'),
     db.ratingHistory.where('section').equals('total').sortBy('date'),
     countLearningDays(db),
+    db.settings.get(GROWTH_RANK_MAX_POINTS_KEY),
   ])
   const currentRating = totalRating?.rating ?? DEFAULT_INITIAL_RATING
   const initialRating = history.length > 0 ? history[0]!.rating : currentRating
-  const rankPoints = computeRankPoints({ currentRating, initialRating, learningDays })
+  const computedPoints = computeRankPoints({ currentRating, initialRating, learningDays })
+  const previousMax = (maxPointsSetting?.value as number | undefined) ?? 0
+  const rankPoints = Math.max(computedPoints, previousMax)
+  if (rankPoints > previousMax) {
+    await db.settings.put({ key: GROWTH_RANK_MAX_POINTS_KEY, value: rankPoints })
+  }
   return resolveGrowthRank(rankPoints, config)
 }

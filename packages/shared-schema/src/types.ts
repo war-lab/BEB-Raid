@@ -103,6 +103,11 @@ export interface Passage {
   /** 表示ラベルと出題文脈（PassageKind参照） */
   kind: PassageKind
   text: string
+  /**
+   * 本文の日本語訳（T-347・K-89）。復習時に本文の意味を確認する手段が設問文訳のみだったため追加。
+   * 省略時は本文訳を表示しない（既存コンテンツとの後方互換のためoptional）
+   */
+  translation?: string
 }
 
 /**
@@ -278,7 +283,12 @@ export interface RaidSyncResponse {
    * クライアントは期間外になりうるpayloadをそもそもエンキューしない責務を持つ）
    */
   acceptedIds: string[]
-  boss: RaidBossState
+  /**
+   * 当週ボスが未生成（週次cron未実行・遅延等）の場合はnull（T-285・K-8）。
+   * 受理済みのacceptedIdsは（前週分等が含まれる場合があるため）nullでも意味を持つため、
+   * この場合も200で返す。クライアントはboss===nullのときraidStateの更新をスキップする
+   */
+  boss: RaidBossState | null
 }
 
 /**

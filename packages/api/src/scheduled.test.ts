@@ -1,5 +1,5 @@
 import { env, evictDurableObject, reset, runInDurableObject } from 'cloudflare:test'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { bossProfileForWeek } from './bossProfiles'
 import { memberKey, type MemberRecord } from './env'
@@ -240,6 +240,35 @@ describe('generateWeeklyBoss', () => {
     expect(state?.maxHp).toBe(expectedMaxHp)
   }, 30_000)
 
+  // 何を防ぐか（T-326・K-61）: EMA更新（①）とHP算出（②）が別々の全件走査になっており、
+  // メンバーごとにKV.getを2回（①・②）呼んでいた。無料枠の外向き呼び出し上限に
+  // メンバー数の増加で当たりうる（週次cronはメンバー数Nに対しO(3N)＝list＋2N gets）。
+  // ②を①に統合すれば、メンバー1人あたりのget呼び出しは1回で済む
+  it('メンバー数Nに対するKV.getの呼び出し回数がN以下になる（EMA更新とHP算出の全件走査を統合）', async () => {
+    const currentMondayEpoch = Date.UTC(2027, 3, 19) // 他テストと衝突しない週
+    const MEMBER_COUNT = 6
+    for (let i = 0; i < MEMBER_COUNT; i++) {
+      const deviceToken = `get-count-member-${i}`
+      await env.MEMBERS.put(
+        memberKey(deviceToken),
+        JSON.stringify({ displayName: `太郎${i}`, dailyGoal: 'normal', registeredAt: 0 }),
+      )
+      // 半数だけ前週実績を持たせ、EMA更新の分岐（実績あり/無し）双方を通す
+      if (i % 2 === 0) {
+        await seedPreviousWeekDamage(currentMondayEpoch, deviceToken, 10_000)
+      }
+    }
+
+    const getSpy = vi.spyOn(env.MEMBERS, 'get')
+    getSpy.mockClear()
+
+    await generateWeeklyBoss(env, currentMondayEpoch)
+
+    // 修正前は全件走査が2回（①EMA更新・②HP算出）のため、get呼び出しは2×MEMBER_COUNT。
+    // 統合後は1回の走査で済むため、MEMBER_COUNT回以下になる
+    expect(getSpy.mock.calls.length).toBeLessThanOrEqual(MEMBER_COUNT)
+  })
+
   it('generation_claim導入前にinit済みだった週（boss-2026-W32相当）はEMAが更新されない', async () => {
     // generation_claimテーブルは今回の変更で新規追加されたため、変更前に手動生成やcronで
     // 既にinit済みの週ではこのテーブルが空のままになる。claimGeneration()がgeneration_claim
@@ -326,6 +355,41 @@ describe('generateWeeklyBoss', () => {
         instance.getBossState(nearFuture),
       )
       expect(state).not.toBeUndefined()
+    })
+
+    // 何を防ぐか（T-337・K-72）: 旧実装は境界週ちょうど1週だけをチェックしていた。
+    // cronが長期間発火せず（障害等）、次回発火時に一気に複数週分が保持期間を超えると、
+    // 「対象週は約7日間かけて同じbossIdを指し続ける」という前提が成立せず、境界より
+    // さらに古い週は一度も対象にならないまま永久に残っていた。1回のcron実行で
+    // 境界週から複数週まとめてチェックすれば、この飛ばした週も自己修復する
+    it('cronが長期間発火せず複数週分が一気に保持期間を超えても、境界より古い週も掃除される', async () => {
+      const week1 = Date.UTC(2029, 0, 1) // 他テストと衝突しない週
+      const week1BossId = bossIdFor(isoWeekInfo(week1))
+      await generateWeeklyBoss(env, week1)
+      const week1Stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(week1BossId))
+
+      const week2 = week1 + WEEK_MS
+      const week2BossId = bossIdFor(isoWeekInfo(week2))
+      await generateWeeklyBoss(env, week2)
+      const week2Stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(week2BossId))
+
+      // week1・week2の生成直後、間の週を1個ずつ経由せず一気にfarFutureへ飛ぶ
+      // （cronの長期停止＋復帰を再現）。旧実装ではこの1回のcleanupExpiredRaidBoss呼び出しで
+      // 境界週（week2）だけが対象になり、week1（境界よりさらに1週古い）は一度も
+      // 対象にならないまま残っていた
+      const farFuture = week1 + (RAID_BOSS_RETENTION_WEEKS + 2) * WEEK_MS
+      await generateWeeklyBoss(env, farFuture)
+
+      await evictDurableObject(week1Stub)
+      await evictDurableObject(week2Stub)
+      const week1State = await runInDurableObject(week1Stub, (instance: RaidBossDO) =>
+        instance.getBossState(farFuture),
+      )
+      const week2State = await runInDurableObject(week2Stub, (instance: RaidBossDO) =>
+        instance.getBossState(farFuture),
+      )
+      expect(week1State).toBeUndefined()
+      expect(week2State).toBeUndefined()
     })
 
     it('掃除に失敗しても週次ボス生成自体は成功する', async () => {

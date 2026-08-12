@@ -454,17 +454,17 @@ describe('generate dictation（M2・T-62）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('APIキー不要で40件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
+  it('APIキー不要で44件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
     const outputPath = join(dir, 'dictation-s.jsonl')
     const { code, output } = await run(['generate', 'dictation', outputPath], {})
     expect(code).toBe(0)
-    expect(output).toContain('40件')
+    expect(output).toContain('44件')
 
     const drafts = parseJsonl<{
       kind: string
       payload: { format: string; blanks: { index: number; answer: string }[] }
     }>(await readFile(outputPath, 'utf-8'))
-    expect(drafts).toHaveLength(40)
+    expect(drafts).toHaveLength(44)
     expect(drafts.every((d) => d.kind === 'dictation')).toBe(true)
     expect(drafts.every((d) => d.payload.blanks.length >= 1 && d.payload.blanks.length <= 3)).toBe(
       true,
@@ -801,6 +801,7 @@ describe('build（T-32）', () => {
     await writeFile(join(dir, 'audio/vocab/buy.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/submit.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/revise.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part2/notify.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-01.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-11.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-21.mp3'), 'dummy')
@@ -1282,6 +1283,34 @@ describe('build（T-32）', () => {
       JSON.stringify(part34S3Draft) + '\n',
       'utf-8',
     )
+    const part2S3Draft: GeneratedItemDraft = {
+      id: 'part2-notify',
+      kind: 'audio_qa',
+      preview: 'notify',
+      payload: {
+        id: 'part2-notify',
+        part: 2,
+        format: 'audio_qa',
+        difficulty: 2,
+        tags: ['平叙文'],
+        keyVocab: [{ word: 'notify', sense: '通知する', freqRank: 'S' }],
+        audio: 'audio/part2/notify.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 2500 },
+        script: 'Please notify the shipping department. — I already did.',
+        choices: [
+          { key: 'A', text: 'I already did.' },
+          { key: 'B', text: 'The shipping department is closed.' },
+        ],
+        answer: 'A',
+        explanation: '間接応答: すでに対応済みであることを示している。',
+        translation: '配送部門に通知してください。 — すでに対応しました。',
+      },
+    }
+    await writeFile(
+      join(dir, 'drafts/part2-s3.jsonl'),
+      JSON.stringify(part2S3Draft) + '\n',
+      'utf-8',
+    )
 
     // T-107: 読解R-1（Part6・Part7単一）。音声を持たないためaudioディレクトリ追加は不要
     const textPassageP6Draft: GeneratedItemDraft = {
@@ -1366,15 +1395,15 @@ describe('build（T-32）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('20パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2）', async () => {
+  it('21パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('20パック')
+    expect(output).toContain('21パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(20)
+    expect(manifest.packs).toHaveLength(21)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -1396,6 +1425,7 @@ describe('build（T-32）', () => {
       'pack-vocab-s-002',
       'pack-reading-p6-s-001',
       'pack-reading-p7single-s-001',
+      'pack-p2-s-003',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)

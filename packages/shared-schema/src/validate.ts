@@ -705,6 +705,8 @@ function validatePassages(
     if (!isNonEmptyString(p.text)) {
       err(`${pPath}.text`, 'missing_field', 'text が必要')
     }
+    // T-347: 本文訳はoptional（既存コンテンツとの後方互換）。有るなら文字列であることだけ見る
+    validateOptionalStringField(p.translation, `${pPath}.translation`, 'translation', err)
   })
 }
 

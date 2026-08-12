@@ -67,6 +67,45 @@ describe('buildWordBank', () => {
     expect(bank.words).toHaveLength(6)
     expect(new Set(bank.words).size).toBe(6)
   })
+
+  // T-341（K-79）: 内容語の穴を混ぜる際、ワードバンクのダミーが機能語ばかりだと
+  // 内容語の正解が一目で分かってしまう（逆も同様）。クラス（機能語/内容語）を揃えて
+  // ダミーを選ぶことで、この見た目だけでの識別を防ぐ
+  it('内容語の穴には内容語のダミーが選ばれ、機能語は混ざらない', () => {
+    const target = dictationQuestion('d-content', 'The team confirmed the shipment yesterday', [
+      { index: 3, answer: 'shipment' },
+    ])
+    const others = [
+      dictationQuestion('d-func-1', 'She would like to leave', [{ index: 1, answer: 'would' }]),
+      dictationQuestion('d-func-2', 'They should call the office', [
+        { index: 1, answer: 'should' },
+      ]),
+    ]
+    const bank = buildWordBank(target, [target, ...others], firstPick)
+    expect(bank.words).toContain('shipment')
+    expect(bank.words).not.toContain('would')
+    expect(bank.words).not.toContain('should')
+    expect(bank.words).toHaveLength(6)
+  })
+
+  it('機能語の穴には機能語のダミーが選ばれ、内容語は混ざらない', () => {
+    const target = dictationQuestion('d-func', 'She would like to confirm it', [
+      { index: 1, answer: 'would' },
+    ])
+    const others = [
+      dictationQuestion('d-content-1', 'The team confirmed the shipment yesterday', [
+        { index: 3, answer: 'shipment' },
+      ]),
+      dictationQuestion('d-content-2', 'The manager reviewed the invoice today', [
+        { index: 3, answer: 'invoice' },
+      ]),
+    ]
+    const bank = buildWordBank(target, [target, ...others], firstPick)
+    expect(bank.words).toContain('would')
+    expect(bank.words).not.toContain('shipment')
+    expect(bank.words).not.toContain('invoice')
+    expect(bank.words).toHaveLength(6)
+  })
 })
 
 describe('judgeDictation', () => {

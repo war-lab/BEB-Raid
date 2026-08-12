@@ -66,20 +66,37 @@ export async function handlePostGhost(
 /**
  * ボス役の記録をKVから即時削除する（記録が無くても200・冪等）。
  * 当週ボスがこの記録由来なら、当週DOへsynthetic相当への差し替えを指示する
- * （HP・累計ダメージ・討伐状態は維持。docs/22 3.3節）
+ * （HP・累計ダメージ・討伐状態は維持。docs/22 3.3節）。
+ *
+ * 【T-335・K-70】同意画面（docs/22 3.5節）は「いつでも撤回でき撤回すると記録が
+ * サーバーから即時削除される」と説明する（ADR 0013）。しかし旧実装は当週ボスの
+ * defense/ghostJsonしか差し替えず、この記録が直近の別の週で使われていた場合、
+ * その週のRaidBossDOには依然としてdefense（questionIdごとの倍率＝問題別正誤詳細）が
+ * 残り続けていた（次回cronで別のghostが選ばれた後は、その週のDOは誰からも参照されず
+ * 静かに取りこぼされる）。GhostRecord.lastUsedBossIdを削除前に読み、それが当週と
+ * 異なればそちらのDOにも同じ差し替えを指示する（記録は`lastUsedBossId`1件しか
+ * 保持しないため、直近1週分まで確実にカバーできる）
  */
 export async function handleDeleteGhostOwn(
   env: Env,
   deviceToken: string,
   now: number,
 ): Promise<Response> {
+  const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+  const record = raw ? (JSON.parse(raw) as GhostRecord) : null
+
   await env.MEMBERS.delete(ghostKey(deviceToken))
 
   const current = isoWeekInfo(now)
-  const bossId = bossIdFor(current)
-  const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+  const currentBossId = bossIdFor(current)
   const replacement = bossProfileForWeek(current.isoWeek)
-  await stub.revokeGhostIfOwner(deviceToken, replacement)
+  const currentStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(currentBossId))
+  await currentStub.revokeGhostIfOwner(deviceToken, replacement)
+
+  if (record?.lastUsedBossId && record.lastUsedBossId !== currentBossId) {
+    const lastUsedStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(record.lastUsedBossId))
+    await lastUsedStub.revokeGhostIfOwner(deviceToken, replacement)
+  }
 
   return jsonResponse({ ok: true } satisfies OkResponse)
 }

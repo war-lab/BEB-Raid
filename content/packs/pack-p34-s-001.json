@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 67078
+    "sizeBytes": 79749
   },
   "questions": [
     {
@@ -31,10 +31,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 18469
+        "voice": "pending-tts",
+        "durationMs": 48650
       },
-      "script": "A: Do you have a few minutes to talk about tomorrow's budget meeting? B: Actually, I just found out I have a client call at the same time. Could we reschedule it to Thursday afternoon? A: That should work — most of the team is free then. I'll send a new invite this afternoon. B: Great, thanks for being so flexible.",
+      "script": "A: Do you have a few minutes to talk about tomorrow's budget meeting? B: Actually, I just found out I have a client call at the same time. Could we reschedule it to Thursday afternoon? A: That should work — most of the team is free then, but I'll need to check whether the large conference room is available that day. B: I think Priya already reserved it for a training session, so we might have to use the smaller room down the hall instead. A: That should still be fine, as long as everyone can fit comfortably around the table. I'll send a new invite this afternoon and note the room change in the description. B: Great, thanks for being so flexible. I'll let the client know our schedule is confirmed as soon as you send it over.",
       "subQuestions": [
         {
           "id": "p34-p3-01-q1",
@@ -42,74 +42,74 @@
           "choices": [
             {
               "key": "A",
-              "text": "Canceling a client contract"
+              "text": "Reviewing a budget report"
             },
             {
               "key": "B",
-              "text": "Hiring a new team member"
-            },
-            {
-              "key": "C",
               "text": "Changing the time of a meeting"
             },
             {
+              "key": "C",
+              "text": "Canceling a client contract"
+            },
+            {
               "key": "D",
-              "text": "Reviewing a budget report"
+              "text": "Hiring a new team member"
             }
           ],
-          "answer": "C",
-          "explanation": "会話全体はB氏が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。",
+          "answer": "B",
+          "explanation": "会話全体は男性が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。",
           "translation": "話者たちは主に何について話していますか。"
         },
         {
           "id": "p34-p3-01-q2",
-          "question": "Why does B want to change the meeting time?",
+          "question": "Why does the man want to change the meeting time?",
           "choices": [
             {
               "key": "A",
-              "text": "B will be out of the office all week"
+              "text": "The man will be out of the office all week"
             },
             {
               "key": "B",
-              "text": "B has not finished the budget report"
+              "text": "The man has not finished the budget report"
             },
             {
               "key": "C",
-              "text": "B has a client call scheduled at the same time"
+              "text": "The man is waiting for a new team member"
             },
             {
               "key": "D",
-              "text": "B is waiting for a new team member"
+              "text": "The man has a client call scheduled at the same time"
             }
           ],
-          "answer": "C",
-          "explanation": "Bは\"I just found out I have a client call at the same time\"と述べている。他の理由はscript中に出てこない。",
-          "translation": "Bはなぜ会議の時間を変更したいのですか。"
+          "answer": "D",
+          "explanation": "男性は\"I just found out I have a client call at the same time\"と述べている。他の理由はscript中に出てこない。",
+          "translation": "男性はなぜ会議の時間を変更したいのですか。"
         },
         {
           "id": "p34-p3-01-q3",
-          "question": "What will A most likely do next?",
+          "question": "What will the woman most likely do next?",
           "choices": [
             {
               "key": "A",
-              "text": "Cancel the meeting entirely"
+              "text": "Call the client directly"
             },
             {
               "key": "B",
-              "text": "Ask B to lead the meeting"
+              "text": "Cancel the meeting entirely"
             },
             {
               "key": "C",
-              "text": "Send a new meeting invitation"
+              "text": "Ask the man to lead the meeting"
             },
             {
               "key": "D",
-              "text": "Call the client directly"
+              "text": "Send a new meeting invitation"
             }
           ],
-          "answer": "C",
-          "explanation": "Aは\"I'll send a new invite this afternoon\"と明言している。",
-          "translation": "Aは次に何をする可能性が高いですか。"
+          "answer": "D",
+          "explanation": "女性は\"I'll send a new invite this afternoon\"と明言している。他の選択肢（\"Call the client directly\"／\"Cancel the meeting entirely\"／\"Ask the man to lead the meeting\"）はこの会話・トークの中で述べられていない。",
+          "translation": "女性は次に何をする可能性が高いですか。"
         }
       ]
     },
@@ -137,10 +137,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 22779
+        "voice": "pending-tts",
+        "durationMs": 43750
       },
-      "script": "A: The shared server seems to be malfunctioning again — I can't access any of the project files. B: I noticed that too. I already called the technician, but he said he can't come until tomorrow morning. A: That's a problem. Do we have a backup we can use in the meantime? B: I'll check with IT and email you a temporary link within the hour.",
+      "script": "A: The shared server seems to be malfunctioning again — I can't access any of the project files. B: I noticed that too. I already called the technician, but he said he can't come until tomorrow morning. A: That's a problem, especially since the client presentation is due this afternoon. Do we have a backup we can use in the meantime? B: I'll check with IT and email you a temporary link within the hour so you can at least open the files you need. A: That would help a lot. Should I let the rest of the team know about the delay as well? B: Yes, please send a quick note so nobody wastes time trying to log in before the server is fixed.",
       "subQuestions": [
         {
           "id": "p34-p3-02-q1",
@@ -148,11 +148,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "A conference room is already booked"
+              "text": "An email account was hacked"
             },
             {
               "key": "B",
-              "text": "An email account was hacked"
+              "text": "A conference room is already booked"
             },
             {
               "key": "C",
@@ -164,7 +164,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "冒頭でAが\"the shared server seems to be malfunctioning\"と述べている。",
+          "explanation": "冒頭でAが\"the shared server seems to be malfunctioning\"と述べている。他の選択肢（\"An email account was hacked\"／\"A conference room is already booked\"／\"A printer has run out of ink\"）はこの会話・トークの中で述べられていない。",
           "translation": "話者たちはどんな問題について話していますか。"
         },
         {
@@ -173,7 +173,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Tomorrow morning"
+              "text": "Later this afternoon"
             },
             {
               "key": "B",
@@ -181,41 +181,41 @@
             },
             {
               "key": "C",
-              "text": "Later this afternoon"
+              "text": "He has already arrived"
             },
             {
               "key": "D",
-              "text": "He has already arrived"
+              "text": "Tomorrow morning"
             }
           ],
-          "answer": "A",
-          "explanation": "Bが\"he can't come until tomorrow morning\"と述べている。",
+          "answer": "D",
+          "explanation": "Bが\"he can't come until tomorrow morning\"と述べている。他の選択肢（\"Later this afternoon\"／\"Next week\"／\"He has already arrived\"）はこの会話・トークの中で述べられていない。",
           "translation": "技術者はいつ到着しますか。"
         },
         {
           "id": "p34-p3-02-q3",
-          "question": "What does B imply will happen next?",
+          "question": "What does the man imply will happen next?",
           "choices": [
             {
               "key": "A",
-              "text": "The server will be fixed immediately without help"
+              "text": "The woman will be asked to work from home"
             },
             {
               "key": "B",
-              "text": "A temporary way to access the files will be provided"
+              "text": "The day's meetings will be canceled"
             },
             {
               "key": "C",
-              "text": "A will be asked to work from home"
+              "text": "A temporary way to access the files will be provided"
             },
             {
               "key": "D",
-              "text": "The day's meetings will be canceled"
+              "text": "The server will be fixed immediately without help"
             }
           ],
-          "answer": "B",
-          "explanation": "Bは\"I'll check with IT and email you a temporary link\"と述べており、代替アクセス手段を提供する意図を示している。",
-          "translation": "Bは次に何をするつもりだとほのめかしていますか。"
+          "answer": "C",
+          "explanation": "男性は\"I'll check with IT and email you a temporary link\"と述べており、代替アクセス手段を提供する意図を示している。他の選択肢（\"The woman will be asked to work from home\"／\"The day's meetings will be canceled\"／\"The server will be fixed immediately without help\"）はこの会話・トークの中で述べられていない。",
+          "translation": "男性は次に何をするつもりだとほのめかしていますか。"
         }
       ]
     },
@@ -238,10 +238,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 15778
+        "voice": "pending-tts",
+        "durationMs": 38150
       },
-      "script": "A: We're almost out of printer paper and toner in the supply closet. B: Really? I thought we just placed an order last month. A: We did, but the new interns have been printing a lot of training materials. B: Let's submit a request today so it arrives before the weekend.",
+      "script": "A: We're almost out of printer paper and toner in the supply closet. B: Really? I thought we just placed an order last month. A: We did, but the new interns have been printing a lot of training materials for their onboarding sessions. B: That makes sense — I didn't realize how much paper those packets use. Do you know roughly how many boxes we usually go through in a month? A: I don't have the exact number, but I can check the last few invoices before I submit anything. B: Let's submit a request today regardless, so it arrives before the weekend and we're not caught short again.",
       "subQuestions": [
         {
           "id": "p34-p3-03-q1",
@@ -249,28 +249,28 @@
           "choices": [
             {
               "key": "A",
-              "text": "Running low on office supplies"
-            },
-            {
-              "key": "B",
               "text": "Planning a training session"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Scheduling a delivery truck"
+            },
+            {
+              "key": "C",
+              "text": "Running low on office supplies"
             },
             {
               "key": "D",
               "text": "Hiring new interns"
             }
           ],
-          "answer": "A",
-          "explanation": "冒頭でAが用紙とトナーの残量が少ないことを伝えている。",
+          "answer": "C",
+          "explanation": "冒頭でAが用紙とトナーの残量が少ないことを伝えている。他の選択肢（\"Planning a training session\"／\"Scheduling a delivery truck\"／\"Hiring new interns\"）はこの会話・トークの中で述べられていない。",
           "translation": "会話は主に何についてですか。"
         },
         {
           "id": "p34-p3-03-q2",
-          "question": "According to A, why are supplies running low?",
+          "question": "According to the woman, why are supplies running low?",
           "choices": [
             {
               "key": "A",
@@ -290,24 +290,24 @@
             }
           ],
           "answer": "B",
-          "explanation": "Aが\"the new interns have been printing a lot of training materials\"と説明している。",
-          "translation": "Aによると、なぜ備品が少なくなっているのですか。"
+          "explanation": "女性が\"the new interns have been printing a lot of training materials\"と説明している。",
+          "translation": "女性によると、なぜ備品が少なくなっているのですか。"
         },
         {
           "id": "p34-p3-03-q3",
-          "question": "What does B suggest doing?",
+          "question": "What does the man suggest doing?",
           "choices": [
             {
               "key": "A",
-              "text": "Borrowing supplies from another office"
-            },
-            {
-              "key": "B",
               "text": "Asking the interns to stop printing"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Waiting until next month"
+            },
+            {
+              "key": "C",
+              "text": "Borrowing supplies from another office"
             },
             {
               "key": "D",
@@ -315,8 +315,8 @@
             }
           ],
           "answer": "D",
-          "explanation": "Bは\"Let's submit a request today\"と提案している。",
-          "translation": "Bは何をすることを提案していますか。"
+          "explanation": "男性は\"Let's submit a request today\"と提案している。他の選択肢（\"Asking the interns to stop printing\"／\"Waiting until next month\"／\"Borrowing supplies from another office\"）はこの会話・トークの中で述べられていない。",
+          "translation": "男性は何をすることを提案していますか。"
         }
       ]
     },
@@ -339,10 +339,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 20454
+        "voice": "pending-tts",
+        "durationMs": 40950
       },
-      "script": "A: I just got off the phone with the client — their shipment still hasn't arrived. B: That's the third delay this quarter. Did the carrier give a reason? A: They mentioned a warehouse backlog, but they couldn't give a firm delivery date. B: Let's offer the client a discount on their next order as an apology.",
+      "script": "A: I just got off the phone with the client — their shipment still hasn't arrived. B: That's the third delay this quarter. Did the carrier give a reason? A: They mentioned a warehouse backlog, but they couldn't give a firm delivery date, which is what frustrated the client the most. B: I can imagine. Did they say anything about compensating us for the extra shipping fees we paid to expedite the last order? A: No, they didn't bring that up at all, so I think we'll need to raise it separately. B: Let's offer the client a discount on their next order as an apology, and I'll follow up with the carrier myself about those fees.",
       "subQuestions": [
         {
           "id": "p34-p3-04-q1",
@@ -350,23 +350,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "A client's shipment has been delayed"
+              "text": "A client canceled an order"
             },
             {
               "key": "B",
-              "text": "A client requested a refund"
-            },
-            {
-              "key": "C",
               "text": "A carrier raised its shipping rates"
             },
             {
+              "key": "C",
+              "text": "A client requested a refund"
+            },
+            {
               "key": "D",
-              "text": "A client canceled an order"
+              "text": "A client's shipment has been delayed"
             }
           ],
-          "answer": "A",
-          "explanation": "冒頭でAが顧客の荷物がまだ届いていないと伝えている。",
+          "answer": "D",
+          "explanation": "冒頭で女性が顧客の荷物がまだ届いていないと伝えている。他の選択肢（\"A client canceled an order\"／\"A carrier raised its shipping rates\"／\"A client requested a refund\"）はこの会話・トークの中で述べられていない。",
           "translation": "主に話し合われている問題は何ですか。"
         },
         {
@@ -375,32 +375,32 @@
           "choices": [
             {
               "key": "A",
-              "text": "Bad weather along the route"
+              "text": "A shortage of delivery trucks"
             },
             {
               "key": "B",
-              "text": "An error in the shipping address"
+              "text": "Bad weather along the route"
             },
             {
               "key": "C",
-              "text": "A backlog at the warehouse"
+              "text": "An error in the shipping address"
             },
             {
               "key": "D",
-              "text": "A shortage of delivery trucks"
+              "text": "A backlog at the warehouse"
             }
           ],
-          "answer": "C",
-          "explanation": "Aは\"a warehouse backlog\"と述べている。",
+          "answer": "D",
+          "explanation": "女性は\"a warehouse backlog\"と述べている。他の選択肢（\"A shortage of delivery trucks\"／\"Bad weather along the route\"／\"An error in the shipping address\"）はこの会話・トークの中で述べられていない。",
           "translation": "運送業者は遅延の理由として何を挙げましたか。"
         },
         {
           "id": "p34-p3-04-q3",
-          "question": "What does B propose doing for the client?",
+          "question": "What does the man propose doing for the client?",
           "choices": [
             {
               "key": "A",
-              "text": "Filing a complaint against the carrier"
+              "text": "Sending a written apology letter only"
             },
             {
               "key": "B",
@@ -412,12 +412,12 @@
             },
             {
               "key": "D",
-              "text": "Sending a written apology letter only"
+              "text": "Filing a complaint against the carrier"
             }
           ],
           "answer": "B",
-          "explanation": "Bは\"offer the client a discount on their next order\"と提案している。",
-          "translation": "Bは顧客に対して何をすることを提案していますか。"
+          "explanation": "男性は\"offer the client a discount on their next order\"と提案している。",
+          "translation": "男性は顧客に対して何をすることを提案していますか。"
         }
       ]
     },
@@ -440,10 +440,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 17528
+        "voice": "pending-tts",
+        "durationMs": 40250
       },
-      "script": "A: What did you think of the candidate we interviewed this morning? B: I was impressed — her experience matches the role closely, and she asked great questions. A: Agreed. Should we move forward with a second interview? B: Yes, let's schedule it for early next week and loop in the department manager.",
+      "script": "A: What did you think of the candidate we interviewed this morning? B: I was impressed — her experience matches the role closely, and she asked great questions about our team structure. A: I agree, especially her answer about handling conflicting deadlines. Should we move forward with a second interview? B: Yes, and I think it would help to have the department manager sit in this time, since she'll be working closely with that team. A: Good idea. Do you want to reach out to the manager, or should I? B: I'll take care of it — let's schedule it for early next week and loop in the department manager before we confirm a time.",
       "subQuestions": [
         {
           "id": "p34-p3-05-q1",
@@ -451,15 +451,15 @@
           "choices": [
             {
               "key": "A",
-              "text": "An employee's resignation"
+              "text": "A performance review"
             },
             {
               "key": "B",
-              "text": "A training program schedule"
+              "text": "An employee's resignation"
             },
             {
               "key": "C",
-              "text": "A performance review"
+              "text": "A training program schedule"
             },
             {
               "key": "D",
@@ -467,16 +467,16 @@
             }
           ],
           "answer": "D",
-          "explanation": "会話は今朝面接した候補者についての感想と次のステップを話している。",
+          "explanation": "会話は今朝面接した候補者についての感想と次のステップを話している。他の選択肢（\"A performance review\"／\"An employee's resignation\"／\"A training program schedule\"）はこの会話・トークの中で述べられていない。",
           "translation": "話者たちは主に何について話していますか。"
         },
         {
           "id": "p34-p3-05-q2",
-          "question": "According to B, what was impressive about the candidate?",
+          "question": "According to the man, what was impressive about the candidate?",
           "choices": [
             {
               "key": "A",
-              "text": "Her availability to start immediately"
+              "text": "Her previous employer's reputation"
             },
             {
               "key": "B",
@@ -484,16 +484,16 @@
             },
             {
               "key": "C",
-              "text": "Her salary expectations"
+              "text": "Her availability to start immediately"
             },
             {
               "key": "D",
-              "text": "Her previous employer's reputation"
+              "text": "Her salary expectations"
             }
           ],
           "answer": "B",
-          "explanation": "Bは\"her experience matches the role closely, and she asked great questions\"と述べている。",
-          "translation": "Bは候補者の何に感心したと言っていますか。"
+          "explanation": "男性は\"her experience matches the role closely, and she asked great questions\"と述べている。",
+          "translation": "男性は候補者の何に感心したと言っていますか。"
         },
         {
           "id": "p34-p3-05-q3",
@@ -501,23 +501,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "The candidate will be offered the job immediately"
-            },
-            {
-              "key": "B",
               "text": "The position will be reopened for more applicants"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "The candidate will be rejected"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "A second interview will be scheduled"
+            },
+            {
+              "key": "D",
+              "text": "The candidate will be offered the job immediately"
             }
           ],
-          "answer": "D",
-          "explanation": "Bは\"let's schedule it for early next week\"と述べ、2回目の面接の設定を提案している。",
+          "answer": "C",
+          "explanation": "男性は\"let's schedule it for early next week\"と述べ、2回目の面接の設定を提案している。",
           "translation": "次に何が起こる可能性が高いですか。"
         }
       ]
@@ -546,10 +546,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 19905
+        "voice": "pending-tts",
+        "durationMs": 39900
       },
-      "script": "A: Have we finalized the catering order for Friday's event? B: Almost — I'm still waiting to hear back about how many guests are vegetarian. A: I'll send a quick survey to the attendee list this afternoon. B: Perfect, let's finalize the order by tomorrow morning at the latest.",
+      "script": "A: Have we finalized the catering order for Friday's event? B: Almost — I'm still waiting to hear back about how many guests are vegetarian before I lock in the numbers. A: That's fair. Do we know yet whether the venue allows outside caterers, or does it have to be their in-house kitchen? B: The venue confirmed this morning that outside caterers are fine as long as we submit the menu in advance. A: Good, that simplifies things. I'll send a quick survey to the attendee list this afternoon to get the vegetarian count. B: Perfect, let's finalize the order by tomorrow morning at the latest so the caterer has enough time to prepare.",
       "subQuestions": [
         {
           "id": "p34-p3-06-q1",
@@ -557,74 +557,74 @@
           "choices": [
             {
               "key": "A",
-              "text": "An upcoming event"
-            },
-            {
-              "key": "B",
               "text": "A software rollout"
             },
             {
+              "key": "B",
+              "text": "An upcoming event"
+            },
+            {
               "key": "C",
-              "text": "A new employee's first day"
+              "text": "A quarterly budget review"
             },
             {
               "key": "D",
-              "text": "A quarterly budget review"
+              "text": "A new employee's first day"
             }
           ],
-          "answer": "A",
-          "explanation": "会話全体が金曜日のイベントのケータリング手配について。",
+          "answer": "B",
+          "explanation": "会話全体が金曜日のイベントのケータリング手配について。他の選択肢（\"A software rollout\"／\"A quarterly budget review\"／\"A new employee's first day\"）はこの会話・トークの中で述べられていない。",
           "translation": "話者たちは何の準備をしていますか。"
         },
         {
           "id": "p34-p3-06-q2",
-          "question": "What information is B still waiting for?",
+          "question": "What information is the man still waiting for?",
           "choices": [
             {
               "key": "A",
-              "text": "The number of vegetarian guests"
-            },
-            {
-              "key": "B",
-              "text": "The venue's opening time"
-            },
-            {
-              "key": "C",
               "text": "The guest list itself"
             },
             {
-              "key": "D",
-              "text": "The total event budget"
-            }
-          ],
-          "answer": "A",
-          "explanation": "Bは\"waiting to hear back about how many guests are vegetarian\"と述べている。",
-          "translation": "Bはまだどんな情報を待っていますか。"
-        },
-        {
-          "id": "p34-p3-06-q3",
-          "question": "What will A do this afternoon?",
-          "choices": [
-            {
-              "key": "A",
-              "text": "Cancel part of the order"
-            },
-            {
               "key": "B",
-              "text": "Send a survey to attendees"
+              "text": "The number of vegetarian guests"
             },
             {
               "key": "C",
-              "text": "Call the caterer directly"
+              "text": "The total event budget"
             },
             {
               "key": "D",
-              "text": "Book a larger venue"
+              "text": "The venue's opening time"
             }
           ],
           "answer": "B",
-          "explanation": "Aは\"I'll send a quick survey to the attendee list this afternoon\"と述べている。",
-          "translation": "Aは今日の午後、何をしますか。"
+          "explanation": "男性は\"waiting to hear back about how many guests are vegetarian\"と述べている。",
+          "translation": "男性はまだどんな情報を待っていますか。"
+        },
+        {
+          "id": "p34-p3-06-q3",
+          "question": "What will the woman do this afternoon?",
+          "choices": [
+            {
+              "key": "A",
+              "text": "Call the caterer directly"
+            },
+            {
+              "key": "B",
+              "text": "Cancel part of the order"
+            },
+            {
+              "key": "C",
+              "text": "Book a larger venue"
+            },
+            {
+              "key": "D",
+              "text": "Send a survey to attendees"
+            }
+          ],
+          "answer": "D",
+          "explanation": "女性は\"I'll send a quick survey to the attendee list this afternoon\"と述べている。",
+          "translation": "女性は今日の午後、何をしますか。"
         }
       ]
     },
@@ -647,10 +647,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 17894
+        "voice": "pending-tts",
+        "durationMs": 39900
       },
-      "script": "A: Did you see the notice about the software upgrade this weekend? B: Yes, IT said all our files will automatically synchronize before the update starts. A: Good, I was worried I'd lose my project files. B: Same here — let's just save everything one more time on Friday to be safe.",
+      "script": "A: Did you see the notice about the software upgrade this weekend? B: Yes, IT said all our files will automatically synchronize before the update starts, as long as we're connected to the network overnight. A: Good, I was worried I'd lose my project files since I've been working on that report for weeks. B: Same here — let's just save everything one more time on Friday to be safe, in case the sync doesn't run correctly. A: That sounds smart. Should we also let the rest of the team know, in case anyone is planning to work remotely this weekend? B: Good point, I'll send a quick reminder email before we leave today.",
       "subQuestions": [
         {
           "id": "p34-p3-07-q1",
@@ -658,28 +658,28 @@
           "choices": [
             {
               "key": "A",
-              "text": "A hardware replacement plan"
-            },
-            {
-              "key": "B",
               "text": "A change in office hours"
             },
             {
+              "key": "B",
+              "text": "An upcoming software upgrade"
+            },
+            {
               "key": "C",
-              "text": "A new employee training session"
+              "text": "A hardware replacement plan"
             },
             {
               "key": "D",
-              "text": "An upcoming software upgrade"
+              "text": "A new employee training session"
             }
           ],
-          "answer": "D",
-          "explanation": "会話は週末のソフトウェアアップグレードの通知について。",
+          "answer": "B",
+          "explanation": "会話は週末のソフトウェアアップグレードの通知について。他の選択肢（\"A change in office hours\"／\"A hardware replacement plan\"／\"A new employee training session\"）はこの会話・トークの中で述べられていない。",
           "translation": "会話は主に何についてですか。"
         },
         {
           "id": "p34-p3-07-q2",
-          "question": "According to B, what will happen before the update?",
+          "question": "According to the man, what will happen before the update?",
           "choices": [
             {
               "key": "A",
@@ -691,41 +691,41 @@
             },
             {
               "key": "C",
-              "text": "The office will be closed"
+              "text": "Employees will be asked to work from home"
             },
             {
               "key": "D",
-              "text": "Employees will be asked to work from home"
+              "text": "The office will be closed"
             }
           ],
           "answer": "A",
-          "explanation": "Bは\"all our files will automatically synchronize before the update starts\"と述べている。",
-          "translation": "Bによると、更新前に何が起こりますか。"
+          "explanation": "男性は\"all our files will automatically synchronize before the update starts\"と述べている。",
+          "translation": "男性によると、更新前に何が起こりますか。"
         },
         {
           "id": "p34-p3-07-q3",
-          "question": "What does B suggest doing on Friday?",
+          "question": "What does the man suggest doing on Friday?",
           "choices": [
             {
               "key": "A",
-              "text": "Backing up only the largest files"
-            },
-            {
-              "key": "B",
-              "text": "Calling the IT department"
-            },
-            {
-              "key": "C",
               "text": "Saving all files again as a precaution"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "Postponing the update"
+            },
+            {
+              "key": "C",
+              "text": "Calling the IT department"
+            },
+            {
+              "key": "D",
+              "text": "Backing up only the largest files"
             }
           ],
-          "answer": "C",
-          "explanation": "Bは\"let's just save everything one more time on Friday to be safe\"と提案している。",
-          "translation": "Bは金曜日に何をすることを提案していますか。"
+          "answer": "A",
+          "explanation": "男性は\"let's just save everything one more time on Friday to be safe\"と提案している。他の選択肢（\"Postponing the update\"／\"Calling the IT department\"／\"Backing up only the largest files\"）はこの会話・トークの中で述べられていない。",
+          "translation": "男性は金曜日に何をすることを提案していますか。"
         }
       ]
     },
@@ -753,43 +753,43 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 21864
+        "voice": "pending-tts",
+        "durationMs": 42700
       },
-      "script": "A: Have you finished putting together my itinerary for the conference next month? B: Almost — I booked your flight and hotel, but I'm still waiting on the shuttle reservation. A: No rush, just make sure I land with enough time before the opening reception. B: Understood, I'll confirm everything by the end of the week.",
+      "script": "A: Have you finished putting together my itinerary for the conference next month? B: Almost — I booked your flight and hotel, but I'm still waiting on the shuttle reservation to hear back from the venue. A: No rush, just make sure I land with enough time before the opening reception, since I really don't want to miss the keynote speaker. B: Understood. I've also blocked out an extra hour between your flight and the reception in case there's any delay at the airport. A: That's smart thinking, thank you. Could you also send me a printed copy along with the digital one? B: Of course, I'll confirm everything by the end of the week and print a copy for your folder.",
       "subQuestions": [
         {
           "id": "p34-p3-08-q1",
-          "question": "What is B helping A prepare for?",
+          "question": "What is the man helping the woman prepare for?",
           "choices": [
             {
               "key": "A",
-              "text": "A product demonstration"
+              "text": "A job interview"
             },
             {
               "key": "B",
-              "text": "A performance review"
+              "text": "A product demonstration"
             },
             {
               "key": "C",
-              "text": "An upcoming business trip"
+              "text": "A performance review"
             },
             {
               "key": "D",
-              "text": "A job interview"
+              "text": "An upcoming business trip"
             }
           ],
-          "answer": "C",
-          "explanation": "会話は来月のカンファレンスに向けた旅程の準備について。",
-          "translation": "Bは何のためにAをサポートしていますか。"
+          "answer": "D",
+          "explanation": "会話は来月のカンファレンスに向けた旅程の準備について。他の選択肢（\"A job interview\"／\"A product demonstration\"／\"A performance review\"）はこの会話・トークの中で述べられていない。",
+          "translation": "男性は何のために女性をサポートしていますか。"
         },
         {
           "id": "p34-p3-08-q2",
-          "question": "What has B not finished yet?",
+          "question": "What has the man not finished yet?",
           "choices": [
             {
               "key": "A",
-              "text": "Booking the flight"
+              "text": "Printing the conference badge"
             },
             {
               "key": "B",
@@ -797,24 +797,24 @@
             },
             {
               "key": "C",
-              "text": "Booking the hotel"
+              "text": "Booking the flight"
             },
             {
               "key": "D",
-              "text": "Printing the conference badge"
+              "text": "Booking the hotel"
             }
           ],
           "answer": "B",
-          "explanation": "Bは\"I'm still waiting on the shuttle reservation\"と述べている。",
-          "translation": "Bはまだ何を終えていませんか。"
+          "explanation": "男性は\"I'm still waiting on the shuttle reservation\"と述べている。",
+          "translation": "男性はまだ何を終えていませんか。"
         },
         {
           "id": "p34-p3-08-q3",
-          "question": "What does A ask B to make sure of?",
+          "question": "What does the woman ask the man to make sure of?",
           "choices": [
             {
               "key": "A",
-              "text": "That there is enough time to arrive before the opening reception"
+              "text": "That the flight is nonstop"
             },
             {
               "key": "B",
@@ -822,16 +822,16 @@
             },
             {
               "key": "C",
-              "text": "That the hotel has a gym"
+              "text": "That there is enough time to arrive before the opening reception"
             },
             {
               "key": "D",
-              "text": "That the flight is nonstop"
+              "text": "That the hotel has a gym"
             }
           ],
-          "answer": "A",
-          "explanation": "Aは\"make sure I land with enough time before the opening reception\"と述べている。",
-          "translation": "Aは何を確実にするようBに求めていますか。"
+          "answer": "C",
+          "explanation": "女性は\"make sure I land with enough time before the opening reception\"と述べている。",
+          "translation": "女性は何を確実にするよう男性に求めていますか。"
         }
       ]
     },
@@ -854,39 +854,39 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 16483
+        "voice": "pending-tts",
+        "durationMs": 37800
       },
-      "script": "A: The shelves in the front section look almost empty again. B: I know, our best-selling items keep selling out faster than we can restock them. A: Should we increase the order size for next month? B: Yes, and let's also move some inventory from the stockroom out front today.",
+      "script": "A: The shelves in the front section look almost empty again. B: I know, our best-selling items keep selling out faster than we can restock them, especially since that promotion started last week. A: Should we increase the order size for next month, or would that leave us with too much stock once the promotion ends? B: I think a modest increase should be safe, since demand has been steady even before the promotion started. Let's also move some inventory from the stockroom out front today so customers aren't turned away this afternoon. A: Good idea, I'll grab a cart and start bringing boxes out right after lunch.",
       "subQuestions": [
         {
           "id": "p34-p3-09-q1",
-          "question": "What problem does A point out?",
+          "question": "What problem does the woman point out?",
           "choices": [
             {
               "key": "A",
-              "text": "The shelves are nearly empty"
-            },
-            {
-              "key": "B",
               "text": "Prices are too high"
             },
             {
+              "key": "B",
+              "text": "The store is understaffed"
+            },
+            {
               "key": "C",
-              "text": "The store is losing customers"
+              "text": "The shelves are nearly empty"
             },
             {
               "key": "D",
-              "text": "The store is understaffed"
+              "text": "The store is losing customers"
             }
           ],
-          "answer": "A",
-          "explanation": "Aは\"the shelves in the front section look almost empty again\"と述べている。",
-          "translation": "Aはどんな問題を指摘していますか。"
+          "answer": "C",
+          "explanation": "女性は\"the shelves in the front section look almost empty again\"と述べている。",
+          "translation": "女性はどんな問題を指摘していますか。"
         },
         {
           "id": "p34-p3-09-q2",
-          "question": "Why are the shelves emptying quickly, according to B?",
+          "question": "Why are the shelves emptying quickly, according to the man?",
           "choices": [
             {
               "key": "A",
@@ -898,16 +898,16 @@
             },
             {
               "key": "C",
-              "text": "Customers are returning items"
+              "text": "The store reduced its order size"
             },
             {
               "key": "D",
-              "text": "The store reduced its order size"
+              "text": "Customers are returning items"
             }
           ],
           "answer": "A",
-          "explanation": "Bは\"our best-selling items keep selling out faster than we can restock them\"と述べている。",
-          "translation": "Bによると、なぜ棚がすぐ空になるのですか。"
+          "explanation": "男性は\"our best-selling items keep selling out faster than we can restock them\"と述べている。",
+          "translation": "男性によると、なぜ棚がすぐ空になるのですか。"
         },
         {
           "id": "p34-p3-09-q3",
@@ -919,19 +919,19 @@
             },
             {
               "key": "B",
-              "text": "Interview new staff"
+              "text": "Close the front section"
             },
             {
               "key": "C",
-              "text": "Move inventory from the stockroom to the front"
+              "text": "Interview new staff"
             },
             {
               "key": "D",
-              "text": "Close the front section"
+              "text": "Move inventory from the stockroom to the front"
             }
           ],
-          "answer": "C",
-          "explanation": "Bは\"let's also move some inventory from the stockroom out front today\"と述べている。",
+          "answer": "D",
+          "explanation": "男性は\"let's also move some inventory from the stockroom out front today\"と述べている。",
           "translation": "話者たちは今日、何をしますか。"
         }
       ]
@@ -960,10 +960,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 19304
+        "voice": "pending-tts",
+        "durationMs": 38500
       },
-      "script": "A: The vendor sent over the new contract terms for next year. B: How do the numbers compare to our current agreement? A: The overall cost is about the same, but they want to shorten the renewal period to six months. B: Let's negotiate for a full year before we sign anything.",
+      "script": "A: The vendor sent over the new contract terms for next year. B: How do the numbers compare to our current agreement? A: The overall cost is about the same, but they want to shorten the renewal period to six months instead of the usual twelve. B: That's a strange change — did they explain why they want a shorter term now? A: They mentioned rising material costs and wanting more flexibility to adjust pricing, but I'm not fully convinced that's the whole story. B: Let's negotiate for a full year before we sign anything, and ask them to lock in the current pricing if they want the longer commitment.",
       "subQuestions": [
         {
           "id": "p34-p3-10-q1",
@@ -971,23 +971,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Terms of a vendor contract renewal"
+              "text": "A budget cut across departments"
             },
             {
               "key": "B",
-              "text": "A new vendor selection process"
-            },
-            {
-              "key": "C",
               "text": "A customer complaint about pricing"
             },
             {
+              "key": "C",
+              "text": "Terms of a vendor contract renewal"
+            },
+            {
               "key": "D",
-              "text": "A budget cut across departments"
+              "text": "A new vendor selection process"
             }
           ],
-          "answer": "A",
-          "explanation": "会話は来年度の契約条件についてで、更新期間の交渉が話題。",
+          "answer": "C",
+          "explanation": "会話は来年度の契約条件についてで、更新期間の交渉が話題。他の選択肢（\"A budget cut across departments\"／\"A customer complaint about pricing\"／\"A new vendor selection process\"）はこの会話・トークの中で述べられていない。",
           "translation": "話者たちは何について話し合っていますか。"
         },
         {
@@ -996,36 +996,36 @@
           "choices": [
             {
               "key": "A",
-              "text": "Raising the overall cost significantly"
+              "text": "Shortening the renewal period to six months"
             },
             {
               "key": "B",
-              "text": "Ending the contract early"
+              "text": "Raising the overall cost significantly"
             },
             {
               "key": "C",
-              "text": "Adding a new service fee"
+              "text": "Ending the contract early"
             },
             {
               "key": "D",
-              "text": "Shortening the renewal period to six months"
+              "text": "Adding a new service fee"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "Aは\"they want to shorten the renewal period to six months\"と述べている。",
           "translation": "業者はどんな変更を望んでいますか。"
         },
         {
           "id": "p34-p3-10-q3",
-          "question": "What does B want to do before signing?",
+          "question": "What does the man want to do before signing?",
           "choices": [
             {
               "key": "A",
-              "text": "Accept the vendor's terms as is"
+              "text": "Cancel the contract entirely"
             },
             {
               "key": "B",
-              "text": "Cancel the contract entirely"
+              "text": "Accept the vendor's terms as is"
             },
             {
               "key": "C",
@@ -1037,8 +1037,8 @@
             }
           ],
           "answer": "D",
-          "explanation": "Bは\"Let's negotiate for a full year before we sign anything\"と述べている。",
-          "translation": "Bは署名する前に何をしたいと考えていますか。"
+          "explanation": "男性は\"Let's negotiate for a full year before we sign anything\"と述べている。他の選択肢（\"Cancel the contract entirely\"／\"Accept the vendor's terms as is\"／\"Switch to a different vendor\"）はこの会話・トークの中で述べられていない。",
+          "translation": "男性は署名する前に何をしたいと考えていますか。"
         }
       ]
     },
@@ -1061,10 +1061,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 19487
+        "voice": "pending-tts",
+        "durationMs": 37450
       },
-      "script": "Attention all building tenants: the east elevator will be out of service for routine maintenance from nine to eleven tomorrow morning. During that time, please use the west elevator or the stairs near the lobby. We apologize for any inconvenience and expect the elevator to be back in service by early afternoon.",
+      "script": "Attention all building tenants: the east elevator will be out of service for routine maintenance from nine to eleven tomorrow morning. A technician from the maintenance company will be inspecting the cables and motor as part of our annual safety check. During that time, please use the west elevator or the stairs near the lobby, and allow a few extra minutes if you're heading to a meeting on the upper floors. We apologize for any inconvenience and expect the elevator to be back in service by early afternoon. If you notice any unusual sounds or delays once it reopens, please report them to building management right away.",
       "subQuestions": [
         {
           "id": "p34-p4-01-q1",
@@ -1072,23 +1072,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Airline passengers"
-            },
-            {
-              "key": "B",
               "text": "People who work or live in the building"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "Job applicants visiting for interviews"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "Customers of a retail store"
+            },
+            {
+              "key": "D",
+              "text": "Airline passengers"
             }
           ],
-          "answer": "B",
-          "explanation": "冒頭\"Attention all building tenants\"から建物のテナント（入居者）向けの案内だと分かる。",
+          "answer": "A",
+          "explanation": "冒頭\"Attention all building tenants\"から建物のテナント（入居者）向けの案内だと分かる。他の選択肢（\"Job applicants visiting for interviews\"／\"Customers of a retail store\"／\"Airline passengers\"）はこの会話・トークの中で述べられていない。",
           "translation": "この案内はおそらく誰に向けたものですか。"
         },
         {
@@ -1097,22 +1097,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "From nine to eleven tomorrow morning"
-            },
-            {
-              "key": "B",
               "text": "This afternoon only"
             },
             {
+              "key": "B",
+              "text": "For the entire week"
+            },
+            {
               "key": "C",
-              "text": "All day tomorrow"
+              "text": "From nine to eleven tomorrow morning"
             },
             {
               "key": "D",
-              "text": "For the entire week"
+              "text": "All day tomorrow"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "\"out of service...from nine to eleven tomorrow morning\"と明示されている。",
           "translation": "東側のエレベーターはいつ使用できませんか。"
         },
@@ -1126,7 +1126,7 @@
             },
             {
               "key": "B",
-              "text": "Contact building management"
+              "text": "Use the west elevator or the stairs"
             },
             {
               "key": "C",
@@ -1134,10 +1134,10 @@
             },
             {
               "key": "D",
-              "text": "Use the west elevator or the stairs"
+              "text": "Contact building management"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "\"please use the west elevator or the stairs near the lobby\"と案内している。",
           "translation": "メンテナンス中、聞き手は何をするよう勧められていますか。"
         }
@@ -1167,10 +1167,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 21603
+        "voice": "pending-tts",
+        "durationMs": 35350
       },
-      "script": "This weekend only, visit Harbor Outlet for our biggest clearance sale of the year. Every item in the store is marked down, with select merchandise up to seventy percent off. Doors open early at eight, and the first fifty customers will receive a complimentary gift bag. Don't miss this once-a-year event.",
+      "script": "This weekend only, visit Harbor Outlet for our biggest clearance sale of the year. Every item in the store is marked down, with select merchandise up to seventy percent off, including winter coats, kitchen appliances, and last season's furniture. Doors open early at eight, and the first fifty customers will receive a complimentary gift bag filled with samples from our newest suppliers. Parking will be available in the lot behind the store, and extra staff will be on hand to help you find exactly what you're looking for. Don't miss this once-a-year event — we look forward to seeing you there.",
       "subQuestions": [
         {
           "id": "p34-p4-02-q1",
@@ -1178,23 +1178,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "A job fair"
-            },
-            {
-              "key": "B",
-              "text": "A new store opening"
-            },
-            {
-              "key": "C",
               "text": "A charity fundraiser"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "A store's clearance sale"
+            },
+            {
+              "key": "C",
+              "text": "A new store opening"
+            },
+            {
+              "key": "D",
+              "text": "A job fair"
             }
           ],
-          "answer": "D",
-          "explanation": "冒頭で\"our biggest clearance sale of the year\"と明言している。",
+          "answer": "B",
+          "explanation": "冒頭で\"our biggest clearance sale of the year\"と明言している。他の選択肢（\"A charity fundraiser\"／\"A new store opening\"／\"A job fair\"）はこの会話・トークの中で述べられていない。",
           "translation": "何が宣伝されていますか。"
         },
         {
@@ -1203,22 +1203,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Up to seventy percent off"
+              "text": "Buy one, get one free"
             },
             {
               "key": "B",
-              "text": "Up to twenty percent off"
+              "text": "Up to seventy percent off"
             },
             {
               "key": "C",
-              "text": "A flat ten-dollar discount"
+              "text": "Up to twenty percent off"
             },
             {
               "key": "D",
-              "text": "Buy one, get one free"
+              "text": "A flat ten-dollar discount"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "\"select merchandise up to seventy percent off\"と述べている。",
           "translation": "一部の商品では、顧客はいくら節約できますか。"
         },
@@ -1228,23 +1228,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "A raffle ticket"
+              "text": "A free membership card"
             },
             {
               "key": "B",
-              "text": "A complimentary gift bag"
+              "text": "A raffle ticket"
             },
             {
               "key": "C",
-              "text": "A free membership card"
+              "text": "A complimentary gift bag"
             },
             {
               "key": "D",
               "text": "A discount coupon for next time"
             }
           ],
-          "answer": "B",
-          "explanation": "\"the first fifty customers will receive a complimentary gift bag\"と述べている。",
+          "answer": "C",
+          "explanation": "\"the first fifty customers will receive a complimentary gift bag\"と述べている。他の選択肢（\"A free membership card\"／\"A raffle ticket\"／\"A discount coupon for next time\"）はこの会話・トークの中で述べられていない。",
           "translation": "最初の50人の客は何を受け取りますか。"
         }
       ]
@@ -1268,10 +1268,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 16927
+        "voice": "pending-tts",
+        "durationMs": 36050
       },
-      "script": "Hi, this is Dana calling from Crestview Dental. I'm calling to let you know that your appointment originally scheduled for Tuesday at ten needs to be moved due to a scheduling conflict. We have an opening on Wednesday at the same time. Please call us back at your convenience to confirm.",
+      "script": "Hi, this is Dana calling from Crestview Dental. I'm calling to let you know that your appointment originally scheduled for Tuesday at ten needs to be moved due to a scheduling conflict with one of our hygienists. We have an opening on Wednesday at the same time, or if that doesn't work, we could also fit you in Thursday afternoon. Either time should allow enough room for the full cleaning and checkup we have planned. Please call us back at your convenience to confirm which day works best for you, and let us know if you'd like a reminder call the day before.",
       "subQuestions": [
         {
           "id": "p34-p4-03-q1",
@@ -1279,23 +1279,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "To confirm a payment was received"
-            },
-            {
-              "key": "B",
-              "text": "To cancel a membership"
-            },
-            {
-              "key": "C",
               "text": "To remind about an annual checkup"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "To reschedule an appointment"
+            },
+            {
+              "key": "C",
+              "text": "To confirm a payment was received"
+            },
+            {
+              "key": "D",
+              "text": "To cancel a membership"
             }
           ],
-          "answer": "D",
-          "explanation": "\"your appointment...needs to be moved due to a scheduling conflict\"と述べている。",
+          "answer": "B",
+          "explanation": "\"your appointment...needs to be moved due to a scheduling conflict\"と述べている。他の選択肢（\"To remind about an annual checkup\"／\"To confirm a payment was received\"／\"To cancel a membership\"）はこの会話・トークの中で述べられていない。",
           "translation": "デイナはなぜ電話をかけていますか。"
         },
         {
@@ -1304,7 +1304,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Wednesday"
+              "text": "Tuesday"
             },
             {
               "key": "B",
@@ -1312,15 +1312,15 @@
             },
             {
               "key": "C",
-              "text": "Thursday"
+              "text": "Wednesday"
             },
             {
               "key": "D",
-              "text": "Tuesday"
+              "text": "Thursday"
             }
           ],
-          "answer": "D",
-          "explanation": "\"originally scheduled for Tuesday at ten\"と述べている。",
+          "answer": "A",
+          "explanation": "\"originally scheduled for Tuesday at ten\"と述べている。他の選択肢（\"Monday\"／\"Wednesday\"／\"Thursday\"）はこの会話・トークの中で述べられていない。",
           "translation": "予約はもともと何曜日に予定されていましたか。"
         },
         {
@@ -1333,7 +1333,7 @@
             },
             {
               "key": "B",
-              "text": "Call back to confirm the new time"
+              "text": "Bring updated insurance information"
             },
             {
               "key": "C",
@@ -1341,11 +1341,11 @@
             },
             {
               "key": "D",
-              "text": "Bring updated insurance information"
+              "text": "Call back to confirm the new time"
             }
           ],
-          "answer": "B",
-          "explanation": "\"Please call us back at your convenience to confirm\"と述べている。",
+          "answer": "D",
+          "explanation": "\"Please call us back at your convenience to confirm\"と述べている。他の選択肢（\"Arrive early for the new appointment\"／\"Bring updated insurance information\"／\"Cancel the appointment entirely\"）はこの会話・トークの中で述べられていない。",
           "translation": "デイナは聞き手に何をするよう頼んでいますか。"
         }
       ]
@@ -1369,10 +1369,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 16980
+        "voice": "pending-tts",
+        "durationMs": 33600
       },
-      "script": "Attention passengers on flight two-fourteen to Denver: your departure gate has changed from gate twelve to gate twenty-three. Boarding will begin in approximately twenty minutes. Please proceed to the new gate as soon as possible, and have your boarding pass ready for the agent.",
+      "script": "Attention passengers on flight two-fourteen to Denver: your departure gate has changed from gate twelve to gate twenty-three due to a scheduling conflict with another aircraft. Boarding will begin in approximately twenty minutes, starting with families traveling with small children and passengers who need extra time. Please proceed to the new gate as soon as possible, since it is located in a different terminal and the walk may take longer than expected. Have your boarding pass and photo identification ready for the agent, and please listen for further announcements in case there are any additional changes.",
       "subQuestions": [
         {
           "id": "p34-p4-04-q1",
@@ -1384,19 +1384,19 @@
             },
             {
               "key": "B",
-              "text": "To inform passengers of a gate change"
-            },
-            {
-              "key": "C",
               "text": "To announce a flight cancellation"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "To call for volunteers to give up seats"
+            },
+            {
+              "key": "D",
+              "text": "To inform passengers of a gate change"
             }
           ],
-          "answer": "B",
-          "explanation": "\"your departure gate has changed from gate twelve to gate twenty-three\"と述べている。",
+          "answer": "D",
+          "explanation": "\"your departure gate has changed from gate twelve to gate twenty-three\"と述べている。他の選択肢（\"To announce a flight delay\"／\"To announce a flight cancellation\"／\"To call for volunteers to give up seats\"）はこの会話・トークの中で述べられていない。",
           "translation": "この案内の目的は何ですか。"
         },
         {
@@ -1405,7 +1405,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Gate twenty-one"
+              "text": "Gate twenty-three"
             },
             {
               "key": "B",
@@ -1413,14 +1413,14 @@
             },
             {
               "key": "C",
-              "text": "Gate thirty"
+              "text": "Gate twenty-one"
             },
             {
               "key": "D",
-              "text": "Gate twenty-three"
+              "text": "Gate thirty"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "\"changed from gate twelve to gate twenty-three\"と述べている。",
           "translation": "新しい搭乗ゲートの番号は何番ですか。"
         },
@@ -1430,7 +1430,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Their seat upgrade voucher"
+              "text": "Their boarding pass"
             },
             {
               "key": "B",
@@ -1438,15 +1438,15 @@
             },
             {
               "key": "C",
-              "text": "Their boarding pass"
+              "text": "Their baggage claim ticket"
             },
             {
               "key": "D",
-              "text": "Their baggage claim ticket"
+              "text": "Their seat upgrade voucher"
             }
           ],
-          "answer": "C",
-          "explanation": "\"have your boarding pass ready for the agent\"と述べている。",
+          "answer": "A",
+          "explanation": "\"Have your boarding pass and photo identification ready for the agent\"と述べている。他の選択肢（\"Their passport only\"／\"Their baggage claim ticket\"／\"Their seat upgrade voucher\"）はこの会話・トークの中で述べられていない。",
           "translation": "乗客は何を準備しておくよう求められていますか。"
         }
       ]
@@ -1470,10 +1470,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 22335
+        "voice": "pending-tts",
+        "durationMs": 43750
       },
-      "script": "Welcome, everyone, to the Riverside History Museum. My name is Carlos, and I'll be your guide for the next hour. Let me walk you through today's itinerary: we'll begin in the main hall, where you'll see artifacts dating back over two hundred years, before moving on to the interactive exhibit on the second floor. Please feel free to ask questions along the way.",
+      "script": "Welcome, everyone, to the Riverside History Museum. My name is Carlos, and I'll be your guide for the next hour. Let me walk you through today's itinerary: we'll begin in the main hall, where you'll see artifacts dating back over two hundred years, including several items donated by local families whose ancestors settled this region. From there, we'll move on to the interactive exhibit on the second floor, where you can try some of the tools and games that children in this area once used. We'll finish in the gift shop, where a small discount is available for anyone who mentions today's tour. Please feel free to ask questions along the way, and let me know if you'd like extra time at any particular stop.",
       "subQuestions": [
         {
           "id": "p34-p4-05-q1",
@@ -1489,15 +1489,15 @@
             },
             {
               "key": "C",
-              "text": "A museum security officer"
+              "text": "A museum tour guide"
             },
             {
               "key": "D",
-              "text": "A museum tour guide"
+              "text": "A museum security officer"
             }
           ],
-          "answer": "D",
-          "explanation": "\"I'll be your guide for the next hour\"と自己紹介している。",
+          "answer": "C",
+          "explanation": "\"I'll be your guide for the next hour\"と自己紹介している。他の選択肢（\"A ticket sales clerk\"／\"A history professor giving a lecture\"／\"A museum security officer\"）はこの会話・トークの中で述べられていない。",
           "translation": "カルロスはおそらく誰ですか。"
         },
         {
@@ -1506,22 +1506,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "In the gift shop"
-            },
-            {
-              "key": "B",
               "text": "On the second floor"
             },
             {
+              "key": "B",
+              "text": "In the gift shop"
+            },
+            {
               "key": "C",
-              "text": "In the main hall"
+              "text": "Outside the building"
             },
             {
               "key": "D",
-              "text": "Outside the building"
+              "text": "In the main hall"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "\"We'll begin in the main hall\"と述べている。",
           "translation": "ツアーはどこから始まりますか。"
         },
@@ -1535,18 +1535,18 @@
             },
             {
               "key": "B",
-              "text": "Ask questions during the tour"
+              "text": "Wait silently until the tour ends"
             },
             {
               "key": "C",
-              "text": "Wait silently until the tour ends"
+              "text": "Ask questions during the tour"
             },
             {
               "key": "D",
               "text": "Take photos only at the end"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "\"Please feel free to ask questions along the way\"と述べている。",
           "translation": "聞き手は何をするよう勧められていますか。"
         }
@@ -1576,10 +1576,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 20924
+        "voice": "pending-tts",
+        "durationMs": 39550
       },
-      "script": "Good afternoon, everyone. Before we wrap up today's meeting, I want to share a quick update on our quarterly results. Revenue grew twelve percent compared to last quarter, largely thanks to strong sales in the retail division. I want to thank each of you for your hard work, and I look forward to sharing more details at next month's review.",
+      "script": "Good afternoon, everyone. Before we wrap up today's meeting, I want to share a quick update on our quarterly results. Revenue grew twelve percent compared to last quarter, largely thanks to strong sales in the retail division, which outperformed our original projections by a wide margin. Costs also stayed roughly flat, which helped translate that revenue growth directly into improved profit margins. Looking ahead, we expect a slightly slower pace of growth next quarter as we invest more heavily in the new product line, but overall the outlook remains positive. I want to thank each of you for your hard work, and I look forward to sharing more details at next month's review.",
       "subQuestions": [
         {
           "id": "p34-p4-06-q1",
@@ -1587,23 +1587,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "To introduce a new employee"
+              "text": "To explain a change in company policy"
             },
             {
               "key": "B",
-              "text": "To announce a new product launch"
-            },
-            {
-              "key": "C",
               "text": "To share quarterly financial results"
             },
             {
+              "key": "C",
+              "text": "To announce a new product launch"
+            },
+            {
               "key": "D",
-              "text": "To explain a change in company policy"
+              "text": "To introduce a new employee"
             }
           ],
-          "answer": "C",
-          "explanation": "\"I want to share a quick update on our quarterly results\"と述べている。",
+          "answer": "B",
+          "explanation": "\"I want to share a quick update on our quarterly results\"と述べている。他の選択肢（\"To explain a change in company policy\"／\"To announce a new product launch\"／\"To introduce a new employee\"）はこの会話・トークの中で述べられていない。",
           "translation": "この話の主な目的は何ですか。"
         },
         {
@@ -1612,22 +1612,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Two percent"
-            },
-            {
-              "key": "B",
               "text": "Twenty percent"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "It stayed the same"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "Twelve percent"
+            },
+            {
+              "key": "D",
+              "text": "Two percent"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "\"Revenue grew twelve percent compared to last quarter\"と述べている。",
           "translation": "収益はどれくらい増加しましたか。"
         },
@@ -1637,23 +1637,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "An increase in prices"
-            },
-            {
-              "key": "B",
-              "text": "A new marketing campaign"
-            },
-            {
-              "key": "C",
               "text": "Strong sales in the retail division"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "A reduction in expenses"
+            },
+            {
+              "key": "C",
+              "text": "A new marketing campaign"
+            },
+            {
+              "key": "D",
+              "text": "An increase in prices"
             }
           ],
-          "answer": "C",
-          "explanation": "\"largely thanks to strong sales in the retail division\"と述べている。",
+          "answer": "A",
+          "explanation": "\"largely thanks to strong sales in the retail division\"と述べている。他の選択肢（\"A reduction in expenses\"／\"A new marketing campaign\"／\"An increase in prices\"）はこの会話・トークの中で述べられていない。",
           "translation": "話者は何が最も成長に貢献したと述べていますか。"
         }
       ]
@@ -1674,7 +1674,7 @@
         },
         {
           "word": "feedback",
-          "sense": "フィードバック",
+          "sense": "フィードバック（意見・反応）",
           "freqRank": "S"
         }
       ],
@@ -1682,10 +1682,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 21211
+        "voice": "pending-tts",
+        "durationMs": 39900
       },
-      "script": "Thank you all for coming today. I'm excited to introduce our newest product line, designed specifically to help small businesses streamline their daily operations. After months of testing and customer feedback, we're confident this launch will set a new standard in the industry. We'll be taking questions after a short demonstration.",
+      "script": "Thank you all for coming today. I'm excited to introduce our newest product line, designed specifically to help small businesses streamline their daily operations, from inventory tracking to scheduling and invoicing, all in a single application. After months of testing and customer feedback from more than two hundred pilot users, we're confident this launch will set a new standard in the industry. We've also worked closely with our support team to make sure onboarding is as smooth as possible, since we know switching software can be stressful for a small team. We'll be taking questions after a short demonstration, and everyone here today will receive an extended free trial as a thank-you for attending.",
       "subQuestions": [
         {
           "id": "p34-p4-07-q1",
@@ -1693,23 +1693,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Explaining a pricing change"
-            },
-            {
-              "key": "B",
-              "text": "Introducing a new product"
-            },
-            {
-              "key": "C",
               "text": "Announcing a company merger"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "Reviewing customer complaints"
+            },
+            {
+              "key": "C",
+              "text": "Explaining a pricing change"
+            },
+            {
+              "key": "D",
+              "text": "Introducing a new product"
             }
           ],
-          "answer": "B",
-          "explanation": "\"I'm excited to introduce our newest product line\"と述べている。",
+          "answer": "D",
+          "explanation": "\"I'm excited to introduce our newest product line\"と述べている。他の選択肢（\"Announcing a company merger\"／\"Reviewing customer complaints\"／\"Explaining a pricing change\"）はこの会話・トークの中で述べられていない。",
           "translation": "話者は主に何をしていますか。"
         },
         {
@@ -1718,7 +1718,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Government agencies"
+              "text": "Large corporations only"
             },
             {
               "key": "B",
@@ -1726,15 +1726,15 @@
             },
             {
               "key": "C",
-              "text": "Small businesses"
+              "text": "Government agencies"
             },
             {
               "key": "D",
-              "text": "Large corporations only"
+              "text": "Small businesses"
             }
           ],
-          "answer": "C",
-          "explanation": "\"designed specifically to help small businesses streamline their daily operations\"と述べている。",
+          "answer": "D",
+          "explanation": "\"designed specifically to help small businesses streamline their daily operations\"と述べている。他の選択肢（\"Large corporations only\"／\"Individual consumers\"／\"Government agencies\"）はこの会話・トークの中で述べられていない。",
           "translation": "新製品は誰のために設計されていますか。"
         },
         {
@@ -1743,7 +1743,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Refreshments will be served"
+              "text": "The product will go on sale immediately"
             },
             {
               "key": "B",
@@ -1751,15 +1751,15 @@
             },
             {
               "key": "C",
-              "text": "The audience will be able to ask questions"
+              "text": "Refreshments will be served"
             },
             {
               "key": "D",
-              "text": "The product will go on sale immediately"
+              "text": "The audience will be able to ask questions"
             }
           ],
-          "answer": "C",
-          "explanation": "\"We'll be taking questions after a short demonstration\"と述べている。",
+          "answer": "D",
+          "explanation": "\"We'll be taking questions after a short demonstration\"と述べている。他の選択肢（\"The product will go on sale immediately\"／\"The event will end without further discussion\"／\"Refreshments will be served\"）はこの会話・トークの中で述べられていない。",
           "translation": "デモンストレーションの後、何が行われますか。"
         }
       ]
@@ -1788,10 +1788,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 20976
+        "voice": "pending-tts",
+        "durationMs": 38850
       },
-      "script": "Thank you for calling Meridian Bank customer service. For account balance and recent transactions, press one. To report a lost or stolen card, press two. To speak with a representative about a loan or mortgage, press three. For any other inquiry, please stay on the line and the next available representative will assist you.",
+      "script": "Thank you for calling Meridian Bank customer service. Our office hours have recently changed, so please note that representatives are now available from seven in the morning until nine at night, seven days a week. For account balance and recent transactions, press one. To report a lost or stolen card, press two, and a temporary hold will be placed on the account immediately. To speak with a representative about a loan or mortgage inquiry, press three. For any other inquiry, please stay on the line and the next available representative will assist you as soon as possible. We appreciate your patience during what may be a longer than usual wait time.",
       "subQuestions": [
         {
           "id": "p34-p4-08-q1",
@@ -1803,19 +1803,19 @@
             },
             {
               "key": "B",
-              "text": "A retail store"
+              "text": "An airline"
             },
             {
               "key": "C",
-              "text": "A dental office"
+              "text": "A retail store"
             },
             {
               "key": "D",
-              "text": "An airline"
+              "text": "A dental office"
             }
           ],
           "answer": "A",
-          "explanation": "\"Thank you for calling Meridian Bank customer service\"と述べている。",
+          "explanation": "\"Thank you for calling Meridian Bank customer service\"と述べている。他の選択肢（\"An airline\"／\"A retail store\"／\"A dental office\"）はこの会話・トークの中で述べられていない。",
           "translation": "この案内はおそらくどんな業種の企業が録音したものですか。"
         },
         {
@@ -1824,22 +1824,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Press three"
+              "text": "Stay on the line"
             },
             {
               "key": "B",
-              "text": "Press one"
-            },
-            {
-              "key": "C",
               "text": "Press two"
             },
             {
+              "key": "C",
+              "text": "Press one"
+            },
+            {
               "key": "D",
-              "text": "Stay on the line"
+              "text": "Press three"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "\"To report a lost or stolen card, press two\"と述べている。",
           "translation": "カードの紛失を報告するには何をすべきですか。"
         },
@@ -1849,11 +1849,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "Stay on the line for a representative"
+              "text": "Press three"
             },
             {
               "key": "B",
-              "text": "Press three"
+              "text": "Hang up and call back later"
             },
             {
               "key": "C",
@@ -1861,10 +1861,10 @@
             },
             {
               "key": "D",
-              "text": "Hang up and call back later"
+              "text": "Stay on the line for a representative"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "\"For any other inquiry, please stay on the line and the next available representative will assist you\"と述べている。",
           "translation": "それ以外の問い合わせがある発信者はどうすべきですか。"
         }
@@ -1899,10 +1899,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium",
-        "durationMs": 19931
+        "voice": "pending-tts",
+        "durationMs": 39550
       },
-      "script": "Good morning, and welcome to your first day of orientation. Over the next two days, you'll learn about our company policies, meet your department supervisor, and complete a few required training modules. Please keep your employee badge visible at all times, and don't hesitate to ask your mentor if you have any questions.",
+      "script": "Good morning, and welcome to your first day of orientation. Over the next two days, you'll learn about our company policies, meet your department supervisor, and complete a few required training modules covering safety procedures and workplace conduct. On the first afternoon, you'll also get a short tour of the building, including the break rooms, the parking garage, and the emergency exits on each floor. Please keep your employee badge visible at all times, since security staff may ask to see it before allowing you into certain restricted areas. Don't hesitate to ask your mentor if you have any questions, either during orientation or in the weeks after you settle into your role.",
       "subQuestions": [
         {
           "id": "p34-p4-09-q1",
@@ -1914,7 +1914,7 @@
             },
             {
               "key": "B",
-              "text": "New employees"
+              "text": "Long-time employees receiving an award"
             },
             {
               "key": "C",
@@ -1922,11 +1922,11 @@
             },
             {
               "key": "D",
-              "text": "Long-time employees receiving an award"
+              "text": "New employees"
             }
           ],
-          "answer": "B",
-          "explanation": "\"welcome to your first day of orientation\"と述べている。",
+          "answer": "D",
+          "explanation": "\"welcome to your first day of orientation\"と述べている。他の選択肢（\"Job candidates being interviewed\"／\"Long-time employees receiving an award\"／\"Visiting clients\"）はこの会話・トークの中で述べられていない。",
           "translation": "この話は誰に向けたものですか。"
         },
         {
@@ -1943,11 +1943,11 @@
             },
             {
               "key": "C",
-              "text": "Take a final exam"
+              "text": "Travel to a company retreat"
             },
             {
               "key": "D",
-              "text": "Travel to a company retreat"
+              "text": "Take a final exam"
             }
           ],
           "answer": "B",
@@ -1960,7 +1960,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Ask their mentor"
+              "text": "Wait until the second day"
             },
             {
               "key": "B",
@@ -1968,14 +1968,14 @@
             },
             {
               "key": "C",
-              "text": "Wait until the second day"
+              "text": "Ask their mentor"
             },
             {
               "key": "D",
               "text": "Email human resources"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "\"don't hesitate to ask your mentor if you have any questions\"と述べている。",
           "translation": "質問がある場合、聞き手は何をするよう言われていますか。"
         }
@@ -2000,10 +2000,10 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium",
-        "durationMs": 19043
+        "voice": "pending-tts",
+        "durationMs": 37100
       },
-      "script": "Good morning, commuters. Traffic on the downtown expressway is moving slowly this morning due to ongoing construction near exit seven. Drivers should expect delays of up to twenty minutes and may want to consider the riverside route as an alternative. We'll have another update in thirty minutes.",
+      "script": "Good morning, commuters. Traffic on the downtown expressway is moving slowly this morning due to ongoing construction near exit seven, where crews are repairing a section of guardrail damaged in last week's storm. Drivers should expect delays of up to twenty minutes in that area and may want to consider the riverside route as an alternative, although that road also tends to get busy closer to nine. Public transit appears to be running on schedule this morning, so commuters near a bus or train line may want to consider leaving the car at home today. We'll have another update in thirty minutes with the latest conditions.",
       "subQuestions": [
         {
           "id": "p34-p4-10-q1",
@@ -2011,23 +2011,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "A change in bus fares"
-            },
-            {
-              "key": "B",
-              "text": "Traffic conditions during the morning commute"
-            },
-            {
-              "key": "C",
               "text": "A new highway opening"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "A weather warning"
+            },
+            {
+              "key": "C",
+              "text": "Traffic conditions during the morning commute"
+            },
+            {
+              "key": "D",
+              "text": "A change in bus fares"
             }
           ],
-          "answer": "B",
-          "explanation": "\"Good morning, commuters. Traffic on the downtown expressway is moving slowly\"と述べている。",
+          "answer": "C",
+          "explanation": "\"Good morning, commuters. Traffic on the downtown expressway is moving slowly\"と述べている。他の選択肢（\"A new highway opening\"／\"A weather warning\"／\"A change in bus fares\"）はこの会話・トークの中で述べられていない。",
           "translation": "この報道は主に何についてですか。"
         },
         {
@@ -2036,23 +2036,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Heavy rain"
+              "text": "Ongoing construction near exit seven"
             },
             {
               "key": "B",
-              "text": "A public event downtown"
-            },
-            {
-              "key": "C",
               "text": "A traffic accident"
             },
             {
+              "key": "C",
+              "text": "A public event downtown"
+            },
+            {
               "key": "D",
-              "text": "Ongoing construction near exit seven"
+              "text": "Heavy rain"
             }
           ],
-          "answer": "D",
-          "explanation": "\"due to ongoing construction near exit seven\"と述べている。",
+          "answer": "A",
+          "explanation": "\"due to ongoing construction near exit seven\"と述べている。他の選択肢（\"A traffic accident\"／\"A public event downtown\"／\"Heavy rain\"）はこの会話・トークの中で述べられていない。",
           "translation": "なぜ交通の流れが遅くなっていますか。"
         },
         {
@@ -2061,11 +2061,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "Using public transportation instead"
+              "text": "Waiting until after exit seven reopens"
             },
             {
               "key": "B",
-              "text": "Taking the riverside route"
+              "text": "Using public transportation instead"
             },
             {
               "key": "C",
@@ -2073,11 +2073,11 @@
             },
             {
               "key": "D",
-              "text": "Waiting until after exit seven reopens"
+              "text": "Taking the riverside route"
             }
           ],
-          "answer": "B",
-          "explanation": "\"may want to consider the riverside route as an alternative\"と述べている。",
+          "answer": "D",
+          "explanation": "\"may want to consider the riverside route as an alternative\"と述べている。他の選択肢（\"Waiting until after exit seven reopens\"／\"Using public transportation instead\"／\"Leaving earlier than usual\"）はこの会話・トークの中で述べられていない。",
           "translation": "話者はどんな代替案を提案していますか。"
         }
       ]

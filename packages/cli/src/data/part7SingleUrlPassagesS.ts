@@ -35,6 +35,8 @@ export const PART7_SINGLE_URL_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'email',
     passageText:
       'Subject: Your Shipment Has Left the Warehouse — Invoice #48213\n\nDear Ms. Tanaka,\n\nYour recent shipment from Harborcrest Home Goods has left our warehouse and is on its way. You can track the delivery status at any time using the link below.\n\nTracking: https://track.harborcrestshipping.example.com/orders/48213\n\nYour invoice is attached as a PDF and is also available for download from your account page. If any item arrives damaged, please contact our support team within seven days at support@harborcrestshipping.example.com and include your order number. Refunds for damaged items are typically processed within five business days of the reply.\n\nThank you for shopping with us.\n\nCustomer Care Team, Harborcrest Home Goods',
+    passageTranslation:
+      '件名: 出荷が倉庫を出発しました — 請求書番号48213\n\nTanaka様\n\nHarborcrest Home Goodsからのご注文が倉庫を出発し、配送中です。下記のリンクから配送状況をいつでも確認できます。\n\n追跡: https://track.harborcrestshipping.example.com/orders/48213\n\n請求書はPDFで添付されており、お客様のアカウントページからもダウンロードできます。商品が破損して届いた場合は、7日以内にサポートチーム（support@harborcrestshipping.example.com）へご連絡のうえ、注文番号を記載してください。破損品の返金は通常、返信から5営業日以内に処理されます。\n\nご利用ありがとうございます。\n\nカスタマーケアチーム、Harborcrest Home Goods',
     subQuestions: [
       {
         question: 'What is the purpose of this email?',
@@ -77,6 +79,8 @@ export const PART7_SINGLE_URL_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'advertisement',
     passageText:
       'REGISTER FOR THE ANNUAL LOGISTICS EXPO\n\nJoin professionals from across the shipping and logistics industry for a full day of workshops, keynote speakers, and networking. The event will be held on September 12 at the Riverside Convention Center.\n\nEarly registration (before August 20) includes a complimentary lunch voucher and priority seating. Seats are limited, so early registration is recommended.\n\nTo register, visit our website and complete the online form. For groups of five or more, please contact our events coordinator directly for a discounted rate.\n\nWebsite: internationallogisticsexpo2026registration.example.com\nContact: eventscoordinator@internationallogisticsexpo2026registration.example.com',
+    passageTranslation:
+      '年次ロジスティクス・エキスポ 参加登録受付中\n\n荷物輸送・物流業界の専門家の皆様、ワークショップ・基調講演・ネットワーキングが詰まった一日にぜひご参加ください。開催日は9月12日、会場はRiverside Convention Centerです。\n\n早期登録（8月20日まで）には無料の昼食引換券と優先席が含まれます。席数に限りがあるため、早期のご登録をお勧めします。\n\n登録には当ウェブサイトからオンライン申込書をご記入ください。5名以上の団体の場合は、割引価格のため直接イベント担当者へご連絡ください。\n\nウェブサイト: internationallogisticsexpo2026registration.example.com\n連絡先: eventscoordinator@internationallogisticsexpo2026registration.example.com',
     subQuestions: [
       {
         question: 'What is being advertised?',
@@ -124,6 +128,8 @@ export const PART7_SINGLE_URL_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'notice',
     passageText:
       'SYSTEM MAINTENANCE NOTICE\n\nThe employee portal will be unavailable for scheduled maintenance from 11 p.m. Friday, March 6, until 5 a.m. Saturday, March 7. During this time, employees will not be able to submit timesheets, view pay statements, or update personal information.\n\nA status page will be updated throughout the maintenance window at status.internalportal.example.com. If the portal is still unavailable after 6 a.m. Saturday, please send an inquiry to ithelpdesk@internalportal.example.com rather than submitting a new ticket through the portal itself.\n\nWe apologize for any inconvenience this may cause.',
+    passageTranslation:
+      'システム保守作業のお知らせ\n\n社員ポータルは、3月6日金曜午後11時から3月7日土曜午前5時まで、定期保守のため利用できません。この間、従業員は勤務時間表の提出、給与明細の確認、個人情報の更新ができません。\n\n保守作業中は状況ページ（status.internalportal.example.com）で随時更新をお知らせします。土曜午前6時を過ぎてもポータルが利用できない場合は、ポータル経由で新規チケットを送るのではなく、ithelpdesk@internalportal.example.com へお問い合わせください。\n\nご不便をおかけしますことをお詫びいたします。',
     subQuestions: [
       {
         question: 'What is the purpose of the notice?',
@@ -160,6 +166,8 @@ export const PART7_SINGLE_URL_ENTRIES_S: Part7SingleRawEntry[] = [
     passageKind: 'chat',
     passageText:
       "Priya Nair [2:15 p.m.]\nHey, did the client send over the revised itinerary yet?\n\nSam Osei [2:17 p.m.]\nJust got it. I uploaded it to the shared drive — you can view it at files.northbridgeconsulting.example.com/itinerary-v3.\n\nPriya Nair [2:19 p.m.]\nThanks. Can you also email me a copy in case I can't get into the drive from my phone?\n\nSam Osei [2:20 p.m.]\nSure, sending it to your inbox now from sam.osei@northbridgeconsulting.example.com.",
+    passageTranslation:
+      'Priya Nair [午後2:15]\nねえ、クライアントから改訂版の旅程表はもう届いた？\n\nSam Osei [午後2:17]\n今受け取ったところ。共有ドライブにアップロードしたよ — files.northbridgeconsulting.example.com/itinerary-v3 で見られる。\n\nPriya Nair [午後2:19]\nありがとう。携帯からドライブに入れない場合に備えて、メールでもコピーを送ってもらえる？\n\nSam Osei [午後2:20]\nもちろん、今 sam.osei@northbridgeconsulting.example.com からあなたの受信箱に送るよ。',
     subQuestions: [
       {
         question: 'What are Priya Nair and Sam Osei mainly discussing?',
