@@ -11,8 +11,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @beb-raid/shared-schema && npm run build -w @beb-raid/cli && npm run build -w @beb-raid/app && npm run build -w @beb-raid/api",
+    "build": "npm run build -w @beb-raid/shared-schema && npm run typecheck -w @beb-raid/shared-schema && npm run build -w @beb-raid/cli && npm run typecheck -w @beb-raid/cli && npm run build -w @beb-raid/app && npm run build -w @beb-raid/api && npm run build -w @beb-raid/review-ui",
     "test": "npm test --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
     "review-ui": "npm run dev -w @beb-raid/review-ui",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",

@@ -1,7 +1,7 @@
 // T-62 完了条件のテスト（純粋ロジック層）:
-// - 40問のdictation Questionが正しく組み立てられる
+// - 44問のdictation Questionが正しく組み立てられる
 // - バリデータ（shared-schema validatePack。blanks/script整合含む）を通過する
-// - 全問tags[0]='弱形・連結'固定
+// - tags[0]は'弱形・連結'または'内容語'固定（T-341で内容語の穴を追加）
 // - keyVocabWordがS/A/B語彙カード（600語）に実在し重複しない
 import { describe, expect, it } from 'vitest'
 import { DICTATION_ENTRIES_S } from './data/dictationS.js'
@@ -16,8 +16,8 @@ import {
 } from './dictationQuestion.js'
 
 describe('DICTATION_ENTRIES_S（データ本体）', () => {
-  it('40問ある', () => {
-    expect(DICTATION_ENTRIES_S).toHaveLength(40)
+  it('44問ある', () => {
+    expect(DICTATION_ENTRIES_S).toHaveLength(44)
   })
 
   it('keyVocabWordが重複しない', () => {
@@ -37,9 +37,9 @@ describe('DICTATION_ENTRIES_S（データ本体）', () => {
     }
   })
 
-  it('全問のtags[0]が弱形・連結固定', () => {
+  it('全問のtags[0]が弱形・連結または内容語（T-341で内容語の穴を追加）', () => {
     for (const entry of DICTATION_ENTRIES_S) {
-      expect(entry.tags[0]).toBe('弱形・連結')
+      expect(['弱形・連結', '内容語']).toContain(entry.tags[0])
     }
   })
 
@@ -85,9 +85,9 @@ describe('dictationQuestion', () => {
 })
 
 describe('buildDictationQuestions / validateDictationQuestions', () => {
-  it('40件のQuestionを組み立て、バリデータを通過する', () => {
+  it('44件のQuestionを組み立て、バリデータを通過する', () => {
     const questions = buildDictationQuestions()
-    expect(questions).toHaveLength(40)
+    expect(questions).toHaveLength(44)
     expect(validateDictationQuestions(questions)).toEqual([])
   })
 
@@ -98,9 +98,9 @@ describe('buildDictationQuestions / validateDictationQuestions', () => {
 })
 
 describe('buildDictationDrafts', () => {
-  it('T-30のGeneratedItemDraft形式（id/kind/preview/payload）で40件出力する', () => {
+  it('T-30のGeneratedItemDraft形式（id/kind/preview/payload）で44件出力する', () => {
     const drafts = buildDictationDrafts()
-    expect(drafts).toHaveLength(40)
+    expect(drafts).toHaveLength(44)
     for (const d of drafts) {
       expect(d.kind).toBe('dictation')
       expect(d.preview.length).toBeGreaterThan(0)

@@ -738,3 +738,30 @@ describe('ResultScreen: 一覧の設問ラベルのlang="en"（T-224・J-108）'
     expect(label.getAttribute('lang')).toBe('en')
   })
 })
+
+// 何を防ぐか（T-319・K-52）: 演出スキップは`.result-content`のonClickのみで、
+// タップ・マウスクリックでしか届かなかった（divはタブ順に入らずEnter/Spaceも拾わない）。
+// キーボード利用者は演出（カウントアップ）が終わるまで数値が0のまま待たされていた
+describe('ResultScreen: 演出の自動確定（T-319・K-52）', () => {
+  it('タップしなくても700ms後に演出が自動で確定する（キーボード利用者が操作せずに進める）', async () => {
+    // requestAnimationFrameのコールバックを永久に呼ばせない（rAFベースのカウントアップが
+    // 自然に終わる経路を潰す）ことで、自動確定タイマー（本題）だけを分離して検証する。
+    // これが無いと、rAFの自然完了（約700ms）と自動確定タイマー（700ms）が同じ頃合いに
+    // 重なり、タイマーを削除しても偶然テストが通ってしまう
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(0)
+    try {
+      const db = newDb()
+      const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+      useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+      await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 80 })
+
+      render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+      // rAFが死んでいるのでカウントアップ演出自体は永久に0のまま。
+      // それでも自動確定タイマーが働けば最終値がそのまま表示される
+      await waitFor(() => expect(screen.getByText('+80')).toBeTruthy(), { timeout: 2000 })
+    } finally {
+      rafSpy.mockRestore()
+    }
+  })
+})

@@ -25,6 +25,18 @@ export const LEVEL_BAND_FOR_RANK: Record<FreqRank, number> = {
   C: 990,
 }
 
+/**
+ * freqRank→difficultyの対応（T-345・K-86）。従来は語彙カード全650枚がdifficulty:1固定で、
+ * S（易）とB（難）の実際のレベル差を反映していなかった。levelBandの並びと同じ順序で
+ * 1〜5の中間帯に割り当てる
+ */
+export const DIFFICULTY_FOR_RANK: Record<FreqRank, number> = {
+  S: 2,
+  A: 3,
+  B: 4,
+  C: 5,
+}
+
 /** 語彙カードのphraseAudio予約パス規約（T-31で実ファイルに差し替える） */
 export function reservedPhraseAudioPath(word: string): string {
   return `audio/vocab/${word}.mp3`
@@ -40,8 +52,8 @@ export function vocabCardQuestion(
     id: `vocab-${entry.word}`,
     part: 0,
     format: 'vocab_card',
-    difficulty: 1,
-    tags: [],
+    difficulty: DIFFICULTY_FOR_RANK[freqRank],
+    tags: entry.tags,
     keyVocab: [],
     front: entry.word,
     phrase: entry.phrase,

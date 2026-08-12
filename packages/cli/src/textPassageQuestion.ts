@@ -101,6 +101,7 @@ export function part6Question(entry: Part6RawEntry, globalSubQuestionStartIndex:
     id: `${entry.setId}-doc1`,
     kind: entry.passageKind,
     text: entry.passageText,
+    translation: entry.passageTranslation,
   }
   return {
     id: entry.setId,
@@ -170,6 +171,7 @@ export function part7SingleQuestion(
     id: `${entry.setId}-doc1`,
     kind: entry.passageKind,
     text: entry.passageText,
+    translation: entry.passageTranslation,
   }
   return {
     id: entry.setId,

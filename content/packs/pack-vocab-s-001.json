@@ -9,15 +9,17 @@
       600,
       600
     ],
-    "sizeBytes": 75898
+    "sizeBytes": 86439
   },
   "questions": [
     {
       "id": "vocab-meeting",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "meeting",
       "phrase": "Please let me know if you can attend the meeting on Friday.",
@@ -30,8 +32,10 @@
       "id": "vocab-agenda",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "agenda",
       "phrase": "The first item on the agenda is the budget review.",
@@ -44,8 +48,10 @@
       "id": "vocab-minutes",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "minutes",
       "phrase": "Could you send me the minutes from yesterday's meeting?",
@@ -58,8 +64,10 @@
       "id": "vocab-memo",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "memo",
       "phrase": "She left a memo on my desk about the schedule change.",
@@ -72,8 +80,10 @@
       "id": "vocab-correspondence",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "correspondence",
       "phrase": "All correspondence with the client should be kept on file.",
@@ -86,8 +96,10 @@
       "id": "vocab-respond",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "respond",
       "phrase": "Please respond to the client's email by the end of the day.",
@@ -100,8 +112,10 @@
       "id": "vocab-reschedule",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "reschedule",
       "phrase": "We need to reschedule the appointment to next Tuesday.",
@@ -114,8 +128,10 @@
       "id": "vocab-postpone",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "postpone",
       "phrase": "The board decided to postpone the product launch.",
@@ -128,8 +144,10 @@
       "id": "vocab-confirm",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "confirm",
       "phrase": "Can you confirm your attendance by Wednesday?",
@@ -142,8 +160,10 @@
       "id": "vocab-notify",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "notify",
       "phrase": "Please notify the office if you will be late for the meeting.",
@@ -156,8 +176,10 @@
       "id": "vocab-inform",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "inform",
       "phrase": "We regret to inform you that the flight has been delayed.",
@@ -170,8 +192,10 @@
       "id": "vocab-request",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "request",
       "phrase": "I would like to request an extension on the deadline.",
@@ -184,8 +208,10 @@
       "id": "vocab-inquiry",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "inquiry",
       "phrase": "We received an inquiry about our new pricing plan.",
@@ -198,8 +224,10 @@
       "id": "vocab-deadline",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "deadline",
       "phrase": "The deadline for the proposal is this Friday.",
@@ -212,8 +240,10 @@
       "id": "vocab-attend",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "attend",
       "phrase": "All department heads are expected to attend the seminar.",
@@ -226,8 +256,10 @@
       "id": "vocab-participate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "participate",
       "phrase": "Employees are encouraged to participate in the training program.",
@@ -240,13 +272,15 @@
       "id": "vocab-presentation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "presentation",
       "phrase": "He gave a presentation on the quarterly sales results.",
       "phraseAudio": "audio/vocab/presentation.mp3",
-      "back": "プレゼンテーション",
+      "back": "プレゼンテーション（説明・発表）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -254,8 +288,10 @@
       "id": "vocab-attachment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "attachment",
       "phrase": "Please see the attachment for further details.",
@@ -268,8 +304,10 @@
       "id": "vocab-draft",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "draft",
       "phrase": "I have prepared a draft of the contract for your review.",
@@ -282,8 +320,10 @@
       "id": "vocab-correspond",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "correspond",
       "phrase": "Our office will correspond directly with the supplier.",
@@ -296,8 +336,10 @@
       "id": "vocab-office",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "office",
       "phrase": "The office will be closed for the holiday on Monday.",
@@ -310,8 +352,10 @@
       "id": "vocab-supply",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "supply",
       "phrase": "The factory can supply spare parts on short notice.",
@@ -324,8 +368,10 @@
       "id": "vocab-equipment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "equipment",
       "phrase": "All safety equipment must be inspected before use.",
@@ -338,8 +384,10 @@
       "id": "vocab-stationery",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "stationery",
       "phrase": "The stationery order includes pens, paper, and folders.",
@@ -352,8 +400,10 @@
       "id": "vocab-photocopier",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "photocopier",
       "phrase": "The photocopier on the third floor is out of order.",
@@ -366,13 +416,15 @@
       "id": "vocab-printer",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "printer",
       "phrase": "Please replace the toner cartridge in the printer.",
       "phraseAudio": "audio/vocab/printer.mp3",
-      "back": "プリンター",
+      "back": "プリンター（印刷機）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -380,8 +432,10 @@
       "id": "vocab-maintenance",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "maintenance",
       "phrase": "The elevator will be out of service for maintenance this weekend.",
@@ -394,8 +448,10 @@
       "id": "vocab-facility",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "facility",
       "phrase": "Our new facility can accommodate up to 500 employees.",
@@ -408,8 +464,10 @@
       "id": "vocab-renovation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "renovation",
       "phrase": "The lobby is currently closed for renovation.",
@@ -422,8 +480,10 @@
       "id": "vocab-inventory",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "inventory",
       "phrase": "We need to check the inventory before placing a new order.",
@@ -436,8 +496,10 @@
       "id": "vocab-procurement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "procurement",
       "phrase": "The procurement department handles all vendor contracts.",
@@ -450,8 +512,10 @@
       "id": "vocab-vendor",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "vendor",
       "phrase": "We are looking for a new vendor for office supplies.",
@@ -464,8 +528,10 @@
       "id": "vocab-supplier",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "supplier",
       "phrase": "The supplier agreed to lower the price for bulk orders.",
@@ -478,8 +544,10 @@
       "id": "vocab-warehouse",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "warehouse",
       "phrase": "The shipment is currently stored in our main warehouse.",
@@ -492,8 +560,10 @@
       "id": "vocab-storage",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "storage",
       "phrase": "Extra files are kept in storage on the second floor.",
@@ -506,8 +576,10 @@
       "id": "vocab-invoice",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "invoice",
       "phrase": "Please send the invoice to the accounting department.",
@@ -520,8 +592,10 @@
       "id": "vocab-receipt",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "receipt",
       "phrase": "Keep your receipt in case you need a refund.",
@@ -534,8 +608,10 @@
       "id": "vocab-payment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "payment",
       "phrase": "Payment is due within thirty days of the invoice date.",
@@ -548,8 +624,10 @@
       "id": "vocab-budget",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "budget",
       "phrase": "The marketing team exceeded its budget this quarter.",
@@ -562,8 +640,10 @@
       "id": "vocab-expense",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "expense",
       "phrase": "All travel expenses must be submitted with receipts.",
@@ -576,8 +656,10 @@
       "id": "vocab-revenue",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "revenue",
       "phrase": "Revenue increased by ten percent compared to last year.",
@@ -590,8 +672,10 @@
       "id": "vocab-profit",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "profit",
       "phrase": "The company reported a record profit this year.",
@@ -604,8 +688,10 @@
       "id": "vocab-account",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "account",
       "phrase": "Please transfer the funds to our corporate account.",
@@ -618,8 +704,10 @@
       "id": "vocab-accountant",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "accountant",
       "phrase": "The accountant reviewed the financial statements carefully.",
@@ -632,8 +720,10 @@
       "id": "vocab-audit",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "audit",
       "phrase": "The company will undergo an audit next month.",
@@ -646,8 +736,10 @@
       "id": "vocab-reimbursement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "reimbursement",
       "phrase": "You can request reimbursement for approved travel expenses.",
@@ -660,8 +752,10 @@
       "id": "vocab-expenditure",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "expenditure",
       "phrase": "Total expenditure on marketing rose sharply this year.",
@@ -674,8 +768,10 @@
       "id": "vocab-fiscal",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "fiscal",
       "phrase": "The new budget takes effect at the start of the fiscal year.",
@@ -688,8 +784,10 @@
       "id": "vocab-quarter",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "quarter",
       "phrase": "Sales figures for the third quarter look promising.",
@@ -702,8 +800,10 @@
       "id": "vocab-statement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "statement",
       "phrase": "Please review your bank statement for any errors.",
@@ -716,8 +816,10 @@
       "id": "vocab-balance",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "balance",
       "phrase": "Your account balance is available online at any time.",
@@ -730,8 +832,10 @@
       "id": "vocab-deposit",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "deposit",
       "phrase": "You can deposit checks at any branch of the bank.",
@@ -744,8 +848,10 @@
       "id": "vocab-withdrawal",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "withdrawal",
       "phrase": "There is a fee for same-day withdrawal requests.",
@@ -758,8 +864,10 @@
       "id": "vocab-transaction",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "transaction",
       "phrase": "The transaction was completed without any issues.",
@@ -772,8 +880,10 @@
       "id": "vocab-discount",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "discount",
       "phrase": "We offer a discount for orders placed before the deadline.",
@@ -786,8 +896,10 @@
       "id": "vocab-contract",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "contract",
       "phrase": "Both parties signed the contract yesterday afternoon.",
@@ -800,8 +912,10 @@
       "id": "vocab-agreement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "agreement",
       "phrase": "The two companies reached an agreement on pricing.",
@@ -814,8 +928,10 @@
       "id": "vocab-clause",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "clause",
       "phrase": "Please review the cancellation clause before signing.",
@@ -828,8 +944,10 @@
       "id": "vocab-negotiate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "negotiate",
       "phrase": "They plan to negotiate a lower rental rate.",
@@ -842,8 +960,10 @@
       "id": "vocab-terms",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "terms",
       "phrase": "The terms of the contract were revised last week.",
@@ -856,8 +976,10 @@
       "id": "vocab-condition",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "condition",
       "phrase": "Delivery is subject to the condition that payment is received first.",
@@ -870,8 +992,10 @@
       "id": "vocab-breach",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "breach",
       "phrase": "Late delivery may be considered a breach of contract.",
@@ -884,8 +1008,10 @@
       "id": "vocab-renewal",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "renewal",
       "phrase": "The lease is up for renewal at the end of the month.",
@@ -898,8 +1024,10 @@
       "id": "vocab-terminate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "terminate",
       "phrase": "The company decided to terminate the agreement early.",
@@ -912,8 +1040,10 @@
       "id": "vocab-lease",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "lease",
       "phrase": "The company signed a five-year lease for the new building.",
@@ -926,8 +1056,10 @@
       "id": "vocab-tenant",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "tenant",
       "phrase": "The tenant reported a leak in the ceiling.",
@@ -940,8 +1072,10 @@
       "id": "vocab-landlord",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "landlord",
       "phrase": "The landlord agreed to repaint the office walls.",
@@ -954,8 +1088,10 @@
       "id": "vocab-liability",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "liability",
       "phrase": "The company carries liability insurance for workplace accidents.",
@@ -968,8 +1104,10 @@
       "id": "vocab-compliance",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "compliance",
       "phrase": "The audit confirmed the factory's compliance with safety regulations.",
@@ -982,8 +1120,10 @@
       "id": "vocab-clarify",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "clarify",
       "phrase": "Could you clarify what is included in the service fee?",
@@ -996,8 +1136,10 @@
       "id": "vocab-recruit",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "recruit",
       "phrase": "The firm plans to recruit ten new engineers this year.",
@@ -1010,8 +1152,10 @@
       "id": "vocab-applicant",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "applicant",
       "phrase": "Each applicant must submit a resume and cover letter.",
@@ -1024,8 +1168,10 @@
       "id": "vocab-candidate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "candidate",
       "phrase": "The hiring committee interviewed three candidates for the position.",
@@ -1038,8 +1184,10 @@
       "id": "vocab-resume",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "resume",
       "phrase": "Please attach your resume when applying for the position.",
@@ -1052,8 +1200,10 @@
       "id": "vocab-interview",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "interview",
       "phrase": "Her interview is scheduled for next Monday morning.",
@@ -1066,8 +1216,10 @@
       "id": "vocab-hire",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "hire",
       "phrase": "The company plans to hire additional staff for the summer.",
@@ -1080,8 +1232,10 @@
       "id": "vocab-employee",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "employee",
       "phrase": "Every employee must complete the safety training.",
@@ -1094,8 +1248,10 @@
       "id": "vocab-employer",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "employer",
       "phrase": "Your employer will provide health insurance after ninety days.",
@@ -1108,8 +1264,10 @@
       "id": "vocab-promotion",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "promotion",
       "phrase": "She received a promotion to senior manager last month.",
@@ -1122,8 +1280,10 @@
       "id": "vocab-salary",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "salary",
       "phrase": "The starting salary depends on relevant experience.",
@@ -1136,8 +1296,10 @@
       "id": "vocab-wage",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "wage",
       "phrase": "The minimum wage will increase next January.",
@@ -1150,8 +1312,10 @@
       "id": "vocab-benefits",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "benefits",
       "phrase": "The benefits package includes dental and vision coverage.",
@@ -1164,8 +1328,10 @@
       "id": "vocab-retirement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "retirement",
       "phrase": "The company held a small party to celebrate her retirement.",
@@ -1178,8 +1344,10 @@
       "id": "vocab-vacation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "vacation",
       "phrase": "I am taking a two-week vacation in August.",
@@ -1192,8 +1360,10 @@
       "id": "vocab-leave",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "leave",
       "phrase": "She is currently on maternity leave.",
@@ -1206,8 +1376,10 @@
       "id": "vocab-training",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "training",
       "phrase": "New hires must complete two weeks of training.",
@@ -1220,8 +1392,10 @@
       "id": "vocab-orientation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "orientation",
       "phrase": "All new employees attend orientation on their first day.",
@@ -1234,8 +1408,10 @@
       "id": "vocab-performance",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "performance",
       "phrase": "Her performance review is scheduled for next week.",
@@ -1248,8 +1424,10 @@
       "id": "vocab-evaluation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "evaluation",
       "phrase": "The manager conducts an evaluation of each employee annually.",
@@ -1262,8 +1440,10 @@
       "id": "vocab-supervisor",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "supervisor",
       "phrase": "Please ask your supervisor to approve the request.",
@@ -1276,8 +1456,10 @@
       "id": "vocab-customer",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "customer",
       "phrase": "The customer requested a refund for the damaged item.",
@@ -1290,8 +1472,10 @@
       "id": "vocab-client",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "client",
       "phrase": "We scheduled a call with the client for Thursday.",
@@ -1304,8 +1488,10 @@
       "id": "vocab-market",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "market",
       "phrase": "The company plans to expand into the Asian market.",
@@ -1318,13 +1504,15 @@
       "id": "vocab-campaign",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "campaign",
       "phrase": "The marketing campaign will launch next month.",
       "phraseAudio": "audio/vocab/campaign.mp3",
-      "back": "キャンペーン",
+      "back": "キャンペーン（宣伝活動）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -1332,8 +1520,10 @@
       "id": "vocab-advertisement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "advertisement",
       "phrase": "The advertisement will run on local television stations.",
@@ -1346,8 +1536,10 @@
       "id": "vocab-endorsement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "endorsement",
       "phrase": "The athlete signed an endorsement deal with the brand.",
@@ -1360,13 +1552,15 @@
       "id": "vocab-brand",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "brand",
       "phrase": "The company is known for its strong brand image.",
       "phraseAudio": "audio/vocab/brand.mp3",
-      "back": "ブランド",
+      "back": "ブランド（商標・銘柄）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -1374,8 +1568,10 @@
       "id": "vocab-product",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "product",
       "phrase": "The new product will be available in stores next week.",
@@ -1388,8 +1584,10 @@
       "id": "vocab-launch",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "launch",
       "phrase": "The company will launch its new app in the spring.",
@@ -1402,8 +1600,10 @@
       "id": "vocab-sample",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "sample",
       "phrase": "We sent a free sample to interested customers.",
@@ -1416,13 +1616,15 @@
       "id": "vocab-feedback",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "feedback",
       "phrase": "Customer feedback helped improve the design of the product.",
       "phraseAudio": "audio/vocab/feedback.mp3",
-      "back": "フィードバック",
+      "back": "フィードバック（意見・反応）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -1430,13 +1632,15 @@
       "id": "vocab-survey",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "survey",
       "phrase": "The company conducted a survey to measure customer satisfaction.",
       "phraseAudio": "audio/vocab/survey.mp3",
-      "back": "アンケート",
+      "back": "アンケート（調査）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -1444,8 +1648,10 @@
       "id": "vocab-competitor",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "competitor",
       "phrase": "Our main competitor lowered its prices last week.",
@@ -1458,8 +1664,10 @@
       "id": "vocab-retail",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "retail",
       "phrase": "The product will be sold through retail stores nationwide.",
@@ -1472,8 +1680,10 @@
       "id": "vocab-wholesale",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "wholesale",
       "phrase": "The company sells its products at wholesale prices to retailers.",
@@ -1486,8 +1696,10 @@
       "id": "vocab-merchandise",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "merchandise",
       "phrase": "The store received new merchandise this morning.",
@@ -1500,8 +1712,10 @@
       "id": "vocab-purchase",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "purchase",
       "phrase": "Customers can purchase the item online or in stores.",
@@ -1514,8 +1728,10 @@
       "id": "vocab-order",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "order",
       "phrase": "Please confirm your order before it ships.",
@@ -1528,8 +1744,10 @@
       "id": "vocab-shipment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "shipment",
       "phrase": "The shipment is expected to arrive within five business days.",
@@ -1542,8 +1760,10 @@
       "id": "vocab-distributor",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "distributor",
       "phrase": "The company works with a distributor in each region.",
@@ -1556,8 +1776,10 @@
       "id": "vocab-factory",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "factory",
       "phrase": "The factory produces over a thousand units per day.",
@@ -1570,8 +1792,10 @@
       "id": "vocab-manufacture",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "manufacture",
       "phrase": "The company manufactures parts for the automotive industry.",
@@ -1584,8 +1808,10 @@
       "id": "vocab-assembly",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "assembly",
       "phrase": "Workers on the assembly line inspect each unit.",
@@ -1598,8 +1824,10 @@
       "id": "vocab-quality",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "quality",
       "phrase": "The company is known for the quality of its products.",
@@ -1612,8 +1840,10 @@
       "id": "vocab-defect",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "defect",
       "phrase": "The inspector found a defect in the packaging.",
@@ -1626,8 +1856,10 @@
       "id": "vocab-inspection",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "inspection",
       "phrase": "Every vehicle undergoes a thorough inspection before delivery.",
@@ -1640,8 +1872,10 @@
       "id": "vocab-delivery",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "delivery",
       "phrase": "Delivery usually takes three to five business days.",
@@ -1654,8 +1888,10 @@
       "id": "vocab-freight",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "freight",
       "phrase": "The freight will be shipped by sea to reduce costs.",
@@ -1668,8 +1904,10 @@
       "id": "vocab-logistics",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "logistics",
       "phrase": "The logistics team coordinates deliveries across the country.",
@@ -1682,8 +1920,10 @@
       "id": "vocab-packaging",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "packaging",
       "phrase": "The new packaging is more eco-friendly than the old design.",
@@ -1696,8 +1936,10 @@
       "id": "vocab-transport",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "transport",
       "phrase": "The goods are transported by truck to the warehouse.",
@@ -1710,8 +1952,10 @@
       "id": "vocab-courier",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "courier",
       "phrase": "A courier delivered the documents this afternoon.",
@@ -1724,8 +1968,10 @@
       "id": "vocab-carrier",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "carrier",
       "phrase": "We use a different carrier for international shipments.",
@@ -1738,8 +1984,10 @@
       "id": "vocab-dispatch",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "dispatch",
       "phrase": "The warehouse will dispatch the order within twenty-four hours.",
@@ -1752,8 +2000,10 @@
       "id": "vocab-itinerary",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "itinerary",
       "phrase": "Please review the itinerary before the business trip.",
@@ -1766,8 +2016,10 @@
       "id": "vocab-reservation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "reservation",
       "phrase": "I would like to make a reservation for two people.",
@@ -1780,8 +2032,10 @@
       "id": "vocab-boarding",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "boarding",
       "phrase": "Boarding for Flight 205 will begin in ten minutes.",
@@ -1794,8 +2048,10 @@
       "id": "vocab-departure",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "departure",
       "phrase": "The departure time was changed due to bad weather.",
@@ -1808,8 +2064,10 @@
       "id": "vocab-arrival",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "arrival",
       "phrase": "Please notify the front desk of your arrival time.",
@@ -1822,8 +2080,10 @@
       "id": "vocab-luggage",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "luggage",
       "phrase": "Passengers may check one piece of luggage for free.",
@@ -1836,13 +2096,15 @@
       "id": "vocab-terminal",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "terminal",
       "phrase": "The shuttle bus stops at Terminal 2.",
       "phraseAudio": "audio/vocab/terminal.mp3",
-      "back": "ターミナル",
+      "back": "ターミナル（発着点・端末機）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -1850,8 +2112,10 @@
       "id": "vocab-accommodation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "accommodation",
       "phrase": "The travel agency arranged accommodation near the conference center.",
@@ -1864,8 +2128,10 @@
       "id": "vocab-conference",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "conference",
       "phrase": "The annual conference will be held in Chicago this year.",
@@ -1878,8 +2144,10 @@
       "id": "vocab-venue",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "venue",
       "phrase": "The venue for the event was changed at the last minute.",
@@ -1892,8 +2160,10 @@
       "id": "vocab-banquet",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "banquet",
       "phrase": "The company held a banquet to celebrate its anniversary.",
@@ -1906,8 +2176,10 @@
       "id": "vocab-reception",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "reception",
       "phrase": "Guests were greeted at the reception desk.",
@@ -1920,8 +2192,10 @@
       "id": "vocab-complimentary",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "complimentary",
       "phrase": "The hotel offers complimentary breakfast for all guests.",
@@ -1934,8 +2208,10 @@
       "id": "vocab-voucher",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "voucher",
       "phrase": "Customers received a voucher for a free upgrade.",
@@ -1948,8 +2224,10 @@
       "id": "vocab-refund",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "refund",
       "phrase": "The store issued a full refund for the defective item.",
@@ -1962,8 +2240,10 @@
       "id": "vocab-itemize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "itemize",
       "phrase": "Please itemize each expense on the report.",
@@ -1976,8 +2256,10 @@
       "id": "vocab-fare",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "fare",
       "phrase": "The train fare increased slightly this year.",
@@ -1990,13 +2272,15 @@
       "id": "vocab-software",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "software",
       "phrase": "The company updated its software to fix several bugs.",
       "phraseAudio": "audio/vocab/software.mp3",
-      "back": "ソフトウェア",
+      "back": "ソフトウェア（プログラム）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2004,13 +2288,15 @@
       "id": "vocab-hardware",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "hardware",
       "phrase": "The IT department is replacing outdated hardware this year.",
       "phraseAudio": "audio/vocab/hardware.mp3",
-      "back": "ハードウェア",
+      "back": "ハードウェア（機器本体）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2018,13 +2304,15 @@
       "id": "vocab-database",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "database",
       "phrase": "All customer records are stored in a secure database.",
       "phraseAudio": "audio/vocab/database.mp3",
-      "back": "データベース",
+      "back": "データベース（データの集積）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2032,13 +2320,15 @@
       "id": "vocab-network",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "network",
       "phrase": "The office network was down for an hour this morning.",
       "phraseAudio": "audio/vocab/network.mp3",
-      "back": "ネットワーク",
+      "back": "ネットワーク（回線・人脈）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2046,8 +2336,10 @@
       "id": "vocab-install",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "install",
       "phrase": "A technician will install the new system next week.",
@@ -2060,8 +2352,10 @@
       "id": "vocab-upgrade",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "upgrade",
       "phrase": "We plan to upgrade all computers by the end of the year.",
@@ -2074,13 +2368,15 @@
       "id": "vocab-password",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "password",
       "phrase": "Please change your password every ninety days.",
       "phraseAudio": "audio/vocab/password.mp3",
-      "back": "パスワード",
+      "back": "パスワード（暗証番号）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2088,8 +2384,10 @@
       "id": "vocab-download",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "download",
       "phrase": "You can download the report from the company website.",
@@ -2102,8 +2400,10 @@
       "id": "vocab-upload",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "upload",
       "phrase": "Please upload the completed form before the deadline.",
@@ -2116,13 +2416,15 @@
       "id": "vocab-server",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "server",
       "phrase": "The server was down for scheduled maintenance last night.",
       "phraseAudio": "audio/vocab/server.mp3",
-      "back": "サーバー",
+      "back": "サーバー（提供元の機器）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2130,8 +2432,10 @@
       "id": "vocab-malfunction",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "malfunction",
       "phrase": "The photocopier had a malfunction during the morning rush.",
@@ -2144,8 +2448,10 @@
       "id": "vocab-technician",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "technician",
       "phrase": "A technician was sent to repair the copier.",
@@ -2158,8 +2464,10 @@
       "id": "vocab-troubleshoot",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "troubleshoot",
       "phrase": "The IT team helped troubleshoot the network issue.",
@@ -2172,8 +2480,10 @@
       "id": "vocab-property",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "property",
       "phrase": "The company purchased a new property downtown.",
@@ -2186,8 +2496,10 @@
       "id": "vocab-premises",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "premises",
       "phrase": "Visitors must sign in before entering the premises.",
@@ -2200,8 +2512,10 @@
       "id": "vocab-mortgage",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "mortgage",
       "phrase": "They applied for a mortgage to buy their first house.",
@@ -2214,8 +2528,10 @@
       "id": "vocab-estate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "estate",
       "phrase": "The real estate agency listed several new properties this week.",
@@ -2228,8 +2544,10 @@
       "id": "vocab-occupant",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "occupant",
       "phrase": "The building manager contacted every occupant about the repairs.",
@@ -2242,8 +2560,10 @@
       "id": "vocab-utility",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "utility",
       "phrase": "The rent does not include utility charges.",
@@ -2256,8 +2576,10 @@
       "id": "vocab-cuisine",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "cuisine",
       "phrase": "The restaurant specializes in traditional regional cuisine.",
@@ -2270,13 +2592,15 @@
       "id": "vocab-menu",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "menu",
       "phrase": "The chef added several new dishes to the menu.",
       "phraseAudio": "audio/vocab/menu.mp3",
-      "back": "メニュー",
+      "back": "メニュー（品書き・選択項目）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2284,13 +2608,15 @@
       "id": "vocab-catering",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "catering",
       "phrase": "We hired a catering company for the office party.",
       "phraseAudio": "audio/vocab/catering.mp3",
-      "back": "ケータリング",
+      "back": "ケータリング（出張料理）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2298,8 +2624,10 @@
       "id": "vocab-entertain",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "entertain",
       "phrase": "The sales team entertained the clients at a local restaurant.",
@@ -2312,8 +2640,10 @@
       "id": "vocab-refreshment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "refreshment",
       "phrase": "Light refreshments will be served during the break.",
@@ -2326,8 +2656,10 @@
       "id": "vocab-submit",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "submit",
       "phrase": "Please submit the report by five o'clock today.",
@@ -2340,8 +2672,10 @@
       "id": "vocab-approve",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "approve",
       "phrase": "The manager needs to approve the request before it can be processed.",
@@ -2354,8 +2688,10 @@
       "id": "vocab-authorize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "authorize",
       "phrase": "Only the director can authorize expenses over that amount.",
@@ -2368,8 +2704,10 @@
       "id": "vocab-implement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "implement",
       "phrase": "The company plans to implement the new policy next month.",
@@ -2382,8 +2720,10 @@
       "id": "vocab-allocate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "allocate",
       "phrase": "The budget was allocated to each department in January.",
@@ -2396,8 +2736,10 @@
       "id": "vocab-coordinate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "coordinate",
       "phrase": "She will coordinate the schedule for the training session.",
@@ -2410,8 +2752,10 @@
       "id": "vocab-supervise",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "supervise",
       "phrase": "He was hired to supervise the new production line.",
@@ -2424,8 +2768,10 @@
       "id": "vocab-oversee",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "oversee",
       "phrase": "The project manager will oversee the entire construction process.",
@@ -2438,8 +2784,10 @@
       "id": "vocab-delegate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "delegate",
       "phrase": "The manager decided to delegate the task to her assistant.",
@@ -2452,8 +2800,10 @@
       "id": "vocab-prioritize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "prioritize",
       "phrase": "We need to prioritize the most urgent orders.",
@@ -2466,8 +2816,10 @@
       "id": "vocab-finalize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "finalize",
       "phrase": "Let's finalize the details before the contract is signed.",
@@ -2480,8 +2832,10 @@
       "id": "vocab-proceed",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "proceed",
       "phrase": "We can proceed with the plan once approval is granted.",
@@ -2494,8 +2848,10 @@
       "id": "vocab-endorse",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "endorse",
       "phrase": "The committee voted to endorse the new proposal.",
@@ -2508,8 +2864,10 @@
       "id": "vocab-facilitate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "facilitate",
       "phrase": "The new software will facilitate communication between departments.",
@@ -2522,8 +2880,10 @@
       "id": "vocab-comply",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "comply",
       "phrase": "All staff must comply with the updated safety rules.",
@@ -2536,8 +2896,10 @@
       "id": "vocab-outsource",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "outsource",
       "phrase": "The company decided to outsource its customer service.",
@@ -2550,8 +2912,10 @@
       "id": "vocab-subsidiary",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "subsidiary",
       "phrase": "The parent company opened a subsidiary in Europe last year.",
@@ -2564,8 +2928,10 @@
       "id": "vocab-headquarters",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "headquarters",
       "phrase": "The company's headquarters is located in downtown Tokyo.",
@@ -2578,8 +2944,10 @@
       "id": "vocab-branch",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "branch",
       "phrase": "A new branch will open in the city center next year.",
@@ -2592,8 +2960,10 @@
       "id": "vocab-merger",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "merger",
       "phrase": "The merger between the two firms was announced today.",
@@ -2606,8 +2976,10 @@
       "id": "vocab-acquisition",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "acquisition",
       "phrase": "The acquisition helped the company expand into new markets.",
@@ -2620,8 +2992,10 @@
       "id": "vocab-shareholder",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "shareholder",
       "phrase": "Shareholders will vote on the proposal at the annual meeting.",
@@ -2634,8 +3008,10 @@
       "id": "vocab-stakeholder",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "stakeholder",
       "phrase": "All stakeholders were invited to the planning meeting.",
@@ -2648,8 +3024,10 @@
       "id": "vocab-projection",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "projection",
       "phrase": "Sales projections for next year look promising.",
@@ -2662,8 +3040,10 @@
       "id": "vocab-target",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "target",
       "phrase": "The sales team exceeded its target for the quarter.",
@@ -2676,8 +3056,10 @@
       "id": "vocab-strategy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "strategy",
       "phrase": "The company adopted a new marketing strategy this year.",
@@ -2690,8 +3072,10 @@
       "id": "vocab-proposal",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "proposal",
       "phrase": "The consulting firm submitted a detailed proposal.",
@@ -2704,8 +3088,10 @@
       "id": "vocab-extension",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "extension",
       "phrase": "We requested an extension on the project deadline.",
@@ -2718,8 +3104,10 @@
       "id": "vocab-warranty",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "warranty",
       "phrase": "The product comes with a two-year warranty.",
@@ -2732,13 +3120,15 @@
       "id": "vocab-manual",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "manual",
       "phrase": "Please refer to the manual for setup instructions.",
       "phraseAudio": "audio/vocab/manual.mp3",
-      "back": "マニュアル",
+      "back": "マニュアル（手引き書）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2746,13 +3136,15 @@
       "id": "vocab-brochure",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "brochure",
       "phrase": "The travel agency handed out brochures at the fair.",
       "phraseAudio": "audio/vocab/brochure.mp3",
-      "back": "パンフレット",
+      "back": "パンフレット（案内小冊子）",
       "freqRank": "S",
       "levelBand": 600
     },
@@ -2760,8 +3152,10 @@
       "id": "vocab-newsletter",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "newsletter",
       "phrase": "The company newsletter is published every month.",
@@ -2774,8 +3168,10 @@
       "id": "vocab-subscription",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "subscription",
       "phrase": "Employees receive a free subscription to the industry magazine.",
@@ -2788,8 +3184,10 @@
       "id": "vocab-registration",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "registration",
       "phrase": "Registration for the conference closes next Friday.",
@@ -2802,8 +3200,10 @@
       "id": "vocab-certification",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 2,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "certification",
       "phrase": "She earned a certification in project management last year.",
