@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { cloudflareTest } from '@cloudflare/vitest-pool-workers'
 import { defineConfig } from 'vitest/config'
 
@@ -18,6 +19,13 @@ export default defineConfig({
     }),
   ],
   test: {
+    // T-287（K-14）: 消費側がpackage.jsonのexports経由でdistを見るため、
+    // shared-schemaを変更してもビルドし直さない限りテストが古いコードを見ていた
+    alias: {
+      '@beb-raid/shared-schema': fileURLToPath(
+        new URL('../shared-schema/src/index.ts', import.meta.url),
+      ),
+    },
     // 【T-247〜T-253統合後のフレーク対策・2026-08-05】@cloudflare/vitest-pool-workersは
     // テストファイルごとに別々のworkerd（simulated Workers runtime）インスタンスを立ち上げ、
     // ストレージ（KV・Durable Object）をファイル単位で自動的に隔離する。ファイルを並列実行
