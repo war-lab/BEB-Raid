@@ -348,7 +348,8 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
   {
     word: 'workforce',
     tags: ['ビジネス名詞'],
-    question: 'The factory plans to expand its ___ by twenty percent next year.',
+    question:
+      'The factory plans to expand its ___ by twenty percent next year to meet rising production demand.',
     choices: [
       { key: 'A', text: 'portfolio' },
       { key: 'B', text: 'clientele' },
@@ -412,7 +413,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
   {
     word: 'compensate',
     tags: ['言い換え語彙'],
-    question: 'The company offered to ___ employees for the unpaid overtime.',
+    question: 'The company offered to ___ employees for the weekend travel time.',
     choices: [
       { key: 'A', text: 'delegate' },
       { key: 'B', text: 'compensate' },
@@ -422,7 +423,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     answer: 'B',
     explanation:
       '未払いの残業代を支払う（埋め合わせる）のはcompensate。incentivize（動機づける）・retain（つなぎ止める）・delegate（委任する）は文脈に合わない。',
-    translation: 'その会社は未払いの残業代について従業員に補償を申し出た。',
+    translation: 'その会社は週末の移動時間について従業員に手当を申し出た。',
     difficulty: 2,
   },
   {
@@ -492,7 +493,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
   {
     word: 'subsidiary',
     tags: ['ビジネス名詞'],
-    question: 'The parent company sold one of its overseas ___ last year.',
+    question: 'The parent company sold its overseas ___ last year.',
     choices: [
       { key: 'A', text: 'subsidiary' },
       { key: 'B', text: 'shareholder' },
@@ -783,10 +784,10 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'Only three ___ met all the requirements for the position.',
     choices: [
-      { key: 'A', text: 'occupant' },
-      { key: 'B', text: 'facilitator' },
-      { key: 'C', text: 'exhibitor' },
-      { key: 'D', text: 'applicant' },
+      { key: 'A', text: 'occupants' },
+      { key: 'B', text: 'facilitators' },
+      { key: 'C', text: 'exhibitors' },
+      { key: 'D', text: 'applicants' },
     ],
     answer: 'D',
     explanation:
@@ -911,10 +912,10 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     tags: ['言い換え語彙'],
     question: 'A new ___ signed a two-year lease for the ground-floor space.',
     choices: [
-      { key: 'A', text: 'custodian' },
-      { key: 'B', text: 'facilitator' },
-      { key: 'C', text: 'tenant' },
-      { key: 'D', text: 'sponsor' },
+      { key: 'A', text: 'custodians' },
+      { key: 'B', text: 'facilitators' },
+      { key: 'C', text: 'tenants' },
+      { key: 'D', text: 'sponsors' },
     ],
     answer: 'C',
     explanation:

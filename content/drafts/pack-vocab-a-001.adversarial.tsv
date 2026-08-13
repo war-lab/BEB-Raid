@@ -67,7 +67,7 @@ vocab-obsolete	accept		claude-opus-5	2026-08-13
 vocab-perishable	accept		claude-opus-5	2026-08-13
 vocab-bulk	accept		claude-opus-5	2026-08-13
 vocab-stockpile	accept		claude-opus-5	2026-08-13
-vocab-demographic	accept	初回判定はrevise: backがdemographicの形容詞的訳「人口統計上の」だが、phrase「targets a younger demographic」ではdemographicは名詞（対象層）として使われており、品詞が一致していない。学習者が誤ったPOSで暗記する。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+vocab-demographic	accept		claude-opus-5	2026-08-13
 vocab-niche	accept		claude-opus-5	2026-08-13
 vocab-benchmark	accept		claude-opus-5	2026-08-13
 vocab-outreach	accept		claude-opus-5	2026-08-13

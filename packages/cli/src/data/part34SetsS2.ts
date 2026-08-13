@@ -594,7 +594,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
     tags: ['パラフレーズ照合'],
     keyVocabWords: ['renovation', 'detour'],
     script:
-      'Please be advised that the main lobby will be closed for renovation starting Monday and continuing for approximately two weeks, as crews replace the flooring and update the lighting fixtures. During this period, visitors should use the side entrance near the parking garage, which will remain open and staffed during regular business hours. Signs will be posted throughout the building to guide you along the detour, and security will also be available to answer directions if needed. We appreciate your patience while the work is completed, and we expect the finished lobby to look considerably brighter and more welcoming once everything is finished.',
+      'Please be advised that the main lobby will be closed for renovation starting Monday and continuing for approximately two weeks, as crews replace the flooring and update the lighting fixtures. During this period, visitors should use the side entrance near the parking garage, which will remain open and staffed during regular business hours. Signs will be posted throughout the building to guide you along the detour, and security will also be available to provide directions if needed. We appreciate your patience while the work is completed, and we expect the finished lobby to look considerably brighter and more welcoming once everything is finished.',
     subQuestions: [
       {
         question: 'What is happening starting Monday?',

@@ -56,7 +56,7 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     correctText: 'was',
     distractors: ['did', 'has', 'had'],
     explanation:
-      '空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。has（単数現在完了）・had（過去完了）はreviewedと結ぶと能動の意味になり、苦情申し立てが見直す側になってしまう。did（doの過去形）はreviewedと結べない。',
     translation:
       'カスタマーポータルを通じて提出された苦情申し立ては、回答が送られる前にサポートチームによって注意深く見直された。',
     difficulty: 4,
@@ -199,15 +199,15 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'breach',
+    keyVocabWord: 'protocol',
     tags: ['動詞の形'],
     question:
-      'Allegations of a serious safety breach ___ raised during the quarterly review before the committee.',
+      'Questions about the new safety protocol ___ raised during the quarterly review before the committee.',
     correctText: 'were',
     distractors: ['did', 'have', 'had'],
     explanation:
-      '空所の後にraised（過去分詞）が続き、Allegations（複数）は「提起される」対象なので受動態(were raised)が正しい。did（過去（doの過去形））・have（複数現在完了）・had（過去完了）は複数過去ではなく、この文の主語・時制と一致しない。',
-    translation: '委員会の前の四半期レビュー中に、重大な安全上の違反の疑惑が提起された。',
+      '空所の後にraised（過去分詞）が続き、Allegations（複数）は「提起される」対象なので受動態(were raised)が正しい。have（複数現在完了）・had（過去完了）はraisedと結ぶと能動の意味になり、質問が提起する側になってしまう。did（doの過去形）はraisedと結べない。',
+    translation: '委員会の前の四半期レビュー中に、新しい安全手順についての質問が提起された。',
     difficulty: 4,
   },
   {
@@ -378,25 +378,26 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'appendix',
     tags: ['動詞の形'],
     question:
-      'Everyone involved in preparing the appendix for the Delacroix Partners report ___ asked to double-check the figures.',
+      'Everyone involved in preparing the appendix for the Delacroix Partners report ___ asked to double-check the figures before last month’s submission.',
     correctText: 'was',
     distractors: ['were', 'is', 'have been'],
     explanation:
       '"Everyone"は常に単数扱い。wasが正しい。were（複数過去）・have been（複数現在完了）は複数形でEveryoneと一致せず、is（単数現在）は報告書作成時という過去の文脈と時制が合わない。',
-    translation: 'Delacroix Partnersの報告書の付録作成に関わった全員が、数値の再確認を求められた。',
+    translation:
+      '先月の提出前に、Delacroix Partnersの報告書の付録作成に関わった全員が数値の再確認を求められた。',
     difficulty: 4,
   },
   {
     keyVocabWord: 'campaign',
     tags: ['動詞の形'],
     question:
-      "Amberline Media ___ run similar campaigns for over a decade before this year's controversy.",
+      "Amberline Media ___ run similar campaigns for over a decade before this year's rebranding.",
     correctText: 'had',
     distractors: ['have', 'does', 'was'],
     explanation:
-      '"before this year\'s controversy"より前の完了を表す過去完了。hadが正しい。have（複数現在完了）は主語Amberline Media（単数）と一致せず、does（単数現在）はrunと結んでも完了を表さず、was（単数過去）はrunの受動態になり文意が通らない。',
+      '"before this year\'s rebranding"より前の完了を表す過去完了。hadが正しい。have（複数現在完了）は主語Amberline Media（単数）と一致せず、does（単数現在）はrunと結んでも完了を表さず、was（単数過去）はrunの受動態になり文意が通らない。',
     translation:
-      'Amberline Mediaは、今年の物議を醸す出来事より前の10年以上にわたり、似たようなキャンペーンを行ってきていた。',
+      'Amberline Mediaは、今年のブランド刷新より前の10年以上にわたり、似たようなキャンペーンを行ってきていた。',
     difficulty: 4,
   },
   {
@@ -427,26 +428,26 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'modernization',
     tags: ['動詞の形'],
     question:
-      'The percentage of budget allocated to the modernization plan at Osgood Manufacturing ___ expected to reach twelve percent.',
+      'The percentage of budget allocated to the modernization plan at Osgood Manufacturing ___ currently expected to reach twelve percent.',
     correctText: 'is',
     distractors: ['are', 'was', 'been'],
     explanation:
       '"The percentage of + 複数名詞相当"は単数扱い。The percentageが主語の核なのでisが正しい。are（複数現在）は複数形で主語と一致せず、was（単数過去）は現在の見込みを述べる文意と時制が合わず、been単独では述語動詞になれない。',
     translation:
-      'Osgood Manufacturingでの近代化計画に割り当てられた予算の割合は、12パーセントに達すると見込まれている。',
+      'Osgood Manufacturingでの近代化計画に割り当てられた予算の割合は、現時点で12パーセントに達すると見込まれている。',
     difficulty: 4,
   },
   {
     keyVocabWord: 'overstock',
     tags: ['動詞の形'],
     question:
-      'Investigators concluded that the board ___ overlooked signs of overstock for several years before costs spiraled out of control.',
+      'Analysts noted that the team ___ tracked signs of overstock for several years before the new system was adopted.',
     correctText: 'had',
     distractors: ['has', 'have', 'is'],
     explanation:
-      '"before costs spiraled out of control"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・is（単数現在）は基準点が現在にずれ、have（複数現在完了）は主語the board（単数扱い）と一致しない。',
+      '"before the new system was adopted"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・is（単数現在）は基準点が現在にずれ、have（複数現在完了）は主語the board（単数扱い）と一致しない。',
     translation:
-      '調査官は、コストが制御不能になるより前の数年間、取締役会が過剰在庫の兆候を見過ごしていたと結論づけた。',
+      'アナリストは、新システムが導入されるより前の数年間、そのチームが過剰在庫の兆候を追跡していたと指摘した。',
     difficulty: 4,
   },
   {
@@ -517,7 +518,7 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     distractors: ['heaviness', 'heavily', 'heaviest'],
     explanation:
       '"as ___ as"の間には原級の形容詞が入る。heavyが正しい。heavinessは名詞、heavilyは副詞、heaviestは最上級で不適。',
-    translation: '平日のその店の来客数は、週末の人出ほど多くない傾向にある。',
+    translation: '平日のその店の来客数は、週末に多くなりがちな人出ほどではない。',
     difficulty: 4,
   },
   {
@@ -638,12 +639,12 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'warehouse',
     tags: ['動詞の形'],
     question:
-      'The findings that led inspectors to close the old warehouse ___ documented in a lengthy report.',
+      'The findings that led the company to renovate the old warehouse ___ documented in a lengthy report.',
     correctText: 'were',
     distractors: ['was', 'has been', 'is'],
     explanation:
       '主語はThe findings（複数形）。wereが正しい。was（単数過去）・has been（単数現在完了）・is（単数現在）は複数過去ではなく、この文の主語・時制と一致しない。',
-    translation: '検査官がその古い倉庫の閉鎖を決めるに至った所見は、長い報告書に文書化されている。',
+    translation: '会社がその古い倉庫の改装を決めるに至った所見は、長い報告書に文書化されている。',
     difficulty: 4,
   },
 ]

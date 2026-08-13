@@ -4,15 +4,15 @@
     "id": "pack-p34-s-002",
     "title": "Part3/4セット 追加20（会話10・トーク10）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。T-84）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。T-84）＋AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 84047
+    "reviewMethod": "AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 84052
   },
   "questions": [
     {
@@ -1410,12 +1410,12 @@
       ],
       "audio": "audio/part34/p4-14.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 36050
+        "voice": "piper:en_US-lessac-medium",
+        "durationMs": 37956
       },
-      "script": "Please be advised that the main lobby will be closed for renovation starting Monday and continuing for approximately two weeks, as crews replace the flooring and update the lighting fixtures. During this period, visitors should use the side entrance near the parking garage, which will remain open and staffed during regular business hours. Signs will be posted throughout the building to guide you along the detour, and security will also be available to answer directions if needed. We appreciate your patience while the work is completed, and we expect the finished lobby to look considerably brighter and more welcoming once everything is finished.",
+      "script": "Please be advised that the main lobby will be closed for renovation starting Monday and continuing for approximately two weeks, as crews replace the flooring and update the lighting fixtures. During this period, visitors should use the side entrance near the parking garage, which will remain open and staffed during regular business hours. Signs will be posted throughout the building to guide you along the detour, and security will also be available to provide directions if needed. We appreciate your patience while the work is completed, and we expect the finished lobby to look considerably brighter and more welcoming once everything is finished.",
       "subQuestions": [
         {
           "id": "p34-p4-14-q1",

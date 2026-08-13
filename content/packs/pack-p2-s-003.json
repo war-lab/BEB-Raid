@@ -4,15 +4,15 @@
     "id": "pack-p2-s-003",
     "title": "Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-08。T-349）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-08。T-349）＋AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 94951
+    "reviewMethod": "AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 96181
   },
   "questions": [
     {
@@ -198,11 +198,18 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 6650
+        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
+        "durationMs": 9718,
+        "questionEndMs": 2882,
+        "responseOffsetsMs": [
+          3082,
+          4945,
+          7876
+        ],
+        "responsesTextDigest": "bd5c81d4"
       },
-      "script": "Something triggered a system glitch last night. — I was on a flight, so it wasn’t me logging in.",
-      "translation": "昨夜、何かがシステム障害を引き起こしました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。",
+      "script": "Something triggered a system glitch last night. — IT is checking the server logs now.",
+      "translation": "昨夜、何かがシステム障害を引き起こしました。 — 今IT部門がサーバーのログを確認しています。",
       "choices": [
         {
           "key": "A",
@@ -210,7 +217,7 @@
         },
         {
           "key": "B",
-          "text": "I was on a flight, so it wasn’t me logging in."
+          "text": "IT is checking the server logs now."
         },
         {
           "key": "C",
@@ -218,7 +225,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: システム障害という発言に対し「自分ではない（アリバイ）」と応じており、話の流れに合う。他の2つ（\"I forgot my password again.\"／\"The system runs a nightly backup.\"）は直接の対応になっていない。"
+      "explanation": "間接応答: システム障害という発言に対し「IT部門がログを確認中だ」と対応状況で応じており、話の流れに合う。他の2つ（\"I forgot my password again.\"／\"The system runs a nightly backup.\"）は直接の対応になっていない。"
     },
     {
       "id": "part2-printer",
@@ -325,7 +332,7 @@
         "durationMs": 9450
       },
       "script": "Our software subscription renews automatically next week, but nobody could confirm if we still need it. — Someone should double-check if we still need all those licenses.",
-      "translation": "弊社のソフトウェアの契約は来週自動更新されます。 — 全てのライセンスが本当に必要か誰かが確認すべきですね。",
+      "translation": "弊社のソフトウェアの契約は来週自動更新されますが、まだ必要かどうか誰も確認できていません。 — 全てのライセンスが本当に必要か誰かが確認すべきですね。",
       "choices": [
         {
           "key": "A",
@@ -366,7 +373,7 @@
         "durationMs": 8750
       },
       "script": "The customer is asking for a refund since the damaged shipment should be refundable. — I'll process it as soon as I confirm the return.",
-      "translation": "お客様が破損した荷物の返金を求めています。 — 返品を確認したらすぐに処理します。",
+      "translation": "破損した荷物は返金対象のはずなので、お客様が返金を求めています。 — 返品を確認したらすぐに処理します。",
       "choices": [
         {
           "key": "A",
@@ -442,13 +449,20 @@
       ],
       "audio": "audio/part2/backlog.mp3",
       "audioMeta": {
-        "accent": "US",
+        "accent": "UK",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 7700
+        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
+        "durationMs": 15412,
+        "questionEndMs": 5935,
+        "responseOffsetsMs": [
+          6135,
+          9600,
+          12601
+        ],
+        "responsesTextDigest": "225ba709"
       },
-      "script": "Occupancy at the downtown branch dropped again, adding to a backlog of empty rooms. — Maybe we should run another promotion there.",
-      "translation": "今期も都心の支店の入居率が落ちました。 — そこでもう一度プロモーションを行うべきかもしれません。",
+      "script": "Occupancy at the downtown branch dropped again, adding to our backlog of unsold room-nights. — Maybe we should run another promotion there.",
+      "translation": "都心の支店の稼働率がまた落ちて、売れ残りの客室が積み上がっています。 — そこでもう一度プロモーションを行うべきかもしれません。",
       "choices": [
         {
           "key": "A",
@@ -694,7 +708,7 @@
         "durationMs": 9100
       },
       "script": "Our contact at the ministry hasn't replied in over a week, and our network there is limited. — I'll try reaching out through a different contact.",
-      "translation": "省庁の連絡担当者から1週間以上返信がありません。 — 別の連絡先を通じて連絡してみます。",
+      "translation": "省庁の担当者から1週間以上返信がなく、あちらでの人脈も限られています。 — 別の連絡先を通じて連絡してみます。",
       "choices": [
         {
           "key": "A",
@@ -854,15 +868,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11833,
-        "questionEndMs": 4380,
-        "responseOffsetsMs": [
-          4580,
-          6687,
-          9618
-        ],
-        "responsesTextDigest": "87d3e80d"
+        "voice": "pending-tts",
+        "durationMs": 8050
       },
       "script": "One of the warehouse staff filed a formal grievance about the broken air conditioning. — Facilities should probably look into it before summer.",
       "translation": "倉庫スタッフの1人が空調の故障について正式に申し出ました。 — 夏が来る前に施設担当が見たほうがいいですね。",
@@ -1111,7 +1118,7 @@
         "durationMs": 6650
       },
       "script": "Our closest competitor mostly serves local businesses, doesn't it? — It did, until it started shipping overseas last year.",
-      "translation": "弊社の最大の競合は主に地元企業向けですよね？ — 以前はそうでしたが、去年から海外発送を始めてから変わりました。",
+      "translation": "弊社の一番の競合相手は主に地元企業向けですよね？ — 以前はそうでしたが、去年海外への発送を始めました。",
       "choices": [
         {
           "key": "A",
@@ -1269,17 +1276,10 @@
       ],
       "audio": "audio/part2/sponsor.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14211,
-        "questionEndMs": 4240,
-        "responseOffsetsMs": [
-          4440,
-          8451,
-          11405
-        ],
-        "responsesTextDigest": "a3aa7e07"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "The same company sponsored the event last year too, didn't it? — No, that was a different sponsor entirely.",
       "translation": "昨年も同じ会社がイベントに協賛しましたよね？ — いいえ、それは全く別の協賛企業でした。",
@@ -1323,7 +1323,7 @@
         "durationMs": 5600
       },
       "script": "You collected feedback from that client already, didn't you? — She's still drafting some for us.",
-      "translation": "もうそのお客様から推薦の声をもらいましたよね？ — まだ書いてくれている最中です。",
+      "translation": "もうそのお客様からご意見をいただきましたよね？ — まだ取りまとめてくださっている最中です。",
       "choices": [
         {
           "key": "A",
@@ -1339,7 +1339,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「もう推薦の声をもらいましたよね」という付加疑問に対し「まだ書いている最中だ」とまだ完了していないことを示しており、話の流れに合う。他の2つ（\"The client signed a two-year deal.\"／\"Feedback helps with new sales.\"）は質問の核心に答えていない。"
+      "explanation": "間接応答: 「もうご意見をいただきましたよね」という付加疑問に対し「まだ取りまとめている最中だ」とまだ完了していないことを示しており、話の流れに合う。他の2つ（\"The client signed a two-year deal.\"／\"Feedback helps with new sales.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-vacancy",
@@ -1446,7 +1446,7 @@
         "durationMs": 8400
       },
       "script": "The lobby work required under the new tenancy is finished by now, isn't it? — They're just waiting on the new carpet to arrive.",
-      "translation": "ロビーの改装はもう終わっていますよね？ — 新しいカーペットの到着を待っているだけです。",
+      "translation": "新しい賃貸契約で義務付けられたロビー工事はもう終わっていますよね？ — 新しいカーペットの到着を待っているだけです。",
       "choices": [
         {
           "key": "A",
@@ -1815,7 +1815,7 @@
         "durationMs": 7700
       },
       "script": "Should we hire the contractor with the stronger credential or the one from the capital? — Whichever one can start sooner, honestly.",
-      "translation": "地元の請負業者にすべきか、首都の業者にすべきか？ — 正直、早く始められる方でいいです。",
+      "translation": "実績・資格が優れた業者にすべきか、首都の業者にすべきか？ — 正直、早く始められる方でいいです。",
       "choices": [
         {
           "key": "A",
@@ -1852,8 +1852,15 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 7700
+        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
+        "durationMs": 10606,
+        "questionEndMs": 3950,
+        "responseOffsetsMs": [
+          4150,
+          6663,
+          8770
+        ],
+        "responsesTextDigest": "fd772f36"
       },
       "script": "Do you want the venue with the better transit connection or the one downtown? — Let's see which one is cheaper first.",
       "translation": "会場は交通の便が良い方か都心の方か、どちらがいいですか？ — まずどちらが安いか確認しましょう。",
@@ -1864,7 +1871,7 @@
         },
         {
           "key": "B",
-          "text": "Downtown is easier to reach by train."
+          "text": "The venue list came out yesterday."
         },
         {
           "key": "C",
@@ -1872,7 +1879,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「交通の便が良い会場か都心の会場か」という選択疑問に対し「まず安い方を確認しよう」と決定を先延ばしにする形で答えており、話の流れに合う。他の2つ（\"The transit connection is quite fast.\"／\"Downtown is easier to reach by train.\"）は直接どちらかを選んでいる（間接応答ではない）。"
+      "explanation": "間接応答: 「交通の便が良い会場か都心の会場か」という選択疑問に対し「まず安い方を確認しよう」と決定を先延ばしにする形で答えており、話の流れに合う。他の2つ（\"The transit connection is quite fast.\"／\"The venue list came out yesterday.\"）は直接どちらかを選んでいる（間接応答ではない）。"
     },
     {
       "id": "part2-keynote",
@@ -1975,8 +1982,15 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 7000
+        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
+        "durationMs": 12617,
+        "questionEndMs": 3381,
+        "responseOffsetsMs": [
+          3581,
+          6407,
+          9199
+        ],
+        "responsesTextDigest": "da0956bd"
       },
       "script": "Would you rather have a layover in Dubai or fly direct? — Direct, if it doesn't cost too much more.",
       "translation": "ドバイ経由にしますか、それとも直行にしますか？ — 値段があまり変わらないなら直行がいいです。",
@@ -1987,7 +2001,7 @@
         },
         {
           "key": "B",
-          "text": "Direct flights are always faster."
+          "text": "The airline changed its schedule."
         },
         {
           "key": "C",
@@ -1995,7 +2009,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「ドバイ経由か直行か」という選択疑問に対し「値段があまり変わらないなら直行」と条件付きで直行を選んでおり、話の流れに合う。他の2つ（\"Dubai has a beautiful airport.\"／\"Direct flights are always faster.\"）は選択への直接の回答になっていない。"
+      "explanation": "間接応答: 「ドバイ経由か直行か」という選択疑問に対し「値段があまり変わらないなら直行」と条件付きで直行を選んでおり、話の流れに合う。他の2つ（\"Dubai has a beautiful airport.\"／\"The airline changed its schedule.\"）は選択への直接の回答になっていない。"
     },
     {
       "id": "part2-capital",
@@ -2016,8 +2030,15 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 6650
+        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
+        "durationMs": 10632,
+        "questionEndMs": 3938,
+        "responseOffsetsMs": [
+          4138,
+          7208,
+          8966
+        ],
+        "responsesTextDigest": "d0a36546"
       },
       "script": "Should we expand through franchising or open company-owned stores? — Franchising would let us grow faster with less capital.",
       "translation": "フランチャイズで展開すべきか、直営店を開くべきか？ — フランチャイズなら少ない資本で速く成長できますね。",
@@ -2028,7 +2049,7 @@
         },
         {
           "key": "B",
-          "text": "Company-owned stores are easier to manage."
+          "text": "The stores open at nine."
         },
         {
           "key": "C",
@@ -2036,7 +2057,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「フランチャイズ展開か直営店開設か」という選択疑問に対し「フランチャイズなら少ない資本で速く成長できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"Company-owned stores are easier to manage.\"／\"Our current stores are doing well.\"）は選択の根拠を示していない。"
+      "explanation": "間接応答: 「フランチャイズ展開か直営店開設か」という選択疑問に対し「フランチャイズなら少ない資本で速く成長できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"The stores open at nine.\"／\"Our current stores are doing well.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-supplier",
@@ -2303,8 +2324,15 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 7700
+        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
+        "durationMs": 14550,
+        "questionEndMs": 5413,
+        "responseOffsetsMs": [
+          5613,
+          8776,
+          11939
+        ],
+        "responsesTextDigest": "dbd4e4d1"
       },
       "script": "Should we book a bus, given the extra expense, or have everyone drive separately? — The bus, so we all arrive together.",
       "translation": "追加費用がかかってもバスを予約すべきですか、それとも各自で運転すべきですか？ — バスなら皆一緒に到着できますね。",
@@ -2319,11 +2347,11 @@
         },
         {
           "key": "C",
-          "text": "Driving separately gives more flexibility."
+          "text": "The venue is about an hour away."
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「追加費用がかかってもバスを予約するか各自で運転するか」という選択疑問に対し「バスなら皆一緒に到着できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"The parking lot has plenty of space.\"／\"Driving separately gives more flexibility.\"）は選択の根拠を示していない。"
+      "explanation": "間接応答: 「追加費用がかかってもバスを予約するか各自で運転するか」という選択疑問に対し「バスなら皆一緒に到着できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"The parking lot has plenty of space.\"／\"The venue is about an hour away.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-target",
@@ -2348,7 +2376,7 @@
         "durationMs": 6300
       },
       "script": "Is the delay affecting our production target or shipping this month? — Honestly, it's a bit of both.",
-      "translation": "障害は生産にあるのか、それとも配送にあるのか？ — 正直、今月は両方に少しずつあります。",
+      "translation": "その遅延は今月の生産目標に影響しているのですか、それとも出荷ですか？ — 正直、両方に少しずつです。",
       "choices": [
         {
           "key": "A",
@@ -2383,13 +2411,20 @@
       ],
       "audio": "audio/part2/revenue.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 7000
+        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
+        "durationMs": 11729,
+        "questionEndMs": 4136,
+        "responseOffsetsMs": [
+          4336,
+          7255,
+          9977
+        ],
+        "responsesTextDigest": "c62bf00d"
       },
-      "script": "Will the new levy affect resident revenue or business revenue only? — It's still under debate at the city council.",
-      "translation": "新しい課税は住民に適用されるのか、それとも企業だけか？ — まだ市議会で議論中です。",
+      "script": "Will the new levy raise revenue from residents or only from businesses? — It's still under debate at the city council.",
+      "translation": "新しい課税は住民から税収を得るのですか、それとも企業だけからですか？ — まだ市議会で議論中です。",
       "choices": [
         {
           "key": "A",
@@ -2405,7 +2440,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「新しい課税は住民に適用されるか企業だけか」という選択疑問に対し「市議会でまだ議論中だ」とまだ決まっていないことを示しており、話の流れに合う。他の2つ（\"Residents already pay property tax.\"／\"The levy would fund road repairs.\"）はどちらかを直接選んでいない。"
+      "explanation": "間接応答: 「新しい課税で住民から税収を得るか企業だけからか」という選択疑問に対し「市議会でまだ議論中だ」とまだ決まっていないことを示しており、話の流れに合う。他の2つ（\"Residents already pay property tax.\"／\"The levy would fund road repairs.\"）はどちらかを直接選んでいない。"
     },
     {
       "id": "part2-overhead",
@@ -2553,7 +2588,7 @@
         "durationMs": 8400
       },
       "script": "Should we recruit more partners to grow profit or focus on the ones we have? — Focus on the current ones; quality over quantity.",
-      "translation": "提携先を増やすべきですか、それとも今の提携先に集中すべきですか？ — 今の提携先に集中しましょう。量より質です。",
+      "translation": "利益を伸ばすために提携先を増やすべきですか、それとも今の提携先に集中すべきですか？ — 今の提携先に集中しましょう。量より質です。",
       "choices": [
         {
           "key": "A",

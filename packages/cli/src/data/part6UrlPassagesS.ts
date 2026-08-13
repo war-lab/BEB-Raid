@@ -35,7 +35,7 @@ export const PART6_URL_ENTRIES_S: Part6RawEntry[] = [
         correctText: 'are',
         distractors: ['is', 'was', 'being'],
         explanation:
-          '主語all employeesは複数であり、来月までに完了すべき義務を表すbe required to doの現在形が適切。areが正しく、単数扱いのis、過去形was、動詞の原形と組み合わせられないbeingは不適。',
+          '主語all employeesは複数であり、5月22日（金）までに完了すべき義務を表すbe required to doの現在形が適切。areが正しく、単数扱いのis、過去形was、動詞の原形と組み合わせられないbeingは不適。',
         translation:
           '年次セキュリティ更新の一環として、全従業員は5月22日金曜日までにアカウントのパスワードをリセットする必要があります。',
       },

@@ -4,15 +4,15 @@
     "id": "pack-p5-s-003",
     "title": "Part5文法 d4帯 追加50問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       730,
       860
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 59432
+    "reviewMethod": "AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 59571
   },
   "questions": [
     {
@@ -126,7 +126,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。",
+      "explanation": "空所の後にreviewed（過去分詞）が続き、complaintは「見直される」対象なので受動態(was reviewed)が正しい。has（単数現在完了）・had（過去完了）はreviewedと結ぶと能動の意味になり、苦情申し立てが見直す側になってしまう。did（doの過去形）はreviewedと結べない。",
       "translation": "カスタマーポータルを通じて提出された苦情申し立ては、回答が送られる前にサポートチームによって注意深く見直された。"
     },
     {
@@ -548,7 +548,7 @@
       "translation": "アナリストは、Whitmore Realtyが市場が変動するかなり前に不動産評価を完了していたと考えている。"
     },
     {
-      "id": "part5-breach",
+      "id": "part5-protocol",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -557,33 +557,33 @@
       ],
       "keyVocab": [
         {
-          "word": "breach",
-          "sense": "違反",
-          "freqRank": "S"
+          "word": "protocol",
+          "sense": "通信規約",
+          "freqRank": "B"
         }
       ],
-      "question": "Allegations of a serious safety breach ___ raised during the quarterly review before the committee.",
+      "question": "Questions about the new safety protocol ___ raised during the quarterly review before the committee.",
       "choices": [
         {
           "key": "A",
-          "text": "were"
-        },
-        {
-          "key": "B",
           "text": "did"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "have"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "had"
+        },
+        {
+          "key": "D",
+          "text": "were"
         }
       ],
-      "answer": "A",
-      "explanation": "空所の後にraised（過去分詞）が続き、Allegations（複数）は「提起される」対象なので受動態(were raised)が正しい。did（過去（doの過去形））・have（複数現在完了）・had（過去完了）は複数過去ではなく、この文の主語・時制と一致しない。",
-      "translation": "委員会の前の四半期レビュー中に、重大な安全上の違反の疑惑が提起された。"
+      "answer": "D",
+      "explanation": "空所の後にraised（過去分詞）が続き、Allegations（複数）は「提起される」対象なので受動態(were raised)が正しい。have（複数現在完了）・had（過去完了）はraisedと結ぶと能動の意味になり、質問が提起する側になってしまう。did（doの過去形）はraisedと結べない。",
+      "translation": "委員会の前の四半期レビュー中に、新しい安全手順についての質問が提起された。"
     },
     {
       "id": "part5-biodegradable",
@@ -1094,7 +1094,7 @@
           "freqRank": "A"
         }
       ],
-      "question": "Everyone involved in preparing the appendix for the Delacroix Partners report ___ asked to double-check the figures.",
+      "question": "Everyone involved in preparing the appendix for the Delacroix Partners report ___ asked to double-check the figures before last month’s submission.",
       "choices": [
         {
           "key": "A",
@@ -1115,7 +1115,7 @@
       ],
       "answer": "A",
       "explanation": "\"Everyone\"は常に単数扱い。wasが正しい。were（複数過去）・have been（複数現在完了）は複数形でEveryoneと一致せず、is（単数現在）は報告書作成時という過去の文脈と時制が合わない。",
-      "translation": "Delacroix Partnersの報告書の付録作成に関わった全員が、数値の再確認を求められた。"
+      "translation": "先月の提出前に、Delacroix Partnersの報告書の付録作成に関わった全員が数値の再確認を求められた。"
     },
     {
       "id": "part5-campaign",
@@ -1132,7 +1132,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "Amberline Media ___ run similar campaigns for over a decade before this year's controversy.",
+      "question": "Amberline Media ___ run similar campaigns for over a decade before this year's rebranding.",
       "choices": [
         {
           "key": "A",
@@ -1152,8 +1152,8 @@
         }
       ],
       "answer": "B",
-      "explanation": "\"before this year's controversy\"より前の完了を表す過去完了。hadが正しい。have（複数現在完了）は主語Amberline Media（単数）と一致せず、does（単数現在）はrunと結んでも完了を表さず、was（単数過去）はrunの受動態になり文意が通らない。",
-      "translation": "Amberline Mediaは、今年の物議を醸す出来事より前の10年以上にわたり、似たようなキャンペーンを行ってきていた。"
+      "explanation": "\"before this year's rebranding\"より前の完了を表す過去完了。hadが正しい。have（複数現在完了）は主語Amberline Media（単数）と一致せず、does（単数現在）はrunと結んでも完了を表さず、was（単数過去）はrunの受動態になり文意が通らない。",
+      "translation": "Amberline Mediaは、今年のブランド刷新より前の10年以上にわたり、似たようなキャンペーンを行ってきていた。"
     },
     {
       "id": "part5-oversight",
@@ -1246,7 +1246,7 @@
           "freqRank": "B"
         }
       ],
-      "question": "The percentage of budget allocated to the modernization plan at Osgood Manufacturing ___ expected to reach twelve percent.",
+      "question": "The percentage of budget allocated to the modernization plan at Osgood Manufacturing ___ currently expected to reach twelve percent.",
       "choices": [
         {
           "key": "A",
@@ -1267,7 +1267,7 @@
       ],
       "answer": "C",
       "explanation": "\"The percentage of + 複数名詞相当\"は単数扱い。The percentageが主語の核なのでisが正しい。are（複数現在）は複数形で主語と一致せず、was（単数過去）は現在の見込みを述べる文意と時制が合わず、been単独では述語動詞になれない。",
-      "translation": "Osgood Manufacturingでの近代化計画に割り当てられた予算の割合は、12パーセントに達すると見込まれている。"
+      "translation": "Osgood Manufacturingでの近代化計画に割り当てられた予算の割合は、現時点で12パーセントに達すると見込まれている。"
     },
     {
       "id": "part5-overstock",
@@ -1284,7 +1284,7 @@
           "freqRank": "A"
         }
       ],
-      "question": "Investigators concluded that the board ___ overlooked signs of overstock for several years before costs spiraled out of control.",
+      "question": "Analysts noted that the team ___ tracked signs of overstock for several years before the new system was adopted.",
       "choices": [
         {
           "key": "A",
@@ -1304,8 +1304,8 @@
         }
       ],
       "answer": "B",
-      "explanation": "\"before costs spiraled out of control\"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・is（単数現在）は基準点が現在にずれ、have（複数現在完了）は主語the board（単数扱い）と一致しない。",
-      "translation": "調査官は、コストが制御不能になるより前の数年間、取締役会が過剰在庫の兆候を見過ごしていたと結論づけた。"
+      "explanation": "\"before the new system was adopted\"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・is（単数現在）は基準点が現在にずれ、have（複数現在完了）は主語the board（単数扱い）と一致しない。",
+      "translation": "アナリストは、新システムが導入されるより前の数年間、そのチームが過剰在庫の兆候を追跡していたと指摘した。"
     },
     {
       "id": "part5-timeline",
@@ -1533,7 +1533,7 @@
       ],
       "answer": "A",
       "explanation": "\"as ___ as\"の間には原級の形容詞が入る。heavyが正しい。heavinessは名詞、heavilyは副詞、heaviestは最上級で不適。",
-      "translation": "平日のその店の来客数は、週末の人出ほど多くない傾向にある。"
+      "translation": "平日のその店の来客数は、週末に多くなりがちな人出ほどではない。"
     },
     {
       "id": "part5-derivative",
@@ -1892,7 +1892,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The findings that led inspectors to close the old warehouse ___ documented in a lengthy report.",
+      "question": "The findings that led the company to renovate the old warehouse ___ documented in a lengthy report.",
       "choices": [
         {
           "key": "A",
@@ -1913,7 +1913,7 @@
       ],
       "answer": "A",
       "explanation": "主語はThe findings（複数形）。wereが正しい。was（単数過去）・has been（単数現在完了）・is（単数現在）は複数過去ではなく、この文の主語・時制と一致しない。",
-      "translation": "検査官がその古い倉庫の閉鎖を決めるに至った所見は、長い報告書に文書化されている。"
+      "translation": "会社がその古い倉庫の改装を決めるに至った所見は、長い報告書に文書化されている。"
     }
   ]
 }

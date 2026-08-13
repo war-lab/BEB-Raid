@@ -371,9 +371,9 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
     setId: 'p4-23',
     part: 4,
     tags: ['意図推定'],
-    keyVocabWords: ['recall', 'liability'],
+    keyVocabWords: ['recall', 'defect'],
     script:
-      'This is an internal briefing regarding the voluntary recall of model AX-200 units sold between March and June. Our engineering team identified a wiring defect that, in rare cases, could pose a safety risk. We are recalling approximately twelve thousand units and offering affected customers a full refund or a free replacement. Legal has confirmed that acting now, before any incidents occur, significantly limits our liability compared to waiting for a complaint. I want to be clear that this was not an easy decision given the cost involved, but it was, frankly, the only responsible one. Customer service will begin contacting affected buyers by phone starting Monday.',
+      'This is an internal briefing regarding the voluntary recall of model AX-200 units sold between March and June. Our engineering team identified a wiring defect that, in rare cases, could pose a safety risk. We are recalling approximately twelve thousand units and offering affected customers a full refund or a free replacement. Acting now, before anyone is inconvenienced, protects the trust our customers have placed in us. I want to be clear that this was not an easy decision given the cost involved, but it was, frankly, the only responsible one. Customer service will begin contacting affected buyers by phone starting Monday.',
     subQuestions: [
       {
         question: 'What is the purpose of this briefing?',
@@ -397,7 +397,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'The speaker wants to delay the recall further',
         ],
         explanation:
-          '直前の"this was not an easy decision given the cost involved"に続く発言で、コストを踏まえてもリコールが唯一正しい判断だったという確信を示す意図推定問題。他の選択肢について、リコールは実施が決まった判断であり不要とは述べていない。engineering teamは欠陥を特定した側として言及されており責任を問う文脈ではなく、早期の実施が責任を限定すると述べているので先送りの意図もない。',
+          '直前の"this was not an easy decision given the cost involved"に続く発言で、コストを踏まえてもリコールが唯一正しい判断だったという確信を示す意図推定問題。他の選択肢について、リコールは実施が決まった判断であり不要とは述べていない。engineering teamは欠陥を特定した側として言及されており責任を問う文脈ではなく、早期の実施が顧客の信頼を守ると述べているので先送りの意図もない。',
         translation:
           '話者が「率直に言って、それが唯一責任ある判断だった」と言っているのはどういう意味ですか。',
       },

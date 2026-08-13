@@ -62,7 +62,9 @@ export const ADVERSARIAL_REVIEWED_AT = '2026-08-13'
  * 載っていないパックは工程名から「AIクロスレビュー（<モデル名>）」の段が落ちる。
  * 通していない工程を `origin` に書くと出所を偽ることになるため、既定は「未実施」とする。
  *
- * 2026-08-13に、それまで一度も通していなかった6パック347問を claude-sonnet-5 で実施した
+ * 2026-08-13に、クロスレビューが未実施・モデル名未記録だった9パックをFableで実施した
+ * （ADR 0006・0014のAmendment。生成はClaude系のエージェントなので、同系列のモデルで
+ * 読むと「別のモデルで読む」の要件を満たさないため、実施モデルをFableに固定した）
  * （`pack-p5-similar-*` は起票時に「対象外」、`pack-dict-s-002`・`pack-p34-s-002` は
  * T-84で「未実施」、`pack-vocab-s-002` はドッグフィードバック対応のまま残っていた）。
  * 残りは2026-07までに別モデルで通してある。モデル名を特定できないパックは載せない。
@@ -83,17 +85,17 @@ export const CROSS_REVIEW_MODEL_BY_PACK_ID: ReadonlyMap<string, string> = new Ma
   ['pack-reading-p6-s-001', '別モデル3並列'],
   ['pack-reading-p7single-s-001', '別モデル3並列'],
   // 2026-08-13に実施（それまで未実施・対象外だったもの）
-  ['pack-p5-similar-s-001', 'claude-sonnet-5'],
-  ['pack-p5-similar-s-002', 'claude-sonnet-5'],
-  ['pack-p5-similar-s-003', 'claude-sonnet-5'],
-  ['pack-dict-s-002', 'claude-sonnet-5'],
-  ['pack-p34-s-002', 'claude-sonnet-5'],
-  ['pack-vocab-s-002', 'claude-sonnet-5'],
+  ['pack-p5-similar-s-001', 'Fable'],
+  ['pack-p5-similar-s-002', 'Fable'],
+  ['pack-p5-similar-s-003', 'Fable'],
+  ['pack-dict-s-002', 'Fable'],
+  ['pack-p34-s-002', 'Fable'],
+  ['pack-vocab-s-002', 'Fable'],
   // 2026-08-13に実施（T-85で「実施済み」と記録されていたがモデル名が残っていなかった2件と、
   // T-349で新規生成し敵対的検証6観点のみ通していた pack-p2-s-003）
-  ['pack-p2-s-003', 'claude-sonnet-5'],
-  ['pack-p34-s-003', 'claude-sonnet-5'],
-  ['pack-p5-s-003', 'claude-sonnet-5'],
+  ['pack-p2-s-003', 'Fable'],
+  ['pack-p34-s-003', 'Fable'],
+  ['pack-p5-s-003', 'Fable'],
 ])
 
 /**

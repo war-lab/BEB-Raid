@@ -4,15 +4,15 @@
     "id": "pack-p5-similar-s-002",
     "title": "Part5 key単語類題 追加60問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 65232
+    "reviewMethod": "AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 65260
   },
   "questions": [
     {
@@ -828,7 +828,7 @@
           "freqRank": "A"
         }
       ],
-      "question": "The factory plans to expand its ___ by twenty percent next year.",
+      "question": "The factory plans to expand its ___ by twenty percent next year to meet rising production demand.",
       "choices": [
         {
           "key": "A",
@@ -980,7 +980,7 @@
           "freqRank": "A"
         }
       ],
-      "question": "The company offered to ___ employees for the unpaid overtime.",
+      "question": "The company offered to ___ employees for the weekend travel time.",
       "choices": [
         {
           "key": "A",
@@ -1001,7 +1001,7 @@
       ],
       "answer": "B",
       "explanation": "未払いの残業代を支払う（埋め合わせる）のはcompensate。incentivize（動機づける）・retain（つなぎ止める）・delegate（委任する）は文脈に合わない。",
-      "translation": "その会社は未払いの残業代について従業員に補償を申し出た。"
+      "translation": "その会社は週末の移動時間について従業員に手当を申し出た。"
     },
     {
       "id": "similar-compensate-3",
@@ -1170,7 +1170,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The parent company sold one of its overseas ___ last year.",
+      "question": "The parent company sold its overseas ___ last year.",
       "choices": [
         {
           "key": "A",
@@ -1858,19 +1858,19 @@
       "choices": [
         {
           "key": "A",
-          "text": "occupant"
+          "text": "occupants"
         },
         {
           "key": "B",
-          "text": "facilitator"
+          "text": "facilitators"
         },
         {
           "key": "C",
-          "text": "exhibitor"
+          "text": "exhibitors"
         },
         {
           "key": "D",
-          "text": "applicant"
+          "text": "applicants"
         }
       ],
       "answer": "D",
@@ -2162,19 +2162,19 @@
       "choices": [
         {
           "key": "A",
-          "text": "custodian"
+          "text": "custodians"
         },
         {
           "key": "B",
-          "text": "facilitator"
+          "text": "facilitators"
         },
         {
           "key": "C",
-          "text": "tenant"
+          "text": "tenants"
         },
         {
           "key": "D",
-          "text": "sponsor"
+          "text": "sponsors"
         }
       ],
       "answer": "C",

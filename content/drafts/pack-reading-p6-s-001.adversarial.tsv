@@ -3,7 +3,7 @@ p6-001	accept		claude-opus-5	2026-08-13
 p6-002	accept		claude-opus-5	2026-08-13
 p6-003	accept		claude-opus-5	2026-08-13
 p6-004	accept		claude-opus-5	2026-08-13
-p6-005	accept	初回判定はrevise: q2「you [[2]] receive a full itinerary」でwill以外にshouldも文法的・意味的に成立し得る（「〜のはずだ」という予期的用法）。explanationは「shouldは義務・助言」としているが、この文脈でのshouldは予期の用法であり説明が実際の競合点を捉えていない。二重正答リスクとして選択肢調整または説明の見直しが必要。他のq1/q3/q4は問題なし。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+p6-005	accept		claude-opus-5	2026-08-13
 p6-006	accept		claude-opus-5	2026-08-13
 p6-007	accept		claude-opus-5	2026-08-13
 p6-008	accept		claude-opus-5	2026-08-13

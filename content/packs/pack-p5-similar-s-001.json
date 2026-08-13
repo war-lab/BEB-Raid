@@ -4,15 +4,15 @@
     "id": "pack-p5-similar-s-001",
     "title": "Part5 key単語類題57問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 59987
+    "reviewMethod": "AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 60019
   },
   "questions": [
     {
@@ -88,7 +88,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "\"balance on an account\"（口座の残高）は定番のコロケーション。proposal（提案書）・certification（認定）・strategy（戦略）は残高を持つ対象ではない。",
+      "explanation": "\"balance on an account\"（口座の残高）は定番のコロケーション。proposal（提案書）・certification（認定）・acquisition（買収）は残高を持つ対象ではない。",
       "translation": "この口座の残高を確認していただけますか？"
     },
     {
@@ -304,7 +304,7 @@
         },
         {
           "key": "B",
-          "text": "strategy"
+          "text": "acquisition"
         },
         {
           "key": "C",
@@ -338,7 +338,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "inspection"
+          "text": "subscription"
         },
         {
           "key": "B",
@@ -676,7 +676,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "A strong ___ from a trusted brand can boost sales.",
+      "question": "A strong ___ from a well-known athlete can boost sales.",
       "choices": [
         {
           "key": "A",
@@ -980,7 +980,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "Signing the contract without review could create legal ___.",
+      "question": "The policy covers ___ arising from defects in the delivered goods.",
       "choices": [
         {
           "key": "A",
@@ -1001,7 +1001,7 @@
       ],
       "answer": "A",
       "explanation": "確認せずに契約すると生じかねないのはliability（責任・法的責任）。certification（認定）・merger（合併）・proposal（提案書）は契約リスクとして生じるものではない。",
-      "translation": "確認せずに契約書に署名すると法的責任が生じる可能性がある。"
+      "translation": "その保険契約は、納入品の欠陥から生じる賠償責任を補償する。"
     },
     {
       "id": "similar-liability-3",
@@ -1114,7 +1114,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "追加の研修が必要になった原因はmerger（合併。新しい体制への適応）。extension（延長）・inspection（検査）・endorsement（推薦）は研修が必要になる典型的な原因にならない。",
+      "explanation": "追加の研修が必要になった原因はmerger（合併。新しい体制への適応）。extension（延長）・subscription（利用契約）・endorsement（推薦）は、2社が1つになることで生じる研修の原因にならない。",
       "translation": "従業員は合併後に追加の研修を必要とした。"
     },
     {

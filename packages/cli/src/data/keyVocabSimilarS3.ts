@@ -563,12 +563,12 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'client',
     tags: ['ビジネス名詞'],
-    question: 'The lawyer met with her ___ to discuss the case.',
+    question: 'The consultant met with her ___ to discuss the renewal of the contract.',
     correctText: 'client',
     distractors: ['competitor', 'affiliate', 'stakeholder'],
     explanation:
       '専門家に依頼する側の「顧客・依頼人」はclient。competitor（競合他社）・affiliate（提携先）・stakeholder（利害関係者）は依頼人を意味しない。',
-    translation: 'その弁護士は依頼人と会って案件について話し合った。',
+    translation: 'そのコンサルタントは顧客と会って契約の更新について話し合った。',
     difficulty: 2,
   },
   {
@@ -732,12 +732,12 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'inquiry',
     tags: ['ビジネス名詞'],
-    question: 'The hotel received an ___ about group discounts.',
+    question: 'The hotel received several ___s about group discounts last week.',
     correctText: 'inquiry',
     distractors: ['dispute', 'testimonial', 'briefing'],
     explanation:
       '情報を求める「問い合わせ」はinquiry。dispute（紛争）・testimonial（推薦の声）・briefing（説明会）は問い合わせという行為を表さない。',
-    translation: 'そのホテルは団体割引についての問い合わせを受けた。',
+    translation: 'そのホテルは先週、団体割引についての問い合わせを何件か受けた。',
     difficulty: 2,
   },
   {
@@ -810,12 +810,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'dispute',
     tags: ['ビジネス名詞'],
-    question: 'The two companies settled their ___ out of court after months of negotiation.',
+    question:
+      'The two companies settled their ___ over the delivery terms after months of negotiation.',
     correctText: 'dispute',
     distractors: ['inquiry', 'variance', 'infringement'],
     explanation:
       '当事者間の「紛争」はdispute。inquiry（問い合わせ）・variance（例外許可）・infringement（侵害。紛争の原因になり得るが紛争自体ではない）はこの文脈に合わない。',
-    translation: 'その2社は数か月の交渉の後、法廷外で紛争を解決した。',
+    translation: 'その2社は数か月の交渉の後、納期条件をめぐる意見の相違を解決した。',
     difficulty: 3,
   },
   {
@@ -833,12 +834,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'firewall',
     tags: ['ビジネス名詞'],
-    question: "The IT team installed a new ___ to block intrusions after last month's breach.",
+    question: 'The IT team installed a new ___ as part of this year’s scheduled network upgrade.',
     correctText: 'firewall',
     distractors: ['password', 'protocol', 'middleware'],
     explanation:
       '不正アクセスを防ぐ「ファイアウォール」はfirewall。password（パスワード）・protocol（通信規約）・middleware（ミドルウェア）は侵入を遮断する装置そのものを指さない。',
-    translation: 'IT部門は先月の侵入事件を受けて、侵入を遮断する新しいファイアウォールを導入した。',
+    translation:
+      'IT部門は今年の予定されたネットワーク更新の一環として、新しいファイアウォールを導入した。',
     difficulty: 4,
   },
   {
@@ -878,12 +880,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'regulation',
     tags: ['ビジネス名詞'],
-    question: 'The factory must follow strict safety ___ set by the state government.',
+    question:
+      'The factory must comply with a new safety ___ issued by the state government last month.',
     correctText: 'regulation',
     distractors: ['variance', 'protocol', 'condemnation'],
     explanation:
-      '法令上の「規制」はregulation。variance（例外許可。むしろ規制からの逸脱を指す）・protocol（通信規約）・condemnation（使用不可宣告）は規制そのものを意味しない。',
-    translation: 'その工場は、州政府が定めた厳格な安全規制に従わなければならない。',
+      '行政が発する「規則」はregulation。variance（例外許可。むしろ規制からの逸脱を指す）・protocol（手順書。組織が自ら定める運用手順で、政府がissueするものではない）・condemnation（使用不可宣告）はいずれも州政府が発する規則を指さない。',
+    translation: 'その工場は、州政府が先月発した新しい安全規則を遵守しなければならない。',
     difficulty: 3,
   },
   {
@@ -1005,18 +1008,19 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     distractors: ['appraisal', 'mentorship', 'onboarding'],
     explanation:
       '人材をつなぎとめる「定着」はretention。appraisal（人事評価）・mentorship（指導制度）・onboarding（新人研修）は定着施策そのものを意味しない。',
-    translation: '人事チームは、今年の離職率を下げるために新しい従業員定着プログラムを開始した。',
+    translation:
+      '人事チームは、経験豊富なスタッフをつなぎとめるために新しい従業員定着プログラムを開始した。',
     difficulty: 4,
   },
   {
     word: 'amenity',
     tags: ['ビジネス名詞'],
-    question: 'The hotel offers many ___ including a rooftop pool and a modern gym.',
+    question: 'The rooftop pool is the hotel’s most popular ___ among business travelers.',
     correctText: 'amenity',
     distractors: ['utility', 'throughput', 'concierge'],
     explanation:
       '快適に過ごすための「設備」はamenity。utility（公共料金）・throughput（処理能力）・concierge（コンシェルジュ、人を指す）は設備を意味しない。',
-    translation: 'そのホテルは、屋上プールや最新のジムを含む多くの設備を提供している。',
+    translation: '屋上プールは、出張客に最も人気のあるそのホテルの設備だ。',
     difficulty: 3,
   },
   {
@@ -1090,12 +1094,12 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'stopover',
     tags: ['ビジネス名詞'],
-    question: 'Our flight includes a two-hour ___ in Tokyo before continuing on to Seoul.',
+    question: 'Our itinerary includes an overnight ___ in Tokyo before continuing on to Seoul.',
     correctText: 'stopover',
     distractors: ['boarding', 'immigration', 'gateway'],
     explanation:
       '目的地までの「短期滞在」はstopover。boarding（搭乗）・immigration（出入国審査）・gateway（玄関口）は途中滞在を意味しない。',
-    translation: '私たちの便は、ソウルへ向かう前に東京での2時間の短期滞在を含んでいる。',
+    translation: '私たちの旅程は、ソウルへ向かう前に東京での一泊の滞在を含んでいる。',
     difficulty: 3,
   },
   {
@@ -1124,13 +1128,14 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'overbook',
     tags: ['頻出動詞'],
-    question: 'The airline apologized after it decided to ___ the flight during the holiday rush.',
+    question:
+      'The airline apologized to passengers after it had ___ed the flight during the holiday rush.',
     correctText: 'overbook',
     distractors: ['terminate', 'allocate', 'authorize'],
     explanation:
       '定員を超えて予約を取る「オーバーブッキングする」はoverbook。terminate（終了させる）・allocate（割り当てる）・authorize（承認する）はこの意味を持たない。',
     translation:
-      'その航空会社は、休暇シーズンの混雑中に便をオーバーブッキングしたことについて謝罪した。',
+      'その航空会社は、休暇シーズンの混雑中に便を超過予約したことについて乗客に謝罪した。',
     difficulty: 4,
   },
   {
@@ -1293,24 +1298,25 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'cybersecurity',
     tags: ['ビジネス名詞'],
-    question: 'The firm invested heavily in ___ after the data breach made headlines nationwide.',
+    question:
+      'The firm invested heavily in ___, covering everything from staff training to network defenses.',
     correctText: 'cybersecurity',
     distractors: ['authentication', 'encryption', 'firewall'],
     explanation:
       'デジタル環境全般を守る「サイバーセキュリティ」はcybersecurity。authentication（認証）・encryption（暗号化）・firewall（ファイアウォール）はいずれもサイバーセキュリティを構成する個別要素であり、全体を表す語ではない。',
     translation:
-      'その会社は、データ漏えいが全国的なニュースになった後、サイバーセキュリティに多額の投資をした。',
+      'その会社は、社員研修からネットワーク防御まで含むサイバーセキュリティに多額の投資をした。',
     difficulty: 4,
   },
   {
     word: 'phishing',
     tags: ['ビジネス名詞'],
-    question: 'Employees were warned about a new ___ email scam targeting company executives.',
+    question: 'Employees completed a short training course on how to recognize a ___ email.',
     correctText: 'phishing',
     distractors: ['infringement', 'condemnation', 'dispute'],
     explanation:
       '偽メール等で情報を盗む「フィッシング詐欺」はphishing。infringement（侵害）・condemnation（使用不可宣告）・dispute（紛争）はこの種の詐欺行為を意味しない。',
-    translation: '従業員は、会社の役員を狙う新しいフィッシング詐欺メールについて警告を受けた。',
+    translation: '従業員は、フィッシングメールの見分け方についての短い研修を修了した。',
     difficulty: 4,
   },
   {

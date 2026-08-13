@@ -267,7 +267,7 @@ export const PART7_MULTI_ENTRIES_S: Part7MultiRawEntry[] = [
     passages: [
       {
         kind: 'advertisement',
-        text: 'Northgate Serviced Offices — Now Leasing\n\nSuite A — 45 sq m, second floor, no window. $1,400/month.\nSuite B — 60 sq m, third floor, corner windows. $2,050/month.\nSuite C — 60 sq m, first floor, street entrance. $1,850/month.\nSuite D — 95 sq m, third floor, corner windows. $2,900/month.\n\nAll suites include high-speed internet, weekly cleaning, and access to two shared meeting rooms. Parking is available for an extra $90 per space per month. Minimum lease: twelve months. Suites on the third floor are reached by stairs only.',
+        text: 'Northgate Serviced Offices — Now Leasing\n\nSuite A — 45 sq m, second floor, no window. $1,400/month.\nSuite B — 60 sq m, third floor, corner windows. $2,050/month.\nSuite C — 60 sq m, first floor, street entrance, large front-facing windows. $1,850/month.\nSuite D — 95 sq m, third floor, corner windows. $2,900/month.\n\nAll suites include high-speed internet, weekly cleaning, and access to two shared meeting rooms. Parking is available for an extra $90 per space per month. Minimum lease: twelve months. Suites on the third floor are reached by stairs only.',
       },
       {
         kind: 'email',
