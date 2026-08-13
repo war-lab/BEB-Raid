@@ -3221,6 +3221,17 @@
   border: 1px solid var(--gold);
   border-radius: var(--radius-button);
 }
+/* 未取得バッジ（T-150。07の6節「未取得はシルエット表示」）。
+   獲得済みの --gold 枠に対し輪郭のみ --ink-3 にし、面は塗らない。
+   色だけで区別すると07の原則4（色に頼らない二重符号化）に反するため、
+   文字側にも「未取得」を出し、名前を --ink-2 へ落として主役から外す */
+.raid-badges__item--locked {
+  border-color: var(--ink-3);
+  border-style: dashed;
+}
+.raid-badges__item--locked .raid-badges__name {
+  color: var(--ink-2);
+}
 .raid-badges__name {
   flex: 1;
   min-width: 0;

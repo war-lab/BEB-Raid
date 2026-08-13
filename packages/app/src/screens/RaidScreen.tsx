@@ -28,6 +28,7 @@ import {
   RAID_SYNC_ENABLED_KEY,
 } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { buildRaidBadgeList } from '../engine/raidBadgeList'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BossSigil } from '../components/BossSigil'
@@ -141,6 +142,8 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   const [bossFetchFailed, setBossFetchFailed] = useState(false)
   // T-212(Q-44): 再試行導線が無く、通信状態が変わっても復帰手段が「開き直す」しかなかった
   const [bossFetchRetrying, setBossFetchRetrying] = useState(false)
+  // T-150: 取得済み＋未取得（固定バッジ＋進行中ボスの討伐バッジ）を並べる
+  const badgeList = buildRaidBadgeList(raidBadges, currentBoss?.bossId ?? null)
   // T-105(b): 相対時刻・raidEnded判定のtick更新用の現在時刻state
   const [nowMs, setNowMs] = useState(now())
   // T-121(J-60): 生成パックが0問だったときの案内。自動では消さず、セッション開始成功でクリアする
@@ -947,16 +950,34 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       <section className="raid-badges" data-testid="raid-badges">
         <p className="raid-badges__eyebrow">Badges</p>
         <h2 className="raid-badges__heading">獲得バッジ</h2>
-        {raidBadges.length === 0 ? (
+        {/* T-150で未取得バッジ（シルエット）を並べるようになったため、一覧は常に1件以上ある。
+            ただし1つも獲得していないときの案内（4.6節「どうすれば増えるか」）は残す価値があるので、
+            一覧と入れ替えるのではなく上に添える */}
+        {raidBadges.length === 0 && (
           <RaidEmptyNote testId="raid-badges-empty">
             まだバッジはありません。ボスを討伐すると、その週のバッジがここに並びます
           </RaidEmptyNote>
-        ) : (
+        )}
+        {badgeList.length > 0 && (
           <ul className="raid-badges__list">
-            {raidBadges.map((b) => (
-              <li key={b.badgeId} className="raid-badges__item">
+            {badgeList.map((b) => (
+              <li
+                key={b.badgeId}
+                className={
+                  b.earnedAt === null
+                    ? 'raid-badges__item raid-badges__item--locked'
+                    : 'raid-badges__item'
+                }
+                data-testid={b.earnedAt === null ? 'raid-badge-locked' : 'raid-badge-earned'}
+              >
                 <span className="raid-badges__name">{raidBadgeLabel(b.badgeId)}</span>
-                <span className="raid-badges__date display-num">{toDateString(b.earnedAt)}</span>
+                {b.earnedAt === null ? (
+                  /* 未取得は取得日の代わりに状態を文字で置く。07の原則4（色に頼らない）に沿って
+                     枠線の色だけで取得済みと区別しない */
+                  <span className="raid-badges__date">未取得</span>
+                ) : (
+                  <span className="raid-badges__date display-num">{toDateString(b.earnedAt)}</span>
+                )}
               </li>
             ))}
           </ul>
