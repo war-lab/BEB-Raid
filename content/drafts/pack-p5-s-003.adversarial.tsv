@@ -1,7 +1,7 @@
 id	verdict	observation	reviewer	reviewedAt
 part5-qualification	accept		claude-opus-5	2026-08-13
 part5-appraisal	accept		claude-opus-5	2026-08-13
-part5-complaint	accept	初回判定はrevise: "reviewed by the legal team before the hearing"は訴訟・審問手続きを想起させる設定。legal team/hearingを社内的な確認プロセスに置き換えるべき。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-complaint	accept		claude-opus-5	2026-08-13
 part5-sustainable	accept		claude-opus-5	2026-08-13
 part5-expense	accept		claude-opus-5	2026-08-13
 part5-delivery	accept		claude-opus-5	2026-08-13
@@ -13,7 +13,7 @@ part5-procurement	accept		claude-opus-5	2026-08-13
 part5-punctual	accept		claude-opus-5	2026-08-13
 part5-vendor	accept		claude-opus-5	2026-08-13
 part5-valuation	accept		claude-opus-5	2026-08-13
-part5-breach	accept	初回判定はrevise: "testimony before the committee"＋"allegations of a serious breach"は準訴訟的な証言・審問の場面設定で、本試験が避ける訴訟系題材に近い。証言・委員会という設定を業務報告等に置き換えるべき。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-protocol	accept		claude-opus-5	2026-08-13
 part5-biodegradable	accept		claude-opus-5	2026-08-13
 part5-asset	accept		claude-opus-5	2026-08-13
 part5-affiliate	accept		claude-opus-5	2026-08-13
@@ -25,7 +25,7 @@ part5-custodian	accept		claude-opus-5	2026-08-13
 part5-flagship	accept		claude-opus-5	2026-08-13
 part5-dwelling	accept		claude-opus-5	2026-08-13
 part5-freight	accept		claude-opus-5	2026-08-13
-part5-memo	accept	初回判定はrevise: 実名の個人（Renata Silva）を内部監査で発覚した"irregularities（不正）"に結びつけており、個人の不利益・非難に類する。監査結果を人物名と結びつけない書き換えが必要。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-memo	accept		claude-opus-5	2026-08-13
 part5-outlet	accept		claude-opus-5	2026-08-13
 part5-appendix	accept		claude-opus-5	2026-08-13
 part5-campaign	accept		claude-opus-5	2026-08-13
@@ -37,7 +37,7 @@ part5-timeline	accept		claude-opus-5	2026-08-13
 part5-merchandise	accept		claude-opus-5	2026-08-13
 part5-stockpile	accept		claude-opus-5	2026-08-13
 part5-lease	accept		claude-opus-5	2026-08-13
-part5-statement	accept	初回判定はrevise: 実名の個人（Aisha Karim）を報告ミスに関連づけて公表する内容で、個人の不利益・レピュテーション損害に類する。人物名を伏せるか、個人と結びつけない書き換えが必要。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-statement	accept		claude-opus-5	2026-08-13
 part5-footfall	accept		claude-opus-5	2026-08-13
 part5-derivative	accept		claude-opus-5	2026-08-13
 part5-sabbatical	accept		claude-opus-5	2026-08-13
@@ -45,7 +45,7 @@ part5-milestone	accept		claude-opus-5	2026-08-13
 part5-compatible	accept		claude-opus-5	2026-08-13
 part5-network	accept		claude-opus-5	2026-08-13
 part5-inquiry	accept		claude-opus-5	2026-08-13
-part5-agreement	accept	初回判定はrevise: "referred for adjudication"は裁定・仲裁への付託を意味し、訴訟に近い法的手続きを想起させる。社内的な合意形成プロセス等に置き換えるべき。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-agreement	accept		claude-opus-5	2026-08-13
 part5-batch	accept		claude-opus-5	2026-08-13
 part5-renovation	accept		claude-opus-5	2026-08-13
 part5-warehouse	accept		claude-opus-5	2026-08-13

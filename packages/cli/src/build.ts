@@ -44,7 +44,9 @@ export interface PackDefinition {
 /**
  * 敵対的検証の工程記録（T-355。正本: docs/32 8.2節）。
  *
- * 全パック共通の値としてここ1箇所に置く（21パックすべてに同じ工程を適用したため）。
+ * 敵対的検証（6観点）は21パックすべてに適用した。一方でAIクロスレビュー
+ * （生成に使ったのとは別のモデルによる全問読み）は**通していないパックがある**。
+ * 両者は別の工程なので、パックごとに実施の有無を持ち分ける。
  *
  * reviewMethodは機械可読な工程名、originは人が読む1行の出所表記で、
  * どちらもdocs/32 8.2節の書式に従う（`beb verify-content` が両者の整合を検査する）。
@@ -53,9 +55,63 @@ export const ADVERSARIAL_DIMENSION_COUNT = 6
 export const ADVERSARIAL_REVIEWER = 'claude-opus-5'
 export const ADVERSARIAL_REVIEWED_AT = '2026-08-13'
 
-/** docs/32 8.2節の書式で工程名を組み立てる */
-export function reviewMethodFor(reviewer: string, dimensions: number, date: string): string {
-  return `AIクロスレビュー（${reviewer}）＋敵対的検証（${dimensions}観点・${date}）`
+/**
+ * AIクロスレビュー（第1段。生成に使ったのとは別のモデルによる全問読み。J-119）を
+ * 実際に通したモデル。**通したパックだけ**を載せる。
+ *
+ * 載っていないパックは工程名から「AIクロスレビュー（<モデル名>）」の段が落ちる。
+ * 通していない工程を `origin` に書くと出所を偽ることになるため、既定は「未実施」とする。
+ *
+ * 2026-08-13に、クロスレビューが未実施・モデル名未記録だった9パックをFableで実施した
+ * （ADR 0006・0014のAmendment。生成はClaude系のエージェントなので、同系列のモデルで
+ * 読むと「別のモデルで読む」の要件を満たさないため、実施モデルをFableに固定した）
+ * （`pack-p5-similar-*` は起票時に「対象外」、`pack-dict-s-002`・`pack-p34-s-002` は
+ * T-84で「未実施」、`pack-vocab-s-002` はドッグフィードバック対応のまま残っていた）。
+ * 残りは2026-07までに別モデルで通してある。モデル名を特定できないパックは載せない。
+ */
+export const CROSS_REVIEW_MODEL_BY_PACK_ID: ReadonlyMap<string, string> = new Map([
+  // 2026-07にFable 5で実施
+  ['pack-vocab-s-001', 'Fable 5'],
+  ['pack-vocab-a-001', 'Fable 5'],
+  ['pack-vocab-b-001', 'Fable 5'],
+  ['pack-p2-s-001', 'Fable 5'],
+  ['pack-p2-s-002', 'Fable 5'],
+  ['pack-p5-s-001', 'Fable 5'],
+  ['pack-p5-s-002', 'Fable 5'],
+  ['pack-p34-s-001', 'Fable 5'],
+  ['pack-dict-s-001', 'Fable 5'],
+  ['pack-shadow-s-001', 'Fable 5'],
+  // 2026-07-23にT-107で別モデル3並列＋発起人H-R1レビュー承認
+  ['pack-reading-p6-s-001', '別モデル3並列'],
+  ['pack-reading-p7single-s-001', '別モデル3並列'],
+  // 2026-08-13に実施（それまで未実施・対象外だったもの）
+  ['pack-p5-similar-s-001', 'Fable'],
+  ['pack-p5-similar-s-002', 'Fable'],
+  ['pack-p5-similar-s-003', 'Fable'],
+  ['pack-dict-s-002', 'Fable'],
+  ['pack-p34-s-002', 'Fable'],
+  ['pack-vocab-s-002', 'Fable'],
+  // 2026-08-13に実施（T-85で「実施済み」と記録されていたがモデル名が残っていなかった2件と、
+  // T-349で新規生成し敵対的検証6観点のみ通していた pack-p2-s-003）
+  ['pack-p2-s-003', 'Fable'],
+  ['pack-p34-s-003', 'Fable'],
+  ['pack-p5-s-003', 'Fable'],
+  ['pack-reading-p7multi-s-001', 'Fable'],
+  ['pack-reading-p6url-s-001', 'Fable'],
+  ['pack-reading-p7url-s-001', 'Fable'],
+])
+
+/**
+ * docs/32 8.2節の書式で工程名を組み立てる。
+ * `crossReviewer` が無いパック（クロスレビュー未実施）は敵対的検証の段だけにする。
+ *
+ * 2026-08-13時点では配信中の21パックすべてにクロスレビューの実施モデルが入っている。
+ * 新しいパックを追加してクロスレビューがまだなら、表に載せないこと（載せなければ
+ * 工程名から自動でその段が落ちる）。
+ */
+export function reviewMethodFor(dimensions: number, date: string, crossReviewer?: string): string {
+  const adversarial = `敵対的検証（${dimensions}観点・${date}）`
+  return crossReviewer ? `AIクロスレビュー（${crossReviewer}）＋${adversarial}` : adversarial
 }
 
 /** docs/32 8.2節の書式で origin を組み立てる（生成手段はパックごとに異なるので引数で受ける） */
@@ -268,6 +324,42 @@ const READING_R1_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
+/**
+ * 読解フェーズR-2（T-144・T-273）。人手レビュー必須ゲート（ADR 0006 判断5）で
+ * 2026-07-31から配信が止まっていたが、同判断が2026-08-13に撤回され
+ * （ADR 0006 Amendment。AIクロスレビューで代替してよい）、Fableのクロスレビューを
+ * 通したうえで配信対象に加えた。
+ *
+ * URL題材の2パック（T-273）は、実試験にあるのに読解コンテンツへ1件も無かった
+ * URL・メールアドレスを含む設問を補う。ドメインは予約済みの `.example.com` を使う。
+ */
+const READING_R2_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-reading-p7multi-s-001',
+    title: 'Part7複数パッセージ読解 5セット25問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆（2026-07-31。T-144）',
+    targetLevel: [730, 860],
+    draftPath: 'drafts/text-passage-p7-multi-s.jsonl',
+  },
+  {
+    id: 'pack-reading-p6url-s-001',
+    title: 'Part6読解 URL題材1セット4問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆（2026-08-05。T-273）',
+    targetLevel: [600, 730],
+    draftPath: 'drafts/text-passage-p6-url-s.jsonl',
+  },
+  {
+    id: 'pack-reading-p7url-s-001',
+    title: 'Part7単一読解 URL題材4セット10問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆（2026-08-05。T-273）',
+    targetLevel: [600, 730],
+    draftPath: 'drafts/text-passage-p7-url-s.jsonl',
+  },
+]
+
 /** ウェーブ8・T-349で追加する1パック（Part2 平叙文・付加疑問・選択疑問64問。docs/32 ウェーブ8 T-349行） */
 const T349_PACK_DEFINITIONS: readonly PackDefinition[] = [
   {
@@ -290,6 +382,7 @@ export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...T85_PART34_PACK_DEFINITIONS,
   ...DOGFOOD_BEGINNER_PACK_DEFINITIONS,
   ...READING_R1_PACK_DEFINITIONS,
+  ...READING_R2_PACK_DEFINITIONS,
   ...T349_PACK_DEFINITIONS,
 ]
 
@@ -326,9 +419,9 @@ export async function loadPackSources(contentRoot: string): Promise<PackSource[]
     // TTSを工程に含めるかは実データで決める（音声を1件も持たないパックに＋TTSと書かない）
     const withTts = questions.some((q) => Boolean(q.audio) || Boolean(q.phraseAudio))
     const reviewMethod = reviewMethodFor(
-      ADVERSARIAL_REVIEWER,
       ADVERSARIAL_DIMENSION_COUNT,
       ADVERSARIAL_REVIEWED_AT,
+      CROSS_REVIEW_MODEL_BY_PACK_ID.get(def.id),
     )
     sources.push({
       id: def.id,

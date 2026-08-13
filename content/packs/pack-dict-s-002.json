@@ -4,15 +4,15 @@
     "id": "pack-dict-s-002",
     "title": "ディクテーション追加40本",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。T-84）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。T-84）＋AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 39802
+    "reviewMethod": "AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 40302
   },
   "questions": [
     {
@@ -77,7 +77,7 @@
       },
       "script": "The logistics team and the warehouse staff met this afternoon.",
       "translation": "物流チームと倉庫のスタッフは今日の午後に会った。",
-      "explanation": "弱形になりやすいand/thisを穴にしている。",
+      "explanation": "弱形になりやすいandと、強形のまま速く続けて発音されるthisを穴にしている。",
       "blanks": [
         {
           "index": 3,
@@ -225,7 +225,7 @@
       },
       "script": "The client should review the proposal before Friday afternoon.",
       "translation": "顧客は金曜日の午後までにその提案書を確認すべきだ。",
-      "explanation": "弱形になりやすいshould/beforeを穴にしている。",
+      "explanation": "弱形になりやすいshouldと、強形のまま速く続けて発音されるbeforeを穴にしている。",
       "blanks": [
         {
           "index": 2,
@@ -410,7 +410,7 @@
       },
       "script": "Our manager handled the complaint within a few minutes.",
       "translation": "当社の部長はその苦情に数分以内に対応した。",
-      "explanation": "弱形になりやすいthe/withinを穴にしている。",
+      "explanation": "弱形になりやすいtheと、強形のまま速く続けて発音されるwithinを穴にしている。",
       "blanks": [
         {
           "index": 3,
@@ -558,7 +558,7 @@
       },
       "script": "The results were measured against an industry benchmark.",
       "translation": "その結果は業界の基準と照らして測定された。",
-      "explanation": "弱形になりやすいwere/againstを穴にしている。",
+      "explanation": "弱形になりやすいwereと、強形のまま速く続けて発音されるagainstを穴にしている。",
       "blanks": [
         {
           "index": 2,
@@ -593,8 +593,8 @@
         "voice": "pending-tts",
         "durationMs": 3500
       },
-      "script": "The company could face liability if the claim is proven.",
-      "translation": "その申し立てが立証されれば、その会社は法的責任を負うかもしれない。",
+      "script": "The company could reduce liability if the loan is refinanced.",
+      "translation": "そのローンが借り換えられれば、その会社は負債を減らせるかもしれない。",
       "explanation": "弱形になりやすいcould/isを穴にしている。",
       "blanks": [
         {
@@ -706,7 +706,7 @@
       },
       "script": "Guests must leave a deposit before checking into the room.",
       "translation": "宿泊客は部屋にチェックインする前に保証金を預けなければならない。",
-      "explanation": "弱形になりやすいmust/beforeを穴にしている。",
+      "explanation": "弱形になりやすいmustと、強形のまま速く続けて発音されるbeforeを穴にしている。",
       "blanks": [
         {
           "index": 1,
@@ -965,7 +965,7 @@
       },
       "script": "New hires remain on probation for the first ninety days.",
       "translation": "新入社員は最初の90日間は試用期間にある。",
-      "explanation": "弱形になりやすいon/forを穴にしている。",
+      "explanation": "弱形になりやすいforと、強形のまま速く続けて発音されるonを穴にしている。",
       "blanks": [
         {
           "index": 3,
@@ -1150,7 +1150,7 @@
       },
       "script": "A courier will deliver the documents before noon tomorrow.",
       "translation": "配送業者が明日の正午前にその書類を届ける予定だ。",
-      "explanation": "弱形になりやすいwill/beforeを穴にしている。",
+      "explanation": "弱形になりやすいwillと、強形のまま速く続けて発音されるbeforeを穴にしている。",
       "blanks": [
         {
           "index": 2,
@@ -1224,7 +1224,7 @@
       },
       "script": "Members receive a discount on every purchase over fifty dollars.",
       "translation": "会員は50ドルを超えるすべての購入に割引を受ける。",
-      "explanation": "弱形になりやすいa/onを穴にしている。",
+      "explanation": "弱形になりやすいaと、強形のまま速く続けて発音されるonを穴にしている。",
       "blanks": [
         {
           "index": 2,
@@ -1409,7 +1409,7 @@
       },
       "script": "The developer will need a zoning permit before construction starts.",
       "translation": "その開発業者は着工前に用途地域の許可証が必要になるだろう。",
-      "explanation": "弱形になりやすいwill/beforeを穴にしている。",
+      "explanation": "弱形になりやすいwillと、強形のまま速く続けて発音されるbeforeを穴にしている。",
       "blanks": [
         {
           "index": 2,
@@ -1446,7 +1446,7 @@
       },
       "script": "A local bank agreed to sponsor the charity marathon this year.",
       "translation": "地元の銀行が今年のチャリティーマラソンを後援することに同意した。",
-      "explanation": "弱形になりやすいto/thisを穴にしている。",
+      "explanation": "弱形になりやすいtoと、強形のまま速く続けて発音されるthisを穴にしている。",
       "blanks": [
         {
           "index": 4,

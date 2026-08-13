@@ -1,18 +1,18 @@
 id	verdict	observation	reviewer	reviewedAt
 similar-delivery-1	accept		claude-opus-5	2026-08-13
 similar-venue-1	accept		claude-opus-5	2026-08-13
-similar-training-1	accept	初回判定はrevise: choicesのorientationも「safety orientationを完了する」として文脈上通り、trainingとの二重正答の恐れ → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-training-1	accept		claude-opus-5	2026-08-13
 similar-headquarters-1	accept		claude-opus-5	2026-08-13
 similar-reception-1	accept		claude-opus-5	2026-08-13
 similar-audit-1	accept		claude-opus-5	2026-08-13
-similar-estate-1	accept	初回判定はrevise: 選択肢セット(estate/facility/premises/venue)がsimilar-facility-1・similar-premises-1と重複（T-353で解消したはずの重複が再発） → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-estate-1	accept		claude-opus-5	2026-08-13
 similar-utility-1	accept		claude-opus-5	2026-08-13
 similar-catering-1	accept		claude-opus-5	2026-08-13
 similar-occupant-1	accept		claude-opus-5	2026-08-13
-similar-freight-1	accept	初回判定はrevise: choicesのconsignmentも「委託荷物が税関で足止め」として文脈上通り、freightとの二重正答の恐れ → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-freight-1	accept		claude-opus-5	2026-08-13
 similar-outsource-1	accept		claude-opus-5	2026-08-13
 similar-stakeholder-1	accept		claude-opus-5	2026-08-13
-similar-facility-1	accept	初回判定はrevise: 選択肢セット(estate/facility/premises/venue)がsimilar-estate-1・similar-premises-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-facility-1	accept		claude-opus-5	2026-08-13
 similar-lease-1	accept		claude-opus-5	2026-08-13
 similar-defect-1	accept		claude-opus-5	2026-08-13
 similar-branch-1	accept		claude-opus-5	2026-08-13
@@ -23,17 +23,17 @@ similar-allocate-1	accept		claude-opus-5	2026-08-13
 similar-newsletter-1	accept		claude-opus-5	2026-08-13
 similar-attend-1	accept		claude-opus-5	2026-08-13
 similar-approve-1	accept		claude-opus-5	2026-08-13
-similar-authorize-1	accept	初回判定はrevise: 選択肢セット(authorize/comply/delegate/notify)がsimilar-delegate-1・similar-notify-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-authorize-1	accept		claude-opus-5	2026-08-13
 similar-implement-1	accept		claude-opus-5	2026-08-13
 similar-comply-1	accept		claude-opus-5	2026-08-13
-similar-delegate-1	accept	初回判定はrevise: 選択肢セット(authorize/comply/delegate/notify)がsimilar-authorize-1・similar-notify-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-delegate-1	accept		claude-opus-5	2026-08-13
 similar-prioritize-1	accept		claude-opus-5	2026-08-13
 similar-coordinate-1	accept		claude-opus-5	2026-08-13
-similar-supervise-1	accept	初回判定はrevise: 選択肢セット(coordinate/oversee/recruit/supervise)がsimilar-oversee-1と重複。加えてovseeも「新人インターンを監督する」の文脈で通り、supervise/overseeの使い分けが薄く二重正答の恐れ → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-oversee-1	accept	初回判定はrevise: 選択肢セット(coordinate/oversee/recruit/supervise)がsimilar-supervise-1と重複。加えてsuperviseも「3支店を統括する」の文脈で通り、supervise/overseeの使い分けが薄く二重正答の恐れ → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-recruit-1	accept	初回判定はrevise: 選択肢セット(delegate/hire/recruit/terminate)がsimilar-hire-1と重複。加えてhireも「エンジニアを採用する」の文脈で通り、recruit/hireの使い分けが薄く二重正答の恐れ（explanation自身もhireが近い意味であると認めている） → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-hire-1	accept	初回判定はrevise: 選択肢セット(delegate/hire/recruit/terminate)がsimilar-recruit-1と重複。加えてrecruitも「スタッフを雇う」の文脈で通り、recruit/hireの使い分けが薄く二重正答の恐れ → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-notify-1	accept	初回判定はrevise: 選択肢セット(authorize/comply/delegate/notify)がsimilar-authorize-1・similar-delegate-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-supervise-1	accept		claude-opus-5	2026-08-13
+similar-oversee-1	accept		claude-opus-5	2026-08-13
+similar-recruit-1	accept		claude-opus-5	2026-08-13
+similar-hire-1	accept		claude-opus-5	2026-08-13
+similar-notify-1	accept		claude-opus-5	2026-08-13
 similar-inform-1	accept		claude-opus-5	2026-08-13
 similar-request-1	accept		claude-opus-5	2026-08-13
 similar-clarify-1	accept		claude-opus-5	2026-08-13
@@ -53,11 +53,11 @@ similar-employee-1	accept		claude-opus-5	2026-08-13
 similar-presentation-1	accept		claude-opus-5	2026-08-13
 similar-deadline-1	accept		claude-opus-5	2026-08-13
 similar-voucher-1	accept		claude-opus-5	2026-08-13
-similar-premises-1	accept	初回判定はrevise: 選択肢セット(estate/facility/premises/venue)がsimilar-estate-1・similar-facility-1と重複。加えてfacility/venueも「入場前に署名」の文脈で意味が通り二重正答の恐れ → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-supplier-1	accept	初回判定はrevise: 選択肢セット(affiliate/client/competitor/supplier)がsimilar-affiliate-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-premises-1	accept		claude-opus-5	2026-08-13
+similar-supplier-1	accept		claude-opus-5	2026-08-13
 similar-receipt-1	accept		claude-opus-5	2026-08-13
 similar-merchandise-1	accept		claude-opus-5	2026-08-13
-similar-boarding-1	accept	初回判定はrevise: 選択肢セット(boarding/checkpoint/immigration/stopover)がsimilar-immigration-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-boarding-1	accept		claude-opus-5	2026-08-13
 similar-revenue-1	accept		claude-opus-5	2026-08-13
 similar-retail-1	accept		claude-opus-5	2026-08-13
 similar-mortgage-1	accept		claude-opus-5	2026-08-13
@@ -67,19 +67,19 @@ similar-qualification-1	accept		claude-opus-5	2026-08-13
 similar-depreciation-1	accept		claude-opus-5	2026-08-13
 similar-prototype-1	accept		claude-opus-5	2026-08-13
 similar-demographic-1	accept		claude-opus-5	2026-08-13
-similar-outreach-1	accept	初回判定はrevise: 選択肢セット(briefing/ceremony/outreach/testimonial)がsimilar-ceremony-1・similar-briefing-1・similar-testimonial-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-dispute-1	accept	初回判定はrevise: "settled...out of court"という訴訟性の強い文脈で、本試験が扱わない訴訟系の話題に近い疑いがある → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-outreach-1	accept		claude-opus-5	2026-08-13
+similar-dispute-1	accept		claude-opus-5	2026-08-13
 similar-checkpoint-1	accept		claude-opus-5	2026-08-13
 similar-firewall-1	accept		claude-opus-5	2026-08-13
-similar-encryption-1	accept	初回判定はrevise: 選択肢セット(authentication/encryption/firewall/protocol)がsimilar-authentication-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-encryption-1	accept		claude-opus-5	2026-08-13
 similar-blueprint-1	accept		claude-opus-5	2026-08-13
-similar-ceremony-1	accept	初回判定はrevise: 選択肢セット(briefing/ceremony/outreach/testimonial)がsimilar-outreach-1・similar-briefing-1・similar-testimonial-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-ceremony-1	accept		claude-opus-5	2026-08-13
 similar-regulation-1	accept		claude-opus-5	2026-08-13
-similar-briefing-1	accept	初回判定はrevise: 選択肢セット(briefing/ceremony/outreach/testimonial)がsimilar-outreach-1・similar-ceremony-1・similar-testimonial-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-briefing-1	accept		claude-opus-5	2026-08-13
 similar-throughput-1	accept		claude-opus-5	2026-08-13
-similar-occupancy-1	accept	初回判定はrevise: 選択肢セット(footfall/occupancy/retention/throughput)がsimilar-footfall-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-occupancy-1	accept		claude-opus-5	2026-08-13
 similar-liquidity-1	accept		claude-opus-5	2026-08-13
-similar-footfall-1	accept	初回判定はrevise: 選択肢セット(footfall/occupancy/retention/throughput)がsimilar-occupancy-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-footfall-1	accept		claude-opus-5	2026-08-13
 similar-apprenticeship-1	accept		claude-opus-5	2026-08-13
 similar-proofread-1	accept		claude-opus-5	2026-08-13
 similar-onboarding-1	accept		claude-opus-5	2026-08-13
@@ -88,34 +88,34 @@ similar-appraisal-1	accept		claude-opus-5	2026-08-13
 similar-retention-1	accept		claude-opus-5	2026-08-13
 similar-amenity-1	accept		claude-opus-5	2026-08-13
 similar-concierge-1	accept		claude-opus-5	2026-08-13
-similar-chartered-1	accept	初回判定はrevise: 選択肢セット(chartered/nonrefundable/obsolete/punctual)がsimilar-punctual-1・similar-obsolete-1・similar-nonrefundable-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-punctual-1	accept	初回判定はrevise: 選択肢セット(chartered/nonrefundable/obsolete/punctual)がsimilar-chartered-1・similar-obsolete-1・similar-nonrefundable-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-chartered-1	accept		claude-opus-5	2026-08-13
+similar-punctual-1	accept		claude-opus-5	2026-08-13
 similar-gateway-1	accept		claude-opus-5	2026-08-13
 similar-hospitality-1	accept		claude-opus-5	2026-08-13
-similar-immigration-1	accept	初回判定はrevise: 選択肢セット(boarding/checkpoint/immigration/stopover)がsimilar-boarding-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-immigration-1	accept		claude-opus-5	2026-08-13
 similar-stopover-1	accept		claude-opus-5	2026-08-13
 similar-ratify-1	accept		claude-opus-5	2026-08-13
 similar-disclose-1	accept		claude-opus-5	2026-08-13
 similar-overbook-1	accept		claude-opus-5	2026-08-13
-similar-obsolete-1	accept	初回判定はrevise: 選択肢セット(chartered/nonrefundable/obsolete/punctual)がsimilar-chartered-1・similar-punctual-1・similar-nonrefundable-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-obsolete-1	accept		claude-opus-5	2026-08-13
 similar-relocation-1	accept		claude-opus-5	2026-08-13
 similar-accommodation-1	accept		claude-opus-5	2026-08-13
 similar-advertisement-1	accept		claude-opus-5	2026-08-13
 similar-turnaround-1	accept		claude-opus-5	2026-08-13
 similar-modernization-1	accept		claude-opus-5	2026-08-13
-similar-nonrefundable-1	accept	初回判定はrevise: 選択肢セット(chartered/nonrefundable/obsolete/punctual)がsimilar-chartered-1・similar-punctual-1・similar-obsolete-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-nonrefundable-1	accept		claude-opus-5	2026-08-13
 similar-variance-1	accept		claude-opus-5	2026-08-13
-similar-authentication-1	accept	初回判定はrevise: 選択肢セット(authentication/encryption/firewall/protocol)がsimilar-encryption-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-middleware-1	accept	初回判定はrevise: 選択肢セット(endpoint/firewall/middleware/protocol)がsimilar-protocol-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-protocol-1	accept	初回判定はrevise: 選択肢セット(endpoint/firewall/middleware/protocol)がsimilar-middleware-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-authentication-1	accept		claude-opus-5	2026-08-13
+similar-middleware-1	accept		claude-opus-5	2026-08-13
+similar-protocol-1	accept		claude-opus-5	2026-08-13
 similar-endpoint-1	accept		claude-opus-5	2026-08-13
-similar-provisioning-1	accept	初回判定はrevise: 選択肢セット(integration/provisioning/throughput/virtualization)がsimilar-integration-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-provisioning-1	accept		claude-opus-5	2026-08-13
 similar-virtualization-1	accept		claude-opus-5	2026-08-13
 similar-cybersecurity-1	accept		claude-opus-5	2026-08-13
 similar-phishing-1	accept		claude-opus-5	2026-08-13
-similar-integration-1	accept	初回判定はrevise: 選択肢セット(integration/provisioning/throughput/virtualization)がsimilar-provisioning-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-integration-1	accept		claude-opus-5	2026-08-13
 similar-benchmark-1	accept		claude-opus-5	2026-08-13
 similar-niche-1	accept		claude-opus-5	2026-08-13
-similar-testimonial-1	accept	初回判定はrevise: 選択肢セット(briefing/ceremony/outreach/testimonial)がsimilar-outreach-1・similar-ceremony-1・similar-briefing-1と4件重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-affiliate-1	accept	初回判定はrevise: 選択肢セット(affiliate/client/competitor/supplier)がsimilar-supplier-1と重複 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-testimonial-1	accept		claude-opus-5	2026-08-13
+similar-affiliate-1	accept		claude-opus-5	2026-08-13
 similar-engagement-1	accept		claude-opus-5	2026-08-13

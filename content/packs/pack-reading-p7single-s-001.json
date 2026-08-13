@@ -4,15 +4,15 @@
     "id": "pack-reading-p7single-s-001",
     "title": "Part7単一読解 40セット118問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル3並列クロスレビュー＋発起人H-R1レビュー承認（2026-07-23。T-107）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "origin": "エージェント直接執筆＋別モデル3並列クロスレビュー＋発起人H-R1レビュー承認（2026-07-23。T-107）＋AIクロスレビュー（別モデル3並列）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       730
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 235619
+    "reviewMethod": "AIクロスレビュー（別モデル3並列）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 235625
   },
   "questions": [
     {

@@ -8,7 +8,7 @@ similar-acquisition-3	accept		claude-opus-5	2026-08-13
 similar-budget-1	accept		claude-opus-5	2026-08-13
 similar-budget-2	accept		claude-opus-5	2026-08-13
 similar-budget-3	accept		claude-opus-5	2026-08-13
-similar-candidate-1	accept	初回判定はrevise: 選択肢セット{budget, candidate, merger, warranty}がsimilar-budget-1と完全に重複している（T-353で対策対象の領域）。いずれかの選択肢を別語に差し替えて重複を解消すべき。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-candidate-1	accept		claude-opus-5	2026-08-13
 similar-candidate-2	accept		claude-opus-5	2026-08-13
 similar-candidate-3	accept		claude-opus-5	2026-08-13
 similar-certification-1	accept		claude-opus-5	2026-08-13
@@ -26,17 +26,17 @@ similar-inspection-3	accept		claude-opus-5	2026-08-13
 similar-liability-1	accept		claude-opus-5	2026-08-13
 similar-liability-2	accept		claude-opus-5	2026-08-13
 similar-liability-3	accept		claude-opus-5	2026-08-13
-similar-merger-1	accept	初回判定はrevise: 選択肢セット{budget, candidate, certification, merger}がsimilar-certification-1と完全に重複している（T-353で対策対象の領域）。いずれかの選択肢を別語に差し替えて重複を解消すべき。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-similar-merger-2	accept	初回判定はrevise: 「合併後の雇用不安」は人員整理（レイオフ）に近接する題材で、本試験が避ける主題に触れる可能性がある。文脈をより中立的な内容（業務体制の変化への戸惑い等）に変更することを推奨。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-merger-1	accept		claude-opus-5	2026-08-13
+similar-merger-2	accept		claude-opus-5	2026-08-13
 similar-merger-3	accept		claude-opus-5	2026-08-13
 similar-negotiate-1	accept		claude-opus-5	2026-08-13
-similar-negotiate-2	accept	初回判定はrevise: "rather than go to court"は訴訟（法廷での争い）を直接想起させる表現で、本試験が避ける主題に該当する可能性がある。文脈の変更を推奨。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-negotiate-2	accept		claude-opus-5	2026-08-13
 similar-negotiate-3	accept		claude-opus-5	2026-08-13
 similar-projection-1	accept		claude-opus-5	2026-08-13
 similar-projection-2	accept		claude-opus-5	2026-08-13
 similar-projection-3	accept		claude-opus-5	2026-08-13
 similar-promotion-1	accept		claude-opus-5	2026-08-13
-similar-promotion-2	accept	初回判定はrevise: 文中に職場を示す語（firm/company等）が無く、"His hard work finally led to a well-deserved ___."はcertification（努力の末の資格取得）でも意味が通り、二重正答の懸念がある。他のpromotion系設問（-1, -3）は職場文脈を明示しているのに対し、本問は文脈の手がかりが不足している。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-promotion-2	accept		claude-opus-5	2026-08-13
 similar-promotion-3	accept		claude-opus-5	2026-08-13
 similar-proposal-1	accept		claude-opus-5	2026-08-13
 similar-proposal-2	accept		claude-opus-5	2026-08-13

@@ -23,7 +23,7 @@ similar-revise-3	accept		claude-opus-5	2026-08-13
 similar-workforce-1	accept		claude-opus-5	2026-08-13
 similar-workforce-2	accept		claude-opus-5	2026-08-13
 similar-workforce-3	accept		claude-opus-5	2026-08-13
-similar-compensate-1	accept	初回判定はrevise: indemnifyもcompensateと同様に「損失に対する補償」を表せる語であり、この文脈（欠航への補償）だけではcompensateと意味上一意に絞り込めない。二重正答の疑いがある。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-compensate-1	accept		claude-opus-5	2026-08-13
 similar-compensate-2	accept		claude-opus-5	2026-08-13
 similar-compensate-3	accept		claude-opus-5	2026-08-13
 similar-headcount-1	accept		claude-opus-5	2026-08-13
@@ -37,7 +37,7 @@ similar-partnership-2	accept		claude-opus-5	2026-08-13
 similar-partnership-3	accept		claude-opus-5	2026-08-13
 similar-sustainability-1	accept		claude-opus-5	2026-08-13
 similar-sustainability-2	accept		claude-opus-5	2026-08-13
-similar-sustainability-3	accept	初回判定はrevise: valuation（評価額）も「投資家がビジネスモデルについて注目する対象」として文脈上十分に成立してしまい、sustainabilityと二重正答になる疑いがある。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-sustainability-3	accept		claude-opus-5	2026-08-13
 similar-feedback-1	accept		claude-opus-5	2026-08-13
 similar-feedback-2	accept		claude-opus-5	2026-08-13
 similar-feedback-3	accept		claude-opus-5	2026-08-13
@@ -50,10 +50,10 @@ similar-malfunction-3	accept		claude-opus-5	2026-08-13
 similar-applicant-1	accept		claude-opus-5	2026-08-13
 similar-applicant-2	accept		claude-opus-5	2026-08-13
 similar-applicant-3	accept		claude-opus-5	2026-08-13
-similar-shipment-1	accept	初回判定はrevise: consignment（委託貨物）も税関を通過する荷物として同じ文脈で成立し得るため二重正答の疑いがある。explanation自身も両語の近さを認めている。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-shipment-1	accept		claude-opus-5	2026-08-13
 similar-shipment-2	accept		claude-opus-5	2026-08-13
 similar-shipment-3	accept		claude-opus-5	2026-08-13
-similar-tenant-1	accept	初回判定はrevise: occupant（居住・使用者）もビル内の人数を数える語として同じ文脈で成立し得るため二重正答の疑いがある。explanation自身も両語の近さを認めている。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+similar-tenant-1	accept		claude-opus-5	2026-08-13
 similar-tenant-2	accept		claude-opus-5	2026-08-13
 similar-tenant-3	accept		claude-opus-5	2026-08-13
 similar-backlog-1	accept		claude-opus-5	2026-08-13

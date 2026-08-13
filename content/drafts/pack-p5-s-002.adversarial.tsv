@@ -40,44 +40,44 @@ part5-deprecate	accept		claude-opus-5	2026-08-13
 part5-synchronize	accept		claude-opus-5	2026-08-13
 part5-configure	accept		claude-opus-5	2026-08-13
 part5-shareholder	accept		claude-opus-5	2026-08-13
-part5-tenant	accept	初回判定はrevise: 大家が借家人を立ち退かせる(evicted)という、個人の不利益に触れる題材で本試験が避ける傾向がある。選択肢セット(where/which/whom/whose)としては本問が初出。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-landlord	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-applicant	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-tenant	accept		claude-opus-5	2026-08-13
+part5-landlord	accept		claude-opus-5	2026-08-13
+part5-applicant	accept		claude-opus-5	2026-08-13
 part5-contractor	accept		claude-opus-5	2026-08-13
-part5-subcontractor	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-subcontractor	accept		claude-opus-5	2026-08-13
 part5-technician	accept		claude-opus-5	2026-08-13
 part5-employee	accept		claude-opus-5	2026-08-13
-part5-supervisor	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-sponsor	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-supervisor	accept		claude-opus-5	2026-08-13
+part5-sponsor	accept		claude-opus-5	2026-08-13
 part5-exhibitor	accept		claude-opus-5	2026-08-13
-part5-attendee	accept	初回判定はrevise: 選択肢セット(where/which/whom/whose)がtenant(初出)と完全重複。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-invitee	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-franchisee	accept	初回判定はrevise: 選択肢セット(where/who/whom/whose)がexhibitor(初出)と完全重複。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-personnel	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-headcount	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-subsidiary	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-attendee	accept		claude-opus-5	2026-08-13
+part5-invitee	accept		claude-opus-5	2026-08-13
+part5-franchisee	accept		claude-opus-5	2026-08-13
+part5-personnel	accept		claude-opus-5	2026-08-13
+part5-headcount	accept		claude-opus-5	2026-08-13
+part5-subsidiary	accept		claude-opus-5	2026-08-13
 part5-workforce	accept		claude-opus-5	2026-08-13
-part5-retailer	accept	初回判定はrevise: 選択肢セット(where/which/whom/whose)がtenant(初出)と完全重複。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-wholesaler	accept	初回判定はrevise: 選択肢セット(which/who/whom/whose)がpart5-shareholder(初出)と完全重複。関係詞の格を「空所直後が動詞/名詞/主語+動詞のどれか」だけで判定できてしまい、文脈理解を伴わずに解ける。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-retailer	accept		claude-opus-5	2026-08-13
+part5-wholesaler	accept		claude-opus-5	2026-08-13
 part5-deficit	accept		claude-opus-5	2026-08-13
-part5-surplus	accept	初回判定はrevise: 選択肢セット(because/because of/despite/due to)がdeficit(初出)と完全重複。この4択の中では正解は常に"because"（空所後が節か句かだけで機械的に判定できる）で、同一パターンが繰り返されている。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-surplus	accept		claude-opus-5	2026-08-13
 part5-backlog	accept		claude-opus-5	2026-08-13
 part5-bottleneck	accept		claude-opus-5	2026-08-13
-part5-congestion	accept	初回判定はrevise: 選択肢セット(although/because/due to/unless)がbottleneck(初出)と完全重複（正解は常に"due to"）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-consignment	accept	初回判定はrevise: 選択肢セット(because/because of/despite/due to)がdeficit(初出)と完全重複。この4択の中では正解は常に"because"（空所後が節か句かだけで機械的に判定できる）で、同一パターンが繰り返されている。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-shipment	accept	初回判定はrevise: 選択肢セット(because/because of/despite/due to)がdeficit(初出)と完全重複。この4択の中では正解は常に"because"（空所後が節か句かだけで機械的に判定できる）で、同一パターンが繰り返されている。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-congestion	accept		claude-opus-5	2026-08-13
+part5-consignment	accept		claude-opus-5	2026-08-13
+part5-shipment	accept		claude-opus-5	2026-08-13
 part5-inventory	accept		claude-opus-5	2026-08-13
-part5-overhead	accept	初回判定はrevise: 選択肢セット(although/because/because of/unless)がinventory(初出)と完全重複（正解は常に"because of"）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-tariff	accept	初回判定はrevise: 選択肢セット(although/because/because of/unless)がinventory(初出)と完全重複（正解は常に"because of"）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-levy	accept	初回判定はrevise: 選択肢セット(because/because of/despite/due to)がdeficit(初出)と重複（正解は常に"because"）。加えて住民が新税に抗議するという政治・論争色のある題材で、本試験が避ける傾向がある。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-overhead	accept		claude-opus-5	2026-08-13
+part5-tariff	accept		claude-opus-5	2026-08-13
+part5-levy	accept		claude-opus-5	2026-08-13
 part5-subsidy	accept		claude-opus-5	2026-08-13
-part5-oversight	accept	初回判定はrevise: 選択肢セット(although/because/because of/unless)がinventory(初出)と重複（正解は常に"because of"）。加えて管理不備を理由に解雇されるという題材で、軽度ながら個人の不利益寄り。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-oversight	accept		claude-opus-5	2026-08-13
 part5-relocation	accept		claude-opus-5	2026-08-13
 part5-growth	accept		claude-opus-5	2026-08-13
 part5-modernization	accept		claude-opus-5	2026-08-13
 part5-investment	accept		claude-opus-5	2026-08-13
-part5-defect	accept	初回判定はrevise: 選択肢セット(although/because/due to/unless)がbottleneck(初出)と重複（正解は常に"due to"）。加えて「訴えられた(sued)」という提訴の描写を含む。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-part5-audit	accept	初回判定はrevise: 選択肢セット(because/because of/despite/due to)がdeficit(初出)と重複（正解は常に"because"）。加えて幹部が監査結果の公表を受けて辞任するという不祥事寄りの題材。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-defect	accept		claude-opus-5	2026-08-13
+part5-audit	accept		claude-opus-5	2026-08-13
 part5-remittance	accept		claude-opus-5	2026-08-13
 part5-durability	accept		claude-opus-5	2026-08-13
 part5-scalability	accept		claude-opus-5	2026-08-13
@@ -98,4 +98,4 @@ part5-clientele	accept		claude-opus-5	2026-08-13
 part5-assortment	accept		claude-opus-5	2026-08-13
 part5-merchant	accept		claude-opus-5	2026-08-13
 part5-patronage	accept		claude-opus-5	2026-08-13
-part5-turnover	accept	初回判定はrevise: 選択肢セット(low/lower/lowest/lowly)がmerchant(初出)と完全重複。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+part5-turnover	accept		claude-opus-5	2026-08-13

@@ -4,15 +4,15 @@
     "id": "pack-p34-s-003",
     "title": "Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       730,
       860
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 48559
+    "reviewMethod": "AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 48518
   },
   "questions": [
     {
@@ -461,7 +461,7 @@
         "voice": "pending-tts",
         "durationMs": 39900
       },
-      "script": "A: Maintenance wants to schedule the system overhaul for next weekend, but that would mean about six hours of downtime during our busiest shopping period. B: Six hours is rough, but when else could we realistically do it? A: They mentioned a weeknight could work too, though it would need to be after midnight to avoid customer impact. B: Honestly, I'd rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales. A: That's a good point when you put it that way. I hadn't weighted it quite like that. B: Let's ask maintenance to move it to a weeknight, then, and we'll notify the team in advance.",
+      "script": "A: Maintenance wants to schedule the system overhaul for next weekend, but that would mean about six hours of downtime during our busiest shopping period. B: Six hours is rough, but when else could we realistically do it? A: They mentioned a weeknight could work too, though it would need to be after midnight to avoid customer impact. B: Honestly, I'd rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales. A: That's a good point when you put it that way. I hadn't weighed it quite like that. B: Let's ask maintenance to move it to a weeknight, then, and we'll notify the team in advance.",
       "subQuestions": [
         {
           "id": "p34-p3-25-q1",
@@ -767,19 +767,19 @@
           "freqRank": "A"
         },
         {
-          "word": "liability",
-          "sense": "賠償責任",
+          "word": "defect",
+          "sense": "欠陥",
           "freqRank": "S"
         }
       ],
       "audio": "audio/part34/p4-23.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 37450
+        "voice": "piper:en_US-lessac-medium",
+        "durationMs": 38792
       },
-      "script": "This is an internal briefing regarding the voluntary recall of model AX-200 units sold between March and June. Our engineering team identified a wiring defect that, in rare cases, could pose a safety risk. We are recalling approximately twelve thousand units and offering affected customers a full refund or a free replacement. Legal has confirmed that acting now, before any incidents occur, significantly limits our liability compared to waiting for a complaint. I want to be clear that this was not an easy decision given the cost involved, but it was, frankly, the only responsible one. Customer service will begin contacting affected buyers by phone starting Monday.",
+      "script": "This is an internal briefing regarding the voluntary recall of model AX-200 units sold between March and June. Our engineering team identified a wiring defect that, in rare cases, could pose a safety risk. We are recalling approximately twelve thousand units and offering affected customers a full refund or a free replacement. Acting now, before anyone is inconvenienced, protects the trust our customers have placed in us. I want to be clear that this was not an easy decision given the cost involved, but it was, frankly, the only responsible one. Customer service will begin contacting affected buyers by phone starting Monday.",
       "subQuestions": [
         {
           "id": "p34-p4-23-q1",
@@ -828,7 +828,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "直前の\"this was not an easy decision given the cost involved\"に続く発言で、コストを踏まえてもリコールが唯一正しい判断だったという確信を示す意図推定問題。他の選択肢について、リコールは実施が決まった判断であり不要とは述べていない。engineering teamは欠陥を特定した側として言及されており責任を問う文脈ではなく、早期の実施が責任を限定すると述べているので先送りの意図もない。",
+          "explanation": "直前の\"this was not an easy decision given the cost involved\"に続く発言で、コストを踏まえてもリコールが唯一正しい判断だったという確信を示す意図推定問題。他の選択肢について、リコールは実施が決まった判断であり不要とは述べていない。engineering teamは欠陥を特定した側として言及されており責任を問う文脈ではなく、早期の実施が顧客の信頼を守ると述べているので先送りの意図もない。",
           "translation": "話者が「率直に言って、それが唯一責任ある判断だった」と言っているのはどういう意味ですか。"
         },
         {

@@ -44,7 +44,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     ],
     answer: 'B',
     explanation:
-      '"balance on an account"（口座の残高）は定番のコロケーション。proposal（提案書）・certification（認定）・strategy（戦略）は残高を持つ対象ではない。',
+      '"balance on an account"（口座の残高）は定番のコロケーション。proposal（提案書）・certification（認定）・acquisition（買収）は残高を持つ対象ではない。',
     translation: 'この口座の残高を確認していただけますか？',
     difficulty: 2,
   },
@@ -83,7 +83,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'acquisition',
     tags: ['ビジネス名詞'],
-    question: 'Shareholders approved the ___ at yesterday’s meeting.',
+    question: 'Shareholders approved the ___ of the rival firm at yesterday’s meeting.',
     choices: [
       { key: 'A', text: 'acquisition' },
       { key: 'B', text: 'certification' },
@@ -134,7 +134,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     question: 'We need approval before increasing the ___ for this project.',
     choices: [
       { key: 'A', text: 'certification' },
-      { key: 'B', text: 'strategy' },
+      { key: 'B', text: 'acquisition' },
       { key: 'C', text: 'budget' },
       { key: 'D', text: 'account' },
     ],
@@ -149,7 +149,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'The finance team prepared next year’s ___ in October.',
     choices: [
-      { key: 'A', text: 'inspection' },
+      { key: 'A', text: 'subscription' },
       { key: 'B', text: 'endorsement' },
       { key: 'C', text: 'budget' },
       { key: 'D', text: 'acquisition' },
@@ -291,7 +291,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'endorsement',
     tags: ['ビジネス名詞'],
-    question: 'A strong ___ from a trusted brand can boost sales.',
+    question: 'A strong ___ from a well-known athlete can boost sales.',
     choices: [
       { key: 'A', text: 'warranty' },
       { key: 'B', text: 'candidate' },
@@ -387,7 +387,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'inspection',
     tags: ['ビジネス名詞'],
-    question: 'The building requires a full ___ before the sale.',
+    question: 'The building requires a full structural ___ before the sale.',
     choices: [
       { key: 'A', text: 'extension' },
       { key: 'B', text: 'certification' },
@@ -419,7 +419,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'liability',
     tags: ['ビジネス名詞'],
-    question: 'Signing the contract without review could create legal ___.',
+    question: 'The policy covers ___ arising from defects in the delivered goods.',
     choices: [
       { key: 'A', text: 'liability' },
       { key: 'B', text: 'certification' },
@@ -429,7 +429,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     answer: 'A',
     explanation:
       '確認せずに契約すると生じかねないのはliability（責任・法的責任）。certification（認定）・merger（合併）・proposal（提案書）は契約リスクとして生じるものではない。',
-    translation: '確認せずに契約書に署名すると法的責任が生じる可能性がある。',
+    translation: 'その保険契約は、納入品の欠陥から生じる賠償責任を補償する。',
     difficulty: 3,
   },
   {
@@ -467,7 +467,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'merger',
     tags: ['ビジネス名詞'],
-    question: 'Employees needed extra training after the ___.',
+    question: 'Employees needed extra training after the ___ of the two companies.',
     choices: [
       { key: 'A', text: 'inspection' },
       { key: 'B', text: 'endorsement' },
@@ -476,7 +476,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
     ],
     answer: 'C',
     explanation:
-      '追加の研修が必要になった原因はmerger（合併。新しい体制への適応）。extension（延長）・inspection（検査）・endorsement（推薦）は研修が必要になる典型的な原因にならない。',
+      '追加の研修が必要になった原因はmerger（合併。新しい体制への適応）。extension（延長）・subscription（利用契約）・endorsement（推薦）は、2社が1つになることで生じる研修の原因にならない。',
     translation: '従業員は合併後に追加の研修を必要とした。',
     difficulty: 2,
   },
@@ -659,7 +659,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'proposal',
     tags: ['ビジネス名詞'],
-    question: 'The board rejected the ___ due to high costs.',
+    question: 'The board rejected the ___ submitted by the design team due to high costs.',
     choices: [
       { key: 'A', text: 'candidate' },
       { key: 'B', text: 'subscription' },
@@ -851,7 +851,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'subscription',
     tags: ['ビジネス名詞'],
-    question: 'The company canceled its software ___ to cut costs.',
+    question: 'The company canceled its monthly software ___ to cut costs.',
     choices: [
       { key: 'A', text: 'acquisition' },
       { key: 'B', text: 'extension' },
@@ -883,7 +883,8 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'warranty',
     tags: ['ビジネス名詞'],
-    question: 'Ask the sales representative whether an extended ___ is available.',
+    question:
+      'Ask the sales representative whether an extended ___ on this appliance is available.',
     choices: [
       { key: 'A', text: 'candidate' },
       { key: 'B', text: 'warranty' },

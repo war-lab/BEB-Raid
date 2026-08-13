@@ -20,7 +20,7 @@ vocab-attachment	accept		claude-opus-5	2026-08-13
 vocab-draft	accept		claude-opus-5	2026-08-13
 vocab-correspond	accept		claude-opus-5	2026-08-13
 vocab-office	accept		claude-opus-5	2026-08-13
-vocab-supply	accept	初回判定はrevise: backが「供給（する）・備品」と2義を挙げているが、phraseは動詞「供給する」用法（can supply spare parts）のみを示し、名詞「備品」義を裏付ける文脈がない。学習者がbackの名詞義を優先して記憶した場合、phraseと結びつかない。名詞義の例文に差し替えるか、backを動詞義のみに絞ることを推奨。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+vocab-supply	accept		claude-opus-5	2026-08-13
 vocab-equipment	accept		claude-opus-5	2026-08-13
 vocab-stationery	accept		claude-opus-5	2026-08-13
 vocab-photocopier	accept		claude-opus-5	2026-08-13

@@ -13,6 +13,11 @@ import type { Question } from '@beb-raid/shared-schema'
 import type { CorrectionsFile } from './calibrate.js'
 import {
   applyCorrections,
+  ADVERSARIAL_DIMENSION_COUNT,
+  ADVERSARIAL_REVIEWED_AT,
+  CROSS_REVIEW_MODEL_BY_PACK_ID,
+  originFor,
+  reviewMethodFor,
   buildAllPacks,
   buildManifest,
   buildPack,
@@ -510,5 +515,37 @@ describe('applyCorrections（T-34）', () => {
       wordFreqRank: {},
     })
     expect(original.difficulty).toBe(3)
+  })
+})
+
+// T-355 / ADR 0014 Amendment: クロスレビューは実施したパックだけモデル名を記録する。
+// 未実施のパックに工程名を書くと出所を偽ることになるため、両方の分岐を固定する
+describe('reviewMethodFor / originFor（工程記録の書式。docs/32 8.2節）', () => {
+  it('クロスレビュー実施済みなら両段を並べる', () => {
+    expect(reviewMethodFor(6, '2026-08-13', 'Fable')).toBe(
+      'AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）',
+    )
+  })
+
+  it('クロスレビュー未実施なら敵対的検証の段だけにする', () => {
+    expect(reviewMethodFor(6, '2026-08-13')).toBe('敵対的検証（6観点・2026-08-13）')
+    expect(reviewMethodFor(6, '2026-08-13', undefined)).toBe('敵対的検証（6観点・2026-08-13）')
+  })
+
+  it('originは生成手段＋工程名で組み立て、音声を持たないパックには＋TTSを付けない', () => {
+    const method = reviewMethodFor(ADVERSARIAL_DIMENSION_COUNT, ADVERSARIAL_REVIEWED_AT, 'Fable')
+    expect(originFor('エージェント直接執筆', method, true)).toBe(
+      `エージェント直接執筆＋${method}＋TTS`,
+    )
+    expect(originFor('エージェント直接執筆', method, false)).toBe(`エージェント直接執筆＋${method}`)
+  })
+
+  it('配信中の全パックにクロスレビューの実施モデルが記録されている', () => {
+    // 未実施のまま配信すると origin が「敵対的検証のみ」になり、出所表記で区別できる。
+    // 現在は24パックすべてに実施モデルが入っている前提を固定する
+    expect(CROSS_REVIEW_MODEL_BY_PACK_ID.size).toBe(24)
+    for (const model of CROSS_REVIEW_MODEL_BY_PACK_ID.values()) {
+      expect(model).not.toBe('')
+    }
   })
 })

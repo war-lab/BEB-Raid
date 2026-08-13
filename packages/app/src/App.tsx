@@ -46,7 +46,7 @@ import { useAppStore, type ScreenName } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
 
 /**
- * 配布パック全21件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1。
+ * 配布パック全24件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1＋読解R-2の3。
  * T-32/T-64/T-83〜T-85/T-107/T-349のPACK_DEFINITIONSと対応。cli側の定義を
  * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
  * idはここに複製する）。
@@ -80,6 +80,9 @@ export const PACK_IDS = [
   'pack-reading-p6-s-001',
   'pack-reading-p7single-s-001',
   'pack-p2-s-003',
+  'pack-reading-p7multi-s-001',
+  'pack-reading-p6url-s-001',
+  'pack-reading-p7url-s-001',
 ]
 
 /**

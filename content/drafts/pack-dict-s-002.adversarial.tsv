@@ -4,13 +4,13 @@ dictation-logistics	accept		claude-opus-5	2026-08-13
 dictation-turnover	accept		claude-opus-5	2026-08-13
 dictation-workforce	accept		claude-opus-5	2026-08-13
 dictation-headcount	accept		claude-opus-5	2026-08-13
-dictation-proposal	accept	初回判定はrevise: "before"の空所に"by"も同程度に自然で二重正答リスクがある（"review the proposal before/by Friday afternoon"はどちらも成立する）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-proposal	accept		claude-opus-5	2026-08-13
 dictation-attachment	accept		claude-opus-5	2026-08-13
 dictation-inventory	accept		claude-opus-5	2026-08-13
 dictation-procurement	accept		claude-opus-5	2026-08-13
 dictation-conference	accept		claude-opus-5	2026-08-13
-dictation-complaint	accept	初回判定はrevise: "within"の空所に"in"も同程度に自然で二重正答リスクがある（"handled the complaint within/in a few minutes"はどちらも成立する）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-dictation-endorsement	accept	初回判定はrevise: "from"の空所に"by"も同程度に自然で二重正答リスクがある（"an endorsement from/by a well-known athlete"はどちらも一般的な言い方）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-complaint	accept		claude-opus-5	2026-08-13
+dictation-endorsement	accept		claude-opus-5	2026-08-13
 dictation-subsidy	accept		claude-opus-5	2026-08-13
 dictation-testimonial	accept		claude-opus-5	2026-08-13
 dictation-benchmark	accept		claude-opus-5	2026-08-13
@@ -28,13 +28,13 @@ dictation-probation	accept		claude-opus-5	2026-08-13
 dictation-resume	accept		claude-opus-5	2026-08-13
 dictation-transcript	accept		claude-opus-5	2026-08-13
 dictation-photocopier	accept		claude-opus-5	2026-08-13
-dictation-stationery	accept	初回判定はrevise: "for"の空所に"in"も文法的・意味的に成立し得る（"ordered new stationery for/in the coming quarter"は発注目的とも発注時期とも読め、二重正答リスクがある）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
-dictation-courier	accept	初回判定はrevise: "before"の空所に"by"も同程度に自然で二重正答リスクがある（"deliver the documents before/by noon tomorrow"はどちらも成立する）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-stationery	accept		claude-opus-5	2026-08-13
+dictation-courier	accept		claude-opus-5	2026-08-13
 dictation-dispatch	accept		claude-opus-5	2026-08-13
 dictation-discount	accept		claude-opus-5	2026-08-13
 dictation-markup	accept		claude-opus-5	2026-08-13
 dictation-vacancy	accept		claude-opus-5	2026-08-13
-dictation-tenant	accept	初回判定はrevise: "at"の空所に"in"も同程度に自然で二重正答リスクがある（"sign the lease at/in the office"はどちらも一般的な言い方）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-tenant	accept		claude-opus-5	2026-08-13
 dictation-lease	accept		claude-opus-5	2026-08-13
 dictation-zoning	accept		claude-opus-5	2026-08-13
 dictation-sponsor	accept		claude-opus-5	2026-08-13

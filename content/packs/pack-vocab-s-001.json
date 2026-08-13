@@ -4,15 +4,15 @@
     "id": "pack-vocab-s-001",
     "title": "語彙カード Sランク200語",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 86559
+    "reviewMethod": "AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 86553
   },
   "questions": [
     {

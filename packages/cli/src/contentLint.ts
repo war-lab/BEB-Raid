@@ -429,10 +429,14 @@ const DISTRACTOR_REFERENCE_RE =
 
 /** 照合用の正規化（英数字と空白だけ残す） */
 function normalizeForMention(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, '')
-    .trim()
+  return (
+    text
+      .toLowerCase()
+      // 英数字以外は空白へ潰す。除去すると「submitが正しい。submittedは過去形」のように
+      // 日本語を挟んだ英単語同士が連結して "submitsubmitted" になり、語境界で照合できない
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+  )
 }
 
 function mentionsDistractor(choices: readonly Choice[], answer: string, explanation: string) {
@@ -442,9 +446,12 @@ function mentionsDistractor(choices: readonly Choice[], answer: string, explanat
     if (c.key === answer) return false
     const needle = normalizeForMention(c.text)
     if (needle.length < 2) return false
-    if (haystack.includes(needle)) return true
+    // 語境界で照合する。部分一致にすると、誤答"have"が正答"will have"の説明に
+    // 含まれるだけで「言及あり」と誤判定してしまう（実際にpart5-sabbaticalで起きた）
+    if (new RegExp(`(^|[^a-z0-9])${needle}([^a-z0-9]|$)`).test(haystack)) return true
     // 1語の選択肢は活用形で書かれることがあるため語幹5文字で照合する
-    return !needle.includes(' ') && needle.length >= 6 && haystack.includes(needle.slice(0, 5))
+    if (needle.includes(' ') || needle.length < 6) return false
+    return new RegExp(`(^|[^a-z0-9])${needle.slice(0, 5)}`).test(haystack)
   })
 }
 
@@ -584,6 +591,9 @@ export function validateContentLintBlocking(
 ): string[] {
   const problems: string[] = []
   for (const q of questions) {
+    // ①（2026-08-13昇格）: 違反0件になったため。scriptだけ書き換えて選択肢を直し忘れる
+    // 事故（実際にpart2-grievanceで起きた）を、警告に埋もれさせずビルドで止める
+    problems.push(...checkPart2ScriptChoiceMatch(q))
     problems.push(...checkChoiceTagConsistency(q))
     problems.push(...checkPart34SpeakerGenderConsistency(q))
   }
@@ -599,7 +609,6 @@ export function validateContentLintWarnings(
 ): string[] {
   const problems: string[] = []
   for (const q of questions) {
-    problems.push(...checkPart2ScriptChoiceMatch(q))
     problems.push(...checkKeyVocabAppearance(q))
     problems.push(...checkCasualContractions(q))
     problems.push(...checkTextBlankLength(q))

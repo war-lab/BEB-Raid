@@ -80,14 +80,13 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
   {
     keyVocabWord: 'glitch',
     tags: ['平叙文'],
-    script:
-      'Something triggered a system glitch last night. — I was on a flight, so it wasn’t me logging in.',
-    correctText: 'I was on a flight, so it wasn’t me logging in.',
+    script: 'Something triggered a system glitch last night. — IT is checking the server logs now.',
+    correctText: 'IT is checking the server logs now.',
     distractors: ['The system runs a nightly backup.', 'I forgot my password again.'],
     explanation:
-      '間接応答: システム障害という発言に対し「自分ではない（アリバイ）」と応じており、話の流れに合う。他の2つ（"I forgot my password again."／"The system runs a nightly backup."）は直接の対応になっていない。',
+      '間接応答: システム障害という発言に対し「IT部門がログを確認中だ」と対応状況で応じており、話の流れに合う。他の2つ（"I forgot my password again."／"The system runs a nightly backup."）は直接の対応になっていない。',
     translation:
-      '昨夜、何かがシステム障害を引き起こしました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。',
+      '昨夜、何かがシステム障害を引き起こしました。 — 今IT部門がサーバーのログを確認しています。',
     difficulty: 3,
   },
   {
@@ -126,9 +125,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
       'I updated the software yesterday.',
     ],
     explanation:
-      '間接応答: 自動更新が来週というへ発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つ（"I updated the software yesterday."／"The subscription costs less than last year."）は発言への応答として的外れ。',
+      '間接応答: 自動更新が来週だという発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つ（"I updated the software yesterday."／"The subscription costs less than last year."）は発言への応答として的外れ。',
     translation:
-      '弊社のソフトウェアの契約は来週自動更新されます。 — 全てのライセンスが本当に必要か誰かが確認すべきですね。',
+      '弊社のソフトウェアの契約は来週自動更新されますが、まだ必要かどうか誰も確認できていません。 — 全てのライセンスが本当に必要か誰かが確認すべきですね。',
     difficulty: 3,
   },
   {
@@ -143,7 +142,8 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     ],
     explanation:
       '間接応答: 返金要求という発言に対し「返品を確認したら処理する」と対応を示しており、話の流れに合う。他の2つ（"The shipment left the warehouse yesterday."／"The customer ordered two more units."）は話題が合わない。',
-    translation: 'お客様が破損した荷物の返金を求めています。 — 返品を確認したらすぐに処理します。',
+    translation:
+      '破損した荷物は返金対象のはずなので、お客様が返金を求めています。 — 返品を確認したらすぐに処理します。',
     difficulty: 2,
   },
   {
@@ -163,13 +163,13 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     keyVocabWord: 'backlog',
     tags: ['平叙文'],
     script:
-      'Occupancy at the downtown branch dropped again, adding to a backlog of empty rooms. — Maybe we should run another promotion there.',
+      'Occupancy at the downtown branch dropped again, adding to our backlog of unsold room-nights. — Maybe we should run another promotion there.',
     correctText: 'Maybe we should run another promotion there.',
     distractors: ['The branch opened five years ago.', "It's the largest branch in the city."],
     explanation:
       '間接応答: 入居率が再び落ちたという発言に対し「プロモーションを行うべきかもしれない」と対策を提案しており、話の流れに合う。他の2つ（"The branch opened five years ago."／"It\'s the largest branch in the city."）は発言内容と噛み合わない。',
     translation:
-      '今期も都心の支店の入居率が落ちました。 — そこでもう一度プロモーションを行うべきかもしれません。',
+      '都心の支店の稼働率がまた落ちて、売れ残りの客室が積み上がっています。 — そこでもう一度プロモーションを行うべきかもしれません。',
     difficulty: 3,
   },
   {
@@ -250,7 +250,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 連絡担当者から返信がないという発言に対し「別の連絡先を試す」と対応を示しており、話の流れに合う。他の2つ（"She used to work there for years."／"The ministry building is downtown."）は対応として的外れ。',
     translation:
-      '省庁の連絡担当者から1週間以上返信がありません。 — 別の連絡先を通じて連絡してみます。',
+      '省庁の担当者から1週間以上返信がなく、あちらでの人脈も限られています。 — 別の連絡先を通じて連絡してみます。',
     difficulty: 4,
   },
   {
@@ -274,9 +274,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     correctText: 'We should compare leasing costs against buying new ones.',
     distractors: ['The fleet has twelve vehicles.', 'Fuel prices went up too.'],
     explanation:
-      '間接応答: 車両の減価償却費が増えたという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つ（"The fleet has twelve vehicles."／"Fuel prices went up too."）は発言と直接関係しない。',
+      '間接応答: リース契約の更新で車両費用が上がったという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つ（"The fleet has twelve vehicles."／"Fuel prices went up too."）は発言と直接関係しない。',
     translation:
-      '今年は社用車の減価償却費が急増しました。 — リースと新車購入のコストを比較すべきですね。',
+      '今年は新しいリース契約で社用車の費用が上がりました。 — リースと新車購入のコストを比較すべきですね。',
     difficulty: 4,
   },
   {
@@ -297,12 +297,12 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     tags: ['平叙文'],
     script:
       'One of the warehouse staff filed a formal grievance about the broken air conditioning. — Facilities should probably look into it before summer.',
-    correctText: 'HR should probably look into it before it escalates.',
+    correctText: 'Facilities should probably look into it before summer.',
     distractors: ['The warehouse is fully staffed now.', 'He has worked here for five years.'],
     explanation:
-      '間接応答: 正式な不服申立てがあったという発言に対し「エスカレートする前に人事が調査すべきだ」と提案しており、話の流れに合う。他の2つ（"He has worked here for five years."／"The warehouse is fully staffed now."）は発言内容と噛み合わない。',
+      '間接応答: 空調の不具合について申し出があったという発言に対し「夏が来る前に施設担当が見るべきだ」と対応を提案しており、話の流れに合う。他の2つ（"He has worked here for five years."／"The warehouse is fully staffed now."）は発言内容と噛み合わない。',
     translation:
-      '昨日、倉庫スタッフの1人が正式な不服申立てを行いました。 — エスカレートする前に人事が調査すべきでしょうね。',
+      '倉庫スタッフの1人が空調の故障について正式に申し出ました。 — 夏が来る前に施設担当が見たほうがいいですね。',
     difficulty: 4,
   },
   {
@@ -381,7 +381,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「主に地元企業向けですよね」という付加疑問に対し「以前はそうだったが去年から海外発送を始めた」と変化を伝えており、話の流れに合う。他の2つ（"Local businesses tend to pay on time."／"We have about two hundred clients."）は質問の核心に答えていない。',
     translation:
-      '弊社の最大の競合は主に地元企業向けですよね？ — 以前はそうでしたが、去年から海外発送を始めてから変わりました。',
+      '弊社の一番の競合相手は主に地元企業向けですよね？ — 以前はそうでしたが、去年海外への発送を始めました。',
     difficulty: 3,
   },
   {
@@ -425,7 +425,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     keyVocabWord: 'sponsor',
     tags: ['付加疑問'],
     script:
-      "The same company sponsored the event last year too, didn't they? — No, that was a different sponsor entirely.",
+      "The same company sponsored the event last year too, didn't it? — No, that was a different sponsor entirely.",
     correctText: 'No, that was a different sponsor entirely.',
     distractors: ['The event drew a large crowd.', 'Sponsorship fees went up this year.'],
     explanation:
@@ -442,8 +442,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     correctText: "She's still drafting some for us.",
     distractors: ['The client signed a two-year deal.', 'Feedback helps with new sales.'],
     explanation:
-      '間接応答: 「もう推薦の声をもらいましたよね」という付加疑問に対し「まだ書いている最中だ」とまだ完了していないことを示しており、話の流れに合う。他の2つ（"The client signed a two-year deal."／"Feedback helps with new sales."）は質問の核心に答えていない。',
-    translation: 'もうそのお客様から推薦の声をもらいましたよね？ — まだ書いてくれている最中です。',
+      '間接応答: 「もうご意見をいただきましたよね」という付加疑問に対し「まだ取りまとめている最中だ」とまだ完了していないことを示しており、話の流れに合う。他の2つ（"The client signed a two-year deal."／"Feedback helps with new sales."）は質問の核心に答えていない。',
+    translation:
+      'もうそのお客様からご意見をいただきましたよね？ — まだ取りまとめてくださっている最中です。',
     difficulty: 2,
   },
   {
@@ -481,7 +482,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「もう完了していますよね」という付加疑問に対し「新しいカーペットの到着を待っているだけ」とほぼ完了だが未完であることを示しており、話の流れに合う。他の2つ（"The renovation took six weeks."／"The lobby looks much brighter now."）は質問の核心に答えていない。',
     translation:
-      'ロビーの改装はもう終わっていますよね？ — 新しいカーペットの到着を待っているだけです。',
+      '新しい賃貸契約で義務付けられたロビー工事はもう終わっていますよね？ — 新しいカーペットの到着を待っているだけです。',
     difficulty: 3,
   },
   {
@@ -494,7 +495,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「深夜に閉まりますよね」という付加疑問に対し「このターミナルは一晩中開けている」と訂正しており、話の流れに合う。他の2つ（"Customs officers wear uniforms."／"Security staff work in shifts."）は質問の核心に答えていない。',
     translation:
-      '保安検査場は深夜に閉まりますよね？ — 実は、このターミナルは一晩中1つ開けています。',
+      '税関は深夜に閉まりますよね？ — 実は、このターミナルは一晩中カウンターを1つ開けています。',
     difficulty: 3,
   },
   {
@@ -534,7 +535,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     distractors: ['The board meets twice a month.', 'The deal is worth quite a lot.'],
     explanation:
       '間接応答: 「先月承認しましたよね」という付加疑問に対し「まだ最終条件を検討中だ」とまだ承認されていないことを示しており、話の流れに合う。他の2つ（"The board meets twice a month."／"The deal is worth quite a lot."）は質問の核心に答えていない。',
-    translation: '取締役会は先月その推薦契約を承認しましたよね？ — まだ最終条件を検討中です。',
+    translation: '取締役会は先月その協賛条項を承認しましたよね？ — まだ最終条件を検討中です。',
     difficulty: 3,
   },
   {
@@ -572,7 +573,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「本社に直接報告しますよね」という付加疑問に対し「実は地域事務所を経由してから報告する」と訂正しており、話の流れに合う。他の2つ（"The outlet was opened in 2015."／"Headquarters is based overseas."）は質問の核心に答えていない。',
     translation:
-      '欧州子会社は本社に直接報告しますよね？ — 実は地域事務所を経由してから報告します。',
+      '欧州の店舗は本社に直接報告しますよね？ — 実は地域事務所を経由してから報告します。',
     difficulty: 4,
   },
   {
@@ -600,7 +601,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「どちらの請負業者にすべきか」という選択疑問に対し「早く始められる方でいい」と決定基準を示す形で答えており、話の流れに合う。他の2つ（"Both contractors have good reviews."／"The capital is two hours away."）はどちらかを選んでいない。',
     translation:
-      '地元の請負業者にすべきか、首都の業者にすべきか？ — 正直、早く始められる方でいいです。',
+      '実績・資格が優れた業者にすべきか、首都の業者にすべきか？ — 正直、早く始められる方でいいです。',
     difficulty: 2,
   },
   {
@@ -609,9 +610,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     script:
       "Do you want the venue with the better transit connection or the one downtown? — Let's see which one is cheaper first.",
     correctText: "Let's see which one is cheaper first.",
-    distractors: ['The transit connection is quite fast.', 'Downtown is easier to reach by train.'],
+    distractors: ['The transit connection is quite fast.', 'The venue list came out yesterday.'],
     explanation:
-      '間接応答: 「交通の便が良い会場か都心の会場か」という選択疑問に対し「まず安い方を確認しよう」と決定を先延ばしにする形で答えており、話の流れに合う。他の2つ（"The transit connection is quite fast."／"Downtown is easier to reach by train."）は直接どちらかを選んでいる（間接応答ではない）。',
+      '間接応答: 「交通の便が良い会場か都心の会場か」という選択疑問に対し「まず安い方を確認しよう」と決定を先延ばしにする形で答えており、話の流れに合う。他の2つ（"The transit connection is quite fast."／"The venue list came out yesterday."）は直接どちらかを選んでいる（間接応答ではない）。',
     translation:
       '会場は交通の便が良い方か都心の方か、どちらがいいですか？ — まずどちらが安いか確認しましょう。',
     difficulty: 3,
@@ -648,9 +649,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     script:
       "Would you rather have a layover in Dubai or fly direct? — Direct, if it doesn't cost too much more.",
     correctText: "Direct, if it doesn't cost too much more.",
-    distractors: ['Dubai has a beautiful airport.', 'Direct flights are always faster.'],
+    distractors: ['Dubai has a beautiful airport.', 'The airline changed its schedule.'],
     explanation:
-      '間接応答: 「ドバイ経由か直行か」という選択疑問に対し「値段があまり変わらないなら直行」と条件付きで直行を選んでおり、話の流れに合う。他の2つ（"Dubai has a beautiful airport."／"Direct flights are always faster."）は選択への直接の回答になっていない。',
+      '間接応答: 「ドバイ経由か直行か」という選択疑問に対し「値段があまり変わらないなら直行」と条件付きで直行を選んでおり、話の流れに合う。他の2つ（"Dubai has a beautiful airport."／"The airline changed its schedule."）は選択への直接の回答になっていない。',
     translation:
       'ドバイ経由にしますか、それとも直行にしますか？ — 値段があまり変わらないなら直行がいいです。',
     difficulty: 2,
@@ -661,12 +662,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     script:
       'Should we expand through franchising or open company-owned stores? — Franchising would let us grow faster with less capital.',
     correctText: 'Franchising would let us grow faster with less capital.',
-    distractors: [
-      'Company-owned stores are easier to manage.',
-      'Our current stores are doing well.',
-    ],
+    distractors: ['The stores open at nine.', 'Our current stores are doing well.'],
     explanation:
-      '間接応答: 「フランチャイズ展開か直営店開設か」という選択疑問に対し「フランチャイズなら少ない資本で速く成長できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（"Company-owned stores are easier to manage."／"Our current stores are doing well."）は選択の根拠を示していない。',
+      '間接応答: 「フランチャイズ展開か直営店開設か」という選択疑問に対し「フランチャイズなら少ない資本で速く成長できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（"The stores open at nine."／"Our current stores are doing well."）は選択の根拠を示していない。',
     translation:
       'フランチャイズで展開すべきか、直営店を開くべきか？ — フランチャイズなら少ない資本で速く成長できますね。',
     difficulty: 4,
@@ -761,12 +759,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     script:
       'Should we book a bus, given the extra expense, or have everyone drive separately? — The bus, so we all arrive together.',
     correctText: 'The bus, so we all arrive together.',
-    distractors: [
-      'The parking lot has plenty of space.',
-      'Driving separately gives more flexibility.',
-    ],
+    distractors: ['The parking lot has plenty of space.', 'The venue is about an hour away.'],
     explanation:
-      '間接応答: 「追加費用がかかってもバスを予約するか各自で運転するか」という選択疑問に対し「バスなら皆一緒に到着できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（"The parking lot has plenty of space."／"Driving separately gives more flexibility."）は選択の根拠を示していない。',
+      '間接応答: 「追加費用がかかってもバスを予約するか各自で運転するか」という選択疑問に対し「バスなら皆一緒に到着できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（"The parking lot has plenty of space."／"The venue is about an hour away."）は選択の根拠を示していない。',
     translation:
       '追加費用がかかってもバスを予約すべきですか、それとも各自で運転すべきですか？ — バスなら皆一緒に到着できますね。',
     difficulty: 3,
@@ -781,20 +776,20 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「生産か配送のどちらに障害があるか」という選択疑問に対し「今月は両方に少しずつある」と両方を示す形で答えており、話の流れに合う。他の2つ（"Production runs three shifts a day."／"Shipping delays cost us customers."）はどちらかを直接選んでいない。',
     translation:
-      '障害は生産にあるのか、それとも配送にあるのか？ — 正直、今月は両方に少しずつあります。',
+      'その遅延は今月の生産目標に影響しているのですか、それとも出荷ですか？ — 正直、両方に少しずつです。',
     difficulty: 3,
   },
   {
     keyVocabWord: 'revenue',
     tags: ['選択疑問'],
     script:
-      "Will the new levy affect resident revenue or business revenue only? — It's still under debate at the city council.",
+      "Will the new levy raise revenue from residents or only from businesses? — It's still under debate at the city council.",
     correctText: "It's still under debate at the city council.",
     distractors: ['The levy would fund road repairs.', 'Residents already pay property tax.'],
     explanation:
-      '間接応答: 「新しい課税は住民に適用されるか企業だけか」という選択疑問に対し「市議会でまだ議論中だ」とまだ決まっていないことを示しており、話の流れに合う。他の2つ（"Residents already pay property tax."／"The levy would fund road repairs."）はどちらかを直接選んでいない。',
+      '間接応答: 「新しい課税で住民から税収を得るか企業だけからか」という選択疑問に対し「市議会でまだ議論中だ」とまだ決まっていないことを示しており、話の流れに合う。他の2つ（"Residents already pay property tax."／"The levy would fund road repairs."）はどちらかを直接選んでいない。',
     translation:
-      '新しい課税は住民に適用されるのか、それとも企業だけか？ — まだ市議会で議論中です。',
+      '新しい課税は住民から税収を得るのですか、それとも企業だけからですか？ — まだ市議会で議論中です。',
     difficulty: 3,
   },
   {
@@ -852,7 +847,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「提携先を増やすか今の提携先に集中するか」という選択疑問に対し「今の提携先に集中する。量より質」と理由を添えて選んでおり、話の流れに合う。他の2つ（"Partners earn a commission per sale."／"We currently have about fifty partners."）は選択の根拠を示していない。',
     translation:
-      '提携先を増やすべきですか、それとも今の提携先に集中すべきですか？ — 今の提携先に集中しましょう。量より質です。',
+      '利益を伸ばすために提携先を増やすべきですか、それとも今の提携先に集中すべきですか？ — 今の提携先に集中しましょう。量より質です。',
     difficulty: 3,
   },
   {

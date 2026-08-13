@@ -8,8 +8,8 @@
         600,
         600
       ],
-      "sizeBytes": 86559,
-      "hash": "ef9d7e3ebe7560bd"
+      "sizeBytes": 86553,
+      "hash": "5b52c955a6d9f454"
     },
     {
       "id": "pack-p2-s-001",
@@ -18,8 +18,8 @@
         600,
         600
       ],
-      "sizeBytes": 63298,
-      "hash": "abcdf23ea71a10f6"
+      "sizeBytes": 63292,
+      "hash": "c83533d9c782277f"
     },
     {
       "id": "pack-p5-s-001",
@@ -28,8 +28,8 @@
         600,
         600
       ],
-      "sizeBytes": 52891,
-      "hash": "3a561efa9dea27a2"
+      "sizeBytes": 52885,
+      "hash": "7155a779757921ee"
     },
     {
       "id": "pack-p5-similar-s-001",
@@ -38,8 +38,8 @@
         600,
         600
       ],
-      "sizeBytes": 59880,
-      "hash": "aa89f63d8a059daf"
+      "sizeBytes": 60019,
+      "hash": "976d1a981f67f18b"
     },
     {
       "id": "pack-vocab-a-001",
@@ -48,8 +48,8 @@
         600,
         730
       ],
-      "sizeBytes": 88015,
-      "hash": "fd50de52aeba2a8a"
+      "sizeBytes": 88009,
+      "hash": "238d27c7191ffdbf"
     },
     {
       "id": "pack-vocab-b-001",
@@ -58,8 +58,8 @@
         730,
         860
       ],
-      "sizeBytes": 89037,
-      "hash": "c6adfdb26c142eca"
+      "sizeBytes": 89031,
+      "hash": "05e4bbcd307a24b3"
     },
     {
       "id": "pack-p2-s-002",
@@ -68,8 +68,8 @@
         600,
         600
       ],
-      "sizeBytes": 129784,
-      "hash": "9802d05572706ab9"
+      "sizeBytes": 129778,
+      "hash": "79995b7584b266b4"
     },
     {
       "id": "pack-p5-s-002",
@@ -78,8 +78,8 @@
         600,
         600
       ],
-      "sizeBytes": 105348,
-      "hash": "987cb4a820dcf98a"
+      "sizeBytes": 105342,
+      "hash": "034014d7dbf129a7"
     },
     {
       "id": "pack-p34-s-001",
@@ -88,8 +88,8 @@
         600,
         600
       ],
-      "sizeBytes": 84673,
-      "hash": "396cdcbb0104850f"
+      "sizeBytes": 84667,
+      "hash": "d720d6e7558cd553"
     },
     {
       "id": "pack-dict-s-001",
@@ -98,8 +98,8 @@
         600,
         600
       ],
-      "sizeBytes": 41473,
-      "hash": "bf5d04ffeb414ef3"
+      "sizeBytes": 41467,
+      "hash": "bcef61c42859e716"
     },
     {
       "id": "pack-shadow-s-001",
@@ -108,8 +108,8 @@
         600,
         600
       ],
-      "sizeBytes": 37488,
-      "hash": "e8adc77149fec691"
+      "sizeBytes": 37482,
+      "hash": "9e409ced250ffbb7"
     },
     {
       "id": "pack-p5-similar-s-002",
@@ -118,8 +118,8 @@
         600,
         600
       ],
-      "sizeBytes": 64853,
-      "hash": "38a688b152795a13"
+      "sizeBytes": 65260,
+      "hash": "ef5126350c50dec4"
     },
     {
       "id": "pack-p5-similar-s-003",
@@ -128,8 +128,8 @@
         600,
         600
       ],
-      "sizeBytes": 131152,
-      "hash": "eaee28afd388bd94"
+      "sizeBytes": 131477,
+      "hash": "e14d7ecdb3e3f971"
     },
     {
       "id": "pack-p34-s-002",
@@ -138,8 +138,8 @@
         600,
         600
       ],
-      "sizeBytes": 84045,
-      "hash": "0f91a34ca66a731d"
+      "sizeBytes": 84052,
+      "hash": "59eb1f800df9c9b8"
     },
     {
       "id": "pack-dict-s-002",
@@ -148,8 +148,8 @@
         600,
         600
       ],
-      "sizeBytes": 39802,
-      "hash": "0c4e4e7669bb93a5"
+      "sizeBytes": 40302,
+      "hash": "d39c0d146caddc89"
     },
     {
       "id": "pack-p5-s-003",
@@ -158,8 +158,8 @@
         730,
         860
       ],
-      "sizeBytes": 58962,
-      "hash": "4bd9cfecead12d2b"
+      "sizeBytes": 59571,
+      "hash": "8bfe1c2ba2a2daa8"
     },
     {
       "id": "pack-p34-s-003",
@@ -168,8 +168,8 @@
         730,
         860
       ],
-      "sizeBytes": 48559,
-      "hash": "34b3f49364619c9d"
+      "sizeBytes": 48518,
+      "hash": "d71313bd796cf604"
     },
     {
       "id": "pack-vocab-s-002",
@@ -178,8 +178,8 @@
         600,
         600
       ],
-      "sizeBytes": 19802,
-      "hash": "cc7d5e2764c4ac9e"
+      "sizeBytes": 19794,
+      "hash": "0897d354b29b3b6f"
     },
     {
       "id": "pack-reading-p6-s-001",
@@ -188,8 +188,8 @@
         600,
         730
       ],
-      "sizeBytes": 174406,
-      "hash": "8b99b4b113784739"
+      "sizeBytes": 174412,
+      "hash": "1b9f8a7d7fde0270"
     },
     {
       "id": "pack-reading-p7single-s-001",
@@ -198,8 +198,38 @@
         600,
         730
       ],
-      "sizeBytes": 235619,
-      "hash": "eda6055b6ea1811a"
+      "sizeBytes": 235625,
+      "hash": "3d581d7ab040ae45"
+    },
+    {
+      "id": "pack-reading-p7multi-s-001",
+      "title": "Part7複数パッセージ読解 5セット25問",
+      "targetLevel": [
+        730,
+        860
+      ],
+      "sizeBytes": 33506,
+      "hash": "80d1f188a21fdaf5"
+    },
+    {
+      "id": "pack-reading-p6url-s-001",
+      "title": "Part6読解 URL題材1セット4問",
+      "targetLevel": [
+        600,
+        730
+      ],
+      "sizeBytes": 6805,
+      "hash": "125b91a506b53db9"
+    },
+    {
+      "id": "pack-reading-p7url-s-001",
+      "title": "Part7単一読解 URL題材4セット10問",
+      "targetLevel": [
+        600,
+        730
+      ],
+      "sizeBytes": 17721,
+      "hash": "fd83ebed26d70b86"
     },
     {
       "id": "pack-p2-s-003",
@@ -208,8 +238,8 @@
         600,
         600
       ],
-      "sizeBytes": 95301,
-      "hash": "17a0dfd7df8e371a"
+      "sizeBytes": 96181,
+      "hash": "89bb5903d07626f5"
     }
   ]
 }
