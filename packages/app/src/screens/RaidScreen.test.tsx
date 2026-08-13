@@ -570,11 +570,38 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     await screen.findByTestId('raid-boss')
 
     const section = screen.getByTestId('raid-badges')
-    expect(section.querySelector('.raid-badges__list')).toBeNull()
+    // T-150: 未取得バッジ（シルエット）が並ぶため一覧自体は出る。取得済みが0件であることを見る
+    expect(section.querySelectorAll('[data-testid="raid-badge-earned"]')).toHaveLength(0)
+    expect(section.querySelectorAll('[data-testid="raid-badge-locked"]').length).toBeGreaterThan(0)
     const empty = screen.getByTestId('raid-badges-empty')
     expect(empty.textContent).toContain('まだバッジはありません')
     // 煽らない・責めないトーン（4.6節）: 次の行動が分かる文になっている
     expect(empty.textContent).toContain('ボスを討伐すると')
+  })
+
+  // T-150（docs/25 6.4節・docs/07 6節「未取得はシルエット表示」）
+  it('未取得バッジをシルエットで並べる（固定バッジ＋進行中ボスの討伐バッジ）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.badges.put({ badgeId: 'raid-first-clear', earnedAt: 1000 })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    const section = screen.getByTestId('raid-badges')
+    // 取得済みの初回討伐と、未取得の今週分（ACTIVE_BOSS=boss-2026-W30）が並ぶ
+    expect(section.querySelectorAll('[data-testid="raid-badge-earned"]')).toHaveLength(1)
+    const locked = section.querySelectorAll('[data-testid="raid-badge-locked"]')
+    expect(locked).toHaveLength(1)
+    expect(locked[0]?.textContent).toContain('2026年 第30週')
+    // 色だけに頼らない（07の原則4）: 未取得は文字でも示す
+    expect(locked[0]?.textContent).toContain('未取得')
+    // 取得済みが1件でもあれば案内文は出さない
+    expect(screen.queryByTestId('raid-badges-empty')).toBeNull()
   })
 
   it('レイド系以外のバッジ（badgeIdがraid-*でない）は一覧に含めない', async () => {
@@ -589,8 +616,10 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     )
     await screen.findByTestId('raid-boss')
 
-    // セクションは出るが一覧は空（=レイド系以外は列挙されない）
-    expect(screen.getByTestId('raid-badges').querySelector('.raid-badges__list')).toBeNull()
+    // レイド系以外は列挙されない（T-150で未取得のレイドバッジは並ぶが、first-sessionは出ない）
+    expect(
+      screen.getByTestId('raid-badges').querySelectorAll('[data-testid="raid-badge-earned"]'),
+    ).toHaveLength(0)
     expect(screen.getByTestId('raid-badges-empty')).toBeTruthy()
     expect(screen.getByTestId('raid-badges').textContent).not.toContain('first-session')
   })
