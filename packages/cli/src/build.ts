@@ -44,7 +44,9 @@ export interface PackDefinition {
 /**
  * 敵対的検証の工程記録（T-355。正本: docs/32 8.2節）。
  *
- * 全パック共通の値としてここ1箇所に置く（21パックすべてに同じ工程を適用したため）。
+ * 敵対的検証（6観点）は21パックすべてに適用した。一方でAIクロスレビュー
+ * （生成に使ったのとは別のモデルによる全問読み）は**通していないパックがある**。
+ * 両者は別の工程なので、パックごとに実施の有無を持ち分ける。
  *
  * reviewMethodは機械可読な工程名、originは人が読む1行の出所表記で、
  * どちらもdocs/32 8.2節の書式に従う（`beb verify-content` が両者の整合を検査する）。
@@ -53,9 +55,53 @@ export const ADVERSARIAL_DIMENSION_COUNT = 6
 export const ADVERSARIAL_REVIEWER = 'claude-opus-5'
 export const ADVERSARIAL_REVIEWED_AT = '2026-08-13'
 
-/** docs/32 8.2節の書式で工程名を組み立てる */
-export function reviewMethodFor(reviewer: string, dimensions: number, date: string): string {
-  return `AIクロスレビュー（${reviewer}）＋敵対的検証（${dimensions}観点・${date}）`
+/**
+ * AIクロスレビュー（第1段。生成に使ったのとは別のモデルによる全問読み。J-119）を
+ * 実際に通したモデル。**通したパックだけ**を載せる。
+ *
+ * 載っていないパックは工程名から「AIクロスレビュー（<モデル名>）」の段が落ちる。
+ * 通していない工程を `origin` に書くと出所を偽ることになるため、既定は「未実施」とする。
+ *
+ * 2026-08-13に、それまで一度も通していなかった6パック347問を claude-sonnet-5 で実施した
+ * （`pack-p5-similar-*` は起票時に「対象外」、`pack-dict-s-002`・`pack-p34-s-002` は
+ * T-84で「未実施」、`pack-vocab-s-002` はドッグフィードバック対応のまま残っていた）。
+ * 残りは2026-07までに別モデルで通してある。モデル名を特定できないパックは載せない。
+ */
+export const CROSS_REVIEW_MODEL_BY_PACK_ID: ReadonlyMap<string, string> = new Map([
+  // 2026-07にFable 5で実施
+  ['pack-vocab-s-001', 'Fable 5'],
+  ['pack-vocab-a-001', 'Fable 5'],
+  ['pack-vocab-b-001', 'Fable 5'],
+  ['pack-p2-s-001', 'Fable 5'],
+  ['pack-p2-s-002', 'Fable 5'],
+  ['pack-p5-s-001', 'Fable 5'],
+  ['pack-p5-s-002', 'Fable 5'],
+  ['pack-p34-s-001', 'Fable 5'],
+  ['pack-dict-s-001', 'Fable 5'],
+  ['pack-shadow-s-001', 'Fable 5'],
+  // 2026-07-23にT-107で別モデル3並列＋発起人H-R1レビュー承認
+  ['pack-reading-p6-s-001', '別モデル3並列'],
+  ['pack-reading-p7single-s-001', '別モデル3並列'],
+  // 2026-08-13に実施（それまで未実施・対象外だったもの）
+  ['pack-p5-similar-s-001', 'claude-sonnet-5'],
+  ['pack-p5-similar-s-002', 'claude-sonnet-5'],
+  ['pack-p5-similar-s-003', 'claude-sonnet-5'],
+  ['pack-dict-s-002', 'claude-sonnet-5'],
+  ['pack-p34-s-002', 'claude-sonnet-5'],
+  ['pack-vocab-s-002', 'claude-sonnet-5'],
+])
+
+/**
+ * docs/32 8.2節の書式で工程名を組み立てる。
+ * `crossReviewer` が無いパック（クロスレビュー未実施）は敵対的検証の段だけにする。
+ *
+ * 2026-08-13時点で未実施なのは `pack-p34-s-003`・`pack-p5-s-003`（T-85で「実施済み」と
+ * 記録されているがモデル名が残っていない）と `pack-p2-s-003`（T-349で新規生成し、
+ * 敵対的検証6観点のみ通した）の3パックである。
+ */
+export function reviewMethodFor(dimensions: number, date: string, crossReviewer?: string): string {
+  const adversarial = `敵対的検証（${dimensions}観点・${date}）`
+  return crossReviewer ? `AIクロスレビュー（${crossReviewer}）＋${adversarial}` : adversarial
 }
 
 /** docs/32 8.2節の書式で origin を組み立てる（生成手段はパックごとに異なるので引数で受ける） */
@@ -326,9 +372,9 @@ export async function loadPackSources(contentRoot: string): Promise<PackSource[]
     // TTSを工程に含めるかは実データで決める（音声を1件も持たないパックに＋TTSと書かない）
     const withTts = questions.some((q) => Boolean(q.audio) || Boolean(q.phraseAudio))
     const reviewMethod = reviewMethodFor(
-      ADVERSARIAL_REVIEWER,
       ADVERSARIAL_DIMENSION_COUNT,
       ADVERSARIAL_REVIEWED_AT,
+      CROSS_REVIEW_MODEL_BY_PACK_ID.get(def.id),
     )
     sources.push({
       id: def.id,

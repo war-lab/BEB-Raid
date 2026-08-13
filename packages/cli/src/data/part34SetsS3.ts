@@ -225,7 +225,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
     tags: ['意図推定'],
     keyVocabWords: ['overhaul', 'maintenance'],
     script:
-      "A: Maintenance wants to schedule the system overhaul for next weekend, but that would mean about six hours of downtime during our busiest shopping period. B: Six hours is rough, but when else could we realistically do it? A: They mentioned a weeknight could work too, though it would need to be after midnight to avoid customer impact. B: Honestly, I'd rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales. A: That's a good point when you put it that way. I hadn't weighted it quite like that. B: Let's ask maintenance to move it to a weeknight, then, and we'll notify the team in advance.",
+      "A: Maintenance wants to schedule the system overhaul for next weekend, but that would mean about six hours of downtime during our busiest shopping period. B: Six hours is rough, but when else could we realistically do it? A: They mentioned a weeknight could work too, though it would need to be after midnight to avoid customer impact. B: Honestly, I'd rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales. A: That's a good point when you put it that way. I hadn't weighed it quite like that. B: Let's ask maintenance to move it to a weeknight, then, and we'll notify the team in advance.",
     subQuestions: [
       {
         question: 'What are the speakers trying to decide?',

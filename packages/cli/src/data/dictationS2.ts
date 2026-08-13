@@ -202,13 +202,15 @@ export const DICTATION_ENTRIES_S2: DictationRawEntry[] = [
     keyVocabWord: 'liability',
     tags: ['弱形・連結', '助動詞弱形'],
     // クロスレビュー: might は弱形を持たない助動詞のため、弱形 /kəd/ を持つ could へ差し替え（要音声再生成）
-    script: 'The company could face liability if the claim is proven.',
+    // クロスレビュー2026-08-13: 「claimが立証されれば法的責任を負う」は係争色が強く題材の
+    // 適格性に触れるため、liabilityを会計上の「負債」の文脈へ移した。語数と穴の位置は不変
+    script: 'The company could reduce liability if the loan is refinanced.',
     blanks: [
       { index: 2, answer: 'could' },
       { index: 8, answer: 'is' },
     ],
     explanation: '弱形になりやすいcould/isを穴にしている。',
-    translation: 'その申し立てが立証されれば、その会社は法的責任を負うかもしれない。',
+    translation: 'そのローンが借り換えられれば、その会社は負債を減らせるかもしれない。',
     difficulty: 4,
   },
   {

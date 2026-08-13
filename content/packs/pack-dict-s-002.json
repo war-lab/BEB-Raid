@@ -4,15 +4,15 @@
     "id": "pack-dict-s-002",
     "title": "ディクテーション追加40本",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。T-84）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。T-84）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 39802
+    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 39826
   },
   "questions": [
     {
@@ -588,13 +588,13 @@
       ],
       "audio": "audio/dictation/liability.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 3500
+        "voice": "piper:en_US-lessac-medium",
+        "durationMs": 3736
       },
-      "script": "The company could face liability if the claim is proven.",
-      "translation": "その申し立てが立証されれば、その会社は法的責任を負うかもしれない。",
+      "script": "The company could reduce liability if the loan is refinanced.",
+      "translation": "そのローンが借り換えられれば、その会社は負債を減らせるかもしれない。",
       "explanation": "弱形になりやすいcould/isを穴にしている。",
       "blanks": [
         {

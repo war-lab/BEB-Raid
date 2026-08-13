@@ -4,15 +4,15 @@
     "id": "pack-vocab-s-002",
     "title": "語彙カード 初級50語（600帯・入門）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。ドッグフィードバック対応）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。ドッグフィードバック対応）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 19802
+    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 19804
   },
   "questions": [
     {

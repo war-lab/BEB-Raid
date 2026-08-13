@@ -126,7 +126,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
       'I updated the software yesterday.',
     ],
     explanation:
-      '間接応答: 自動更新が来週というへ発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つ（"I updated the software yesterday."／"The subscription costs less than last year."）は発言への応答として的外れ。',
+      '間接応答: 自動更新が来週だという発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つ（"I updated the software yesterday."／"The subscription costs less than last year."）は発言への応答として的外れ。',
     translation:
       '弊社のソフトウェアの契約は来週自動更新されます。 — 全てのライセンスが本当に必要か誰かが確認すべきですね。',
     difficulty: 3,
@@ -274,9 +274,9 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     correctText: 'We should compare leasing costs against buying new ones.',
     distractors: ['The fleet has twelve vehicles.', 'Fuel prices went up too.'],
     explanation:
-      '間接応答: 車両の減価償却費が増えたという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つ（"The fleet has twelve vehicles."／"Fuel prices went up too."）は発言と直接関係しない。',
+      '間接応答: リース契約の更新で車両費用が上がったという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つ（"The fleet has twelve vehicles."／"Fuel prices went up too."）は発言と直接関係しない。',
     translation:
-      '今年は社用車の減価償却費が急増しました。 — リースと新車購入のコストを比較すべきですね。',
+      '今年は新しいリース契約で社用車の費用が上がりました。 — リースと新車購入のコストを比較すべきですね。',
     difficulty: 4,
   },
   {
@@ -297,12 +297,12 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     tags: ['平叙文'],
     script:
       'One of the warehouse staff filed a formal grievance about the broken air conditioning. — Facilities should probably look into it before summer.',
-    correctText: 'HR should probably look into it before it escalates.',
+    correctText: 'Facilities should probably look into it before summer.',
     distractors: ['The warehouse is fully staffed now.', 'He has worked here for five years.'],
     explanation:
-      '間接応答: 正式な不服申立てがあったという発言に対し「エスカレートする前に人事が調査すべきだ」と提案しており、話の流れに合う。他の2つ（"He has worked here for five years."／"The warehouse is fully staffed now."）は発言内容と噛み合わない。',
+      '間接応答: 空調の不具合について申し出があったという発言に対し「夏が来る前に施設担当が見るべきだ」と対応を提案しており、話の流れに合う。他の2つ（"He has worked here for five years."／"The warehouse is fully staffed now."）は発言内容と噛み合わない。',
     translation:
-      '昨日、倉庫スタッフの1人が正式な不服申立てを行いました。 — エスカレートする前に人事が調査すべきでしょうね。',
+      '倉庫スタッフの1人が空調の故障について正式に申し出ました。 — 夏が来る前に施設担当が見たほうがいいですね。',
     difficulty: 4,
   },
   {
@@ -425,7 +425,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     keyVocabWord: 'sponsor',
     tags: ['付加疑問'],
     script:
-      "The same company sponsored the event last year too, didn't they? — No, that was a different sponsor entirely.",
+      "The same company sponsored the event last year too, didn't it? — No, that was a different sponsor entirely.",
     correctText: 'No, that was a different sponsor entirely.',
     distractors: ['The event drew a large crowd.', 'Sponsorship fees went up this year.'],
     explanation:
@@ -494,7 +494,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「深夜に閉まりますよね」という付加疑問に対し「このターミナルは一晩中開けている」と訂正しており、話の流れに合う。他の2つ（"Customs officers wear uniforms."／"Security staff work in shifts."）は質問の核心に答えていない。',
     translation:
-      '保安検査場は深夜に閉まりますよね？ — 実は、このターミナルは一晩中1つ開けています。',
+      '税関は深夜に閉まりますよね？ — 実は、このターミナルは一晩中カウンターを1つ開けています。',
     difficulty: 3,
   },
   {
@@ -534,7 +534,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     distractors: ['The board meets twice a month.', 'The deal is worth quite a lot.'],
     explanation:
       '間接応答: 「先月承認しましたよね」という付加疑問に対し「まだ最終条件を検討中だ」とまだ承認されていないことを示しており、話の流れに合う。他の2つ（"The board meets twice a month."／"The deal is worth quite a lot."）は質問の核心に答えていない。',
-    translation: '取締役会は先月その推薦契約を承認しましたよね？ — まだ最終条件を検討中です。',
+    translation: '取締役会は先月その協賛条項を承認しましたよね？ — まだ最終条件を検討中です。',
     difficulty: 3,
   },
   {
@@ -572,7 +572,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: 「本社に直接報告しますよね」という付加疑問に対し「実は地域事務所を経由してから報告する」と訂正しており、話の流れに合う。他の2つ（"The outlet was opened in 2015."／"Headquarters is based overseas."）は質問の核心に答えていない。',
     translation:
-      '欧州子会社は本社に直接報告しますよね？ — 実は地域事務所を経由してから報告します。',
+      '欧州の店舗は本社に直接報告しますよね？ — 実は地域事務所を経由してから報告します。',
     difficulty: 4,
   },
   {

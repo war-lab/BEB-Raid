@@ -83,7 +83,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'acquisition',
     tags: ['ビジネス名詞'],
-    question: 'Shareholders approved the ___ at yesterday’s meeting.',
+    question: 'Shareholders approved the ___ of the rival firm at yesterday’s meeting.',
     choices: [
       { key: 'A', text: 'acquisition' },
       { key: 'B', text: 'certification' },
@@ -387,7 +387,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'inspection',
     tags: ['ビジネス名詞'],
-    question: 'The building requires a full ___ before the sale.',
+    question: 'The building requires a full structural ___ before the sale.',
     choices: [
       { key: 'A', text: 'extension' },
       { key: 'B', text: 'certification' },
@@ -467,7 +467,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'merger',
     tags: ['ビジネス名詞'],
-    question: 'Employees needed extra training after the ___.',
+    question: 'Employees needed extra training after the ___ of the two companies.',
     choices: [
       { key: 'A', text: 'inspection' },
       { key: 'B', text: 'endorsement' },
@@ -659,7 +659,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'proposal',
     tags: ['ビジネス名詞'],
-    question: 'The board rejected the ___ due to high costs.',
+    question: 'The board rejected the ___ submitted by the design team due to high costs.',
     choices: [
       { key: 'A', text: 'candidate' },
       { key: 'B', text: 'subscription' },
@@ -851,7 +851,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'subscription',
     tags: ['ビジネス名詞'],
-    question: 'The company canceled its software ___ to cut costs.',
+    question: 'The company canceled its monthly software ___ to cut costs.',
     choices: [
       { key: 'A', text: 'acquisition' },
       { key: 'B', text: 'extension' },
@@ -883,7 +883,8 @@ export const KEY_VOCAB_SIMILAR_ENTRIES: KeyVocabSimilarEntry[] = [
   {
     word: 'warranty',
     tags: ['ビジネス名詞'],
-    question: 'Ask the sales representative whether an extended ___ is available.',
+    question:
+      'Ask the sales representative whether an extended ___ on this appliance is available.',
     choices: [
       { key: 'A', text: 'candidate' },
       { key: 'B', text: 'warranty' },

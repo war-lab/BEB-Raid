@@ -1,6 +1,6 @@
 id	verdict	observation	reviewer	reviewedAt
 part5-qualification	accept		claude-opus-5	2026-08-13
-part5-appraisal	accept		claude-opus-5	2026-08-13
+part5-appraisal	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で before の訳が「〜する頃には」になっていたことを検出し是正	claude-opus-5	2026-08-13
 part5-complaint	accept	初回判定はrevise: "reviewed by the legal team before the hearing"は訴訟・審問手続きを想起させる設定。legal team/hearingを社内的な確認プロセスに置き換えるべき。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
 part5-sustainable	accept		claude-opus-5	2026-08-13
 part5-expense	accept		claude-opus-5	2026-08-13
@@ -20,8 +20,8 @@ part5-affiliate	accept		claude-opus-5	2026-08-13
 part5-escrow	accept		claude-opus-5	2026-08-13
 part5-benefits	accept		claude-opus-5	2026-08-13
 part5-commuter	accept		claude-opus-5	2026-08-13
-part5-compliance	accept		claude-opus-5	2026-08-13
-part5-custodian	accept		claude-opus-5	2026-08-13
+part5-compliance	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で、解説が別問（part5-sabbatical）の内容になっていたことを検出し本問の内容へ書き直した	claude-opus-5	2026-08-13
+part5-custodian	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で has been given も成立すると指摘され、過去の時点（last month）を明示して単純過去に確定させた	claude-opus-5	2026-08-13
 part5-flagship	accept		claude-opus-5	2026-08-13
 part5-dwelling	accept		claude-opus-5	2026-08-13
 part5-freight	accept		claude-opus-5	2026-08-13
@@ -40,7 +40,7 @@ part5-lease	accept		claude-opus-5	2026-08-13
 part5-statement	accept	初回判定はrevise: 実名の個人（Aisha Karim）を報告ミスに関連づけて公表する内容で、個人の不利益・レピュテーション損害に類する。人物名を伏せるか、個人と結びつけない書き換えが必要。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
 part5-footfall	accept		claude-opus-5	2026-08-13
 part5-derivative	accept		claude-opus-5	2026-08-13
-part5-sabbatical	accept		claude-opus-5	2026-08-13
+part5-sabbatical	accept	クロスレビュー（claude-sonnet-5・2026-08-13）の指摘に伴い、誤答へ言及する解説へ書き直した	claude-opus-5	2026-08-13
 part5-milestone	accept		claude-opus-5	2026-08-13
 part5-compatible	accept		claude-opus-5	2026-08-13
 part5-network	accept		claude-opus-5	2026-08-13

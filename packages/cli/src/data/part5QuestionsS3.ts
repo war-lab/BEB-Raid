@@ -45,7 +45,7 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     explanation:
       '過去のある時点（appraisal system was introduced）よりさらに前の完了を表すため過去完了(had lost)。hadが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Marlowe & Vance（単数）と一致せず、was（単数過去）はlostと結ぶと受動の意味になり文意に合わない。',
     translation:
-      '新しい評価制度が導入される頃には、Marlowe & Vanceはすでに3人のシニアマネージャーを失っていた。',
+      '新しい評価制度が導入される前に、Marlowe & Vanceはすでに3人のシニアマネージャーを失っていた。',
     difficulty: 4,
   },
   {
@@ -295,7 +295,7 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     correctText: 'will have',
     distractors: ['has', 'have', 'will be'],
     explanation:
-      '未来のある時点までの完了を表す未来完了。will haveが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Elena Kowalski（単数）と一致せず、will be（単純未来）はbeen awayと結べない。',
+      '"By the end of this fiscal year"という未来の時点までの完了を表す未来完了。will haveが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Bellrose Pharmaceuticals（単数扱い）と一致せず、will be（単純未来）はreviewedの後に目的語every compliance documentが続くため受動態として成立しない。',
     translation:
       '今会計年度末までに、Bellrose Pharmaceuticalsはすべてのコンプライアンス文書を2回見直していることになる。',
     difficulty: 4,
@@ -303,12 +303,14 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
   {
     keyVocabWord: 'custodian',
     tags: ['動詞の形'],
-    question: 'The night custodian ___ given a new access card after the lock system was upgraded.',
+    question:
+      'The night custodian ___ given a new access card last month, right after the lock system was upgraded.',
     correctText: 'was',
     distractors: ['were', 'being', 'has been'],
     explanation:
-      '空所の後にgiven（過去分詞）が続き、custodianは「渡される」対象なので受動態が正しい。wereは複数主語用、beingは単独では述語動詞になれず、has beenは現在完了で過去の一時点（was upgraded）と時制が合わない。',
-    translation: '施錠システムの更新後、夜勤の施設管理者には新しい入館カードが渡された。',
+      '空所の後にgiven（過去分詞）が続き、custodianは「渡される」対象なので受動態が正しい。last monthという過去の時点が明示されているため単純過去のwasになる。wereは複数主語用、beingは単独では述語動詞になれず、has been（現在完了）は明示された過去の時点とは併用できない。',
+    translation:
+      '先月、施錠システムが更新された直後に、夜勤の施設管理者には新しい入館カードが渡された。',
     difficulty: 4,
   },
   {
@@ -538,7 +540,8 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
       'By the time she returns from her sabbatical, Elena Kowalski ___ been away from the office for a full year.',
     correctText: 'will have',
     distractors: ['has', 'had', 'have'],
-    explanation: '未来のある時点までの完了を表す未来完了。will haveが正しい。',
+    explanation:
+      '"By the time she returns"という未来の時点までの完了を表す未来完了。will haveが正しい。has（単数現在完了）は基準点が現在に、had（過去完了）は過去にずれ、have（複数現在完了）は主語Elena Kowalski（単数）と一致しない。',
     translation:
       '彼女が研究休暇から戻る頃には、エレナ・コワルスキー氏はまるまる1年間オフィスを離れていることになる。',
     difficulty: 4,

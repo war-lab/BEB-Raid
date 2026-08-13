@@ -4,15 +4,15 @@
     "id": "pack-vocab-a-001",
     "title": "語彙カード Aランク200語（730帯）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       730
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 88015
+    "reviewMethod": "AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 88009
   },
   "questions": [
     {

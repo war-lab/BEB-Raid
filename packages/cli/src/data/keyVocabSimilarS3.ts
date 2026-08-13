@@ -38,7 +38,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'delivery',
     tags: ['ビジネス名詞'],
-    question: 'The ___ of the new equipment was delayed by a week.',
+    question: 'The ___ of the new equipment to our loading dock was delayed by a week.',
     correctText: 'delivery',
     distractors: ['renewal', 'warranty', 'inspection'],
     explanation:
@@ -60,7 +60,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'training',
     tags: ['ビジネス名詞'],
-    question: 'All new hires must complete safety ___ before starting work.',
+    question: 'All new hires must complete a two-week safety ___ course before starting work.',
     correctText: 'training',
     distractors: ['qualification', 'certification', 'orientation'],
     explanation:
@@ -150,7 +150,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'freight',
     tags: ['ビジネス名詞'],
-    question: 'The ___ was delayed at the port due to a customs issue.',
+    question: 'The ___ charges for the cargo vessel rose after the delay at the port.',
     correctText: 'freight',
     distractors: ['merchandise', 'inventory', 'consignment'],
     explanation:
@@ -374,7 +374,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'supervise',
     tags: ['頻出動詞'],
-    question: 'A senior technician will ___ the new interns throughout their first three months.',
+    question: 'A senior technician will directly ___ and train the new interns for three months.',
     correctText: 'supervise',
     distractors: ['oversee', 'coordinate', 'recruit'],
     explanation:
@@ -397,7 +397,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     word: 'recruit',
     tags: ['頻出動詞'],
     question:
-      'The company plans to ___ ten new engineers for its growing research division this year.',
+      'The company plans to ___ ten new engineers through job fairs for its research division this year.',
     correctText: 'recruit',
     distractors: ['hire', 'terminate', 'delegate'],
     explanation:
@@ -607,7 +607,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'presentation',
     tags: ['ビジネス名詞'],
-    question: 'She gave a ___ on the new marketing strategy.',
+    question: 'She gave a slide ___ on the new marketing strategy.',
     correctText: 'presentation',
     distractors: ['briefing', 'ceremony', 'testimonial'],
     explanation:
@@ -1191,7 +1191,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'modernization',
     tags: ['ビジネス名詞'],
-    question: 'The company announced a major ___ plan that will affect several factories.',
+    question: 'The company announced a major ___ plan to upgrade equipment at several factories.',
     correctText: 'modernization',
     distractors: ['consolidation', 'diversification', 'expansion'],
     explanation:

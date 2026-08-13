@@ -4,15 +4,15 @@
     "id": "pack-p5-s-003",
     "title": "Part5文法 d4帯 追加50問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "origin": "エージェント直接執筆（2026-07。T-85）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       730,
       860
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 58962
+    "reviewMethod": "敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 59385
   },
   "questions": [
     {
@@ -89,7 +89,7 @@
       ],
       "answer": "A",
       "explanation": "過去のある時点（appraisal system was introduced）よりさらに前の完了を表すため過去完了(had lost)。hadが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Marlowe & Vance（単数）と一致せず、was（単数過去）はlostと結ぶと受動の意味になり文意に合わない。",
-      "translation": "新しい評価制度が導入される頃には、Marlowe & Vanceはすでに3人のシニアマネージャーを失っていた。"
+      "translation": "新しい評価制度が導入される前に、Marlowe & Vanceはすでに3人のシニアマネージャーを失っていた。"
     },
     {
       "id": "part5-complaint",
@@ -848,7 +848,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "未来のある時点までの完了を表す未来完了。will haveが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Elena Kowalski（単数）と一致せず、will be（単純未来）はbeen awayと結べない。",
+      "explanation": "\"By the end of this fiscal year\"という未来の時点までの完了を表す未来完了。will haveが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Bellrose Pharmaceuticals（単数扱い）と一致せず、will be（単純未来）はreviewedの後に目的語every compliance documentが続くため受動態として成立しない。",
       "translation": "今会計年度末までに、Bellrose Pharmaceuticalsはすべてのコンプライアンス文書を2回見直していることになる。"
     },
     {
@@ -866,7 +866,7 @@
           "freqRank": "A"
         }
       ],
-      "question": "The night custodian ___ given a new access card after the lock system was upgraded.",
+      "question": "The night custodian ___ given a new access card last month, right after the lock system was upgraded.",
       "choices": [
         {
           "key": "A",
@@ -886,8 +886,8 @@
         }
       ],
       "answer": "B",
-      "explanation": "空所の後にgiven（過去分詞）が続き、custodianは「渡される」対象なので受動態が正しい。wereは複数主語用、beingは単独では述語動詞になれず、has beenは現在完了で過去の一時点（was upgraded）と時制が合わない。",
-      "translation": "施錠システムの更新後、夜勤の施設管理者には新しい入館カードが渡された。"
+      "explanation": "空所の後にgiven（過去分詞）が続き、custodianは「渡される」対象なので受動態が正しい。last monthという過去の時点が明示されているため単純過去のwasになる。wereは複数主語用、beingは単独では述語動詞になれず、has been（現在完了）は明示された過去の時点とは併用できない。",
+      "translation": "先月、施錠システムが更新された直後に、夜勤の施設管理者には新しい入館カードが渡された。"
     },
     {
       "id": "part5-flagship",
@@ -1608,7 +1608,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "未来のある時点までの完了を表す未来完了。will haveが正しい。",
+      "explanation": "\"By the time she returns\"という未来の時点までの完了を表す未来完了。will haveが正しい。has（単数現在完了）は基準点が現在に、had（過去完了）は過去にずれ、have（複数現在完了）は主語Elena Kowalski（単数）と一致しない。",
       "translation": "彼女が研究休暇から戻る頃には、エレナ・コワルスキー氏はまるまる1年間オフィスを離れていることになる。"
     },
     {

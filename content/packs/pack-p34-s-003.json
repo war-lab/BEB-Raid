@@ -4,15 +4,15 @@
     "id": "pack-p34-s-003",
     "title": "Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-07。T-85）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       730,
       860
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 48559
+    "reviewMethod": "敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 48551
   },
   "questions": [
     {
@@ -458,10 +458,10 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 39900
+        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
+        "durationMs": 36284
       },
-      "script": "A: Maintenance wants to schedule the system overhaul for next weekend, but that would mean about six hours of downtime during our busiest shopping period. B: Six hours is rough, but when else could we realistically do it? A: They mentioned a weeknight could work too, though it would need to be after midnight to avoid customer impact. B: Honestly, I'd rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales. A: That's a good point when you put it that way. I hadn't weighted it quite like that. B: Let's ask maintenance to move it to a weeknight, then, and we'll notify the team in advance.",
+      "script": "A: Maintenance wants to schedule the system overhaul for next weekend, but that would mean about six hours of downtime during our busiest shopping period. B: Six hours is rough, but when else could we realistically do it? A: They mentioned a weeknight could work too, though it would need to be after midnight to avoid customer impact. B: Honestly, I'd rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales. A: That's a good point when you put it that way. I hadn't weighed it quite like that. B: Let's ask maintenance to move it to a weeknight, then, and we'll notify the team in advance.",
       "subQuestions": [
         {
           "id": "p34-p3-25-q1",

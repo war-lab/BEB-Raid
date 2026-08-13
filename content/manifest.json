@@ -8,8 +8,8 @@
         600,
         600
       ],
-      "sizeBytes": 86559,
-      "hash": "ef9d7e3ebe7560bd"
+      "sizeBytes": 86553,
+      "hash": "5b52c955a6d9f454"
     },
     {
       "id": "pack-p2-s-001",
@@ -18,8 +18,8 @@
         600,
         600
       ],
-      "sizeBytes": 63298,
-      "hash": "abcdf23ea71a10f6"
+      "sizeBytes": 63292,
+      "hash": "c83533d9c782277f"
     },
     {
       "id": "pack-p5-s-001",
@@ -28,8 +28,8 @@
         600,
         600
       ],
-      "sizeBytes": 52891,
-      "hash": "3a561efa9dea27a2"
+      "sizeBytes": 52885,
+      "hash": "7155a779757921ee"
     },
     {
       "id": "pack-p5-similar-s-001",
@@ -38,8 +38,8 @@
         600,
         600
       ],
-      "sizeBytes": 59880,
-      "hash": "aa89f63d8a059daf"
+      "sizeBytes": 59987,
+      "hash": "6ccd90f4861ab3b2"
     },
     {
       "id": "pack-vocab-a-001",
@@ -48,8 +48,8 @@
         600,
         730
       ],
-      "sizeBytes": 88015,
-      "hash": "fd50de52aeba2a8a"
+      "sizeBytes": 88009,
+      "hash": "238d27c7191ffdbf"
     },
     {
       "id": "pack-vocab-b-001",
@@ -58,8 +58,8 @@
         730,
         860
       ],
-      "sizeBytes": 89037,
-      "hash": "c6adfdb26c142eca"
+      "sizeBytes": 89031,
+      "hash": "05e4bbcd307a24b3"
     },
     {
       "id": "pack-p2-s-002",
@@ -68,8 +68,8 @@
         600,
         600
       ],
-      "sizeBytes": 129784,
-      "hash": "9802d05572706ab9"
+      "sizeBytes": 129778,
+      "hash": "79995b7584b266b4"
     },
     {
       "id": "pack-p5-s-002",
@@ -78,8 +78,8 @@
         600,
         600
       ],
-      "sizeBytes": 105348,
-      "hash": "987cb4a820dcf98a"
+      "sizeBytes": 105342,
+      "hash": "034014d7dbf129a7"
     },
     {
       "id": "pack-p34-s-001",
@@ -88,8 +88,8 @@
         600,
         600
       ],
-      "sizeBytes": 84673,
-      "hash": "396cdcbb0104850f"
+      "sizeBytes": 84667,
+      "hash": "d720d6e7558cd553"
     },
     {
       "id": "pack-dict-s-001",
@@ -98,8 +98,8 @@
         600,
         600
       ],
-      "sizeBytes": 41473,
-      "hash": "bf5d04ffeb414ef3"
+      "sizeBytes": 41467,
+      "hash": "bcef61c42859e716"
     },
     {
       "id": "pack-shadow-s-001",
@@ -108,8 +108,8 @@
         600,
         600
       ],
-      "sizeBytes": 37488,
-      "hash": "e8adc77149fec691"
+      "sizeBytes": 37482,
+      "hash": "9e409ced250ffbb7"
     },
     {
       "id": "pack-p5-similar-s-002",
@@ -118,8 +118,8 @@
         600,
         600
       ],
-      "sizeBytes": 64853,
-      "hash": "38a688b152795a13"
+      "sizeBytes": 65232,
+      "hash": "0f3478d5b7c436c9"
     },
     {
       "id": "pack-p5-similar-s-003",
@@ -128,8 +128,8 @@
         600,
         600
       ],
-      "sizeBytes": 131152,
-      "hash": "eaee28afd388bd94"
+      "sizeBytes": 131230,
+      "hash": "9c8bbd5b24052a34"
     },
     {
       "id": "pack-p34-s-002",
@@ -138,8 +138,8 @@
         600,
         600
       ],
-      "sizeBytes": 84045,
-      "hash": "0f91a34ca66a731d"
+      "sizeBytes": 84047,
+      "hash": "bf3343d9bc9e70ce"
     },
     {
       "id": "pack-dict-s-002",
@@ -148,8 +148,8 @@
         600,
         600
       ],
-      "sizeBytes": 39802,
-      "hash": "0c4e4e7669bb93a5"
+      "sizeBytes": 39826,
+      "hash": "b97b6d506e153351"
     },
     {
       "id": "pack-p5-s-003",
@@ -158,8 +158,8 @@
         730,
         860
       ],
-      "sizeBytes": 58962,
-      "hash": "4bd9cfecead12d2b"
+      "sizeBytes": 59385,
+      "hash": "0beed218d7edae44"
     },
     {
       "id": "pack-p34-s-003",
@@ -168,8 +168,8 @@
         730,
         860
       ],
-      "sizeBytes": 48559,
-      "hash": "34b3f49364619c9d"
+      "sizeBytes": 48551,
+      "hash": "95845b3dffc478da"
     },
     {
       "id": "pack-vocab-s-002",
@@ -178,8 +178,8 @@
         600,
         600
       ],
-      "sizeBytes": 19802,
-      "hash": "cc7d5e2764c4ac9e"
+      "sizeBytes": 19804,
+      "hash": "ba5b5a11822919c6"
     },
     {
       "id": "pack-reading-p6-s-001",
@@ -188,8 +188,8 @@
         600,
         730
       ],
-      "sizeBytes": 174406,
-      "hash": "8b99b4b113784739"
+      "sizeBytes": 174412,
+      "hash": "1b9f8a7d7fde0270"
     },
     {
       "id": "pack-reading-p7single-s-001",
@@ -198,8 +198,8 @@
         600,
         730
       ],
-      "sizeBytes": 235619,
-      "hash": "eda6055b6ea1811a"
+      "sizeBytes": 235625,
+      "hash": "3d581d7ab040ae45"
     },
     {
       "id": "pack-p2-s-003",
@@ -208,8 +208,8 @@
         600,
         600
       ],
-      "sizeBytes": 95301,
-      "hash": "17a0dfd7df8e371a"
+      "sizeBytes": 94904,
+      "hash": "09b4de8aae05a71f"
     }
   ]
 }

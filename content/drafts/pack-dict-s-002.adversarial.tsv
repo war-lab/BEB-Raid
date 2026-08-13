@@ -14,7 +14,7 @@ dictation-endorsement	accept	初回判定はrevise: "from"の空所に"by"も同
 dictation-subsidy	accept		claude-opus-5	2026-08-13
 dictation-testimonial	accept		claude-opus-5	2026-08-13
 dictation-benchmark	accept		claude-opus-5	2026-08-13
-dictation-liability	accept		claude-opus-5	2026-08-13
+dictation-liability	accept	初回判定はaccept。クロスレビュー（claude-sonnet-5・2026-08-13）で題材の適格性を指摘され、法的責任の文脈を会計上の負債へ差し替えて音声を再生成した	claude-opus-5	2026-08-13
 dictation-retirement	accept		claude-opus-5	2026-08-13
 dictation-utility	accept		claude-opus-5	2026-08-13
 dictation-deposit	accept		claude-opus-5	2026-08-13

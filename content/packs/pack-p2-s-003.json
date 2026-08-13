@@ -4,15 +4,15 @@
     "id": "pack-p2-s-003",
     "title": "Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-08。T-349）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-08。T-349）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 95301
+    "reviewMethod": "敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 94904
   },
   "questions": [
     {
@@ -341,7 +341,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 自動更新が来週というへ発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つ（\"I updated the software yesterday.\"／\"The subscription costs less than last year.\"）は発言への応答として的外れ。"
+      "explanation": "間接応答: 自動更新が来週だという発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つ（\"I updated the software yesterday.\"／\"The subscription costs less than last year.\"）は発言への応答として的外れ。"
     },
     {
       "id": "part2-refundable",
@@ -776,7 +776,7 @@
         "durationMs": 8050
       },
       "script": "Costs on our fleet vehicles jumped this year under the new leasing agreement. — We should compare leasing costs against buying new ones.",
-      "translation": "今年は社用車の減価償却費が急増しました。 — リースと新車購入のコストを比較すべきですね。",
+      "translation": "今年は新しいリース契約で社用車の費用が上がりました。 — リースと新車購入のコストを比較すべきですね。",
       "choices": [
         {
           "key": "A",
@@ -792,7 +792,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 車両の減価償却費が増えたという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つ（\"The fleet has twelve vehicles.\"／\"Fuel prices went up too.\"）は発言と直接関係しない。"
+      "explanation": "間接応答: リース契約の更新で車両費用が上がったという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つ（\"The fleet has twelve vehicles.\"／\"Fuel prices went up too.\"）は発言と直接関係しない。"
     },
     {
       "id": "part2-consensus",
@@ -855,17 +855,17 @@
         "accent": "US",
         "tts": true,
         "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11990,
-        "questionEndMs": 4426,
+        "durationMs": 11833,
+        "questionEndMs": 4380,
         "responseOffsetsMs": [
-          4626,
-          6837,
-          9849
+          4580,
+          6687,
+          9618
         ],
-        "responsesTextDigest": "629f71ed"
+        "responsesTextDigest": "87d3e80d"
       },
       "script": "One of the warehouse staff filed a formal grievance about the broken air conditioning. — Facilities should probably look into it before summer.",
-      "translation": "昨日、倉庫スタッフの1人が正式な不服申立てを行いました。 — エスカレートする前に人事が調査すべきでしょうね。",
+      "translation": "倉庫スタッフの1人が空調の故障について正式に申し出ました。 — 夏が来る前に施設担当が見たほうがいいですね。",
       "choices": [
         {
           "key": "A",
@@ -873,7 +873,7 @@
         },
         {
           "key": "B",
-          "text": "HR should probably look into it before it escalates."
+          "text": "Facilities should probably look into it before summer."
         },
         {
           "key": "C",
@@ -881,7 +881,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 正式な不服申立てがあったという発言に対し「エスカレートする前に人事が調査すべきだ」と提案しており、話の流れに合う。他の2つ（\"He has worked here for five years.\"／\"The warehouse is fully staffed now.\"）は発言内容と噛み合わない。"
+      "explanation": "間接応答: 空調の不具合について申し出があったという発言に対し「夏が来る前に施設担当が見るべきだ」と対応を提案しており、話の流れに合う。他の2つ（\"He has worked here for five years.\"／\"The warehouse is fully staffed now.\"）は発言内容と噛み合わない。"
     },
     {
       "id": "part2-disgruntled",
@@ -902,15 +902,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13427,
-        "questionEndMs": 4066,
-        "responseOffsetsMs": [
-          4266,
-          7127,
-          10058
-        ],
-        "responsesTextDigest": "a0e40122"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "A disgruntled customer posted a negative review of our new app. — Let's have someone from PR respond calmly.",
       "translation": "不満を持つ顧客が新しいアプリについて批判的なレビューを投稿しました。 — 広報の誰かに冷静に対応してもらいましょう。",
@@ -1114,15 +1107,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12513,
-        "questionEndMs": 4832,
-        "responseOffsetsMs": [
-          5032,
-          7382,
-          9489
-        ],
-        "responsesTextDigest": "f9f7ce46"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "Our closest competitor mostly serves local businesses, doesn't it? — It did, until it started shipping overseas last year.",
       "translation": "弊社の最大の競合は主に地元企業向けですよね？ — 以前はそうでしたが、去年から海外発送を始めてから変わりました。",
@@ -1283,12 +1269,19 @@
       ],
       "audio": "audio/part2/sponsor.mp3",
       "audioMeta": {
-        "accent": "US",
+        "accent": "UK",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 6650
+        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
+        "durationMs": 14211,
+        "questionEndMs": 4240,
+        "responseOffsetsMs": [
+          4440,
+          8451,
+          11405
+        ],
+        "responsesTextDigest": "a3aa7e07"
       },
-      "script": "The same company sponsored the event last year too, didn't they? — No, that was a different sponsor entirely.",
+      "script": "The same company sponsored the event last year too, didn't it? — No, that was a different sponsor entirely.",
       "translation": "昨年も同じ会社がイベントに協賛しましたよね？ — いいえ、それは全く別の協賛企業でした。",
       "choices": [
         {
@@ -1494,7 +1487,7 @@
         "durationMs": 5600
       },
       "script": "Customs closes at midnight, doesn't it? — Actually, this terminal keeps a counter open all night.",
-      "translation": "保安検査場は深夜に閉まりますよね？ — 実は、このターミナルは一晩中1つ開けています。",
+      "translation": "税関は深夜に閉まりますよね？ — 実は、このターミナルは一晩中カウンターを1つ開けています。",
       "choices": [
         {
           "key": "A",
@@ -1617,7 +1610,7 @@
         "durationMs": 6300
       },
       "script": "The board approved the new sponsorship clause last month, didn't they? — They're still reviewing the final terms.",
-      "translation": "取締役会は先月その推薦契約を承認しましたよね？ — まだ最終条件を検討中です。",
+      "translation": "取締役会は先月その協賛条項を承認しましたよね？ — まだ最終条件を検討中です。",
       "choices": [
         {
           "key": "A",
@@ -1693,17 +1686,10 @@
       ],
       "audio": "audio/part2/exhibitor.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12434,
-        "questionEndMs": 3393,
-        "responseOffsetsMs": [
-          3593,
-          6443,
-          9374
-        ],
-        "responsesTextDigest": "fdbae59e"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "All exhibitors get a booth near the entrance, don't they? — Only the ones who registered before June.",
       "translation": "出展者は全員入口近くのブースを得られますよね？ — 6月前に登録した出展者だけです。",
@@ -1747,7 +1733,7 @@
         "durationMs": 6300
       },
       "script": "The European outlet reports directly to headquarters, doesn't it? — It actually reports through the regional office first.",
-      "translation": "欧州子会社は本社に直接報告しますよね？ — 実は地域事務所を経由してから報告します。",
+      "translation": "欧州の店舗は本社に直接報告しますよね？ — 実は地域事務所を経由してから報告します。",
       "choices": [
         {
           "key": "A",

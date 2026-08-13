@@ -6,7 +6,7 @@ part2-prioritize	accept		claude-opus-5	2026-08-13
 part2-glitch	accept	初回判定はrevise: 和訳に原文に無い「警報」が入っていた → 原文どおりの訳へ是正（2026-08-13）	claude-opus-5	2026-08-13
 part2-printer	accept		claude-opus-5	2026-08-13
 part2-timeline	accept		claude-opus-5	2026-08-13
-part2-confirm	accept		claude-opus-5	2026-08-13
+part2-confirm	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で解説の誤字を是正	claude-opus-5	2026-08-13
 part2-refundable	accept		claude-opus-5	2026-08-13
 part2-balance	accept		claude-opus-5	2026-08-13
 part2-backlog	accept		claude-opus-5	2026-08-13
@@ -17,9 +17,9 @@ part2-hire	accept		claude-opus-5	2026-08-13
 part2-reservation	accept		claude-opus-5	2026-08-13
 part2-network	accept		claude-opus-5	2026-08-13
 part2-valuation	accept		claude-opus-5	2026-08-13
-part2-agreement	accept		claude-opus-5	2026-08-13
+part2-agreement	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で、解説と訳が原文に無い「減価償却費」にすり替わっていたことを検出し是正	claude-opus-5	2026-08-13
 part2-consensus	accept		claude-opus-5	2026-08-13
-part2-grievance	accept	初回判定はrevise: 労使間の苦情申し立てを主題にしており題材の適格性に触れた → 設備不具合の申し出へ差し替え、音声を再生成（2026-08-13）	claude-opus-5	2026-08-13
+part2-grievance	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で、題材差し替え時にscriptだけ更新し正解選択肢・解説・訳が旧内容のまま残っていたことを検出。全てscriptへ揃え、音声を再生成した	claude-opus-5	2026-08-13
 part2-disgruntled	accept	初回判定はrevise: 元従業員による中傷を主題にしており題材の適格性に触れた → 顧客のアプリ評価へ差し替え、音声を再生成（2026-08-13）	claude-opus-5	2026-08-13
 part2-office	accept		claude-opus-5	2026-08-13
 part2-premises	accept		claude-opus-5	2026-08-13
@@ -29,18 +29,18 @@ part2-competitor	accept	初回判定はrevise: 主動詞servesに対する付加
 part2-market	accept		claude-opus-5	2026-08-13
 part2-probation	accept		claude-opus-5	2026-08-13
 part2-zoning	accept		claude-opus-5	2026-08-13
-part2-sponsor	accept		claude-opus-5	2026-08-13
+part2-sponsor	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で付加疑問の一致を指摘され "didn't they" を "didn't it" へ是正し音声を再生成した	claude-opus-5	2026-08-13
 part2-feedback	accept		claude-opus-5	2026-08-13
 part2-vacancy	accept		claude-opus-5	2026-08-13
 part2-discount	accept		claude-opus-5	2026-08-13
 part2-tenancy	accept		claude-opus-5	2026-08-13
-part2-customs	accept		claude-opus-5	2026-08-13
+part2-customs	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で Customs の訳が「保安検査場」になっていたことを検出し是正	claude-opus-5	2026-08-13
 part2-manual	accept		claude-opus-5	2026-08-13
 part2-merchandise	accept		claude-opus-5	2026-08-13
-part2-clause	accept		claude-opus-5	2026-08-13
+part2-clause	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で sponsorship clause の訳が「推薦契約」になっていたことを検出し是正	claude-opus-5	2026-08-13
 part2-personnel	accept		claude-opus-5	2026-08-13
 part2-exhibitor	accept	初回判定はrevise: "Every exhibitor"を"doesn't it"で受けるのが不自然だった → "All exhibitors ... don't they"へ是正し音声を再生成（2026-08-13）	claude-opus-5	2026-08-13
-part2-outlet	accept		claude-opus-5	2026-08-13
+part2-outlet	accept	クロスレビュー（claude-sonnet-5・2026-08-13）で outlet の訳が「子会社」になっていたことを検出し是正	claude-opus-5	2026-08-13
 part2-wholesaler	accept		claude-opus-5	2026-08-13
 part2-credential	accept		claude-opus-5	2026-08-13
 part2-connection	accept		claude-opus-5	2026-08-13

@@ -4,15 +4,15 @@
     "id": "pack-p5-similar-s-001",
     "title": "Part5 key単語類題57問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 59880
+    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 59987
   },
   "questions": [
     {
@@ -182,7 +182,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "Shareholders approved the ___ at yesterday’s meeting.",
+      "question": "Shareholders approved the ___ of the rival firm at yesterday’s meeting.",
       "choices": [
         {
           "key": "A",
@@ -904,7 +904,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The building requires a full ___ before the sale.",
+      "question": "The building requires a full structural ___ before the sale.",
       "choices": [
         {
           "key": "A",
@@ -1094,7 +1094,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "Employees needed extra training after the ___.",
+      "question": "Employees needed extra training after the ___ of the two companies.",
       "choices": [
         {
           "key": "A",
@@ -1550,7 +1550,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The board rejected the ___ due to high costs.",
+      "question": "The board rejected the ___ submitted by the design team due to high costs.",
       "choices": [
         {
           "key": "A",
@@ -2006,7 +2006,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The company canceled its software ___ to cut costs.",
+      "question": "The company canceled its monthly software ___ to cut costs.",
       "choices": [
         {
           "key": "A",
@@ -2082,7 +2082,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "Ask the sales representative whether an extended ___ is available.",
+      "question": "Ask the sales representative whether an extended ___ on this appliance is available.",
       "choices": [
         {
           "key": "A",

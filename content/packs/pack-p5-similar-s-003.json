@@ -4,15 +4,15 @@
     "id": "pack-p5-similar-s-003",
     "title": "Part5 key単語類題 追加120問（1語1問）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-07。q1語=類題ゼロの語彙循環解消）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "origin": "エージェント直接執筆（2026-07。q1語=類題ゼロの語彙循環解消）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 131152
+    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 131230
   },
   "questions": [
     {
@@ -30,7 +30,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The ___ of the new equipment was delayed by a week.",
+      "question": "The ___ of the new equipment to our loading dock was delayed by a week.",
       "choices": [
         {
           "key": "A",
@@ -106,7 +106,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "All new hires must complete safety ___ before starting work.",
+      "question": "All new hires must complete a two-week safety ___ course before starting work.",
       "choices": [
         {
           "key": "A",
@@ -410,7 +410,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The ___ was delayed at the port due to a customs issue.",
+      "question": "The ___ charges for the cargo vessel rose after the delay at the port.",
       "choices": [
         {
           "key": "A",
@@ -1170,7 +1170,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "A senior technician will ___ the new interns throughout their first three months.",
+      "question": "A senior technician will directly ___ and train the new interns for three months.",
       "choices": [
         {
           "key": "A",
@@ -1246,7 +1246,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The company plans to ___ ten new engineers for its growing research division this year.",
+      "question": "The company plans to ___ ten new engineers through job fairs for its research division this year.",
       "choices": [
         {
           "key": "A",
@@ -1968,7 +1968,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "She gave a ___ on the new marketing strategy.",
+      "question": "She gave a slide ___ on the new marketing strategy.",
       "choices": [
         {
           "key": "A",
@@ -3944,7 +3944,7 @@
           "freqRank": "B"
         }
       ],
-      "question": "The company announced a major ___ plan that will affect several factories.",
+      "question": "The company announced a major ___ plan to upgrade equipment at several factories.",
       "choices": [
         {
           "key": "A",

@@ -44,7 +44,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
   {
     word: 'contractor',
     tags: ['言い換え語彙'],
-    question: 'The ___ submitted a bid that was lower than expected.',
+    question: 'The ___ submitted a bid for the renovation project that was lower than expected.',
     choices: [
       { key: 'A', text: 'contractor' },
       { key: 'B', text: 'custodian' },
@@ -444,7 +444,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
   {
     word: 'headcount',
     tags: ['ビジネス名詞'],
-    question: 'The department froze its ___ due to budget cuts.',
+    question: 'The department froze its ___ at twelve staff due to budget cuts.',
     choices: [
       { key: 'A', text: 'turnover' },
       { key: 'B', text: 'overhead' },
@@ -481,7 +481,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
       { key: 'A', text: 'amortization' },
       { key: 'B', text: 'depreciation' },
       { key: 'C', text: 'headcount' },
-      { key: 'D', text: 'valuation' },
+      { key: 'D', text: 'depreciation schedule' },
     ],
     answer: 'C',
     explanation:
@@ -630,7 +630,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     ],
     answer: 'B',
     explanation:
-      '投資家が注目する「事業モデルの長期的な持続可能性」はsustainability。depreciation/amortization（減価償却）・taxation（課税）は文脈に合わない。',
+      '投資家が注目する「事業モデルの長期的な持続可能性」はsustainability。depreciation・depreciation schedule（減価償却・その予定表）・amortization（償却）はいずれも個別資産の会計処理で、事業モデル全体の長期的性質を表さない。',
     translation: '投資家はビジネスモデルの持続可能性にますます注目している。',
     difficulty: 3,
   },
@@ -639,14 +639,14 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'We would appreciate your ___ on the new product design.',
     choices: [
-      { key: 'A', text: 'indictment' },
-      { key: 'B', text: 'testimony' },
-      { key: 'C', text: 'affidavit' },
+      { key: 'A', text: 'itinerary' },
+      { key: 'B', text: 'inventory' },
+      { key: 'C', text: 'brochure' },
       { key: 'D', text: 'feedback' },
     ],
     answer: 'D',
     explanation:
-      '製品デザインへの意見・感想を求める文脈にはfeedbackが合う。testimony（証言）・affidavit（宣誓供述書）・indictment（起訴）は法廷用語で文脈に合わない。',
+      '製品デザインへの意見・感想を求める文脈にはfeedbackが合う。itinerary（旅程）・inventory（在庫）・brochure（パンフレット）はいずれも「相手から寄せてもらう評価」を表さない。',
     translation: '新しい製品デザインについて、ご意見をいただければ幸いです。',
     difficulty: 2,
   },
@@ -655,14 +655,14 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     tags: ['前置詞コロケーション'],
     question: 'The survey collects ___ from customers after every purchase.',
     choices: [
-      { key: 'A', text: 'testimony' },
-      { key: 'B', text: 'affidavit' },
-      { key: 'C', text: 'subpoena' },
+      { key: 'A', text: 'receipt' },
+      { key: 'B', text: 'warranty' },
+      { key: 'C', text: 'signage' },
       { key: 'D', text: 'feedback' },
     ],
     answer: 'D',
     explanation:
-      '購入後に顧客から集める「意見・感想」はfeedback。testimony（証言）・affidavit（宣誓供述書）・subpoena（召喚状）は文脈に合わない。',
+      '購入後に顧客から集める「意見・感想」はfeedback。receipt（領収書。店が渡す側）・warranty（保証。商品に付くもの）・signage（掲示物）はいずれもアンケートで集める対象にならない。',
     translation: 'そのアンケートは購入のたびに顧客からフィードバックを集める。',
     difficulty: 2,
   },
@@ -886,7 +886,7 @@ export const KEY_VOCAB_SIMILAR_ENTRIES_S2: KeyVocabSimilarEntry[] = [
     ],
     answer: 'C',
     explanation:
-      'オフィスを賃貸している「賃借人」を数える文脈にはtenantが合う。visitor（訪問者。賃貸契約とは無関係）・landlord（大家）・contractor（請負業者）は文脈に合わない。',
+      'オフィスを賃貸している「賃借人」を数える文脈にはtenantが合う。occupant（在館者。契約の当事者ではなく実際に居る人を指すので「賃貸する相手」にならない）・landlord（大家。貸す側）・contractor（請負業者）はいずれも契約の借り手を表さない。',
     translation: 'このビルは10フロアにわたって50以上の賃借人にオフィススペースを貸している。',
     difficulty: 2,
   },
