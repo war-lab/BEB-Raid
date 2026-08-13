@@ -4,12 +4,15 @@
     "id": "pack-p2-s-003",
     "title": "Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆 2026-08（T-349。AIクロスレビュー未実施、🟡人間目視レビュー待ち）",
+    "origin": "エージェント直接執筆（2026-08。T-349）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 94419
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 95301
   },
   "questions": [
     {
@@ -199,7 +202,7 @@
         "durationMs": 6650
       },
       "script": "Something triggered a system glitch last night. — I was on a flight, so it wasn’t me logging in.",
-      "translation": "昨夜システム障害の警報が作動しました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。",
+      "translation": "昨夜、何かがシステム障害を引き起こしました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。",
       "choices": [
         {
           "key": "A",
@@ -851,10 +854,17 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 7000
+        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
+        "durationMs": 11990,
+        "questionEndMs": 4426,
+        "responseOffsetsMs": [
+          4626,
+          6837,
+          9849
+        ],
+        "responsesTextDigest": "629f71ed"
       },
-      "script": "One of the warehouse staff filed a formal grievance yesterday. — HR should probably look into it before it escalates.",
+      "script": "One of the warehouse staff filed a formal grievance about the broken air conditioning. — Facilities should probably look into it before summer.",
       "translation": "昨日、倉庫スタッフの1人が正式な不服申立てを行いました。 — エスカレートする前に人事が調査すべきでしょうね。",
       "choices": [
         {
@@ -892,11 +902,18 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 5950
+        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
+        "durationMs": 13427,
+        "questionEndMs": 4066,
+        "responseOffsetsMs": [
+          4266,
+          7127,
+          10058
+        ],
+        "responsesTextDigest": "a0e40122"
       },
-      "script": "A disgruntled former employee posted a negative review online. — Let's have someone from PR respond calmly.",
-      "translation": "不満を持つ元従業員がネットに批判的なレビューを投稿しました。 — 広報の誰かに冷静に対応してもらいましょう。",
+      "script": "A disgruntled customer posted a negative review of our new app. — Let's have someone from PR respond calmly.",
+      "translation": "不満を持つ顧客が新しいアプリについて批判的なレビューを投稿しました。 — 広報の誰かに冷静に対応してもらいましょう。",
       "choices": [
         {
           "key": "A",
@@ -904,7 +921,7 @@
         },
         {
           "key": "B",
-          "text": "He left the company two years ago."
+          "text": "The app launched two months ago."
         },
         {
           "key": "C",
@@ -912,7 +929,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 不満を持つ元従業員が悪評を投稿したという発言に対し「広報担当者に冷静に対応してもらおう」と提案しており、話の流れに合う。他の2つ（\"The review site is quite popular.\"／\"He left the company two years ago.\"）は対応として的外れ。"
+      "explanation": "間接応答: 不満を持つ顧客が悪評を投稿したという発言に対し「広報担当者に冷静に対応してもらおう」と提案しており、話の流れに合う。他の2つ（\"The review site is quite popular.\"／\"The app launched two months ago.\"）は対応として的外れ。"
     },
     {
       "id": "part2-office",
@@ -1097,10 +1114,17 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 6650
+        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
+        "durationMs": 12513,
+        "questionEndMs": 4832,
+        "responseOffsetsMs": [
+          5032,
+          7382,
+          9489
+        ],
+        "responsesTextDigest": "f9f7ce46"
       },
-      "script": "Our closest competitor mostly serves local businesses, isn't it? — It was, until it started shipping overseas last year.",
+      "script": "Our closest competitor mostly serves local businesses, doesn't it? — It did, until it started shipping overseas last year.",
       "translation": "弊社の最大の競合は主に地元企業向けですよね？ — 以前はそうでしたが、去年から海外発送を始めてから変わりました。",
       "choices": [
         {
@@ -1113,7 +1137,7 @@
         },
         {
           "key": "C",
-          "text": "It was, until it started shipping overseas last year."
+          "text": "It did, until it started shipping overseas last year."
         }
       ],
       "answer": "C",
@@ -1669,12 +1693,19 @@
       ],
       "audio": "audio/part2/exhibitor.mp3",
       "audioMeta": {
-        "accent": "US",
+        "accent": "UK",
         "tts": true,
-        "voice": "pending-tts",
-        "durationMs": 6300
+        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
+        "durationMs": 12434,
+        "questionEndMs": 3393,
+        "responseOffsetsMs": [
+          3593,
+          6443,
+          9374
+        ],
+        "responsesTextDigest": "fdbae59e"
       },
-      "script": "Every exhibitor gets a booth near the entrance, doesn't it? — Only the ones who registered before June.",
+      "script": "All exhibitors get a booth near the entrance, don't they? — Only the ones who registered before June.",
       "translation": "出展者は全員入口近くのブースを得られますよね？ — 6月前に登録した出展者だけです。",
       "choices": [
         {

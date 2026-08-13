@@ -4,12 +4,15 @@
     "id": "pack-reading-p6-s-001",
     "title": "Part6読解 30セット120問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認 2026-07-23（T-107）",
+    "origin": "エージェント直接執筆＋別モデル3並列クロスレビュー＋発起人H-R1レビュー承認（2026-07-23。T-107）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       730
     ],
-    "sizeBytes": 174352
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 174406
   },
   "questions": [
     {

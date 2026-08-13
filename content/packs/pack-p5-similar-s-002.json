@@ -4,12 +4,15 @@
     "id": "pack-p5-similar-s-002",
     "title": "Part5 key単語類題 追加60問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆 2026-07（key単語システムの循環問題。AIクロスレビュー対象外）",
+    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 64785
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 64853
   },
   "questions": [
     {

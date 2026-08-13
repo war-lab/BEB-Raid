@@ -4,12 +4,15 @@
     "id": "pack-p34-s-003",
     "title": "Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）",
+    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       730,
       860
     ],
-    "sizeBytes": 48500
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 48559
   },
   "questions": [
     {

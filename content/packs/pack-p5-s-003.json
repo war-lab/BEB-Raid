@@ -4,12 +4,15 @@
     "id": "pack-p5-s-003",
     "title": "Part5文法 d4帯 追加50問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）",
+    "origin": "エージェント直接執筆（2026-07。T-85）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       730,
       860
     ],
-    "sizeBytes": 58909
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 58962
   },
   "questions": [
     {

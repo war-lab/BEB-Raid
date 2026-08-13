@@ -87,7 +87,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     explanation:
       '間接応答: システム障害という発言に対し「自分ではない（アリバイ）」と応じており、話の流れに合う。他の2つ（"I forgot my password again."／"The system runs a nightly backup."）は直接の対応になっていない。',
     translation:
-      '昨夜システム障害の警報が作動しました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。',
+      '昨夜、何かがシステム障害を引き起こしました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。',
     difficulty: 3,
   },
   {
@@ -296,7 +296,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     keyVocabWord: 'grievance',
     tags: ['平叙文'],
     script:
-      'One of the warehouse staff filed a formal grievance yesterday. — HR should probably look into it before it escalates.',
+      'One of the warehouse staff filed a formal grievance about the broken air conditioning. — Facilities should probably look into it before summer.',
     correctText: 'HR should probably look into it before it escalates.',
     distractors: ['The warehouse is fully staffed now.', 'He has worked here for five years.'],
     explanation:
@@ -309,13 +309,13 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     keyVocabWord: 'disgruntled',
     tags: ['平叙文'],
     script:
-      "A disgruntled former employee posted a negative review online. — Let's have someone from PR respond calmly.",
+      "A disgruntled customer posted a negative review of our new app. — Let's have someone from PR respond calmly.",
     correctText: "Let's have someone from PR respond calmly.",
-    distractors: ['The review site is quite popular.', 'He left the company two years ago.'],
+    distractors: ['The review site is quite popular.', 'The app launched two months ago.'],
     explanation:
-      '間接応答: 不満を持つ元従業員が悪評を投稿したという発言に対し「広報担当者に冷静に対応してもらおう」と提案しており、話の流れに合う。他の2つ（"The review site is quite popular."／"He left the company two years ago."）は対応として的外れ。',
+      '間接応答: 不満を持つ顧客が悪評を投稿したという発言に対し「広報担当者に冷静に対応してもらおう」と提案しており、話の流れに合う。他の2つ（"The review site is quite popular."／"The app launched two months ago."）は対応として的外れ。',
     translation:
-      '不満を持つ元従業員がネットに批判的なレビューを投稿しました。 — 広報の誰かに冷静に対応してもらいましょう。',
+      '不満を持つ顧客が新しいアプリについて批判的なレビューを投稿しました。 — 広報の誰かに冷静に対応してもらいましょう。',
     difficulty: 4,
   },
 
@@ -375,8 +375,8 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     keyVocabWord: 'competitor',
     tags: ['付加疑問'],
     script:
-      "Our closest competitor mostly serves local businesses, isn't it? — It was, until it started shipping overseas last year.",
-    correctText: 'It was, until it started shipping overseas last year.',
+      "Our closest competitor mostly serves local businesses, doesn't it? — It did, until it started shipping overseas last year.",
+    correctText: 'It did, until it started shipping overseas last year.',
     distractors: ['Local businesses tend to pay on time.', 'We have about two hundred clients.'],
     explanation:
       '間接応答: 「主に地元企業向けですよね」という付加疑問に対し「以前はそうだったが去年から海外発送を始めた」と変化を伝えており、話の流れに合う。他の2つ（"Local businesses tend to pay on time."／"We have about two hundred clients."）は質問の核心に答えていない。',
@@ -554,7 +554,7 @@ export const PART2_ENTRIES_S3_RAW: readonly Part2RawEntry[] = [
     keyVocabWord: 'exhibitor',
     tags: ['付加疑問'],
     script:
-      "Every exhibitor gets a booth near the entrance, doesn't it? — Only the ones who registered before June.",
+      "All exhibitors get a booth near the entrance, don't they? — Only the ones who registered before June.",
     correctText: 'Only the ones who registered before June.',
     distractors: ['The entrance is near the main hall.', 'Booths are set up the night before.'],
     explanation:

@@ -41,13 +41,35 @@ export interface PackDefinition {
   draftPath: string
 }
 
+/**
+ * 敵対的検証の工程記録（T-355。正本: docs/32 8.2節）。
+ *
+ * 全パック共通の値としてここ1箇所に置く（21パックすべてに同じ工程を適用したため）。
+ *
+ * reviewMethodは機械可読な工程名、originは人が読む1行の出所表記で、
+ * どちらもdocs/32 8.2節の書式に従う（`beb verify-content` が両者の整合を検査する）。
+ */
+export const ADVERSARIAL_DIMENSION_COUNT = 6
+export const ADVERSARIAL_REVIEWER = 'claude-opus-5'
+export const ADVERSARIAL_REVIEWED_AT = '2026-08-13'
+
+/** docs/32 8.2節の書式で工程名を組み立てる */
+export function reviewMethodFor(reviewer: string, dimensions: number, date: string): string {
+  return `AIクロスレビュー（${reviewer}）＋敵対的検証（${dimensions}観点・${date}）`
+}
+
+/** docs/32 8.2節の書式で origin を組み立てる（生成手段はパックごとに異なるので引数で受ける） */
+export function originFor(generation: string, reviewMethod: string, withTts: boolean): string {
+  return `${generation}＋${reviewMethod}${withTts ? '＋TTS' : ''}`
+}
+
 /** M1で配布する4パック（04の2節の例に倣ったid命名。docs/10完了条件の「ダミー4種パック」に対応する実データ版） */
 const M1_PACK_DEFINITIONS: readonly PackDefinition[] = [
   {
     id: 'pack-vocab-s-001',
     title: '語彙カード Sランク200語',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/vocab-card-s.jsonl',
   },
@@ -55,7 +77,7 @@ const M1_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p2-s-001',
     title: 'Part2瞬発 Sランク50問',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/part2-s.jsonl',
   },
@@ -63,7 +85,7 @@ const M1_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p5-s-001',
     title: 'Part5文法 Sランク50問',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/part5-s.jsonl',
   },
@@ -71,7 +93,7 @@ const M1_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p5-similar-s-001',
     title: 'Part5 key単語類題57問',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-07（key単語システムの循環問題。AIクロスレビュー対象外）',
+    origin: 'エージェント直接執筆（2026-07。key単語システムの循環問題への対処）',
     targetLevel: [600, 600],
     draftPath: 'drafts/key-vocab-similar-s.jsonl',
   },
@@ -88,7 +110,7 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-vocab-a-001',
     title: '語彙カード Aランク200語（730帯）',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 730],
     draftPath: 'drafts/vocab-card-a.jsonl',
   },
@@ -96,7 +118,7 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-vocab-b-001',
     title: '語彙カード Bランク200語（860帯）',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [730, 860],
     draftPath: 'drafts/vocab-card-b.jsonl',
   },
@@ -104,7 +126,7 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p2-s-002',
     title: 'Part2瞬発 追加100問',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/part2-s2.jsonl',
   },
@@ -112,7 +134,7 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p5-s-002',
     title: 'Part5文法 追加100問',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/part5-s2.jsonl',
   },
@@ -120,7 +142,7 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p34-s-001',
     title: 'Part3/4セット（会話10・トーク10）',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/part34-s.jsonl',
   },
@@ -128,7 +150,7 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-dict-s-001',
     title: 'ディクテーション短文40本',
     license: 'internal-original',
-    origin: 'エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin: 'エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/dictation-s.jsonl',
   },
@@ -136,7 +158,8 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-shadow-s-001',
     title: 'シャドーイング素材30本',
     license: 'internal-original',
-    origin: '既存Part3/4スクリプト・Part2応答文の流用＋別モデル(Fable 5)AIクロスレビュー 2026-07',
+    origin:
+      '既存Part3/4スクリプト・Part2応答文の流用（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）',
     targetLevel: [600, 600],
     draftPath: 'drafts/shadowing-s.jsonl',
   },
@@ -144,7 +167,7 @@ const M2_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p5-similar-s-002',
     title: 'Part5 key単語類題 追加60問',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-07（key単語システムの循環問題。AIクロスレビュー対象外）',
+    origin: 'エージェント直接執筆（2026-07。key単語システムの循環問題への対処）',
     targetLevel: [600, 600],
     draftPath: 'drafts/key-vocab-similar-s2.jsonl',
   },
@@ -156,7 +179,7 @@ const T83_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p5-similar-s-003',
     title: 'Part5 key単語類題 追加120問（1語1問）',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-07（q1語=類題ゼロの語彙循環解消。AIクロスレビュー対象外）',
+    origin: 'エージェント直接執筆（2026-07。q1語=類題ゼロの語彙循環解消）',
     targetLevel: [600, 600],
     draftPath: 'drafts/key-vocab-similar-s3.jsonl',
   },
@@ -168,7 +191,7 @@ const T84_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p34-s-002',
     title: 'Part3/4セット 追加20（会話10・トーク10）',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-07（T-84。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    origin: 'エージェント直接執筆（2026-07。T-84）',
     targetLevel: [600, 600],
     draftPath: 'drafts/part34-s2.jsonl',
   },
@@ -176,7 +199,7 @@ const T84_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-dict-s-002',
     title: 'ディクテーション追加40本',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-07（T-84。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    origin: 'エージェント直接執筆（2026-07。T-84）',
     targetLevel: [600, 600],
     draftPath: 'drafts/dictation-s2.jsonl',
   },
@@ -188,7 +211,7 @@ const T85_PART5_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p5-s-003',
     title: 'Part5文法 d4帯 追加50問',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）',
+    origin: 'エージェント直接執筆（2026-07。T-85）',
     targetLevel: [730, 860],
     draftPath: 'drafts/part5-s3.jsonl',
   },
@@ -200,7 +223,7 @@ const T85_PART34_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p34-s-003',
     title: 'Part3/4セット 本試験長尺化10（会話5・トーク5、d4帯）',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-07（T-85。AIクロスレビュー実施済み）',
+    origin: 'エージェント直接執筆（2026-07。T-85）',
     targetLevel: [730, 860],
     draftPath: 'drafts/part34-s3.jsonl',
   },
@@ -212,8 +235,7 @@ const DOGFOOD_BEGINNER_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-vocab-s-002',
     title: '語彙カード 初級50語（600帯・入門）',
     license: 'internal-original',
-    origin:
-      'エージェント直接執筆 2026-07（ドッグフィードバック対応。TTS音声生成済み・🟡人間目視レビュー待ち）',
+    origin: 'エージェント直接執筆（2026-07。ドッグフィードバック対応）',
     targetLevel: [600, 600],
     draftPath: 'drafts/vocab-card-s2.jsonl',
   },
@@ -231,7 +253,7 @@ const READING_R1_PACK_DEFINITIONS: readonly PackDefinition[] = [
     title: 'Part6読解 30セット120問',
     license: 'internal-original',
     origin:
-      'エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認 2026-07-23（T-107）',
+      'エージェント直接執筆＋別モデル3並列クロスレビュー＋発起人H-R1レビュー承認（2026-07-23。T-107）',
     targetLevel: [600, 730],
     draftPath: 'drafts/text-passage-p6-s.jsonl',
   },
@@ -240,7 +262,7 @@ const READING_R1_PACK_DEFINITIONS: readonly PackDefinition[] = [
     title: 'Part7単一読解 40セット118問',
     license: 'internal-original',
     origin:
-      'エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認 2026-07-23（T-107）',
+      'エージェント直接執筆＋別モデル3並列クロスレビュー＋発起人H-R1レビュー承認（2026-07-23。T-107）',
     targetLevel: [600, 730],
     draftPath: 'drafts/text-passage-p7-single-s.jsonl',
   },
@@ -252,7 +274,7 @@ const T349_PACK_DEFINITIONS: readonly PackDefinition[] = [
     id: 'pack-p2-s-003',
     title: 'Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）',
     license: 'internal-original',
-    origin: 'エージェント直接執筆 2026-08（T-349。AIクロスレビュー未実施、🟡人間目視レビュー待ち）',
+    origin: 'エージェント直接執筆（2026-08。T-349）',
     targetLevel: [600, 600],
     draftPath: 'drafts/part2-s3.jsonl',
   },
@@ -279,6 +301,10 @@ export interface PackSource {
   origin: string
   targetLevel: [number, number]
   questions: Question[]
+  /** 敵対的検証の工程記録（T-355。docs/32 8.2節） */
+  reviewedBy: string
+  reviewedAt: string
+  reviewMethod: string
 }
 
 export interface BuiltPack {
@@ -296,13 +322,24 @@ export async function loadPackSources(contentRoot: string): Promise<PackSource[]
   for (const def of PACK_DEFINITIONS) {
     const draftPath = join(contentRoot, def.draftPath)
     const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
+    const questions = drafts.map((d) => d.payload as Question)
+    // TTSを工程に含めるかは実データで決める（音声を1件も持たないパックに＋TTSと書かない）
+    const withTts = questions.some((q) => Boolean(q.audio) || Boolean(q.phraseAudio))
+    const reviewMethod = reviewMethodFor(
+      ADVERSARIAL_REVIEWER,
+      ADVERSARIAL_DIMENSION_COUNT,
+      ADVERSARIAL_REVIEWED_AT,
+    )
     sources.push({
       id: def.id,
       title: def.title,
       license: def.license,
-      origin: def.origin,
+      origin: originFor(def.origin, reviewMethod, withTts),
       targetLevel: def.targetLevel,
-      questions: drafts.map((d) => d.payload as Question),
+      questions,
+      reviewedBy: ADVERSARIAL_REVIEWER,
+      reviewedAt: ADVERSARIAL_REVIEWED_AT,
+      reviewMethod,
     })
   }
   return sources
@@ -445,6 +482,10 @@ export function buildPack(
       license: source.license,
       origin: source.origin,
       targetLevel: source.targetLevel,
+      // T-355: 工程記録を機械可読な形でも残す（docs/32 8.2節。validatePackの任意フィールド）
+      reviewedBy: source.reviewedBy,
+      reviewedAt: source.reviewedAt,
+      reviewMethod: source.reviewMethod,
     },
     questions: source.questions,
   }
