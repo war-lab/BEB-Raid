@@ -70,6 +70,32 @@ describe('parseAdversarialTsv', () => {
   })
 })
 
+describe('parseAdversarialTsv: 欠けた行の扱い', () => {
+  it('id空欄の行は読み飛ばす（skippedにも数えない）', () => {
+    const tsv = [
+      'id\tverdict\tobservation\treviewer\treviewedAt',
+      '\taccept\t\tclaude-opus-5\t2026-08-12',
+      'p5-client\taccept\t\tclaude-opus-5\t2026-08-12',
+    ].join('\n')
+    const { records, skipped, errors } = parseAdversarialTsv(tsv)
+    expect(records).toHaveLength(1)
+    expect(skipped).toBe(0)
+    expect(errors).toHaveLength(0)
+  })
+
+  it('observation以降の列が欠けていても空文字として読める', () => {
+    const tsv = ['id\tverdict\tobservation\treviewer\treviewedAt', 'p5-client\taccept'].join('\n')
+    const { records } = parseAdversarialTsv(tsv)
+    expect(records[0]).toEqual({
+      id: 'p5-client',
+      verdict: 'accept',
+      observation: '',
+      reviewer: '',
+      reviewedAt: '',
+    })
+  })
+})
+
 describe('reviewMethodLabel', () => {
   it('8.2節の書式でpack.origin向けの工程名を組み立てる', () => {
     expect(reviewMethodLabel('claude-opus-5', 6, '2026-08-12')).toBe(

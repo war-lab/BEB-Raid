@@ -3,7 +3,7 @@
 // - エクスポート→インポート往復がUI経由で動く（ファイルダウンロードはモック）
 // - dbVersionが新しいバックアップはUI経由でも拒否される
 import 'fake-indexeddb/auto'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
@@ -12,6 +12,7 @@ import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import { getFontSizeScale } from '../fontSize'
 import { AnthropicAiClient, DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
 import { PACK_SYNC_STATE_KEY } from '../services/packSync'
+import { clearPackSyncProgress, setPackSyncProgress } from '../services/packSyncProgress'
 import { getTheme } from '../theme'
 import { SettingsScreen } from './SettingsScreen'
 
@@ -228,6 +229,23 @@ describe('SettingsScreen: 永続化', () => {
     fireEvent.click(screen.getByText('再計算'))
 
     expect(await screen.findByText(/3件/)).toBeTruthy()
+  })
+
+  it('T-321: パック同期中は音声ダウンロードの進捗が表示され、完了すると消える', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.queryByText(/音声を取得中/)).toBeNull()
+
+    act(() => {
+      setPackSyncProgress({ packId: 'pack-p2-s-001', completed: 3, total: 50 })
+    })
+    expect(screen.getByText(/音声を取得中: 3\/50（pack-p2-s-001）/)).toBeTruthy()
+
+    act(() => {
+      clearPackSyncProgress()
+    })
+    expect(screen.queryByText(/音声を取得中/)).toBeNull()
   })
 
   it('T-72: 永続化状態・端末ストレージ使用量が表示される', async () => {

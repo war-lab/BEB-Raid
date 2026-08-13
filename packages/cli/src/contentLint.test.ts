@@ -4,7 +4,11 @@
 import type { Question } from '@beb-raid/shared-schema'
 import { describe, expect, it } from 'vitest'
 
-import { validateContentLint } from './contentLint.js'
+import {
+  firstOrderMarkovAccuracy,
+  markovNullThreshold,
+  validateContentLint,
+} from './contentLint.js'
 import { buildDictationQuestions } from './dictationQuestion.js'
 import {
   buildKeyVocabSimilarQuestions,
@@ -710,5 +714,66 @@ describe('全パック一括検査（T-81完了条件: T-80ルール①③の検
     // T-81完了条件: T-80で検出した既知の①43問・③6問が、S1選択肢書き換え・S2縮約修正により0件になる
     expect(scriptMismatches.length).toBe(0)
     expect(casualContractions.length).toBe(0)
+  })
+})
+
+describe('firstOrderMarkovAccuracy / markovNullThreshold（⑩。T-339の完了条件の指標）', () => {
+  it('要素が2件未満なら0を返す', () => {
+    expect(firstOrderMarkovAccuracy([])).toBe(0)
+    expect(firstOrderMarkovAccuracy([1])).toBe(0)
+  })
+
+  it('完全に周期的な列は的中率100%になる', () => {
+    expect(firstOrderMarkovAccuracy([0, 1, 2, 3, 0, 1, 2, 3, 0, 1])).toBe(100)
+  })
+
+  it('帰無分布の95%点は選択肢数のランダム値より高く、標本が増えるほど下がる', () => {
+    const small = markovNullThreshold(50, 4)
+    const large = markovNullThreshold(200, 4)
+    expect(small).toBeGreaterThan(25)
+    expect(small).toBeGreaterThan(large)
+  })
+
+  it('同じ引数なら何度呼んでも同じ値を返す（決定的PRNG）', () => {
+    expect(markovNullThreshold(60, 4)).toBe(markovNullThreshold(60, 4))
+  })
+})
+
+describe('checkExplanationMentionsDistractor（⑪。T-343の完了条件の指標）', () => {
+  const base = (explanation: string | null): Question => ({
+    id: 'part5-test',
+    part: 5,
+    format: 'text_blank',
+    difficulty: 3,
+    tags: ['動詞の形'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    question: 'Please ___ the expense report by Friday afternoon today.',
+    choices: [
+      { key: 'A', text: 'submit' },
+      { key: 'B', text: 'submitted' },
+    ],
+    answer: 'A',
+    explanation,
+    translation: '和訳',
+  })
+
+  it('誤答の本文を引用していれば通る', () => {
+    const problems = validateContentLint([base('原形submitが正しい。submittedは過去形。')], 'p')
+    expect(problems.filter((p) => p.includes('誤答選択肢'))).toEqual([])
+  })
+
+  it('「他の選択肢」等の総称でも通る', () => {
+    const problems = validateContentLint([base('原形が正しい。他の選択肢は形が合わない。')], 'p')
+    expect(problems.filter((p) => p.includes('誤答選択肢'))).toEqual([])
+  })
+
+  it('正答の説明しかない解説は検出する', () => {
+    const problems = validateContentLint([base('命令文なので原形が正しい。')], 'p')
+    expect(problems.some((p) => p.includes('解説が誤答選択肢に言及していない'))).toBe(true)
+  })
+
+  it('解説が無い場合も検出する', () => {
+    const problems = validateContentLint([base(null)], 'p')
+    expect(problems.some((p) => p.includes('解説が無い'))).toBe(true)
   })
 })

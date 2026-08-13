@@ -19,6 +19,11 @@ import {
   type BackupFile,
   type BackupStores,
 } from '../services/backup'
+import {
+  getPackSyncProgress,
+  subscribePackSyncProgress,
+  type PackSyncProgress,
+} from '../services/packSyncProgress'
 import { PACK_SYNC_STATE_KEY } from '../services/packSync'
 import {
   clearPendingCommitFailure,
@@ -118,6 +123,8 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
   const [themePref, setThemePrefState] = useState<ThemePreference>('system')
   const [fontSize, setFontSizeState] = useState<FontSizeScale>(getFontSizeScale())
   const [cacheUsage, setCacheUsage] = useState<CacheUsage | null>(null)
+  // T-321: パック同期（音声ダウンロード）の進捗。同期していないときはnull
+  const [syncProgress, setSyncProgress] = useState<PackSyncProgress | null>(getPackSyncProgress())
   // T-72: ストレージ永続化状態・端末ストレージ使用量（J-38）
   const [persisted, setPersisted] = useState<boolean | null>(null)
   const [storageEstimate, setStorageEstimate] = useState<StorageEstimate | null>(null)
@@ -229,6 +236,10 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
     setStorageEstimate(estimateResult)
     setLoaded(true)
   }
+
+  // T-321: パック同期の進捗を購読する（同期はバックグラウンドで進むため、
+  // 画面を開いた時点の値をgetPackSyncProgress()で拾い、以後は購読で更新する）
+  useEffect(() => subscribePackSyncProgress(setSyncProgress), [])
 
   useEffect(() => {
     cancelledRef.current = false
@@ -585,6 +596,12 @@ export function SettingsScreen({ db, packCache, raidApi, onThemePreferenceChange
               ? `${(cacheUsage.bytes / 1024 / 1024).toFixed(1)}MB（${cacheUsage.entries}件）`
               : '取得中…'}
           </p>
+          {/* T-321: 音声ダウンロードの進捗。同期していない間は何も出さない */}
+          {syncProgress && (
+            <p>
+              音声を取得中: {syncProgress.completed}/{syncProgress.total}（{syncProgress.packId}）
+            </p>
+          )}
           <button type="button" onClick={handleClearCache}>
             キャッシュを削除
           </button>
