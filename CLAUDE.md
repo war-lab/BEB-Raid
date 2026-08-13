@@ -11,12 +11,12 @@ BEB Raid（ビーブレイド）— 通勤電車での短時間学習を主軸�
 
 npm workspaces の monorepo。ルートで実行する:
 
-- `npm run build` / `npm test` / `npm run lint` / `npm run format`（Prettier。`docs/` 等の Markdown は整形対象外）
-- `packages/app` — PWA本体（Vite + React）。`packages/cli` — コンテンツパイプラインCLI。`packages/shared-schema` — 問題パックスキーマ型・共有API契約型の共有（app/cli/api から import）
-- `packages/api` — 共有API（Cloudflare Workers + KV + Durable Objects。M3のレイド集計・匿名問題統計）。ローカル実行は `wrangler dev --local`（`npm run dev -w @beb-raid/api`）、秘密値（INVITE_CODE）は `.dev.vars`（gitignore対象。例は `.dev.vars.example`）、テストは `@cloudflare/vitest-pool-workers`（DO・KV含めローカル完結）。設計の正本は `docs/17_M3実装計画.md` 3節
+- `npm run build` / `npm test` / `npm run test:coverage` / `npm run lint` / `npm run format`（Prettier。`docs/` 等の Markdown は整形対象外。検査のみは `format:check`）
+- `packages/app` — PWA本体（Vite + React）。`packages/cli` — コンテンツパイプラインCLI。`packages/shared-schema` — 問題パックスキーマ型・共有API契約型の共有（app/cli/api/review-ui から import）
+- `packages/api` — 共有API（Cloudflare Workers + KV + Durable Objects。M3のレイド集計・匿名問題統計）。ローカル実行は `wrangler dev --local`（`npm run dev -w @beb-raid/api`）、秘密値（`INVITE_CODE`・`ADMIN_TOKEN`）は `.dev.vars`（gitignore対象。例は `.dev.vars.example`）、テストは `@cloudflare/vitest-pool-workers`（DO・KV含めローカル完結）。設計の正本は `docs/17_M3実装計画.md` 3節
 - `packages/review-ui` — 生成コンテンツの人手レビュー用ローカルUI（ルートの `npm run review-ui` で起動）
-- `packages/app/src/platform/` — 音声再生（AudioPlayer）・パックキャッシュ（PackCache）の抽象化レイヤ。**UI・エンジンから Audio / AudioContext / caches を直接呼ぶと ESLint エラーになる**（必ず platform のインターフェース経由で使う）
-- `packages/app/src/db/` — Dexie スキーマ（04の3節。M1時点の全11ストアに`examScores`(M2)・`raidState`(M3)が追加され現在13ストア）。**attempts は追記のみ**（削除は Dexie フックで実行時にも遮断。サービス層にも削除APIを作らない）。`packages/app/src/services/` — 解答記録・セッション中断復帰・エクスポート/インポート。IndexedDB を使うテストは fake-indexeddb を import する
+- `packages/app/src/platform/` — 音声再生（AudioPlayer）・パックキャッシュ（PackCache）・通知（Notifier）・共有API通信（RaidApi・BattleSocket）・AI解説（AiClient）の抽象化レイヤ。**UI・エンジンから `Audio` / `AudioContext` / `caches` / `Notification` / `speechSynthesis` / `createElement('audio')` / `showNotification` を直接呼ぶと ESLint エラーになる**（`window.`・`globalThis.`・`self.` 経由も遮断。必ず platform のインターフェース経由で使う）。`packages/app/src/**` では未await Promise（`no-floating-promises` / `no-misused-promises`）も ESLint エラーになる
+- `packages/app/src/db/` — Dexie スキーマ（04の3節。M1時点の全11ストアに`examScores`(M2)・`raidState`(M3)が追加され現在13ストア）。**attempts は追記のみ**（削除と更新は Dexie フックで実行時にも遮断。サービス層にも削除APIを作らない）。`packages/app/src/services/` — 解答記録・セッション中断復帰・エクスポート/インポート。IndexedDB を使うテストは fake-indexeddb を import する
 - デザイントークンは `packages/app/src/styles/tokens.css`（07の3節が正本）。色は必ずトークン経由で参照する
 
 ## ドキュメント構成
@@ -49,17 +49,19 @@ npm workspaces の monorepo。ルートで実行する:
 | `docs/22_M4実装計画.md` | M4の自走タスクシート（事前決定事項・WebSocketプロトコル・実行順序）。**M4実装着手時はまずここを読む**。21に従属 |
 | `docs/23_M5ネイティブ化計画.md` | M5のうちCapacitorネイティブ化と通知手段の計画（T-132〜T-137・T-146〜T-149・判断J-71〜J-78・J-82〜J-87・人間タスクH-7〜H-12）。分解と自走シートを1冊に統合。**ネイティブ化の着手は保留中**で、通知の効果検証を2段構えで先行する（第1段=手動アラームのH-12、第2段=Web PushのT-149。ADR 0007とその2026-07-27 Amendment）。**アプリ化・通知の着手時はまずここを読む**。05の7節に従属 |
 | `docs/24_読解パート実装計画.md` | 読解（Part6/7）完成の自走タスクシート（T-138〜T-145・判断J-79〜J-81・人間タスクH-R1/H-R2）。**読解実装着手時はまずここを読む**。ADR 0006・02・03に従属。旧「docs/18_読解パート実装計画.md」（旧ID T-103〜T-110・J-51〜J-53）で、18番文書・タスクIDが上記の改修計画_表示更新とUX残課題と衝突していたため2026-07-27に改番した。旧IDとの対応表は同書0節 |
-| `docs/25_ビジュアル刷新計画_M4以降の未適用画面.md` | 20の続編。V-1〜V-8完了（2026-07-22）後に追加された画面（イベントバトルS7/S8・ゴースト・成長ランク・読解）と20の適用漏れ（`--bg-grad` 未適用等）の棚卸し・ビジュアル方向性・V-9〜V-20・判断JV-4〜JV-9。**M4以降の画面のビジュアル改修着手時はまずここを読む**。07に従属 |
+| `docs/25_ビジュアル刷新計画_M4以降の未適用画面.md` | 20の続編。V-1〜V-8完了（2026-07-22）後に追加された画面（イベントバトルS7/S8・ゴースト・成長ランク・読解）と20の適用漏れ（`--bg-grad` 未適用等）の棚卸し・ビジュアル方向性・V-9〜V-23・判断JV-4〜JV-11。**M4以降の画面のビジュアル改修着手時はまずここを読む**。07に従属 |
 | `docs/26_ビジュアル改修_レイアウトとブランド整合.md` | 25完了後の全画面実機確認で見つかった、装飾では直らないレイアウト・ブランド整合の穴（A-1〜A-8）。素材前提の改修（B群）は07の6節を改訂しない判断により対象外。07に従属 |
 | `docs/27_出題と回答のUXストレス点検.md` | 出題・回答フローの負荷点検（所見S-1〜S-38・判断J-89〜J-97）。不具合の疑い3件と、誤タップ救済の適用範囲・時間圧・自動再生・再出題抑制の偏りを記録した所見書。改修計画は28が正本。01〜07とADR 0008・0009に従属 |
 | `docs/28_改修計画_出題と回答のUXストレス.md` | 27を実行に落とす自走タスクシート（T-155〜T-178・判断J-89〜J-99・人間タスクH-16）。**出題・回答のUX改修着手時はまずここを読む**。T-155（AudioPlayerの契約変更）とT-168（出題候補生成）は単独PR。`packages/api/` とSRS間隔テーブルは変更対象外。27に従属 |
-| `docs/29_全量レビュー棚卸し.md` | 2026-08-04の全量レビュー所見書（所見Q-1〜Q-112・判断J-100〜J-113）。アプリ・共有API・コンテンツ・ドキュメントを8観点で点検した結果。週次ボス不発の原因仮説（cron曜日の解釈誤り）を含む。改修計画は30が正本。01〜07とADR群に従属 |
+| `docs/29_全量レビュー棚卸し.md` | 2026-08-04の全量レビュー所見書（所見Q-1〜Q-113・判断J-100〜J-113）。アプリ・共有API・コンテンツ・ドキュメントを8観点で点検した結果。週次ボス不発の原因仮説（cron曜日の解釈誤り）を含む。改修計画は30が正本。01〜07とADR群に従属 |
 | `docs/30_改修計画_全量レビュー棚卸し.md` | 29を実行に落とす自走タスクシート（T-179〜T-264の86タスク・判断J-100〜J-113の正文・9フェーズ）。**全量レビューの改修着手時はまずここを読む**。T-179（RaidBossDOの契約追加）・T-182（WSメッセージ契約）・T-234（CIゲート）・T-256（STATUS分割）は単独PR。フェーズ1は本番障害のため先に完了させる。29に従属 |
 | `docs/31_敵対的検証棚卸し.md` | 2026-08-06の敵対的検証の所見書（所見K-1〜K-99・判断J-115〜J-126）。9観点で「29が検出できなかったもの」を探し、30の改修が実際に穴を塞いだかを再検査した結果。改修計画は32が正本。01〜07とADR群に従属 |
 | `docs/32_改修計画_敵対的検証.md` | 31を実行に落とす自走タスクシート（T-274〜T-365の92タスク・判断J-115〜J-126の正文・10ウェーブ）。**敵対的検証の改修着手時はまずここを読む**。T-274（ダメージ契約）・T-275（WSメッセージ契約）・T-287（shared-schemaの解決方式）・T-355（レビュー工程の契約）は単独PR。リポジトリ設定・SRS間隔テーブル・レイド週境界は変更対象外。31に従属 |
 | `docs/STATUS.md` | **現在地（進捗正本）**。作業の着手・完了時に必ず更新する。300行以内の「現在地のみ」（未解決ブロッカー・マイルストーン別の現在地・次のアクション・直近2週間の変更）に限定し、完了記録は書かない |
 | `docs/history/` | STATUS.mdからアーカイブした完了記録（月次。`YYYY-MM.md`）。2026-08-06のT-256で新設。内容は移動のみで変更しない |
 | `docs/adr/` | ADR。01〜08に書かれていない技術判断はここに記録する（運用ルールは adr/README.md） |
+| `docs/dogfood/` | ドッグフーディングの手順書（KPI週次確認・通し確認・実機検証チェックリスト・プレイテストFBシート） |
+| `docs/design/` | ビジュアル刷新の参照物（キービジュアル素材・モックアップ）。Prettierの整形対象外 |
 
 ## アーキテクチャの要点（設計判断の前提）
 
@@ -72,7 +74,7 @@ npm workspaces の monorepo。ルートで実行する:
 ### 破ってはいけない不変条件
 
 - **プライバシー境界**: 個人紐づきで共有APIに送るのは「ダメージ換算値＋表示名」のみ。個人単位の正誤詳細・レート実値・本名・社名は端末外に出さない。問題別正誤集計（questionStats）は deviceToken と結合できない匿名統計としてのみ扱う。**例外（2026-08-05・T-252・ADR 0013）**: ゴースト週の `defense`（questionIdごとの防御倍率0.5/2.0）は、ボス役立候補者本人の問題別正誤と1対1に対応し、ボス名（`ゴースト・<表示名>`）とあわせて全レイド参加者へ配信される（05の6節・22の3.3節）。ボス役立候補時の同意画面（22の3.5節）を経た場合に限って成立する例外で、同意を経ない経路への拡張は対象外。
-- **コンテンツの出所**: 問題パックは `license` / `origin` 必須。市販教材（金のフレーズ等）の流用は著作権リスクがあるため取込拒否。LLM生成＋人手レビュー＋TTS のパイプラインで自作する。読解（Part6/Part7）以外は、AIクロスレビュー＋敵対的検証の工程（docs/32 8節。生成に使ったのとは別のモデルでの全問レビュー＋6観点の敵対的検証）を人手レビューの代替として使ってよい（J-119）。この工程を経ていないコンテンツは配信しない。工程を経た場合は `pack.origin` に工程名・日付を記録し（書式は docs/32 8.2節）、`pack.reviewedBy`・`reviewedAt`・`reviewMethod`（いずれも任意フィールド）にも機械可読な形で記録する。
+- **コンテンツの出所**: 問題パックは `license` / `origin` 必須。市販教材（金のフレーズ等）の流用は著作権リスクがあるため取込拒否。LLM生成＋人手レビュー＋TTS のパイプラインで自作する。読解（Part6/Part7）以外は、AIクロスレビュー＋敵対的検証の工程（docs/32 8節。生成に使ったのとは別のモデルでの全問レビュー＋6観点の敵対的検証）を人手レビューの代替として使ってよい（J-119）。この工程を経ていないコンテンツは配信しない。工程を経た場合は `pack.origin` に工程名・日付を記録し（書式は docs/32 8.2節）、`pack.reviewedBy`・`reviewedAt`・`reviewMethod`（いずれも任意フィールド）にも機械可読な形で記録する。**2026-08-13時点でこの条件は満たされていない**（配信中21パックのうち `pack-p2-s-003` は敵対的検証の記録が無く、全パックで3フィールドが未記入、`origin` も規定書式へ未更新。`verify-content` にこれを検出する検査も無い）。新しいコンテンツを追加する際は、この既知の逸脱を理由に工程を省略しないこと。是正状況は docs/STATUS.md 1.4節で追跡する。
 - **オフラインが正常系**: 解答・SRS更新は IndexedDB へ即時保存。レイドダメージは pendingSync キュー経由で冪等送信（同一 attempt ID の二重送信はサーバー側で無視）。
 - **ネイティブ化路線の確保**: 将来 Capacitor でラップする前提のため、キャッシュ層・通知・音声再生は差し替え可能な抽象化レイヤにしておく（05の7節）。
 - **BYOK**: AI解説はユーザー自身の Claude API キーをブラウザから直接呼ぶ。キーは IndexedDB 保存で端末外に出さない。
