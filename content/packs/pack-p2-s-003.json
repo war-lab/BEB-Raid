@@ -4,15 +4,15 @@
     "id": "pack-p2-s-003",
     "title": "Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆（2026-08。T-349）＋敵対的検証（6観点・2026-08-13）＋TTS",
+    "origin": "エージェント直接執筆（2026-08。T-349）＋AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
     "reviewedBy": "claude-opus-5",
     "reviewedAt": "2026-08-13",
-    "reviewMethod": "敵対的検証（6観点・2026-08-13）",
-    "sizeBytes": 94904
+    "reviewMethod": "AIクロスレビュー（claude-sonnet-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 94951
   },
   "questions": [
     {

@@ -89,15 +89,20 @@ export const CROSS_REVIEW_MODEL_BY_PACK_ID: ReadonlyMap<string, string> = new Ma
   ['pack-dict-s-002', 'claude-sonnet-5'],
   ['pack-p34-s-002', 'claude-sonnet-5'],
   ['pack-vocab-s-002', 'claude-sonnet-5'],
+  // 2026-08-13に実施（T-85で「実施済み」と記録されていたがモデル名が残っていなかった2件と、
+  // T-349で新規生成し敵対的検証6観点のみ通していた pack-p2-s-003）
+  ['pack-p2-s-003', 'claude-sonnet-5'],
+  ['pack-p34-s-003', 'claude-sonnet-5'],
+  ['pack-p5-s-003', 'claude-sonnet-5'],
 ])
 
 /**
  * docs/32 8.2節の書式で工程名を組み立てる。
  * `crossReviewer` が無いパック（クロスレビュー未実施）は敵対的検証の段だけにする。
  *
- * 2026-08-13時点で未実施なのは `pack-p34-s-003`・`pack-p5-s-003`（T-85で「実施済み」と
- * 記録されているがモデル名が残っていない）と `pack-p2-s-003`（T-349で新規生成し、
- * 敵対的検証6観点のみ通した）の3パックである。
+ * 2026-08-13時点では配信中の21パックすべてにクロスレビューの実施モデルが入っている。
+ * 新しいパックを追加してクロスレビューがまだなら、表に載せないこと（載せなければ
+ * 工程名から自動でその段が落ちる）。
  */
 export function reviewMethodFor(dimensions: number, date: string, crossReviewer?: string): string {
   const adversarial = `敵対的検証（${dimensions}観点・${date}）`
