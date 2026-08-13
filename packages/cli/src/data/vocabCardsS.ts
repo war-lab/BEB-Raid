@@ -386,7 +386,7 @@ export const VOCAB_CARDS_S: VocabCardEntry[] = [
     word: 'breach',
     tags: ['法務・環境'],
     back: '違反',
-    phrase: 'Late delivery may be considered a breach of contract.',
+    phrase: 'The security team monitors the network for any breach.',
   },
   {
     word: 'renewal',

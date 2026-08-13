@@ -814,7 +814,7 @@ export const PART5_ENTRIES_S: Part5Entry[] = [
     ],
     answer: 'D',
     explanation:
-      '先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。',
+      '先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose（所有格）・which（物を指す関係代名詞）・where（関係副詞）はいずれもこの文脈に合わない。',
     translation: '昨日会ったクライアントが契約の修正を望んでいる。',
     difficulty: 4,
   },

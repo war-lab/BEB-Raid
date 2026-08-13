@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 101733
+    "sizeBytes": 94419
   },
   "questions": [
     {
@@ -31,15 +31,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8882,
-        "questionEndMs": 2661,
-        "responseOffsetsMs": [
-          2861,
-          5200,
-          7400
-        ],
-        "responsesTextDigest": "47ccf4ff"
+        "voice": "pending-tts",
+        "durationMs": 4900
       },
       "script": "We're already over budget for this quarter. — Let's postpone the new hires, then.",
       "translation": "今期はもう予算を超えています。 — では新規採用を延期しましょう。",
@@ -58,7 +51,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 予算超過という発言に対し「新規採用を延期しよう」と対策を提案しており、話の流れに合う。他の2つは発言内容と噛み合わない。"
+      "explanation": "間接応答: 予算超過という発言に対し「新規採用を延期しよう」と対策を提案しており、話の流れに合う。他の2つ（\"The budget was approved last week.\"／\"I don't have a calculator with me.\"）は発言内容と噛み合わない。"
     },
     {
       "id": "part2-storage",
@@ -79,15 +72,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12852,
-        "questionEndMs": 3277,
-        "responseOffsetsMs": [
-          3477,
-          7372,
-          10024
-        ],
-        "responsesTextDigest": "5b3efed7"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "The safety inspection is scheduled for tomorrow morning. — Then I should clean up the storage area today.",
       "translation": "安全検査は明日の朝に予定されています。 — それでは今日中に保管場所を片付けないと。",
@@ -106,7 +92,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 明日検査があるという発言を受け「今日中に保管場所を片付けるべきだ」と準備行動を示しており、話の流れに合う。他の2つは時系列や話題が合わない。"
+      "explanation": "間接応答: 明日検査があるという発言を受け「今日中に保管場所を片付けるべきだ」と準備行動を示しており、話の流れに合う。他の2つ（\"The inspector left already.\"／\"We passed the inspection last year.\"）は時系列や話題が合わない。"
     },
     {
       "id": "part2-backup",
@@ -119,7 +105,7 @@
       "keyVocab": [
         {
           "word": "backup",
-          "sense": "バックアップ",
+          "sense": "バックアップ（控え・予備）",
           "freqRank": "A"
         }
       ],
@@ -127,15 +113,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10240,
-        "questionEndMs": 2963,
-        "responseOffsetsMs": [
-          3163,
-          5688,
-          8700
-        ],
-        "responsesTextDigest": "80ae9b36"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "The venue for the conference just canceled on us. — I know a backup location we can call right away.",
       "translation": "カンファレンスの会場が予約を取り消してきました。 — すぐに連絡できる代替会場を知っています。",
@@ -154,7 +133,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 会場が予約を取り消したという問題に対し「すぐに連絡できる代替会場を知っている」と解決策を示しており、話の流れに合う。他の2つは問題への対応になっていない。"
+      "explanation": "間接応答: 会場が予約を取り消したという問題に対し「すぐに連絡できる代替会場を知っている」と解決策を示しており、話の流れに合う。他の2つ（\"I already sent the invitations.\"／\"The conference starts at nine.\"）は問題への対応になっていない。"
     },
     {
       "id": "part2-prioritize",
@@ -173,17 +152,10 @@
       ],
       "audio": "audio/part2/prioritize.mp3",
       "audioMeta": {
-        "accent": "US",
+        "accent": "UK",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9744,
-        "questionEndMs": 3555,
-        "responseOffsetsMs": [
-          3755,
-          5873,
-          8107
-        ],
-        "responsesTextDigest": "5ba583e7"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "The client wants this order prioritized over the others. — I'll check if the team can ship it today.",
       "translation": "取引先はこの注文を優先してほしいと言っています。 — チームが今日発送できるか確認します。",
@@ -202,7 +174,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 迅速な対応を求める発言に対し「チームが今日発送できるか確認する」と行動を示しており、話の流れに合う。他の2つは要望への対応になっていない。"
+      "explanation": "間接応答: 迅速な対応を求める発言に対し「チームが今日発送できるか確認する」と行動を示しており、話の流れに合う。他の2つ（\"The order was placed last Monday.\"／\"The client canceled the order.\"）は要望への対応になっていない。"
     },
     {
       "id": "part2-glitch",
@@ -223,18 +195,11 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9300,
-        "questionEndMs": 2708,
-        "responseOffsetsMs": [
-          2908,
-          4852,
-          7528
-        ],
-        "responsesTextDigest": "74323adb"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "Something triggered a system glitch last night. — I was on a flight, so it wasn’t me logging in.",
-      "translation": "昨夜ファイアウォールで警報が作動しました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。",
+      "translation": "昨夜システム障害の警報が作動しました。 — 私は飛行機に乗っていたので、ログインしたのは私ではありません。",
       "choices": [
         {
           "key": "A",
@@ -250,7 +215,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: システム障害という発言に対し「自分ではない（アリバイ）」と応じており、話の流れに合う。他の2つは直接の対応になっていない。"
+      "explanation": "間接応答: システム障害という発言に対し「自分ではない（アリバイ）」と応じており、話の流れに合う。他の2つ（\"I forgot my password again.\"／\"The system runs a nightly backup.\"）は直接の対応になっていない。"
     },
     {
       "id": "part2-printer",
@@ -263,7 +228,7 @@
       "keyVocab": [
         {
           "word": "printer",
-          "sense": "プリンター",
+          "sense": "プリンター（印刷機）",
           "freqRank": "S"
         }
       ],
@@ -271,15 +236,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13087,
-        "questionEndMs": 3253,
-        "responseOffsetsMs": [
-          3453,
-          6314,
-          10104
-        ],
-        "responsesTextDigest": "e6a64baa"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "We still haven't received the invoice from the printer. — Let me call their office and ask about it.",
       "translation": "印刷業者からの請求書がまだ届いていません。 — 事務所に電話して確認してみます。",
@@ -298,7 +256,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 請求書が未着という発言に対し「事務所に電話して確認する」と対応を示しており、話の流れに合う。他の2つは発話中の語に関連するが、質問の核心への対応にはなっていない。"
+      "explanation": "間接応答: 請求書が未着という発言に対し「事務所に電話して確認する」と対応を示しており、話の流れに合う。他の2つ（\"The printer is out of toner again.\"／\"The invoice was for the annual report.\"）は発話中の語に関連するが、質問の核心への対応にはなっていない。"
     },
     {
       "id": "part2-timeline",
@@ -319,18 +277,11 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10553,
-        "questionEndMs": 4066,
-        "responseOffsetsMs": [
-          4266,
-          6512,
-          8793
-        ],
-        "responsesTextDigest": "b5e108ab"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "The printer broke down again, and the repair timeline keeps slipping. — Then we might as well replace it.",
-      "translation": "プリンターがまた故障して、保証も先月切れました。 — それなら買い替えたほうがいいですね。",
+      "translation": "プリンターがまた故障して、修理の見通しも遅れ続けています。 — それなら買い替えたほうがいいですね。",
       "choices": [
         {
           "key": "A",
@@ -346,7 +297,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 保証が切れたという発言に対し「買い替えたほうがいい」と結論を示しており、話の流れに合う。他の2つは発言内容と矛盾または噛み合わない。"
+      "explanation": "間接応答: 修理の見通しが遅れ続けているという発言に対し「買い替えたほうがいい」と結論を示しており、話の流れに合う。他の2つ（\"The repair takes about two weeks.\"／\"I already reported it to IT.\"）は発言内容と矛盾または噛み合わない。"
     },
     {
       "id": "part2-confirm",
@@ -367,15 +318,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 18442,
-        "questionEndMs": 7108,
-        "responseOffsetsMs": [
-          7308,
-          10343,
-          15271
-        ],
-        "responsesTextDigest": "45d244e2"
+        "voice": "pending-tts",
+        "durationMs": 9450
       },
       "script": "Our software subscription renews automatically next week, but nobody could confirm if we still need it. — Someone should double-check if we still need all those licenses.",
       "translation": "弊社のソフトウェアの契約は来週自動更新されます。 — 全てのライセンスが本当に必要か誰かが確認すべきですね。",
@@ -394,7 +338,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 自動更新が来週というへ発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つは発言への応答として的外れ。"
+      "explanation": "間接応答: 自動更新が来週というへ発言に対し「ライセンスが本当に必要か確認すべきだ」と提案しており、話の流れに合う。他の2つ（\"I updated the software yesterday.\"／\"The subscription costs less than last year.\"）は発言への応答として的外れ。"
     },
     {
       "id": "part2-refundable",
@@ -415,15 +359,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11964,
-        "questionEndMs": 4763,
-        "responseOffsetsMs": [
-          4963,
-          7104,
-          9350
-        ],
-        "responsesTextDigest": "92777c1c"
+        "voice": "pending-tts",
+        "durationMs": 8750
       },
       "script": "The customer is asking for a refund since the damaged shipment should be refundable. — I'll process it as soon as I confirm the return.",
       "translation": "お客様が破損した荷物の返金を求めています。 — 返品を確認したらすぐに処理します。",
@@ -442,7 +379,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 返金要求という発言に対し「返品を確認したら処理する」と対応を示しており、話の流れに合う。他の2つは話題が合わない。"
+      "explanation": "間接応答: 返金要求という発言に対し「返品を確認したら処理する」と対応を示しており、話の流れに合う。他の2つ（\"The shipment left the warehouse yesterday.\"／\"The customer ordered two more units.\"）は話題が合わない。"
     },
     {
       "id": "part2-balance",
@@ -463,15 +400,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14237,
-        "questionEndMs": 4380,
-        "responseOffsetsMs": [
-          4580,
-          8927,
-          11951
-        ],
-        "responsesTextDigest": "99f380f8"
+        "voice": "pending-tts",
+        "durationMs": 8050
       },
       "script": "I haven't gotten my travel reimbursement yet, and it's been three weeks. — Let me confirm the balance with accounting on your behalf.",
       "translation": "出張の立替金がまだ支払われていなくて、もう3週間になります。 — 代わりに経理部に確認してみます。",
@@ -490,7 +420,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 立替金がまだ支払われていないという発言に対し「代わりに経理に確認する」と対応しており、話の流れに合う。他の2つは発言への直接の対応になっていない。"
+      "explanation": "間接応答: 立替金がまだ支払われていないという発言に対し「代わりに経理に確認する」と対応しており、話の流れに合う。他の2つ（\"The trip was to the branch office.\"／\"I submitted my receipts too.\"）は発言への直接の対応になっていない。"
     },
     {
       "id": "part2-backlog",
@@ -511,15 +441,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12069,
-        "questionEndMs": 5645,
-        "responseOffsetsMs": [
-          5845,
-          8195,
-          10255
-        ],
-        "responsesTextDigest": "225ba709"
+        "voice": "pending-tts",
+        "durationMs": 7700
       },
       "script": "Occupancy at the downtown branch dropped again, adding to a backlog of empty rooms. — Maybe we should run another promotion there.",
       "translation": "今期も都心の支店の入居率が落ちました。 — そこでもう一度プロモーションを行うべきかもしれません。",
@@ -538,7 +461,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 入居率が再び落ちたという発言に対し「プロモーションを行うべきかもしれない」と対策を提案しており、話の流れに合う。他の2つは発言内容と噛み合わない。"
+      "explanation": "間接応答: 入居率が再び落ちたという発言に対し「プロモーションを行うべきかもしれない」と対策を提案しており、話の流れに合う。他の2つ（\"The branch opened five years ago.\"／\"It's the largest branch in the city.\"）は発言内容と噛み合わない。"
     },
     {
       "id": "part2-campaign",
@@ -551,7 +474,7 @@
       "keyVocab": [
         {
           "word": "campaign",
-          "sense": "キャンペーン",
+          "sense": "キャンペーン（宣伝活動）",
           "freqRank": "S"
         }
       ],
@@ -559,15 +482,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13009,
-        "questionEndMs": 3637,
-        "responseOffsetsMs": [
-          3837,
-          7906,
-          10837
-        ],
-        "responsesTextDigest": "55e705b8"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "That celebrity endorsement campaign fell through this morning. — We'll need a new marketing angle by Friday, then.",
       "translation": "今朝、著名人の推薦契約が破談になりました。 — それなら金曜までに新しいマーケティングの方向性が必要ですね。",
@@ -586,7 +502,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 推薦契約が破談になったという発言に対し「金曜までに新しい方向性が必要になる」と対応を示しており、話の流れに合う。他の2つは発言と矛盾または的外れ。"
+      "explanation": "間接応答: 推薦契約が破談になったという発言に対し「金曜までに新しい方向性が必要になる」と対応を示しており、話の流れに合う。他の2つ（\"The campaign launched last spring.\"／\"She has quite a large following.\"）は発言と矛盾または的外れ。"
     },
     {
       "id": "part2-presentation",
@@ -599,7 +515,7 @@
       "keyVocab": [
         {
           "word": "presentation",
-          "sense": "プレゼンテーション",
+          "sense": "プレゼンテーション（説明・発表）",
           "freqRank": "S"
         }
       ],
@@ -607,15 +523,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10762,
-        "questionEndMs": 4171,
-        "responseOffsetsMs": [
-          4371,
-          6768,
-          8701
-        ],
-        "responsesTextDigest": "e7edee5e"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "The conference room projector malfunctioned right before the presentation. — I brought a spare one just in case.",
       "translation": "プレゼンの直前に会議室のプロジェクターが故障しました。 — 念のためスペアを持ってきました。",
@@ -634,7 +543,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: プロジェクターが故障したという発言に対し「念のためスペアを持ってきた」と解決策を示しており、話の流れに合う。他の2つは対応として的外れ。"
+      "explanation": "間接応答: プロジェクターが故障したという発言に対し「念のためスペアを持ってきた」と解決策を示しており、話の流れに合う。他の2つ（\"The presentation went well overall.\"／\"The projector is quite old.\"）は対応として的外れ。"
     },
     {
       "id": "part2-milestone",
@@ -655,18 +564,11 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14080,
-        "questionEndMs": 4066,
-        "responseOffsetsMs": [
-          4266,
-          7766,
-          10558
-        ],
-        "responsesTextDigest": "1a26898e"
+        "voice": "pending-tts",
+        "durationMs": 8050
       },
       "script": "The new software is supposed to help us hit our next milestone sooner. — I'll believe it once I see it actually work.",
-      "translation": "この新しいソフトウェアは承認プロセスを簡素化してくれるはずです。 — 実際に動くのを見てから信じます。",
+      "translation": "この新しいソフトウェアのおかげで次の目標達成が早まるはずです。 — 実際に動くのを見てから信じます。",
       "choices": [
         {
           "key": "A",
@@ -682,7 +584,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 業務簡素化への期待という発言に対し「実際に動くのを見てから信じる」と懐疑的な態度を示しており、話の流れに合う。他の2つは発言内容と噛み合わない。"
+      "explanation": "間接応答: 次の目標達成が早まるという期待に対し「実際に動くのを見てから信じる」と懐疑的な態度を示しており、話の流れに合う。他の2つ（\"The approval process takes five steps.\"／\"The software costs quite a lot.\"）は発言内容と噛み合わない。"
     },
     {
       "id": "part2-hire",
@@ -703,15 +605,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9979,
-        "questionEndMs": 2847,
-        "responseOffsetsMs": [
-          3047,
-          5479,
-          7760
-        ],
-        "responsesTextDigest": "b7dcbc36"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "Two new hires start their onboarding on Monday. — I'll make sure their desks are ready by then.",
       "translation": "2人の新入社員が月曜日から新人研修を始めます。 — それまでに机の準備をしておきます。",
@@ -730,7 +625,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 月曜日に新人研修が始まるという発言に対し「それまでに机の準備をしておく」と対応を示しており、話の流れに合う。他の2つは発言への対応になっていない。"
+      "explanation": "間接応答: 月曜日に新人研修が始まるという発言に対し「それまでに机の準備をしておく」と対応を示しており、話の流れに合う。他の2つ（\"Both candidates have strong resumes.\"／\"The interview process took two months.\"）は発言への対応になっていない。"
     },
     {
       "id": "part2-reservation",
@@ -751,15 +646,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14315,
-        "questionEndMs": 3230,
-        "responseOffsetsMs": [
-          3430,
-          6698,
-          11452
-        ],
-        "responsesTextDigest": "3f4d6eab"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "The hotel overbooked our reservation for the conference. — Then we'll need to find rooms at another hotel nearby.",
       "translation": "ホテルがカンファレンス用の予約を過剰受付していました。 — それなら近くの別のホテルで部屋を探す必要がありますね。",
@@ -778,7 +666,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 予約超過という発言に対し「近くの別のホテルを探す必要がある」と対応を示しており、話の流れに合う。他の2つは対応として的外れ。"
+      "explanation": "間接応答: 予約超過という発言に対し「近くの別のホテルを探す必要がある」と対応を示しており、話の流れに合う。他の2つ（\"The conference has three hundred guests.\"／\"The reservation was made months ago.\"）は対応として的外れ。"
     },
     {
       "id": "part2-network",
@@ -791,7 +679,7 @@
       "keyVocab": [
         {
           "word": "network",
-          "sense": "ネットワーク",
+          "sense": "ネットワーク（回線・人脈）",
           "freqRank": "S"
         }
       ],
@@ -799,15 +687,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12617,
-        "questionEndMs": 5854,
-        "responseOffsetsMs": [
-          6054,
-          8126,
-          10569
-        ],
-        "responsesTextDigest": "42692d36"
+        "voice": "pending-tts",
+        "durationMs": 9100
       },
       "script": "Our contact at the ministry hasn't replied in over a week, and our network there is limited. — I'll try reaching out through a different contact.",
       "translation": "省庁の連絡担当者から1週間以上返信がありません。 — 別の連絡先を通じて連絡してみます。",
@@ -826,7 +707,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 連絡担当者から返信がないという発言に対し「別の連絡先を試す」と対応を示しており、話の流れに合う。他の2つは対応として的外れ。"
+      "explanation": "間接応答: 連絡担当者から返信がないという発言に対し「別の連絡先を試す」と対応を示しており、話の流れに合う。他の2つ（\"She used to work there for years.\"／\"The ministry building is downtown.\"）は対応として的外れ。"
     },
     {
       "id": "part2-valuation",
@@ -847,15 +728,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14237,
-        "questionEndMs": 4055,
-        "responseOffsetsMs": [
-          4255,
-          7813,
-          11893
-        ],
-        "responsesTextDigest": "125c25a7"
+        "voice": "pending-tts",
+        "durationMs": 7350
       },
       "script": "The merger added a large amount of goodwill to our valuation. — Our accountants will need to reassess it next year.",
       "translation": "その合併により、当社の帳簿上のれん代が大幅に増えました。 — 来年、会計担当者が再評価する必要がありますね。",
@@ -874,7 +748,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 会計上の「のれん」が増えたという発言に対し「来年再評価が必要になる」と実務的な見通しを示しており、話の流れに合う。他の2つは発言内容と噛み合わない。"
+      "explanation": "間接応答: 会計上の「のれん」が増えたという発言に対し「来年再評価が必要になる」と実務的な見通しを示しており、話の流れに合う。他の2つ（\"The valuation seems too high already.\"／\"The merger closed in March.\"）は発言内容と噛み合わない。"
     },
     {
       "id": "part2-agreement",
@@ -895,15 +769,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11729,
-        "questionEndMs": 4368,
-        "responseOffsetsMs": [
-          4568,
-          7975,
-          10012
-        ],
-        "responsesTextDigest": "8fba50bc"
+        "voice": "pending-tts",
+        "durationMs": 8050
       },
       "script": "Costs on our fleet vehicles jumped this year under the new leasing agreement. — We should compare leasing costs against buying new ones.",
       "translation": "今年は社用車の減価償却費が急増しました。 — リースと新車購入のコストを比較すべきですね。",
@@ -922,7 +789,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 車両の減価償却費が増えたという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つは発言と直接関係しない。"
+      "explanation": "間接応答: 車両の減価償却費が増えたという発言に対し「リースと新車購入のコストを比較すべきだ」と提案しており、話の流れに合う。他の2つ（\"The fleet has twelve vehicles.\"／\"Fuel prices went up too.\"）は発言と直接関係しない。"
     },
     {
       "id": "part2-consensus",
@@ -943,15 +810,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12852,
-        "questionEndMs": 4159,
-        "responseOffsetsMs": [
-          4359,
-          7058,
-          10105
-        ],
-        "responsesTextDigest": "26740b23"
+        "voice": "pending-tts",
+        "durationMs": 7700
       },
       "script": "We couldn't reach a consensus on the new logo at yesterday's meeting. — Let's just put it to a vote this time.",
       "translation": "昨日の会議で新しいロゴについて合意に至りませんでした。 — 今回は投票で決めましょう。",
@@ -970,7 +830,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 合意に至らなかったという発言に対し「今回は投票で決めよう」と解決策を示しており、話の流れに合う。他の2つは発言への対応になっていない。"
+      "explanation": "間接応答: 合意に至らなかったという発言に対し「今回は投票で決めよう」と解決策を示しており、話の流れに合う。他の2つ（\"The meeting ran an hour late.\"／\"The logo was designed last month.\"）は発言への対応になっていない。"
     },
     {
       "id": "part2-grievance",
@@ -991,15 +851,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10893,
-        "questionEndMs": 3393,
-        "responseOffsetsMs": [
-          3593,
-          5653,
-          8688
-        ],
-        "responsesTextDigest": "629f71ed"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "One of the warehouse staff filed a formal grievance yesterday. — HR should probably look into it before it escalates.",
       "translation": "昨日、倉庫スタッフの1人が正式な不服申立てを行いました。 — エスカレートする前に人事が調査すべきでしょうね。",
@@ -1018,7 +871,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 正式な不服申立てがあったという発言に対し「エスカレートする前に人事が調査すべきだ」と提案しており、話の流れに合う。他の2つは発言内容と噛み合わない。"
+      "explanation": "間接応答: 正式な不服申立てがあったという発言に対し「エスカレートする前に人事が調査すべきだ」と提案しており、話の流れに合う。他の2つ（\"He has worked here for five years.\"／\"The warehouse is fully staffed now.\"）は発言内容と噛み合わない。"
     },
     {
       "id": "part2-disgruntled",
@@ -1039,15 +892,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13976,
-        "questionEndMs": 4380,
-        "responseOffsetsMs": [
-          4580,
-          7465,
-          10512
-        ],
-        "responsesTextDigest": "dda35ac9"
+        "voice": "pending-tts",
+        "durationMs": 5950
       },
       "script": "A disgruntled former employee posted a negative review online. — Let's have someone from PR respond calmly.",
       "translation": "不満を持つ元従業員がネットに批判的なレビューを投稿しました。 — 広報の誰かに冷静に対応してもらいましょう。",
@@ -1066,7 +912,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 不満を持つ元従業員が悪評を投稿したという発言に対し「広報担当者に冷静に対応してもらおう」と提案しており、話の流れに合う。他の2つは対応として的外れ。"
+      "explanation": "間接応答: 不満を持つ元従業員が悪評を投稿したという発言に対し「広報担当者に冷静に対応してもらおう」と提案しており、話の流れに合う。他の2つ（\"The review site is quite popular.\"／\"He left the company two years ago.\"）は対応として的外れ。"
     },
     {
       "id": "part2-office",
@@ -1087,18 +933,11 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11233,
-        "questionEndMs": 3741,
-        "responseOffsetsMs": [
-          3941,
-          6535,
-          8293
-        ],
-        "responsesTextDigest": "5f62f1ba"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "This office hasn't been inspected since last year, has it? — Actually, the fire marshal came through in March.",
-      "translation": "この施設は昨年から検査されていませんよね？ — 実は3月に消防署の検査がありました。",
+      "translation": "このオフィスは昨年から検査されていませんよね？ — 実は3月に消防署の検査がありました。",
       "choices": [
         {
           "key": "A",
@@ -1114,7 +953,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「検査されていないですよね」という付加疑問に対し「実は3月に消防署の検査があった」と訂正情報で応じており、話の流れに合う。他の2つは質問の核心（検査の有無）に答えていない。"
+      "explanation": "間接応答: 「検査されていないですよね」という付加疑問に対し「実は3月に消防署の検査があった」と訂正情報で応じており、話の流れに合う。他の2つ（\"The office opened in 2019.\"／\"It has three loading docks.\"）は質問の核心（検査の有無）に答えていない。"
     },
     {
       "id": "part2-premises",
@@ -1135,15 +974,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13923,
-        "questionEndMs": 3671,
-        "responseOffsetsMs": [
-          3871,
-          8276,
-          11428
-        ],
-        "responsesTextDigest": "68c12933"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "Visitors need a badge to enter the premises, don't they? — Only after five, when the front desk closes.",
       "translation": "来訪者は構内に入るのにバッジが必要ですよね？ — 5時以降、受付が閉まってからだけです。",
@@ -1162,7 +994,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「バッジが必要ですよね」という付加疑問に対し「5時以降だけ必要」と条件付きで応じており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「バッジが必要ですよね」という付加疑問に対し「5時以降だけ必要」と条件付きで応じており、話の流れに合う。他の2つ（\"The premises cover two city blocks.\"／\"The badges are printed in the lobby.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-client",
@@ -1183,18 +1015,11 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10527,
-        "questionEndMs": 3323,
-        "responseOffsetsMs": [
-          3523,
-          5943,
-          8201
-        ],
-        "responsesTextDigest": "70ccb870"
+        "voice": "pending-tts",
+        "durationMs": 5950
       },
       "script": "The client's remodeling finished on schedule, didn't it? — They actually wrapped up a full week early.",
-      "translation": "その請負業者は改装を予定通り終えましたよね？ — 実は1週間も早く終わりました。",
+      "translation": "その顧客の改装は予定通り終わりましたよね？ — 実は1週間も早く終わりました。",
       "choices": [
         {
           "key": "A",
@@ -1210,7 +1035,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「予定通り終えましたよね」という付加疑問に対し「実は1週間早く終えた」と補足情報で応じており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「予定通り終えましたよね」という付加疑問に対し「実は1週間早く終えた」と補足情報で応じており、話の流れに合う。他の2つ（\"The remodeling cost more than expected.\"／\"The client is based downtown.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-registration",
@@ -1231,15 +1056,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14367,
-        "questionEndMs": 4287,
-        "responseOffsetsMs": [
-          4487,
-          8428,
-          11730
-        ],
-        "responsesTextDigest": "c8b47e7e"
+        "voice": "pending-tts",
+        "durationMs": 7350
       },
       "script": "The airport shuttle needs its registration renewed every year, doesn't it? — It used to, but now it's every two years.",
       "translation": "空港シャトルの登録は毎年更新が必要ですよね？ — 以前はそうでしたが、今は2年ごとです。",
@@ -1258,7 +1076,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「毎年更新が必要ですよね」という付加疑問に対し「以前はそうだったが今は2年ごとだ」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「毎年更新が必要ですよね」という付加疑問に対し「以前はそうだったが今は2年ごとだ」と訂正しており、話の流れに合う。他の2つ（\"The airport is about ten miles away.\"／\"The shuttle seats about twenty people.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-competitor",
@@ -1279,15 +1097,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12408,
-        "questionEndMs": 4670,
-        "responseOffsetsMs": [
-          4870,
-          7337,
-          9444
-        ],
-        "responsesTextDigest": "d1dedba2"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "Our closest competitor mostly serves local businesses, isn't it? — It was, until it started shipping overseas last year.",
       "translation": "弊社の最大の競合は主に地元企業向けですよね？ — 以前はそうでしたが、去年から海外発送を始めてから変わりました。",
@@ -1306,7 +1117,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「主に地元企業向けですよね」という付加疑問に対し「以前はそうだったが去年から海外発送を始めた」と変化を伝えており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「主に地元企業向けですよね」という付加疑問に対し「以前はそうだったが去年から海外発送を始めた」と変化を伝えており、話の流れに合う。他の2つ（\"Local businesses tend to pay on time.\"／\"We have about two hundred clients.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-market",
@@ -1327,18 +1138,11 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13087,
-        "questionEndMs": 3695,
-        "responseOffsetsMs": [
-          3895,
-          7081,
-          9884
-        ],
-        "responsesTextDigest": "74634da6"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "You already sent the market report to the client, didn't you? — I was just about to, actually.",
-      "translation": "もう旅程表をお客様に送りましたよね？ — 実はちょうど送るところでした。",
+      "translation": "もう市場レポートをお客様に送りましたよね？ — 実はちょうど送るところでした。",
       "choices": [
         {
           "key": "A",
@@ -1354,7 +1158,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「もう送りましたよね」という付加疑問に対し「実はちょうど送るところだった」とまだ送っていないことを示しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「もう送りましたよね」という付加疑問に対し「実はちょうど送るところだった」とまだ送っていないことを示しており、話の流れに合う。他の2つ（\"The client travels frequently.\"／\"The market report covers three regions.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-probation",
@@ -1375,15 +1179,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10998,
-        "questionEndMs": 3184,
-        "responseOffsetsMs": [
-          3384,
-          5479,
-          8166
-        ],
-        "responsesTextDigest": "09354073"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "The new hire is still on probation, isn't she? — Actually, she passed her review early last week.",
       "translation": "その新入社員はまだ試用期間中ですよね？ — 実は先週すでに審査を通過しました。",
@@ -1402,7 +1199,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「まだ試用期間中ですよね」という付加疑問に対し「実は先週すでに審査を通過した」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「まだ試用期間中ですよね」という付加疑問に対し「実は先週すでに審査を通過した」と訂正しており、話の流れに合う。他の2つ（\"She started three months ago.\"／\"Probation usually lasts ninety days.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-zoning",
@@ -1423,15 +1220,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12513,
-        "questionEndMs": 2592,
-        "responseOffsetsMs": [
-          2792,
-          5955,
-          10221
-        ],
-        "responsesTextDigest": "e48ca0a2"
+        "voice": "pending-tts",
+        "durationMs": 5950
       },
       "script": "This lot has commercial zoning, doesn't it? — Only the front half; the back is still residential.",
       "translation": "この土地は商業用に区分されていますよね？ — 前半分だけです。裏側はまだ住宅用のままです。",
@@ -1450,7 +1240,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「商業用に区分されていますよね」という付加疑問に対し「前半分だけで、裏は住宅用のまま」と部分的な訂正で応じており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「商業用に区分されていますよね」という付加疑問に対し「前半分だけで、裏は住宅用のまま」と部分的な訂正で応じており、話の流れに合う。他の2つ（\"Zoning changes take months to approve.\"／\"The lot is about two acres.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-sponsor",
@@ -1471,15 +1261,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11389,
-        "questionEndMs": 4182,
-        "responseOffsetsMs": [
-          4382,
-          7208,
-          9338
-        ],
-        "responsesTextDigest": "a3aa7e07"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "The same company sponsored the event last year too, didn't they? — No, that was a different sponsor entirely.",
       "translation": "昨年も同じ会社がイベントに協賛しましたよね？ — いいえ、それは全く別の協賛企業でした。",
@@ -1498,7 +1281,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「昨年も同じ会社が協賛しましたよね」という付加疑問に対し「いいえ、全く別の協賛企業だった」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「昨年も同じ会社が協賛しましたよね」という付加疑問に対し「いいえ、全く別の協賛企業だった」と訂正しており、話の流れに合う。他の2つ（\"The event drew a large crowd.\"／\"Sponsorship fees went up this year.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-feedback",
@@ -1511,7 +1294,7 @@
       "keyVocab": [
         {
           "word": "feedback",
-          "sense": "フィードバック",
+          "sense": "フィードバック（意見・反応）",
           "freqRank": "S"
         }
       ],
@@ -1519,15 +1302,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 11677,
-        "questionEndMs": 3323,
-        "responseOffsetsMs": [
-          3523,
-          6489,
-          9153
-        ],
-        "responsesTextDigest": "b4928d29"
+        "voice": "pending-tts",
+        "durationMs": 5600
       },
       "script": "You collected feedback from that client already, didn't you? — She's still drafting some for us.",
       "translation": "もうそのお客様から推薦の声をもらいましたよね？ — まだ書いてくれている最中です。",
@@ -1546,7 +1322,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「もう推薦の声をもらいましたよね」という付加疑問に対し「まだ書いている最中だ」とまだ完了していないことを示しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「もう推薦の声をもらいましたよね」という付加疑問に対し「まだ書いている最中だ」とまだ完了していないことを示しており、話の流れに合う。他の2つ（\"The client signed a two-year deal.\"／\"Feedback helps with new sales.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-vacancy",
@@ -1567,15 +1343,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9796,
-        "questionEndMs": 3590,
-        "responseOffsetsMs": [
-          3790,
-          5827,
-          8131
-        ],
-        "responsesTextDigest": "a9e4a2ae"
+        "voice": "pending-tts",
+        "durationMs": 5950
       },
       "script": "There's still a vacancy in the accounting team, isn't there? — We actually filled it last Friday.",
       "translation": "経理チームにはまだ欠員がありますよね？ — 実は先週の金曜日に補充しました。",
@@ -1594,7 +1363,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「まだ欠員がありますよね」という付加疑問に対し「実は先週金曜に補充した」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「まだ欠員がありますよね」という付加疑問に対し「実は先週金曜に補充した」と訂正しており、話の流れに合う。他の2つ（\"Accounting has six team members.\"／\"The vacancy was posted online.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-discount",
@@ -1615,15 +1384,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13218,
-        "questionEndMs": 3242,
-        "responseOffsetsMs": [
-          3442,
-          7499,
-          10929
-        ],
-        "responsesTextDigest": "baae649d"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "Members still get a discount on renewals, don't they? — Only if they renew before the plan expires.",
       "translation": "会員は更新時にまだ割引が受けられますよね？ — プランの有効期限が切れる前に更新した場合だけです。",
@@ -1642,7 +1404,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「更新時に割引がありますよね」という付加疑問に対し「有効期限前に更新した場合のみ」と条件付きで応じており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「更新時に割引がありますよね」という付加疑問に対し「有効期限前に更新した場合のみ」と条件付きで応じており、話の流れに合う。他の2つ（\"Membership fees increased slightly.\"／\"The discount used to be higher.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-tenancy",
@@ -1663,15 +1425,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11546,
-        "questionEndMs": 4902,
-        "responseOffsetsMs": [
-          5102,
-          7511,
-          9827
-        ],
-        "responsesTextDigest": "2f106464"
+        "voice": "pending-tts",
+        "durationMs": 8400
       },
       "script": "The lobby work required under the new tenancy is finished by now, isn't it? — They're just waiting on the new carpet to arrive.",
       "translation": "ロビーの改装はもう終わっていますよね？ — 新しいカーペットの到着を待っているだけです。",
@@ -1690,7 +1445,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「もう完了していますよね」という付加疑問に対し「新しいカーペットの到着を待っているだけ」とほぼ完了だが未完であることを示しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「もう完了していますよね」という付加疑問に対し「新しいカーペットの到着を待っているだけ」とほぼ完了だが未完であることを示しており、話の流れに合う。他の2つ（\"The renovation took six weeks.\"／\"The lobby looks much brighter now.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-customs",
@@ -1711,15 +1466,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13218,
-        "questionEndMs": 2522,
-        "responseOffsetsMs": [
-          2722,
-          7464,
-          10650
-        ],
-        "responsesTextDigest": "b4701bf8"
+        "voice": "pending-tts",
+        "durationMs": 5600
       },
       "script": "Customs closes at midnight, doesn't it? — Actually, this terminal keeps a counter open all night.",
       "translation": "保安検査場は深夜に閉まりますよね？ — 実は、このターミナルは一晩中1つ開けています。",
@@ -1738,7 +1486,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「深夜に閉まりますよね」という付加疑問に対し「このターミナルは一晩中開けている」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「深夜に閉まりますよね」という付加疑問に対し「このターミナルは一晩中開けている」と訂正しており、話の流れに合う。他の2つ（\"Customs officers wear uniforms.\"／\"Security staff work in shifts.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-manual",
@@ -1751,7 +1499,7 @@
       "keyVocab": [
         {
           "word": "manual",
-          "sense": "マニュアル",
+          "sense": "マニュアル（手引き書）",
           "freqRank": "S"
         }
       ],
@@ -1759,22 +1507,15 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12095,
-        "questionEndMs": 4205,
-        "responseOffsetsMs": [
-          4405,
-          7127,
-          9582
-        ],
-        "responsesTextDigest": "23f5eaea"
+        "voice": "pending-tts",
+        "durationMs": 7350
       },
       "script": "New hires get the training manual on their first day, don't they? — It's actually spread across the whole first week.",
-      "translation": "新入社員は初日にオリエンテーションを受けますよね？ — 実は初週全体に分けて行われます。",
+      "translation": "新入社員は初日に研修マニュアルを受け取りますよね？ — 実は初週全体に分けて行われます。",
       "choices": [
         {
           "key": "A",
-          "text": "The orientation covers company policy."
+          "text": "The manual covers company policy."
         },
         {
           "key": "B",
@@ -1786,7 +1527,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「初日にオリエンテーションがありますよね」という付加疑問に対し「実は初週全体に分けて行う」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「初日に研修マニュアルを受け取りますよね」という付加疑問に対し「実は初週全体に分けて行う」と訂正しており、話の流れに合う。他の2つ（\"The manual covers company policy.\"／\"New hires meet their supervisors too.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-merchandise",
@@ -1794,8 +1535,7 @@
       "format": "audio_qa",
       "difficulty": 3,
       "tags": [
-        "付加疑問",
-        "音韻混同"
+        "付加疑問"
       ],
       "keyVocab": [
         {
@@ -1808,18 +1548,11 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12983,
-        "questionEndMs": 3393,
-        "responseOffsetsMs": [
-          3593,
-          7221,
-          10291
-        ],
-        "responsesTextDigest": "52ca42ea"
+        "voice": "pending-tts",
+        "durationMs": 5950
       },
       "script": "That merchandise cleared customs yesterday, didn't it? — Not yet; it's still held up at the port.",
-      "translation": "あの委託荷物は昨日通関しましたよね？ — まだです。まだ港で保留されています。",
+      "translation": "あの商品は昨日通関しましたよね？ — まだです。まだ港で保留されています。",
       "choices": [
         {
           "key": "A",
@@ -1835,7 +1568,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「昨日通関しましたよね」という付加疑問に対し「まだ港で保留されている」と訂正しており、話の流れに合う。\"consignee\"はconsignmentと発音が似た音韻混同の誤答で質問の核心に答えていない。"
+      "explanation": "間接応答: 「昨日通関しましたよね」という付加疑問に対し「まだ港で保留されている」と訂正しており、話の流れに合う。他の2つ（\"There's a container ship at the port.\"／\"The consignee signed for the shipment.\"）は質問の核心（通関の有無）に答えていない。"
     },
     {
       "id": "part2-clause",
@@ -1856,15 +1589,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10632,
-        "questionEndMs": 4716,
-        "responseOffsetsMs": [
-          4916,
-          6721,
-          8816
-        ],
-        "responsesTextDigest": "682c91ac"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "The board approved the new sponsorship clause last month, didn't they? — They're still reviewing the final terms.",
       "translation": "取締役会は先月その推薦契約を承認しましたよね？ — まだ最終条件を検討中です。",
@@ -1883,7 +1609,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「先月承認しましたよね」という付加疑問に対し「まだ最終条件を検討中だ」とまだ承認されていないことを示しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「先月承認しましたよね」という付加疑問に対し「まだ最終条件を検討中だ」とまだ承認されていないことを示しており、話の流れに合う。他の2つ（\"The board meets twice a month.\"／\"The deal is worth quite a lot.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-personnel",
@@ -1904,15 +1630,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13558,
-        "questionEndMs": 3799,
-        "responseOffsetsMs": [
-          3999,
-          7093,
-          10024
-        ],
-        "responsesTextDigest": "d5c188df"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "Personnel numbers in the design team went up this year, didn't they? — No, they actually stayed exactly the same.",
       "translation": "デザインチームの人員は今年増えましたよね？ — いいえ、実際は全く変わりませんでした。",
@@ -1931,7 +1650,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「今年増えましたよね」という付加疑問に対し「いいえ、全く変わらなかった」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「今年増えましたよね」という付加疑問に対し「いいえ、全く変わらなかった」と訂正しており、話の流れに合う。他の2つ（\"The design team works on branding.\"／\"Headcount reports come out quarterly.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-exhibitor",
@@ -1952,15 +1671,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10449,
-        "questionEndMs": 3613,
-        "responseOffsetsMs": [
-          3813,
-          6210,
-          8177
-        ],
-        "responsesTextDigest": "fdbae59e"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "Every exhibitor gets a booth near the entrance, doesn't it? — Only the ones who registered before June.",
       "translation": "出展者は全員入口近くのブースを得られますよね？ — 6月前に登録した出展者だけです。",
@@ -1979,7 +1691,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「全出展者が入口近くのブースを得ますよね」という付加疑問に対し「6月前に登録した出展者だけ」と条件付きで応じており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「全出展者が入口近くのブースを得ますよね」という付加疑問に対し「6月前に登録した出展者だけ」と条件付きで応じており、話の流れに合う。他の2つ（\"The entrance is near the main hall.\"／\"Booths are set up the night before.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-outlet",
@@ -2000,15 +1712,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 15517,
-        "questionEndMs": 3741,
-        "responseOffsetsMs": [
-          3941,
-          8091,
-          11370
-        ],
-        "responsesTextDigest": "e553147e"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "The European outlet reports directly to headquarters, doesn't it? — It actually reports through the regional office first.",
       "translation": "欧州子会社は本社に直接報告しますよね？ — 実は地域事務所を経由してから報告します。",
@@ -2027,7 +1732,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「本社に直接報告しますよね」という付加疑問に対し「実は地域事務所を経由してから報告する」と訂正しており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「本社に直接報告しますよね」という付加疑問に対し「実は地域事務所を経由してから報告する」と訂正しており、話の流れに合う。他の2つ（\"The outlet was opened in 2015.\"／\"Headquarters is based overseas.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-wholesaler",
@@ -2048,15 +1753,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 13035,
-        "questionEndMs": 4263,
-        "responseOffsetsMs": [
-          4463,
-          6918,
-          10604
-        ],
-        "responsesTextDigest": "c18580a4"
+        "voice": "pending-tts",
+        "durationMs": 7700
       },
       "script": "That wholesaler offers the lowest prices in the region, doesn't it? — It did, until a new supplier undercut them last month.",
       "translation": "その卸売業者はこの地域で最安値ですよね？ — 以前はそうでしたが、先月新しい業者がさらに安くしました。",
@@ -2075,7 +1773,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「地域で最安値ですよね」という付加疑問に対し「以前はそうだったが先月新しい業者がさらに安くした」と変化を伝えており、話の流れに合う。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「地域で最安値ですよね」という付加疑問に対し「以前はそうだったが先月新しい業者がさらに安くした」と変化を伝えており、話の流れに合う。他の2つ（\"Prices tend to rise every winter.\"／\"The wholesaler supplies most local shops.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-credential",
@@ -2096,15 +1794,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13871,
-        "questionEndMs": 4623,
-        "responseOffsetsMs": [
-          4823,
-          7824,
-          11335
-        ],
-        "responsesTextDigest": "1b1397bd"
+        "voice": "pending-tts",
+        "durationMs": 7700
       },
       "script": "Should we hire the contractor with the stronger credential or the one from the capital? — Whichever one can start sooner, honestly.",
       "translation": "地元の請負業者にすべきか、首都の業者にすべきか？ — 正直、早く始められる方でいいです。",
@@ -2123,7 +1814,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「どちらの請負業者にすべきか」という選択疑問に対し「早く始められる方でいい」と決定基準を示す形で答えており、話の流れに合う。他の2つはどちらかを選んでいない。"
+      "explanation": "間接応答: 「どちらの請負業者にすべきか」という選択疑問に対し「早く始められる方でいい」と決定基準を示す形で答えており、話の流れに合う。他の2つ（\"Both contractors have good reviews.\"／\"The capital is two hours away.\"）はどちらかを選んでいない。"
     },
     {
       "id": "part2-connection",
@@ -2144,18 +1835,11 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11207,
-        "questionEndMs": 3811,
-        "responseOffsetsMs": [
-          4011,
-          6478,
-          9421
-        ],
-        "responsesTextDigest": "9bdb30ae"
+        "voice": "pending-tts",
+        "durationMs": 7700
       },
       "script": "Do you want the venue with the better transit connection or the one downtown? — Let's see which one is cheaper first.",
-      "translation": "会場は川沿いか都心のどちらがいいですか？ — まずどちらが安いか確認しましょう。",
+      "translation": "会場は交通の便が良い方か都心の方か、どちらがいいですか？ — まずどちらが安いか確認しましょう。",
       "choices": [
         {
           "key": "A",
@@ -2171,7 +1855,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「川沿いか都心のどちらの会場か」という選択疑問に対し「まず安い方を確認しよう」と決定を先延ばしにする形で答えており、話の流れに合う。他の2つは直接どちらかを選んでいる（間接応答ではない）。"
+      "explanation": "間接応答: 「交通の便が良い会場か都心の会場か」という選択疑問に対し「まず安い方を確認しよう」と決定を先延ばしにする形で答えており、話の流れに合う。他の2つ（\"The transit connection is quite fast.\"／\"Downtown is easier to reach by train.\"）は直接どちらかを選んでいる（間接応答ではない）。"
     },
     {
       "id": "part2-keynote",
@@ -2192,18 +1876,11 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13740,
-        "questionEndMs": 4159,
-        "responseOffsetsMs": [
-          4359,
-          7592,
-          10720
-        ],
-        "responsesTextDigest": "77bfa59d"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "Should the schedule include a day trip or just the keynote session? — I'll let the client decide that one.",
-      "translation": "旅程には日帰り旅行を含めるべきですか、それとも市内観光だけですか？ — それはお客様に決めてもらいます。",
+      "translation": "予定には日帰り旅行を含めるべきですか、それとも基調講演だけですか？ — それはお客様に決めてもらいます。",
       "choices": [
         {
           "key": "A",
@@ -2215,11 +1892,11 @@
         },
         {
           "key": "C",
-          "text": "The city tour lasts about three hours."
+          "text": "The keynote session runs three hours."
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「日帰り旅行を含めるか市内観光だけにするか」という選択疑問に対し「それは顧客に決めてもらう」と判断を委ねる形で答えており、話の流れに合う。他の2つはどちらかを直接選んでいる。"
+      "explanation": "間接応答: 「日帰り旅行を含めるか基調講演だけにするか」という選択疑問に対し「それは顧客に決めてもらう」と判断を委ねる形で答えており、話の流れに合う。他の2つ（\"Day trips require an early start.\"／\"The keynote session runs three hours.\"）はどちらかを直接選んでいる。"
     },
     {
       "id": "part2-menu",
@@ -2232,7 +1909,7 @@
       "keyVocab": [
         {
           "word": "menu",
-          "sense": "メニュー",
+          "sense": "メニュー（品書き・選択項目）",
           "freqRank": "S"
         }
       ],
@@ -2240,15 +1917,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10893,
-        "questionEndMs": 3799,
-        "responseOffsetsMs": [
-          3999,
-          6918,
-          9303
-        ],
-        "responsesTextDigest": "573d67b8"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "Should we finalize the menu for noon or one o'clock service? — Whatever works best for the guest speaker's schedule.",
       "translation": "メニューは正午か1時のどちらで確定すべきですか？ — 来賓講演者の予定に一番合う方でお願いします。",
@@ -2267,7 +1937,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「正午か1時のどちらでメニューを確定するか」という選択疑問に対し「来賓講演者の予定に合わせる」と別の基準に委ねる形で答えており、話の流れに合う。他の2つはどちらかを直接選んでいない代わりに関係ない情報。"
+      "explanation": "間接応答: 「正午か1時のどちらでメニューを確定するか」という選択疑問に対し「来賓講演者の予定に合わせる」と別の基準に委ねる形で答えており、話の流れに合う。他の2つ（\"The caterer needs two days notice.\"／\"Lunch usually runs an hour.\"）はどちらかを直接選んでいない代わりに関係ない情報。"
     },
     {
       "id": "part2-layover",
@@ -2288,15 +1958,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12931,
-        "questionEndMs": 3230,
-        "responseOffsetsMs": [
-          3430,
-          6303,
-          9547
-        ],
-        "responsesTextDigest": "d7bb4197"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "Would you rather have a layover in Dubai or fly direct? — Direct, if it doesn't cost too much more.",
       "translation": "ドバイ経由にしますか、それとも直行にしますか？ — 値段があまり変わらないなら直行がいいです。",
@@ -2315,7 +1978,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「ドバイ経由か直行か」という選択疑問に対し「値段があまり変わらないなら直行」と条件付きで直行を選んでおり、話の流れに合う。他の2つは選択への直接の回答になっていない。"
+      "explanation": "間接応答: 「ドバイ経由か直行か」という選択疑問に対し「値段があまり変わらないなら直行」と条件付きで直行を選んでおり、話の流れに合う。他の2つ（\"Dubai has a beautiful airport.\"／\"Direct flights are always faster.\"）は選択への直接の回答になっていない。"
     },
     {
       "id": "part2-capital",
@@ -2336,15 +1999,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11833,
-        "questionEndMs": 4113,
-        "responseOffsetsMs": [
-          4313,
-          7279,
-          10129
-        ],
-        "responsesTextDigest": "a12e67fa"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "Should we expand through franchising or open company-owned stores? — Franchising would let us grow faster with less capital.",
       "translation": "フランチャイズで展開すべきか、直営店を開くべきか？ — フランチャイズなら少ない資本で速く成長できますね。",
@@ -2363,7 +2019,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「フランチャイズ展開か直営店開設か」という選択疑問に対し「フランチャイズなら少ない資本で速く成長できる」と理由を添えて選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "explanation": "間接応答: 「フランチャイズ展開か直営店開設か」という選択疑問に対し「フランチャイズなら少ない資本で速く成長できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"Company-owned stores are easier to manage.\"／\"Our current stores are doing well.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-supplier",
@@ -2384,15 +2040,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 15882,
-        "questionEndMs": 4229,
-        "responseOffsetsMs": [
-          4429,
-          9310,
-          12299
-        ],
-        "responsesTextDigest": "36f48033"
+        "voice": "pending-tts",
+        "durationMs": 8050
       },
       "script": "Should we outsource the customer support to a supplier or keep it in-house? — Let's pilot outsourcing for just one product line first.",
       "translation": "顧客サポートを外部委託すべきか、社内で続けるべきか？ — まず1つの製品ラインだけで試験導入してみましょう。",
@@ -2411,7 +2060,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「顧客対応を外部委託するか社内で続けるか」という選択疑問に対し「まず1つの製品ラインで試験導入しよう」と条件付きの折衷案を示しており、話の流れに合う。他の2つはどちらかを直接選んでいない。"
+      "explanation": "間接応答: 「顧客対応を外部委託するか社内で続けるか」という選択疑問に対し「まず1つの製品ラインで試験導入しよう」と条件付きの折衷案を示しており、話の流れに合う。他の2つ（\"In-house support tends to cost more.\"／\"Customer satisfaction scores dropped recently.\"）はどちらかを直接選んでいない。"
     },
     {
       "id": "part2-rebrand",
@@ -2432,15 +2081,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11598,
-        "questionEndMs": 3648,
-        "responseOffsetsMs": [
-          3848,
-          6326,
-          9582
-        ],
-        "responsesTextDigest": "555a44ec"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "Do we rebrand the whole company or just refresh the logo? — Let's start small and see how customers react.",
       "translation": "会社全体をリブランドすべきか、それともロゴだけ更新すべきか？ — まず小さく始めて、お客様の反応を見ましょう。",
@@ -2459,7 +2101,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「会社全体をリブランドするかロゴだけ更新するか」という選択疑問に対し「小さく始めて反応を見よう」と暗にロゴ更新を選ぶ形で答えており、話の流れに合う。他の2つは選択の判断につながっていない。"
+      "explanation": "間接応答: 「会社全体をリブランドするかロゴだけ更新するか」という選択疑問に対し「小さく始めて反応を見よう」と暗にロゴ更新を選ぶ形で答えており、話の流れに合う。他の2つ（\"Rebranding usually takes a full year.\"／\"The current logo is ten years old.\"）は選択の判断につながっていない。"
     },
     {
       "id": "part2-carrier",
@@ -2480,15 +2122,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 13819,
-        "questionEndMs": 4078,
-        "responseOffsetsMs": [
-          4278,
-          7395,
-          10558
-        ],
-        "responsesTextDigest": "de220fbc"
+        "voice": "pending-tts",
+        "durationMs": 8050
       },
       "script": "Should we use an air carrier or a sea carrier for this shipment? — Air, since the client needs it within the week.",
       "translation": "今回は航空便か海運かどちらで発送すべきですか？ — お客様が1週間以内に必要としているので航空便です。",
@@ -2507,7 +2142,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「今回は航空便か海運かどちらで発送するか」という選択疑問に対し「顧客が1週間以内に必要なので航空便」と理由を添えて選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "explanation": "間接応答: 「今回は航空便か海運かどちらで発送するか」という選択疑問に対し「顧客が1週間以内に必要なので航空便」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"Sea carriers are cheaper per container.\"／\"The shipment weighs about two tons.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-subcontractor",
@@ -2528,15 +2163,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 13009,
-        "questionEndMs": 4263,
-        "responseOffsetsMs": [
-          4463,
-          6558,
-          10650
-        ],
-        "responsesTextDigest": "18b0554f"
+        "voice": "pending-tts",
+        "durationMs": 9100
       },
       "script": "Do you want to bring in a subcontractor or extend the current crew's hours? — Extending hours might be cheaper, but let's check overtime rules first.",
       "translation": "下請け業者を入れるべきですか、それとも今の作業員の勤務時間を延長すべきですか？ — 延長の方が安いかもしれませんが、まず残業規定を確認しましょう。",
@@ -2555,10 +2183,10 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「下請け業者を入れるか現場の勤務時間を延長するか」という選択疑問に対し「延長の方が安いかもしれないが残業規定を先に確認しよう」と条件付きで答えており、話の流れに合う。他の2つは判断につながっていない。"
+      "explanation": "間接応答: 「下請け業者を入れるか現場の勤務時間を延長するか」という選択疑問に対し「延長の方が安いかもしれないが残業規定を先に確認しよう」と条件付きで答えており、話の流れに合う。他の2つ（\"The current crew has ten workers.\"／\"The subcontractor is available next week.\"）は判断につながっていない。"
     },
     {
-      "id": "part2-liquidation",
+      "id": "part2-replenishment",
       "part": 2,
       "format": "audio_qa",
       "difficulty": 4,
@@ -2567,43 +2195,36 @@
       ],
       "keyVocab": [
         {
-          "word": "liquidation",
-          "sense": "在庫処分",
+          "word": "replenishment",
+          "sense": "補充",
           "freqRank": "B"
         }
       ],
-      "audio": "audio/part2/liquidation.mp3",
+      "audio": "audio/part2/replenishment.mp3",
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 15360,
-        "questionEndMs": 3880,
-        "responseOffsetsMs": [
-          4080,
-          7882,
-          12380
-        ],
-        "responsesTextDigest": "12e60c58"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
-      "script": "Should the excess inventory go to liquidation or be donated? — Donation might actually help our tax situation more.",
-      "translation": "過剰在庫は処分すべきですか、それとも寄付すべきですか？ — 寄付の方が税務上、実は有利かもしれません。",
+      "script": "Should replenishment happen before opening or after closing? — Mornings work better, since the delivery arrives at six.",
+      "translation": "補充は開店前にすべきですか、それとも閉店後ですか？ — 配送が6時に届くので、朝の方がやりやすいです。",
       "choices": [
         {
           "key": "A",
-          "text": "Liquidation sales usually last a week."
+          "text": "The stockroom takes up a lot of space."
         },
         {
           "key": "B",
-          "text": "Donation might actually help our tax situation more."
+          "text": "Replenishment usually takes about an hour."
         },
         {
           "key": "C",
-          "text": "The inventory takes up a lot of space."
+          "text": "Mornings work better, since the delivery arrives at six."
         }
       ],
-      "answer": "B",
-      "explanation": "間接応答: 「過剰在庫を処分するか寄付するか」という選択疑問に対し「寄付の方が税務上有利かもしれない」と理由を添えて寄付を選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "answer": "C",
+      "explanation": "間接応答: 「補充は開店前か閉店後か」という選択疑問に対し「配送が6時に届くので朝の方がよい」と理由を添えて開店前を選んでおり、話の流れに合う。他の2つ（\"The stockroom takes up a lot of space.\"／\"Replenishment usually takes about an hour.\"）は在庫置き場の広さ・所要時間の話で、どちらも選択の根拠になっていない。"
     },
     {
       "id": "part2-showroom",
@@ -2616,7 +2237,7 @@
       "keyVocab": [
         {
           "word": "showroom",
-          "sense": "ショールーム",
+          "sense": "ショールーム（展示室）",
           "freqRank": "A"
         }
       ],
@@ -2624,15 +2245,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 11546,
-        "questionEndMs": 3869,
-        "responseOffsetsMs": [
-          4069,
-          6478,
-          9583
-        ],
-        "responsesTextDigest": "2210898e"
+        "voice": "pending-tts",
+        "durationMs": 8750
       },
       "script": "Would you rather see the new models at the showroom or online first? — Online first, so I know what to look for in person.",
       "translation": "ショールームで新モデルを見るか、まずオンラインで見るか、どちらがいいですか？ — まずオンラインで見て、実際に確認すべき点を把握したいです。",
@@ -2651,7 +2265,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「ショールームで見るかまずオンラインで見るか」という選択疑問に対し「まずオンラインで見て、実際に確認すべき点を把握したい」と理由を添えて選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "explanation": "間接応答: 「ショールームで見るかまずオンラインで見るか」という選択疑問に対し「まずオンラインで見て、実際に確認すべき点を把握したい」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"The new models launched last week.\"／\"The showroom is open until eight.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-expense",
@@ -2672,15 +2286,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 15073,
-        "questionEndMs": 5250,
-        "responseOffsetsMs": [
-          5450,
-          8636,
-          11846
-        ],
-        "responsesTextDigest": "330b943a"
+        "voice": "pending-tts",
+        "durationMs": 7700
       },
       "script": "Should we book a bus, given the extra expense, or have everyone drive separately? — The bus, so we all arrive together.",
       "translation": "追加費用がかかってもバスを予約すべきですか、それとも各自で運転すべきですか？ — バスなら皆一緒に到着できますね。",
@@ -2699,7 +2306,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「追加費用がかかってもバスを予約するか各自で運転するか」という選択疑問に対し「バスなら皆一緒に到着できる」と理由を添えて選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "explanation": "間接応答: 「追加費用がかかってもバスを予約するか各自で運転するか」という選択疑問に対し「バスなら皆一緒に到着できる」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"The parking lot has plenty of space.\"／\"Driving separately gives more flexibility.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-target",
@@ -2718,17 +2325,10 @@
       ],
       "audio": "audio/part2/target.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12852,
-        "questionEndMs": 3857,
-        "responseOffsetsMs": [
-          4057,
-          6849,
-          10128
-        ],
-        "responsesTextDigest": "d9f98535"
+        "voice": "pending-tts",
+        "durationMs": 6300
       },
       "script": "Is the delay affecting our production target or shipping this month? — Honestly, it's a bit of both.",
       "translation": "障害は生産にあるのか、それとも配送にあるのか？ — 正直、今月は両方に少しずつあります。",
@@ -2747,7 +2347,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「生産か配送のどちらに障害があるか」という選択疑問に対し「今月は両方に少しずつある」と両方を示す形で答えており、話の流れに合う。他の2つはどちらかを直接選んでいない。"
+      "explanation": "間接応答: 「生産か配送のどちらに障害があるか」という選択疑問に対し「今月は両方に少しずつある」と両方を示す形で答えており、話の流れに合う。他の2つ（\"Production runs three shifts a day.\"／\"Shipping delays cost us customers.\"）はどちらかを直接選んでいない。"
     },
     {
       "id": "part2-revenue",
@@ -2768,15 +2368,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14576,
-        "questionEndMs": 4484,
-        "responseOffsetsMs": [
-          4684,
-          8103,
-          11893
-        ],
-        "responsesTextDigest": "c62bf00d"
+        "voice": "pending-tts",
+        "durationMs": 7000
       },
       "script": "Will the new levy affect resident revenue or business revenue only? — It's still under debate at the city council.",
       "translation": "新しい課税は住民に適用されるのか、それとも企業だけか？ — まだ市議会で議論中です。",
@@ -2795,7 +2388,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「新しい課税は住民に適用されるか企業だけか」という選択疑問に対し「市議会でまだ議論中だ」とまだ決まっていないことを示しており、話の流れに合う。他の2つはどちらかを直接選んでいない。"
+      "explanation": "間接応答: 「新しい課税は住民に適用されるか企業だけか」という選択疑問に対し「市議会でまだ議論中だ」とまだ決まっていないことを示しており、話の流れに合う。他の2つ（\"Residents already pay property tax.\"／\"The levy would fund road repairs.\"）はどちらかを直接選んでいない。"
     },
     {
       "id": "part2-overhead",
@@ -2816,15 +2409,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12669,
-        "questionEndMs": 5378,
-        "responseOffsetsMs": [
-          5578,
-          8103,
-          11115
-        ],
-        "responsesTextDigest": "b9c5ac11"
+        "voice": "pending-tts",
+        "durationMs": 9100
       },
       "script": "Should we hire more staff now, even with the added overhead, or wait until next quarter? — Let's wait and see how the current project goes.",
       "translation": "今すぐ人員を増やすべきですか、それとも来期まで待つべきですか？ — 今のプロジェクトの様子を見てから決めましょう。",
@@ -2843,7 +2429,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「今すぐ人員を増やすか来期まで待つか」という選択疑問に対し「今のプロジェクトの様子を見てから決めよう」と暗に待つ方を選んでおり、話の流れに合う。他の2つは選択への直接の回答になっていない。"
+      "explanation": "間接応答: 「今すぐ人員を増やすか来期まで待つか」という選択疑問に対し「今のプロジェクトの様子を見てから決めよう」と暗に待つ方を選んでおり、話の流れに合う。他の2つ（\"Hiring now would cost more overall.\"／\"Overhead grew last year too.\"）は選択への直接の回答になっていない。"
     },
     {
       "id": "part2-retailer",
@@ -2864,15 +2450,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 14158,
-        "questionEndMs": 4159,
-        "responseOffsetsMs": [
-          4359,
-          7905,
-          11451
-        ],
-        "responsesTextDigest": "d431b19b"
+        "voice": "pending-tts",
+        "durationMs": 7350
       },
       "script": "Should we partner with the online retailer or the chain of physical stores? — Both, if the terms are reasonable enough.",
       "translation": "オンライン小売業者と提携すべきですか、それとも実店舗チェーンと提携すべきですか？ — 条件が合理的なら両方でもいいですね。",
@@ -2891,7 +2470,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「オンライン小売業者か実店舗チェーンのどちらと提携するか」という選択疑問に対し「条件が合理的なら両方」と両方を示す形で答えており、話の流れに合う。他の2つはどちらかを直接選んでいない。"
+      "explanation": "間接応答: 「オンライン小売業者か実店舗チェーンのどちらと提携するか」という選択疑問に対し「条件が合理的なら両方」と両方を示す形で答えており、話の流れに合う。他の2つ（\"The online retailer ships internationally.\"／\"The chain has locations nationwide.\"）はどちらかを直接選んでいない。"
     },
     {
       "id": "part2-covenant",
@@ -2912,15 +2491,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 12408,
-        "questionEndMs": 4577,
-        "responseOffsetsMs": [
-          4777,
-          7418,
-          9559
-        ],
-        "responsesTextDigest": "d89abb9a"
+        "voice": "pending-tts",
+        "durationMs": 9100
       },
       "script": "Do you want to renew the lease covenant for another year or negotiate a shorter term? — A shorter term, so we keep our options open.",
       "translation": "賃貸契約を1年更新すべきですか、それとも短期での交渉にすべきですか？ — 短期にして、選択肢を残しておきたいです。",
@@ -2939,7 +2511,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「1年間の契約更新か短期契約の交渉か」という選択疑問に対し「短期契約にして選択肢を残したい」と理由を添えて選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "explanation": "間接応答: 「1年間の契約更新か短期契約の交渉か」という選択疑問に対し「短期契約にして選択肢を残したい」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"The current agreement expires in June.\"／\"Rent went up slightly this year.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-profit",
@@ -2960,15 +2532,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 15151,
-        "questionEndMs": 4635,
-        "responseOffsetsMs": [
-          4835,
-          7731,
-          11080
-        ],
-        "responsesTextDigest": "6bf63415"
+        "voice": "pending-tts",
+        "durationMs": 8400
       },
       "script": "Should we recruit more partners to grow profit or focus on the ones we have? — Focus on the current ones; quality over quantity.",
       "translation": "提携先を増やすべきですか、それとも今の提携先に集中すべきですか？ — 今の提携先に集中しましょう。量より質です。",
@@ -2987,7 +2552,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「提携先を増やすか今の提携先に集中するか」という選択疑問に対し「今の提携先に集中する。量より質」と理由を添えて選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "explanation": "間接応答: 「提携先を増やすか今の提携先に集中するか」という選択疑問に対し「今の提携先に集中する。量より質」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"Partners earn a commission per sale.\"／\"We currently have about fifty partners.\"）は選択の根拠を示していない。"
     },
     {
       "id": "part2-request",
@@ -3008,15 +2573,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9718,
-        "questionEndMs": 3520,
-        "responseOffsetsMs": [
-          3720,
-          5850,
-          8108
-        ],
-        "responsesTextDigest": "6f5e0982"
+        "voice": "pending-tts",
+        "durationMs": 6650
       },
       "script": "Should we respond to the request by phone or by email? — Email, so we have a written record.",
       "translation": "その問い合わせには電話で返答すべきですか、それともメールで返答すべきですか？ — 記録が残るようにメールにしましょう。",
@@ -3035,7 +2593,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「問い合わせに電話かメールのどちらで返答するか」という選択疑問に対し「記録が残るのでメール」と理由を添えて選んでおり、話の流れに合う。他の2つは選択の根拠を示していない。"
+      "explanation": "間接応答: 「問い合わせに電話かメールのどちらで返答するか」という選択疑問に対し「記録が残るのでメール」と理由を添えて選んでおり、話の流れに合う。他の2つ（\"Phone calls tend to be faster.\"／\"The request came in this morning.\"）は選択の根拠を示していない。"
     }
   ]
 }

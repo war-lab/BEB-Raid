@@ -190,10 +190,10 @@ export const VOCAB_CARDS_A: VocabCardEntry[] = [
     phrase: 'The company offers a paid internship to university students every summer.',
   },
   {
-    word: 'severance',
+    word: 'payroll',
     tags: ['人事・採用・研修'],
-    back: '退職金',
-    phrase: 'Employees who are laid off will receive a severance package.',
+    back: '給与支払業務',
+    phrase: 'The payroll department processes salaries on the last business day.',
   },
   {
     word: 'pension',
@@ -258,10 +258,10 @@ export const VOCAB_CARDS_A: VocabCardEntry[] = [
     phrase: 'Monthly reconciliation of accounts is required by policy.',
   },
   {
-    word: 'arrears',
+    word: 'remittance',
     tags: ['財務・会計・契約'],
-    back: '未払い金',
-    phrase: "The tenant's rent payments are three months in arrears.",
+    back: '送金',
+    phrase: 'Please include the invoice number with your remittance.',
   },
   {
     word: 'surplus',
@@ -888,10 +888,10 @@ export const VOCAB_CARDS_A: VocabCardEntry[] = [
     phrase: 'The tenancy agreement runs for two years.',
   },
   {
-    word: 'eviction',
+    word: 'custodian',
     tags: ['不動産・施設・建築'],
-    back: '立ち退き',
-    phrase: 'The landlord began eviction proceedings after months of unpaid rent.',
+    back: '施設管理者',
+    phrase: 'The building custodian unlocks the conference rooms each morning.',
   },
   {
     word: 'dwelling',

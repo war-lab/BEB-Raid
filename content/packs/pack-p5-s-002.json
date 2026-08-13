@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 105185
+    "sizeBytes": 105235
   },
   "questions": [
     {
@@ -1585,7 +1585,7 @@
           "freqRank": "S"
         }
       ],
-      "question": "The tenant ___ the landlord evicted has filed a complaint.",
+      "question": "The tenant ___ the building manager contacted has renewed the lease.",
       "choices": [
         {
           "key": "A",
@@ -1605,8 +1605,8 @@
         }
       ],
       "answer": "D",
-      "explanation": "目的格の関係代名詞whomが正しい（the landlord evictedのevictedの目的語）。whichは物を指す関係代名詞、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。",
-      "translation": "大家が立ち退かせたその借家人は苦情を申し立てた。"
+      "explanation": "目的格の関係代名詞whomが正しい（the building manager contactedのcontactedの目的語）。whichは物を指す関係代名詞、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。",
+      "translation": "建物の管理者が連絡したその入居者は、賃貸契約を更新した。"
     },
     {
       "id": "part5-landlord",
@@ -3015,7 +3015,7 @@
       "translation": "重大な監査結果が公になったため、その職員は辞任した。"
     },
     {
-      "id": "part5-arrears",
+      "id": "part5-remittance",
       "part": 5,
       "format": "text_blank",
       "difficulty": 3,
@@ -3024,12 +3024,12 @@
       ],
       "keyVocab": [
         {
-          "word": "arrears",
-          "sense": "未払い金",
+          "word": "remittance",
+          "sense": "送金",
           "freqRank": "A"
         }
       ],
-      "question": "The subscription was suspended ___ the payment was in arrears.",
+      "question": "The order was shipped ___ the remittance was confirmed by the bank.",
       "choices": [
         {
           "key": "A",
@@ -3049,8 +3049,8 @@
         }
       ],
       "answer": "D",
-      "explanation": "空所の後は節（the payment was in arrears）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。",
-      "translation": "支払いが滞納していたため、その定期購入は停止された。"
+      "explanation": "空所の後は節（the remittance was confirmed by the bank）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。",
+      "translation": "送金が銀行で確認されたため、その注文は出荷された。"
     },
     {
       "id": "part5-durability",

@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 86439
+    "sizeBytes": 86440
   },
   "questions": [
     {
@@ -998,7 +998,7 @@
       ],
       "keyVocab": [],
       "front": "breach",
-      "phrase": "Late delivery may be considered a breach of contract.",
+      "phrase": "The security team monitors the network for any breach.",
       "phraseAudio": "audio/vocab/breach.mp3",
       "back": "違反",
       "freqRank": "S",

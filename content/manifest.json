@@ -8,8 +8,8 @@
         600,
         600
       ],
-      "sizeBytes": 86439,
-      "hash": "dfb14c198f9abc3a"
+      "sizeBytes": 86440,
+      "hash": "2686c81719aa579e"
     },
     {
       "id": "pack-p2-s-001",
@@ -18,8 +18,8 @@
         600,
         600
       ],
-      "sizeBytes": 73328,
-      "hash": "097ef69f4be72051"
+      "sizeBytes": 63179,
+      "hash": "02929249e5466233"
     },
     {
       "id": "pack-p5-s-001",
@@ -28,8 +28,8 @@
         600,
         600
       ],
-      "sizeBytes": 52734,
-      "hash": "76ee14a25997dbde"
+      "sizeBytes": 52778,
+      "hash": "37076954ee860763"
     },
     {
       "id": "pack-p5-similar-s-001",
@@ -48,8 +48,8 @@
         600,
         730
       ],
-      "sizeBytes": 87880,
-      "hash": "52395380747cb7bd"
+      "sizeBytes": 87896,
+      "hash": "0ba9335822d79055"
     },
     {
       "id": "pack-vocab-b-001",
@@ -58,8 +58,8 @@
         730,
         860
       ],
-      "sizeBytes": 88949,
-      "hash": "60dc4ac6300b3e75"
+      "sizeBytes": 88918,
+      "hash": "1d7156b765d4878d"
     },
     {
       "id": "pack-p2-s-002",
@@ -68,8 +68,8 @@
         600,
         600
       ],
-      "sizeBytes": 124191,
-      "hash": "62c4b2a311b7b1dc"
+      "sizeBytes": 129665,
+      "hash": "7feb4badddc77902"
     },
     {
       "id": "pack-p5-s-002",
@@ -78,8 +78,8 @@
         600,
         600
       ],
-      "sizeBytes": 105185,
-      "hash": "b269f89ab07fae4d"
+      "sizeBytes": 105235,
+      "hash": "6e7b5ce122077777"
     },
     {
       "id": "pack-p34-s-001",
@@ -88,8 +88,8 @@
         600,
         600
       ],
-      "sizeBytes": 79749,
-      "hash": "c9002f5ca8645cbe"
+      "sizeBytes": 84554,
+      "hash": "43f421d3a9b614d0"
     },
     {
       "id": "pack-dict-s-001",
@@ -98,8 +98,8 @@
         600,
         600
       ],
-      "sizeBytes": 41996,
-      "hash": "e49c27f6578c4ded"
+      "sizeBytes": 41354,
+      "hash": "dcdb35c0fb3b087e"
     },
     {
       "id": "pack-shadow-s-001",
@@ -108,8 +108,8 @@
         600,
         600
       ],
-      "sizeBytes": 37839,
-      "hash": "f4e0ebed32c57f08"
+      "sizeBytes": 37369,
+      "hash": "75fd7c676a566f95"
     },
     {
       "id": "pack-p5-similar-s-002",
@@ -118,8 +118,8 @@
         600,
         600
       ],
-      "sizeBytes": 64537,
-      "hash": "6859d35d4e7fe5f2"
+      "sizeBytes": 64785,
+      "hash": "962909782366d297"
     },
     {
       "id": "pack-p5-similar-s-003",
@@ -128,8 +128,8 @@
         600,
         600
       ],
-      "sizeBytes": 131045,
-      "hash": "5f279b67815ec460"
+      "sizeBytes": 131096,
+      "hash": "89500d7dddad88dc"
     },
     {
       "id": "pack-p34-s-002",
@@ -138,8 +138,8 @@
         600,
         600
       ],
-      "sizeBytes": 77292,
-      "hash": "06fd04dcfe7101e4"
+      "sizeBytes": 84020,
+      "hash": "707352465f06cacb"
     },
     {
       "id": "pack-dict-s-002",
@@ -158,8 +158,8 @@
         730,
         860
       ],
-      "sizeBytes": 58003,
-      "hash": "43cbf363bf81b396"
+      "sizeBytes": 58909,
+      "hash": "9ac193151245eb40"
     },
     {
       "id": "pack-p34-s-003",
@@ -168,8 +168,8 @@
         730,
         860
       ],
-      "sizeBytes": 44982,
-      "hash": "f77bb04e2b601b26"
+      "sizeBytes": 48500,
+      "hash": "814b3139262c0e97"
     },
     {
       "id": "pack-vocab-s-002",
@@ -188,8 +188,8 @@
         600,
         730
       ],
-      "sizeBytes": 165687,
-      "hash": "e8abbadf291288f0"
+      "sizeBytes": 174352,
+      "hash": "6ccb76c586d15e38"
     },
     {
       "id": "pack-reading-p7single-s-001",
@@ -198,8 +198,8 @@
         600,
         730
       ],
-      "sizeBytes": 215170,
-      "hash": "7a9f863e7528fb3f"
+      "sizeBytes": 235565,
+      "hash": "c4fd8b8772e2515e"
     },
     {
       "id": "pack-p2-s-003",
@@ -208,8 +208,8 @@
         600,
         600
       ],
-      "sizeBytes": 101733,
-      "hash": "52d931b6427cb31f"
+      "sizeBytes": 94419,
+      "hash": "8fa7d62a36f4a4a4"
     }
   ]
 }

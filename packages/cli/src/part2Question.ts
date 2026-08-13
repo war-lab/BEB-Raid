@@ -18,7 +18,7 @@ import {
   type FreqRank,
   type Question,
 } from '@beb-raid/shared-schema'
-import { rotationAmount } from './choiceRotation.js'
+import { fnv1a, rotationAmount } from './choiceRotation.js'
 import { PART2_ENTRIES_S, type Part2Entry } from './data/part2QuestionsS.js'
 import { PART2_ENTRIES_S2_RAW, type Part2RawEntry } from './data/part2QuestionsS2.js'
 import { PART2_ENTRIES_S3_RAW } from './data/part2QuestionsS3.js'
@@ -137,6 +137,32 @@ export function part2EntryFromRaw(raw: Part2RawEntry): Part2Entry {
     translation: raw.translation,
     difficulty: raw.difficulty,
   }
+}
+
+/**
+ * M1のPart2 50問（PART2_ENTRIES_S）の出題順を決定的に並べ替える。
+ *
+ * Part2は「設問＋応答A〜C」を1音声ファイルに連結しており、responseOffsetsMsが選択肢の
+ * key昇順＝読み上げ順に対応する（part2Responses.ts）。そのため選択肢の並び替えでは
+ * 循環を解消できず、出題順の並べ替えしか手段がない
+ * （shuffle-cyclic-choices.mjs のorderモードと同じ考え方）。
+ *
+ * S2・S3はcorrectText/distractors形式でrotatePart2Choicesがkeyを分散させるが、Sだけは
+ * choices/answerを手書きした旧形式で、正答キー列が一定差分2の決定的循環になっていた。
+ * T-237のorderモードはドラフトJSONLを直接並べ替える一回限りの処置だったため、
+ * `beb generate` の再生成で失われる。正本のTS側で並べ替えないと再発する。
+ *
+ * 元の配列順に依存しないよう、まずkeyVocabWordの辞書順へ正規化してから、
+ * 各エントリのハッシュをソートキーにして並べ替える（何度実行しても同じ順に収束する）。
+ */
+export function orderPart2EntriesS(entries: readonly Part2Entry[] = PART2_ENTRIES_S): Part2Entry[] {
+  return [...entries]
+    .sort((a, b) =>
+      a.keyVocabWord < b.keyVocabWord ? -1 : a.keyVocabWord > b.keyVocabWord ? 1 : 0,
+    )
+    .map((entry) => ({ entry, seed: fnv1a(`part2-s|${entry.keyVocabWord}`) }))
+    .sort((a, b) => a.seed - b.seed)
+    .map((x) => x.entry)
 }
 
 /** Part2追加分（M2・T-60・S2）100問をPart2Entry形式に組み立てる */

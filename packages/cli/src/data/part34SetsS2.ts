@@ -54,7 +54,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'It does not include installation',
           'It was sent to the wrong department',
         ],
-        explanation: '男性は"the price is higher than we budgeted"と述べている。',
+        explanation:
+          '男性は"the price is higher than we budgeted"と述べている。他の選択肢（"It arrived after the deadline"／"It does not include installation"／"It was sent to the wrong department"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性は見積もりについてどんな問題を挙げていますか。',
       },
       {
@@ -65,7 +66,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Approving the estimate immediately',
           'Asking for a discount from the same supplier',
         ],
-        explanation: '男性は"we should ask two more suppliers before we decide"と提案している。',
+        explanation:
+          '男性は"we should ask two more suppliers before we decide"と提案している。他の選択肢（"Asking for a discount from the same supplier"／"Canceling the laptop purchase"／"Approving the estimate immediately"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性は次に何をすることを提案していますか。',
       },
     ],
@@ -112,7 +114,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Close registration early',
           'Ask the woman to lead the conference',
         ],
-        explanation: '男性は"I\'ll check with the venue today"と述べている。',
+        explanation:
+          '男性は"I\'ll check with the venue today"と述べている。他の選択肢（"Close registration early"／"Ask the woman to lead the conference"／"Cancel the conference"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性は次に何をする可能性が高いですか。',
       },
     ],
@@ -150,7 +153,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         question: 'What will the speakers do before responding to the tenant?',
         correctText: "Review the tenant's payment history",
         distractors: ['Raise the rent immediately', 'Ask the tenant to move out', 'Call a lawyer'],
-        explanation: 'Bは"Let\'s review their payment history first"と述べている。',
+        explanation:
+          'Bは"Let\'s review their payment history first"と述べている。他の選択肢（"Call a lawyer"／"Raise the rent immediately"／"Ask the tenant to move out"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '話者たちは入居者に返答する前に何をしますか。',
       },
     ],
@@ -180,7 +184,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         question: 'When will a decision about office space be made?',
         correctText: 'By the end of March',
         distractors: ['By the end of this week', 'Sometime next year', 'It has already been made'],
-        explanation: 'Aは"a decision should come by the end of March"と述べている。',
+        explanation:
+          'Aは"a decision should come by the end of March"と述べている。他の選択肢（"By the end of this week"／"Sometime next year"／"It has already been made"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'オフィススペースについての決定はいつ下されますか。',
       },
       {
@@ -191,7 +196,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Close one of the offices',
           'Present the report to clients',
         ],
-        explanation: 'Bは"let\'s revisit the numbers again in April"と述べている。',
+        explanation:
+          'Bは"let\'s revisit the numbers again in April"と述べている。他の選択肢（"Hire more staff"／"Close one of the offices"／"Present the report to clients"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '話者たちは4月に何をしますか。',
       },
     ],
@@ -221,14 +227,16 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'It did not go well',
           'It has not happened yet',
         ],
-        explanation: 'Bは"Her interview went really well"と述べている。',
+        explanation:
+          'Bは"Her interview went really well"と述べている。他の選択肢（"It was canceled at the last minute"／"It did not go well"／"It has not happened yet"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'その候補者の面接はどうでしたか。',
       },
       {
         question: 'When is the candidate available for a second interview?',
         correctText: 'Thursday afternoon',
         distractors: ['Tomorrow morning', 'Next Monday', 'She is not available this week'],
-        explanation: 'Bは"She\'s available this Thursday afternoon"と述べている。',
+        explanation:
+          'Bは"She\'s available this Thursday afternoon"と述べている。他の選択肢（"Tomorrow morning"／"Next Monday"／"She is not available this week"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'その候補者はいつ2次面接に対応できますか。',
       },
     ],
@@ -264,7 +272,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'The client changed the delivery address',
           'The package was damaged',
         ],
-        explanation: '女性は"the warehouse ran out of the right size box"と述べている。',
+        explanation:
+          '女性は"the warehouse ran out of the right size box"と述べている。他の選択肢（"The package was damaged"／"The courier company went on strike"／"The client changed the delivery address"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'なぜその荷物は発送されなかったのですか。',
       },
       {
@@ -276,7 +285,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Ask the client to pick it up',
         ],
         explanation:
-          '男性は"Can we get the right size box sent over so it can still go out today?"と述べている。',
+          '男性は"Can we get the right size box sent over so it can still go out today?"と述べている。他の選択肢（"Ask the client to pick it up"／"Cancel the shipment entirely"／"Wait until tomorrow to ship it"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性は何をしたいと考えていますか。',
       },
     ],
@@ -311,7 +320,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Customers must upgrade to the premium tier',
         ],
         explanation:
-          '男性は"ten percent if customers renew before their plan expires"と述べている。',
+          '男性は"ten percent if customers renew before their plan expires"と述べている。他の選択肢（"Customers must pay by credit card"／"Customers must contact support first"／"Customers must upgrade to the premium tier"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'その割引にはどんな条件が付きますか。',
       },
       {
@@ -323,7 +332,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Raise the discount to twenty percent',
         ],
         explanation:
-          '男性は"let me confirm with the billing team and update the website today"と述べている。',
+          '男性は"let me confirm with the billing team and update the website today"と述べている。他の選択肢（"Cancel the discount program"／"Call each customer individually"／"Raise the discount to twenty percent"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性は次に何をしますか。',
       },
     ],
@@ -392,7 +401,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A hotel across the street',
           'No one has shown interest',
         ],
-        explanation: '男性は"one bakery seemed interested"と述べている。',
+        explanation:
+          '男性は"one bakery seemed interested"と述べている。他の選択肢（"No one has shown interest"／"A national supermarket chain"／"A hotel across the street"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'これまでに関心を示したのは誰ですか。',
       },
       {
@@ -404,7 +414,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           "A photo from last year's event",
         ],
         explanation:
-          '女性は"could you also collect a testimonial from last year\'s sponsor"と述べている。',
+          '女性は"could you also collect a testimonial from last year\'s sponsor"と述べている。他の選択肢（"A quote from the bakery owner"／"A list of past donors"／"A photo from last year\'s event"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '女性は何を集めるよう男性に依頼していますか。',
       },
     ],
@@ -447,7 +457,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'They already started construction',
         ],
         explanation:
-          'Bは"the contractor said they can adjust the start date if needed"と述べている。',
+          'Bは"the contractor said they can adjust the start date if needed"と述べている。他の選択肢（"They will cancel the project"／"They need more workers"／"They already started construction"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '請負業者は何と言いましたか。',
       },
     ],
@@ -479,7 +489,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         question: 'How long does the survey take?',
         correctText: 'About five minutes',
         distractors: ['About thirty minutes', 'About one hour', 'Less than one minute'],
-        explanation: '"It only takes about five minutes"と述べている。',
+        explanation:
+          '"It only takes about five minutes"と述べている。他の選択肢（"About thirty minutes"／"About one hour"／"Less than one minute"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'その調査にはどのくらい時間がかかりますか。',
       },
       {
@@ -522,7 +533,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Return all borrowed equipment',
         ],
         explanation:
-          '"Please make sure all shelves are labeled correctly before Friday evening"と述べている。',
+          '"Please make sure all shelves are labeled correctly before Friday evening"と述べている。他の選択肢（"Submit their weekly time sheets"／"Clean the entire warehouse floor"／"Return all borrowed equipment"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '金曜の夕方までにスタッフは何をすべきですか。',
       },
       {
@@ -531,7 +542,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         // クロスレビュー: "By midnight" は「早afternoonまでに終わる」を論理的に包含し第2正答化するため、
         // 開始時刻(scriptの "starting at eight in the morning")との混同を狙う誤答へ差し替え
         distractors: ['At eight in the morning', 'The following Monday', 'It has no set end time'],
-        explanation: '"We expect the count to finish by early afternoon"と述べている。',
+        explanation:
+          '"We expect the count to finish by early afternoon"と述べている。他の選択肢（"At eight in the morning"／"The following Monday"／"It has no set end time"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'その棚卸しはいつ終わる見込みですか。',
       },
     ],
@@ -562,14 +574,15 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         correctText: "Five o'clock this Friday",
         distractors: ["Nine o'clock Tuesday morning", 'Next Monday', 'It has already closed'],
         explanation:
-          '"registration for the leadership seminar closes at five o\'clock this Friday"と述べている。',
+          '"registration for the leadership seminar closes at five o\'clock this Friday"と述べている。他の選択肢（"It has already closed"／"Nine o\'clock Tuesday morning"／"Next Monday"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '登録はいつ締め切られますか。',
       },
       {
         question: 'How many participants can attend?',
         correctText: 'Forty',
         distractors: ['Ten', 'One hundred', 'There is no limit'],
-        explanation: '"Seats are limited to forty participants"と述べている。',
+        explanation:
+          '"Seats are limited to forty participants"と述べている。他の選択肢（"Ten"／"One hundred"／"There is no limit"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '何人まで参加できますか。',
       },
     ],
@@ -591,7 +604,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'The building will close for a holiday',
           'A new tenant will move in',
         ],
-        explanation: '"the main lobby will be closed for renovation starting Monday"と述べている。',
+        explanation:
+          '"the main lobby will be closed for renovation starting Monday"と述べている。他の選択肢（"A new tenant will move in"／"The parking garage will be repaved"／"The building will close for a holiday"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '月曜日から何が起こりますか。',
       },
       {
@@ -603,7 +617,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Call ahead before visiting',
         ],
         explanation:
-          '"visitors should use the side entrance near the parking garage"と述べている。',
+          '"visitors should use the side entrance near the parking garage"と述べている。他の選択肢（"Avoid the building completely"／"Call ahead before visiting"／"Enter through the loading dock only"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この期間中、訪問者は何をすべきですか。',
       },
       {
@@ -611,7 +625,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         correctText: 'Approximately two weeks',
         // クロスレビュー: メタ選択肢 "It is not mentioned" は本番形式に不自然なため具体的な期間の誤答へ
         distractors: ['One day', 'Six months', 'About two months'],
-        explanation: '"continuing for approximately two weeks"と述べている。',
+        explanation:
+          '"continuing for approximately two weeks"と述べている。他の選択肢（"Six months"／"About two months"／"One day"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'その改装はどれくらい続きますか。',
       },
     ],
@@ -633,7 +648,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'The break room is being renovated',
           'A technician did not show up',
         ],
-        explanation: '"the color printer near the break room is malfunctioning"と述べている。',
+        explanation:
+          '"the color printer near the break room is malfunctioning"と述べている。他の選択肢（"The break room is being renovated"／"A technician did not show up"／"The elevators are out of service"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'どんな問題が報告されていますか。',
       },
       {
@@ -645,7 +661,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Print from home instead',
         ],
         explanation:
-          '"Please use the black-and-white printer near the elevators until further notice"と述べている。',
+          '"Please use the black-and-white printer near the elevators until further notice"と述べている。他の選択肢（"Print only urgent documents"／"Ask IT before printing anything"／"Print from home instead"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '追って連絡があるまで、スタッフは何をすべきですか。',
       },
       {
@@ -689,7 +705,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A reference letter from a former employer',
         ],
         explanation:
-          '"We are currently waiting on an official transcript from each candidate\'s university"と述べている。',
+          '"We are currently waiting on an official transcript from each candidate\'s university"と述べている。他の選択肢（"A background check report"／"A reference letter from a former employer"／"A signed offer letter"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '会社は何を待っていますか。',
       },
       {
@@ -698,7 +714,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
         // クロスレビュー: "Within one month" は "within ten business days" を包含し第2正答化するため、
         // 包含関係にならない短い期間（scriptから保証されない）へ差し替え
         distractors: ['Immediately', 'Within two business days', 'They have already been notified'],
-        explanation: '"we expect to notify candidates within ten business days"と述べている。',
+        explanation:
+          '"we expect to notify candidates within ten business days"と述べている。他の選択肢（"Within two business days"／"They have already been notified"／"Immediately"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '候補者はいつ連絡を受けますか。',
       },
     ],
@@ -776,14 +793,15 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Return their office keys',
         ],
         explanation:
-          '"Please remove any personal items and back up important files before then"と述べている。',
+          '"Please remove any personal items and back up important files before then"と述べている。他の選択肢（"Return their office keys"／"Submit a request for new furniture"／"Attend a mandatory meeting"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '木曜日までにスタッフは何をするよう求められていますか。',
       },
       {
         question: 'When should the new office be ready?',
         correctText: 'By the following Monday',
         distractors: ['By Thursday', 'By the end of the year', 'It is already ready'],
-        explanation: '"should be ready for move-in by the following Monday"と述べている。',
+        explanation:
+          '"should be ready for move-in by the following Monday"と述べている。他の選択肢（"It is already ready"／"By Thursday"／"By the end of the year"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '新しいオフィスはいつまでに準備できる予定ですか。',
       },
     ],
@@ -806,14 +824,15 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           "To review last quarter's sales",
         ],
         explanation:
-          '"I want to update the team on our plan to recruit for the open vacancy"と述べている。',
+          '"I want to update the team on our plan to recruit for the open vacancy"と述べている。他の選択肢（"To announce a new customer support policy"／"To introduce a new team member"／"To review last quarter\'s sales"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この話の主な目的は何ですか。',
       },
       {
         question: 'Where has the job listing been posted?',
         correctText: 'On three websites',
         distractors: ['In a local newspaper', 'On one website only', 'It has not been posted yet'],
-        explanation: '"We have posted the job listing on three websites"と述べている。',
+        explanation:
+          '"We have posted the job listing on three websites"と述べている。他の選択肢（"It has not been posted yet"／"In a local newspaper"／"On one website only"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'その求人はどこに掲載されていますか。',
       },
       {
@@ -824,7 +843,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Contact the candidate directly',
           'Wait until the listing closes',
         ],
-        explanation: '"please forward their resume to human resources"と述べている。',
+        explanation:
+          '"please forward their resume to human resources"と述べている。他の選択肢（"Schedule the interview themselves"／"Contact the candidate directly"／"Wait until the listing closes"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '候補者を知っている場合、スタッフは何をするよう求められていますか。',
       },
     ],
@@ -846,7 +866,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'A new tax on large companies',
           'A hiring freeze',
         ],
-        explanation: '"today\'s briefing on the new regional employment subsidy"と述べている。',
+        explanation:
+          '"today\'s briefing on the new regional employment subsidy"と述べている。他の選択肢（"A hiring freeze"／"A change in the minimum wage"／"A new tax on large companies"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この説明会は何についてですか。',
       },
       {
@@ -858,7 +879,7 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'Only companies in the technology sector',
         ],
         explanation:
-          '"companies that expand their workforce by more than ten employees may qualify"と述べている。',
+          '"companies that expand their workforce by more than ten employees may qualify"と述べている。他の選択肢（"Companies with fewer than ten employees"／"Companies that reduce their workforce"／"Only companies in the technology sector"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'どの企業がその補助金の対象になり得ますか。',
       },
       {
@@ -871,7 +892,8 @@ export const PART34_ENTRIES_S2: Part34RawEntry[] = [
           'On the first of the month',
           'Reviews have already started',
         ],
-        explanation: '"will be reviewed within thirty days of submission"と述べている。',
+        explanation:
+          '"will be reviewed within thirty days of submission"と述べている。他の選択肢（"Within one week"／"On the first of the month"／"Reviews have already started"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '申請の審査にはどのくらいかかりますか。',
       },
     ],

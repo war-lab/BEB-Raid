@@ -9,7 +9,7 @@
       600,
       600
     ],
-    "sizeBytes": 77292
+    "sizeBytes": 84020
   },
   "questions": [
     {
@@ -88,7 +88,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "男性は\"the price is higher than we budgeted\"と述べている。",
+          "explanation": "男性は\"the price is higher than we budgeted\"と述べている。他の選択肢（\"It arrived after the deadline\"／\"It does not include installation\"／\"It was sent to the wrong department\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性は見積もりについてどんな問題を挙げていますか。"
         },
         {
@@ -113,7 +113,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "男性は\"we should ask two more suppliers before we decide\"と提案している。",
+          "explanation": "男性は\"we should ask two more suppliers before we decide\"と提案している。他の選択肢（\"Asking for a discount from the same supplier\"／\"Canceling the laptop purchase\"／\"Approving the estimate immediately\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性は次に何をすることを提案していますか。"
         }
       ]
@@ -219,7 +219,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "男性は\"I'll check with the venue today\"と述べている。",
+          "explanation": "男性は\"I'll check with the venue today\"と述べている。他の選択肢（\"Close registration early\"／\"Ask the woman to lead the conference\"／\"Cancel the conference\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性は次に何をする可能性が高いですか。"
         }
       ]
@@ -325,7 +325,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "Bは\"Let's review their payment history first\"と述べている。",
+          "explanation": "Bは\"Let's review their payment history first\"と述べている。他の選択肢（\"Call a lawyer\"／\"Raise the rent immediately\"／\"Ask the tenant to move out\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "話者たちは入居者に返答する前に何をしますか。"
         }
       ]
@@ -406,7 +406,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "Aは\"a decision should come by the end of March\"と述べている。",
+          "explanation": "Aは\"a decision should come by the end of March\"と述べている。他の選択肢（\"By the end of this week\"／\"Sometime next year\"／\"It has already been made\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "オフィススペースについての決定はいつ下されますか。"
         },
         {
@@ -431,7 +431,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "Bは\"let's revisit the numbers again in April\"と述べている。",
+          "explanation": "Bは\"let's revisit the numbers again in April\"と述べている。他の選択肢（\"Hire more staff\"／\"Close one of the offices\"／\"Present the report to clients\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "話者たちは4月に何をしますか。"
         }
       ]
@@ -512,7 +512,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "Bは\"Her interview went really well\"と述べている。",
+          "explanation": "Bは\"Her interview went really well\"と述べている。他の選択肢（\"It was canceled at the last minute\"／\"It did not go well\"／\"It has not happened yet\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "その候補者の面接はどうでしたか。"
         },
         {
@@ -537,7 +537,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "Bは\"She's available this Thursday afternoon\"と述べている。",
+          "explanation": "Bは\"She's available this Thursday afternoon\"と述べている。他の選択肢（\"Tomorrow morning\"／\"Next Monday\"／\"She is not available this week\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "その候補者はいつ2次面接に対応できますか。"
         }
       ]
@@ -618,7 +618,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "女性は\"the warehouse ran out of the right size box\"と述べている。",
+          "explanation": "女性は\"the warehouse ran out of the right size box\"と述べている。他の選択肢（\"The package was damaged\"／\"The courier company went on strike\"／\"The client changed the delivery address\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "なぜその荷物は発送されなかったのですか。"
         },
         {
@@ -643,7 +643,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "男性は\"Can we get the right size box sent over so it can still go out today?\"と述べている。",
+          "explanation": "男性は\"Can we get the right size box sent over so it can still go out today?\"と述べている。他の選択肢（\"Ask the client to pick it up\"／\"Cancel the shipment entirely\"／\"Wait until tomorrow to ship it\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性は何をしたいと考えていますか。"
         }
       ]
@@ -724,7 +724,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "男性は\"ten percent if customers renew before their plan expires\"と述べている。",
+          "explanation": "男性は\"ten percent if customers renew before their plan expires\"と述べている。他の選択肢（\"Customers must pay by credit card\"／\"Customers must contact support first\"／\"Customers must upgrade to the premium tier\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "その割引にはどんな条件が付きますか。"
         },
         {
@@ -749,7 +749,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "男性は\"let me confirm with the billing team and update the website today\"と述べている。",
+          "explanation": "男性は\"let me confirm with the billing team and update the website today\"と述べている。他の選択肢（\"Cancel the discount program\"／\"Call each customer individually\"／\"Raise the discount to twenty percent\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性は次に何をしますか。"
         }
       ]
@@ -936,7 +936,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "男性は\"one bakery seemed interested\"と述べている。",
+          "explanation": "男性は\"one bakery seemed interested\"と述べている。他の選択肢（\"No one has shown interest\"／\"A national supermarket chain\"／\"A hotel across the street\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "これまでに関心を示したのは誰ですか。"
         },
         {
@@ -961,7 +961,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "女性は\"could you also collect a testimonial from last year's sponsor\"と述べている。",
+          "explanation": "女性は\"could you also collect a testimonial from last year's sponsor\"と述べている。他の選択肢（\"A quote from the bakery owner\"／\"A list of past donors\"／\"A photo from last year's event\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "女性は何を集めるよう男性に依頼していますか。"
         }
       ]
@@ -1067,7 +1067,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "Bは\"the contractor said they can adjust the start date if needed\"と述べている。",
+          "explanation": "Bは\"the contractor said they can adjust the start date if needed\"と述べている。他の選択肢（\"They will cancel the project\"／\"They need more workers\"／\"They already started construction\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "請負業者は何と言いましたか。"
         }
       ]
@@ -1148,7 +1148,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"It only takes about five minutes\"と述べている。",
+          "explanation": "\"It only takes about five minutes\"と述べている。他の選択肢（\"About thirty minutes\"／\"About one hour\"／\"Less than one minute\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "その調査にはどのくらい時間がかかりますか。"
         },
         {
@@ -1254,7 +1254,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "\"Please make sure all shelves are labeled correctly before Friday evening\"と述べている。",
+          "explanation": "\"Please make sure all shelves are labeled correctly before Friday evening\"と述べている。他の選択肢（\"Submit their weekly time sheets\"／\"Clean the entire warehouse floor\"／\"Return all borrowed equipment\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "金曜の夕方までにスタッフは何をすべきですか。"
         },
         {
@@ -1279,7 +1279,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "\"We expect the count to finish by early afternoon\"と述べている。",
+          "explanation": "\"We expect the count to finish by early afternoon\"と述べている。他の選択肢（\"At eight in the morning\"／\"The following Monday\"／\"It has no set end time\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "その棚卸しはいつ終わる見込みですか。"
         }
       ]
@@ -1355,7 +1355,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"registration for the leadership seminar closes at five o'clock this Friday\"と述べている。",
+          "explanation": "\"registration for the leadership seminar closes at five o'clock this Friday\"と述べている。他の選択肢（\"It has already closed\"／\"Nine o'clock Tuesday morning\"／\"Next Monday\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "登録はいつ締め切られますか。"
         },
         {
@@ -1380,7 +1380,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"Seats are limited to forty participants\"と述べている。",
+          "explanation": "\"Seats are limited to forty participants\"と述べている。他の選択肢（\"Ten\"／\"One hundred\"／\"There is no limit\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "何人まで参加できますか。"
         }
       ]
@@ -1436,7 +1436,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"the main lobby will be closed for renovation starting Monday\"と述べている。",
+          "explanation": "\"the main lobby will be closed for renovation starting Monday\"と述べている。他の選択肢（\"A new tenant will move in\"／\"The parking garage will be repaved\"／\"The building will close for a holiday\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "月曜日から何が起こりますか。"
         },
         {
@@ -1461,7 +1461,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"visitors should use the side entrance near the parking garage\"と述べている。",
+          "explanation": "\"visitors should use the side entrance near the parking garage\"と述べている。他の選択肢（\"Avoid the building completely\"／\"Call ahead before visiting\"／\"Enter through the loading dock only\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この期間中、訪問者は何をすべきですか。"
         },
         {
@@ -1486,7 +1486,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"continuing for approximately two weeks\"と述べている。",
+          "explanation": "\"continuing for approximately two weeks\"と述べている。他の選択肢（\"Six months\"／\"About two months\"／\"One day\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "その改装はどれくらい続きますか。"
         }
       ]
@@ -1542,7 +1542,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"the color printer near the break room is malfunctioning\"と述べている。",
+          "explanation": "\"the color printer near the break room is malfunctioning\"と述べている。他の選択肢（\"The break room is being renovated\"／\"A technician did not show up\"／\"The elevators are out of service\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "どんな問題が報告されていますか。"
         },
         {
@@ -1567,7 +1567,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"Please use the black-and-white printer near the elevators until further notice\"と述べている。",
+          "explanation": "\"Please use the black-and-white printer near the elevators until further notice\"と述べている。他の選択肢（\"Print only urgent documents\"／\"Ask IT before printing anything\"／\"Print from home instead\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "追って連絡があるまで、スタッフは何をすべきですか。"
         },
         {
@@ -1673,7 +1673,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"We are currently waiting on an official transcript from each candidate's university\"と述べている。",
+          "explanation": "\"We are currently waiting on an official transcript from each candidate's university\"と述べている。他の選択肢（\"A background check report\"／\"A reference letter from a former employer\"／\"A signed offer letter\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "会社は何を待っていますか。"
         },
         {
@@ -1698,7 +1698,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"we expect to notify candidates within ten business days\"と述べている。",
+          "explanation": "\"we expect to notify candidates within ten business days\"と述べている。他の選択肢（\"Within two business days\"／\"They have already been notified\"／\"Immediately\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "候補者はいつ連絡を受けますか。"
         }
       ]
@@ -1880,7 +1880,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"Please remove any personal items and back up important files before then\"と述べている。",
+          "explanation": "\"Please remove any personal items and back up important files before then\"と述べている。他の選択肢（\"Return their office keys\"／\"Submit a request for new furniture\"／\"Attend a mandatory meeting\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "木曜日までにスタッフは何をするよう求められていますか。"
         },
         {
@@ -1905,7 +1905,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"should be ready for move-in by the following Monday\"と述べている。",
+          "explanation": "\"should be ready for move-in by the following Monday\"と述べている。他の選択肢（\"It is already ready\"／\"By Thursday\"／\"By the end of the year\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "新しいオフィスはいつまでに準備できる予定ですか。"
         }
       ]
@@ -1961,7 +1961,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "\"I want to update the team on our plan to recruit for the open vacancy\"と述べている。",
+          "explanation": "\"I want to update the team on our plan to recruit for the open vacancy\"と述べている。他の選択肢（\"To announce a new customer support policy\"／\"To introduce a new team member\"／\"To review last quarter's sales\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この話の主な目的は何ですか。"
         },
         {
@@ -1986,7 +1986,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"We have posted the job listing on three websites\"と述べている。",
+          "explanation": "\"We have posted the job listing on three websites\"と述べている。他の選択肢（\"It has not been posted yet\"／\"In a local newspaper\"／\"On one website only\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "その求人はどこに掲載されていますか。"
         },
         {
@@ -2011,7 +2011,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"please forward their resume to human resources\"と述べている。",
+          "explanation": "\"please forward their resume to human resources\"と述べている。他の選択肢（\"Schedule the interview themselves\"／\"Contact the candidate directly\"／\"Wait until the listing closes\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "候補者を知っている場合、スタッフは何をするよう求められていますか。"
         }
       ]
@@ -2067,7 +2067,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"today's briefing on the new regional employment subsidy\"と述べている。",
+          "explanation": "\"today's briefing on the new regional employment subsidy\"と述べている。他の選択肢（\"A hiring freeze\"／\"A change in the minimum wage\"／\"A new tax on large companies\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この説明会は何についてですか。"
         },
         {
@@ -2092,7 +2092,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "\"companies that expand their workforce by more than ten employees may qualify\"と述べている。",
+          "explanation": "\"companies that expand their workforce by more than ten employees may qualify\"と述べている。他の選択肢（\"Companies with fewer than ten employees\"／\"Companies that reduce their workforce\"／\"Only companies in the technology sector\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "どの企業がその補助金の対象になり得ますか。"
         },
         {
@@ -2117,7 +2117,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"will be reviewed within thirty days of submission\"と述べている。",
+          "explanation": "\"will be reviewed within thirty days of submission\"と述べている。他の選択肢（\"Within one week\"／\"On the first of the month\"／\"Reviews have already started\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "申請の審査にはどのくらいかかりますか。"
         }
       ]

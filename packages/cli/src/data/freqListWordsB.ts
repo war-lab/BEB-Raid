@@ -38,13 +38,13 @@ const MEETING_DOCS: Entry[] = [
 
 // --- 2. 人事・採用・研修 ---
 const HR_TRAINING: Entry[] = [
-  { word: 'attrition', rationale: '自然減（離職による人員減）' },
+  { word: 'apprenticeship', rationale: '実習生制度' },
   { word: 'retention', rationale: '人材の定着・保持' },
   { word: 'incentivize', rationale: '動機付けをする' },
   { word: 'gratuity', rationale: '謝礼・チップ' },
-  { word: 'nepotism', rationale: '縁故採用' },
+  { word: 'facilitator', rationale: '進行役' },
   { word: 'meritocracy', rationale: '実力主義' },
-  { word: 'arbitration', rationale: '（労使等の）仲裁' },
+  { word: 'honorarium', rationale: '謝礼' },
   { word: 'mediate', rationale: '仲裁・調停する' },
   { word: 'mediation', rationale: '調停（名詞）' },
   { word: 'turnaround', rationale: '業績回復・立て直し' },
@@ -64,7 +64,7 @@ const FINANCE_CONTRACT: Entry[] = [
   { word: 'derivative', rationale: '金融派生商品' },
   { word: 'arbitrage', rationale: '裁定取引' },
   { word: 'profitability', rationale: '収益性' },
-  { word: 'receivership', rationale: '管財下に置かれた状態' },
+  { word: 'amortization', rationale: '償却' },
   { word: 'growth', rationale: '成長' },
   { word: 'investment', rationale: '投資' },
   { word: 'asset', rationale: '資産' },
@@ -210,7 +210,7 @@ const REAL_ESTATE: Entry[] = [
 
 // --- 10. 店舗・小売・在庫 ---
 const RETAIL_STOCK: Entry[] = [
-  { word: 'liquidation', rationale: '在庫処分・清算' },
+  { word: 'replenishment', rationale: '補充' },
   { word: 'footfall', rationale: '来店客数' },
   { word: 'ambience', rationale: '店内の雰囲気' },
   { word: 'upscale', rationale: '高級志向の' },

@@ -9,7 +9,7 @@
       600,
       730
     ],
-    "sizeBytes": 87880
+    "sizeBytes": 87896
   },
   "questions": [
     {
@@ -493,7 +493,7 @@
       "levelBand": 730
     },
     {
-      "id": "vocab-severance",
+      "id": "vocab-payroll",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 3,
@@ -501,10 +501,10 @@
         "人事・採用・研修"
       ],
       "keyVocab": [],
-      "front": "severance",
-      "phrase": "Employees who are laid off will receive a severance package.",
-      "phraseAudio": "audio/vocab/severance.mp3",
-      "back": "退職金",
+      "front": "payroll",
+      "phrase": "The payroll department processes salaries on the last business day.",
+      "phraseAudio": "audio/vocab/payroll.mp3",
+      "back": "給与支払業務",
       "freqRank": "A",
       "levelBand": 730
     },
@@ -669,7 +669,7 @@
       "levelBand": 730
     },
     {
-      "id": "vocab-arrears",
+      "id": "vocab-remittance",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 3,
@@ -677,10 +677,10 @@
         "財務・会計・契約"
       ],
       "keyVocab": [],
-      "front": "arrears",
-      "phrase": "The tenant's rent payments are three months in arrears.",
-      "phraseAudio": "audio/vocab/arrears.mp3",
-      "back": "未払い金",
+      "front": "remittance",
+      "phrase": "Please include the invoice number with your remittance.",
+      "phraseAudio": "audio/vocab/remittance.mp3",
+      "back": "送金",
       "freqRank": "A",
       "levelBand": 730
     },
@@ -2317,7 +2317,7 @@
       "levelBand": 730
     },
     {
-      "id": "vocab-eviction",
+      "id": "vocab-custodian",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 3,
@@ -2325,10 +2325,10 @@
         "不動産・施設・建築"
       ],
       "keyVocab": [],
-      "front": "eviction",
-      "phrase": "The landlord began eviction proceedings after months of unpaid rent.",
-      "phraseAudio": "audio/vocab/eviction.mp3",
-      "back": "立ち退き",
+      "front": "custodian",
+      "phrase": "The building custodian unlocks the conference rooms each morning.",
+      "phraseAudio": "audio/vocab/custodian.mp3",
+      "back": "施設管理者",
       "freqRank": "A",
       "levelBand": 730
     },

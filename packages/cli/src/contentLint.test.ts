@@ -43,7 +43,7 @@ function part2Question(overrides: Partial<Question> = {}): Question {
       { key: 'B', text: 'Yes, I did.' },
     ],
     answer: 'A',
-    explanation: '解説テキスト',
+    explanation: '解説テキスト。他の選択肢は誤り。',
     translation: '和訳',
     ...overrides,
   }
@@ -63,7 +63,7 @@ function part5Question(overrides: Partial<Question> = {}): Question {
       { key: 'B', text: 'submits' },
     ],
     answer: 'A',
-    explanation: '解説テキスト',
+    explanation: '解説テキスト。他の選択肢は誤り。',
     translation: '和訳',
     ...overrides,
   }
@@ -87,7 +87,7 @@ function textPassageQuestion(overrides: Partial<Question> = {}): Question {
           { key: 'B', text: 'A resume' },
         ],
         answer: 'A',
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       },
     ],
@@ -234,7 +234,20 @@ describe('checkTextBlankLength（④。警告のみ）', () => {
 describe('checkOpeningPhraseDiversity（⑤。警告のみ）', () => {
   it('文頭の使い回しが5%以下なら問題なし', () => {
     const questions = Array.from({ length: 20 }, (_, i) =>
-      part5Question({ id: `p5-${i}`, question: `Sentence number ${i} goes here today.` }),
+      part5Question({
+        id: `p5-${i}`,
+        question: `Sentence number ${i} goes here today.`,
+        // ⑨（決定的循環）・⑩（正答位置の予測可能性）に引っかからないよう、4択にしたうえで
+        // 一定差分にならない正答位置の並びを与える（隣接差分の最頻値は43%、1次マルコフ的中率
+        // 42.1%で、同条件のランダム列の95%点57.9%を下回る）
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitted' },
+          { key: 'D', text: 'submitting' },
+        ],
+        answer: 'ABCD'[[2, 2, 3, 0, 2, 3, 2, 3, 1, 1, 1, 2, 2, 1, 0, 3, 1, 3, 0, 0][i]!]!,
+      }),
     )
     expect(validateContentLint(questions, 'pack-p5-test')).toEqual([])
   })
@@ -266,7 +279,7 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
           { key: 'D', text: 'A catalog' },
         ],
         answer,
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       })),
     })
@@ -324,7 +337,7 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
           { key: 'D', text: 'A catalog' },
         ],
         answer,
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       })),
     }
@@ -559,7 +572,7 @@ describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベル
       ],
       answer: 'D',
       explanation:
-        '目的格の関係代名詞whomが正しい。A所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。',
+        '目的格の関係代名詞whomが正しい。A所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。他の選択肢はいずれも先行詞clientを受けられない。',
     })
     expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
   })
@@ -635,7 +648,7 @@ describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベル
   })
 
   it('判定不能なラベル（正規表現の対象外の品詞語）は誤検出しない', () => {
-    const q = part5Question({ explanation: 'Aは名詞で受動態の形には合わない。' })
+    const q = part5Question({ explanation: 'Aは名詞で受動態の形には合わない。他の選択肢も同様。' })
     expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
   })
 
