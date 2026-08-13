@@ -67,16 +67,28 @@ export interface SyncPacksOptions {
  */
 const AUDIO_FETCH_CONCURRENCY = 4
 
+/**
+ * 音声1件あたりの取得タイムアウト。付けないと1件がハングしただけで
+ * syncPacks全体（と inFlight フラグ）が解放されず、以後の同期が始まらない
+ */
+const AUDIO_FETCH_TIMEOUT_MS = 15_000
+
+/**
+ * 取得できなかったURLの件数を返す。呼び出し側はこれが0でないときにパックを
+ * 「同期済み」と確定してはならない（確定するとハッシュ一致でskipされ、
+ * 欠けた音声が二度と取得されなくなる）
+ */
 async function fetchAndCacheAudio(
   packCache: PackCache,
   fetchImpl: typeof fetch,
   packId: string,
   urls: string[],
   onProgress?: SyncPacksOptions['onAudioProgress'],
-): Promise<void> {
+): Promise<number> {
   const total = urls.length
-  if (total === 0) return
+  if (total === 0) return 0
   let completed = 0
+  let failed = 0
   let nextIndex = 0
   async function worker(): Promise<void> {
     for (;;) {
@@ -85,12 +97,16 @@ async function fetchAndCacheAudio(
       if (index >= urls.length) return
       const url = urls[index]!
       try {
-        const res = await fetchImpl(url)
+        const res = await fetchImpl(url, { signal: AbortSignal.timeout(AUDIO_FETCH_TIMEOUT_MS) })
         if (res.ok) {
           await packCache.put(url, await res.blob())
+        } else {
+          failed += 1
         }
       } catch {
-        // 個別音声の取得失敗は無視する（このURLだけ次回同期時に再試行される。T-322）
+        // 個別音声の取得失敗はここでは止めない（取得できた分はキャッシュに残す）。
+        // ただし件数は数え、呼び出し側がパックを同期済みにしないための材料にする
+        failed += 1
       }
       completed += 1
       onProgress?.({ packId, completed, total })
@@ -98,6 +114,7 @@ async function fetchAndCacheAudio(
   }
   const workerCount = Math.min(AUDIO_FETCH_CONCURRENCY, total)
   await Promise.all(Array.from({ length: workerCount }, () => worker()))
+  return failed
 }
 
 export interface SyncPacksResult {
@@ -248,11 +265,27 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
         const pack = (await packRes.json()) as QuestionPack
         await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
         const audioUrls = collectAudioUrls(baseUrl, pack.questions)
-        await fetchAndCacheAudio(packCache, fetchImpl, entry.id, audioUrls, options.onAudioProgress)
-        packHashes[entry.id] = entry.hash
-        synced.push(entry.id)
+        const failedAudio = await fetchAndCacheAudio(
+          packCache,
+          fetchImpl,
+          entry.id,
+          audioUrls,
+          options.onAudioProgress,
+        )
+        // 取得済みのURLは次回の掃除で消さないよう常に残す（部分取得でもキャッシュは有効）
         for (const url of [packUrl, ...audioUrls]) validUrls.add(url)
-        syncSucceeded = true
+        if (failedAudio === 0) {
+          packHashes[entry.id] = entry.hash
+          synced.push(entry.id)
+          syncSucceeded = true
+        } else {
+          // ハッシュを確定しないので次回起動時にこのパックが再び同期経路へ入る。
+          // 確定してしまうと、hasAudioSampleは先頭AUDIO_SAMPLE_CHECK_SIZE件しか見ないため、
+          // それ以降だけ欠けた場合に永久にskipされ続ける（レビュー指摘3）
+          console.warn(
+            `[packSync] ${entry.id}: 音声${failedAudio}/${audioUrls.length}件の取得に失敗。次回起動時に再試行する`,
+          )
+        }
       }
     } catch {
       // このパックの同期失敗は無視し、他パックの同期は継続する（次回起動時に再試行）

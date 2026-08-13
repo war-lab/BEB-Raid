@@ -45,6 +45,10 @@ class_name = "BattleRoomDO"
 name = "INVITE_RATE_LIMIT"
 class_name = "InviteRateLimitDo"
 
+[[durable_objects.bindings]]
+name = "REGISTRY"
+class_name = "RegistryDo"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RaidBossDO"]
@@ -66,6 +70,13 @@ new_sqlite_classes = ["BattleRoomDO"]
 [[migrations]]
 tag = "v4"
 new_sqlite_classes = ["InviteRateLimitDo"]
+
+# レビュー指摘1・4: 登録枠と表示名予約をKV（結果整合・read-then-write）から
+# DOのSQLiteストレージ（単一スレッド・強整合）へ移す。初回アクセス時にKVのmember:*から
+# 索引をbackfillするため、デプロイ前から存在するメンバーの表示名も保護される
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["RegistryDo"]
 
 # 週次ボス生成（3.4節）。曜日フィールドは使わず日次発火にする（docs/30 J-100・T-180）。
 # 生成処理（generateWeeklyBoss）はRaidBossDO側で週の生成権を主張する形で完全に冪等化した
@@ -112,6 +123,10 @@ class_name = "BattleRoomDO"
 [[env.dev.durable_objects.bindings]]
 name = "INVITE_RATE_LIMIT"
 class_name = "InviteRateLimitDo"
+
+[[env.dev.durable_objects.bindings]]
+name = "REGISTRY"
+class_name = "RegistryDo"
 
 [env.production]
 name = "beb-raid-api"

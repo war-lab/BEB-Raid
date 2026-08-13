@@ -8,7 +8,7 @@ import { bossProfileForWeek } from './bossProfiles'
 import type { Env, MemberRecord } from './env'
 import { memberKey } from './env'
 import { selectGhostRecord } from './ghostSelection'
-import { updateGhostRecordIfPresent } from './ghostStore'
+import { GHOST_USED_BOSS_HISTORY_LIMIT, updateGhostRecordIfPresent } from './ghostStore'
 import { listAllKeys } from './kvList'
 import type { RaidBossDO } from './raidBossDo'
 import {
@@ -70,6 +70,18 @@ async function closeOutPreviousGhost(
 const CLEANUP_LOOKBACK_WEEKS = 4
 
 /**
+ * 掃除済み境界の記録キー（レビュー指摘6）。
+ *
+ * CLEANUP_LOOKBACK_WEEKSだけでは、その週数を超えてcronが止まると取りこぼした週が
+ * 二度と対象にならない（cutoff自体が先へ進むため）。最後にどこまで掃除したかを残し、
+ * 次回はそこから当週のcutoffまで追いつくことで、停止期間の長さによらず回収できる
+ */
+const CLEANUP_WATERMARK_KEY = 'raid:cleanupWatermarkEpoch'
+
+/** 1回のcronで掃除する上限週数。無制限にすると長期停止後の1回で外向き呼び出しが跳ねる */
+const CLEANUP_MAX_WEEKS_PER_RUN = 52
+
+/**
  * 週次データの掃除（T-247・29のQ-29。方針は docs/17_M3実装計画.md 3.4節に記録）。
  * RAID_BOSS_RETENTION_WEEKS週より前に終了した週のRaidBossDOを削除する。掃除は
  * 週次ボス生成そのものの成否に影響させない（副次処理のため失敗してもthrowしない）。
@@ -83,7 +95,19 @@ const CLEANUP_LOOKBACK_WEEKS = 4
  */
 async function cleanupExpiredRaidBoss(env: Env, current: { weekStartAt: number }): Promise<void> {
   const cutoffEpoch = current.weekStartAt - RAID_BOSS_RETENTION_WEEKS * WEEK_MS
-  for (let i = 0; i < CLEANUP_LOOKBACK_WEEKS; i++) {
+  // 前回どこまで掃除したかから当週のcutoffまでを埋める（レビュー指摘6）。
+  // 記録が無い初回はCLEANUP_LOOKBACK_WEEKS週分だけ遡る（従来どおりの挙動）
+  const watermarkRaw = await env.MEMBERS.get(CLEANUP_WATERMARK_KEY)
+  const watermark = watermarkRaw === null ? null : Number(watermarkRaw)
+  const weeksBehind =
+    watermark !== null && Number.isFinite(watermark)
+      ? Math.ceil((cutoffEpoch - watermark) / WEEK_MS)
+      : CLEANUP_LOOKBACK_WEEKS
+  const weeks = Math.min(
+    CLEANUP_MAX_WEEKS_PER_RUN,
+    Math.max(CLEANUP_LOOKBACK_WEEKS, Number.isFinite(weeksBehind) ? weeksBehind : 0),
+  )
+  for (let i = 0; i < weeks; i++) {
     try {
       const targetBossId = bossIdFor(isoWeekInfo(cutoffEpoch - 1 - i * WEEK_MS))
       const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(targetBossId))
@@ -95,6 +119,9 @@ async function cleanupExpiredRaidBoss(env: Env, current: { weekStartAt: number }
       console.error('週次RaidBossDOの掃除に失敗しました（週次ボス生成自体は継続）', err)
     }
   }
+  // 今回の掃除境界を残す。次回はここから当週のcutoffまでを埋めるので、
+  // cronがCLEANUP_LOOKBACK_WEEKSを超えて止まっても取りこぼした週を回収できる
+  await env.MEMBERS.put(CLEANUP_WATERMARK_KEY, String(cutoffEpoch))
 }
 
 /**
@@ -175,13 +202,20 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
         totalDailyDamage += estimatedDailyDamage(member)
         continue
       }
+      // 途中失敗からの再実行で二重に平滑化しない（レビュー指摘2）。
+      // 生成が200人目で落ちた場合、翌日の再実行では先頭200人のEMAが既に今週分を
+      // 反映しているため、マーカーが一致するメンバーは更新せずHP集計だけに使う
+      if (member.emaUpdatedForBossId === bossId) {
+        totalDailyDamage += estimatedDailyDamage(member)
+        continue
+      }
       const previousDamage = previousDamageByToken[deviceToken] ?? 0
       const previousDaily = previousDamage / RAID_DAYS
       const updatedEma =
         member.emaDailyDamage === undefined
           ? previousDaily
           : EMA_WEIGHT * previousDaily + (1 - EMA_WEIGHT) * member.emaDailyDamage
-      const updatedMember = { ...member, emaDailyDamage: updatedEma }
+      const updatedMember = { ...member, emaDailyDamage: updatedEma, emaUpdatedForBossId: bossId }
       // KV listのmetadataにも載せる（T-326・K-61）。この関数の外でemaDailyDamageだけを
       // 参照したい将来の呼び出し元がlist()のmetadataからget()無しで読めるようにする用途
       await env.MEMBERS.put(memberKey(deviceToken), JSON.stringify(updatedMember), {
@@ -229,6 +263,11 @@ export async function generateWeeklyBoss(env: Env, now: number): Promise<boolean
       await updateGhostRecordIfPresent(env, selectedGhost.deviceToken, (current) => ({
         ...current,
         lastUsedBossId: bossId,
+        // 撤回時に全ての週の派生データを消せるよう使用履歴も残す（レビュー指摘5）
+        usedBossIds: [bossId, ...(current.usedBossIds ?? []).filter((id) => id !== bossId)].slice(
+          0,
+          GHOST_USED_BOSS_HISTORY_LIMIT,
+        ),
       }))
     } else {
       await stub.init({

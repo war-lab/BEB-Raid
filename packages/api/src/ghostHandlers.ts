@@ -90,12 +90,16 @@ export async function handleDeleteGhostOwn(
   const current = isoWeekInfo(now)
   const currentBossId = bossIdFor(current)
   const replacement = bossProfileForWeek(current.isoWeek)
-  const currentStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(currentBossId))
-  await currentStub.revokeGhostIfOwner(deviceToken, replacement)
-
-  if (record?.lastUsedBossId && record.lastUsedBossId !== currentBossId) {
-    const lastUsedStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(record.lastUsedBossId))
-    await lastUsedStub.revokeGhostIfOwner(deviceToken, replacement)
+  // 当週と、このゴーストが使われた全ての週から派生データ（defenseJson＝本人の問題別正誤に
+  // 1対1で対応する防御倍率）を消す。lastUsedBossIdだけを見ていた頃は直近1週しか辿れず、
+  // W20とW23で使われたゴーストをW24に撤回するとW20のDOに正誤詳細が残っていた（レビュー指摘5）
+  const targets = new Set<string>([currentBossId])
+  for (const id of record?.usedBossIds ?? []) targets.add(id)
+  // usedBossIdsを持たない既存レコードのために lastUsedBossId も見る（後方互換）
+  if (record?.lastUsedBossId) targets.add(record.lastUsedBossId)
+  for (const bossId of targets) {
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+    await stub.revokeGhostIfOwner(deviceToken, replacement)
   }
 
   return jsonResponse({ ok: true } satisfies OkResponse)

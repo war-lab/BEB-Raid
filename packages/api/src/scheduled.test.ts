@@ -2,7 +2,7 @@ import { env, evictDurableObject, reset, runInDurableObject } from 'cloudflare:t
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { bossProfileForWeek } from './bossProfiles'
-import { memberKey, type MemberRecord } from './env'
+import { MEMBER_KEY_PREFIX, memberKey, type MemberRecord } from './env'
 import { MIN_BOSS_HP, RAID_BOSS_RETENTION_WEEKS } from './raidConfig'
 import { bossIdFor, isoWeekInfo, previousWeekInfo, weekEndAt } from './raidWeek'
 import { generateWeeklyBoss } from './scheduled'
@@ -264,9 +264,15 @@ describe('generateWeeklyBoss', () => {
 
     await generateWeeklyBoss(env, currentMondayEpoch)
 
-    // 修正前は全件走査が2回（①EMA更新・②HP算出）のため、get呼び出しは2×MEMBER_COUNT。
-    // 統合後は1回の走査で済むため、MEMBER_COUNT回以下になる
-    expect(getSpy.mock.calls.length).toBeLessThanOrEqual(MEMBER_COUNT)
+    // 修正前は全件走査が2回（①EMA更新・②HP算出）のため、メンバー1人あたりget2回だった。
+    // 統合後は1人あたり1回以下になる。
+    // 数えるのは `member:` へのgetだけにする。掃除境界（raid:cleanupWatermarkEpoch）のような
+    // メンバー数に比例しない定数回の読み取りが増えても、この不変条件（O(N)でありO(2N)でない）
+    // の判定は変わらないため
+    const memberGets = getSpy.mock.calls.filter((call) =>
+      String(call[0]).startsWith(MEMBER_KEY_PREFIX),
+    )
+    expect(memberGets.length).toBeLessThanOrEqual(MEMBER_COUNT)
   })
 
   it('generation_claim導入前にinit済みだった週（boss-2026-W32相当）はEMAが更新されない', async () => {
@@ -399,5 +405,47 @@ describe('generateWeeklyBoss', () => {
       const currentMondayEpoch = Date.UTC(2028, 3, 3) // 他テストと衝突しない週
       await expect(generateWeeklyBoss(env, currentMondayEpoch)).resolves.toBe(true)
     })
+  })
+})
+
+describe('週次生成の再実行と掃除の追いつき（レビュー指摘2・6）', () => {
+  it('EMA更新済みのメンバーは再実行しても二度平滑化されない', async () => {
+    const currentMondayEpoch = Date.UTC(2026, 7, 10)
+    const bossId = bossIdFor(isoWeekInfo(currentMondayEpoch))
+    const deviceToken = 'token-ema'
+    await env.MEMBERS.put(
+      memberKey(deviceToken),
+      JSON.stringify({
+        displayName: 'ema',
+        dailyGoal: 'normal',
+        registeredAt: 0,
+        emaDailyDamage: 100,
+      } satisfies MemberRecord),
+    )
+    await seedPreviousWeekDamage(currentMondayEpoch, deviceToken, 10_000)
+
+    await generateWeeklyBoss(env, currentMondayEpoch)
+    const afterFirst = JSON.parse((await env.MEMBERS.get(memberKey(deviceToken)))!) as MemberRecord
+    expect(afterFirst.emaUpdatedForBossId).toBe(bossId)
+    const emaAfterFirst = afterFirst.emaDailyDamage
+
+    // 生成権を解放して同じ週をもう一度走らせる（途中失敗→翌日の再実行を模擬）
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+    await stub.releaseGenerationClaim()
+    await generateWeeklyBoss(env, currentMondayEpoch)
+
+    const afterSecond = JSON.parse((await env.MEMBERS.get(memberKey(deviceToken)))!) as MemberRecord
+    // マーカーが無かった頃は前回値をさらに平滑化して値がずれていた
+    expect(afterSecond.emaDailyDamage).toBe(emaAfterFirst)
+  })
+
+  it('掃除境界を記録し、cronが長期停止しても取りこぼした週へ追いつく', async () => {
+    const currentMondayEpoch = Date.UTC(2026, 7, 10)
+    await generateWeeklyBoss(env, currentMondayEpoch)
+
+    // 境界が残っていること（次回はここから当週のcutoffまでを埋める）
+    const watermark = await env.MEMBERS.get('raid:cleanupWatermarkEpoch')
+    expect(watermark).not.toBeNull()
+    expect(Number(watermark)).toBeLessThan(currentMondayEpoch)
   })
 })

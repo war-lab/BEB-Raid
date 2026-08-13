@@ -285,14 +285,55 @@ describe('syncPacks', () => {
 
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
 
-    // パック自体は同期成功として扱われる（T-322でskip判定に音声実体チェックを足すため、
-    // 欠けた音声は次回同期時に自己修復される）
-    expect(result?.synced).toEqual(['pack-a'])
+    // 取得できた音声はキャッシュに残る（このテストの主眼。addAllの全件巻き戻しの回避）
     expect(packCache.putCalls.map(([url]) => url)).toEqual([
       '/manifest.json',
       '/packs/pack-a.json',
       '/audio/ok.mp3',
     ])
+    // ただしパックは同期済みにしない（レビュー指摘3で挙動を改めた）。
+    // 旧実装はここで synced 扱いにしてハッシュを確定していたが、skip判定の
+    // hasAudioSample は先頭AUDIO_SAMPLE_CHECK_SIZE件しか見ないため、それ以降だけ
+    // 欠けた場合に永久にskipされ、欠けた音声が二度と取得されなかった
+    expect(result?.synced).toEqual([])
+    expect((await loadPackSyncState(db)).packHashes['pack-a']).toBeUndefined()
+  })
+
+  // 何を防ぐか（レビュー指摘3）: 上のテストの対（全件成功なら従来どおり同期済みにする）
+  it('音声が全件成功すればパックを同期済みにする', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 100 }])
+    const fetchImpl = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') {
+        return jsonResponse(
+          pack([
+            {
+              id: 'q1',
+              part: 2,
+              format: 'audio_qa',
+              difficulty: 1,
+              tags: [],
+              keyVocab: [],
+              audio: 'audio/ok.mp3',
+              audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 100 },
+              script: 's',
+              choices: [{ key: 'A', text: 'x' }],
+              answer: 'A',
+            },
+          ]),
+        )
+      }
+      if (url === '/audio/ok.mp3') return blobResponse('ok')
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+
+    expect(result?.synced).toEqual(['pack-a'])
+    expect((await loadPackSyncState(db)).packHashes['pack-a']).toBe('h1')
   })
 
   // 何を防ぐか（T-321・K-59）: 進捗表示が無いと、大きいパックの取得中にUIが

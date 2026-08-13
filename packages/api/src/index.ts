@@ -21,6 +21,7 @@ import {
 
 export { BattleRoomDO } from './battleRoomDo'
 export { InviteRateLimitDo } from './inviteRateLimitDo'
+export { RegistryDo } from './registryDo'
 export { RaidBossDO } from './raidBossDo'
 export { StatsDO } from './statsDo'
 
