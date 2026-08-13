@@ -20,7 +20,7 @@ import { buildHeatmapCells } from '../engine/heatmapCells'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { applyRatingDifficultyFilter, orderByRating } from '../engine/ratingDifficultyFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
-import { generateQuickPack } from '../engine/quickPack'
+import { generateQuickPack, isServable } from '../engine/quickPack'
 import { formatRelativeTime } from '../engine/relativeTime'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
@@ -360,7 +360,11 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       // 途切れ確定時にcurrentDaysを0で返すが、この「前回何日だったか」の文脈表示は
       // 途切れる前の値をそのまま見せたいため、DBの生の値（record.currentDays）を使う
       setBrokenSinceDays(isBroken ? record.currentDays : null)
-      setDueCount(queue.dueReviews.length)
+      // 「SRS期限 N」は語彙SRSの復習キューが実際に出題できる件数と一致させる。
+      // VocabScreenは対応する問題を引けないカード（パック撤去・別端末復元）をisServableで
+      // 除外するため、ここで全件を数えると「消せないバッジ」が残る。
+      // コンテンツ更新で設問idが消えるたびに起きうる（例: main←devで52件のidが消える）
+      setDueCount(queue.dueReviews.filter((card) => isServable(card, questionPool)).length)
       setPhase(phaseState)
 
       const lastSeen = (lastSeenSetting?.value as number | undefined) ?? 0

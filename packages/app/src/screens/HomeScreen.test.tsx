@@ -213,10 +213,12 @@ describe('HomeScreen: 実データの表示', () => {
       protectionUsedAt: null,
     })
     await db.srsCards.bulkPut([
+      // refIdはQUESTION_POOLのvocab_cardに実在する語にする。実在しない語のカードは
+      // VocabScreenが出題できず（isServable）、バッジに数えると消せない件数になる
       {
-        id: 'vocab:a',
+        id: 'vocab:submit',
         refType: 'vocab',
-        refId: 'a',
+        refId: 'submit',
         stage: 1,
         dueAt: Date.now() - 1000,
         lapses: 0,
@@ -225,9 +227,9 @@ describe('HomeScreen: 実データの表示', () => {
         sourceQuestionId: null,
       },
       {
-        id: 'vocab:b',
+        id: 'vocab:attend',
         refType: 'vocab',
-        refId: 'b',
+        refId: 'attend',
         stage: 1,
         dueAt: Date.now() - 1000,
         lapses: 0,
@@ -249,6 +251,49 @@ describe('HomeScreen: 実データの表示', () => {
 
     expect(screen.getByText('🔥3')).toBeTruthy()
     expect(screen.getByText('SRS期限 2')).toBeTruthy()
+  })
+
+  // コンテンツ更新で設問・語彙カードが消えると、それを参照するSRSカードは
+  // VocabScreenが出題できなくなる（isServable）。バッジがこれを数えていると
+  // 「タップしても消えない期限N件」が恒久的に残る
+  it('出題できないSRSカード（対応する語彙カードがプールに無い）はSRS期限バッジに数えない', async () => {
+    const db = newDb()
+    await db.srsCards.bulkPut([
+      {
+        id: 'vocab:submit',
+        refType: 'vocab',
+        refId: 'submit', // QUESTION_POOLに実在する
+        stage: 1,
+        dueAt: Date.now() - 1000,
+        lapses: 0,
+        introducedDate: '2026-07-01',
+        graduatedAt: null,
+        sourceQuestionId: null,
+      },
+      {
+        id: 'vocab:severance',
+        refType: 'vocab',
+        refId: 'severance', // T-346で語彙バンクから外れた語を模す（プールに無い）
+        stage: 1,
+        dueAt: Date.now() - 1000,
+        lapses: 0,
+        introducedDate: '2026-07-01',
+        graduatedAt: null,
+        sourceQuestionId: null,
+      },
+    ])
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('SRS期限 1')).toBeTruthy()
   })
 
   it('gap≥2 かつ本日未成立の場合は「途切れ（前回N日）」表示になる', async () => {
@@ -1616,9 +1661,10 @@ describe('HomeScreen: 時刻追従（T-105）', () => {
     const realNow = Date.now()
     // マウント時点ではまだ期限が来ていないSRSカード（1日後にdueAt）
     await db.srsCards.put({
-      id: 'vocab:tomorrow-due',
+      // refIdはQUESTION_POOLのvocab_cardに実在する語にする（バッジは出題可能な件数を数えるため）
+      id: 'vocab:negotiate',
       refType: 'vocab',
-      refId: 'tomorrow-due',
+      refId: 'negotiate',
       stage: 1,
       dueAt: realNow + 20 * 60 * 60_000, // 20時間後
       lapses: 0,
