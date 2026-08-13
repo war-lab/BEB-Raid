@@ -111,10 +111,10 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
 
   // --- 人事・採用・研修 ---
   {
-    word: 'attrition',
+    word: 'apprenticeship',
     tags: ['人事・採用・研修'],
-    back: '自然減',
-    phrase: 'The company plans to reduce staff through attrition rather than layoffs.',
+    back: '実習生制度',
+    phrase: 'The factory runs a two-year apprenticeship for new technicians.',
   },
   {
     word: 'retention',
@@ -135,10 +135,10 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'A gratuity is automatically added to bills for large groups.',
   },
   {
-    word: 'nepotism',
+    word: 'facilitator',
     tags: ['人事・採用・研修'],
-    back: '縁故採用',
-    phrase: 'The new hiring policy was introduced to prevent accusations of nepotism.',
+    back: '進行役',
+    phrase: 'An outside facilitator will lead the strategy workshop.',
   },
   {
     word: 'meritocracy',
@@ -147,10 +147,10 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: 'The firm prides itself on being a meritocracy where promotions are earned.',
   },
   {
-    word: 'arbitration',
+    word: 'honorarium',
     tags: ['人事・採用・研修'],
-    back: '仲裁',
-    phrase: 'The labor dispute was settled through arbitration instead of a strike.',
+    back: '謝礼',
+    phrase: 'Guest speakers receive an honorarium and travel expenses.',
   },
   {
     word: 'mediate',
@@ -245,10 +245,10 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
     phrase: "The new pricing strategy improved the division's overall profitability.",
   },
   {
-    word: 'receivership',
+    word: 'amortization',
     tags: ['財務・会計・契約'],
-    back: '管財下の状態',
-    phrase: 'The struggling airline was placed into receivership last year.',
+    back: '償却',
+    phrase: 'The amortization of the software license runs over five years.',
   },
   {
     word: 'growth',
@@ -931,10 +931,10 @@ export const VOCAB_CARDS_B: VocabCardEntry[] = [
 
   // --- 店舗・小売・在庫 ---
   {
-    word: 'liquidation',
+    word: 'replenishment',
     tags: ['店舗・小売・在庫'],
-    back: '在庫処分',
-    phrase: 'The chain held a liquidation sale before closing its doors.',
+    back: '補充',
+    phrase: 'Shelf replenishment takes place before the store opens.',
   },
   {
     word: 'footfall',

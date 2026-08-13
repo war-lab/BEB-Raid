@@ -86,7 +86,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The company picnic has been rescheduled to early June.',
         ],
         explanation:
-          '直前の文が仮の席割りに触れているため、座席番号を知らせるフロアマップの案内が最も自然につながる。他の3文は移動や座席と無関係。',
+          '直前の文が仮の席割りに触れているため、座席番号を知らせるフロアマップの案内が最も自然につながる。他の3文は移動や座席と無関係。他の選択肢（"The cafeteria on the second floor will remain open as usual."／"Employees are reminded to submit expense reports by the fifth of each month."／"The company picnic has been rescheduled to early June."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '新しい座席番号付きのフロア図を月曜日にメールで送ります。',
       },
     ],
@@ -136,7 +136,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The building will host a fire drill later this month.',
         ],
         explanation:
-          '直前の文が停止が延びる可能性に触れているため、延長時の更新スケジュール告知が自然につながる。他の3文は今回の停止と無関係。',
+          '直前の文が停止が延びる可能性に触れているため、延長時の更新スケジュール告知が自然につながる。他の3文は今回の停止と無関係。他の選択肢（"The building will host a fire drill later this month."／"The elevator was installed three years ago by a local contractor."／"Parking permits must be renewed at the front desk every January."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '停止が延びる場合は、更新されたスケジュールをロビーに掲示します。',
       },
     ],
@@ -185,7 +185,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The accounting department relocated to the fourth floor in March.',
         ],
         explanation:
-          '新しいオンラインシステムへの移行を説明した直後の一文として、操作を学べる研修動画の案内が自然に続く。他の3文は経費精算と無関係。',
+          '新しいオンラインシステムへの移行を説明した直後の一文として、操作を学べる研修動画の案内が自然に続く。他の3文は経費精算と無関係。他の選択肢（"The accounting department relocated to the fourth floor in March."／"The company holiday party will be held in December this year."／"Employees should park only in the designated visitor spaces."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '新システムの操作を説明する短い研修動画が社内サイトで見られます。',
       },
     ],
@@ -235,7 +235,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The cafeteria menu will change starting next Monday.',
         ],
         explanation:
-          '直前でネットワークが一時利用不可になると述べた後、影響範囲を補足する一文（メールとサイトは影響なし）が自然につながる。他の3文は更新作業と無関係。',
+          '直前でネットワークが一時利用不可になると述べた後、影響範囲を補足する一文（メールとサイトは影響なし）が自然につながる。他の3文は更新作業と無関係。他の選択肢（"The company plans to open a new office overseas next year."／"Employees are encouraged to take the stairs for exercise."／"The cafeteria menu will change starting next Monday."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この更新はメールや会社のウェブサイトには影響しません。',
       },
     ],
@@ -285,7 +285,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           "Last year's keynote speaker received excellent feedback.",
         ],
         explanation:
-          '直前の文が登録締切のリマインダーであるため、締切後の登録を一切受け付けないという厳格な注意が最も自然に続く。他の3文は登録の締切と直接関係しない。',
+          '直前の文が登録締切のリマインダーであるため、締切後の登録を一切受け付けないという厳格な注意が最も自然に続く。他の3文は登録の締切と直接関係しない。他の選択肢（"Parking at the venue is free for all registered guests."／"Last year\'s keynote speaker received excellent feedback."／"The conference was first held over twenty years ago."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '締切後の登録は、いかなる事情でも受け付けられません。',
       },
     ],
@@ -337,7 +337,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The security team hosts a training session every spring.',
         ],
         explanation:
-          '直後の文がバッジの更新場所の案内であるため、その前に紛失・破損時の報告手順を置くとバッジ管理の話題として自然につながる。他の3文はバッジ管理と直接関係しない。',
+          '直後の文がバッジの更新場所の案内であるため、その前に紛失・破損時の報告手順を置くとバッジ管理の話題として自然につながる。他の3文はバッジ管理と直接関係しない。他の選択肢（"Employees may bring guests to the cafeteria during lunch hours."／"The security team hosts a training session every spring."／"The building was renovated two years ago to add more parking."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '紛失または破損したバッジは、直ちに警備担当者に報告してください。',
       },
     ],
@@ -387,7 +387,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'A new coffee machine was installed in the break room last week.',
         ],
         explanation:
-          '直前で予約枠の付与について述べた後、未使用枠の扱い（翌月に持ち越されない）を補足する一文が自然につながる。他の3文は予約システムと無関係。',
+          '直前で予約枠の付与について述べた後、未使用枠の扱い（翌月に持ち越されない）を補足する一文が自然につながる。他の3文は予約システムと無関係。他の選択肢（"The IT helpdesk is open from 9 a.m. to 5 p.m. on weekdays."／"A new coffee machine was installed in the break room last week."／"The office recently switched to recycled paper for all printing."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '未使用の予約枠は翌月に持ち越されません。',
       },
     ],
@@ -437,7 +437,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'We recently updated our supplier evaluation process.',
         ],
         explanation:
-          '直前で修正請求書の送付を依頼しているため、必要なら電話で相談できるという補足が自然に続く。他の3文は請求書の不一致問題と直接関係しない。',
+          '直前で修正請求書の送付を依頼しているため、必要なら電話で相談できるという補足が自然に続く。他の3文は請求書の不一致問題と直接関係しない。他の選択肢（"Order 4482 was shipped by a different carrier than usual."／"We recently updated our supplier evaluation process."／"The company plans to expand its warehouse next year."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '必要であれば、当社の経理チームが電話でこの件についてご相談に応じます。',
       },
     ],
@@ -488,7 +488,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The human resources office relocated last spring.',
         ],
         explanation:
-          '直前でコンプライアンス研修の完了を求めているため、研修の所要時間を補足する一文が自然に続く。他の3文はこの研修と直接関係しない。',
+          '直前でコンプライアンス研修の完了を求めているため、研修の所要時間を補足する一文が自然に続く。他の3文はこの研修と直接関係しない。他の選択肢（"The human resources office relocated last spring."／"The company was founded more than thirty years ago."／"Employees can order office supplies through the intranet portal."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この研修はオンラインで完了するまで約20分かかります。',
       },
     ],
@@ -539,7 +539,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'A new printer was installed on the third floor last month.',
         ],
         explanation:
-          '直前でリサイクル箱の使い分けを説明した後、電池や電子機器は別の回収場所へという補足情報が自然に続く。他の3文はリサイクル制度と関係しない。',
+          '直前でリサイクル箱の使い分けを説明した後、電池や電子機器は別の回収場所へという補足情報が自然に続く。他の3文はリサイクル制度と関係しない。他の選択肢（"A new printer was installed on the third floor last month."／"The office cafeteria will introduce a new lunch menu next week."／"Employees are reminded to badge in at the front desk each morning."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '電池や電子機器は、依然としてロビーの回収場所へ持って行ってください。',
       },
     ],
@@ -590,7 +590,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           "The building's parking garage was repaved last summer.",
         ],
         explanation:
-          '直前で新しいメニューの内容について説明しているため、印刷版の掲示場所を伝える一文が自然に続く。他の3文はメニュー変更と直接関係しない。',
+          '直前で新しいメニューの内容について説明しているため、印刷版の掲示場所を伝える一文が自然に続く。他の3文はメニュー変更と直接関係しない。他の選択肢（"The building\'s parking garage was repaved last summer."／"The cafeteria will close for renovation next year."／"Employees are welcome to bring guests to the annual company picnic."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '新しいメニューの印刷版はカフェテリアの入口に掲示されます。',
       },
     ],
@@ -640,7 +640,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           "The company's annual report will be published next month.",
         ],
         explanation:
-          '直前でボランティアイベントの内容を説明しているため、地元企業による道具・飲食物の提供という関連情報が自然に続く。他の3文はイベントと直接関係しない。',
+          '直前でボランティアイベントの内容を説明しているため、地元企業による道具・飲食物の提供という関連情報が自然に続く。他の3文はイベントと直接関係しない。他の選択肢（"The company\'s annual report will be published next month."／"Greenfield Logistics was founded nearly forty years ago."／"The riverside park is popular with joggers on weekends."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'いくつかの地元企業が、この日のために道具や軽食を提供しました。',
       },
     ],
@@ -691,7 +691,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'We plan to attend the industry trade show again this year.',
         ],
         explanation:
-          '直前で更新条件の相談と価格表の依頼をしているため、双方に利益があれば長期契約も検討したいという補足が自然に続く。他の3文は契約更新と直接関係しない。',
+          '直前で更新条件の相談と価格表の依頼をしているため、双方に利益があれば長期契約も検討したいという補足が自然に続く。他の3文は契約更新と直接関係しない。他の選択肢（"We plan to attend the industry trade show again this year."／"Our company recently moved to a larger office building."／"The current contract was signed by our previous procurement manager."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '双方にとって利益があれば、より長期の契約についても検討する用意があります。',
       },
     ],
@@ -742,7 +742,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'Human resources plans to hire five more employees this year.',
         ],
         explanation:
-          '直前でオリエンテーションの開始時間と持ち物を伝えているため、受付のために早めに来るよう促す一文が自然に続く。他の3文は当日の案内と直接関係しない。',
+          '直前でオリエンテーションの開始時間と持ち物を伝えているため、受付のために早めに来るよう促す一文が自然に続く。他の3文は当日の案内と直接関係しない。他の選択肢（"The company was recently recognized for its customer service."／"The main conference room can seat up to fifty people."／"Human resources plans to hire five more employees this year."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '簡単な受付手続きのため、15分早めにお越しください。',
       },
     ],
@@ -793,7 +793,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The break room was recently equipped with a new coffee machine.',
         ],
         explanation:
-          '直前で評価フォームの提出期限に触れているため、追加のガイダンスを求める管理者向けの研修案内が自然に続く。他の3文は評価プロセスと直接関係しない。',
+          '直前で評価フォームの提出期限に触れているため、追加のガイダンスを求める管理者向けの研修案内が自然に続く。他の3文は評価プロセスと直接関係しない。他の選択肢（"The company introduced a new logo last quarter."／"Employees can request vacation days through the online portal."／"The break room was recently equipped with a new coffee machine."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '追加の指導を希望する管理者向けに、人事部が任意の研修会を開催します。',
       },
     ],
@@ -842,7 +842,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'Customers can now return items within sixty days of purchase.',
         ],
         explanation:
-          '直前で抽選への参加条件を述べているため、当選者の発表方法についての一文が自然に続く。他の3文は調査・抽選と直接関係しない。',
+          '直前で抽選への参加条件を述べているため、当選者の発表方法についての一文が自然に続く。他の3文は調査・抽選と直接関係しない。他の選択肢（"Shipping delays this season affected several popular items."／"Customers can now return items within sixty days of purchase."／"Our store recently opened a new location downtown."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '抽選の当選者は、来月上旬にメールでお知らせします。',
       },
     ],
@@ -893,7 +893,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The help desk recently moved to a new office location.',
         ],
         explanation:
-          '直前でネットワーク停止の理由（システム更新）に触れているため、更新完了後の効果を補足する一文が自然に続く。他の3文は今回の停止と直接関係しない。',
+          '直前でネットワーク停止の理由（システム更新）に触れているため、更新完了後の効果を補足する一文が自然に続く。他の3文は今回の停止と直接関係しない。他の選択肢（"The IT department was established over a decade ago."／"Employees can request new equipment through the intranet form."／"The help desk recently moved to a new office location."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この更新が完了すれば、全体的な接続速度の改善が見込まれます。',
       },
     ],
@@ -942,7 +942,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'Interest rates on savings accounts have remained stable.',
         ],
         explanation:
-          '直前で新支店の状況（初日の来客数）を述べているため、営業日についての補足が自然に続く。他の3文は新支店開設のニュースと直接関係しない。',
+          '直前で新支店の状況（初日の来客数）を述べているため、営業日についての補足が自然に続く。他の3文は新支店開設のニュースと直接関係しない。他の選択肢（"Riverstone Bank was founded in a small town nearby."／"The bank\'s mobile app was updated earlier this year."／"Interest rates on savings accounts have remained stable."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この支店は祝日を含め週7日営業します。',
       },
     ],
@@ -991,7 +991,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The travel desk is closed on public holidays.',
         ],
         explanation:
-          '直前でレシート保管について述べているため、経費アプリでのデジタル提出という補足情報が自然に続く。他の3文は経費精算の手続きと直接関係しない。',
+          '直前でレシート保管について述べているため、経費アプリでのデジタル提出という補足情報が自然に続く。他の3文は経費精算の手続きと直接関係しない。他の選択肢（"The regional office was renovated two years ago."／"Business class upgrades are not covered under the current policy."／"The travel desk is closed on public holidays."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '各レシートのデジタルコピーも、経費アプリからアップロードできます。',
       },
     ],
@@ -1041,7 +1041,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The company plans to open a new repair center next year.',
         ],
         explanation:
-          '直前で無料交換の依頼手順を説明しているため、交換品の発送スケジュールを伝える一文が自然に続く。他の3文はこのリコールと直接関係しない。',
+          '直前で無料交換の依頼手順を説明しているため、交換品の発送スケジュールを伝える一文が自然に続く。他の3文はこのリコールと直接関係しない。他の選択肢（"The Model X200 was first released three years ago."／"Our support line also handles questions about other products."／"The company plans to open a new repair center next year."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'ご依頼から5営業日以内に交換品を発送いたします。',
       },
     ],
@@ -1092,7 +1092,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The company is considering adding an electric vehicle charging station.',
         ],
         explanation:
-          '直前で更新期日を過ぎた許可証の無効化について述べているため、不要な許可証のキャンセルを促す一文が自然に続く。他の3文は更新手続きと直接関係しない。',
+          '直前で更新期日を過ぎた許可証の無効化について述べているため、不要な許可証のキャンセルを促す一文が自然に続く。他の3文は更新手続きと直接関係しない。他の選択肢（"Visitor parking is located near the main entrance."／"The company is considering adding an electric vehicle charging station."／"The parking garage was built five years ago."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '許可証が不要になった場合は、他の人のために解約してください。',
       },
     ],
@@ -1142,7 +1142,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The store will be closed for a holiday next Monday.',
         ],
         explanation:
-          '直前で割引条件について述べているため、会員向けの追加特典についての一文が自然に続く。他の3文はこのセールと直接関係しない。',
+          '直前で割引条件について述べているため、会員向けの追加特典についての一文が自然に続く。他の3文はこのセールと直接関係しない。他の選択肢（"The store first opened its doors over twenty years ago."／"Our staff can help you find items not currently on display."／"The store will be closed for a holiday next Monday."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '当店の会員プログラムにご加入の方は、さらに5%引きになります。',
       },
     ],
@@ -1192,7 +1192,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The accounting office will move to a larger space next year.',
         ],
         explanation:
-          '直前で不一致の報告手順を求めているため、その作業を支援する新しいチェックリストの案内が自然に続く。他の3文は請求書照合の手続きと直接関係しない。',
+          '直前で不一致の報告手順を求めているため、その作業を支援する新しいチェックリストの案内が自然に続く。他の3文は請求書照合の手続きと直接関係しない。他の選択肢（"Our fiscal year begins in April rather than January."／"The accounting office will move to a larger space next year."／"The finance department hired two new employees last quarter."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この作業を助けるための新しいチェックリストが共有ドライブに追加されました。',
       },
     ],
@@ -1242,7 +1242,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'A yoga class will be added to the schedule next month.',
         ],
         explanation:
-          '直前でオリエンテーションと利用時間について説明しているため、持ち物についての注意が自然に続く。他の3文はジム開放の案内と直接関係しない。',
+          '直前でオリエンテーションと利用時間について説明しているため、持ち物についての注意が自然に続く。他の3文はジム開放の案内と直接関係しない。他の選択肢（"The gym equipment was purchased from a local supplier."／"The second floor also houses the marketing department."／"A yoga class will be added to the schedule next month."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '従業員は自分の運動着とシューズを持参するようお願いします。',
       },
     ],
@@ -1293,7 +1293,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'Employees can carpool to work using a company shuttle service.',
         ],
         explanation:
-          '直前で目標達成に取り組む従業員の表彰について述べているため、進捗を追跡する専用ページの案内が自然に続く。他の3文はこの取組みと直接関係しない。',
+          '直前で目標達成に取り組む従業員の表彰について述べているため、進捗を追跡する専用ページの案内が自然に続く。他の3文はこの取組みと直接関係しない。他の選択肢（"Greenline Manufacturing was founded by two former engineers."／"The company\'s headquarters recently added a rooftop garden."／"Employees can carpool to work using a company shuttle service."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '専用のウェブページで、この目標に向けた進捗状況を追跡します。',
       },
     ],
@@ -1343,7 +1343,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The human resources office is located on the fourth floor.',
         ],
         explanation:
-          '直前でフォームの記入方法について説明しているため、記入例の参照先案内が自然に続く。他の3文はこのフォームの記入手順と直接関係しない。',
+          '直前でフォームの記入方法について説明しているため、記入例の参照先案内が自然に続く。他の3文はこのフォームの記入手順と直接関係しない。他の選択肢（"The company introduced performance appraisals over a decade ago."／"Managers are expected to attend a leadership retreat each summer."／"The human resources office is located on the fourth floor."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '記入済みのサンプルフォームは人事部の社内サイトで確認できます。',
       },
     ],
@@ -1396,7 +1396,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The lobby was recently redecorated with new furniture.',
         ],
         explanation:
-          '直前で訪問者バッジの着用義務について述べているため、退館時の返却手順が自然に続く。他の3文はこの入退室手続きと直接関係しない。',
+          '直前で訪問者バッジの着用義務について述べているため、退館時の返却手順が自然に続く。他の3文はこの入退室手続きと直接関係しない。他の選択肢（"The security review was conducted by an outside consulting firm."／"The lobby was recently redecorated with new furniture."／"The front desk is staffed twenty-four hours a day."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '来訪者バッジは、建物を出る前に受付に返却しなければなりません。',
       },
     ],
@@ -1448,7 +1448,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'The customer service line will be closed for the upcoming holiday.',
         ],
         explanation:
-          '直前で対応手順（在庫の隔離とリストの送付）を指示しているため、対応状況を確認する訪問についての一文が自然に続く。他の3文はこのリコール対応と直接関係しない。',
+          '直前で対応手順（在庫の隔離とリストの送付）を指示しているため、対応状況を確認する訪問についての一文が自然に続く。他の3文はこのリコール対応と直接関係しない。他の選択肢（"The Model X200 was one of our best-selling products last year."／"Store managers are reminded to submit weekly sales reports on time."／"The customer service line will be closed for the upcoming holiday."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '会社の担当者が今後2日以内に各店舗を訪問し、対応状況を確認します。',
       },
     ],
@@ -1499,7 +1499,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           "We look forward to discussing next year's shipping contract.",
         ],
         explanation:
-          '直前で遅延の見込み日数を伝えているため、その遅延についての謝罪の一文が自然に続く。他の3文は今回の遅延と直接関係しない。',
+          '直前で遅延の見込み日数を伝えているため、その遅延についての謝罪の一文が自然に続く。他の3文は今回の遅延と直接関係しない。他の選択肢（"We look forward to discussing next year\'s shipping contract."／"Our main port has handled shipments for over fifteen years."／"The regional warehouse recently expanded its storage capacity."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この遅延により貴社の業務にご不便をおかけすることをお詫びいたします。',
       },
     ],
@@ -1550,7 +1550,7 @@ export const PART6_ENTRIES_S: Part6RawEntry[] = [
           'Employees at the firm receive an annual bonus based on performance.',
         ],
         explanation:
-          '記事の冒頭で10年の社史という節目に触れているため、締めくくりとして創業当時の経緯を振り返る補足が記事の流れに合う。他の3文は今回の節目のニュースと直接関係しない。',
+          '記事の冒頭で10年の社史という節目に触れているため、締めくくりとして創業当時の経緯を振り返る補足が記事の流れに合う。他の3文は今回の節目のニュースと直接関係しない。他の選択肢（"Employees at the firm receive an annual bonus based on performance."／"Parkway Consulting focuses mainly on the manufacturing and logistics industries."／"The firm\'s current office is located near the downtown train station."）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'この会社は元々、2人の元エンジニアが小さな事務所から始めたものです。',
       },
     ],

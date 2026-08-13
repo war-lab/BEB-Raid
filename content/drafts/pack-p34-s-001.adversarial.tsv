@@ -1,21 +1,21 @@
 id	verdict	observation	reviewer	reviewedAt
-p34-p3-01	accept	q1-q3とも根拠がscript内に明示され二重正答なし。話者はA/Bラベルのみで代名詞混同のリスクなし。	claude-adversarial-review	2026-08-12
-p34-p3-02	accept	q1-q3とも一意に決まる。q2「he」はscript中の技術者（第三者）を指し、A/B話者との性別取り違えなし。	claude-adversarial-review	2026-08-12
-p34-p3-03	accept	q1-q3とも根拠明確。他選択肢はscript中に記述なく誤答として妥当。	claude-adversarial-review	2026-08-12
-p34-p3-04	accept	q1-q3とも一意。題材（配送遅延・値引き提案）は本試験範囲内で適格。	claude-adversarial-review	2026-08-12
-p34-p3-05	accept	q1-q3とも一意。q2「her」は候補者（第三者）を指し、A/B話者の性別とは無関係で取り違えなし。	claude-adversarial-review	2026-08-12
-p34-p3-06	accept	q1-q3とも一意。他選択肢はscriptに現れず二重正答なし。	claude-adversarial-review	2026-08-12
-p34-p3-07	accept	q1-q3とも一意。IT運用というありふれた題材で適格性に問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-08	accept	q1-q3とも一意。出張準備という一般的題材で適格。	claude-adversarial-review	2026-08-12
-p34-p3-09	accept	q1-q3とも一意。他選択肢はscriptに記述なし。	claude-adversarial-review	2026-08-12
-p34-p3-10	accept	q1-q3とも一意。契約更新交渉という一般的題材で適格。	claude-adversarial-review	2026-08-12
-p34-p4-01	accept	q1-q3とも一意。建物設備メンテナンス案内で適格。	claude-adversarial-review	2026-08-12
-p34-p4-02	accept	q1-q3とも一意。店名は架空の一般名で実在企業との混同リスクなし。	claude-adversarial-review	2026-08-12
-p34-p4-03	accept	q1-q3とも一意。話者名Danaは一人称の電話メッセージで代名詞の取り違えは発生しない。歯科医院名は架空の一般名。	claude-adversarial-review	2026-08-12
-p34-p4-04	accept	q2の誤答「gate twelve」は旧ゲート番号としてscript中に実在するが、変更後の番号として問う設問文と整合しており二重正答ではない。	claude-adversarial-review	2026-08-12
-p34-p4-05	accept	q1-q3とも一意。話者名Carlosは一人称の自己紹介で代名詞の取り違えなし。博物館名は架空の一般名。	claude-adversarial-review	2026-08-12
-p34-p4-06	accept	q1-q3とも一意。四半期業績報告という一般的題材で適格。実在企業名の記載なし。	claude-adversarial-review	2026-08-12
-p34-p4-07	accept	q1-q3とも一意。新製品発表という一般的題材で、社名の記載なし。	claude-adversarial-review	2026-08-12
-p34-p4-08	accept	q1-q3とも一意。銀行名Meridian Bankは架空の一般名で実在企業との混同リスクなし。	claude-adversarial-review	2026-08-12
-p34-p4-09	accept	q1-q3とも一意。新入社員オリエンテーションという一般的題材で適格。	claude-adversarial-review	2026-08-12
-p34-p4-10	accept	q1-q3とも一意。交通情報という一般的題材で適格。	claude-adversarial-review	2026-08-12
+p34-p3-01	accept		claude-opus-5	2026-08-13
+p34-p3-02	accept		claude-opus-5	2026-08-13
+p34-p3-03	accept		claude-opus-5	2026-08-13
+p34-p3-04	accept		claude-opus-5	2026-08-13
+p34-p3-05	accept		claude-opus-5	2026-08-13
+p34-p3-06	accept		claude-opus-5	2026-08-13
+p34-p3-07	accept		claude-opus-5	2026-08-13
+p34-p3-08	accept		claude-opus-5	2026-08-13
+p34-p3-09	accept		claude-opus-5	2026-08-13
+p34-p3-10	accept		claude-opus-5	2026-08-13
+p34-p4-01	accept		claude-opus-5	2026-08-13
+p34-p4-02	accept		claude-opus-5	2026-08-13
+p34-p4-03	accept		claude-opus-5	2026-08-13
+p34-p4-04	accept		claude-opus-5	2026-08-13
+p34-p4-05	accept		claude-opus-5	2026-08-13
+p34-p4-06	accept		claude-opus-5	2026-08-13
+p34-p4-07	accept		claude-opus-5	2026-08-13
+p34-p4-08	accept		claude-opus-5	2026-08-13
+p34-p4-09	accept		claude-opus-5	2026-08-13
+p34-p4-10	accept		claude-opus-5	2026-08-13

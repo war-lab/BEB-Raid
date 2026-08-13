@@ -4,12 +4,15 @@
     "id": "pack-vocab-s-001",
     "title": "語彙カード Sランク200語",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 86439
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 86559
   },
   "questions": [
     {
@@ -998,7 +1001,7 @@
       ],
       "keyVocab": [],
       "front": "breach",
-      "phrase": "Late delivery may be considered a breach of contract.",
+      "phrase": "The security team monitors the network for any breach.",
       "phraseAudio": "audio/vocab/breach.mp3",
       "back": "違反",
       "freqRank": "S",

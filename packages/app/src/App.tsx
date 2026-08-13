@@ -19,6 +19,7 @@ import {
 import { exportAll } from './services/backup'
 import { loadPendingGhostBossResult } from './services/ghostBoss'
 import { loadPackQuestions, syncPacks } from './services/packSync'
+import { clearPackSyncProgress, setPackSyncProgress } from './services/packSyncProgress'
 import { hasProfile } from './services/profile'
 import { sendQuestionStats } from './services/questionStats'
 import { syncRaidDamage } from './services/raidSync'
@@ -154,9 +155,18 @@ export async function syncPacksAndReload(
   db: BebRaidDatabase,
   packCache: PackCache,
 ): Promise<Question[] | null> {
-  const result = await syncPacks({ db, packCache })
-  if (!result || result.synced.length === 0) return null
-  return loadQuestionPool(packCache)
+  // T-321: 音声ダウンロードの進捗を設定画面へ流す（完了・失敗のどちらでも必ず消す）
+  try {
+    const result = await syncPacks({
+      db,
+      packCache,
+      onAudioProgress: (info) => setPackSyncProgress(info),
+    })
+    if (!result || result.synced.length === 0) return null
+    return loadQuestionPool(packCache)
+  } finally {
+    clearPackSyncProgress()
+  }
 }
 
 /**

@@ -23,8 +23,20 @@ jobs:
         run: npm run format:check
       - name: ビルド
         run: npm run build
-      - name: テスト
-        run: npm test
+      # T-286（K-13。docs/32 3節J-126）: 閾値割れはvitestが落とし、実測値はジョブサマリへ出す。
+      # サマリが無いと「今どのくらい余裕があるか」が分からず、閾値割れの直前でも気づけない。
+      # test:coverage を持つのはapp・cli・review-ui・shared-schemaの4つで、apiは
+      # workerd上でv8カバレッジを取れない（packages/api/vitest.config.ts冒頭の注記）ため、
+      # apiだけは素のtestで走らせる。両方を並べることで全workspaceのテストが必ず実行される
+      - name: テスト（カバレッジ計測つき）
+        run: npm run test:coverage
+      - name: テスト（共有API。カバレッジ非対応）
+        run: npm test -w @beb-raid/api
+      # 閾値割れは前ステップのvitestが落とす。ここは「今どのくらい余裕があるか」を
+      # PR画面から読めるようにするための出力なので、テストが落ちても実行する
+      - name: カバレッジのサマリ出力
+        if: always()
+        run: node scripts/coverage-summary.mjs >> "$GITHUB_STEP_SUMMARY"
       # T-234（docs/29 Q-74・Q-83）: content/packs/*.json・manifest.json はビルド成果物では
       # なくリポジトリに直接コミットされる配信物であり、上のビルド手順では再検証されない。
       # パックJSONを直接編集してコミットすると全検査を素通りして配信されてしまうため、

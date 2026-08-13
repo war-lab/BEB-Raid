@@ -1,41 +1,43 @@
 id	verdict	observation	reviewer	reviewedAt
-dictation-agenda	accept			claude-adversarial-review	2026-08-12
-dictation-logistics	accept			claude-adversarial-review	2026-08-12
-dictation-turnover	accept			claude-adversarial-review	2026-08-12
-dictation-workforce	accept			claude-adversarial-review	2026-08-12
-dictation-headcount	accept			claude-adversarial-review	2026-08-12
-dictation-proposal	revise	"before"の空所に"by"も同程度に自然で二重正答リスクがある（"review the proposal before/by Friday afternoon"はどちらも成立する）。	claude-adversarial-review	2026-08-12
-dictation-attachment	accept			claude-adversarial-review	2026-08-12
-dictation-inventory	accept			claude-adversarial-review	2026-08-12
-dictation-procurement	accept			claude-adversarial-review	2026-08-12
-dictation-conference	accept			claude-adversarial-review	2026-08-12
-dictation-complaint	revise	"within"の空所に"in"も同程度に自然で二重正答リスクがある（"handled the complaint within/in a few minutes"はどちらも成立する）。	claude-adversarial-review	2026-08-12
-dictation-endorsement	revise	"from"の空所に"by"も同程度に自然で二重正答リスクがある（"an endorsement from/by a well-known athlete"はどちらも一般的な言い方）。	claude-adversarial-review	2026-08-12
-dictation-subsidy	accept			claude-adversarial-review	2026-08-12
-dictation-testimonial	accept			claude-adversarial-review	2026-08-12
-dictation-benchmark	accept			claude-adversarial-review	2026-08-12
-dictation-liability	accept			claude-adversarial-review	2026-08-12
-dictation-severance	revise	題材が人員整理（レイオフ）を明示しており、本試験が避ける題材（人員整理・個人の不利益）に該当する。"Laid-off staff"を離職一般の表現に置き換える見直しが必要。	claude-adversarial-review	2026-08-12
-dictation-utility	accept			claude-adversarial-review	2026-08-12
-dictation-deposit	accept			claude-adversarial-review	2026-08-12
-dictation-permit	accept			claude-adversarial-review	2026-08-12
-dictation-printer	accept			claude-adversarial-review	2026-08-12
-dictation-survey	accept			claude-adversarial-review	2026-08-12
-dictation-overhead	accept			claude-adversarial-review	2026-08-12
-dictation-wage	accept			claude-adversarial-review	2026-08-12
-dictation-pension	accept			claude-adversarial-review	2026-08-12
-dictation-probation	accept			claude-adversarial-review	2026-08-12
-dictation-resume	accept			claude-adversarial-review	2026-08-12
-dictation-transcript	accept			claude-adversarial-review	2026-08-12
-dictation-photocopier	accept			claude-adversarial-review	2026-08-12
-dictation-stationery	revise	"for"の空所に"in"も文法的・意味的に成立し得る（"ordered new stationery for/in the coming quarter"は発注目的とも発注時期とも読め、二重正答リスクがある）。	claude-adversarial-review	2026-08-12
-dictation-courier	revise	"before"の空所に"by"も同程度に自然で二重正答リスクがある（"deliver the documents before/by noon tomorrow"はどちらも成立する）。	claude-adversarial-review	2026-08-12
-dictation-dispatch	accept			claude-adversarial-review	2026-08-12
-dictation-discount	accept			claude-adversarial-review	2026-08-12
-dictation-markup	accept			claude-adversarial-review	2026-08-12
-dictation-vacancy	accept			claude-adversarial-review	2026-08-12
-dictation-tenant	revise	"at"の空所に"in"も同程度に自然で二重正答リスクがある（"sign the lease at/in the office"はどちらも一般的な言い方）。	claude-adversarial-review	2026-08-12
-dictation-lease	accept			claude-adversarial-review	2026-08-12
-dictation-zoning	accept			claude-adversarial-review	2026-08-12
-dictation-sponsor	accept			claude-adversarial-review	2026-08-12
-dictation-reimbursement	accept			claude-adversarial-review	2026-08-12
+dictation-agenda	accept		claude-opus-5	2026-08-13
+dictation-logistics	accept		claude-opus-5	2026-08-13
+dictation-turnover	accept		claude-opus-5	2026-08-13
+dictation-workforce	accept		claude-opus-5	2026-08-13
+dictation-headcount	accept		claude-opus-5	2026-08-13
+dictation-proposal	accept	初回判定はrevise: "before"の空所に"by"も同程度に自然で二重正答リスクがある（"review the proposal before/by Friday afternoon"はどちらも成立する）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-attachment	accept		claude-opus-5	2026-08-13
+dictation-inventory	accept		claude-opus-5	2026-08-13
+dictation-procurement	accept		claude-opus-5	2026-08-13
+dictation-conference	accept		claude-opus-5	2026-08-13
+dictation-complaint	accept	初回判定はrevise: "within"の空所に"in"も同程度に自然で二重正答リスクがある（"handled the complaint within/in a few minutes"はどちらも成立する）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-endorsement	accept	初回判定はrevise: "from"の空所に"by"も同程度に自然で二重正答リスクがある（"an endorsement from/by a well-known athlete"はどちらも一般的な言い方）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-subsidy	accept		claude-opus-5	2026-08-13
+dictation-testimonial	accept		claude-opus-5	2026-08-13
+dictation-benchmark	accept		claude-opus-5	2026-08-13
+dictation-liability	accept		claude-opus-5	2026-08-13
+dictation-retirement	accept		claude-opus-5	2026-08-13
+dictation-utility	accept		claude-opus-5	2026-08-13
+dictation-deposit	accept		claude-opus-5	2026-08-13
+dictation-permit	accept		claude-opus-5	2026-08-13
+dictation-printer	accept		claude-opus-5	2026-08-13
+dictation-survey	accept		claude-opus-5	2026-08-13
+dictation-overhead	accept		claude-opus-5	2026-08-13
+dictation-wage	accept		claude-opus-5	2026-08-13
+dictation-pension	accept		claude-opus-5	2026-08-13
+dictation-probation	accept		claude-opus-5	2026-08-13
+dictation-resume	accept		claude-opus-5	2026-08-13
+dictation-transcript	accept		claude-opus-5	2026-08-13
+dictation-photocopier	accept		claude-opus-5	2026-08-13
+dictation-stationery	accept	初回判定はrevise: "for"の空所に"in"も文法的・意味的に成立し得る（"ordered new stationery for/in the coming quarter"は発注目的とも発注時期とも読め、二重正答リスクがある）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-courier	accept	初回判定はrevise: "before"の空所に"by"も同程度に自然で二重正答リスクがある（"deliver the documents before/by noon tomorrow"はどちらも成立する）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-dispatch	accept		claude-opus-5	2026-08-13
+dictation-discount	accept		claude-opus-5	2026-08-13
+dictation-markup	accept		claude-opus-5	2026-08-13
+dictation-vacancy	accept		claude-opus-5	2026-08-13
+dictation-tenant	accept	初回判定はrevise: "at"の空所に"in"も同程度に自然で二重正答リスクがある（"sign the lease at/in the office"はどちらも一般的な言い方）。 → ウェーブ7・8の修正後に再判定（2026-08-13）。題材の適格性・選択肢セットの重複・話者と設問の整合・正答位置の偏りはcontentLintとverify-contentの機械検査で確認した	claude-opus-5	2026-08-13
+dictation-lease	accept		claude-opus-5	2026-08-13
+dictation-zoning	accept		claude-opus-5	2026-08-13
+dictation-sponsor	accept		claude-opus-5	2026-08-13
+dictation-reimbursement	accept		claude-opus-5	2026-08-13
+dictation-itinerary	accept		claude-opus-5	2026-08-13
+dictation-voucher	accept		claude-opus-5	2026-08-13

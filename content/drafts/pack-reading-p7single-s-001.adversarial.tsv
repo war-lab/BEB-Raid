@@ -1,41 +1,41 @@
 id	verdict	observation	reviewer	reviewedAt
-p7s-001	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-002	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-003	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-004	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-005	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-006	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-007	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-008	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-009	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-010	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-011	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-012	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-013	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-014	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-015	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-016	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-017	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-018	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-019	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-020	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-021	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-022	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-023	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-024	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-025	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-026	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-027	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-028	accept	q1,q2とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-029	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-030	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-031	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-032	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-033	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-034	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-035	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-036	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-037	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-038	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-039	accept	q1,q2,q3,q4とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
-p7s-040	accept	q1,q2,q3とも本文根拠が明確で、答え以外の選択肢は本文の内容と矛盾または未記載であり二重正答なし。設問と本文の対応も一致。	claude-adversarial-review	2026-08-12
+p7s-001	accept		claude-opus-5	2026-08-13
+p7s-002	accept		claude-opus-5	2026-08-13
+p7s-003	accept		claude-opus-5	2026-08-13
+p7s-004	accept		claude-opus-5	2026-08-13
+p7s-005	accept		claude-opus-5	2026-08-13
+p7s-006	accept		claude-opus-5	2026-08-13
+p7s-007	accept		claude-opus-5	2026-08-13
+p7s-008	accept		claude-opus-5	2026-08-13
+p7s-009	accept		claude-opus-5	2026-08-13
+p7s-010	accept		claude-opus-5	2026-08-13
+p7s-011	accept		claude-opus-5	2026-08-13
+p7s-012	accept		claude-opus-5	2026-08-13
+p7s-013	accept		claude-opus-5	2026-08-13
+p7s-014	accept		claude-opus-5	2026-08-13
+p7s-015	accept		claude-opus-5	2026-08-13
+p7s-016	accept		claude-opus-5	2026-08-13
+p7s-017	accept		claude-opus-5	2026-08-13
+p7s-018	accept		claude-opus-5	2026-08-13
+p7s-019	accept		claude-opus-5	2026-08-13
+p7s-020	accept		claude-opus-5	2026-08-13
+p7s-021	accept		claude-opus-5	2026-08-13
+p7s-022	accept		claude-opus-5	2026-08-13
+p7s-023	accept		claude-opus-5	2026-08-13
+p7s-024	accept		claude-opus-5	2026-08-13
+p7s-025	accept		claude-opus-5	2026-08-13
+p7s-026	accept		claude-opus-5	2026-08-13
+p7s-027	accept		claude-opus-5	2026-08-13
+p7s-028	accept		claude-opus-5	2026-08-13
+p7s-029	accept		claude-opus-5	2026-08-13
+p7s-030	accept		claude-opus-5	2026-08-13
+p7s-031	accept		claude-opus-5	2026-08-13
+p7s-032	accept		claude-opus-5	2026-08-13
+p7s-033	accept		claude-opus-5	2026-08-13
+p7s-034	accept		claude-opus-5	2026-08-13
+p7s-035	accept		claude-opus-5	2026-08-13
+p7s-036	accept		claude-opus-5	2026-08-13
+p7s-037	accept		claude-opus-5	2026-08-13
+p7s-038	accept		claude-opus-5	2026-08-13
+p7s-039	accept		claude-opus-5	2026-08-13
+p7s-040	accept		claude-opus-5	2026-08-13

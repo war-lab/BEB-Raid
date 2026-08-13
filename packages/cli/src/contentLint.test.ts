@@ -4,7 +4,11 @@
 import type { Question } from '@beb-raid/shared-schema'
 import { describe, expect, it } from 'vitest'
 
-import { validateContentLint } from './contentLint.js'
+import {
+  firstOrderMarkovAccuracy,
+  markovNullThreshold,
+  validateContentLint,
+} from './contentLint.js'
 import { buildDictationQuestions } from './dictationQuestion.js'
 import {
   buildKeyVocabSimilarQuestions,
@@ -43,7 +47,7 @@ function part2Question(overrides: Partial<Question> = {}): Question {
       { key: 'B', text: 'Yes, I did.' },
     ],
     answer: 'A',
-    explanation: '解説テキスト',
+    explanation: '解説テキスト。他の選択肢は誤り。',
     translation: '和訳',
     ...overrides,
   }
@@ -63,7 +67,7 @@ function part5Question(overrides: Partial<Question> = {}): Question {
       { key: 'B', text: 'submits' },
     ],
     answer: 'A',
-    explanation: '解説テキスト',
+    explanation: '解説テキスト。他の選択肢は誤り。',
     translation: '和訳',
     ...overrides,
   }
@@ -87,7 +91,7 @@ function textPassageQuestion(overrides: Partial<Question> = {}): Question {
           { key: 'B', text: 'A resume' },
         ],
         answer: 'A',
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       },
     ],
@@ -234,7 +238,20 @@ describe('checkTextBlankLength（④。警告のみ）', () => {
 describe('checkOpeningPhraseDiversity（⑤。警告のみ）', () => {
   it('文頭の使い回しが5%以下なら問題なし', () => {
     const questions = Array.from({ length: 20 }, (_, i) =>
-      part5Question({ id: `p5-${i}`, question: `Sentence number ${i} goes here today.` }),
+      part5Question({
+        id: `p5-${i}`,
+        question: `Sentence number ${i} goes here today.`,
+        // ⑨（決定的循環）・⑩（正答位置の予測可能性）に引っかからないよう、4択にしたうえで
+        // 一定差分にならない正答位置の並びを与える（隣接差分の最頻値は43%、1次マルコフ的中率
+        // 42.1%で、同条件のランダム列の95%点57.9%を下回る）
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitted' },
+          { key: 'D', text: 'submitting' },
+        ],
+        answer: 'ABCD'[[2, 2, 3, 0, 2, 3, 2, 3, 1, 1, 1, 2, 2, 1, 0, 3, 1, 3, 0, 0][i]!]!,
+      }),
     )
     expect(validateContentLint(questions, 'pack-p5-test')).toEqual([])
   })
@@ -266,7 +283,7 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
           { key: 'D', text: 'A catalog' },
         ],
         answer,
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       })),
     })
@@ -324,7 +341,7 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
           { key: 'D', text: 'A catalog' },
         ],
         answer,
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       })),
     }
@@ -559,7 +576,7 @@ describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベル
       ],
       answer: 'D',
       explanation:
-        '目的格の関係代名詞whomが正しい。A所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。',
+        '目的格の関係代名詞whomが正しい。A所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。他の選択肢はいずれも先行詞clientを受けられない。',
     })
     expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
   })
@@ -635,7 +652,7 @@ describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベル
   })
 
   it('判定不能なラベル（正規表現の対象外の品詞語）は誤検出しない', () => {
-    const q = part5Question({ explanation: 'Aは名詞で受動態の形には合わない。' })
+    const q = part5Question({ explanation: 'Aは名詞で受動態の形には合わない。他の選択肢も同様。' })
     expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
   })
 
@@ -697,5 +714,66 @@ describe('全パック一括検査（T-81完了条件: T-80ルール①③の検
     // T-81完了条件: T-80で検出した既知の①43問・③6問が、S1選択肢書き換え・S2縮約修正により0件になる
     expect(scriptMismatches.length).toBe(0)
     expect(casualContractions.length).toBe(0)
+  })
+})
+
+describe('firstOrderMarkovAccuracy / markovNullThreshold（⑩。T-339の完了条件の指標）', () => {
+  it('要素が2件未満なら0を返す', () => {
+    expect(firstOrderMarkovAccuracy([])).toBe(0)
+    expect(firstOrderMarkovAccuracy([1])).toBe(0)
+  })
+
+  it('完全に周期的な列は的中率100%になる', () => {
+    expect(firstOrderMarkovAccuracy([0, 1, 2, 3, 0, 1, 2, 3, 0, 1])).toBe(100)
+  })
+
+  it('帰無分布の95%点は選択肢数のランダム値より高く、標本が増えるほど下がる', () => {
+    const small = markovNullThreshold(50, 4)
+    const large = markovNullThreshold(200, 4)
+    expect(small).toBeGreaterThan(25)
+    expect(small).toBeGreaterThan(large)
+  })
+
+  it('同じ引数なら何度呼んでも同じ値を返す（決定的PRNG）', () => {
+    expect(markovNullThreshold(60, 4)).toBe(markovNullThreshold(60, 4))
+  })
+})
+
+describe('checkExplanationMentionsDistractor（⑪。T-343の完了条件の指標）', () => {
+  const base = (explanation: string | null): Question => ({
+    id: 'part5-test',
+    part: 5,
+    format: 'text_blank',
+    difficulty: 3,
+    tags: ['動詞の形'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    question: 'Please ___ the expense report by Friday afternoon today.',
+    choices: [
+      { key: 'A', text: 'submit' },
+      { key: 'B', text: 'submitted' },
+    ],
+    answer: 'A',
+    explanation,
+    translation: '和訳',
+  })
+
+  it('誤答の本文を引用していれば通る', () => {
+    const problems = validateContentLint([base('原形submitが正しい。submittedは過去形。')], 'p')
+    expect(problems.filter((p) => p.includes('誤答選択肢'))).toEqual([])
+  })
+
+  it('「他の選択肢」等の総称でも通る', () => {
+    const problems = validateContentLint([base('原形が正しい。他の選択肢は形が合わない。')], 'p')
+    expect(problems.filter((p) => p.includes('誤答選択肢'))).toEqual([])
+  })
+
+  it('正答の説明しかない解説は検出する', () => {
+    const problems = validateContentLint([base('命令文なので原形が正しい。')], 'p')
+    expect(problems.some((p) => p.includes('解説が誤答選択肢に言及していない'))).toBe(true)
+  })
+
+  it('解説が無い場合も検出する', () => {
+    const problems = validateContentLint([base(null)], 'p')
+    expect(problems.some((p) => p.includes('解説が無い'))).toBe(true)
   })
 })

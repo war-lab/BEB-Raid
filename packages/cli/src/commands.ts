@@ -52,6 +52,7 @@ import {
   buildPart2EntriesS2,
   buildPart2EntriesS3,
   buildPart2Questions,
+  orderPart2EntriesS,
   validatePart2Questions,
 } from './part2Question.js'
 import {
@@ -63,6 +64,7 @@ import {
 } from './part34Question.js'
 import {
   buildPart5Drafts,
+  buildPart5EntriesS,
   buildPart5EntriesS2,
   buildPart5EntriesS3,
   buildPart5Questions,
@@ -167,8 +169,8 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     defaultPath: DEFAULT_VOCAB_S2_DRAFT_PATH,
   },
   audio_qa: {
-    buildQuestions: buildPart2Questions,
-    buildDrafts: buildPart2Drafts,
+    buildQuestions: () => buildPart2Questions(orderPart2EntriesS()),
+    buildDrafts: () => buildPart2Drafts(orderPart2EntriesS()),
     validate: validatePart2Questions,
     defaultPath: DEFAULT_PART2_DRAFT_PATH,
   },
@@ -186,8 +188,8 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     defaultPath: DEFAULT_PART2_S3_DRAFT_PATH,
   },
   text_blank: {
-    buildQuestions: buildPart5Questions,
-    buildDrafts: buildPart5Drafts,
+    buildQuestions: () => buildPart5Questions(buildPart5EntriesS()),
+    buildDrafts: () => buildPart5Drafts(buildPart5EntriesS()),
     validate: validatePart5Questions,
     defaultPath: DEFAULT_PART5_DRAFT_PATH,
   },

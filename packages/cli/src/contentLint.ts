@@ -411,6 +411,173 @@ function checkChoiceTagConsistency(q: Question): string[] {
  * ①②③④⑤⑦は既存違反が現に残っている（docs/STATUS.md参照）ため、このタスクの範囲では
  * 引き続き警告のみとする。安易に昇格すると配布が止まる
  */
+/**
+ * ⑪解説が誤答に言及しているか（T-343の完了条件そのものを測る検査）。
+ *
+ * K-83は「誤答に一切触れない解説」を問題にし、T-343の完了条件は「全解説が誤答への言及を
+ * 含むこと」だが、これを測る検査が無かったため、追記が済んでいるかを機械で確かめられず、
+ * 未達のまま完了扱いにできてしまっていた。
+ *
+ * 「言及」は次のいずれかで満たすものとする。
+ *   (a) 誤答選択肢の本文が解説に現れる（1語の選択肢は語形変化に耐えるよう先頭5文字の語幹で照合）
+ *   (b) 「他の選択肢」「他の2つ」「いずれも」等、他の選択肢を明示的に指す語句を含む
+ * (b)を認めるのは、Part3/4・読解では選択肢が文単位で長く、全文引用が常に読みやすいとは
+ * 限らないためである。
+ */
+const DISTRACTOR_REFERENCE_RE =
+  /(他の(選択肢|2つ|二つ|3つ|三つ|候補|理由)|残りの(選択肢|2つ|3つ)|いずれも|それ以外の選択肢)/
+
+/** 照合用の正規化（英数字と空白だけ残す） */
+function normalizeForMention(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim()
+}
+
+function mentionsDistractor(choices: readonly Choice[], answer: string, explanation: string) {
+  if (DISTRACTOR_REFERENCE_RE.test(explanation)) return true
+  const haystack = normalizeForMention(explanation)
+  return choices.some((c) => {
+    if (c.key === answer) return false
+    const needle = normalizeForMention(c.text)
+    if (needle.length < 2) return false
+    if (haystack.includes(needle)) return true
+    // 1語の選択肢は活用形で書かれることがあるため語幹5文字で照合する
+    return !needle.includes(' ') && needle.length >= 6 && haystack.includes(needle.slice(0, 5))
+  })
+}
+
+function checkExplanationMentionsDistractor(q: Question): string[] {
+  const problems: string[] = []
+  const units: {
+    id: string
+    choices?: Choice[] | null
+    answer?: string | null
+    explanation?: string | null
+  }[] = [{ id: q.id, choices: q.choices, answer: q.answer, explanation: q.explanation }]
+  for (const sq of q.subQuestions ?? []) {
+    units.push({
+      id: sq.id ?? q.id,
+      choices: sq.choices,
+      answer: sq.answer,
+      explanation: sq.explanation,
+    })
+  }
+  for (const u of units) {
+    if (!Array.isArray(u.choices) || u.choices.length < 2 || typeof u.answer !== 'string') continue
+    if (!u.explanation) {
+      problems.push(`[警告] ${u.id}: 解説が無い`)
+      continue
+    }
+    if (!mentionsDistractor(u.choices, u.answer, u.explanation)) {
+      problems.push(`[警告] ${u.id}: 解説が誤答選択肢に言及していない`)
+    }
+  }
+  return problems
+}
+
+/**
+ * ⑩正答位置の予測可能性（T-339の完了条件そのものを測る検査）。
+ *
+ * T-339の完了条件は「1次マルコフ的中率がランダム+15pt以内」だが、⑨
+ * （checkFlatAnswerKeyCycle）が測っているのは隣接差分の最頻値比率で、別の統計量である。
+ * 完了条件に書かれた指標が機械検査に載っていなかったため、条件を満たさないまま完了扱いに
+ * できてしまっていた。本検査で条件そのものを測る。
+ *
+ * 【基準線の取り方】「ランダム=100/選択肢数」との比較は使わない。1次マルコフ的中率は
+ * 同じ列で遷移表を学習して同じ列を当てにいく in-sample の統計量で、**完全にランダムな列でも
+ * 上振れする**（20000回のモンテカルロで、n=50・4択なら中央値が40.8%＝ランダム+15.8pt、
+ * n=60・4択なら39.0%＝+14.0pt）。標本が小さいほど上振れが大きく、n=50・4択では
+ * 「ランダム+15pt以内」という条件は理想的にシャッフルしても満たせない。
+ * そこで、同じ (問題数, 選択肢数) のランダム列を固定シードで生成した帰無分布の95%点を
+ * 基準線に採る。これなら「偏りが偶然では説明できないほど大きい」ときだけ検出できる。
+ *
+ * ⑨は残す。⑨が捉える「一定差分の決定的循環」は生成器の構造欠陥を直接指す鋭い信号で、
+ * 本検査の統計判定より早く原因に到達できるため、目的が違う。
+ */
+const NULL_TRIALS = 2000
+const NULL_PERCENTILE = 0.95
+
+/** 決定的PRNG（mulberry32。shuffle-cyclic-choices.mjsと同方式。実行ごとに結果を変えない） */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** 正答位置列に対する1次マルコフ的中率（%）。直前の位置ごとの最頻の次位置を当てにいく */
+export function firstOrderMarkovAccuracy(indices: readonly number[]): number {
+  if (indices.length < 2) return 0
+  const table = new Map<number, Map<number, number>>()
+  for (let i = 1; i < indices.length; i++) {
+    const from = indices[i - 1]!
+    const row = table.get(from) ?? new Map<number, number>()
+    row.set(indices[i]!, (row.get(indices[i]!) ?? 0) + 1)
+    table.set(from, row)
+  }
+  let hit = 0
+  for (let i = 1; i < indices.length; i++) {
+    const row = table.get(indices[i - 1]!)!
+    let best = -1
+    let bestCount = -1
+    for (const [to, count] of row) {
+      if (count > bestCount) {
+        best = to
+        bestCount = count
+      }
+    }
+    if (best === indices[i]!) hit++
+  }
+  return (hit / (indices.length - 1)) * 100
+}
+
+/** 同じ (n, 選択肢数) のランダム列における1次マルコフ的中率の95%点（帰無分布の上限） */
+export function markovNullThreshold(n: number, choiceCount: number): number {
+  const rng = mulberry32(0x5eed ^ (n * 131) ^ (choiceCount * 7919))
+  const values: number[] = []
+  for (let t = 0; t < NULL_TRIALS; t++) {
+    const seq: number[] = []
+    for (let i = 0; i < n; i++) seq.push(Math.floor(rng() * choiceCount))
+    values.push(firstOrderMarkovAccuracy(seq))
+  }
+  values.sort((a, b) => a - b)
+  return values[Math.min(values.length - 1, Math.floor(NULL_PERCENTILE * values.length))]!
+}
+
+function checkAnswerPositionPredictability(
+  questions: readonly Question[],
+  packId: string,
+): string[] {
+  const indices: number[] = []
+  let choiceCount = 0
+  for (const q of questions) {
+    const units: { choices?: Choice[] | null; answer?: string | null }[] = [
+      q,
+      ...(q.subQuestions ?? []),
+    ]
+    for (const u of units) {
+      if (!Array.isArray(u.choices) || typeof u.answer !== 'string') continue
+      const i = u.choices.findIndex((c) => c.key === u.answer)
+      if (i < 0) continue
+      indices.push(i)
+      choiceCount = Math.max(choiceCount, u.choices.length)
+    }
+  }
+  // 標本が小さいと帰無分布が広がりすぎて検出力が無いため、20問未満は対象外にする
+  if (indices.length < 20 || choiceCount < 2) return []
+  const accuracy = firstOrderMarkovAccuracy(indices)
+  const threshold = markovNullThreshold(indices.length, choiceCount)
+  if (accuracy <= threshold) return []
+  return [
+    `[警告] ${packId}: 正答位置の1次マルコフ的中率が${accuracy.toFixed(1)}%で、同条件のランダム列の95%点${threshold.toFixed(1)}%（${indices.length}問・${choiceCount}択）を超えている（出題順から正答位置が予測できる）`,
+  ]
+}
+
 export function validateContentLintBlocking(
   questions: readonly Question[],
   packId: string,
@@ -437,8 +604,10 @@ export function validateContentLintWarnings(
     problems.push(...checkCasualContractions(q))
     problems.push(...checkTextBlankLength(q))
     problems.push(...checkAudioOnlyReadiness(q))
+    problems.push(...checkExplanationMentionsDistractor(q))
   }
   problems.push(...checkOpeningPhraseDiversity(questions, packId))
+  problems.push(...checkAnswerPositionPredictability(questions, packId))
   return problems
 }
 

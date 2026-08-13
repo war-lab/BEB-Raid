@@ -4,12 +4,15 @@
     "id": "pack-vocab-b-001",
     "title": "語彙カード Bランク200語（860帯）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       730,
       860
     ],
-    "sizeBytes": 88949
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 89037
   },
   "questions": [
     {
@@ -285,7 +288,7 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-attrition",
+      "id": "vocab-apprenticeship",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 4,
@@ -293,10 +296,10 @@
         "人事・採用・研修"
       ],
       "keyVocab": [],
-      "front": "attrition",
-      "phrase": "The company plans to reduce staff through attrition rather than layoffs.",
-      "phraseAudio": "audio/vocab/attrition.mp3",
-      "back": "自然減",
+      "front": "apprenticeship",
+      "phrase": "The factory runs a two-year apprenticeship for new technicians.",
+      "phraseAudio": "audio/vocab/apprenticeship.mp3",
+      "back": "実習生制度",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -349,7 +352,7 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-nepotism",
+      "id": "vocab-facilitator",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 4,
@@ -357,10 +360,10 @@
         "人事・採用・研修"
       ],
       "keyVocab": [],
-      "front": "nepotism",
-      "phrase": "The new hiring policy was introduced to prevent accusations of nepotism.",
-      "phraseAudio": "audio/vocab/nepotism.mp3",
-      "back": "縁故採用",
+      "front": "facilitator",
+      "phrase": "An outside facilitator will lead the strategy workshop.",
+      "phraseAudio": "audio/vocab/facilitator.mp3",
+      "back": "進行役",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -381,7 +384,7 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-arbitration",
+      "id": "vocab-honorarium",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 4,
@@ -389,10 +392,10 @@
         "人事・採用・研修"
       ],
       "keyVocab": [],
-      "front": "arbitration",
-      "phrase": "The labor dispute was settled through arbitration instead of a strike.",
-      "phraseAudio": "audio/vocab/arbitration.mp3",
-      "back": "仲裁",
+      "front": "honorarium",
+      "phrase": "Guest speakers receive an honorarium and travel expenses.",
+      "phraseAudio": "audio/vocab/honorarium.mp3",
+      "back": "謝礼",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -637,7 +640,7 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-receivership",
+      "id": "vocab-amortization",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 4,
@@ -645,10 +648,10 @@
         "財務・会計・契約"
       ],
       "keyVocab": [],
-      "front": "receivership",
-      "phrase": "The struggling airline was placed into receivership last year.",
-      "phraseAudio": "audio/vocab/receivership.mp3",
-      "back": "管財下の状態",
+      "front": "amortization",
+      "phrase": "The amortization of the software license runs over five years.",
+      "phraseAudio": "audio/vocab/amortization.mp3",
+      "back": "償却",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -2429,7 +2432,7 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-liquidation",
+      "id": "vocab-replenishment",
       "part": 0,
       "format": "vocab_card",
       "difficulty": 4,
@@ -2437,10 +2440,10 @@
         "店舗・小売・在庫"
       ],
       "keyVocab": [],
-      "front": "liquidation",
-      "phrase": "The chain held a liquidation sale before closing its doors.",
-      "phraseAudio": "audio/vocab/liquidation.mp3",
-      "back": "在庫処分",
+      "front": "replenishment",
+      "phrase": "Shelf replenishment takes place before the store opens.",
+      "phraseAudio": "audio/vocab/replenishment.mp3",
+      "back": "補充",
       "freqRank": "B",
       "levelBand": 860
     },

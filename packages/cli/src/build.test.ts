@@ -93,6 +93,10 @@ function source(overrides: Partial<PackSource> = {}): PackSource {
     origin: 'テストフィクスチャ',
     targetLevel: [600, 600],
     questions: [vocabQuestion()],
+    // T-355: 工程記録はPackSourceの必須項目（loadPackSourcesが必ず埋める）
+    reviewedBy: 'test',
+    reviewedAt: '2026-08-13',
+    reviewMethod: 'テスト用の工程名',
     ...overrides,
   }
 }

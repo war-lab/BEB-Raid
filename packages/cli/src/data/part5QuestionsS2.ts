@@ -478,12 +478,12 @@ export const PART5_ENTRIES_S2_RAW: Part5RawEntry[] = [
   {
     keyVocabWord: 'tenant',
     tags: ['代名詞・関係詞'],
-    question: 'The tenant ___ the landlord evicted has filed a complaint.',
+    question: 'The tenant ___ the building manager contacted has renewed the lease.',
     correctText: 'whom',
     distractors: ['which', 'where', 'whoever'],
     explanation:
-      '目的格の関係代名詞whomが正しい（the landlord evictedのevictedの目的語）。whichは物を指す関係代名詞、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。',
-    translation: '大家が立ち退かせたその借家人は苦情を申し立てた。',
+      '目的格の関係代名詞whomが正しい（the building manager contactedのcontactedの目的語）。whichは物を指す関係代名詞、whereは場所を指す関係副詞、whoeverは不特定の人物を指す語で、いずれも合わない。',
+    translation: '建物の管理者が連絡したその入居者は、賃貸契約を更新した。',
     difficulty: 4,
   },
   {
@@ -896,14 +896,14 @@ export const PART5_ENTRIES_S2_RAW: Part5RawEntry[] = [
     difficulty: 4,
   },
   {
-    keyVocabWord: 'arrears',
+    keyVocabWord: 'remittance',
     tags: ['接続詞vs前置詞'],
-    question: 'The subscription was suspended ___ the payment was in arrears.',
+    question: 'The order was shipped ___ the remittance was confirmed by the bank.',
     correctText: 'because',
     distractors: ['notwithstanding', 'because of', 'unless'],
     explanation:
-      '空所の後は節（the payment was in arrears）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。',
-    translation: '支払いが滞納していたため、その定期購入は停止された。',
+      '空所の後は節（the remittance was confirmed by the bank）なので接続詞becauseが正しい。notwithstanding/because ofは名詞句が必要な前置詞、unlessは条件で文意に合わない。',
+    translation: '送金が銀行で確認されたため、その注文は出荷された。',
     difficulty: 3,
   },
 

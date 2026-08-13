@@ -27,6 +27,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { validatePack, type Manifest, type QuestionPack } from '@beb-raid/shared-schema'
+import { parseAdversarialTsv } from './adversarial.js'
 import {
   buildPack,
   computePackContentHash,
@@ -208,6 +209,66 @@ export async function verifyContent(contentRoot: string): Promise<VerifyContentR
           `${def.id}: 配信パックがdrafts(${def.draftPath})からの再ビルドと内容が一致しない（パックJSONの直接編集の疑い）`,
         )
       }
+    }
+  }
+
+  // --- 6. 敵対的検証の工程記録（T-355。正本: docs/32 8.2節・8.3節） ---
+  //
+  // CLAUDE.mdの不変条件「工程を経ていないコンテンツは配信しない」を機械で強制する。
+  // これを検査する仕組みが無かったため、記録が無いまま配信されている状態を検出できなかった
+  // （2026-08-13時点で pack-p2-s-003 にTSVが無く、全パックで3フィールドが未記入だった）。
+  for (const [id, pack] of validPacks) {
+    const meta = pack.pack as {
+      origin?: string
+      reviewedBy?: string
+      reviewedAt?: string
+      reviewMethod?: string
+    }
+    for (const field of ['reviewedBy', 'reviewedAt', 'reviewMethod'] as const) {
+      if (!meta[field]) {
+        errors.push(`${id}: pack.${field} が無い（敵対的検証の工程記録。docs/32 8.2節）`)
+      }
+    }
+    // originにも工程名が含まれること（人が読む1行の出所表記と機械可読フィールドを揃える）
+    if (meta.reviewMethod && !(meta.origin ?? '').includes(meta.reviewMethod)) {
+      errors.push(`${id}: pack.origin に pack.reviewMethod の工程名が含まれていない`)
+    }
+
+    const tsvPath = join(contentRoot, 'drafts', `${id}.adversarial.tsv`)
+    let tsv: string
+    try {
+      tsv = await readFile(tsvPath, 'utf-8')
+    } catch {
+      errors.push(`${id}: 敵対的検証の記録 drafts/${id}.adversarial.tsv が無い（docs/32 8.3節）`)
+      continue
+    }
+    const { records, skipped, errors: tsvErrors } = parseAdversarialTsv(tsv)
+    for (const e of tsvErrors) errors.push(`${id}.adversarial.tsv ${e}`)
+    if (skipped > 0) {
+      errors.push(`${id}.adversarial.tsv: verdict未記入が${skipped}件ある`)
+    }
+    const recorded = new Set(records.map((r) => r.id))
+    const missing = pack.questions.filter((q) => !recorded.has(q.id)).map((q) => q.id)
+    if (missing.length > 0) {
+      errors.push(
+        `${id}.adversarial.tsv: 判定の無い設問が${missing.length}件ある（例: ${missing.slice(0, 3).join(', ')}）`,
+      )
+    }
+    const questionIds = new Set(pack.questions.map((q) => q.id))
+    const stale = records.filter((r) => !questionIds.has(r.id)).map((r) => r.id)
+    if (stale.length > 0) {
+      errors.push(
+        `${id}.adversarial.tsv: パックに存在しない設問の行が${stale.length}件ある（例: ${stale.slice(0, 3).join(', ')}）`,
+      )
+    }
+    const unresolved = records.filter((r) => r.verdict !== 'accept')
+    if (unresolved.length > 0) {
+      errors.push(
+        `${id}.adversarial.tsv: acceptになっていない設問が${unresolved.length}件ある（例: ${unresolved
+          .slice(0, 3)
+          .map((r) => `${r.id}=${r.verdict}`)
+          .join(', ')}）。修正するか、発起人判断で配信対象から外す`,
+      )
     }
   }
 

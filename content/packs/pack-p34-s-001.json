@@ -4,12 +4,15 @@
     "id": "pack-p34-s-001",
     "title": "Part3/4セット（会話10・トーク10）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 79749
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 84673
   },
   "questions": [
     {
@@ -58,7 +61,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "会話全体は男性が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。",
+          "explanation": "会話全体は男性が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。他の選択肢（\"Reviewing a budget report\"／\"Canceling a client contract\"／\"Hiring a new team member\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "話者たちは主に何について話していますか。"
         },
         {
@@ -83,7 +86,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "男性は\"I just found out I have a client call at the same time\"と述べている。他の理由はscript中に出てこない。",
+          "explanation": "男性は\"I just found out I have a client call at the same time\"と述べている。他の理由はscript中に出てこない。他の選択肢（\"The man will be out of the office all week\"／\"The man has not finished the budget report\"／\"The man is waiting for a new team member\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性はなぜ会議の時間を変更したいのですか。"
         },
         {
@@ -290,7 +293,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "女性が\"the new interns have been printing a lot of training materials\"と説明している。",
+          "explanation": "女性が\"the new interns have been printing a lot of training materials\"と説明している。他の選択肢（\"The printer is broken\"／\"The supplier raised its prices\"／\"The order from last month never arrived\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "女性によると、なぜ備品が少なくなっているのですか。"
         },
         {
@@ -416,7 +419,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "男性は\"offer the client a discount on their next order\"と提案している。",
+          "explanation": "男性は\"offer the client a discount on their next order\"と提案している。他の選択肢（\"Sending a written apology letter only\"／\"Canceling the client's account\"／\"Filing a complaint against the carrier\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性は顧客に対して何をすることを提案していますか。"
         }
       ]
@@ -492,7 +495,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "男性は\"her experience matches the role closely, and she asked great questions\"と述べている。",
+          "explanation": "男性は\"her experience matches the role closely, and she asked great questions\"と述べている。他の選択肢（\"Her previous employer's reputation\"／\"Her availability to start immediately\"／\"Her salary expectations\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性は候補者の何に感心したと言っていますか。"
         },
         {
@@ -517,7 +520,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "男性は\"let's schedule it for early next week\"と述べ、2回目の面接の設定を提案している。",
+          "explanation": "男性は\"let's schedule it for early next week\"と述べ、2回目の面接の設定を提案している。他の選択肢（\"The position will be reopened for more applicants\"／\"The candidate will be rejected\"／\"The candidate will be offered the job immediately\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "次に何が起こる可能性が高いですか。"
         }
       ]
@@ -598,7 +601,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "男性は\"waiting to hear back about how many guests are vegetarian\"と述べている。",
+          "explanation": "男性は\"waiting to hear back about how many guests are vegetarian\"と述べている。他の選択肢（\"The guest list itself\"／\"The total event budget\"／\"The venue's opening time\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性はまだどんな情報を待っていますか。"
         },
         {
@@ -623,7 +626,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "女性は\"I'll send a quick survey to the attendee list this afternoon\"と述べている。",
+          "explanation": "女性は\"I'll send a quick survey to the attendee list this afternoon\"と述べている。他の選択肢（\"Call the caterer directly\"／\"Cancel part of the order\"／\"Book a larger venue\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "女性は今日の午後、何をしますか。"
         }
       ]
@@ -699,7 +702,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "男性は\"all our files will automatically synchronize before the update starts\"と述べている。",
+          "explanation": "男性は\"all our files will automatically synchronize before the update starts\"と述べている。他の選択肢（\"All computers will be replaced\"／\"Employees will be asked to work from home\"／\"The office will be closed\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性によると、更新前に何が起こりますか。"
         },
         {
@@ -805,7 +808,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "男性は\"I'm still waiting on the shuttle reservation\"と述べている。",
+          "explanation": "男性は\"I'm still waiting on the shuttle reservation\"と述べている。他の選択肢（\"Printing the conference badge\"／\"Booking the flight\"／\"Booking the hotel\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性はまだ何を終えていませんか。"
         },
         {
@@ -830,7 +833,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "女性は\"make sure I land with enough time before the opening reception\"と述べている。",
+          "explanation": "女性は\"make sure I land with enough time before the opening reception\"と述べている。他の選択肢（\"That the flight is nonstop\"／\"That the shuttle is free of charge\"／\"That the hotel has a gym\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "女性は何を確実にするよう男性に求めていますか。"
         }
       ]
@@ -881,7 +884,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "女性は\"the shelves in the front section look almost empty again\"と述べている。",
+          "explanation": "女性は\"the shelves in the front section look almost empty again\"と述べている。他の選択肢（\"Prices are too high\"／\"The store is understaffed\"／\"The store is losing customers\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "女性はどんな問題を指摘していますか。"
         },
         {
@@ -906,7 +909,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "男性は\"our best-selling items keep selling out faster than we can restock them\"と述べている。",
+          "explanation": "男性は\"our best-selling items keep selling out faster than we can restock them\"と述べている。他の選択肢（\"A delivery truck broke down\"／\"The store reduced its order size\"／\"Customers are returning items\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "男性によると、なぜ棚がすぐ空になるのですか。"
         },
         {
@@ -931,7 +934,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "男性は\"let's also move some inventory from the stockroom out front today\"と述べている。",
+          "explanation": "男性は\"let's also move some inventory from the stockroom out front today\"と述べている。他の選択肢（\"Place a new supplier order\"／\"Close the front section\"／\"Interview new staff\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "話者たちは今日、何をしますか。"
         }
       ]
@@ -1012,7 +1015,7 @@
             }
           ],
           "answer": "A",
-          "explanation": "Aは\"they want to shorten the renewal period to six months\"と述べている。",
+          "explanation": "Aは\"they want to shorten the renewal period to six months\"と述べている。他の選択肢（\"Raising the overall cost significantly\"／\"Ending the contract early\"／\"Adding a new service fee\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "業者はどんな変更を望んでいますか。"
         },
         {
@@ -1113,7 +1116,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"out of service...from nine to eleven tomorrow morning\"と明示されている。",
+          "explanation": "\"out of service...from nine to eleven tomorrow morning\"と明示されている。他の選択肢（\"This afternoon only\"／\"For the entire week\"／\"All day tomorrow\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "東側のエレベーターはいつ使用できませんか。"
         },
         {
@@ -1138,7 +1141,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"please use the west elevator or the stairs near the lobby\"と案内している。",
+          "explanation": "\"please use the west elevator or the stairs near the lobby\"と案内している。他の選択肢（\"Use the loading dock entrance\"／\"Wait in the lobby until it reopens\"／\"Contact building management\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "メンテナンス中、聞き手は何をするよう勧められていますか。"
         }
       ]
@@ -1219,7 +1222,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"select merchandise up to seventy percent off\"と述べている。",
+          "explanation": "\"select merchandise up to seventy percent off\"と述べている。他の選択肢（\"Buy one, get one free\"／\"Up to twenty percent off\"／\"A flat ten-dollar discount\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "一部の商品では、顧客はいくら節約できますか。"
         },
         {
@@ -1522,7 +1525,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"We'll begin in the main hall\"と述べている。",
+          "explanation": "\"We'll begin in the main hall\"と述べている。他の選択肢（\"On the second floor\"／\"In the gift shop\"／\"Outside the building\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "ツアーはどこから始まりますか。"
         },
         {
@@ -1547,7 +1550,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"Please feel free to ask questions along the way\"と述べている。",
+          "explanation": "\"Please feel free to ask questions along the way\"と述べている。他の選択肢（\"Purchase souvenirs before starting\"／\"Wait silently until the tour ends\"／\"Take photos only at the end\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "聞き手は何をするよう勧められていますか。"
         }
       ]
@@ -1628,7 +1631,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"Revenue grew twelve percent compared to last quarter\"と述べている。",
+          "explanation": "\"Revenue grew twelve percent compared to last quarter\"と述べている。他の選択肢（\"Twenty percent\"／\"It stayed the same\"／\"Two percent\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "収益はどれくらい増加しましたか。"
         },
         {
@@ -1840,7 +1843,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"To report a lost or stolen card, press two\"と述べている。",
+          "explanation": "\"To report a lost or stolen card, press two\"と述べている。他の選択肢（\"Stay on the line\"／\"Press one\"／\"Press three\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "カードの紛失を報告するには何をすべきですか。"
         },
         {
@@ -1865,7 +1868,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "\"For any other inquiry, please stay on the line and the next available representative will assist you\"と述べている。",
+          "explanation": "\"For any other inquiry, please stay on the line and the next available representative will assist you\"と述べている。他の選択肢（\"Press three\"／\"Hang up and call back later\"／\"Visit a local branch\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "それ以外の問い合わせがある発信者はどうすべきですか。"
         }
       ]
@@ -1951,7 +1954,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "\"you'll learn about our company policies, meet your department supervisor, and complete a few required training modules\"と述べている。",
+          "explanation": "\"you'll learn about our company policies, meet your department supervisor, and complete a few required training modules\"と述べている。他の選択肢（\"Sign a new contract\"／\"Travel to a company retreat\"／\"Take a final exam\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "聞き手は今後2日間で何をしますか。"
         },
         {
@@ -1976,7 +1979,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "\"don't hesitate to ask your mentor if you have any questions\"と述べている。",
+          "explanation": "\"don't hesitate to ask your mentor if you have any questions\"と述べている。他の選択肢（\"Wait until the second day\"／\"Ask their supervisor's supervisor\"／\"Email human resources\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "質問がある場合、聞き手は何をするよう言われていますか。"
         }
       ]

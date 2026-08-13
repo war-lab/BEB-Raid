@@ -45,7 +45,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'An error in the payroll system',
         ],
         explanation:
-          '女性は"there\'s a variance of about two thousand dollars between the ledger and the bank statement"と述べている。',
+          '女性は"there\'s a variance of about two thousand dollars between the ledger and the bank statement"と述べている。他の選択肢について、Denver officeへの二重計上は男性が候補として挙げたものの女性が確認して否定しており、invoiceについては"everything matched up on our end"と述べている。payrollはこの会話に出てこない。',
         translation: '女性はどんな問題を報告していますか。',
       },
       {
@@ -71,7 +71,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Escalate the issue to their manager',
         ],
         explanation:
-          '女性は"Let\'s just document exactly where the numbers diverge so we don\'t have to start from scratch when we call"と提案している。',
+          '女性は"Let\'s just document exactly where the numbers diverge so we don\'t have to start from scratch when we call"と提案している。銀行への連絡は翌朝の予定で、その前に記録を残すという流れである。上司へのエスカレーション・Denver officeへの再送依頼・取引の取り消しはいずれも会話に出てこない。',
         translation: '話者たちは次に何をする可能性が高いですか。',
       },
     ],
@@ -118,7 +118,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Hire a real estate consultant',
         ],
         explanation:
-          '男性は"Let\'s bring that option to Thursday\'s meeting and see what the finance team thinks"と述べている。',
+          '男性は"Let\'s bring that option to Thursday\'s meeting and see what the finance team thinks"と述べている。他の選択肢について、移転案は木曜の会議で財務チームに諮る段階で、撤回も新賃貸契約の締結も決まっていない。不動産コンサルタントの起用は話題になっていない。',
         translation: '話者たちは次に何をする可能性が高いですか。',
       },
     ],
@@ -154,7 +154,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'She is relieved that the fix will be simple',
         ],
         explanation:
-          '直前の"if it\'s the processor, we might be looking at a redesign"を受けた発言で、その可能性への不安を表す意図推定問題。',
+          '直前の"if it\'s the processor, we might be looking at a redesign"を受けた発言で、その可能性への不安を表す意図推定問題。他の選択肢について、プレゼンは2週間後に控えているだけで中止の話は出ておらず、原因は"haven\'t confirmed that yet"の段階なのでdisplayだと確信してもいない。修正が簡単で済むのはdisplayだった場合の仮定にすぎず、安堵の発言ではない。',
         translation: '女性が「それがまさに私の心配なんです」と言っているのはどういう意味ですか。',
       },
       {
@@ -165,7 +165,8 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Replacing the entire engineering team',
           'Approving the redesign immediately',
         ],
-        explanation: '男性は"Let\'s ask engineering for a firm answer by Friday"と提案している。',
+        explanation:
+          '男性は"Let\'s ask engineering for a firm answer by Friday"と提案している。プレゼンの延期・エンジニアリングチームの入れ替え・再設計の即時承認はいずれも会話に出てこない。',
         translation: '男性は何をすることを提案していますか。',
       },
     ],
@@ -212,7 +213,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Cancel the contract renewal',
         ],
         explanation:
-          '女性は"I\'ll draft a counteroffer and send it to them by Friday"と述べている。',
+          '女性は"I\'ll draft a counteroffer and send it to them by Friday"と述べている。8年の取引実績を交渉材料にすると述べており、契約更新の取りやめ・提示どおりの値上げ受け入れ・別業者への切り替えはいずれも選んでいない。',
         translation: '話者たちは次に何をする可能性が高いですか。',
       },
     ],
@@ -248,7 +249,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'She is changing the subject to something else',
         ],
         explanation:
-          '直前の男性の"I\'d rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales"という理由づけを受けて、自分の考えを見直していることを示す意図推定問題。',
+          '直前の男性の"I\'d rather lose a few hours of overnight traffic than risk anything going wrong during peak weekend sales"という理由づけを受けて、自分の考えを見直していることを示す意図推定問題。他の選択肢について、直後に平日夜への変更を依頼しようと述べているので平日案の拒否ではない。それまでは週末実施を前提に話していたため最初から同意していたわけでもなく、話題も変わっていない。',
         translation: '女性が「そう言われるとその通りだ」と言っているのはどういう意味ですか。',
       },
       {
@@ -259,7 +260,8 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Proceed with the original weekend schedule',
           'Postpone the decision until next month',
         ],
-        explanation: '男性は"Let\'s ask maintenance to move it to a weeknight, then"と述べている。',
+        explanation:
+          '男性は"Let\'s ask maintenance to move it to a weeknight, then"と述べている。当初の週末案の続行・来月への判断持ち越し・改修そのものの中止はいずれもこの結論と矛盾する。',
         translation: '話者たちは次に何をする可能性が高いですか。',
       },
     ],
@@ -284,7 +286,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'To announce a new product launch',
         ],
         explanation:
-          '冒頭"I want to speak candidly about the office relocation plan that was announced this morning"と述べている。',
+          '冒頭"I want to speak candidly about the office relocation plan that was announced this morning"と述べている。新任の地域マネージャーの紹介・創立記念・新製品の発表はいずれもこのトークで触れられていない。',
         translation: 'この話の主な目的は何ですか。',
       },
       {
@@ -310,7 +312,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Meet with the regional manager directly',
         ],
         explanation:
-          '"The facility team will be holding one-on-one sessions starting next week...I encourage everyone to attend one"と述べている。',
+          '"The facility team will be holding one-on-one sessions starting next week...I encourage everyone to attend one"と述べている。他の選択肢について、面談の相手はfacility teamであり地域マネージャーではない。他地域への異動申請・正式な苦情の提出には触れていない。',
         translation: '従業員は来週、何をするよう勧められていますか。',
       },
     ],
@@ -341,12 +343,12 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'What does the speaker mean by saying, "I\'d rather be honest about that now than have anyone caught off guard later"?',
         correctText: 'The speaker wants to set realistic expectations about difficulties ahead',
         distractors: [
-          'The speaker is warning of layoffs that will happen immediately',
+          'The speaker is warning that the schedule will slip immediately',
           'The speaker regrets the acquisition took place',
           'The speaker is asking employees to keep the news confidential',
         ],
         explanation:
-          '直前の"There will be bumps along the way"を受けた発言で、あらかじめ現実的な期待値を伝えておきたいという意図を示す意図推定問題。',
+          '直前の"There will be bumps along the way"を受けた発言で、あらかじめ現実的な期待値を伝えておきたいという意図を示す意図推定問題。他の選択肢について、"bumps along the way"は具体的な予定遅延の予告ではない。買収そのものを悔やむ発言はなく、主要な決定は都度伝えると述べているので情報の口止めでもない。',
         translation:
           '話者が「後で不意打ちされるより今正直に話しておきたい」と言っているのはどういう意味ですか。',
       },
@@ -395,7 +397,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'The speaker wants to delay the recall further',
         ],
         explanation:
-          '直前の"this was not an easy decision given the cost involved"に続く発言で、コストを踏まえてもリコールが唯一正しい判断だったという確信を示す意図推定問題。',
+          '直前の"this was not an easy decision given the cost involved"に続く発言で、コストを踏まえてもリコールが唯一正しい判断だったという確信を示す意図推定問題。他の選択肢について、リコールは実施が決まった判断であり不要とは述べていない。engineering teamは欠陥を特定した側として言及されており責任を問う文脈ではなく、早期の実施が責任を限定すると述べているので先送りの意図もない。',
         translation:
           '話者が「率直に言って、それが唯一責任ある判断だった」と言っているのはどういう意味ですか。',
       },
@@ -408,7 +410,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'All units will be automatically refunded',
         ],
         explanation:
-          '"Customer service will begin contacting affected buyers by phone starting Monday"と述べている。',
+          '"Customer service will begin contacting affected buyers by phone starting Monday"と述べている。他の選択肢について、月曜に始まるのは顧客への連絡である。再設計の開始・当局への報告書提出には触れておらず、返金は交換との選択制なので全台が自動返金されるわけでもない。',
         translation: '月曜日から何が始まりますか。',
       },
     ],
@@ -444,7 +446,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'The speaker is asking for more research before any discussion',
         ],
         explanation:
-          '直前の"the market may already be approaching saturation, with three established competitors"を受けた発言で、楽観視せず現実的に取り組みたいという意図を示す意図推定問題。',
+          '直前の"the market may already be approaching saturation, with three established competitors"を受けた発言で、楽観視せず現実的に取り組みたいという意図を示す意図推定問題。他の選択肢について、承認されれば初出店へ進む前提なので計画の撤回ではない。競合3社の存在を自ら挙げているため競合が無いという趣旨でもなく、追加調査の要請もしていない。',
         translation:
           '話者が「簡単に勝てると思い込むより、競合の存在を直視して臨みたい」と言っているのはどういう意味ですか。',
       },
@@ -457,7 +459,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'The pricing model will be revised',
         ],
         explanation:
-          '"If the leadership team approves the budget next week, we could open our first location there by early autumn"と述べている。',
+          '"If the leadership team approves the budget next week, we could open our first location there by early autumn"と述べている。他の選択肢について、価格モデルは既にある強みとして挙げられており改訂の予定は述べていない。計画の撤回・競合3社の撤退にも触れていない。',
         translation: '来週予算が承認されれば、何が起こり得ますか。',
       },
     ],
@@ -480,7 +482,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Merging with another company',
         ],
         explanation:
-          '"the decision to outsource part of our customer support to an external provider"と述べている。',
+          '"the decision to outsource part of our customer support to an external provider"と述べている。他の選択肢について、大量採用は追加採用を避けたい前提として言及されている。サポート部門の閉鎖・他社との合併には触れていない。',
         translation: 'どんな変更が発表されていますか。',
       },
       {
@@ -506,7 +508,7 @@ export const PART34_ENTRIES_S3: Part34RawEntry[] = [
           'Complex cases that the internal team cannot resolve',
         ],
         explanation:
-          '"The external provider will handle only routine inquiries at first, such as order status and returns"と述べている。',
+          '"The external provider will handle only routine inquiries at first, such as order status and returns"と述べている。他の選択肢について、複雑な案件は社内チームが引き続き担当すると述べているため、全ての苦情や難案件を外部が扱うわけではない。技術サポート限定という記述もない。',
         translation: '外部の業者は最初、何を担当しますか。',
       },
     ],

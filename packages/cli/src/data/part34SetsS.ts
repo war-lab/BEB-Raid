@@ -45,7 +45,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Reviewing a budget report',
         ],
         explanation:
-          '会話全体は男性が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。',
+          '会話全体は男性が予定重複のため会議の時間変更を依頼する内容。契約解除・採用・予算内容の検討自体は話題になっていない。他の選択肢（"Reviewing a budget report"／"Canceling a client contract"／"Hiring a new team member"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '話者たちは主に何について話していますか。',
       },
       {
@@ -57,7 +57,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The man is waiting for a new team member',
         ],
         explanation:
-          '男性は"I just found out I have a client call at the same time"と述べている。他の理由はscript中に出てこない。',
+          '男性は"I just found out I have a client call at the same time"と述べている。他の理由はscript中に出てこない。他の選択肢（"The man will be out of the office all week"／"The man has not finished the budget report"／"The man is waiting for a new team member"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性はなぜ会議の時間を変更したいのですか。',
       },
       {
@@ -147,7 +147,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The printer is broken',
         ],
         explanation:
-          '女性が"the new interns have been printing a lot of training materials"と説明している。',
+          '女性が"the new interns have been printing a lot of training materials"と説明している。他の選択肢（"The printer is broken"／"The supplier raised its prices"／"The order from last month never arrived"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '女性によると、なぜ備品が少なくなっているのですか。',
       },
       {
@@ -205,7 +205,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Filing a complaint against the carrier',
           'Sending a written apology letter only',
         ],
-        explanation: '男性は"offer the client a discount on their next order"と提案している。',
+        explanation:
+          '男性は"offer the client a discount on their next order"と提案している。他の選択肢（"Sending a written apology letter only"／"Canceling the client\'s account"／"Filing a complaint against the carrier"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性は顧客に対して何をすることを提案していますか。',
       },
     ],
@@ -240,7 +241,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           "Her previous employer's reputation",
         ],
         explanation:
-          '男性は"her experience matches the role closely, and she asked great questions"と述べている。',
+          '男性は"her experience matches the role closely, and she asked great questions"と述べている。他の選択肢（"Her previous employer\'s reputation"／"Her availability to start immediately"／"Her salary expectations"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性は候補者の何に感心したと言っていますか。',
       },
       {
@@ -252,7 +253,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The candidate will be rejected',
         ],
         explanation:
-          '男性は"let\'s schedule it for early next week"と述べ、2回目の面接の設定を提案している。',
+          '男性は"let\'s schedule it for early next week"と述べ、2回目の面接の設定を提案している。他の選択肢（"The position will be reopened for more applicants"／"The candidate will be rejected"／"The candidate will be offered the job immediately"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '次に何が起こる可能性が高いですか。',
       },
     ],
@@ -287,7 +288,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The guest list itself',
         ],
         explanation:
-          '男性は"waiting to hear back about how many guests are vegetarian"と述べている。',
+          '男性は"waiting to hear back about how many guests are vegetarian"と述べている。他の選択肢（"The guest list itself"／"The total event budget"／"The venue\'s opening time"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性はまだどんな情報を待っていますか。',
       },
       {
@@ -299,7 +300,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Book a larger venue',
         ],
         explanation:
-          '女性は"I\'ll send a quick survey to the attendee list this afternoon"と述べている。',
+          '女性は"I\'ll send a quick survey to the attendee list this afternoon"と述べている。他の選択肢（"Call the caterer directly"／"Cancel part of the order"／"Book a larger venue"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '女性は今日の午後、何をしますか。',
       },
     ],
@@ -334,7 +335,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The office will be closed',
         ],
         explanation:
-          '男性は"all our files will automatically synchronize before the update starts"と述べている。',
+          '男性は"all our files will automatically synchronize before the update starts"と述べている。他の選択肢（"All computers will be replaced"／"Employees will be asked to work from home"／"The office will be closed"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性によると、更新前に何が起こりますか。',
       },
       {
@@ -372,7 +373,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         question: 'What has the man not finished yet?',
         correctText: 'Booking the shuttle reservation',
         distractors: ['Booking the flight', 'Booking the hotel', 'Printing the conference badge'],
-        explanation: '男性は"I\'m still waiting on the shuttle reservation"と述べている。',
+        explanation:
+          '男性は"I\'m still waiting on the shuttle reservation"と述べている。他の選択肢（"Printing the conference badge"／"Booking the flight"／"Booking the hotel"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性はまだ何を終えていませんか。',
       },
       {
@@ -384,7 +386,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'That the shuttle is free of charge',
         ],
         explanation:
-          '女性は"make sure I land with enough time before the opening reception"と述べている。',
+          '女性は"make sure I land with enough time before the opening reception"と述べている。他の選択肢（"That the flight is nonstop"／"That the shuttle is free of charge"／"That the hotel has a gym"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '女性は何を確実にするよう男性に求めていますか。',
       },
     ],
@@ -407,7 +409,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'The store is understaffed',
         ],
         explanation:
-          '女性は"the shelves in the front section look almost empty again"と述べている。',
+          '女性は"the shelves in the front section look almost empty again"と述べている。他の選択肢（"Prices are too high"／"The store is understaffed"／"The store is losing customers"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '女性はどんな問題を指摘していますか。',
       },
       {
@@ -419,7 +421,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Customers are returning items',
         ],
         explanation:
-          '男性は"our best-selling items keep selling out faster than we can restock them"と述べている。',
+          '男性は"our best-selling items keep selling out faster than we can restock them"と述べている。他の選択肢（"A delivery truck broke down"／"The store reduced its order size"／"Customers are returning items"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '男性によると、なぜ棚がすぐ空になるのですか。',
       },
       {
@@ -431,7 +433,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Interview new staff',
         ],
         explanation:
-          '男性は"let\'s also move some inventory from the stockroom out front today"と述べている。',
+          '男性は"let\'s also move some inventory from the stockroom out front today"と述べている。他の選択肢（"Place a new supplier order"／"Close the front section"／"Interview new staff"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '話者たちは今日、何をしますか。',
       },
     ],
@@ -465,7 +467,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Ending the contract early',
           'Adding a new service fee',
         ],
-        explanation: 'Aは"they want to shorten the renewal period to six months"と述べている。',
+        explanation:
+          'Aは"they want to shorten the renewal period to six months"と述べている。他の選択肢（"Raising the overall cost significantly"／"Ending the contract early"／"Adding a new service fee"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '業者はどんな変更を望んでいますか。',
       },
       {
@@ -509,7 +512,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         question: 'When will the east elevator be unavailable?',
         correctText: 'From nine to eleven tomorrow morning',
         distractors: ['All day tomorrow', 'This afternoon only', 'For the entire week'],
-        explanation: '"out of service...from nine to eleven tomorrow morning"と明示されている。',
+        explanation:
+          '"out of service...from nine to eleven tomorrow morning"と明示されている。他の選択肢（"This afternoon only"／"For the entire week"／"All day tomorrow"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '東側のエレベーターはいつ使用できませんか。',
       },
       {
@@ -520,7 +524,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Contact building management',
           'Use the loading dock entrance',
         ],
-        explanation: '"please use the west elevator or the stairs near the lobby"と案内している。',
+        explanation:
+          '"please use the west elevator or the stairs near the lobby"と案内している。他の選択肢（"Use the loading dock entrance"／"Wait in the lobby until it reopens"／"Contact building management"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'メンテナンス中、聞き手は何をするよう勧められていますか。',
       },
     ],
@@ -550,7 +555,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'A flat ten-dollar discount',
           'Buy one, get one free',
         ],
-        explanation: '"select merchandise up to seventy percent off"と述べている。',
+        explanation:
+          '"select merchandise up to seventy percent off"と述べている。他の選択肢（"Buy one, get one free"／"Up to twenty percent off"／"A flat ten-dollar discount"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '一部の商品では、顧客はいくら節約できますか。',
       },
       {
@@ -677,7 +683,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         question: 'Where will the tour begin?',
         correctText: 'In the main hall',
         distractors: ['On the second floor', 'In the gift shop', 'Outside the building'],
-        explanation: '"We\'ll begin in the main hall"と述べている。',
+        explanation:
+          '"We\'ll begin in the main hall"と述べている。他の選択肢（"On the second floor"／"In the gift shop"／"Outside the building"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'ツアーはどこから始まりますか。',
       },
       {
@@ -688,7 +695,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Purchase souvenirs before starting',
           'Wait silently until the tour ends',
         ],
-        explanation: '"Please feel free to ask questions along the way"と述べている。',
+        explanation:
+          '"Please feel free to ask questions along the way"と述べている。他の選択肢（"Purchase souvenirs before starting"／"Wait silently until the tour ends"／"Take photos only at the end"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '聞き手は何をするよう勧められていますか。',
       },
     ],
@@ -718,7 +726,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         question: 'By how much did revenue grow?',
         correctText: 'Twelve percent',
         distractors: ['Two percent', 'Twenty percent', 'It stayed the same'],
-        explanation: '"Revenue grew twelve percent compared to last quarter"と述べている。',
+        explanation:
+          '"Revenue grew twelve percent compared to last quarter"と述べている。他の選択肢（"Twenty percent"／"It stayed the same"／"Two percent"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '収益はどれくらい増加しましたか。',
       },
       {
@@ -799,7 +808,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         question: 'What should callers do to report a lost card?',
         correctText: 'Press two',
         distractors: ['Press one', 'Press three', 'Stay on the line'],
-        explanation: '"To report a lost or stolen card, press two"と述べている。',
+        explanation:
+          '"To report a lost or stolen card, press two"と述べている。他の選択肢（"Stay on the line"／"Press one"／"Press three"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'カードの紛失を報告するには何をすべきですか。',
       },
       {
@@ -807,7 +817,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         correctText: 'Stay on the line for a representative',
         distractors: ['Press three', 'Hang up and call back later', 'Visit a local branch'],
         explanation:
-          '"For any other inquiry, please stay on the line and the next available representative will assist you"と述べている。',
+          '"For any other inquiry, please stay on the line and the next available representative will assist you"と述べている。他の選択肢（"Press three"／"Hang up and call back later"／"Visit a local branch"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: 'それ以外の問い合わせがある発信者はどうすべきですか。',
       },
     ],
@@ -838,7 +848,7 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
         correctText: 'Learn policies, meet a supervisor, and complete training',
         distractors: ['Travel to a company retreat', 'Take a final exam', 'Sign a new contract'],
         explanation:
-          '"you\'ll learn about our company policies, meet your department supervisor, and complete a few required training modules"と述べている。',
+          '"you\'ll learn about our company policies, meet your department supervisor, and complete a few required training modules"と述べている。他の選択肢（"Sign a new contract"／"Travel to a company retreat"／"Take a final exam"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '聞き手は今後2日間で何をしますか。',
       },
       {
@@ -849,7 +859,8 @@ export const PART34_ENTRIES_S: Part34RawEntry[] = [
           'Wait until the second day',
           "Ask their supervisor's supervisor",
         ],
-        explanation: '"don\'t hesitate to ask your mentor if you have any questions"と述べている。',
+        explanation:
+          '"don\'t hesitate to ask your mentor if you have any questions"と述べている。他の選択肢（"Wait until the second day"／"Ask their supervisor\'s supervisor"／"Email human resources"）は、本文でこの設問の答えとして裏づけられていない。',
         translation: '質問がある場合、聞き手は何をするよう言われていますか。',
       },
     ],

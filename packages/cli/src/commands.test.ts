@@ -1,7 +1,7 @@
 // T-24 完了条件: 各コマンドの雛形が動き、APIキーが環境変数から読まれる
 // T-25 完了条件: freq-list コマンドが動き、S200語がランク根拠付きで出力される
 // T-30 完了条件: review-export/review-import の実ファイル往復（ダミーデータ）
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -1542,12 +1542,59 @@ describe('build（T-32）', () => {
   })
 
   describe('verify-content（T-234。docs/29 Q-74・Q-83のCIゲート）', () => {
+    /**
+     * 全パックへ「全設問accept」の敵対的検証記録を置く（T-355でverify-contentが必須化した）。
+     * 記録の有無そのものを検査するテストがあるので、雛形の自動生成はbuild側では行わない
+     */
+    async function writeAdversarialRecords(): Promise<void> {
+      const packDir = join(dir, 'packs')
+      for (const file of await readdir(packDir)) {
+        if (!file.endsWith('.json')) continue
+        const pack = JSON.parse(await readFile(join(packDir, file), 'utf-8')) as {
+          pack: { id: string }
+          questions: { id: string }[]
+        }
+        const rows = ['id\tverdict\tobservation\treviewer\treviewedAt']
+        for (const q of pack.questions) rows.push(`${q.id}\taccept\t\ttest\t2026-08-13`)
+        await writeFile(
+          join(dir, 'drafts', `${pack.pack.id}.adversarial.tsv`),
+          rows.join('\n') + '\n',
+          'utf-8',
+        )
+      }
+    }
+
     it('build直後は検証OKになる（配信物・manifest・音声・draftsが整合した基準状態）', async () => {
       expect((await run(['build', dir])).code).toBe(0)
+      await writeAdversarialRecords()
 
       const { code, output } = await run(['verify-content', dir])
       expect(code).toBe(0)
       expect(output).toContain('検証OK')
+    })
+
+    it('敵対的検証の記録が無いパックを検出する（T-355。CLAUDE.mdの不変条件の機械強制）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await writeAdversarialRecords()
+      await rm(join(dir, 'drafts/pack-p5-s-001.adversarial.tsv'))
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('pack-p5-s-001')
+      expect(errOutput).toContain('adversarial.tsv')
+    })
+
+    it('acceptになっていない設問が残っていると検出する（T-355）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await writeAdversarialRecords()
+      const tsvPath = join(dir, 'drafts/pack-p5-s-001.adversarial.tsv')
+      const lines = (await readFile(tsvPath, 'utf-8')).split('\n')
+      lines[1] = lines[1]!.replace('\taccept\t', '\treject\t')
+      await writeFile(tsvPath, lines.join('\n'), 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('acceptになっていない')
     })
 
     it('パックJSONを直接編集してdraftsを更新しないと、drafts乖離として検出する（Q-74の核心シナリオ）', async () => {

@@ -4,12 +4,15 @@
     "id": "pack-p2-s-002",
     "title": "Part2瞬発 追加100問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 124191
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 129784
   },
   "questions": [
     {
@@ -953,7 +956,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "時刻を尋ねる質問には具体的な時間で答える。他の2つは場所・人物の応答で噛み合わない。"
+      "explanation": "時刻を尋ねる質問には具体的な時間で答える。他の2つ（\"In conference room B.\"／\"The regional managers.\"）は場所・人物の応答で噛み合わない。"
     },
     {
       "id": "part2-headcount",
@@ -994,7 +997,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "数量を尋ねる質問には具体的な人数で答える。他の2つは部門・理由の応答で噛み合わない。"
+      "explanation": "数量を尋ねる質問には具体的な人数で答える。他の2つ（\"Because business is growing.\"／\"Mostly in the sales division.\"）は部門・理由の応答で噛み合わない。"
     },
     {
       "id": "part2-consignment",
@@ -1035,7 +1038,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "期間を尋ねる質問には具体的な日数で答える。他の2つは理由・主体の応答で噛み合わない。"
+      "explanation": "期間を尋ねる質問には具体的な日数で答える。他の2つ（\"Because of a missing form.\"／\"The shipping company.\"）は理由・主体の応答で噛み合わない。"
     },
     {
       "id": "part2-subsidy",
@@ -1076,7 +1079,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "割合を尋ねる質問には数値で答える。他の2つは対象・時期の応答で噛み合わない。"
+      "explanation": "割合を尋ねる質問には数値で答える。他の2つ（\"Small manufacturing firms.\"／\"Once a year, in March.\"）は対象・時期の応答で噛み合わない。"
     },
     {
       "id": "part2-levy",
@@ -1117,7 +1120,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "時を尋ねる質問には具体的な日付で答える。他の2つは主体・対象の応答で噛み合わない。"
+      "explanation": "時を尋ねる質問には具体的な日付で答える。他の2つ（\"On rental properties only.\"／\"The city council decided.\"）は主体・対象の応答で噛み合わない。"
     },
     {
       "id": "part2-throughput",
@@ -1158,7 +1161,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "増加量を尋ねる質問には数値で答える。他の2つは時期・人物の応答で噛み合わない。"
+      "explanation": "増加量を尋ねる質問には数値で答える。他の2つ（\"Since last spring.\"／\"The production manager.\"）は時期・人物の応答で噛み合わない。"
     },
     {
       "id": "part2-occupancy",
@@ -1199,7 +1202,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "割合を尋ねる質問には数値で答える。他の2つは時期・主体の応答で噛み合わない。"
+      "explanation": "割合を尋ねる質問には数値で答える。他の2つ（\"Since it opened in June.\"／\"The property management firm.\"）は時期・主体の応答で噛み合わない。"
     },
     {
       "id": "part2-liquidity",
@@ -1240,7 +1243,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "増加量を尋ねる質問には数値で答える。他の2つは人物・理由の応答で噛み合わない。"
+      "explanation": "増加量を尋ねる質問には数値で答える。他の2つ（\"The chief financial officer.\"／\"Because of tighter budgeting.\"）は人物・理由の応答で噛み合わない。"
     },
     {
       "id": "part2-footfall",
@@ -1281,10 +1284,10 @@
         }
       ],
       "answer": "A",
-      "explanation": "増加量を尋ねる質問には数値で答える。他の2つは時期・主体の応答で噛み合わない。"
+      "explanation": "増加量を尋ねる質問には数値で答える。他の2つ（\"Since early spring.\"／\"The mall management office.\"）は時期・主体の応答で噛み合わない。"
     },
     {
-      "id": "part2-attrition",
+      "id": "part2-apprenticeship",
       "part": 2,
       "format": "audio_qa",
       "difficulty": 3,
@@ -1293,36 +1296,36 @@
       ],
       "keyVocab": [
         {
-          "word": "attrition",
-          "sense": "自然減",
+          "word": "apprenticeship",
+          "sense": "実習生制度",
           "freqRank": "B"
         }
       ],
-      "audio": "audio/part2/attrition.mp3",
+      "audio": "audio/part2/apprenticeship.mp3",
       "audioMeta": {
         "accent": "UK",
         "tts": true,
         "voice": "pending-tts",
         "durationMs": 4200
       },
-      "script": "What is the company’s current attrition rate? — Around eight percent annually.",
-      "translation": "会社の現在の離職率はどれくらいですか？ — 年間約8パーセントです。",
+      "script": "How long is the apprenticeship program? — Around two years in total.",
+      "translation": "実習生制度はどれくらいの長さですか？ — 合計でおよそ2年です。",
       "choices": [
         {
           "key": "A",
-          "text": "The human resources director."
+          "text": "Around two years in total."
         },
         {
           "key": "B",
-          "text": "Mainly younger employees."
+          "text": "The human resources director."
         },
         {
           "key": "C",
-          "text": "Around eight percent annually."
+          "text": "Mainly younger employees."
         }
       ],
-      "answer": "C",
-      "explanation": "割合を尋ねる質問には数値で答える。他の2つは人物・対象の応答で噛み合わない。"
+      "answer": "A",
+      "explanation": "期間を尋ねる質問には長さで答える。他の2つ（\"The human resources director.\"／\"Mainly younger employees.\"）は人物・対象の応答で、いずれも期間を答えていない。"
     },
     {
       "id": "part2-proofread",
@@ -1445,7 +1448,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "依頼（Could you...?）への応答は対応の意思表示。他の2つは過去の実績や番号情報で、依頼への直接的な返答になっていない。"
+      "explanation": "依頼（Could you...?）への応答は対応の意思表示。他の2つ（\"The order number is 4521.\"／\"It arrived on time last week.\"）は過去の実績や番号情報で、依頼への直接的な返答になっていない。"
     },
     {
       "id": "part2-reconciliation",
@@ -1486,7 +1489,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "進捗を尋ねる質問（Did you...?）には状況で答える。他の2つは主体や期限の情報で、進捗を尋ねる質問には合わない。"
+      "explanation": "進捗を尋ねる質問（Did you...?）には状況で答える。他の2つ（\"The finance team handles that.\"／\"It was due last Friday.\"）は主体や期限の情報で、進捗を尋ねる質問には合わない。"
     },
     {
       "id": "part2-streamline",
@@ -1527,7 +1530,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "意図を尋ねる質問（Going to...?）には計画の有無で答える。他の2つは過去の所要時間や提案者の情報で噛み合わない。"
+      "explanation": "意図を尋ねる質問（Going to...?）には計画の有無で答える。他の2つ（\"It took three weeks last time.\"／\"The operations team suggested it.\"）は過去の所要時間や提案者の情報で噛み合わない。"
     },
     {
       "id": "part2-incentivize",
@@ -1568,7 +1571,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "提案（Should we...?）への応答は賛成・反対の意見。他の2つは人数や担当者の情報で、提案への返答になっていない。"
+      "explanation": "提案（Should we...?）への応答は賛成・反対の意見。他の2つ（\"About two hundred people signed up.\"／\"The marketing team is in charge.\"）は人数や担当者の情報で、提案への返答になっていない。"
     },
     {
       "id": "part2-appraisal",
@@ -1609,7 +1612,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "時を尋ねる質問（Do you know when...?）には具体的な日で答える。他の2つは主体・所要時間の情報で噛み合わない。"
+      "explanation": "時を尋ねる質問（Do you know when...?）には具体的な日で答える。他の2つ（\"It usually takes an hour.\"／\"Your manager conducted it.\"）は主体・所要時間の情報で噛み合わない。"
     },
     {
       "id": "part2-retention",
@@ -1650,7 +1653,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "勧誘（Want to...?）への応答は同意か辞退。他の2つは実績や作成者の情報で、勧誘への返答になっていない。"
+      "explanation": "勧誘（Want to...?）への応答は同意か辞退。他の2つ（\"They improved last quarter.\"／\"The HR analyst prepared them.\"）は実績や作成者の情報で、勧誘への返答になっていない。"
     },
     {
       "id": "part2-automate",
@@ -1691,7 +1694,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "意図を尋ねる質問（Going to...?）には計画の状況で答える。他の2つは過去の効果や連絡の情報で噛み合わない。"
+      "explanation": "意図を尋ねる質問（Going to...?）には計画の状況で答える。他の2つ（\"The software vendor called yesterday.\"／\"It saved us a lot of time.\"）は過去の効果や連絡の情報で噛み合わない。"
     },
     {
       "id": "part2-diversify",
@@ -1732,7 +1735,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "提案（Should...?）への応答は意見・根拠。他の2つは実績や時刻の情報で、提案への返答になっていない。"
+      "explanation": "提案（Should...?）への応答は意見・根拠。他の2つ（\"It grew by ten percent last year.\"／\"The meeting is at noon.\"）は実績や時刻の情報で、提案への返答になっていない。"
     },
     {
       "id": "part2-amenity",
@@ -1773,7 +1776,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "What（何）への応答は内容。他の2つは時期・主体の応答で、施設内容を尋ねる質問には合わない。"
+      "explanation": "What（何）への応答は内容。他の2つ（\"It opened last spring.\"／\"The property developer.\"）は時期・主体の応答で、施設内容を尋ねる質問には合わない。"
     },
     {
       "id": "part2-concierge",
@@ -1814,7 +1817,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "Who（誰）への応答は人物・窓口。他の2つは営業時間や施設数の情報で、Whoの質問には合わない。"
+      "explanation": "Who（誰）への応答は人物・窓口。他の2つ（\"It opens at six.\"／\"The hotel has three restaurants.\"）は営業時間や施設数の情報で、Whoの質問には合わない。"
     },
     {
       "id": "part2-chartered",
@@ -1855,7 +1858,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは定員・手配者の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"It seats forty people.\"／\"The travel agency arranged it.\"）は定員・手配者の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-punctual",
@@ -1896,7 +1899,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "Yes/No疑問文には賛否で答える。他の2つは頻度・場所の情報で、Yes/No疑問文への直接応答になっていない。"
+      "explanation": "Yes/No疑問文には賛否で答える。他の2つ（\"They deliver twice a day.\"／\"The warehouse is downtown.\"）は頻度・場所の情報で、Yes/No疑問文への直接応答になっていない。"
     },
     {
       "id": "part2-gateway",
@@ -1937,7 +1940,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは建設時期・追加路線の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"It was built ten years ago.\"／\"The airline added new routes.\"）は建設時期・追加路線の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-hospitality",
@@ -1978,7 +1981,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "What（何）への応答は内容。他の2つは客室数・改装時期の情報で、Whatの質問には合わない。"
+      "explanation": "What（何）への応答は内容。他の2つ（\"It has two hundred rooms.\"／\"It was renovated last year.\"）は客室数・改装時期の情報で、Whatの質問には合わない。"
     },
     {
       "id": "part2-commute",
@@ -2019,7 +2022,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "How long（どのくらい）への応答は所要時間。他の2つは場所・開始時期の情報で、How longの質問には合わない。"
+      "explanation": "How long（どのくらい）への応答は所要時間。他の2つ（\"It’s near the harbor.\"／\"I started last month.\"）は場所・開始時期の情報で、How longの質問には合わない。"
     },
     {
       "id": "part2-congestion",
@@ -2060,7 +2063,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは頻度・道路改良の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"The city added a new lane.\"／\"It happens every Friday.\"）は頻度・道路改良の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-immigration",
@@ -2101,7 +2104,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "How long（どのくらい）は程度・長さを尋ねる。他の2つは人員数・営業時間の情報で、質問には合わない。"
+      "explanation": "How long（どのくらい）は程度・長さを尋ねる。他の2つ（\"It closes at midnight.\"／\"Two officers were on duty.\"）は人員数・営業時間の情報で、質問には合わない。"
     },
     {
       "id": "part2-stopover",
@@ -2142,7 +2145,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは出発時刻・拠点の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"It leaves at midnight.\"／\"The airline is based overseas.\"）は出発時刻・拠点の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-ratify",
@@ -2183,7 +2186,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「今日の午後また会議がある」は「まだ承認していない（結果待ち）」ことを暗に示す。他の2つは直接的だが文脈に合わない情報。"
+      "explanation": "間接応答: 「今日の午後また会議がある」は「まだ承認していない（結果待ち）」ことを暗に示す。他の2つ（\"It was signed last year.\"／\"The lawyers drafted it.\"）は直接的だが文脈に合わない情報。"
     },
     {
       "id": "part2-disclose",
@@ -2224,7 +2227,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「これまでは要約のみ公開された」は「全文はまだ開示されていない」ことを示す。他の2つは直接的だが質問の核心（開示の有無）に答えていない。"
+      "explanation": "間接応答: 「これまでは要約のみ公開された」は「全文はまだ開示されていない」ことを示す。他の2つ（\"The CFO wrote it.\"／\"The cafeteria is closed for renovation.\"）は直接的だが質問の核心（開示の有無）に答えていない。"
     },
     {
       "id": "part2-reimbursement",
@@ -2265,7 +2268,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「まだ口座を確認していない」は「分からない・まだ確認できていない」ことを示す間接的な回答。他の2つは質問の核心に答えていない。"
+      "explanation": "間接応答: 「まだ口座を確認していない」は「分からない・まだ確認できていない」ことを示す間接的な回答。他の2つ（\"The parking garage is full today.\"／\"The finance office is on the second floor.\"）は質問の核心に答えていない。"
     },
     {
       "id": "part2-troubleshoot",
@@ -2306,7 +2309,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「技術者がちょうど帰ったところ」は「（今なら）直っているはず」であることを暗に伝える。他の2つは質問（直っているか）に直接答えていない。"
+      "explanation": "間接応答: 「技術者がちょうど帰ったところ」は「（今なら）直っているはず」であることを暗に伝える。他の2つ（\"It broke down twice.\"／\"The warranty covers repairs.\"）は質問（直っているか）に直接答えていない。"
     },
     {
       "id": "part2-overbook",
@@ -2347,7 +2350,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「今カレンダーを確認する」は「今のところ分からない、確認して答える」という保留の返答。他の2つは質問（重複予約か）に直接答えていない。"
+      "explanation": "間接応答: 「今カレンダーを確認する」は「今のところ分からない、確認して答える」という保留の返答。他の2つ（\"It seats twenty people.\"／\"The marketing team reserved it.\"）は質問（重複予約か）に直接答えていない。"
     },
     {
       "id": "part2-profitability",
@@ -2388,7 +2391,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「次の四半期報告の後にもっと分かる」は「まだ確定的には言えない」ことを示す間接的な回答。他の2つは質問（収益性が改善したか）に直接答えていない。"
+      "explanation": "間接応答: 「次の四半期報告の後にもっと分かる」は「まだ確定的には言えない」ことを示す間接的な回答。他の2つ（\"It launched in March.\"／\"The design team is in Chicago.\"）は質問（収益性が改善したか）に直接答えていない。"
     },
     {
       "id": "part2-growth",
@@ -2429,7 +2432,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「最終的な数字はまだ出ていない」は「まだ分からない」ことを暗に示す。他の2つは質問に直接答えていない。"
+      "explanation": "間接応答: 「最終的な数字はまだ出ていない」は「まだ分からない」ことを暗に示す。他の2つ（\"It was founded ten years ago.\"／\"The CEO gave a speech last week.\"）は質問に直接答えていない。"
     },
     {
       "id": "part2-obsolete",
@@ -2470,7 +2473,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「来週アップデートを配信する予定」は「まだ完全に旧式ではない、対応中」であることを示す。他の2つは質問に直接答えていない。"
+      "explanation": "間接応答: 「来週アップデートを配信する予定」は「まだ完全に旧式ではない、対応中」であることを示す。他の2つ（\"The IT team installed it.\"／\"The manual is on the intranet.\"）は質問に直接答えていない。"
     },
     {
       "id": "part2-investment",
@@ -2511,7 +2514,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「金曜にまた会議がある」は「まだ決まっていない」ことを示す。他の2つは質問に直接答えていない。"
+      "explanation": "間接応答: 「金曜にまた会議がある」は「まだ決まっていない」ことを示す。他の2つ（\"The office is on the fifth floor.\"／\"The proposal was ten pages long.\"）は質問に直接答えていない。"
     },
     {
       "id": "part2-sustainability",
@@ -2552,7 +2555,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「認証はまだ保留中」は「まだ正式には基準を満たしたと確認されていない」ことを示す。他の2つは質問に直接答えていない。"
+      "explanation": "間接応答: 「認証はまだ保留中」は「まだ正式には基準を満たしたと確認されていない」ことを示す。他の2つ（\"It opened last spring.\"／\"The manager toured it yesterday.\"）は質問に直接答えていない。"
     },
     {
       "id": "part2-relocation",
@@ -2593,7 +2596,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「まだ複数の建物を比較検討中」は「まだ確定していない」ことを示す。他の2つは質問（移転が確定したか）に直接答えていない。"
+      "explanation": "間接応答: 「まだ複数の建物を比較検討中」は「まだ確定していない」ことを示す。他の2つ（\"It was built in 1998.\"／\"The parking lot is quite small.\"）は質問（移転が確定したか）に直接答えていない。"
     },
     {
       "id": "part2-permit",
@@ -2634,7 +2637,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「明日また検査員が来て判断する」は「まだ正式決定していない」ことを示す。他の2つは質問（許可証が発行されたか）に直接答えていない。"
+      "explanation": "間接応答: 「明日また検査員が来て判断する」は「まだ正式決定していない」ことを示す。他の2つ（\"It was built in the 1950s.\"／\"The tenants moved out already.\"）は質問（許可証が発行されたか）に直接答えていない。"
     },
     {
       "id": "part2-complaint",
@@ -2675,7 +2678,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「予想はついていた（saw it coming）」は「驚きではなかった」ことを示す。他の2つは質問（驚きだったか）に直接答えていない。"
+      "explanation": "間接応答: 「予想はついていた（saw it coming）」は「驚きではなかった」ことを示す。他の2つ（\"It was filed last Tuesday.\"／\"The manager reviewed it already.\"）は質問（驚きだったか）に直接答えていない。"
     },
     {
       "id": "part2-turnaround",
@@ -2716,7 +2719,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「判断するにはまだ早すぎる」は「まだ分からない」ことを示す。他の2つは質問（うまくいっているか）に直接答えていない。"
+      "explanation": "間接応答: 「判断するにはまだ早すぎる」は「まだ分からない」ことを示す。他の2つ（\"The plan was announced in April.\"／\"The consultant flew in from Boston.\"）は質問（うまくいっているか）に直接答えていない。"
     },
     {
       "id": "part2-modernization",
@@ -2757,7 +2760,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「本社からの連絡待ち」は「まだ確定していない」ことを示す。他の2つは質問（計画が確定したか）に直接答えていない。"
+      "explanation": "間接応答: 「本社からの連絡待ち」は「まだ確定していない」ことを示す。他の2つ（\"It affects the sales team.\"／\"It was announced in May.\"）は質問（計画が確定したか）に直接答えていない。"
     },
     {
       "id": "part2-nonrefundable",
@@ -2798,7 +2801,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "間接応答: 「規約を確認してみる」は「今すぐには断言できない」という保留の返答。他の2つは質問に直接答えていない。"
+      "explanation": "間接応答: 「規約を確認してみる」は「今すぐには断言できない」という保留の返答。他の2つ（\"It costs two hundred dollars.\"／\"The flight leaves at noon.\"）は質問に直接答えていない。"
     },
     {
       "id": "part2-variance",
@@ -2839,7 +2842,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "間接応答: 「次の議会まで分からない」は「まだ承認されたか不明」であることを示す。他の2つは質問に直接答えていない。"
+      "explanation": "間接応答: 「次の議会まで分からない」は「まだ承認されたか不明」であることを示す。他の2つ（\"The architect submitted the plans.\"／\"The property is near the river.\"）は質問に直接答えていない。"
     },
     {
       "id": "part2-inquiry",
@@ -2880,7 +2883,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "間接応答: 「まだ情報を集めている最中」は「まだ完了していない」ことを示す。他の2つは質問（問い合わせ対応が完了したか）に直接答えていない。"
+      "explanation": "間接応答: 「まだ情報を集めている最中」は「まだ完了していない」ことを示す。他の2つ（\"It was submitted last week.\"／\"The customer called twice.\"）は質問（問い合わせ対応が完了したか）に直接答えていない。"
     },
     {
       "id": "part2-scalability",
@@ -2921,7 +2924,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは時期・人物情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"The sales rep is based abroad.\"／\"It launched last year.\"）は時期・人物情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-authentication",
@@ -2962,7 +2965,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "What（何）への応答は内容。他の2つは時期・主体の応答で、Whatの質問には合わない。"
+      "explanation": "What（何）への応答は内容。他の2つ（\"The IT team manages it.\"／\"It was installed last month.\"）は時期・主体の応答で、Whatの質問には合わない。"
     },
     {
       "id": "part2-middleware",
@@ -3003,7 +3006,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Who（誰）への応答は人物。他の2つは時期・理由の応答で、Whoの質問には合わない。"
+      "explanation": "Who（誰）への応答は人物。他の2つ（\"It was updated last week.\"／\"Because of a licensing issue.\"）は時期・理由の応答で、Whoの質問には合わない。"
     },
     {
       "id": "part2-protocol",
@@ -3044,7 +3047,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは主体・時期の応答で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"The IT director.\"／\"It takes effect next Monday.\"）は主体・時期の応答で、Whyの質問には合わない。"
     },
     {
       "id": "part2-endpoint",
@@ -3085,7 +3088,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "数量を尋ねる質問には数値で答える。他の2つは所要時間・主体の応答で噛み合わない。"
+      "explanation": "数量を尋ねる質問には数値で答える。他の2つ（\"It takes ten minutes each.\"／\"The IT team scheduled it.\"）は所要時間・主体の応答で噛み合わない。"
     },
     {
       "id": "part2-password",
@@ -3126,7 +3129,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "Where（どこ）への応答は場所。他の2つは時期・主体の応答で、Whereの質問には合わない。"
+      "explanation": "Where（どこ）への応答は場所。他の2つ（\"The security team manages it.\"／\"It was installed last year.\"）は時期・主体の応答で、Whereの質問には合わない。"
     },
     {
       "id": "part2-provisioning",
@@ -3167,7 +3170,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "How long（どのくらい）への応答は所要時間。他の2つは主体・過去との比較で、質問には合わない。"
+      "explanation": "How long（どのくらい）への応答は所要時間。他の2つ（\"It used to be much slower.\"／\"The cloud team handles it.\"）は主体・過去との比較で、質問には合わない。"
     },
     {
       "id": "part2-virtualization",
@@ -3208,7 +3211,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは期間・提案者の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"The IT director.\"／\"A year.\"）は期間・提案者の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-deprecate",
@@ -3249,7 +3252,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "When（いつ）への応答は時。他の2つは数量・主体の情報で、Whenの質問には合わない。"
+      "explanation": "When（いつ）への応答は時。他の2つ（\"About two hundred clients use it.\"／\"The development team built it.\"）は数量・主体の情報で、Whenの質問には合わない。"
     },
     {
       "id": "part2-cybersecurity",
@@ -3290,7 +3293,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "金額・程度を尋ねる質問には数値で答える。他の2つは時期・主体の情報で噛み合わない。"
+      "explanation": "金額・程度を尋ねる質問には数値で答える。他の2つ（\"The board approved it in March.\"／\"It’s managed by an outside firm.\"）は時期・主体の情報で噛み合わない。"
     },
     {
       "id": "part2-phishing",
@@ -3331,7 +3334,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "What（何を）への応答は取るべき行動。他の2つは時期・標的の情報で、質問には合わない。"
+      "explanation": "What（何を）への応答は取るべき行動。他の2つ（\"It happened last Tuesday.\"／\"The finance department was targeted.\"）は時期・標的の情報で、質問には合わない。"
     },
     {
       "id": "part2-allocate",
@@ -3372,7 +3375,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは配達時期・仕入先の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"The supplier is based locally.\"／\"They were delivered last week.\"）は配達時期・仕入先の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-subsidiary",
@@ -3413,7 +3416,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Who（誰）への応答は人物。他の2つは設立時期・分野の情報で、Whoの質問には合わない。"
+      "explanation": "Who（誰）への応答は人物。他の2つ（\"It was formed two years ago.\"／\"It focuses on renewable energy.\"）は設立時期・分野の情報で、Whoの質問には合わない。"
     },
     {
       "id": "part2-integration",
@@ -3454,7 +3457,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "How（どのように）への応答は方法・関係性。他の2つは時期・主体の情報で、Howの質問には合わない。"
+      "explanation": "How（どのように）への応答は方法・関係性。他の2つ（\"It was released in June.\"／\"The design team built it.\"）は時期・主体の情報で、Howの質問には合わない。"
     },
     {
       "id": "part2-newsletter",
@@ -3495,7 +3498,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "Who（誰）への応答は人物。他の2つは所要時間・内容の情報で、Whoの質問には合わない。"
+      "explanation": "Who（誰）への応答は人物。他の2つ（\"It took about a week.\"／\"It highlights sales growth.\"）は所要時間・内容の情報で、Whoの質問には合わない。"
     },
     {
       "id": "part2-facilitate",
@@ -3536,7 +3539,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは時期・主体の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"It was implemented last year.\"／\"The operations manager led it.\"）は時期・主体の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-orientation",
@@ -3577,7 +3580,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "Where（どこ）への応答は場所。他の2つは時刻・人数の情報で、Whereの質問には合わない。"
+      "explanation": "Where（どこ）への応答は場所。他の2つ（\"It starts at nine.\"／\"About twenty employees will attend.\"）は時刻・人数の情報で、Whereの質問には合わない。"
     },
     {
       "id": "part2-benchmark",
@@ -3618,7 +3621,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "比較・程度を尋ねる質問には数値で答える。他の2つは時期・主体の情報で噛み合わない。"
+      "explanation": "比較・程度を尋ねる質問には数値で答える。他の2つ（\"A consulting firm prepared it.\"／\"The report came out last week.\"）は時期・主体の情報で噛み合わない。"
     },
     {
       "id": "part2-niche",
@@ -3659,7 +3662,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは設立時期・経歴の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"The CEO used to work in finance.\"／\"It was founded three years ago.\"）は設立時期・経歴の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-testimonial",
@@ -3700,7 +3703,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Where（どこ）への応答は場所。他の2つは時期・主体の情報で、Whereの質問には合わない。"
+      "explanation": "Where（どこ）への応答は場所。他の2つ（\"It launched two years ago.\"／\"The marketing team wrote the copy.\"）は時期・主体の情報で、Whereの質問には合わない。"
     },
     {
       "id": "part2-clientele",
@@ -3741,7 +3744,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "What kind（どんな種類）への応答は内容。他の2つは開業時期・経歴の情報で、質問には合わない。"
+      "explanation": "What kind（どんな種類）への応答は内容。他の2つ（\"It opened five years ago.\"／\"The chef trained in Paris.\"）は開業時期・経歴の情報で、質問には合わない。"
     },
     {
       "id": "part2-affiliate",
@@ -3782,7 +3785,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "割合を尋ねる質問には数値で答える。他の2つは時期・主体の情報で噛み合わない。"
+      "explanation": "割合を尋ねる質問には数値で答える。他の2つ（\"We signed them last spring.\"／\"The partnerships team manages them.\"）は時期・主体の情報で噛み合わない。"
     },
     {
       "id": "part2-engagement",
@@ -3823,7 +3826,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "増加量を尋ねる質問には数値で答える。他の2つは開発期間・主体の情報で噛み合わない。"
+      "explanation": "増加量を尋ねる質問には数値で答える。他の2つ（\"The update took six months to build.\"／\"The design team led the project.\"）は開発期間・主体の情報で噛み合わない。"
     },
     {
       "id": "part2-segmentation",
@@ -3864,7 +3867,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Why（なぜ）への応答は理由。他の2つは開始時期・所在地の情報で、Whyの質問には合わない。"
+      "explanation": "Why（なぜ）への応答は理由。他の2つ（\"The campaign launched last week.\"／\"The agency is based overseas.\"）は開始時期・所在地の情報で、Whyの質問には合わない。"
     },
     {
       "id": "part2-upsell",
@@ -3905,7 +3908,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "方法を尋ねる質問には手段で答える。他の2つは結果・提案者の情報で、Howの質問には合わない。"
+      "explanation": "方法を尋ねる質問には手段で答える。他の2つ（\"It increased sales last quarter.\"／\"The store manager suggested it.\"）は結果・提案者の情報で、Howの質問には合わない。"
     },
     {
       "id": "part2-appease",
@@ -3946,7 +3949,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "方法を尋ねる質問には手段で答える。他の2つは時期・購入経路の情報で、Howの質問には合わない。"
+      "explanation": "方法を尋ねる質問には手段で答える。他の2つ（\"The customer bought it online.\"／\"The complaint came in yesterday.\"）は時期・購入経路の情報で、Howの質問には合わない。"
     },
     {
       "id": "part2-rectify",
@@ -3987,7 +3990,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "速さ・時間を尋ねる質問には期間で答える。他の2つは行動・通知先の情報で、質問には合わない。"
+      "explanation": "速さ・時間を尋ねる質問には期間で答える。他の2つ（\"The customer called twice.\"／\"The finance team was notified.\"）は行動・通知先の情報で、質問には合わない。"
     },
     {
       "id": "part2-goodwill",
@@ -4028,7 +4031,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "How（どのように）への応答は方法。他の2つは設立場所・経歴の情報で、Howの質問には合わない。"
+      "explanation": "How（どのように）への応答は方法。他の2つ（\"It was founded downtown.\"／\"The CEO grew up nearby.\"）は設立場所・経歴の情報で、Howの質問には合わない。"
     },
     {
       "id": "part2-liaison",
@@ -4069,7 +4072,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "Who（誰）への応答は人物・役職。他の2つは時期・場所の情報で、Whoの質問には合わない。"
+      "explanation": "Who（誰）への応答は人物・役職。他の2つ（\"It happened last month.\"／\"Both departments are on the same floor.\"）は時期・場所の情報で、Whoの質問には合わない。"
     },
     {
       "id": "part2-mitigate",
@@ -4110,7 +4113,7 @@
         }
       ],
       "answer": "B",
-      "explanation": "方法を尋ねる質問には手段で答える。他の2つは経緯・提案者の情報で、Howの質問には合わない。"
+      "explanation": "方法を尋ねる質問には手段で答える。他の2つ（\"The logistics director proposed it.\"／\"It happened after a shortage.\"）は経緯・提案者の情報で、Howの質問には合わない。"
     }
   ]
 }

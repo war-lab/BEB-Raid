@@ -43,7 +43,7 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     correctText: 'had',
     distractors: ['has', 'have', 'was'],
     explanation:
-      '過去のある時点（appraisal system was introduced）よりさらに前の完了を表すため過去完了(had lost)。hadが正しい。',
+      '過去のある時点（appraisal system was introduced）よりさらに前の完了を表すため過去完了(had lost)。hadが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Marlowe & Vance（単数）と一致せず、was（単数過去）はlostと結ぶと受動の意味になり文意に合わない。',
     translation:
       '新しい評価制度が導入される頃には、Marlowe & Vanceはすでに3人のシニアマネージャーを失っていた。',
     difficulty: 4,
@@ -105,9 +105,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'The loan covenant ___ renegotiated after Naomi Fujita raised concerns about the repayment schedule.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['were', 'has', 'had'],
     explanation:
-      '空所の後にrenegotiated（過去分詞）が続き、covenantは「再交渉される」対象なので受動態が正しい。did（過去（doの過去形））・has（単数現在完了）・had（過去完了）は単数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にrenegotiated（過去分詞）が続き、covenantは「再交渉される」対象なので受動態が正しい。were（複数過去）は主語covenant（単数）と一致せず、has（単数現在完了）・had（過去完了）はrenegotiatedと結ぶと能動の意味になり、文意に合わない。',
     translation:
       'ナオミ・フジタ氏が返済スケジュールについて懸念を示した後、その融資契約条項は再交渉された。',
     difficulty: 4,
@@ -142,22 +142,23 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Castellan Foods ___ never received a testimonial from a celebrity chef until last year.',
     correctText: 'had',
-    distractors: ['has', 'was', 'have'],
+    distractors: ['has', 'was', 'does'],
     explanation:
-      '"until last year"という過去の基準点より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。',
+      '"until last year"という過去の基準点より前の完了を表す過去完了。hadが正しい。has（単数現在完了）は基準点が現在にずれ、was（単数過去）はreceivedと結ぶと受動の意味になり、does（単数現在）は完了を表さない。',
     translation:
       'Castellan Foodsは昨年までセレブリティシェフによる推薦の声を一度も受けたことがなかった。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'dispute',
+    keyVocabWord: 'procurement',
     tags: ['動詞の形'],
-    question: 'A formal dispute ___ filed against the supplier after months of investigation.',
+    question:
+      'A formal procurement request ___ filed with the supplier after months of preparation.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['is', 'has', 'had'],
     explanation:
-      '空所の後にfiled（過去分詞）が続き、disputeは「提出される」対象なので受動態が正しい。had（過去完了）・did（過去（doの過去形））・has（単数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。',
-    translation: '数か月にわたる調査の後、その仕入先に対して正式な異議申し立てが提出された。',
+      '空所の後にfiled（過去分詞）が続き、requestは「提出される」対象なので受動態が正しい。is（単数現在）は"after months of preparation"が示す過去の出来事と時制が合わず、has（単数現在完了）・had（過去完了）はfiledと結ぶと能動の意味になり、文意に合わない。',
+    translation: '数か月にわたる準備の後、その仕入先に正式な調達依頼書が提出された。',
     difficulty: 4,
   },
   {
@@ -190,9 +191,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Analysts believe that Whitmore Realty ___ completed its property valuation well before the market shifted.',
     correctText: 'had',
-    distractors: ['has', 'was', 'have'],
+    distractors: ['have', 'is', 'was'],
     explanation:
-      '"before the market shifted"（市場が変動する前）という過去の基準点より前の完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。',
+      '"before the market shifted"（市場が変動する前）という過去の基準点より前の完了。hadが正しい。have（複数現在完了）は主語Whitmore Realty（単数）と一致せず、is（単数現在）・was（単数過去）はcompletedと結んでも過去完了にならない。',
     translation:
       'アナリストは、Whitmore Realtyが市場が変動するかなり前に不動産評価を完了していたと考えている。',
     difficulty: 4,
@@ -241,9 +242,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Since acquiring the affiliate, Kestrel Analytics ___ expanded its workforce by nearly forty percent.',
     correctText: 'has',
-    distractors: ['had', 'have', 'was'],
+    distractors: ['had', 'have', 'were'],
     explanation:
-      '"Since ~"（〜以来）は現在完了とともに使う。hasが正しい。had（過去完了）・have（複数現在完了）・was（単数過去）は単数現在完了ではなく、この文の主語・時制と一致しない。',
+      '"Since ~"（〜以来）は現在完了とともに使う。hasが正しい。had（過去完了）は基準点が過去にずれ、have（複数現在完了）・were（複数過去）は主語Kestrel Analytics（単数）と一致しない。',
     translation:
       'その提携会社を買収して以来、Kestrel Analyticsは従業員数をほぼ40パーセント増やしてきた。',
     difficulty: 4,
@@ -254,9 +255,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'The remaining funds ___ held in escrow until both parties signed the final agreement.',
     correctText: 'were',
-    distractors: ['did', 'have', 'had'],
+    distractors: ['was', 'is', 'have'],
     explanation:
-      '空所の後にheld（過去分詞）が続き、fundsは「保管される」対象なので受動態(were held)が正しい。have（複数現在完了）・had（過去完了）・did（過去（doの過去形））は複数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にheld（過去分詞）が続き、fundsは「保管される」対象なので受動態(were held)が正しい。was（単数過去）・is（単数現在）は主語The remaining funds（複数）と一致せず、have（複数現在完了）はheldと結ぶと能動の意味になる。',
     translation: '残りの資金は、両当事者が最終合意書に署名するまでエスクロー口座に保管されていた。',
     difficulty: 4,
   },
@@ -279,9 +280,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Neither Daniel Whitfield, a daily commuter, nor his assistant ___ aware that the shuttle schedule had changed.',
     correctText: 'was',
-    distractors: ['were', 'are', 'have been'],
+    distractors: ['were', 'are', 'been'],
     explanation:
-      '"Neither A nor B"では動詞はBに一致する。his assistantは単数なのでwasが正しい。have been（複数現在完了）・were（複数過去）・are（複数現在）は単数過去ではなく、この文の主語・時制と一致しない。',
+      '"Neither A nor B"では動詞はBに一致する。his assistantは単数なのでwasが正しい。were（複数過去）・are（複数現在）は複数形でhis assistantと一致せず、been単独では述語動詞になれない。',
     translation:
       'ダニエル・ウィットフィールド氏も彼のアシスタントも、シャトルの時刻表が変更されたことに気づいていなかった。',
     difficulty: 4,
@@ -292,21 +293,22 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'By the end of this fiscal year, Bellrose Pharmaceuticals ___ reviewed every compliance document twice.',
     correctText: 'will have',
-    distractors: ['has', 'had', 'have'],
-    explanation: '未来のある時点までの完了を表す未来完了。will haveが正しい。',
+    distractors: ['has', 'have', 'will be'],
+    explanation:
+      '未来のある時点までの完了を表す未来完了。will haveが正しい。has（単数現在完了）は基準点が現在にずれ、have（複数現在完了）は主語Elena Kowalski（単数）と一致せず、will be（単純未来）はbeen awayと結べない。',
     translation:
       '今会計年度末までに、Bellrose Pharmaceuticalsはすべてのコンプライアンス文書を2回見直していることになる。',
     difficulty: 4,
   },
   {
-    keyVocabWord: 'eviction',
+    keyVocabWord: 'custodian',
     tags: ['動詞の形'],
-    question: 'A tenant ___ served with an eviction notice after missing several rent payments.',
+    question: 'The night custodian ___ given a new access card after the lock system was upgraded.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['were', 'being', 'has been'],
     explanation:
-      '空所の後にserved（過去分詞）が続き、tenantは「送達される」対象なので受動態が正しい。did（過去（doの過去形））・has（単数現在完了）・had（過去完了）は単数過去ではなく、この文の主語・時制と一致しない。',
-    translation: '複数回の家賃支払いを怠った後、その入居者には立ち退き通知が送達された。',
+      '空所の後にgiven（過去分詞）が続き、custodianは「渡される」対象なので受動態が正しい。wereは複数主語用、beingは単独では述語動詞になれず、has beenは現在完了で過去の一時点（was upgraded）と時制が合わない。',
+    translation: '施錠システムの更新後、夜勤の施設管理者には新しい入館カードが渡された。',
     difficulty: 4,
   },
   {
@@ -340,9 +342,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Drayton Freight ___ already rerouted two shipments by the time the storm reached the coast.',
     correctText: 'had',
-    distractors: ['has', 'was', 'have'],
+    distractors: ['has', 'did', 'were'],
     explanation:
-      '"by the time the storm reached the coast"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。',
+      '"by the time the storm reached the coast"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）は基準点が現在にずれ、did（doの過去形）はreroutedと結べず、were（複数過去）は主語Drayton Freight（単数）と一致しない。',
     translation: '嵐が沿岸に到達する頃には、Drayton Freightはすでに2件の荷物の経路を変更していた。',
     difficulty: 4,
   },
@@ -352,9 +354,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'A memo ___ issued to warehouse staff after the internal audit found several process gaps.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['were', 'is', 'had'],
     explanation:
-      '空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。had（過去完了）・did（過去（doの過去形））・has（単数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にissued（過去分詞）が続き、memoは「発行される」対象なので受動態が正しい。were（複数過去）は主語A memo（単数）と一致せず、is（単数現在）は監査後という過去の文脈と時制が合わず、had（過去完了）はissuedと結ぶと能動の意味になる。',
     translation:
       '内部監査でいくつかの手順上の不備が見つかった後、倉庫スタッフに社内通知が発行された。',
     difficulty: 4,
@@ -376,9 +378,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Everyone involved in preparing the appendix for the Delacroix Partners report ___ asked to double-check the figures.',
     correctText: 'was',
-    distractors: ['were', 'are', 'have been'],
+    distractors: ['were', 'is', 'have been'],
     explanation:
-      '"Everyone"は常に単数扱い。wasが正しい。were（複数過去）・are（複数現在）・have been（複数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。',
+      '"Everyone"は常に単数扱い。wasが正しい。were（複数過去）・have been（複数現在完了）は複数形でEveryoneと一致せず、is（単数現在）は報告書作成時という過去の文脈と時制が合わない。',
     translation: 'Delacroix Partnersの報告書の付録作成に関わった全員が、数値の再確認を求められた。',
     difficulty: 4,
   },
@@ -388,9 +390,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       "Amberline Media ___ run similar campaigns for over a decade before this year's controversy.",
     correctText: 'had',
-    distractors: ['has', 'was', 'have'],
+    distractors: ['have', 'does', 'was'],
     explanation:
-      '"before this year\'s controversy"より前の完了を表す過去完了。hadが正しい。have（複数現在完了）・has（単数現在完了）・was（単数過去）は過去完了ではなく、この文の主語・時制と一致しない。',
+      '"before this year\'s controversy"より前の完了を表す過去完了。hadが正しい。have（複数現在完了）は主語Amberline Media（単数）と一致せず、does（単数現在）はrunと結んでも完了を表さず、was（単数過去）はrunの受動態になり文意が通らない。',
     translation:
       'Amberline Mediaは、今年の物議を醸す出来事より前の10年以上にわたり、似たようなキャンペーンを行ってきていた。',
     difficulty: 4,
@@ -400,9 +402,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     tags: ['動詞の形'],
     question: 'The company ___ placed under new oversight shortly after the previous CEO resigned.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['did', 'does', 'had'],
     explanation:
-      '空所の後にplaced（過去分詞）が続き、companyは「置かれる」対象なので受動態が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にplaced（過去分詞）が続き、companyは「置かれる」対象なので受動態が正しい。did（doの過去形）・does（doの単数現在）はplacedと結べず、had（過去完了）はhad placedという能動の意味になり、文意に合わない。',
     translation: '前任のCEOが退任した直後、その会社は新たな監督体制の下に置かれた。',
     difficulty: 4,
   },
@@ -425,9 +427,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'The percentage of budget allocated to the modernization plan at Osgood Manufacturing ___ expected to reach twelve percent.',
     correctText: 'is',
-    distractors: ['are', 'were', 'have been'],
+    distractors: ['are', 'was', 'been'],
     explanation:
-      '"The percentage of + 複数名詞相当"は単数扱い。The percentageが主語の核なのでisが正しい。were（複数過去）・have been（複数現在完了）・are（複数現在）は単数現在ではなく、この文の主語・時制と一致しない。',
+      '"The percentage of + 複数名詞相当"は単数扱い。The percentageが主語の核なのでisが正しい。are（複数現在）は複数形で主語と一致せず、was（単数過去）は現在の見込みを述べる文意と時制が合わず、been単独では述語動詞になれない。',
     translation:
       'Osgood Manufacturingでの近代化計画に割り当てられた予算の割合は、12パーセントに達すると見込まれている。',
     difficulty: 4,
@@ -438,9 +440,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Investigators concluded that the board ___ overlooked signs of overstock for several years before costs spiraled out of control.',
     correctText: 'had',
-    distractors: ['has', 'was', 'have'],
+    distractors: ['has', 'have', 'is'],
     explanation:
-      '"before costs spiraled out of control"より前の完了を表す過去完了。hadが正しい。was（単数過去）・have（複数現在完了）・has（単数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。',
+      '"before costs spiraled out of control"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・is（単数現在）は基準点が現在にずれ、have（複数現在完了）は主語the board（単数扱い）と一致しない。',
     translation:
       '調査官は、コストが制御不能になるより前の数年間、取締役会が過剰在庫の兆候を見過ごしていたと結論づけた。',
     difficulty: 4,
@@ -450,9 +452,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     tags: ['動詞の形'],
     question: 'A revised timeline ___ approved, delaying the merger until the review was complete.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['has', 'have', 'been'],
     explanation:
-      '空所の後にapproved（過去分詞）が続き、timelineは「承認される」対象なので受動態が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にapproved（過去分詞）が続き、timelineは「承認される」対象なので受動態が正しい。has（単数現在完了）・have（複数現在完了）はapprovedと結ぶと能動の意味になり、been単独では述語動詞になれない。',
     translation: '審査が完了するまで合併を遅らせる、修正後のスケジュールが承認された。',
     difficulty: 4,
   },
@@ -486,12 +488,12 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'lease',
     tags: ['動詞の形'],
     question:
-      'By the time collections began, several tenants ___ already fallen behind on their lease payments.',
+      'By the time the renewal notices went out, several tenants ___ already signed a new lease.',
     correctText: 'had',
-    distractors: ['has', 'was', 'have'],
+    distractors: ['was', 'were', 'does'],
     explanation:
-      '"By the time collections began"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）・was（単数過去）・have（複数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。',
-    translation: '回収が始まる頃には、複数の入居者はすでに賃貸料の支払いが滞っていた。',
+      '"By the time the renewal notices went out"より前の完了を表す過去完了。hadが正しい。was（単数過去）・does（単数現在）は主語several tenants（複数）と一致せず、were（複数過去）はsignedと結ぶと受動態になり、入居者が署名する側という文意に合わない。',
+    translation: '更新案内が送付される頃には、複数の入居者はすでに新しい賃貸契約に署名していた。',
     difficulty: 4,
   },
   {
@@ -499,9 +501,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     tags: ['動詞の形'],
     question: 'A statement ___ issued clarifying the reporting error after an internal review.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['were', 'being', 'had'],
     explanation:
-      '空所の後にissued（過去分詞）が続き、statementは「発行される」対象なので受動態が正しい。has（単数現在完了）・had（過去完了）・did（過去（doの過去形））は単数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にissued（過去分詞）が続き、statementは「発行される」対象なので受動態が正しい。were（複数過去）は主語A statement（単数）と一致せず、being単独では述語動詞になれず、had（過去完了）はissuedと結ぶと能動の意味になる。',
     translation: '内部審査の後、報告ミスを説明する声明が発表された。',
     difficulty: 4,
   },
@@ -522,9 +524,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'A series of complex financial derivatives held by Thorncastle Financial ___ under review by external auditors.',
     correctText: 'is',
-    distractors: ['are', 'were', 'have been'],
+    distractors: ['are', 'being', 'have been'],
     explanation:
-      '"A series of + 複数名詞"は単数扱い。A seriesが主語の核なのでisが正しい。are（複数現在）・were（複数過去）・have been（複数現在完了）は単数現在ではなく、この文の主語・時制と一致しない。',
+      '"A series of + 複数名詞"は単数扱い。A seriesが主語の核なのでisが正しい。are（複数現在）・have been（複数現在完了）はいずれも複数形で主語と一致せず、being単独では述語動詞になれない。',
     translation:
       'Thorncastle Financialが保有する一連の複雑な金融派生商品は、外部監査人による審査を受けている。',
     difficulty: 4,
@@ -547,9 +549,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       "Several sections describing project milestones ___ withheld at the auditor's instruction before the report was released.",
     correctText: 'were',
-    distractors: ['did', 'have', 'had'],
+    distractors: ['did', 'has', 'been'],
     explanation:
-      '空所の後にwithheld（過去分詞）が続き、sections（複数）は「差し控えられる」対象なので受動態(were withheld)が正しい。did（過去（doの過去形））・have（複数現在完了）・had（過去完了）は複数過去ではなく、この文の主語・時制と一致しない。',
+      '空所の後にwithheld（過去分詞）が続き、sections（複数）は「差し控えられる」対象なので受動態(were withheld)が正しい。did（doの過去形）はwithheldと結べず、has（単数現在完了）は主語Several sections（複数）と一致せず、been単独では述語動詞になれない。',
     translation:
       'プロジェクトの節目を記述したいくつかの箇所は、報告書の公開前に監査人の指示により差し控えられた。',
     difficulty: 4,
@@ -573,9 +575,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'The network of contacts that Baywater Consulting has built over the past decade ___ grown far more diverse.',
     correctText: 'has',
-    distractors: ['have', 'are', 'were'],
+    distractors: ['have', 'were', 'is'],
     explanation:
-      '主語の核は"The network"（単数の集合名詞）。hasが正しい。have（複数現在完了）・are（複数現在）・were（複数過去）は単数現在完了ではなく、この文の主語・時制と一致しない。',
+      '主語の核は"The network"（単数の集合名詞）。hasが正しい。have（複数現在完了）・were（複数過去）は複数形で主語と一致せず、is（単数現在）はgrownと結んでも現在完了にならない。',
     translation: 'Baywater Consultingがこの10年で築いてきた人脈は、はるかに多様になった。',
     difficulty: 4,
   },
@@ -585,9 +587,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'The support team ___ already cleared most of the pending inquiry list before the new manager arrived.',
     correctText: 'had',
-    distractors: ['has', 'was', 'have'],
+    distractors: ['has', 'were', 'will have'],
     explanation:
-      '"before the new manager arrived"より前の完了を表す過去完了。hadが正しい。was（単数過去）・have（複数現在完了）・has（単数現在完了）は過去完了ではなく、この文の主語・時制と一致しない。',
+      '"before the new manager arrived"より前の完了を表す過去完了。hadが正しい。has（単数現在完了）は基準点が現在に、will have（未来完了）は未来にずれ、were（複数過去）は主語the support team（単数扱い）と一致しない。',
     translation:
       '新しいマネージャーが着任する前に、サポートチームはすでに保留中の問い合わせ一覧のほとんどを解消していた。',
     difficulty: 4,
@@ -596,12 +598,12 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     keyVocabWord: 'agreement',
     tags: ['動詞の形'],
     question:
-      'The dispute ___ referred for adjudication after the two parties failed to reach an agreement.',
+      'The proposal ___ referred to the steering committee after the two teams reached an agreement.',
     correctText: 'was',
-    distractors: ['did', 'has', 'had'],
+    distractors: ['did', 'has', 'being'],
     explanation:
-      '空所の後にreferred（過去分詞）が続き、disputeは「付託される」対象なので受動態が正しい。had（過去完了）・did（過去（doの過去形））・has（単数現在完了）は単数過去ではなく、この文の主語・時制と一致しない。',
-    translation: '両者が合意に至らなかったため、その紛争は裁定に付託された。',
+      '空所の後にreferred（過去分詞）が続き、proposalは「付託される」対象なので受動態が正しい。did（doの過去形）はreferredと結べず、has（単数現在完了）はreferredと結ぶと能動の意味になり、being単独では述語動詞になれない。',
+    translation: '両チームが合意に至った後、その提案は運営委員会へ付託された。',
     difficulty: 4,
   },
   {
@@ -610,9 +612,9 @@ export const PART5_ENTRIES_S3_RAW: Part5RawEntry[] = [
     question:
       'Every batch of textiles produced by Iversen Textiles ___ tested for durability before shipment.',
     correctText: 'is',
-    distractors: ['are', 'were', 'have been'],
+    distractors: ['were', 'be', 'have been'],
     explanation:
-      '"Every + 単数名詞"は単数扱い。batchが単数なのでisが正しい。have been（複数現在完了）・are（複数現在）・were（複数過去）は単数現在ではなく、この文の主語・時制と一致しない。',
+      '"Every + 単数名詞"は単数扱い。batchが単数なのでisが正しい。were（複数過去）・have been（複数現在完了）は複数形で主語と一致せず、be（原形）は単独では述語動詞になれない。',
     translation:
       'Iversen Textilesで生産される織物のロットはそれぞれ、出荷前に耐久性の検査を受ける。',
     difficulty: 4,

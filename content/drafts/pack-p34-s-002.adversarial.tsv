@@ -1,21 +1,21 @@
 id	verdict	observation	reviewer	reviewedAt
-p34-p3-11	accept	q1-q3とも単一正答。二重正答・話者性別誤帰属・実在情報なし。	claude-adversarial-review	2026-08-12
-p34-p3-12	accept	q1-q3とも単一正答。venue確認の指示先も一致。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-13	accept	q1-q3とも単一正答。テナント/リース更新の題材は本試験範囲内。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-14	accept	q1-q3とも単一正答。数値(12%/3月末/4月)の対応関係も一致。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-15	accept	q1-q3とも単一正答。scriptの"Her/She"は候補者(第三者)への言及でA/Bとは無関係、性別誤帰属なし。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-16	accept	q1-q3とも単一正答。二重正答なし。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-17	accept	q1-q3とも単一正答。割引条件の対応関係も一致。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-18	accept	q1-q3とも単一正答。scriptの"her/Her"は新入社員(第三者)への言及でA/Bとは無関係、性別誤帰属なし。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-19	accept	q1-q3とも単一正答。チャリティ協賛の題材は本試験範囲内。問題なし。	claude-adversarial-review	2026-08-12
-p34-p3-20	accept	q1-q3とも単一正答。用途地域許可の題材は本試験範囲内、実在情報なし。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-11	accept	q1-q3とも単一正答。モノローグのため話者性別整合の論点なし。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-12	accept	q1-q3とも単一正答。作業指示と期限の対応関係も一致。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-13	accept	q1-q3とも単一正答。締切/開催日時/人数の数値対応も一致。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-14	accept	q1-q3とも単一正答。改装期間の題材は本試験範囲内。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-15	accept	q1-q3とも単一正答。二重正答なし。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-16	accept	q1-q3とも単一正答。採用選考の題材は個人不利益に踏み込まず範囲内。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-17	accept	q1-q3とも単一正答。セール条件・終了時刻の対応関係も一致。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-18	accept	q1-q3とも単一正答。オフィス移転の題材は本試験範囲内。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-19	accept	q1-q3とも単一正答。採用募集の題材は本試験範囲内。問題なし。	claude-adversarial-review	2026-08-12
-p34-p4-20	accept	q1-q3とも単一正答。補助金の適格条件（増員>10名）とq2の対応も一致。問題なし。	claude-adversarial-review	2026-08-12
+p34-p3-11	accept		claude-opus-5	2026-08-13
+p34-p3-12	accept		claude-opus-5	2026-08-13
+p34-p3-13	accept		claude-opus-5	2026-08-13
+p34-p3-14	accept		claude-opus-5	2026-08-13
+p34-p3-15	accept		claude-opus-5	2026-08-13
+p34-p3-16	accept		claude-opus-5	2026-08-13
+p34-p3-17	accept		claude-opus-5	2026-08-13
+p34-p3-18	accept		claude-opus-5	2026-08-13
+p34-p3-19	accept		claude-opus-5	2026-08-13
+p34-p3-20	accept		claude-opus-5	2026-08-13
+p34-p4-11	accept		claude-opus-5	2026-08-13
+p34-p4-12	accept		claude-opus-5	2026-08-13
+p34-p4-13	accept		claude-opus-5	2026-08-13
+p34-p4-14	accept		claude-opus-5	2026-08-13
+p34-p4-15	accept		claude-opus-5	2026-08-13
+p34-p4-16	accept		claude-opus-5	2026-08-13
+p34-p4-17	accept		claude-opus-5	2026-08-13
+p34-p4-18	accept		claude-opus-5	2026-08-13
+p34-p4-19	accept		claude-opus-5	2026-08-13
+p34-p4-20	accept		claude-opus-5	2026-08-13

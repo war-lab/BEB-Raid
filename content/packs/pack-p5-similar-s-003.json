@@ -4,12 +4,15 @@
     "id": "pack-p5-similar-s-003",
     "title": "Part5 key単語類題 追加120問（1語1問）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆 2026-07（q1語=類題ゼロの語彙循環解消。AIクロスレビュー対象外）",
+    "origin": "エージェント直接執筆（2026-07。q1語=類題ゼロの語彙循環解消）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 131045
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 131152
   },
   "questions": [
     {
@@ -1517,7 +1520,7 @@
         },
         {
           "key": "B",
-          "text": "attrition"
+          "text": "mentorship"
         },
         {
           "key": "C",
@@ -1529,7 +1532,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "勤続後の「退職」はretirement。appraisal（人事評価）・retention（人材の定着）・attrition（自然減）は退職という個人の行為そのものを指さない。",
+      "explanation": "勤続後の「退職」はretirement。appraisal（人事評価）・retention（人材の定着）・mentorship（指導制度）は退職という個人の行為そのものを指さない。",
       "translation": "彼女はその会社での25年間の勤続の後、退職を計画している。"
     },
     {
@@ -3091,7 +3094,7 @@
       "translation": "昨春、新しい高速道路が開通した後、モールへの来店客数は大きく減少した。"
     },
     {
-      "id": "similar-attrition-1",
+      "id": "similar-apprenticeship-1",
       "part": 5,
       "format": "text_blank",
       "difficulty": 4,
@@ -3100,33 +3103,33 @@
       ],
       "keyVocab": [
         {
-          "word": "attrition",
-          "sense": "自然減",
+          "word": "apprenticeship",
+          "sense": "実習生制度",
           "freqRank": "B"
         }
       ],
-      "question": "The company's employee ___ rate fell last year for the third year in a row.",
+      "question": "The workshop offers a two-year ___ for students entering the furniture trade.",
       "choices": [
         {
           "key": "A",
-          "text": "downsizing"
+          "text": "apprenticeship"
         },
         {
           "key": "B",
-          "text": "attrition"
-        },
-        {
-          "key": "C",
           "text": "retention"
         },
         {
+          "key": "C",
+          "text": "appraisal"
+        },
+        {
           "key": "D",
-          "text": "redundancy"
+          "text": "onboarding"
         }
       ],
-      "answer": "B",
-      "explanation": "自然に人員が減っていく「自然減」はattrition。retention（定着。むしろ逆の概念）・redundancy（人員整理）・downsizing（人員削減）はいずれも意図的な削減を指し、自然減とは異なる。",
-      "translation": "その会社の従業員自然減率は、3年連続で昨年低下した。"
+      "answer": "A",
+      "explanation": "実務を学びながら技能を身につける「実習生制度」はapprenticeship。retention（人材の定着）・appraisal（人事評価）・onboarding（入社直後の新人研修）はいずれも複数年の技能訓練課程を指さない。",
+      "translation": "その工房は、家具業界に入る学生向けに2年間の実習生制度を設けている。"
     },
     {
       "id": "similar-proofread-1",
@@ -3269,7 +3272,7 @@
         },
         {
           "key": "C",
-          "text": "attrition"
+          "text": "mentorship"
         },
         {
           "key": "D",
@@ -3277,7 +3280,7 @@
         }
       ],
       "answer": "A",
-      "explanation": "個人の業績を評価する「人事評価」はappraisal。retention（定着）・attrition（自然減）・onboarding（新人研修）は評価という行為を意味しない。",
+      "explanation": "個人の業績を評価する「人事評価」はappraisal。retention（定着）・mentorship（指導制度）・onboarding（新人研修）は評価という行為を意味しない。",
       "translation": "各スタッフは、上司によって行われる年次の人事評価を受ける。"
     },
     {
@@ -3295,15 +3298,15 @@
           "freqRank": "B"
         }
       ],
-      "question": "The HR team launched a new employee ___ program to reduce turnover this year.",
+      "question": "The HR team launched a new employee ___ program to keep experienced staff.",
       "choices": [
         {
           "key": "A",
-          "text": "attrition"
+          "text": "appraisal"
         },
         {
           "key": "B",
-          "text": "downsizing"
+          "text": "mentorship"
         },
         {
           "key": "C",
@@ -3315,7 +3318,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "人材をつなぎとめる「定着」はretention。attrition（自然減。逆方向の概念）・downsizing（人員削減）・onboarding（新人研修）は定着施策そのものを意味しない。",
+      "explanation": "人材をつなぎとめる「定着」はretention。appraisal（人事評価）・mentorship（指導制度）・onboarding（新人研修）は定着施策そのものを意味しない。",
       "translation": "人事チームは、今年の離職率を下げるために新しい従業員定着プログラムを開始した。"
     },
     {

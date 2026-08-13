@@ -4,12 +4,15 @@
     "id": "pack-p5-similar-s-002",
     "title": "Part5 key単語類題 追加60問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆 2026-07（key単語システムの循環問題。AIクロスレビュー対象外）",
+    "origin": "エージェント直接執筆（2026-07。key単語システムの循環問題への対処）＋AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 64537
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（claude-opus-5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 64853
   },
   "questions": [
     {
@@ -111,7 +114,7 @@
         },
         {
           "key": "B",
-          "text": "defendant"
+          "text": "custodian"
         },
         {
           "key": "C",
@@ -119,11 +122,11 @@
         },
         {
           "key": "D",
-          "text": "plaintiff"
+          "text": "facilitator"
         }
       ],
       "answer": "A",
-      "explanation": "入札（bid）を提出するのは工事等を請け負う業者=contractor。plaintiff（原告）・defendant（被告）・wholesaler（卸売業者）は入札の主体として自然ではない。",
+      "explanation": "入札（bid）を提出するのは工事等を請け負う業者=contractor。custodian（施設管理者）・facilitator（進行役）・wholesaler（卸売業者）は入札の主体として自然ではない。",
       "translation": "その請負業者は予想より低い入札額を提出した。"
     },
     {
@@ -195,11 +198,11 @@
         },
         {
           "key": "D",
-          "text": "litigation"
+          "text": "amortization"
         }
       ],
       "answer": "C",
-      "explanation": "\"expand its franchise\"（フランチャイズ展開を拡大する）は定番の言い方。litigation（訴訟）・backlog（滞積）・workforce（労働力）は海外展開の対象として意味が通らない。",
+      "explanation": "\"expand its franchise\"（フランチャイズ展開を拡大する）は定番の言い方。amortization（償却）・backlog（滞積）・workforce（労働力）は海外展開の対象として意味が通らない。",
       "translation": "その会社はフランチャイズ展開を海外市場に拡大する計画だ。"
     },
     {
@@ -347,11 +350,11 @@
         },
         {
           "key": "D",
-          "text": "litigation"
+          "text": "replenishment"
         }
       ],
       "answer": "B",
-      "explanation": "壊れやすい品・壊れにくい品を含む「荷物一式」はconsignment。subsidiary（子会社）・litigation（訴訟）・sustainability（持続可能性）は荷物を指さない。",
+      "explanation": "壊れやすい品・壊れにくい品を含む「荷物一式」はconsignment。subsidiary（子会社）・replenishment（補充）・sustainability（持続可能性）は荷物を指さない。",
       "translation": "その委託荷物には壊れやすい品と壊れにくい品の両方が含まれていた。"
     },
     {
@@ -567,7 +570,7 @@
         },
         {
           "key": "B",
-          "text": "severance"
+          "text": "payroll"
         },
         {
           "key": "C",
@@ -579,7 +582,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "通勤時間が短くなることが転職理由になるのは自然。tenure（在職期間）・probation（試用期間）・severance（退職金）は「通勤」の意味を持たない。",
+      "explanation": "通勤時間が短くなることが転職理由になるのは自然。tenure（在職期間）・probation（試用期間）・payroll（給与支払業務）は「通勤」の意味を持たない。",
       "translation": "通勤時間が短くなることは、彼女が転職した主な理由の一つだった。"
     },
     {
@@ -605,11 +608,11 @@
         },
         {
           "key": "B",
-          "text": "arbitration"
+          "text": "honorarium"
         },
         {
           "key": "C",
-          "text": "liquidation"
+          "text": "replenishment"
         },
         {
           "key": "D",
@@ -617,7 +620,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "新入社員向けの導入研修はorientation。arbitration（仲裁）・liquidation（清算）・inauguration（就任式）は新人研修を表さない。",
+      "explanation": "新入社員向けの導入研修はorientation。honorarium（謝礼）・replenishment（補充）・inauguration（就任式）は新人研修を表さない。",
       "translation": "新入社員は全員、1日間のオリエンテーションに出席しなければならない。"
     },
     {
@@ -1247,15 +1250,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "plaintiff"
+          "text": "honorarium"
         },
         {
           "key": "B",
-          "text": "defendant"
+          "text": "apprenticeship"
         },
         {
           "key": "C",
-          "text": "tribunal"
+          "text": "remittance"
         },
         {
           "key": "D",
@@ -1263,7 +1266,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "本社に四半期ごとの収益を報告する「地域子会社」はsubsidiary。plaintiff/defendant（原告/被告）・tribunal（審判所）は法廷関連語で文脈に合わない。",
+      "explanation": "本社に四半期ごとの収益を報告する「地域子会社」はsubsidiary。honorarium（謝礼）・apprenticeship（実習生制度）・remittance（送金）はいずれも組織を指す語ではなく、報告の主体になれない。",
       "translation": "各地域の子会社は四半期ごとに収益を本社へ報告する。"
     },
     {
@@ -1399,15 +1402,15 @@
       "choices": [
         {
           "key": "A",
-          "text": "insolvency"
+          "text": "amortization"
         },
         {
           "key": "B",
-          "text": "foreclosure"
+          "text": "replenishment"
         },
         {
           "key": "C",
-          "text": "bankruptcy"
+          "text": "occupancy"
         },
         {
           "key": "D",
@@ -1415,7 +1418,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "企業が毎年発行する環境・持続可能性の報告書はsustainability report。insolvency（支払不能）・foreclosure（差し押さえ）・bankruptcy（破産）は文脈に合わない。",
+      "explanation": "企業が毎年発行する環境・持続可能性の報告書はsustainability report。amortization（償却）・replenishment（補充）・occupancy（稼働率）はいずれも個別の会計・業務指標で、年次報告書の主題としては文脈に合わない。",
       "translation": "その会社は先月、年次サステナビリティ報告書を発表した。"
     },
     {
@@ -1859,7 +1862,7 @@
         },
         {
           "key": "B",
-          "text": "plaintiff"
+          "text": "facilitator"
         },
         {
           "key": "C",
@@ -1871,7 +1874,7 @@
         }
       ],
       "answer": "D",
-      "explanation": "職種の条件を満たした「応募者」はapplicant。occupant（居住者）・plaintiff（原告）・exhibitor（出展者）は求人応募者を表さない。",
+      "explanation": "職種の条件を満たした「応募者」はapplicant。occupant（居住者）・facilitator（進行役）・exhibitor（出展者）は求人応募者を表さない。",
       "translation": "その職種の全ての条件を満たした応募者は3名だけだった。"
     },
     {
@@ -2159,11 +2162,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "plaintiff"
+          "text": "custodian"
         },
         {
           "key": "B",
-          "text": "defendant"
+          "text": "facilitator"
         },
         {
           "key": "C",
@@ -2175,7 +2178,7 @@
         }
       ],
       "answer": "C",
-      "explanation": "1階の物件で2年間の賃貸契約に署名したのはtenant（借家人）。sponsor（協賛者）・plaintiff/defendant（原告/被告）は賃貸契約の当事者を表さない。",
+      "explanation": "1階の物件で2年間の賃貸契約に署名したのはtenant（借家人）。sponsor（協賛者）・custodian（施設管理者）・facilitator（進行役）は建物に関わる役割ではあるが、賃貸契約の当事者を表さない。",
       "translation": "新しい借家人が1階のスペースについて2年間の賃貸契約に署名した。"
     },
     {

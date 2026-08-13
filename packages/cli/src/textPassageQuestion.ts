@@ -32,6 +32,7 @@ import {
   type Part6RawEntry,
   type Part6RawSubQuestion,
 } from './data/part6PassagesS.js'
+import { rotationAmount } from './choiceRotation.js'
 import { PART7_MULTI_ENTRIES_S } from './data/part7MultiPassagesS.js'
 import { PART7_SINGLE_ENTRIES_S, type Part7SingleRawEntry } from './data/part7SinglePassagesS.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
@@ -58,14 +59,25 @@ function vocabEntryForWord(word: string): { sense: string; freqRank: FreqRank } 
 /**
  * 正答キーの決定的ローテーション分散（M1レビュー⑦の方式。part34Question.tsの
  * rotateSubQuestionChoicesと同方式）。rawの設問は常にcorrectTextを「正解」・distractorsを
- * 「誤答3件」として書き、globalIndex%4の回転で選択肢の並び順・正答キーを機械的に決める
+ * 「誤答3件」として書き、回転量で選択肢の並び順・正答キーを機械的に決める。
+ *
+ * 【T-339追記】回転量は設問文と正答テキストのハッシュから採る（choiceRotation.ts）。
+ * 以前はglobalIndex%4を使っていたが、設問列に沿って正答キーが一定差分で循環するため、
+ * 出題順から正答位置が予測できた（29のQ-79・contentLint.tsのcheckAnswerKeyCycleが検出する
+ * 構造欠陥。Part5・Part2はT-266で同じ是正を済ませており、text_passageだけ残っていた）。
+ * T-237のshuffle-text-passage-choices.mjsはドラフトJSONLを直接書き換える一回限りの
+ * 処置だったため、`beb generate` の再生成で失われていた。
+ *
+ * globalIndexは引数として残す（既存の呼び出し側・テストの署名を変えないため）が、
+ * 回転量の決定には使わない。
  */
 export function rotateTextPassageChoices(
   raw: { correctText: string; distractors: readonly [string, string, string] },
   globalIndex: number,
 ): { choices: Choice[]; answer: string } {
+  void globalIndex
   const texts = [raw.correctText, raw.distractors[0], raw.distractors[1], raw.distractors[2]]
-  const rotation = globalIndex % 4
+  const rotation = rotationAmount(`${raw.correctText}|${raw.distractors.join('|')}`, 4)
   const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
   const keys = ['A', 'B', 'C', 'D']
   const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
