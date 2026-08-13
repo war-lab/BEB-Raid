@@ -19,6 +19,8 @@
 
 import { DurableObject } from 'cloudflare:workers'
 
+import type { DailyGoal } from '@beb-raid/shared-schema'
+
 import { MEMBER_KEY_PREFIX, memberKey, type Env, type MemberRecord } from './env'
 import { listAllKeys } from './kvList'
 
@@ -87,13 +89,29 @@ export class RegistryDo extends DurableObject<Env> {
   }
 
   /**
-   * 1回の登録リクエストにつき1度だけ呼ぶ。枠の確認・表示名の確認・確定を原子的に行う。
+   * 1回の登録リクエストにつき1度だけ呼ぶ。**枠の確認・表示名の確認・索引の確定・
+   * KV正本への書き込みまでを1呼び出しに閉じる**。
    *
    * 判定と確定を別RPCへ分けると、並列リクエストが「全件の判定 → 全件の確定」の順に
    * まとめて処理されて判定同士が互いを観測できない（inviteRateLimitDo.ts の冒頭に
-   * 実測を記録したTOCTOU）。ここでも1呼び出しに閉じる
+   * 実測を記録したTOCTOU）。
+   *
+   * さらにKVの書き込みまで含めるのは、DOで名前を確定してから呼び出し側がKVへ書く形だと
+   * 両者が原子的にならないため（レビュー2巡目 指摘3）。同じdeviceTokenで名前A/Bを並行
+   * 登録すると、DO上の最終名とKV上の最終名が書込み順で食い違い、DO上で空いた名前を
+   * 別端末が取れてKVに同名メンバーが2人できた。KV書込みが失敗したときも枠と名前だけが
+   * 永久に予約されていた。DOは同一インスタンスへの呼び出しを直列化するので、
+   * ここに閉じ込めれば「索引とKVが食い違った状態」を外から観測できない。
+   *
+   * レコードの組み立てもここで行う（呼び出し側で既存レコードを読むと、読みと書きの間に
+   * 別リクエストが挟まる）。RPC越しにコールバックは渡せないため、必要な値だけ受け取る
    */
-  async reserve(deviceToken: string, displayName: string): Promise<ReserveOutcome> {
+  async reserve(
+    deviceToken: string,
+    displayName: string,
+    dailyGoal: DailyGoal,
+    now: number,
+  ): Promise<ReserveOutcome> {
     await this.backfillOnce()
 
     const isExisting =
@@ -115,7 +133,12 @@ export class RegistryDo extends DurableObject<Env> {
       .toArray()[0]
     if (owner && owner.deviceToken !== deviceToken) return 'name_taken'
 
-    // 確定。旧名の索引は落とす（放置すると別ユーザーが旧名を取れなくなる）
+    // 巻き戻し用に現在の索引を控える
+    const previousNames = this.ctx.storage.sql
+      .exec<NameRow>('SELECT * FROM names WHERE deviceToken = ?', deviceToken)
+      .toArray()
+
+    // 索引を確定。旧名は落とす（放置すると別ユーザーが旧名を取れなくなる）
     this.ctx.storage.sql.exec('DELETE FROM names WHERE deviceToken = ?', deviceToken)
     this.ctx.storage.sql.exec(
       'INSERT OR REPLACE INTO names (displayName, deviceToken) VALUES (?, ?)',
@@ -126,6 +149,35 @@ export class RegistryDo extends DurableObject<Env> {
       'INSERT OR REPLACE INTO members (deviceToken) VALUES (?)',
       deviceToken,
     )
+
+    try {
+      const existingRaw = await this.env.MEMBERS.get(memberKey(deviceToken))
+      const existing = existingRaw ? (JSON.parse(existingRaw) as MemberRecord) : undefined
+      const record: MemberRecord = {
+        displayName,
+        dailyGoal,
+        registeredAt: existing?.registeredAt ?? now,
+        emaDailyDamage: existing?.emaDailyDamage,
+        // 週次生成のEMA冪等マーカーを引き継ぐ（レビュー2巡目 指摘4）。
+        // 落とすと、生成が途中失敗した週に再登録した利用者だけEMAが二度平滑化される
+        emaUpdatedForBossId: existing?.emaUpdatedForBossId,
+      }
+      await this.env.MEMBERS.put(memberKey(deviceToken), JSON.stringify(record))
+    } catch (err) {
+      // KVが書けなかったときに索引だけ進めると、枠と名前が永久に予約される
+      this.ctx.storage.sql.exec('DELETE FROM names WHERE deviceToken = ?', deviceToken)
+      for (const row of previousNames) {
+        this.ctx.storage.sql.exec(
+          'INSERT OR REPLACE INTO names (displayName, deviceToken) VALUES (?, ?)',
+          row.displayName,
+          row.deviceToken,
+        )
+      }
+      if (!isExisting) {
+        this.ctx.storage.sql.exec('DELETE FROM members WHERE deviceToken = ?', deviceToken)
+      }
+      throw err
+    }
     return 'ok'
   }
 

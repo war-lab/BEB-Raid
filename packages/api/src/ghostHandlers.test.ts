@@ -254,6 +254,30 @@ describe('DELETE /ghosts/own', () => {
     expect(res.status).toBe(200)
   })
 
+  // 何を防ぐか（レビュー2巡目 指摘5）: 記録の作り直し（再POST）でusedBossIdsまで
+  // 初期化すると、W20で使用→再POST→W23で使用→W24で撤回、のときW20のDOに正誤詳細が残る
+  it('ゴーストを作り直しても使用履歴は引き継ぐ', async () => {
+    const deviceToken = await registerDevice()
+    await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
+
+    const older = bossIdFor(previousWeekInfo(previousWeekInfo(isoWeekInfo(Date.now()))))
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    await env.MEMBERS.put(
+      ghostKey(deviceToken),
+      JSON.stringify({ ...record, usedBossIds: [older] }),
+    )
+
+    // 作り直し
+    expect((await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))).status).toBe(200)
+
+    const after = JSON.parse((await env.MEMBERS.get(ghostKey(deviceToken)))!) as GhostRecord
+    expect(after.usedBossIds).toContain(older)
+    // 作り直しで初期化される項目は従来どおり
+    expect(after.defeatedCount).toBe(0)
+    expect(after.lastUsedBossId).toBeNull()
+  })
+
   // 何を防ぐか（レビュー指摘5）: T-335はlastUsedBossId（直近1週）しか辿らなかったため、
   // 同じゴーストが複数週で使われていると古い週のDOに問題別正誤詳細（defense）が
   // 保持期間の終わりまで残っていた。usedBossIdsで全使用週を辿って消す

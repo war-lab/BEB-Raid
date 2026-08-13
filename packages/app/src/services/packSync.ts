@@ -263,8 +263,12 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
       })
       if (packRes.ok) {
         const pack = (await packRes.json()) as QuestionPack
-        await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
         const audioUrls = collectAudioUrls(baseUrl, pack.questions)
+        // 【重要】パックJSONの差し替えは全音声が揃ってから行う（レビュー2巡目 指摘2）。
+        // 先に書くと、音声が一部失敗した状態でも次回起動時に新しいJSONが読まれ、
+        // 欠落した音声を参照する問題がそのまま出題される（他パックの同期成功で
+        // 再読込が走ればその場でも露出する）。取得できた音声は個別にキャッシュへ
+        // 残るので、JSONの切替だけを最後に回しても部分取得の利点は失われない
         const failedAudio = await fetchAndCacheAudio(
           packCache,
           fetchImpl,
@@ -272,9 +276,10 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
           audioUrls,
           options.onAudioProgress,
         )
-        // 取得済みのURLは次回の掃除で消さないよう常に残す（部分取得でもキャッシュは有効）
+        // 取得済みのURLは次回の掃除で消さないよう残す（部分取得でもキャッシュは有効）
         for (const url of [packUrl, ...audioUrls]) validUrls.add(url)
         if (failedAudio === 0) {
+          await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
           packHashes[entry.id] = entry.hash
           synced.push(entry.id)
           syncSucceeded = true

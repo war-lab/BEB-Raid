@@ -156,3 +156,7 @@ class_name = "BattleRoomDO"
 [[env.production.durable_objects.bindings]]
 name = "INVITE_RATE_LIMIT"
 class_name = "InviteRateLimitDo"
+
+[[env.production.durable_objects.bindings]]
+name = "REGISTRY"
+class_name = "RegistryDo"

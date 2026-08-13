@@ -19,19 +19,9 @@
 
 import type { DailyGoal, RegisterRequest } from '@beb-raid/shared-schema'
 
-import type { Env, MemberRecord } from './env.js'
-import { memberKey } from './env.js'
+import type { Env } from './env.js'
 import { registryStub } from './registryDo.js'
 import { timingSafeStringEqual } from './timingSafeEqual.js'
-
-/**
- * 表示名→deviceTokenの逆引き索引キー（T-331・K-66）。
- * 全件スキャンで一意性を確認する代わりにO(1)で既存の持ち主を引けるようにする。
- * displayNameOwnerKeyの値には保持者のdeviceTokenをそのまま入れる（他情報は持たない）
- */
-function displayNameOwnerKey(displayName: string): string {
-  return `displayNameOwner:${displayName}`
-}
 
 function isDailyGoal(value: unknown): value is DailyGoal {
   return value === 'light' || value === 'normal' || value === 'heavy'
@@ -141,9 +131,6 @@ export async function handleRegister(
     return errorResponse(401, 'invalid_invite_code', '招待コードが一致しません')
   }
 
-  const existingRaw = await env.MEMBERS.get(memberKey(body.deviceToken))
-  const existing = existingRaw ? (JSON.parse(existingRaw) as MemberRecord) : undefined
-
   const displayName = body.displayName.trim()
 
   // ②登録枠と③表示名の予約を、単一インスタンスDOで原子的に確定させる（レビュー指摘1・4）。
@@ -156,7 +143,12 @@ export async function handleRegister(
   //
   // 上限は新規登録のみに掛ける／自分自身が持ち主の表示名は通す、という従来の扱いは
   // DO側（reserve）に移してある
-  const outcomeReserve = await registryStub(env).reserve(body.deviceToken, displayName)
+  const outcomeReserve = await registryStub(env).reserve(
+    body.deviceToken,
+    displayName,
+    body.dailyGoal,
+    now,
+  )
   if (outcomeReserve === 'limit_reached') {
     return errorResponse(
       403,
@@ -168,22 +160,8 @@ export async function handleRegister(
     return errorResponse(409, 'display_name_taken', 'その表示名は既に使用されています')
   }
 
-  const record: MemberRecord = {
-    displayName,
-    dailyGoal: body.dailyGoal,
-    registeredAt: existing?.registeredAt ?? now,
-    emaDailyDamage: existing?.emaDailyDamage,
-  }
-
-  await env.MEMBERS.put(memberKey(body.deviceToken), JSON.stringify(record))
-  // 表示名を変更した場合は逆引き索引を更新する（旧名の索引は消す。放置すると別ユーザーが
-  // 旧名を新規登録しようとした際に「使用中」の誤判定になる）
-  if (displayName !== existing?.displayName) {
-    if (existing?.displayName) {
-      await env.MEMBERS.delete(displayNameOwnerKey(existing.displayName))
-    }
-    await env.MEMBERS.put(displayNameOwnerKey(displayName), body.deviceToken)
-  }
+  // KV正本への書き込み・表示名索引の更新はRegistryDo.reserve()の中で済んでいる
+  // （レビュー2巡目 指摘3。DOの外で書くとDO上の索引とKVが食い違いうる）
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
