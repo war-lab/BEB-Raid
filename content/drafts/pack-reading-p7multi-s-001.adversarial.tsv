@@ -1,0 +1,6 @@
+id	verdict	observation	reviewer	reviewedAt
+p7m-001	accept		claude-opus-5	2026-08-13
+p7m-002	accept		claude-opus-5	2026-08-13
+p7m-003	accept		claude-opus-5	2026-08-13
+p7m-004	accept	クロスレビュー（Fable・2026-08-13）で、設問が要求する「全条件を満たす」の根拠（Suite Cの窓）が本文に無いと指摘され、広告本文へ窓の記載を追加した	claude-opus-5	2026-08-13
+p7m-005	accept		claude-opus-5	2026-08-13

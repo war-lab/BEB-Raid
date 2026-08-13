@@ -1,7 +1,7 @@
 id	verdict	observation	reviewer	reviewedAt
-similar-delivery-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-delivery-1	accept		claude-opus-5	2026-08-13
 similar-venue-1	accept		claude-opus-5	2026-08-13
-similar-training-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-training-1	accept		claude-opus-5	2026-08-13
 similar-headquarters-1	accept		claude-opus-5	2026-08-13
 similar-reception-1	accept		claude-opus-5	2026-08-13
 similar-audit-1	accept		claude-opus-5	2026-08-13
@@ -9,7 +9,7 @@ similar-estate-1	accept		claude-opus-5	2026-08-13
 similar-utility-1	accept		claude-opus-5	2026-08-13
 similar-catering-1	accept		claude-opus-5	2026-08-13
 similar-occupant-1	accept		claude-opus-5	2026-08-13
-similar-freight-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-freight-1	accept		claude-opus-5	2026-08-13
 similar-outsource-1	accept		claude-opus-5	2026-08-13
 similar-stakeholder-1	accept		claude-opus-5	2026-08-13
 similar-facility-1	accept		claude-opus-5	2026-08-13
@@ -29,9 +29,9 @@ similar-comply-1	accept		claude-opus-5	2026-08-13
 similar-delegate-1	accept		claude-opus-5	2026-08-13
 similar-prioritize-1	accept		claude-opus-5	2026-08-13
 similar-coordinate-1	accept		claude-opus-5	2026-08-13
-similar-supervise-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-supervise-1	accept		claude-opus-5	2026-08-13
 similar-oversee-1	accept		claude-opus-5	2026-08-13
-similar-recruit-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-recruit-1	accept		claude-opus-5	2026-08-13
 similar-hire-1	accept		claude-opus-5	2026-08-13
 similar-notify-1	accept		claude-opus-5	2026-08-13
 similar-inform-1	accept		claude-opus-5	2026-08-13
@@ -50,7 +50,7 @@ similar-client-1	accept		claude-opus-5	2026-08-13
 similar-shareholder-1	accept		claude-opus-5	2026-08-13
 similar-landlord-1	accept		claude-opus-5	2026-08-13
 similar-employee-1	accept		claude-opus-5	2026-08-13
-similar-presentation-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-presentation-1	accept		claude-opus-5	2026-08-13
 similar-deadline-1	accept		claude-opus-5	2026-08-13
 similar-voucher-1	accept		claude-opus-5	2026-08-13
 similar-premises-1	accept		claude-opus-5	2026-08-13
@@ -102,7 +102,7 @@ similar-relocation-1	accept		claude-opus-5	2026-08-13
 similar-accommodation-1	accept		claude-opus-5	2026-08-13
 similar-advertisement-1	accept		claude-opus-5	2026-08-13
 similar-turnaround-1	accept		claude-opus-5	2026-08-13
-similar-modernization-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-modernization-1	accept		claude-opus-5	2026-08-13
 similar-nonrefundable-1	accept		claude-opus-5	2026-08-13
 similar-variance-1	accept		claude-opus-5	2026-08-13
 similar-authentication-1	accept		claude-opus-5	2026-08-13

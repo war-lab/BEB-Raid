@@ -1,7 +1,7 @@
 id	verdict	observation	reviewer	reviewedAt
 similar-contractor-1	accept		claude-opus-5	2026-08-13
 similar-contractor-2	accept		claude-opus-5	2026-08-13
-similar-contractor-3	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-contractor-3	accept		claude-opus-5	2026-08-13
 similar-franchise-1	accept		claude-opus-5	2026-08-13
 similar-franchise-2	accept		claude-opus-5	2026-08-13
 similar-franchise-3	accept		claude-opus-5	2026-08-13
@@ -26,7 +26,7 @@ similar-workforce-3	accept		claude-opus-5	2026-08-13
 similar-compensate-1	accept		claude-opus-5	2026-08-13
 similar-compensate-2	accept		claude-opus-5	2026-08-13
 similar-compensate-3	accept		claude-opus-5	2026-08-13
-similar-headcount-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-headcount-1	accept		claude-opus-5	2026-08-13
 similar-headcount-2	accept		claude-opus-5	2026-08-13
 similar-headcount-3	accept		claude-opus-5	2026-08-13
 similar-subsidiary-1	accept		claude-opus-5	2026-08-13
@@ -37,9 +37,9 @@ similar-partnership-2	accept		claude-opus-5	2026-08-13
 similar-partnership-3	accept		claude-opus-5	2026-08-13
 similar-sustainability-1	accept		claude-opus-5	2026-08-13
 similar-sustainability-2	accept		claude-opus-5	2026-08-13
-similar-sustainability-3	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
-similar-feedback-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
-similar-feedback-2	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-sustainability-3	accept		claude-opus-5	2026-08-13
+similar-feedback-1	accept		claude-opus-5	2026-08-13
+similar-feedback-2	accept		claude-opus-5	2026-08-13
 similar-feedback-3	accept		claude-opus-5	2026-08-13
 similar-technician-1	accept		claude-opus-5	2026-08-13
 similar-technician-2	accept		claude-opus-5	2026-08-13
@@ -53,7 +53,7 @@ similar-applicant-3	accept		claude-opus-5	2026-08-13
 similar-shipment-1	accept		claude-opus-5	2026-08-13
 similar-shipment-2	accept		claude-opus-5	2026-08-13
 similar-shipment-3	accept		claude-opus-5	2026-08-13
-similar-tenant-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-tenant-1	accept		claude-opus-5	2026-08-13
 similar-tenant-2	accept		claude-opus-5	2026-08-13
 similar-tenant-3	accept		claude-opus-5	2026-08-13
 similar-backlog-1	accept		claude-opus-5	2026-08-13

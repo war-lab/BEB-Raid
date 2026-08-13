@@ -202,6 +202,36 @@
       "hash": "3d581d7ab040ae45"
     },
     {
+      "id": "pack-reading-p7multi-s-001",
+      "title": "Part7複数パッセージ読解 5セット25問",
+      "targetLevel": [
+        730,
+        860
+      ],
+      "sizeBytes": 33506,
+      "hash": "80d1f188a21fdaf5"
+    },
+    {
+      "id": "pack-reading-p6url-s-001",
+      "title": "Part6読解 URL題材1セット4問",
+      "targetLevel": [
+        600,
+        730
+      ],
+      "sizeBytes": 6805,
+      "hash": "125b91a506b53db9"
+    },
+    {
+      "id": "pack-reading-p7url-s-001",
+      "title": "Part7単一読解 URL題材4セット10問",
+      "targetLevel": [
+        600,
+        730
+      ],
+      "sizeBytes": 17721,
+      "hash": "fd83ebed26d70b86"
+    },
+    {
       "id": "pack-p2-s-003",
       "title": "Part2瞬発 追加64問（平叙文・付加疑問・選択疑問）",
       "targetLevel": [

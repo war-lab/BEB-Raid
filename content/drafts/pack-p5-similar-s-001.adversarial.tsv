@@ -3,7 +3,7 @@ similar-account-1	accept		claude-opus-5	2026-08-13
 similar-account-2	accept		claude-opus-5	2026-08-13
 similar-account-3	accept		claude-opus-5	2026-08-13
 similar-acquisition-1	accept		claude-opus-5	2026-08-13
-similar-acquisition-2	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-acquisition-2	accept		claude-opus-5	2026-08-13
 similar-acquisition-3	accept		claude-opus-5	2026-08-13
 similar-budget-1	accept		claude-opus-5	2026-08-13
 similar-budget-2	accept		claude-opus-5	2026-08-13
@@ -22,12 +22,12 @@ similar-extension-2	accept		claude-opus-5	2026-08-13
 similar-extension-3	accept		claude-opus-5	2026-08-13
 similar-inspection-1	accept		claude-opus-5	2026-08-13
 similar-inspection-2	accept		claude-opus-5	2026-08-13
-similar-inspection-3	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-inspection-3	accept		claude-opus-5	2026-08-13
 similar-liability-1	accept		claude-opus-5	2026-08-13
 similar-liability-2	accept		claude-opus-5	2026-08-13
 similar-liability-3	accept		claude-opus-5	2026-08-13
 similar-merger-1	accept		claude-opus-5	2026-08-13
-similar-merger-2	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-merger-2	accept		claude-opus-5	2026-08-13
 similar-merger-3	accept		claude-opus-5	2026-08-13
 similar-negotiate-1	accept		claude-opus-5	2026-08-13
 similar-negotiate-2	accept		claude-opus-5	2026-08-13
@@ -39,7 +39,7 @@ similar-promotion-1	accept		claude-opus-5	2026-08-13
 similar-promotion-2	accept		claude-opus-5	2026-08-13
 similar-promotion-3	accept		claude-opus-5	2026-08-13
 similar-proposal-1	accept		claude-opus-5	2026-08-13
-similar-proposal-2	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-proposal-2	accept		claude-opus-5	2026-08-13
 similar-proposal-3	accept		claude-opus-5	2026-08-13
 similar-quality-1	accept		claude-opus-5	2026-08-13
 similar-quality-2	accept		claude-opus-5	2026-08-13
@@ -51,8 +51,8 @@ similar-submit-1	accept		claude-opus-5	2026-08-13
 similar-submit-2	accept		claude-opus-5	2026-08-13
 similar-submit-3	accept		claude-opus-5	2026-08-13
 similar-subscription-1	accept		claude-opus-5	2026-08-13
-similar-subscription-2	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-subscription-2	accept		claude-opus-5	2026-08-13
 similar-subscription-3	accept		claude-opus-5	2026-08-13
-similar-warranty-1	accept	クロスレビュー（Fable・2026-08-13）の指摘を受けて是正	claude-opus-5	2026-08-13
+similar-warranty-1	accept		claude-opus-5	2026-08-13
 similar-warranty-2	accept		claude-opus-5	2026-08-13
 similar-warranty-3	accept		claude-opus-5	2026-08-13

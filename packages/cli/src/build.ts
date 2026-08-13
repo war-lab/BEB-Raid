@@ -96,6 +96,9 @@ export const CROSS_REVIEW_MODEL_BY_PACK_ID: ReadonlyMap<string, string> = new Ma
   ['pack-p2-s-003', 'Fable'],
   ['pack-p34-s-003', 'Fable'],
   ['pack-p5-s-003', 'Fable'],
+  ['pack-reading-p7multi-s-001', 'Fable'],
+  ['pack-reading-p6url-s-001', 'Fable'],
+  ['pack-reading-p7url-s-001', 'Fable'],
 ])
 
 /**
@@ -321,6 +324,42 @@ const READING_R1_PACK_DEFINITIONS: readonly PackDefinition[] = [
   },
 ]
 
+/**
+ * 読解フェーズR-2（T-144・T-273）。人手レビュー必須ゲート（ADR 0006 判断5）で
+ * 2026-07-31から配信が止まっていたが、同判断が2026-08-13に撤回され
+ * （ADR 0006 Amendment。AIクロスレビューで代替してよい）、Fableのクロスレビューを
+ * 通したうえで配信対象に加えた。
+ *
+ * URL題材の2パック（T-273）は、実試験にあるのに読解コンテンツへ1件も無かった
+ * URL・メールアドレスを含む設問を補う。ドメインは予約済みの `.example.com` を使う。
+ */
+const READING_R2_PACK_DEFINITIONS: readonly PackDefinition[] = [
+  {
+    id: 'pack-reading-p7multi-s-001',
+    title: 'Part7複数パッセージ読解 5セット25問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆（2026-07-31。T-144）',
+    targetLevel: [730, 860],
+    draftPath: 'drafts/text-passage-p7-multi-s.jsonl',
+  },
+  {
+    id: 'pack-reading-p6url-s-001',
+    title: 'Part6読解 URL題材1セット4問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆（2026-08-05。T-273）',
+    targetLevel: [600, 730],
+    draftPath: 'drafts/text-passage-p6-url-s.jsonl',
+  },
+  {
+    id: 'pack-reading-p7url-s-001',
+    title: 'Part7単一読解 URL題材4セット10問',
+    license: 'internal-original',
+    origin: 'エージェント直接執筆（2026-08-05。T-273）',
+    targetLevel: [600, 730],
+    draftPath: 'drafts/text-passage-p7-url-s.jsonl',
+  },
+]
+
 /** ウェーブ8・T-349で追加する1パック（Part2 平叙文・付加疑問・選択疑問64問。docs/32 ウェーブ8 T-349行） */
 const T349_PACK_DEFINITIONS: readonly PackDefinition[] = [
   {
@@ -343,6 +382,7 @@ export const PACK_DEFINITIONS: readonly PackDefinition[] = [
   ...T85_PART34_PACK_DEFINITIONS,
   ...DOGFOOD_BEGINNER_PACK_DEFINITIONS,
   ...READING_R1_PACK_DEFINITIONS,
+  ...READING_R2_PACK_DEFINITIONS,
   ...T349_PACK_DEFINITIONS,
 ]
 

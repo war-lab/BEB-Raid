@@ -1389,21 +1389,37 @@ describe('build（T-32）', () => {
       JSON.stringify(textPassageP7SingleDraft) + '\n',
       'utf-8',
     )
+    // 読解R-2（2026-08-13配信開始）。複数パッセージ・URL題材の3パック分
+    await writeFile(
+      join(dir, 'drafts/text-passage-p7-multi-s.jsonl'),
+      JSON.stringify(textPassageP7SingleDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/text-passage-p6-url-s.jsonl'),
+      JSON.stringify(textPassageP6Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/text-passage-p7-url-s.jsonl'),
+      JSON.stringify(textPassageP7SingleDraft) + '\n',
+      'utf-8',
+    )
   })
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('21パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1）', async () => {
+  it('24パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1＋読解R-2の3）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('21パック')
+    expect(output).toContain('24パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(21)
+    expect(manifest.packs).toHaveLength(24)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -1425,6 +1441,9 @@ describe('build（T-32）', () => {
       'pack-vocab-s-002',
       'pack-reading-p6-s-001',
       'pack-reading-p7single-s-001',
+      'pack-reading-p7multi-s-001',
+      'pack-reading-p6url-s-001',
+      'pack-reading-p7url-s-001',
       'pack-p2-s-003',
     ])
     for (const entry of manifest.packs) {
