@@ -4,20 +4,25 @@
     "id": "pack-vocab-b-001",
     "title": "語彙カード Bランク200語（860帯）",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       730,
       860
     ],
-    "sizeBytes": 78797
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 89031
   },
   "questions": [
     {
       "id": "vocab-verbatim",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "verbatim",
       "phrase": "The secretary recorded the chairman's remarks verbatim in the minutes.",
@@ -30,8 +35,10 @@
       "id": "vocab-paraphrase",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "paraphrase",
       "phrase": "The editor asked the writer to paraphrase the technical section.",
@@ -44,8 +51,10 @@
       "id": "vocab-elaborate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "elaborate",
       "phrase": "Could you elaborate on how the new policy will affect overtime pay?",
@@ -58,8 +67,10 @@
       "id": "vocab-elaboration",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "elaboration",
       "phrase": "The client requested further elaboration on the pricing structure.",
@@ -72,8 +83,10 @@
       "id": "vocab-stipulate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "stipulate",
       "phrase": "The contract stipulates that payment must be made within thirty days.",
@@ -86,8 +99,10 @@
       "id": "vocab-stipulation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "stipulation",
       "phrase": "One stipulation requires the vendor to insure all shipments.",
@@ -100,8 +115,10 @@
       "id": "vocab-preamble",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "preamble",
       "phrase": "The preamble of the agreement outlines the purpose of the partnership.",
@@ -114,8 +131,10 @@
       "id": "vocab-annex",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "annex",
       "phrase": "The technical drawings are provided in the annex to the contract.",
@@ -128,8 +147,10 @@
       "id": "vocab-networking",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "networking",
       "phrase": "She attended the conference mainly for networking.",
@@ -142,8 +163,10 @@
       "id": "vocab-comprehensive",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "comprehensive",
       "phrase": "The report offers a comprehensive review of the year.",
@@ -156,8 +179,10 @@
       "id": "vocab-mentorship",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "mentorship",
       "phrase": "The mentorship program pairs new hires with veterans.",
@@ -170,13 +195,15 @@
       "id": "vocab-teamwork",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "teamwork",
       "phrase": "Good teamwork helped the project finish early.",
       "phraseAudio": "audio/vocab/teamwork.mp3",
-      "back": "チームワーク",
+      "back": "チームワーク（協力体制）",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -184,8 +211,10 @@
       "id": "vocab-corroborate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "corroborate",
       "phrase": "Two witnesses' statements corroborate the auditor's findings.",
@@ -198,8 +227,10 @@
       "id": "vocab-substantiate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "substantiate",
       "phrase": "The claim was substantiated by receipts and shipping records.",
@@ -212,8 +243,10 @@
       "id": "vocab-annotate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "annotate",
       "phrase": "The reviewer annotated the draft with suggested revisions.",
@@ -226,8 +259,10 @@
       "id": "vocab-annotation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "annotation",
       "phrase": "Each annotation in the margin refers to a supporting document.",
@@ -240,8 +275,10 @@
       "id": "vocab-synopsis",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "会議・文書・オフィスコミュニケーション"
+      ],
       "keyVocab": [],
       "front": "synopsis",
       "phrase": "A one-page synopsis of the proposal was circulated before the meeting.",
@@ -251,16 +288,18 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-attrition",
+      "id": "vocab-apprenticeship",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
-      "front": "attrition",
-      "phrase": "The company plans to reduce staff through attrition rather than layoffs.",
-      "phraseAudio": "audio/vocab/attrition.mp3",
-      "back": "自然減",
+      "front": "apprenticeship",
+      "phrase": "The factory runs a two-year apprenticeship for new technicians.",
+      "phraseAudio": "audio/vocab/apprenticeship.mp3",
+      "back": "実習生制度",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -268,8 +307,10 @@
       "id": "vocab-retention",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "retention",
       "phrase": "Employee retention improved after the new benefits package was introduced.",
@@ -282,8 +323,10 @@
       "id": "vocab-incentivize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "incentivize",
       "phrase": "Management wants to incentivize employees to complete the training early.",
@@ -296,27 +339,31 @@
       "id": "vocab-gratuity",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "gratuity",
       "phrase": "A gratuity is automatically added to bills for large groups.",
       "phraseAudio": "audio/vocab/gratuity.mp3",
-      "back": "謝礼",
+      "back": "チップ・サービス料",
       "freqRank": "B",
       "levelBand": 860
     },
     {
-      "id": "vocab-nepotism",
+      "id": "vocab-facilitator",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
-      "front": "nepotism",
-      "phrase": "The new hiring policy was introduced to prevent accusations of nepotism.",
-      "phraseAudio": "audio/vocab/nepotism.mp3",
-      "back": "縁故採用",
+      "front": "facilitator",
+      "phrase": "An outside facilitator will lead the strategy workshop.",
+      "phraseAudio": "audio/vocab/facilitator.mp3",
+      "back": "進行役",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -324,8 +371,10 @@
       "id": "vocab-meritocracy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "meritocracy",
       "phrase": "The firm prides itself on being a meritocracy where promotions are earned.",
@@ -335,16 +384,18 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-arbitration",
+      "id": "vocab-honorarium",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
-      "front": "arbitration",
-      "phrase": "The labor dispute was settled through arbitration instead of a strike.",
-      "phraseAudio": "audio/vocab/arbitration.mp3",
-      "back": "仲裁",
+      "front": "honorarium",
+      "phrase": "Guest speakers receive an honorarium and travel expenses.",
+      "phraseAudio": "audio/vocab/honorarium.mp3",
+      "back": "謝礼",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -352,8 +403,10 @@
       "id": "vocab-mediate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "mediate",
       "phrase": "An outside consultant was brought in to mediate the dispute between departments.",
@@ -366,8 +419,10 @@
       "id": "vocab-mediation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "mediation",
       "phrase": "Both parties agreed to mediation before taking the matter to court.",
@@ -377,44 +432,50 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-redundancy",
+      "id": "vocab-turnaround",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
-      "front": "redundancy",
-      "phrase": "The restructuring resulted in the redundancy of several administrative posts.",
-      "phraseAudio": "audio/vocab/redundancy.mp3",
-      "back": "人員整理",
+      "front": "turnaround",
+      "phrase": "The new CEO led a remarkable turnaround of the struggling division.",
+      "phraseAudio": "audio/vocab/turnaround.mp3",
+      "back": "業績回復・立て直し",
       "freqRank": "B",
       "levelBand": 860
     },
     {
-      "id": "vocab-downsize",
+      "id": "vocab-modernize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
-      "front": "downsize",
-      "phrase": "The firm had to downsize its regional offices after the merger.",
-      "phraseAudio": "audio/vocab/downsize.mp3",
-      "back": "人員を削減する",
+      "front": "modernize",
+      "phrase": "The factory plans to modernize its equipment over the next two years.",
+      "phraseAudio": "audio/vocab/modernize.mp3",
+      "back": "近代化する",
       "freqRank": "B",
       "levelBand": 860
     },
     {
-      "id": "vocab-downsizing",
+      "id": "vocab-modernization",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
-      "front": "downsizing",
-      "phrase": "The downsizing plan will be finalized by the end of the quarter.",
-      "phraseAudio": "audio/vocab/downsizing.mp3",
-      "back": "人員削減",
+      "front": "modernization",
+      "phrase": "The modernization project will be completed by the end of the quarter.",
+      "phraseAudio": "audio/vocab/modernization.mp3",
+      "back": "近代化",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -422,8 +483,10 @@
       "id": "vocab-restructure",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "restructure",
       "phrase": "The board voted to restructure the sales division.",
@@ -436,8 +499,10 @@
       "id": "vocab-restructuring",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "restructuring",
       "phrase": "The restructuring affected nearly every department in the company.",
@@ -450,8 +515,10 @@
       "id": "vocab-moonlighting",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "moonlighting",
       "phrase": "The company's policy prohibits moonlighting for a competing firm.",
@@ -464,8 +531,10 @@
       "id": "vocab-sabbatical",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "sabbatical",
       "phrase": "She took a six-month sabbatical to complete her research project.",
@@ -478,8 +547,10 @@
       "id": "vocab-expatriate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "人事・採用・研修"
+      ],
       "keyVocab": [],
       "front": "expatriate",
       "phrase": "The firm offers housing assistance to expatriate staff working abroad.",
@@ -492,8 +563,10 @@
       "id": "vocab-hedge",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "hedge",
       "phrase": "The company used currency contracts to hedge against exchange rate risk.",
@@ -506,13 +579,15 @@
       "id": "vocab-hedging",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "hedging",
       "phrase": "Hedging strategies helped the firm limit its losses during the downturn.",
       "phraseAudio": "audio/vocab/hedging.mp3",
-      "back": "ヘッジ",
+      "back": "ヘッジ（リスク回避策）",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -520,8 +595,10 @@
       "id": "vocab-derivative",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "derivative",
       "phrase": "The bank sold a derivative product tied to interest rate movements.",
@@ -534,8 +611,10 @@
       "id": "vocab-arbitrage",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "arbitrage",
       "phrase": "Traders profited from arbitrage opportunities between the two markets.",
@@ -545,58 +624,66 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-insolvency",
+      "id": "vocab-profitability",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
-      "front": "insolvency",
-      "phrase": "The retailer filed for protection after facing insolvency.",
-      "phraseAudio": "audio/vocab/insolvency.mp3",
-      "back": "支払不能状態",
+      "front": "profitability",
+      "phrase": "The new pricing strategy improved the division's overall profitability.",
+      "phraseAudio": "audio/vocab/profitability.mp3",
+      "back": "収益性",
       "freqRank": "B",
       "levelBand": 860
     },
     {
-      "id": "vocab-receivership",
+      "id": "vocab-amortization",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
-      "front": "receivership",
-      "phrase": "The struggling airline was placed into receivership last year.",
-      "phraseAudio": "audio/vocab/receivership.mp3",
-      "back": "管財下の状態",
+      "front": "amortization",
+      "phrase": "The amortization of the software license runs over five years.",
+      "phraseAudio": "audio/vocab/amortization.mp3",
+      "back": "償却",
       "freqRank": "B",
       "levelBand": 860
     },
     {
-      "id": "vocab-bankruptcy",
+      "id": "vocab-growth",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
-      "front": "bankruptcy",
-      "phrase": "The chain of stores filed for bankruptcy after years of declining sales.",
-      "phraseAudio": "audio/vocab/bankruptcy.mp3",
-      "back": "破産",
+      "front": "growth",
+      "phrase": "The company reported steady growth in its overseas markets.",
+      "phraseAudio": "audio/vocab/growth.mp3",
+      "back": "成長",
       "freqRank": "B",
       "levelBand": 860
     },
     {
-      "id": "vocab-foreclosure",
+      "id": "vocab-investment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
-      "front": "foreclosure",
-      "phrase": "The bank began foreclosure proceedings after the loan went unpaid.",
-      "phraseAudio": "audio/vocab/foreclosure.mp3",
-      "back": "差し押さえ",
+      "front": "investment",
+      "phrase": "The board approved a major investment in new manufacturing equipment.",
+      "phraseAudio": "audio/vocab/investment.mp3",
+      "back": "投資",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -604,8 +691,10 @@
       "id": "vocab-asset",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "asset",
       "phrase": "The factory is listed as one of the company’s major assets.",
@@ -618,8 +707,10 @@
       "id": "vocab-portfolio",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "portfolio",
       "phrase": "The investment portfolio includes stocks, bonds, and real estate.",
@@ -632,8 +723,10 @@
       "id": "vocab-diversify",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "diversify",
       "phrase": "The firm decided to diversify its investments across several industries.",
@@ -646,8 +739,10 @@
       "id": "vocab-diversification",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "diversification",
       "phrase": "Diversification reduced the fund’s exposure to a single market.",
@@ -660,8 +755,10 @@
       "id": "vocab-leverage",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "leverage",
       "phrase": "The startup leveraged its investor network to win new business deals.",
@@ -674,8 +771,10 @@
       "id": "vocab-subsidy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "subsidy",
       "phrase": "The government offers a subsidy to companies that hire new graduates.",
@@ -688,8 +787,10 @@
       "id": "vocab-tariff",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "tariff",
       "phrase": "New tariffs on imported steel raised production costs.",
@@ -702,8 +803,10 @@
       "id": "vocab-levy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "levy",
       "phrase": "The city plans to levy a small tax on short-term rentals.",
@@ -716,8 +819,10 @@
       "id": "vocab-licensing",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "財務・会計・契約"
+      ],
       "keyVocab": [],
       "front": "licensing",
       "phrase": "The licensing fee is paid annually.",
@@ -730,8 +835,10 @@
       "id": "vocab-commissioning",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "commissioning",
       "phrase": "The commissioning of the new plant is scheduled for next spring.",
@@ -744,8 +851,10 @@
       "id": "vocab-decommission",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "decommission",
       "phrase": "The old power station will be decommissioned within two years.",
@@ -758,8 +867,10 @@
       "id": "vocab-retrofit",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "retrofit",
       "phrase": "The building was retrofitted with more energy-efficient lighting.",
@@ -772,8 +883,10 @@
       "id": "vocab-streamline",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "streamline",
       "phrase": "The new software helped streamline the order processing workflow.",
@@ -786,8 +899,10 @@
       "id": "vocab-optimize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "optimize",
       "phrase": "The team worked to optimize delivery routes and cut fuel costs.",
@@ -800,8 +915,10 @@
       "id": "vocab-optimization",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "optimization",
       "phrase": "Route optimization reduced average delivery time by two hours.",
@@ -814,8 +931,10 @@
       "id": "vocab-automate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "automate",
       "phrase": "The warehouse plans to automate its inventory tracking system.",
@@ -828,8 +947,10 @@
       "id": "vocab-automation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "automation",
       "phrase": "Automation reduced the need for manual data entry.",
@@ -842,8 +963,10 @@
       "id": "vocab-offshoring",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "offshoring",
       "phrase": "The company's offshoring of production cut manufacturing costs significantly.",
@@ -856,8 +979,10 @@
       "id": "vocab-subcontracting",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "subcontracting",
       "phrase": "Subcontracting the installation work helped meet the tight deadline.",
@@ -870,8 +995,10 @@
       "id": "vocab-expedite",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "expedite",
       "phrase": "The client paid extra to expedite the shipment.",
@@ -884,8 +1011,10 @@
       "id": "vocab-consolidate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "consolidate",
       "phrase": "The airline decided to consolidate its regional flights into one hub.",
@@ -898,8 +1027,10 @@
       "id": "vocab-consolidation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "consolidation",
       "phrase": "The consolidation of warehouses reduced overall storage costs.",
@@ -912,8 +1043,10 @@
       "id": "vocab-standardize",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "standardize",
       "phrase": "The company plans to standardize packaging across all product lines.",
@@ -926,8 +1059,10 @@
       "id": "vocab-standardization",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "standardization",
       "phrase": "Standardization made it easier to train staff at every location.",
@@ -940,8 +1075,10 @@
       "id": "vocab-curtail",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "curtail",
       "phrase": "The factory had to curtail production due to a parts shortage.",
@@ -954,8 +1091,10 @@
       "id": "vocab-overhaul",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "製造・品質管理・物流"
+      ],
       "keyVocab": [],
       "front": "overhaul",
       "phrase": "The logistics network underwent a complete overhaul last year.",
@@ -968,8 +1107,10 @@
       "id": "vocab-proliferate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "proliferate",
       "phrase": "Online discount retailers have proliferated in the past decade.",
@@ -982,8 +1123,10 @@
       "id": "vocab-proliferation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "proliferation",
       "phrase": "The proliferation of low-cost competitors squeezed profit margins.",
@@ -996,8 +1139,10 @@
       "id": "vocab-saturate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "saturate",
       "phrase": "The smartphone market has become saturated with similar models.",
@@ -1010,8 +1155,10 @@
       "id": "vocab-saturation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "saturation",
       "phrase": "Market saturation forced the company to look overseas for growth.",
@@ -1024,8 +1171,10 @@
       "id": "vocab-differentiate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "differentiate",
       "phrase": "The brand differentiates itself through personalized customer service.",
@@ -1038,8 +1187,10 @@
       "id": "vocab-differentiation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "differentiation",
       "phrase": "Product differentiation is key in a crowded marketplace.",
@@ -1052,8 +1203,10 @@
       "id": "vocab-positioning",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "positioning",
       "phrase": "The agency recommended a new positioning strategy for the brand.",
@@ -1066,8 +1219,10 @@
       "id": "vocab-rebrand",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "rebrand",
       "phrase": "The airline decided to rebrand after years of poor customer reviews.",
@@ -1080,8 +1235,10 @@
       "id": "vocab-rebranding",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "rebranding",
       "phrase": "The rebranding included a new logo and updated slogan.",
@@ -1094,8 +1251,10 @@
       "id": "vocab-viral",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "viral",
       "phrase": "The advertisement went viral within a few days of its release.",
@@ -1108,8 +1267,10 @@
       "id": "vocab-engagement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "engagement",
       "phrase": "Customer engagement increased after the launch of the loyalty app.",
@@ -1122,8 +1283,10 @@
       "id": "vocab-conversion",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "conversion",
       "phrase": "The redesigned website improved the checkout conversion rate.",
@@ -1136,8 +1299,10 @@
       "id": "vocab-segmentation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "segmentation",
       "phrase": "Market segmentation allowed the team to tailor ads by region.",
@@ -1150,8 +1315,10 @@
       "id": "vocab-upsell",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "upsell",
       "phrase": "Staff are trained to upsell customers on extended warranties.",
@@ -1164,8 +1331,10 @@
       "id": "vocab-affiliate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "affiliate",
       "phrase": "The company earns revenue through its network of affiliate websites.",
@@ -1178,8 +1347,10 @@
       "id": "vocab-clientele",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "clientele",
       "phrase": "The restaurant built a loyal clientele over twenty years.",
@@ -1192,8 +1363,10 @@
       "id": "vocab-markdown",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "マーケティング・広告・販売"
+      ],
       "keyVocab": [],
       "front": "markdown",
       "phrase": "A seasonal markdown cleared most of the remaining inventory.",
@@ -1206,8 +1379,10 @@
       "id": "vocab-appease",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "appease",
       "phrase": "The manager offered a discount to appease the frustrated customer.",
@@ -1220,8 +1395,10 @@
       "id": "vocab-placate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "placate",
       "phrase": "The airline tried to placate passengers with meal vouchers.",
@@ -1234,8 +1411,10 @@
       "id": "vocab-rectify",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "rectify",
       "phrase": "The company moved quickly to rectify the billing mistake.",
@@ -1248,8 +1427,10 @@
       "id": "vocab-rectification",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "rectification",
       "phrase": "Rectification of the error took less than a day.",
@@ -1262,8 +1443,10 @@
       "id": "vocab-remedy",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "remedy",
       "phrase": "A full refund was offered as a remedy for the defective product.",
@@ -1276,8 +1459,10 @@
       "id": "vocab-remediation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "remediation",
       "phrase": "The remediation plan included staff retraining and new procedures.",
@@ -1290,8 +1475,10 @@
       "id": "vocab-disgruntled",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "disgruntled",
       "phrase": "Several disgruntled customers posted negative reviews online.",
@@ -1304,8 +1491,10 @@
       "id": "vocab-alienate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "alienate",
       "phrase": "Executives were careful not to alienate long-time customers with the new pricing.",
@@ -1318,8 +1507,10 @@
       "id": "vocab-retain",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "retain",
       "phrase": "The loyalty program helped retain customers during the price war.",
@@ -1332,8 +1523,10 @@
       "id": "vocab-goodwill",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "goodwill",
       "phrase": "The company built goodwill by donating to local charities.",
@@ -1346,8 +1539,10 @@
       "id": "vocab-adjacent",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "adjacent",
       "phrase": "The new office is adjacent to the train station.",
@@ -1360,8 +1555,10 @@
       "id": "vocab-indemnify",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "indemnify",
       "phrase": "The supplier agreed to indemnify the retailer for any defects.",
@@ -1374,8 +1571,10 @@
       "id": "vocab-indemnity",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "indemnity",
       "phrase": "The contract includes an indemnity clause covering legal costs.",
@@ -1388,8 +1587,10 @@
       "id": "vocab-liaison",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "liaison",
       "phrase": "She serves as the liaison between the client and the design team.",
@@ -1402,8 +1603,10 @@
       "id": "vocab-mitigate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "mitigate",
       "phrase": "The company took steps to mitigate the impact of the delay.",
@@ -1416,8 +1619,10 @@
       "id": "vocab-mitigation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "mitigation",
       "phrase": "Risk mitigation is a key part of the project plan.",
@@ -1430,8 +1635,10 @@
       "id": "vocab-reimburse",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "顧客サービス・苦情対応"
+      ],
       "keyVocab": [],
       "front": "reimburse",
       "phrase": "The company will reimburse employees for travel expenses.",
@@ -1444,8 +1651,10 @@
       "id": "vocab-commute",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "commute",
       "phrase": "Many employees commute over an hour to reach the downtown office.",
@@ -1458,8 +1667,10 @@
       "id": "vocab-commuter",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "commuter",
       "phrase": "The new rail line was built mainly for commuters.",
@@ -1472,8 +1683,10 @@
       "id": "vocab-congestion",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "congestion",
       "phrase": "Traffic congestion made the delivery truck an hour late.",
@@ -1486,8 +1699,10 @@
       "id": "vocab-detour",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "detour",
       "phrase": "Road construction forced drivers to take a lengthy detour.",
@@ -1500,8 +1715,10 @@
       "id": "vocab-diversion",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "diversion",
       "phrase": "A traffic diversion was set up around the accident site.",
@@ -1514,8 +1731,10 @@
       "id": "vocab-embark",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "embark",
       "phrase": "Cruise passengers must embark at least an hour before departure.",
@@ -1528,8 +1747,10 @@
       "id": "vocab-disembark",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "disembark",
       "phrase": "Passengers must disembark through the rear door during this stop.",
@@ -1542,8 +1763,10 @@
       "id": "vocab-quarantine",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "quarantine",
       "phrase": "The shipment was held in quarantine pending inspection.",
@@ -1556,8 +1779,10 @@
       "id": "vocab-immigration",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "immigration",
       "phrase": "The line at immigration was much shorter than expected.",
@@ -1570,8 +1795,10 @@
       "id": "vocab-repatriate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "repatriate",
       "phrase": "The company arranged to repatriate staff during the crisis.",
@@ -1584,8 +1811,10 @@
       "id": "vocab-repatriation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "repatriation",
       "phrase": "The repatriation process took nearly a week to arrange.",
@@ -1598,8 +1827,10 @@
       "id": "vocab-chartered",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "chartered",
       "phrase": "A chartered bus took the delegates directly to the venue.",
@@ -1612,8 +1843,10 @@
       "id": "vocab-nonrefundable",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "nonrefundable",
       "phrase": "The discounted ticket is nonrefundable once purchased.",
@@ -1626,8 +1859,10 @@
       "id": "vocab-punctuality",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "punctuality",
       "phrase": "The courier service is known for its punctuality.",
@@ -1640,13 +1875,15 @@
       "id": "vocab-stopover",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "stopover",
       "phrase": "The itinerary includes a two-day stopover in Dubai.",
       "phraseAudio": "audio/vocab/stopover.mp3",
-      "back": "短期滞在",
+      "back": "（旅程途中の）経由地での短時間滞在",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -1654,8 +1891,10 @@
       "id": "vocab-gateway",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "出張・交通・宿泊"
+      ],
       "keyVocab": [],
       "front": "gateway",
       "phrase": "The airport serves as a gateway for business travelers to the region.",
@@ -1668,13 +1907,15 @@
       "id": "vocab-cybersecurity",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "cybersecurity",
       "phrase": "The firm invested heavily in cybersecurity after the breach.",
       "phraseAudio": "audio/vocab/cybersecurity.mp3",
-      "back": "サイバーセキュリティ",
+      "back": "サイバーセキュリティ（情報防御）",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -1682,8 +1923,10 @@
       "id": "vocab-phishing",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "phishing",
       "phrase": "Employees are trained to recognize phishing emails.",
@@ -1696,8 +1939,10 @@
       "id": "vocab-ransomware",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "ransomware",
       "phrase": "A ransomware attack shut down the company’s servers for two days.",
@@ -1710,8 +1955,10 @@
       "id": "vocab-cryptocurrency",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "cryptocurrency",
       "phrase": "The company began accepting cryptocurrency for online purchases.",
@@ -1724,13 +1971,15 @@
       "id": "vocab-blockchain",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "blockchain",
       "phrase": "Blockchain technology is being tested for supply chain tracking.",
       "phraseAudio": "audio/vocab/blockchain.mp3",
-      "back": "ブロックチェーン",
+      "back": "ブロックチェーン（分散型台帳技術）",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -1738,11 +1987,13 @@
       "id": "vocab-protocol",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "protocol",
-      "phrase": "The new security protocol requires two-factor authentication.",
+      "phrase": "All devices on the network must support the same communication protocol.",
       "phraseAudio": "audio/vocab/protocol.mp3",
       "back": "通信規約",
       "freqRank": "B",
@@ -1752,8 +2003,10 @@
       "id": "vocab-latency",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "latency",
       "phrase": "High latency made the video call difficult to follow.",
@@ -1766,8 +2019,10 @@
       "id": "vocab-scalable",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "scalable",
       "phrase": "The startup chose a scalable platform to support future growth.",
@@ -1780,8 +2035,10 @@
       "id": "vocab-scalability",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "scalability",
       "phrase": "Scalability was the main reason for choosing this software vendor.",
@@ -1794,8 +2051,10 @@
       "id": "vocab-deprecate",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "deprecate",
       "phrase": "The company will deprecate the old app in favor of the new version.",
@@ -1808,8 +2067,10 @@
       "id": "vocab-provisioning",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "provisioning",
       "phrase": "Provisioning new servers now takes only a few minutes.",
@@ -1822,8 +2083,10 @@
       "id": "vocab-virtualization",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "virtualization",
       "phrase": "Virtualization reduced the number of physical servers needed.",
@@ -1836,13 +2099,15 @@
       "id": "vocab-middleware",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "middleware",
       "phrase": "The middleware connects the ordering system to the payment gateway.",
       "phraseAudio": "audio/vocab/middleware.mp3",
-      "back": "ミドルウェア",
+      "back": "ミドルウェア（中間処理ソフト）",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -1850,13 +2115,15 @@
       "id": "vocab-firmware",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "firmware",
       "phrase": "A firmware update fixed the printer’s connectivity issue.",
       "phraseAudio": "audio/vocab/firmware.mp3",
-      "back": "ファームウェア",
+      "back": "ファームウェア（内蔵制御プログラム）",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -1864,8 +2131,10 @@
       "id": "vocab-endpoint",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "endpoint",
       "phrase": "Every endpoint device must have the security software installed.",
@@ -1878,8 +2147,10 @@
       "id": "vocab-authentication",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "IT・システム・通信"
+      ],
       "keyVocab": [],
       "front": "authentication",
       "phrase": "Two-factor authentication is now required to access company email.",
@@ -1892,8 +2163,10 @@
       "id": "vocab-accreditation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "accreditation",
       "phrase": "The school received accreditation from the national board.",
@@ -1906,8 +2179,10 @@
       "id": "vocab-dilapidated",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "dilapidated",
       "phrase": "The company bought the dilapidated building to convert it into offices.",
@@ -1920,8 +2195,10 @@
       "id": "vocab-uninhabitable",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "uninhabitable",
       "phrase": "The apartment was declared uninhabitable after the fire.",
@@ -1934,8 +2211,10 @@
       "id": "vocab-habitable",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "habitable",
       "phrase": "Renovations made the old warehouse habitable for staff use.",
@@ -1948,8 +2227,10 @@
       "id": "vocab-timeline",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "timeline",
       "phrase": "The project timeline was pushed back by two weeks.",
@@ -1962,8 +2243,10 @@
       "id": "vocab-leasehold",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "leasehold",
       "phrase": "The company purchased a leasehold property near the port.",
@@ -1976,8 +2259,10 @@
       "id": "vocab-freehold",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "freehold",
       "phrase": "The firm prefers freehold properties for long-term investment.",
@@ -1990,8 +2275,10 @@
       "id": "vocab-covenant",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "covenant",
       "phrase": "The lease includes a covenant restricting subletting.",
@@ -2004,8 +2291,10 @@
       "id": "vocab-deed",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "deed",
       "phrase": "The deed was transferred once the payment cleared.",
@@ -2018,8 +2307,10 @@
       "id": "vocab-escrow",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "escrow",
       "phrase": "The deposit was held in escrow until the sale was finalized.",
@@ -2032,8 +2323,10 @@
       "id": "vocab-subdivision",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "subdivision",
       "phrase": "The developer split the land into a residential subdivision.",
@@ -2046,8 +2339,10 @@
       "id": "vocab-expertise",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "expertise",
       "phrase": "Her expertise in tax law made her the obvious choice.",
@@ -2060,8 +2355,10 @@
       "id": "vocab-variance",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "variance",
       "phrase": "The owner applied for a variance to build beyond the height limit.",
@@ -2074,8 +2371,10 @@
       "id": "vocab-milestone",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "milestone",
       "phrase": "Reaching one million users was a major milestone.",
@@ -2088,8 +2387,10 @@
       "id": "vocab-deliverable",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "deliverable",
       "phrase": "The first deliverable is due at the end of the month.",
@@ -2102,8 +2403,10 @@
       "id": "vocab-workflow",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "workflow",
       "phrase": "The new software simplified the approval workflow.",
@@ -2116,8 +2419,10 @@
       "id": "vocab-initiative",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "不動産・施設・建築"
+      ],
       "keyVocab": [],
       "front": "initiative",
       "phrase": "The company launched a new sustainability initiative.",
@@ -2127,16 +2432,18 @@
       "levelBand": 860
     },
     {
-      "id": "vocab-liquidation",
+      "id": "vocab-replenishment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
-      "front": "liquidation",
-      "phrase": "The chain held a liquidation sale before closing its doors.",
-      "phraseAudio": "audio/vocab/liquidation.mp3",
-      "back": "在庫処分",
+      "front": "replenishment",
+      "phrase": "Shelf replenishment takes place before the store opens.",
+      "phraseAudio": "audio/vocab/replenishment.mp3",
+      "back": "補充",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -2144,8 +2451,10 @@
       "id": "vocab-footfall",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "footfall",
       "phrase": "Footfall at the mall increased after the new anchor store opened.",
@@ -2158,8 +2467,10 @@
       "id": "vocab-ambience",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "ambience",
       "phrase": "The café’s cozy ambience keeps customers coming back.",
@@ -2172,8 +2483,10 @@
       "id": "vocab-upscale",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "upscale",
       "phrase": "The brand opened an upscale boutique in the shopping district.",
@@ -2186,8 +2499,10 @@
       "id": "vocab-bespoke",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "bespoke",
       "phrase": "The tailor specializes in bespoke suits for business clients.",
@@ -2200,8 +2515,10 @@
       "id": "vocab-artisanal",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "artisanal",
       "phrase": "The bakery is known for its artisanal bread and pastries.",
@@ -2214,8 +2531,10 @@
       "id": "vocab-curated",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "curated",
       "phrase": "The store offers a curated selection of local products.",
@@ -2228,8 +2547,10 @@
       "id": "vocab-flagship",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "flagship",
       "phrase": "The company opened its flagship store in the capital city.",
@@ -2242,8 +2563,10 @@
       "id": "vocab-e-commerce",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "e-commerce",
       "phrase": "E-commerce sales now account for half of the company’s revenue.",
@@ -2256,8 +2579,10 @@
       "id": "vocab-omnichannel",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "omnichannel",
       "phrase": "The retailer adopted an omnichannel strategy linking online and in-store sales.",
@@ -2270,8 +2595,10 @@
       "id": "vocab-understock",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "understock",
       "phrase": "The store understocked several popular items during the holiday season.",
@@ -2284,8 +2611,10 @@
       "id": "vocab-turnover",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "turnover",
       "phrase": "Fast inventory turnover keeps the store’s shelves stocked with fresh items.",
@@ -2298,8 +2627,10 @@
       "id": "vocab-patronage",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "patronage",
       "phrase": "The restaurant thanked customers for their continued patronage.",
@@ -2312,8 +2643,10 @@
       "id": "vocab-shopper",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "shopper",
       "phrase": "Shoppers lined up early for the doorbuster deals.",
@@ -2326,8 +2659,10 @@
       "id": "vocab-merchandising",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "merchandising",
       "phrase": "Visual merchandising helped highlight the new product line.",
@@ -2340,8 +2675,10 @@
       "id": "vocab-assortment",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "店舗・小売・在庫"
+      ],
       "keyVocab": [],
       "front": "assortment",
       "phrase": "The store expanded its assortment of imported goods.",
@@ -2354,8 +2691,10 @@
       "id": "vocab-proficiency",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "proficiency",
       "phrase": "The job requires proficiency in two languages.",
@@ -2368,8 +2707,10 @@
       "id": "vocab-efficiency",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "efficiency",
       "phrase": "The upgrade increased the factory's efficiency.",
@@ -2382,8 +2723,10 @@
       "id": "vocab-versatile",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "versatile",
       "phrase": "The new tool is versatile enough for several departments.",
@@ -2396,8 +2739,10 @@
       "id": "vocab-accolade",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "accolade",
       "phrase": "The company received an accolade for its customer service.",
@@ -2410,8 +2755,10 @@
       "id": "vocab-plaque",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "plaque",
       "phrase": "A plaque was installed to mark the building’s completion.",
@@ -2424,8 +2771,10 @@
       "id": "vocab-innovation",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "innovation",
       "phrase": "The award recognizes innovation in product design.",
@@ -2438,8 +2787,10 @@
       "id": "vocab-tribute",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "tribute",
       "phrase": "The staff paid tribute to their longtime colleague at the farewell party.",
@@ -2452,13 +2803,15 @@
       "id": "vocab-symposium",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "symposium",
       "phrase": "Researchers gathered for an international symposium on renewable energy.",
       "phraseAudio": "audio/vocab/symposium.mp3",
-      "back": "シンポジウム",
+      "back": "シンポジウム（討論会）",
       "freqRank": "B",
       "levelBand": 860
     },
@@ -2466,8 +2819,10 @@
       "id": "vocab-collaboration",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "collaboration",
       "phrase": "The project required close collaboration between teams.",
@@ -2480,8 +2835,10 @@
       "id": "vocab-plenary",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "plenary",
       "phrase": "The plenary session brought together delegates from every department.",
@@ -2494,8 +2851,10 @@
       "id": "vocab-festivity",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "festivity",
       "phrase": "A sense of festivity filled the office during the holiday season.",
@@ -2508,8 +2867,10 @@
       "id": "vocab-adaptable",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "adaptable",
       "phrase": "The manager praised her adaptable approach to change.",
@@ -2522,8 +2883,10 @@
       "id": "vocab-commencement",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "commencement",
       "phrase": "The commencement of the new fiscal year was marked with a company address.",
@@ -2536,8 +2899,10 @@
       "id": "vocab-productivity",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "productivity",
       "phrase": "The new schedule improved overall productivity.",
@@ -2550,8 +2915,10 @@
       "id": "vocab-mixer",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "mixer",
       "phrase": "A networking mixer followed the industry panel discussion.",
@@ -2564,8 +2931,10 @@
       "id": "vocab-hospitality",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "hospitality",
       "phrase": "Guests praised the hotel staff for their hospitality.",
@@ -2578,8 +2947,10 @@
       "id": "vocab-fanfare",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "イベント・式典・エンターテインメント"
+      ],
       "keyVocab": [],
       "front": "fanfare",
       "phrase": "The product was launched with considerable fanfare.",
@@ -2592,8 +2963,10 @@
       "id": "vocab-provision",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "provision",
       "phrase": "The contract includes a provision for early termination.",
@@ -2606,8 +2979,10 @@
       "id": "vocab-waiver",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "waiver",
       "phrase": "Employees must sign a waiver before using the gym.",
@@ -2620,8 +2995,10 @@
       "id": "vocab-enforceable",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "enforceable",
       "phrase": "The agreement is not enforceable without both signatures.",
@@ -2634,8 +3011,10 @@
       "id": "vocab-nondisclosure",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "nondisclosure",
       "phrase": "All contractors sign a nondisclosure agreement before starting.",
@@ -2648,8 +3027,10 @@
       "id": "vocab-confidentiality",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "confidentiality",
       "phrase": "The report is subject to strict confidentiality rules.",
@@ -2662,8 +3043,10 @@
       "id": "vocab-termination",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "termination",
       "phrase": "The termination clause allows either party to exit with notice.",
@@ -2676,8 +3059,10 @@
       "id": "vocab-disclosure",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "disclosure",
       "phrase": "Full disclosure of the fees is required before signing.",
@@ -2690,8 +3075,10 @@
       "id": "vocab-safeguard",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "safeguard",
       "phrase": "New safeguards were added to protect customer data.",
@@ -2704,8 +3091,10 @@
       "id": "vocab-transparency",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "transparency",
       "phrase": "The board promised greater transparency in its decisions.",
@@ -2718,8 +3107,10 @@
       "id": "vocab-oversight",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "oversight",
       "phrase": "The committee provides oversight of all major purchases.",
@@ -2732,8 +3123,10 @@
       "id": "vocab-compliant",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "compliant",
       "phrase": "The new building is fully compliant with fire safety codes.",
@@ -2746,8 +3139,10 @@
       "id": "vocab-ratification",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "ratification",
       "phrase": "The agreement awaits ratification by both governments.",
@@ -2760,8 +3155,10 @@
       "id": "vocab-arbitrator",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "arbitrator",
       "phrase": "An independent arbitrator will review the dispute.",
@@ -2774,8 +3171,10 @@
       "id": "vocab-negotiator",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "negotiator",
       "phrase": "The company sent its top negotiator to the meeting.",
@@ -2788,8 +3187,10 @@
       "id": "vocab-concession",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "concession",
       "phrase": "Both sides made a concession to reach an agreement.",
@@ -2802,8 +3203,10 @@
       "id": "vocab-proprietary",
       "part": 0,
       "format": "vocab_card",
-      "difficulty": 1,
-      "tags": [],
+      "difficulty": 4,
+      "tags": [
+        "法務・環境"
+      ],
       "keyVocab": [],
       "front": "proprietary",
       "phrase": "The software uses a proprietary file format.",

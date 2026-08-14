@@ -41,11 +41,26 @@ jobs:
           cache: npm
       - name: 依存インストール
         run: npm ci
+      # T-277（K-10・docs/32 3節J-116）: このワークフローはmainへのpushで直接Pagesへ配信するため、
+      # ci.yml（lint/test）とは独立に動く。ci.ymlが失敗してもこのジョブは無関係に配信まで
+      # 進んでしまうため、build ジョブ自身にもlint/testを持たせて配信をブロックする。
+      # テストはshared-schemaのdistを見る（消費側の解決方式。K-14）ため、ビルドの後に置く
+      - name: Lint
+        run: npm run lint
       - name: ビルド（shared-schema→cli→app。content/の合流はcontentAssetsPluginが行う）
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
           VITE_RAID_API_BASE_URL: ${{ vars.RAID_API_BASE_URL }}
+      - name: テスト
+        run: npm test
+      # T-234（docs/29 Q-74・Q-83）: content/packs/*.json・manifest.json はリポジトリに
+      # 直接コミットされる配信物で、上のビルドでは再検証されない。CI（ci.yml）だけで
+      # 検証してもこのワークフローを迂回した配信は止められないため、配置直前にここでも
+      # 検証する（validatePack・manifestのhash/sizeBytes一致・音声の参照切れ/孤児・
+      # drafts乖離）。失敗時は以降のupload-pages-artifact/deployを実行しない
+      - name: コンテンツ検証（配信物の再検証。T-234）
+        run: node packages/cli/dist/index.js verify-content content
       - uses: actions/upload-pages-artifact@v3
         with:
           path: packages/app/dist

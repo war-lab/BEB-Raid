@@ -35,6 +35,20 @@ describe('listDraftFiles', () => {
   it('drafts/ ディレクトリが無ければ空配列', async () => {
     expect(await listDraftFiles(contentRoot)).toEqual([])
   })
+
+  // T-238（Q-81）: review-import/review-uiが書き出したaccepted.jsonl/rejected.jsonlが
+  // content/drafts/直下にコミットされている運用がある（例: text-passage-p6-s.accepted.jsonl）。
+  // これらをレビュー対象として選べてしまうと、payloadの無いファイルで空フォームが開き、
+  // 誤ってレビュー済みの結果を書き出せてしまう。列挙から除外する
+  it('*.accepted.jsonl / *.rejected.jsonl は列挙から除外する', async () => {
+    const draftsDir = join(contentRoot, 'drafts')
+    await mkdir(draftsDir, { recursive: true })
+    await writeFile(join(draftsDir, 'vocab-card-s.jsonl'), '', 'utf-8')
+    await writeFile(join(draftsDir, 'text-passage-p6-s.accepted.jsonl'), '', 'utf-8')
+    await writeFile(join(draftsDir, 'text-passage-p6-s.rejected.jsonl'), '', 'utf-8')
+
+    expect(await listDraftFiles(contentRoot)).toEqual(['vocab-card-s.jsonl'])
+  })
 })
 
 describe('loadDraftFile', () => {

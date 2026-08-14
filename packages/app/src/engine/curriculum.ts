@@ -138,17 +138,38 @@ interface SetAggregate {
   correct: number
 }
 
-/** attemptsをセット単位（audio_setのsubQuestions群）に集約する */
-function aggregateSets(attempts: readonly CriterionAttempt[]): Map<string, SetAggregate> {
+/**
+ * attemptsをセット単位（audio_setのsubQuestions群）に集約する。
+ *
+ * サブ設問ID規約（`<親>-q<n>`）は audio_set（Part3/4）と text_passage（Part6/7）で共通
+ * （docs/03 3.6節・docs/24 3.1節）で正規表現だけでは区別できないため、親を引いて
+ * `format === 'audio_set'` を確認する（readingPace.ts の isReadingSubQuestionId と同じ手法）。
+ * これが無いと読解の解答がsetAccuracy判定（P2→P3・L3→L4）に混入する（T-185）
+ *
+ * T-308（K-37）: 途中放棄したセット（例: 3問中2問で中断）は total=2・correct=2 のように
+ * 見え、`correct/total>=2/3`の比率判定では「完全正解セット」と誤認されうる。
+ * 親の `subQuestions.length` と `total` が一致するセット（全設問に解答済み）のみを
+ * 採用し、放棄セットを移行判定から除外する
+ */
+function aggregateSets(
+  attempts: readonly CriterionAttempt[],
+  questionLookup: ReadonlyMap<string, Question>,
+): Map<string, SetAggregate> {
   const sets = new Map<string, SetAggregate>()
   for (const a of attempts) {
+    if (!isCountableAttempt(a.questionId)) continue
     const setId = setIdOf(a.questionId)
     if (setId === null) continue
+    if (questionLookup.get(setId)?.format !== 'audio_set') continue
     const current = sets.get(setId) ?? { lastAnsweredAt: 0, total: 0, correct: 0 }
     current.total += 1
     if (a.isCorrect) current.correct += 1
     current.lastAnsweredAt = Math.max(current.lastAnsweredAt, a.answeredAt)
     sets.set(setId, current)
+  }
+  for (const [setId, aggregate] of sets) {
+    const expectedTotal = questionLookup.get(setId)?.subQuestions?.length ?? 0
+    if (aggregate.total !== expectedTotal) sets.delete(setId)
   }
   return sets
 }
@@ -158,7 +179,7 @@ export function evaluateSetAccuracy(
   criterion: SetAccuracyCriterion,
   ctx: CriterionContext,
 ): CriterionEvaluation {
-  const sets = [...aggregateSets(ctx.attempts).values()].sort(
+  const sets = [...aggregateSets(ctx.attempts, ctx.questionLookup).values()].sort(
     (a, b) => b.lastAnsweredAt - a.lastAnsweredAt,
   )
   const windowed = sets.slice(0, criterion.windowSets)

@@ -38,18 +38,18 @@ const MEETING_DOCS: Entry[] = [
 
 // --- 2. 人事・採用・研修 ---
 const HR_TRAINING: Entry[] = [
-  { word: 'attrition', rationale: '自然減（離職による人員減）' },
+  { word: 'apprenticeship', rationale: '実習生制度' },
   { word: 'retention', rationale: '人材の定着・保持' },
   { word: 'incentivize', rationale: '動機付けをする' },
   { word: 'gratuity', rationale: '謝礼・チップ' },
-  { word: 'nepotism', rationale: '縁故採用' },
+  { word: 'facilitator', rationale: '進行役' },
   { word: 'meritocracy', rationale: '実力主義' },
-  { word: 'arbitration', rationale: '（労使等の）仲裁' },
+  { word: 'honorarium', rationale: '謝礼' },
   { word: 'mediate', rationale: '仲裁・調停する' },
   { word: 'mediation', rationale: '調停（名詞）' },
-  { word: 'redundancy', rationale: '（英）人員整理・余剰人員' },
-  { word: 'downsize', rationale: '人員を削減する' },
-  { word: 'downsizing', rationale: '人員削減（名詞）' },
+  { word: 'turnaround', rationale: '業績回復・立て直し' },
+  { word: 'modernize', rationale: '近代化する' },
+  { word: 'modernization', rationale: '近代化（名詞）' },
   { word: 'restructure', rationale: '組織再編する' },
   { word: 'restructuring', rationale: '組織再編（名詞）' },
   { word: 'moonlighting', rationale: '副業' },
@@ -63,10 +63,10 @@ const FINANCE_CONTRACT: Entry[] = [
   { word: 'hedging', rationale: 'ヘッジ（名詞）' },
   { word: 'derivative', rationale: '金融派生商品' },
   { word: 'arbitrage', rationale: '裁定取引' },
-  { word: 'insolvency', rationale: '支払不能状態' },
-  { word: 'receivership', rationale: '管財下に置かれた状態' },
-  { word: 'bankruptcy', rationale: '破産' },
-  { word: 'foreclosure', rationale: '（担保物件の）差し押さえ' },
+  { word: 'profitability', rationale: '収益性' },
+  { word: 'amortization', rationale: '償却' },
+  { word: 'growth', rationale: '成長' },
+  { word: 'investment', rationale: '投資' },
   { word: 'asset', rationale: '資産' },
   { word: 'portfolio', rationale: '保有資産の組み合わせ' },
   { word: 'diversify', rationale: '（投資等を）分散させる' },
@@ -210,7 +210,7 @@ const REAL_ESTATE: Entry[] = [
 
 // --- 10. 店舗・小売・在庫 ---
 const RETAIL_STOCK: Entry[] = [
-  { word: 'liquidation', rationale: '在庫処分・清算' },
+  { word: 'replenishment', rationale: '補充' },
   { word: 'footfall', rationale: '来店客数' },
   { word: 'ambience', rationale: '店内の雰囲気' },
   { word: 'upscale', rationale: '高級志向の' },

@@ -12,6 +12,7 @@ import type { AudioPlayer, BattleSocket, RaidApi } from '../platform'
 import { useAppStore } from '../store/appStore'
 import { BattleAward } from '../components/BattleAward'
 import { choiceShapeMarker } from '../components/ChoiceButton'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { HostProjectionLayout } from '../components/HostProjectionLayout'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -35,6 +36,14 @@ type Phase =
 interface StandingRow {
   displayName: string
   totalPoints: number
+  /** 現在WebSocket接続中かどうか（T-265）。ロビーの参加者チップにも同じ考え方を使う */
+  connected: boolean
+}
+
+/** ロビーの参加者チップ1件（T-265でconnectedを追加。一覧からは消えず状態だけ変わる） */
+interface ParticipantChip {
+  displayName: string
+  connected: boolean
 }
 
 function now(): number {
@@ -72,7 +81,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     drawBattleQuestionSet(questionPool, rng),
   )
   const [roomCode, setRoomCode] = useState<string | null>(null)
-  const [participants, setParticipants] = useState<string[]>([])
+  const [participants, setParticipants] = useState<ParticipantChip[]>([])
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [deadlineAt, setDeadlineAt] = useState<number | null>(null)
@@ -96,13 +105,22 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   /** サーバーが付与した切断理由（closed表示の案内文の出し分けに使う。通信断時は空文字） */
   const [closeReason, setCloseReason] = useState('')
+  /**
+   * 中止・退出の確認（T-217・Q-51）。ロビーの「やめる」・出題中/順位表示中の「中止」の
+   * どちらからも同じ確認を経由させる。ホストのソケット切断はbattleRoomDo側のcloseRoomで
+   * 全参加者を切断する契機になるため、誤タップの被害が大きい（ConfirmDialogの導入方針＝T-162
+   * と同じ理由）
+   */
+  const [leaveConfirm, setLeaveConfirm] = useState(false)
 
   const closeQuestionSentRef = useRef(false)
 
   useEffect(() => {
     battleSocket.onMessage((message: BattleServerMessage) => {
       if (message.type === 'roomState') {
-        setParticipants(message.participants.map((p) => p.displayName))
+        setParticipants(
+          message.participants.map((p) => ({ displayName: p.displayName, connected: p.connected })),
+        )
         return
       }
       if (message.type === 'questionOpen') {
@@ -152,6 +170,14 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     return () => battleSocket.close()
   }, [battleSocket])
 
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
+
   // 出題中のカウントダウン。0になったらホストが closeQuestion を送る
   // （DO側タイマーが正=22の3.2節。ホストのタイマーは締切送信の契機に過ぎない）
   useEffect(() => {
@@ -169,7 +195,7 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     return () => window.clearInterval(id)
   }, [phase, deadlineAt, currentIndex, battleSocket])
 
-  async function handleRedraw() {
+  function handleRedraw() {
     setQuestionSet(drawBattleQuestionSet(questionPool, rng))
   }
 
@@ -261,6 +287,30 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     navigate('home')
   }
 
+  /** T-217（Q-51）: 中止・退出は確認を経てからhandleLeaveを呼ぶ（無confirmで閉じない） */
+  function requestLeave() {
+    setLeaveConfirm(true)
+  }
+
+  function confirmLeave() {
+    setLeaveConfirm(false)
+    handleLeave()
+  }
+
+  // T-217（Q-51）: ロビー・出題中・順位表示中のいずれから開いても同じ確認を出す。
+  // ConfirmDialogは各フェーズのreturn内でこの変数を差し込む（position:fixedのオーバーレイ
+  // なのでDOM上の位置は問わない。ConfirmDialog.tsx冒頭コメント参照）
+  const leaveConfirmDialog = leaveConfirm ? (
+    <ConfirmDialog
+      message="バトルを終了しますか？参加者は全員切断されます"
+      onDismiss={() => setLeaveConfirm(false)}
+      actions={[
+        { label: '終了する', primary: true, onSelect: confirmLeave },
+        { label: '続ける', onSelect: () => setLeaveConfirm(false) },
+      ]}
+    />
+  ) : null
+
   const isLastQuestion = currentIndex + 1 >= questionSet.length
   // 投影の左上に出す進行位置（英字。ディスプレイ書体で読ませる）
   const questionMeta = `Q${currentIndex + 1} / ${questionSet.length}`
@@ -300,7 +350,11 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
               <li key={q.id} className="battle-lottery__item">
                 <span className="battle-lottery__num display-num">{i + 1}</span>
                 <span className="battle-lottery__part">Part{q.part}</span>
-                <span className="battle-lottery__text">{lotteryPreviewText(q)}</span>
+                {/* T-224（J-108）: question.questionがある場合のみ英文（無い場合はID埋め込みの
+                    日本語フォールバック=lotteryPreviewText参照） */}
+                <span className="battle-lottery__text" lang={q.question ? 'en' : undefined}>
+                  {lotteryPreviewText(q)}
+                </span>
               </li>
             ))}
           </ol>
@@ -320,38 +374,49 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     // 従来はモバイル用の ScreenLayout で、1920px幅にルームコードが小さな見出しで出るため
     // 後方の席から読めなかった（V-20の指摘#1）
     return (
-      <HostProjectionLayout
-        meta="LOBBY"
-        action={
-          <>
-            <PrimaryButton onClick={handleStart}>開始する</PrimaryButton>
-            <button type="button" className="secondary-action" onClick={handleLeave}>
-              やめる
-            </button>
-          </>
-        }
-      >
-        <div className="battle-host-lobby">
-          <p className="battle-host-lobby__label">ROOM CODE</p>
-          <p
-            data-testid="battle-host-room-code"
-            className="battle-host-lobby__code display-num"
-            /* 4文字を1字ずつ読み上げさせる（RA1D を「ラッド」と読まれると口伝えできない） */
-            aria-label={roomCode ? roomCode.split('').join(' ') : undefined}
-          >
-            {roomCode}
-          </p>
-          <p className="battle-host-lobby__hint">参加者にルームコードを伝えてください</p>
-          <ul className="battle-lobby__chips" data-testid="battle-host-participants">
-            {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
-            {participants.map((name, i) => (
-              <li key={i} className="battle-lobby__chip">
-                {name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </HostProjectionLayout>
+      <>
+        {leaveConfirmDialog}
+        <HostProjectionLayout
+          meta="LOBBY"
+          action={
+            <>
+              <PrimaryButton onClick={handleStart}>開始する</PrimaryButton>
+              {/* T-217（Q-51）: 参加者が入室済みでも無confirmで閉じていたため確認を挟む */}
+              <button type="button" className="secondary-action" onClick={requestLeave}>
+                やめる
+              </button>
+            </>
+          }
+        >
+          <div className="battle-host-lobby">
+            <p className="battle-host-lobby__label">ROOM CODE</p>
+            <p
+              data-testid="battle-host-room-code"
+              className="battle-host-lobby__code display-num"
+              /* 4文字を1字ずつ読み上げさせる（RA1D を「ラッド」と読まれると口伝えできない） */
+              aria-label={roomCode ? roomCode.split('').join(' ') : undefined}
+            >
+              {roomCode}
+            </p>
+            <p className="battle-host-lobby__hint">参加者にルームコードを伝えてください</p>
+            <ul className="battle-lobby__chips" data-testid="battle-host-participants">
+              {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う。
+                  T-265: サーバーはロスター基準で常に全参加者を返すため、瞬断中でもチップは消えず、
+                  data-connectedで薄く表示するだけにする */}
+              {participants.map((p, i) => (
+                <li
+                  key={i}
+                  className="battle-lobby__chip"
+                  data-connected={p.connected ? undefined : 'false'}
+                >
+                  {p.displayName}
+                  {!p.connected && <span className="battle-lobby__chip-offline">（切断中）</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </HostProjectionLayout>
+      </>
     )
   }
 
@@ -362,79 +427,108 @@ export function BattleHostScreen({ raidApi, battleSocket, audioPlayer, questionP
     // 静まる前に流れてしまうのを避けるための1拍。presentQuestion のコメント参照）
     const waitingForPlay = audioGate === 'waiting'
     return (
-      <HostProjectionLayout
-        meta={questionMeta}
-        action={
-          waitingForPlay ? (
-            <PrimaryButton onClick={() => void handlePlayQuestionAudio()}>音声を再生</PrimaryButton>
-          ) : (
-            <p className="battle-host-stage__note">再生完了後に解答受付が開きます</p>
-          )
-        }
-      >
-        <p className="battle-host-stage__phase">
-          {waitingForPlay ? '準備ができたら再生してください' : '音声再生中…'}
-        </p>
-        {currentQuestion && (
-          <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
-        )}
-      </HostProjectionLayout>
+      <>
+        {leaveConfirmDialog}
+        <HostProjectionLayout
+          meta={questionMeta}
+          // T-217（Q-51）: 出題中はブラウザバック頼みでしか中止できなかった（socket切断で
+          // 全参加者が落ちるが、その導線自体が無かった）。ヘッダに中止ボタンを出す
+          onAbort={requestLeave}
+          action={
+            waitingForPlay ? (
+              <PrimaryButton onClick={() => void handlePlayQuestionAudio()}>
+                音声を再生
+              </PrimaryButton>
+            ) : (
+              <p className="battle-host-stage__note">再生完了後に解答受付が開きます</p>
+            )
+          }
+        >
+          <p className="battle-host-stage__phase">
+            {waitingForPlay ? '準備ができたら再生してください' : '音声再生中…'}
+          </p>
+          {/* T-224（J-108）: question.questionがある場合のみ英文（無い場合はaudio_qa用の
+              日本語指示文=projectedQuestionText参照） */}
+          {currentQuestion && (
+            <p className="battle-host-question" lang={currentQuestion.question ? 'en' : undefined}>
+              {projectedQuestionText(currentQuestion)}
+            </p>
+          )}
+        </HostProjectionLayout>
+      </>
     )
   }
 
   if (phase === 'question') {
     return (
-      <HostProjectionLayout
-        meta={questionMeta}
-        remainingSec={remainingSec}
-        totalSec={totalSec}
-        action={<p className="battle-host-stage__note">参加者が解答中です</p>}
-      >
-        {currentQuestion && (
-          <>
-            <p className="battle-host-question">{projectedQuestionText(currentQuestion)}</p>
-            {/* 選択肢は「形＋色＋記号」の三重符号化。色（キーごとのアクセント）はV-11が
-                data-choice-key で当て、形マーカー（▲■●◆）はV-12が同じ器の中身として
-                載せた（docs/25 4.4節・JV-7=案B）。形の対応表は ChoiceButton と共有するため、
-                手元画面（S7）と同じ形が同じ選択肢に付く。記号A–Dは投影では形に置き換わり、
-                visually-hidden で支援技術に残す。
-                出題中は演出を足さない（07の原則3・docs/25 4.4節末尾） */}
-            <ul className="battle-host-choices">
-              {currentQuestion.choices?.map((choice) => (
-                <li key={choice.key} className="battle-host-choice" data-choice-key={choice.key}>
-                  <span className="battle-host-choice__marker display-num" aria-hidden="true">
-                    {choiceShapeMarker(choice.key) ?? choice.key}
-                  </span>
-                  <span className="battle-host-choice__text">{choice.text}</span>
-                  {/* 記号を装飾扱いにしたぶんの読み上げ（投影画面は読み上げ対象外だが、
-                      ホスト端末の支援技術で選択肢が判別できるようにしておく） */}
-                  <span className="visually-hidden">{choice.key}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </HostProjectionLayout>
+      <>
+        {leaveConfirmDialog}
+        <HostProjectionLayout
+          meta={questionMeta}
+          remainingSec={remainingSec}
+          totalSec={totalSec}
+          onAbort={requestLeave}
+          action={<p className="battle-host-stage__note">参加者が解答中です</p>}
+        >
+          {currentQuestion && (
+            <>
+              {/* T-224（J-108）: question.questionがある場合のみ英文 */}
+              <p
+                className="battle-host-question"
+                lang={currentQuestion.question ? 'en' : undefined}
+              >
+                {projectedQuestionText(currentQuestion)}
+              </p>
+              {/* 選択肢は「形＋色＋記号」の三重符号化。色（キーごとのアクセント）はV-11が
+                  data-choice-key で当て、形マーカー（▲■●◆）はV-12が同じ器の中身として
+                  載せた（docs/25 4.4節・JV-7=案B）。形の対応表は ChoiceButton と共有するため、
+                  手元画面（S7）と同じ形が同じ選択肢に付く。記号A–Dは投影では形に置き換わり、
+                  visually-hidden で支援技術に残す。
+                  出題中は演出を足さない（07の原則3・docs/25 4.4節末尾） */}
+              <ul className="battle-host-choices">
+                {currentQuestion.choices?.map((choice) => (
+                  <li key={choice.key} className="battle-host-choice" data-choice-key={choice.key}>
+                    <span className="battle-host-choice__marker display-num" aria-hidden="true">
+                      {choiceShapeMarker(choice.key) ?? choice.key}
+                    </span>
+                    {/* T-224（J-108）: 選択肢本文は英文。ChoiceButtonを使わない投影専用の描画のため個別に付ける */}
+                    <span className="battle-host-choice__text" lang="en">
+                      {choice.text}
+                    </span>
+                    {/* 記号を装飾扱いにしたぶんの読み上げ（投影画面は読み上げ対象外だが、
+                        ホスト端末の支援技術で選択肢が判別できるようにしておく） */}
+                    <span className="visually-hidden">{choice.key}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </HostProjectionLayout>
+      </>
     )
   }
 
   if (phase === 'standings') {
     return (
-      <HostProjectionLayout
-        meta={`${questionMeta} DONE`}
-        action={
-          isLastQuestion ? (
-            <PrimaryButton onClick={handleFinish}>結果発表</PrimaryButton>
-          ) : (
-            <PrimaryButton onClick={handleNext}>次の問題へ</PrimaryButton>
-          )
-        }
-      >
-        {/* ホストは解答しないため自分の行が無い（selfDisplayNameを渡さない）。
-            投影用のサイズ差は.battle-host配下のCSSで上書きする（docs/25 4.1節）。
-            .battle-host は HostProjectionLayout のルートが持つ */}
-        <StandingsList entries={standings} listTestId="battle-host-standings" />
-      </HostProjectionLayout>
+      <>
+        {leaveConfirmDialog}
+        <HostProjectionLayout
+          meta={`${questionMeta} DONE`}
+          onAbort={requestLeave}
+          action={
+            isLastQuestion ? (
+              <PrimaryButton onClick={handleFinish}>結果発表</PrimaryButton>
+            ) : (
+              <PrimaryButton onClick={handleNext}>次の問題へ</PrimaryButton>
+            )
+          }
+        >
+          {/* ホストは解答しないため自分の行が無い（selfDisplayNameを渡さない）。
+              投影用のサイズ差は.battle-host配下のCSSで上書きする（docs/25 4.1節）。
+              .battle-host は HostProjectionLayout のルートが持つ */}
+          <StandingsList entries={standings} listTestId="battle-host-standings" />
+        </HostProjectionLayout>
+      </>
     )
   }
 

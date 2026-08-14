@@ -11,10 +11,27 @@
 
 import type { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord, TagStatRecord } from '../db/schema'
+import { GUESS_THRESHOLD_MS } from '../services/attempts'
 import type { QuestionLookup, TagAccuracy } from './types'
 
 /** 移動窓の大きさ（対象解答の件数） */
 export const TAG_WINDOW_SIZE = 100
+/**
+ * T-189（Q-99）: recomputeTagStatsは解答パイプラインの単一トランザクション（ADR 0010）の
+ * 内側で毎解答時に走るため、db.attempts.toArray()（全件読み）は1年運用相当のデータ量で
+ * 数百ms級に劣化する。services/phase.ts がT-74で同じ問題をanswerdAt降順の打ち切り読みへ
+ * 変えた方針にそのまま揃える。
+ * タグ窓（TAG_WINDOW_SIZE=100）に対する安全係数2倍・下限500件は phase.ts の
+ * ATTEMPTS_READ_LIMIT と同じヒューリスティックで、対象タグの解答が直近500件の外に
+ * 偏って集中するような極端な出題パターンでは理論上不足しうるが、通常運用では
+ * 十分な件数を見込む
+ */
+const TAG_ATTEMPTS_READ_SAFETY_FACTOR = 2
+const TAG_ATTEMPTS_READ_MIN = 500
+export const TAG_ATTEMPTS_READ_LIMIT = Math.max(
+  TAG_ATTEMPTS_READ_MIN,
+  TAG_WINDOW_SIZE * TAG_ATTEMPTS_READ_SAFETY_FACTOR,
+)
 /** 弱点判定の正答率しきい値（これ未満が弱点） */
 export const WEAK_ACCURACY_THRESHOLD = 0.6
 /**
@@ -22,7 +39,7 @@ export const WEAK_ACCURACY_THRESHOLD = 0.6
  * 数問の誤答だけで全タグが弱点化して重み付けが無意味になるのを防ぐ
  */
 export const WEAK_MIN_SAMPLE = 5
-/** 当て勘誤答の重み */
+/** 当て勘（応答2秒未満）の重み。T-309（K-38）以降は正答・誤答の両方に対称に適用する */
 export const GUESS_WEIGHT = 0.5
 
 /** 1タグ分の移動窓を attempts から計算する純粋関数（新しい順に最大100件） */
@@ -39,15 +56,21 @@ export function computeTagWindow(
     .sort((a, b) => b.answeredAt - a.answeredAt)
     .slice(0, TAG_WINDOW_SIZE)
 
+  // T-309（K-38）: attemptsのisGuessは定義上「誤答かつ応答2秒未満」のみで立つ
+  // （services/attempts.ts）ため、正答側の「まぐれ当たり」（同じ2秒未満の速答で
+  // 偶然正解した場合）は対象にならない。従来はisGuessをそのまま使っており、
+  // 誤答の当て勘だけ重み0.5で分母を軽くする一方、正答の速答（同じ当て勘の裏側）は
+  // 常に重み1で分子・分母に満額計上していた。当て勘の多いタグはまぐれ正解が
+  // 満点計上される一方で当て勘の誤答は軽く数えられる非対称になり、正答率が実力より
+  // 高く出て弱点タグが立たなくなっていた。isGuessに依存せず「応答2秒未満（時間切れを
+  // 除く）」を正答・誤答の両方に同じ基準で適用し、対称に重み0.5を掛ける
   let windowCorrect = 0
   let windowTotal = 0
   for (const attempt of relevant) {
-    if (attempt.isCorrect) {
-      windowCorrect += 1
-      windowTotal += 1
-    } else {
-      windowTotal += attempt.isGuess ? GUESS_WEIGHT : 1
-    }
+    const isFastAnswer = attempt.responseMs < GUESS_THRESHOLD_MS
+    const weight = isFastAnswer ? GUESS_WEIGHT : 1
+    windowTotal += weight
+    if (attempt.isCorrect) windowCorrect += weight
   }
   return { windowCorrect, windowTotal }
 }
@@ -73,7 +96,11 @@ export async function recomputeTagStats(
   tags?: readonly string[],
 ): Promise<TagStatRecord[]> {
   const targetTags = tags ?? Array.from(new Set(Array.from(lookup.values()).flatMap((q) => q.tags)))
-  const attempts = await db.attempts.toArray()
+  const attempts = await db.attempts
+    .orderBy('answeredAt')
+    .reverse()
+    .limit(TAG_ATTEMPTS_READ_LIMIT)
+    .toArray()
   const records = targetTags.map((tag) => ({ tag, ...computeTagWindow(attempts, tag, lookup) }))
   await db.tagStats.bulkPut(records)
   return records

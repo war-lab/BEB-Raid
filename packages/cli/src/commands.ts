@@ -20,13 +20,15 @@ import {
   applyCorrections,
   buildAllPacks,
   buildManifest,
-  PACK_DEFINITIONS,
+  loadPackSources,
   scanAudioFiles,
-  type PackSource,
+  scanImageFiles,
 } from './build.js'
 import { buildCorrections, parseExportedAttempts, type CorrectionsFile } from './calibrate.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
+import { PART6_URL_ENTRIES_S } from './data/part6UrlPassagesS.js'
+import { PART7_SINGLE_URL_ENTRIES_S } from './data/part7SingleUrlPassagesS.js'
 import { VOCAB_CARDS_S2 } from './data/vocabCardsS2.js'
 import {
   buildDictationDrafts,
@@ -48,7 +50,9 @@ import {
 import {
   buildPart2Drafts,
   buildPart2EntriesS2,
+  buildPart2EntriesS3,
   buildPart2Questions,
+  orderPart2EntriesS,
   validatePart2Questions,
 } from './part2Question.js'
 import {
@@ -60,11 +64,13 @@ import {
 } from './part34Question.js'
 import {
   buildPart5Drafts,
+  buildPart5EntriesS,
   buildPart5EntriesS2,
   buildPart5EntriesS3,
   buildPart5Questions,
   validatePart5Questions,
 } from './part5Question.js'
+import { buildAdversarialTsvTemplate, parseAdversarialTsv } from './adversarial.js'
 import {
   buildReviewTsv,
   parseJsonl,
@@ -90,6 +96,7 @@ import {
 } from './textPassageQuestion.js'
 import { PiperTtsProvider } from './tts.js'
 import { synthesizeDraftsAudio } from './ttsBatch.js'
+import { verifyContent } from './verifyContent.js'
 import {
   buildVocabCardDrafts,
   buildVocabCardQuestions,
@@ -103,6 +110,7 @@ const DEFAULT_VOCAB_B_DRAFT_PATH = 'content/drafts/vocab-card-b.jsonl'
 const DEFAULT_VOCAB_S2_DRAFT_PATH = 'content/drafts/vocab-card-s2.jsonl'
 const DEFAULT_PART2_DRAFT_PATH = 'content/drafts/part2-s.jsonl'
 const DEFAULT_PART2_S2_DRAFT_PATH = 'content/drafts/part2-s2.jsonl'
+const DEFAULT_PART2_S3_DRAFT_PATH = 'content/drafts/part2-s3.jsonl'
 const DEFAULT_PART5_DRAFT_PATH = 'content/drafts/part5-s.jsonl'
 const DEFAULT_PART5_S2_DRAFT_PATH = 'content/drafts/part5-s2.jsonl'
 const DEFAULT_PART5_S3_DRAFT_PATH = 'content/drafts/part5-s3.jsonl'
@@ -119,6 +127,13 @@ const DEFAULT_TEXT_PASSAGE_P6_DRAFT_PATH = 'content/drafts/text-passage-p6-s.jso
 const DEFAULT_TEXT_PASSAGE_P7_SINGLE_DRAFT_PATH = 'content/drafts/text-passage-p7-single-s.jsonl'
 /** T-144: Part7複数パッセージのドラフト出力先 */
 const DEFAULT_TEXT_PASSAGE_P7_MULTI_DRAFT_PATH = 'content/drafts/text-passage-p7-multi-s.jsonl'
+/**
+ * T-273: URL・メールアドレスを含む題材の追加ドラフト出力先。既存の配信パック
+ * （pack-reading-p6-s-001・pack-reading-p7single-s-001）のソースとは別ファイルにする。
+ * build.ts の PACK_DEFINITIONS には未登録＝人手レビュー（H-R1）を経るまで配信対象外。
+ */
+const DEFAULT_TEXT_PASSAGE_P6_URL_DRAFT_PATH = 'content/drafts/text-passage-p6-url-s.jsonl'
+const DEFAULT_TEXT_PASSAGE_P7_URL_DRAFT_PATH = 'content/drafts/text-passage-p7-url-s.jsonl'
 
 interface GenerateKindHandler {
   buildQuestions: () => Question[]
@@ -154,8 +169,8 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     defaultPath: DEFAULT_VOCAB_S2_DRAFT_PATH,
   },
   audio_qa: {
-    buildQuestions: buildPart2Questions,
-    buildDrafts: buildPart2Drafts,
+    buildQuestions: () => buildPart2Questions(orderPart2EntriesS()),
+    buildDrafts: () => buildPart2Drafts(orderPart2EntriesS()),
     validate: validatePart2Questions,
     defaultPath: DEFAULT_PART2_DRAFT_PATH,
   },
@@ -165,9 +180,16 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validatePart2Questions,
     defaultPath: DEFAULT_PART2_S2_DRAFT_PATH,
   },
+  // T-349: 平叙文・付加疑問・選択疑問（疑問文以外の出題形式）
+  audio_qa_s3: {
+    buildQuestions: () => buildPart2Questions(buildPart2EntriesS3()),
+    buildDrafts: () => buildPart2Drafts(buildPart2EntriesS3()),
+    validate: validatePart2Questions,
+    defaultPath: DEFAULT_PART2_S3_DRAFT_PATH,
+  },
   text_blank: {
-    buildQuestions: buildPart5Questions,
-    buildDrafts: buildPart5Drafts,
+    buildQuestions: () => buildPart5Questions(buildPart5EntriesS()),
+    buildDrafts: () => buildPart5Drafts(buildPart5EntriesS()),
     validate: validatePart5Questions,
     defaultPath: DEFAULT_PART5_DRAFT_PATH,
   },
@@ -247,6 +269,20 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validatePart7MultiQuestions,
     defaultPath: DEFAULT_TEXT_PASSAGE_P7_MULTI_DRAFT_PATH,
   },
+  // T-273: URL・メールアドレスを含む題材の追加分。配信は人手レビュー（H-R1）後
+  // （ADR 0006 判断5。T-144と同じ「生成側と在庫だけ実装し、配信は保留」の扱い）
+  text_passage_p6_url: {
+    buildQuestions: () => buildPart6Questions(PART6_URL_ENTRIES_S),
+    buildDrafts: () => buildPart6Drafts(PART6_URL_ENTRIES_S),
+    validate: validatePart6Questions,
+    defaultPath: DEFAULT_TEXT_PASSAGE_P6_URL_DRAFT_PATH,
+  },
+  text_passage_p7_url: {
+    buildQuestions: () => buildPart7SingleQuestions(PART7_SINGLE_URL_ENTRIES_S),
+    buildDrafts: () => buildPart7SingleDrafts(PART7_SINGLE_URL_ENTRIES_S),
+    validate: validatePart7SingleQuestions,
+    defaultPath: DEFAULT_TEXT_PASSAGE_P7_URL_DRAFT_PATH,
+  },
   dictation: {
     buildQuestions: buildDictationQuestions,
     buildDrafts: buildDictationDrafts,
@@ -265,24 +301,6 @@ const GENERATE_KINDS: Record<string, GenerateKindHandler> = {
     validate: validateShadowingQuestions,
     defaultPath: DEFAULT_SHADOWING_DRAFT_PATH,
   },
-}
-
-/** M1配布4パック分のドラフトを読み込みPackSource[]を組み立てる（build/calibrate共用。T-32/T-34） */
-async function loadPackSources(contentRoot: string): Promise<PackSource[]> {
-  const sources: PackSource[] = []
-  for (const def of PACK_DEFINITIONS) {
-    const draftPath = join(contentRoot, def.draftPath)
-    const drafts = parseJsonl<GeneratedItemDraft>(await readFile(draftPath, 'utf-8'))
-    sources.push({
-      id: def.id,
-      title: def.title,
-      license: def.license,
-      origin: def.origin,
-      targetLevel: def.targetLevel,
-      questions: drafts.map((d) => d.payload as Question),
-    })
-  }
-  return sources
 }
 
 /**
@@ -399,6 +417,63 @@ export const commands: CliCommand[] = [
     },
   },
   {
+    name: 'adversarial-init',
+    description:
+      '敵対的検証（6観点。docs/32 8節）の記録用TSVの雛形を、パックJSON（questions[].id）またはドラフトJSONL（各行のid）から生成する（T-355）',
+    run: async (ctx) => {
+      const [inputPath, outputPath] = ctx.args
+      if (!inputPath || !outputPath) {
+        ctx.errOut('使い方: beb adversarial-init <パック.json|ドラフト.jsonl> <出力.tsv>')
+        return 1
+      }
+      const raw = await readFile(inputPath, 'utf-8')
+      let ids: string[]
+      if (inputPath.endsWith('.jsonl')) {
+        ids = parseJsonl<GeneratedItemDraft>(raw).map((d) => d.id)
+      } else {
+        const parsed = JSON.parse(raw) as { questions?: readonly { id: string }[] }
+        if (!Array.isArray(parsed.questions)) {
+          ctx.errOut('パックJSONに questions 配列が無い')
+          return 1
+        }
+        ids = parsed.questions.map((q) => q.id)
+      }
+      await writeFile(outputPath, buildAdversarialTsvTemplate(ids), 'utf-8')
+      ctx.out(`${ids.length}件のidから雛形を ${outputPath} に書き出しました`)
+      return 0
+    },
+  },
+  {
+    name: 'adversarial-summary',
+    description: '記入済みの敵対的検証TSVを集計し、revise/rejectとなったidを一覧する（T-355）',
+    run: async (ctx) => {
+      const [tsvPath] = ctx.args
+      if (!tsvPath) {
+        ctx.errOut('使い方: beb adversarial-summary <記入済み.tsv>')
+        return 1
+      }
+      const tsv = await readFile(tsvPath, 'utf-8')
+      const { records, skipped, errors } = parseAdversarialTsv(tsv)
+      if (errors.length > 0) {
+        for (const e of errors) ctx.errOut(e)
+        return 1
+      }
+      const counts = { accept: 0, revise: 0, reject: 0 }
+      const needsFollowUp: string[] = []
+      for (const r of records) {
+        counts[r.verdict]++
+        if (r.verdict !== 'accept') needsFollowUp.push(`${r.id}（${r.verdict}）: ${r.observation}`)
+      }
+      ctx.out(`accept ${counts.accept}件 / revise ${counts.revise}件 / reject ${counts.reject}件`)
+      if (skipped > 0) ctx.out(`verdict未記入 ${skipped}件はスキップ`)
+      if (needsFollowUp.length > 0) {
+        ctx.out('要修正:')
+        for (const line of needsFollowUp) ctx.out(`  ${line}`)
+      }
+      return 0
+    },
+  },
+  {
     name: 'tts',
     description:
       'Piperで音声合成しaudioMetaを実測値に更新（vocab_card/audio_qa/audio_set/dictation/shadowing対象。T-31・T-81でlength_scale校正に対応）',
@@ -488,6 +563,10 @@ export const commands: CliCommand[] = [
       const contentRoot = ctx.args[0] ?? 'content'
       const correctionsPath = ctx.args[1]
       const audioFiles = await scanAudioFiles(contentRoot)
+      // T-239（Q-82）: audio_photo の image 存在チェック。現状 audio_photo を使うパックは
+      // 無いが、実ファイル一覧が無限定に空集合＝全image参照を拒否になるので他フォーマットと
+      // 同じ「実ファイル列挙を渡して検証する」経路をここで揃えておく
+      const imageFiles = await scanImageFiles(contentRoot)
 
       let sources = await loadPackSources(contentRoot)
       if (correctionsPath) {
@@ -496,7 +575,7 @@ export const commands: CliCommand[] = [
         ctx.out(`実測補正（${correctionsPath}）を適用しました`)
       }
 
-      const { built, errors, warnings } = buildAllPacks(sources, audioFiles)
+      const { built, errors, warnings } = buildAllPacks(sources, audioFiles, imageFiles)
       if (errors.length > 0) {
         for (const e of errors) ctx.errOut(`エラー: ${e}`)
         ctx.errOut(
@@ -528,6 +607,25 @@ export const commands: CliCommand[] = [
 
       ctx.out(`${built.length}パックをビルドし ${packsDir} に書き出しました`)
       ctx.out(`manifest.json（schemaVersion ${SCHEMA_VERSION}）を ${contentRoot} に書き出しました`)
+      return 0
+    },
+  },
+  {
+    name: 'verify-content',
+    description:
+      '配信物（content/packs/*.json・manifest.json）の再検証。validatePack・manifestのhash/sizeBytes一致・音声の参照切れ/孤児・drafts乖離を検査（T-234）',
+    run: async (ctx) => {
+      const contentRoot = ctx.args[0] ?? 'content'
+      const { ok, errors, warnings } = await verifyContent(contentRoot)
+      for (const w of warnings) ctx.out(`警告: ${w}`)
+      if (!ok) {
+        for (const e of errors) ctx.errOut(`エラー: ${e}`)
+        ctx.errOut(
+          `検証失敗: ${errors.length}件のエラー（配信物・drafts・音声のいずれかに不整合がある）`,
+        )
+        return 1
+      }
+      ctx.out(`検証OK: パック・manifest・音声・drafts の整合を確認しました（${contentRoot}）`)
       return 0
     },
   },

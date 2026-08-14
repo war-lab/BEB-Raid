@@ -22,8 +22,19 @@ const defaultFetch: AudioFetch = async (src) => {
 
 const defaultCreateAudioElement: AudioElementFactory = () => new Audio()
 
-/** デコード済み AudioBuffer のメモリキャッシュ上限（1セッションの出題数を上回る概算値） */
-const BUFFER_CACHE_LIMIT = 50
+/**
+ * デコード済み AudioBuffer のメモリキャッシュ上限（バイト数。T-222・Q-16）。
+ *
+ * 旧実装は件数50のみで上限を管理していたが、decodeAudioData はサンプルレートに応じた
+ * float32 PCM へ展開するため、Part3/4級（30秒前後）の音声は1件あたり数MB〜10MB超になる。
+ * 件数だけを見ていると、大きいファイルが混じった場合に最悪で数百MB規模になり、
+ * iOS Safariではタブの強制終了リスクがある。
+ *
+ * 80MiBはドキュメント上の実測値ではなく（29のQ-16は「未検証」）、iOS Safariのタブ
+ * クラッシュがおおむね数百MB〜1GB台のメモリ使用で起きる経験則に対し、このデコード
+ * キャッシュ単体で十分な余白を残す値として置いた暫定値。実測してから調整してよい
+ */
+const BUFFER_CACHE_LIMIT_BYTES = 80 * 1024 * 1024
 
 /** onPosition 通知の間隔（ms。3.7節: 100ms程度で十分） */
 const POSITION_NOTIFY_INTERVAL_MS = 100
@@ -31,6 +42,8 @@ const POSITION_NOTIFY_INTERVAL_MS = 100
 export class WebAudioPlayer implements AudioPlayer {
   private ctx: AudioContext | null = null
   private readonly bufferCache = new Map<string, AudioBuffer>()
+  /** bufferCacheに現在乗っている全AudioBufferの推定合計バイト数（T-222） */
+  private bufferCacheBytes = 0
   private currentSources: AudioBufferSourceNode[] = []
   /** rate経路（HTMLAudioElement）で現在再生中の要素（同時に1つ。stop()での一括処理用） */
   private currentAudioElements: HTMLAudioElement[] = []
@@ -52,6 +65,12 @@ export class WebAudioPlayer implements AudioPlayer {
    * 「再生中…」のまま固まる）。await 復帰時に世代が古ければ何もせず正常終了させる
    */
   private playGeneration = 0
+  /**
+   * 再生中に登録したAudioContextのstatechangeリスナー（T-324・K-57）。iOSの通話・Siri等の
+   * 割り込みでrunning以外へ落ちるとsource.onendedが発火せず、誰も呼び出し側のPromiseを
+   * 解決しないままUIが「再生中…」で固着する。stop()経由で確実に解除できるよう保持する
+   */
+  private ctxStateChangeHandler: (() => void) | null = null
 
   constructor(
     private readonly packCache: PackCache,
@@ -117,6 +136,10 @@ export class WebAudioPlayer implements AudioPlayer {
     this.currentAudioElements = []
     this.revokeObjectUrls()
     this.clearPositionTimer()
+    if (this.ctxStateChangeHandler && this.ctx) {
+      this.ctx.removeEventListener('statechange', this.ctxStateChangeHandler)
+      this.ctxStateChangeHandler = null
+    }
     if (this.pendingResolve) {
       const resolve = this.pendingResolve
       this.pendingResolve = null
@@ -180,9 +203,20 @@ export class WebAudioPlayer implements AudioPlayer {
           onPosition(baseMs + Math.max(0, (ctx.currentTime - sequenceStartTime) * 1000))
         }, POSITION_NOTIFY_INTERVAL_MS)
       }
+      // T-324（K-57）: iOSの通話・Siri等の割り込みでctx.stateがrunning以外へ落ちると
+      // source.onendedは発火しない（鳴っていた音が無音のまま止まるだけ）。誰も
+      // pendingResolveを解決しないままUIが「再生中…」で固着するため、stop()経由で
+      // 'interrupted' として解決する
+      const onStateChange = () => {
+        if (ctx.state !== 'running') this.stop()
+      }
+      this.ctxStateChangeHandler = onStateChange
+      ctx.addEventListener('statechange', onStateChange)
       const finishOne = () => {
         remaining -= 1
         if (remaining <= 0) {
+          ctx.removeEventListener('statechange', onStateChange)
+          this.ctxStateChangeHandler = null
           this.clearPositionTimer()
           this.pendingResolve = null
           resolve('ended')
@@ -320,7 +354,10 @@ export class WebAudioPlayer implements AudioPlayer {
   /** キャッシュ→フォールバックfetchで Blob を取得する（rate経路。デコード不要） */
   private async loadBlob(src: string): Promise<Blob> {
     const cachedBlob = await this.packCache.get(src)
-    return cachedBlob ?? (await this.fetchAudio(src))
+    if (cachedBlob) return cachedBlob
+    const blob = await this.fetchAudio(src)
+    await this.writeBackToCache(src, blob)
+    return blob
   }
 
   /** キャッシュファースト（メモリ→PackCache→fetch）で AudioBuffer を取得する */
@@ -332,18 +369,51 @@ export class WebAudioPlayer implements AudioPlayer {
     if (!ctx) throw new Error('AudioContext が未初期化です')
 
     const cachedBlob = await this.packCache.get(src)
-    const blob = cachedBlob ?? (await this.fetchAudio(src))
+    let blob = cachedBlob
+    if (!blob) {
+      blob = await this.fetchAudio(src)
+      await this.writeBackToCache(src, blob)
+    }
     const arrayBuffer = await blob.arrayBuffer()
     const buffer = await ctx.decodeAudioData(arrayBuffer)
     this.cacheBuffer(src, buffer)
     return buffer
   }
 
+  /**
+   * fetchフォールバックで取得したBlobをPackCacheへ書き戻す（T-183・Q-13）。
+   * 書き戻しに失敗しても再生自体は継続する（キャッシュ書き込みは付随処理であり、
+   * 失敗しても次回同じmissを踏むだけで再生を止める理由にはならない）
+   */
+  private async writeBackToCache(src: string, blob: Blob): Promise<void> {
+    try {
+      await this.packCache.put(src, blob)
+    } catch {
+      // 無視（次回のfetchフォールバックで再試行される）
+    }
+  }
+
+  /**
+   * デコード済みAudioBufferの推定バイト数（T-222）。
+   * Web Audio APIはチャンネルごとにFloat32Array（4バイト/サンプル）でPCMを保持するため、
+   * `length × numberOfChannels × 4` で概算する（実装依存の内部圧縮等は考慮しない上振れ気味の見積り）
+   */
+  private estimateBufferBytes(buffer: AudioBuffer): number {
+    return buffer.length * buffer.numberOfChannels * 4
+  }
+
   private cacheBuffer(src: string, buffer: AudioBuffer): void {
-    if (this.bufferCache.size >= BUFFER_CACHE_LIMIT) {
+    const size = this.estimateBufferBytes(buffer)
+    // 単独で上限を超えるバッファ（長尺音声1件）も再生に必要なため拒否はしない。
+    // その場合は他の全エントリを退避し、合計を可能な限り小さく保つ
+    while (this.bufferCache.size > 0 && this.bufferCacheBytes + size > BUFFER_CACHE_LIMIT_BYTES) {
       const oldestKey = this.bufferCache.keys().next().value
-      if (oldestKey !== undefined) this.bufferCache.delete(oldestKey)
+      if (oldestKey === undefined) break
+      const evicted = this.bufferCache.get(oldestKey)
+      this.bufferCache.delete(oldestKey)
+      if (evicted) this.bufferCacheBytes -= this.estimateBufferBytes(evicted)
     }
     this.bufferCache.set(src, buffer)
+    this.bufferCacheBytes += size
   }
 }

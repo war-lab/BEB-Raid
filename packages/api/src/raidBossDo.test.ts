@@ -1,5 +1,5 @@
-import { env, runInDurableObject } from 'cloudflare:test'
-import { describe, expect, it } from 'vitest'
+import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test'
+import { describe, expect, it, vi } from 'vitest'
 
 import { memberKey } from './env'
 import type { RaidBossDO } from './raidBossDo'
@@ -75,6 +75,77 @@ describe('RaidBossDO', () => {
     expect(afterDefeat.boss.myDamage).toBe(0)
   })
 
+  // 何を防ぐか（T-327・K-62）: 旧実装は挿入1件ごとにdamage_attempts全体のSUMクエリを
+  // 走らせていた（totalDamage()）。既存の行数が増えるほど1件あたりの読取コストが増え、
+  // 200件バッチのようなまとまった送信で挿入件数に比例したSQLite行読取が発生する。
+  // ランニング合計（state.totalDamage）に置き換えれば、SUMクエリの呼び出し回数は
+  // バッチサイズに関わらず一定になる（buildBossStateの貢献者ランキング用GROUP BY SUMが
+  // 呼び出し1回につき1回走るのは意図した挙動で、これは変えない）
+  async function countSumCalls(batchSize: number): Promise<number> {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1_000_000 })
+    const receivedAt = START_AT + HOUR_MS
+    const entries = Array.from({ length: batchSize }, (_, i) => ({
+      attemptId: `batch-${i}`,
+      damage: 10,
+      questionCount: 1,
+      answeredAt: receivedAt,
+    }))
+    return runInDurableObject(stub, async (instance: RaidBossDO) => {
+      const sql = (instance as unknown as { ctx: { storage: { sql: SqlStorage } } }).ctx.storage.sql
+      const execSpy = vi.spyOn(sql, 'exec')
+      await instance.syncDamage('device-1', entries, receivedAt)
+      return execSpy.mock.calls.filter((call) => String(call[0]).includes('SUM(damage)')).length
+    })
+  }
+
+  it('SUMクエリの呼び出し回数がバッチサイズに比例して増えない（挿入件数と無関係な一定回数）', async () => {
+    const smallBatch = await countSumCalls(5)
+    const largeBatch = await countSumCalls(50)
+
+    expect(largeBatch).toBe(smallBatch)
+  })
+
+  // 何を防ぐか（T-330・K-65）: raidValidation.tsの1payload上限（500）とMAX_SYNC_PAYLOADS
+  // （500件）だけでは、1台の端末が複数リクエストに分割して送れば理論上ボスHPの何倍もの
+  // ダメージを注ぎ込め、他の参加者の貢献なしに単独で討伐できてしまう。1台の端末の週次累計を
+  // maxHpの50%までに抑えることで、単独討伐が構造的に不可能になることを確認する
+  it('1台の端末だけではmaxHpの50%を超えて削れず、単独討伐できない', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000 })
+
+    const receivedAt = START_AT + HOUR_MS
+    // 500ダメージ×10件=5000（maxHpの5倍）を同一端末から送る
+    const entries = Array.from({ length: 10 }, (_, i) => ({
+      attemptId: `solo-${i}`,
+      damage: 500,
+      questionCount: 1,
+      answeredAt: receivedAt,
+    }))
+
+    const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage('solo-device', entries, receivedAt),
+    )
+
+    // 全attemptIdはacceptedIds（クライアント側pendingSyncの掃除用）には含まれるが、
+    // maxHpの50%（500）を超える分は加算されず、HPは半分（500）を下回らない
+    expect(result.acceptedIds).toHaveLength(10)
+    expect(result.boss.hp).toBe(500)
+    expect(result.boss.status).toBe('active')
+
+    // 別の端末が参戦すれば、残りのHPは通常どおり削れる（単独討伐の防止だけが目的で、
+    // 複数端末の合算討伐自体は妨げない）
+    const otherResult = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'other-device',
+        [{ attemptId: 'other-1', damage: 500, questionCount: 1, answeredAt: receivedAt }],
+        receivedAt,
+      ),
+    )
+    expect(otherResult.boss.hp).toBe(0)
+    expect(otherResult.boss.status).toBe('defeated')
+  })
+
   it('同一attemptIdの二重送信は無視され、二重計上されない（冪等）', async () => {
     const stub = freshStub(crypto.randomUUID())
     await initBoss(stub, { maxHp: 1000 })
@@ -148,6 +219,53 @@ describe('RaidBossDO', () => {
     expect(result.boss.status).toBe('closed') // 表示上は期限切れのまま（討伐はしていない）
   })
 
+  // 何を防ぐか（T-332・K-67）: J-49はreceivedAtが期限後でもanswaredAtが期間内なら
+  // 無条件に加算していた。上限が無いと、週次cronが前週のEMA・raidSummaryを
+  // 生成完了させた後になっても、確定済みの週へ無期限にダメージを追加できてしまう
+  it('receivedAtが期限（endAt）から7日を超えて遅延すると、answeredAtが期間内でも加算されない（T-332・K-67）', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000, startAt: START_AT, endAt: END_AT })
+
+    const DAY_MS = 24 * HOUR_MS
+    const wayTooLate = END_AT + 7 * DAY_MS + HOUR_MS // 7日+1時間後
+    const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'device-1',
+        [{ attemptId: 'very-late-1', damage: 200, questionCount: 1, answeredAt: END_AT - HOUR_MS }],
+        wayTooLate,
+      ),
+    )
+
+    // acceptedIdsには含める（クライアント側pendingSyncの掃除用）が、加算はしない
+    expect(result.acceptedIds).toEqual(['very-late-1'])
+    expect(result.boss.hp).toBe(1000)
+  })
+
+  it('receivedAtが期限（endAt）から7日以内なら、従来どおり加算される（境界確認）', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000, startAt: START_AT, endAt: END_AT })
+
+    const DAY_MS = 24 * HOUR_MS
+    const justInTime = END_AT + 7 * DAY_MS - HOUR_MS // 7日-1時間後（境界内）
+    const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'device-1',
+        [
+          {
+            attemptId: 'late-in-grace-1',
+            damage: 200,
+            questionCount: 1,
+            answeredAt: END_AT - HOUR_MS,
+          },
+        ],
+        justInTime,
+      ),
+    )
+
+    expect(result.acceptedIds).toEqual(['late-in-grace-1'])
+    expect(result.boss.hp).toBe(800)
+  })
+
   it('answeredAt自体が期間外（endAtより後）なら加算されない（クランプの影響を受けないよう受信時刻も同時刻にする）', async () => {
     const stub = freshStub(crypto.randomUUID())
     await initBoss(stub, { maxHp: 1000, startAt: START_AT, endAt: END_AT })
@@ -187,6 +305,105 @@ describe('RaidBossDO', () => {
     expect(result.boss.participantCount).toBe(1)
   })
 
+  // T-246・29のQ-28: buildBossStateは貢献者1人につきKV getを1回発行し、これが
+  // GET /raid/current・POST /raid/sync双方の応答経路で毎回走る。メンバーがポーリングすると
+  // 読取が増幅し、KV無料枠（読取10万/日）を圧迫し得る。DO内で表示名を短期キャッシュし、
+  // 同一TTL内の再呼び出しでは同じdeviceTokenへ再度KV getを発行しないことを確認する
+  it('表示名解決のKV get回数は、TTL内の再呼び出しでは貢献者数に比例して増えない（短期キャッシュ）', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 100_000 })
+
+    const CONTRIBUTOR_COUNT = 5
+    const receivedAt = START_AT + HOUR_MS
+    for (let i = 0; i < CONTRIBUTOR_COUNT; i++) {
+      const deviceToken = `device-cache-${i}`
+      await env.MEMBERS.put(
+        memberKey(deviceToken),
+        JSON.stringify({ displayName: `メンバー${i}`, dailyGoal: 'normal', registeredAt: 0 }),
+      )
+      await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.syncDamage(
+          deviceToken,
+          [{ attemptId: `seed-${i}`, damage: 10, questionCount: 1, answeredAt: receivedAt }],
+          receivedAt,
+        ),
+      )
+    }
+
+    const getSpy = vi.spyOn(env.MEMBERS, 'get')
+    getSpy.mockClear()
+
+    // 同一TTL内でGET /raid/current相当の呼び出し（getBossState）を3回連続で行う
+    // （実運用ではポーリングやraid/syncの応答構築のたびにbuildBossStateが走る想定）。
+    //
+    // 【フレーク対策・2026-08-05】3回を別々のrunInDurableObject呼び出しに分けると、
+    // その間にDOインスタンスがエビクトされうる（DOランタイムの正常な挙動。
+    // displayNameCacheはインスタンスのメモリ上フィールドのため、エビクトされれば
+    // 空に戻る＝raidBossDo.tsのコメントどおり実害は無い設計だが、テストとしては
+    // 「キャッシュが効く条件」を確定的に再現したい）。CIでファイルを並列実行した際に
+    // このエビクションと思われるタイミングでget回数が上限を超え、本テストが不安定に
+    // なることを実際に観測した。3回の呼び出しを同一のruntInDurableObject呼び出し内
+    // （＝同一インスタンス上）で連続実行し、エビクションの入り込む余地を無くす
+    let contributions: { displayName: string }[] | undefined
+    await runInDurableObject(stub, async (instance: RaidBossDO) => {
+      for (let call = 0; call < 3; call++) {
+        const state = await instance.getBossState(receivedAt)
+        contributions = state?.contributions
+      }
+    })
+    expect(contributions).toHaveLength(CONTRIBUTOR_COUNT)
+    expect(contributions?.every((c) => c.displayName.startsWith('メンバー'))).toBe(true)
+
+    // 修正前は呼び出し回数(3)×貢献者数(5)=15回のKV getになる。修正後はキャッシュヒットする
+    // ため、呼び出し回数を3回に増やしてもget回数は増えない（シード時の内部呼び出しで
+    // 既にキャッシュが温まっているため0になりうるが、いずれにせよ15回には遠く及ばない）
+    expect(getSpy.mock.calls.length).toBeLessThanOrEqual(CONTRIBUTOR_COUNT)
+    getSpy.mockRestore()
+  })
+
+  // T-246: キャッシュがTTL経過後も表示名変更（再登録）を永久に反映しなくなる退行を防ぐ
+  it('表示名キャッシュはTTL経過後、再登録による表示名変更を反映する', async () => {
+    const stub = freshStub(crypto.randomUUID())
+    await initBoss(stub, { maxHp: 1000 })
+    const deviceToken = 'device-cache-ttl'
+    const receivedAt = START_AT + HOUR_MS
+    await env.MEMBERS.put(
+      memberKey(deviceToken),
+      JSON.stringify({ displayName: '旧名前', dailyGoal: 'normal', registeredAt: 0 }),
+    )
+    await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        deviceToken,
+        [{ attemptId: 'ttl-1', damage: 10, questionCount: 1, answeredAt: receivedAt }],
+        receivedAt,
+      ),
+    )
+    const beforeRename = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(receivedAt),
+    )
+    expect(beforeRename?.contributions[0]?.displayName).toBe('旧名前')
+
+    // 再登録（同一tokenでの再POST）による表示名変更を模す
+    await env.MEMBERS.put(
+      memberKey(deviceToken),
+      JSON.stringify({ displayName: '新名前', dailyGoal: 'normal', registeredAt: 0 }),
+    )
+
+    // TTL内はまだ古い名前のまま（キャッシュヒット）
+    const stillCached = await runInDurableObject(
+      stub,
+      (instance: RaidBossDO) => instance.getBossState(receivedAt + 60_000), // 1分後
+    )
+    expect(stillCached?.contributions[0]?.displayName).toBe('旧名前')
+
+    // TTL(5分)経過後は新しい表示名に更新される
+    const afterTtl = await runInDurableObject(
+      stub,
+      (instance: RaidBossDO) => instance.getBossState(receivedAt + 6 * 60_000), // 6分後
+    )
+    expect(afterTtl?.contributions[0]?.displayName).toBe('新名前')
+  })
+
   it('未初期化のボスへsyncDamageすると例外になる', async () => {
     const stub = freshStub(crypto.randomUUID())
     await expect(
@@ -202,5 +419,135 @@ describe('RaidBossDO', () => {
       instance.getBossState(START_AT),
     )
     expect(state).toBeUndefined()
+  })
+
+  // T-247・29のQ-29: RaidBossDOには削除経路が無く、bossIdごとに別インスタンスのSQLiteが
+  // 無期限に蓄積していた。cleanupIfExpired(cutoff)は、cutoffより前にこの週が終了して
+  // いれば（endAt < cutoff）ストレージを丸ごと削除する
+  describe('cleanupIfExpired（T-247・29のQ-29）', () => {
+    it('未初期化のボスはnot_foundを返す', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.cleanupIfExpired(END_AT + 1_000_000),
+      )
+      expect(result).toBe('not_found')
+    })
+
+    it('cutoffがendAt以下ならkeptを返し、状態は削除されない', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      await initBoss(stub)
+
+      const result = await runInDurableObject(
+        stub,
+        (instance: RaidBossDO) => instance.cleanupIfExpired(END_AT), // ちょうど境界（endAt >= cutoffなのでkept）
+      )
+      expect(result).toBe('kept')
+
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(END_AT),
+      )
+      expect(state).not.toBeUndefined()
+    })
+
+    it('cutoffがendAtより後ならdeletedを返し、SQLiteストレージが丸ごと削除される', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      await initBoss(stub)
+      // 削除対象であることを確認できるよう、ダメージ記録も入れておく
+      await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.syncDamage(
+          'device-1',
+          [{ attemptId: 'a-1', damage: 100, questionCount: 1, answeredAt: START_AT + HOUR_MS }],
+          START_AT + HOUR_MS,
+        ),
+      )
+
+      const result = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.cleanupIfExpired(END_AT + 1),
+      )
+      expect(result).toBe('deleted')
+
+      // ストレージが本当に空であること（deleteAll()がSQLite表も含めて削除している確認）。
+      // このチェック自体はsqlite_masterへの生クエリなので、CREATE TABLEの再実行前でも安全
+      await runInDurableObject(stub, async (_instance, state) => {
+        const tables = state.storage.sql
+          .exec<{ name: string }>(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%'",
+          )
+          .toArray()
+        expect(tables).toEqual([])
+      })
+
+      // deleteAll()直後は「state」テーブル自体が無いため、同一インスタンスのままgetBossState等を
+      // 呼ぶと例外になる（コンストラクタのCREATE TABLE IF NOT EXISTSは再実行されない）。
+      // 本番ではこのDOインスタンスがアイドル後にエビクトされ、次回アクセス時にコンストラクタが
+      // 再実行されてテーブルが復元される（空の状態で）。evictDurableObject()でその挙動を再現する
+      await evictDurableObject(stub)
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(END_AT + 1),
+      )
+      expect(state).toBeUndefined()
+    })
+
+    it('削除後（エビクション経由での再構築後）にinit()すると、未初期化のときと同様に新規作成できる', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      await initBoss(stub, { maxHp: 999 })
+      await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.cleanupIfExpired(END_AT + 1),
+      )
+      await evictDurableObject(stub)
+
+      await initBoss(stub, { maxHp: 42 })
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(START_AT),
+      )
+      expect(state?.maxHp).toBe(42)
+    })
+  })
+
+  // T-283（K-6）: 生成処理の例外・プロセスクラッシュ等でreleaseGenerationClaim()が
+  // 呼ばれずに終わると、generation_claimが永久に残り週次ボスの生成が復旧不能になっていた。
+  // claimedAtを持たせ、30分以上前の主張は上書き可能にする
+  describe('claimGeneration: 主張のリーク復旧（T-283・K-6）', () => {
+    it('30分未満の主張が残っている間は、後続のclaimGenerationがfalseを返す', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const t0 = START_AT
+      const first = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0),
+      )
+      expect(first).toBe(true)
+
+      const stillWithinWindow = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0 + 29 * 60 * 1000),
+      )
+      expect(stillWithinWindow).toBe(false)
+    })
+
+    it('30分以上前の主張（リーク＝releaseGenerationClaim未呼び出し）は上書きして主張できる', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const t0 = START_AT
+      const first = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0),
+      )
+      expect(first).toBe(true)
+      // releaseGenerationClaim()を呼ばずに放棄する（プロセスクラッシュ等のリークを模擬）
+
+      const afterStaleWindow = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0 + 30 * 60 * 1000),
+      )
+      expect(afterStaleWindow).toBe(true)
+    })
+
+    it('主張成立後にinit()された週は、リーク解放後でも既存stateにより再度falseになる', async () => {
+      const stub = freshStub(crypto.randomUUID())
+      const t0 = START_AT
+      await runInDurableObject(stub, (instance: RaidBossDO) => instance.claimGeneration(t0))
+      await initBoss(stub, { maxHp: 555 })
+      // releaseGenerationClaim()を呼ばずに放棄する
+
+      const afterStaleWindow = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.claimGeneration(t0 + 30 * 60 * 1000),
+      )
+      expect(afterStaleWindow).toBe(false)
+    })
   })
 })

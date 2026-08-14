@@ -10,7 +10,7 @@ import { BebRaidDatabase } from '../db/database'
 import { RAID_STATE_ID } from '../db/schema'
 import { RaidApiError, type RaidApi } from '../platform'
 import { resetRaidSyncStoreForTest, useRaidSyncStore } from '../store/raidSyncStore'
-import { buildRaidStateBossCache, syncRaidDamage } from './raidSync'
+import { buildRaidStateBossCache, resetRaidSyncFlagsForTest, syncRaidDamage } from './raidSync'
 import { RAID_REGISTERED_AT_KEY, RAID_SYNC_ENABLED_KEY } from './settingsKeys'
 
 let seq = 0
@@ -24,6 +24,7 @@ function newDb(): BebRaidDatabase {
 
 afterEach(async () => {
   resetRaidSyncStoreForTest()
+  resetRaidSyncFlagsForTest()
   await Promise.all(dbs.splice(0).map((db) => db.delete()))
 })
 
@@ -303,6 +304,227 @@ describe('syncRaidDamage: 失敗時はpendingSyncを失わない', () => {
     const raidState = await db.raidState.get(RAID_STATE_ID)
     expect(raidState?.lastSyncedAt).toBe(500) // 更新されていない
     expect(raidState?.hp).toBe(4800) // BOSSの値(4200)に変わっていない
+  })
+})
+
+// T-278（K-1）: soloモードのダメージ小数化により、既にキューに紛れ込んだ小数damageの
+// レコードがサーバーから400（invalid_body）で拒否され、pendingSyncが恒久停止していた。
+// 400受信時は当該バッチを1件ずつ検証し、非整数damageをMath.roundして書き戻し、
+// 1回の同期呼び出し内で再送して復旧する
+describe('syncRaidDamage: 400受信時の隔離と復旧（T-278・K-1）', () => {
+  it('小数damageを含むキューが400を受けても、丸めて再送し1回の同期で復旧する', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const badId = await db.pendingSync.add({
+      kind: 'raidDamage',
+      payloadJson: JSON.stringify({
+        attemptId: 'a-bad',
+        bossId: 'boss-2026-W30',
+        damage: 27.5,
+        questionCount: 1,
+        answeredAt: 500,
+      } satisfies DamageSyncPayload),
+      createdAt: 500,
+    })
+    const goodId = await addPendingRaidDamage(db, 'a-good')
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockRejectedValueOnce(
+      new RaidApiError('unknown', '400 invalid_body', undefined, 400),
+    )
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: ['a-bad', 'a-good'], boss: BOSS })
+
+    const result = await syncRaidDamage(db, raidApi)
+
+    expect(result.ok).toBe(true)
+    expect(raidApi.syncDamage).toHaveBeenCalledTimes(2)
+    const retriedPayloads = raidApi.syncDamage.mock.calls[1]![0]
+    expect(retriedPayloads.find((p) => p.attemptId === 'a-bad')?.damage).toBe(28)
+    // 受理されたので両方pendingSyncから削除される
+    expect(await db.pendingSync.get(badId!)).toBeUndefined()
+    expect(await db.pendingSync.get(goodId!)).toBeUndefined()
+  })
+
+  it('丸めても不正（負値）なレコードは警告して削除し、attemptsには触れない', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const negativeId = await db.pendingSync.add({
+      kind: 'raidDamage',
+      payloadJson: JSON.stringify({
+        attemptId: 'a-negative',
+        bossId: 'boss-2026-W30',
+        damage: -5.5,
+        questionCount: 1,
+        answeredAt: 500,
+      } satisfies DamageSyncPayload),
+      createdAt: 500,
+    })
+    const goodId = await addPendingRaidDamage(db, 'a-good')
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockRejectedValueOnce(
+      new RaidApiError('unknown', '400 invalid_body', undefined, 400),
+    )
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: ['a-good'], boss: BOSS })
+
+    const result = await syncRaidDamage(db, raidApi)
+
+    expect(result.ok).toBe(true)
+    const retriedPayloads = raidApi.syncDamage.mock.calls[1]![0]
+    expect(retriedPayloads.some((p) => p.attemptId === 'a-negative')).toBe(false)
+    expect(await db.pendingSync.get(negativeId!)).toBeUndefined()
+    expect(await db.pendingSync.get(goodId!)).toBeUndefined()
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('400以外の失敗（通信断・401等）では復旧を試みず従来どおりpendingSyncを保持する', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const id1 = await addPendingRaidDamage(db, 'a-1')
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+
+    const result = await syncRaidDamage(db, raidApi)
+
+    expect(result.ok).toBe(false)
+    expect(raidApi.syncDamage).toHaveBeenCalledTimes(1)
+    expect(await db.pendingSync.get(id1!)).toBeDefined()
+  })
+
+  it('復旧後の再送でもサーバーが失敗を返す場合はpendingSyncを保持する（丸め後の値だけ書き戻す）', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const badId = await db.pendingSync.add({
+      kind: 'raidDamage',
+      payloadJson: JSON.stringify({
+        attemptId: 'a-bad',
+        bossId: 'boss-2026-W30',
+        damage: 27.5,
+        questionCount: 1,
+        answeredAt: 500,
+      } satisfies DamageSyncPayload),
+      createdAt: 500,
+    })
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockRejectedValueOnce(
+      new RaidApiError('unknown', '400 invalid_body', undefined, 400),
+    )
+    raidApi.syncDamage.mockRejectedValueOnce(new Error('network error'))
+
+    const result = await syncRaidDamage(db, raidApi)
+
+    expect(result.ok).toBe(false)
+    const stored = await db.pendingSync.get(badId!)
+    expect(stored).toBeDefined()
+    expect((JSON.parse(stored!.payloadJson) as DamageSyncPayload).damage).toBe(28)
+  })
+})
+
+// T-285（K-8）: 当週ボスが未生成のときサーバーは{acceptedIds, boss:null}を200で返す。
+// クライアントはboss=nullのときraidStateの更新をスキップし、acceptedIdsのpendingSync削除は
+// 通常どおり行う（受理済みIDを溜め込まない）
+describe('syncRaidDamage: boss:null応答時はraidStateを更新しない（T-285・K-8）', () => {
+  it('boss:nullでもacceptedIdsのpendingSyncは削除され、raidStateは更新されない', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const id1 = await addPendingRaidDamage(db, 'a-1')
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: ['a-1'], boss: null })
+
+    const result = await syncRaidDamage(db, raidApi)
+
+    expect(result.ok).toBe(true)
+    expect(await db.pendingSync.get(id1!)).toBeUndefined() // 受理済みは削除される
+    const raidState = await db.raidState.get(RAID_STATE_ID)
+    expect(raidState?.lastSyncedAt).toBe(500) // raidStateは更新されない（更新前のまま）
+    expect(raidState?.hp).toBe(4800)
+  })
+})
+
+// T-193（Q-104）: syncRaidDamageにはquestionStats.tsのsendInFlightに相当する再入ガードが無く、
+// App.tsxの起動時自動同期とResultScreen/RaidScreenの手動同期が並行しうる。並行実行されると
+// 同一pendingSyncバッチを2回送信し、サーバー側で二重計上されうる
+describe('syncRaidDamage: 再入ガード（並行実行の抑止。T-193・Q-104）', () => {
+  it('前回の呼び出しが完了する前に呼ばれた2回目は通信せず{ok: false}を返す', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    await addPendingRaidDamage(db, 'a-1')
+    const raidApi = new FakeRaidApi(true)
+    let resolveSync: (() => void) | undefined
+    raidApi.syncDamage.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSync = () => resolve({ acceptedIds: ['a-1'], boss: BOSS })
+        }),
+    )
+
+    const first = syncRaidDamage(db, raidApi)
+    // 1回目が実際に通信（raidApi.syncDamage呼び出し）へ到達するまでイベントループを進める
+    // （手前のDB読み取り群はfake-indexeddbの非同期スケジューリングに依存するため、
+    // 固定回数のawaitではなくpollingで待つ）
+    await vi.waitFor(() => expect(raidApi.syncDamage).toHaveBeenCalledTimes(1))
+
+    // 1回目がまだ通信中のうちに2回目を呼ぶ（App.tsx自動同期とResultScreen/RaidScreenの並行呼び出しを模擬）
+    const second = await syncRaidDamage(db, raidApi)
+
+    expect(second.ok).toBe(false)
+    expect(raidApi.syncDamage).toHaveBeenCalledTimes(1)
+
+    resolveSync?.()
+    const firstResult = await first
+    expect(firstResult.ok).toBe(true)
+  })
+
+  it('1回目が完了した後の3回目は通常どおり実行される（フラグが正しく解放される）', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db)
+    const raidApi = new FakeRaidApi(true)
+
+    await syncRaidDamage(db, raidApi)
+    const third = await syncRaidDamage(db, raidApi)
+
+    expect(third.ok).toBe(true)
+    expect(raidApi.syncDamage).toHaveBeenCalledTimes(2)
+  })
+})
+
+// T-193（Q-105）: 週替わり検知（レスポンスのbossIdが端末の知るbossIdと別）でjoinedがfalseへ
+// 戻ると、以降のsyncRaidDamage呼び出しは縮退ゲート（raidState.joined!==true）で即returnし
+// 二度とpendingSyncの掃除機会が無い。旧週の未受理分は今後受理される見込みが無いため、
+// 週替わりを検知したこのタイミングで掃除する
+describe('syncRaidDamage: 週替わり後に取り残される旧週pendingSyncの掃除（T-193・Q-105）', () => {
+  it('週替わり検知時、受理されなかった旧週分のpendingSyncは削除される（放置すると永久滞留するため）', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db, 'boss-2026-W29') // 先週のボスに参加中
+    const stalePayload: DamageSyncPayload = {
+      attemptId: 'a-stale',
+      bossId: 'boss-2026-W29', // 旧週のbossId
+      damage: 50,
+      questionCount: 1,
+      answeredAt: 900,
+    }
+    const staleId = await db.pendingSync.add({
+      kind: 'raidDamage',
+      payloadJson: JSON.stringify(stalePayload),
+      createdAt: 900,
+    })
+    const raidApi = new FakeRaidApi(true)
+    // W30（新しい週）が返り、旧週分(a-stale)は受理されない
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: [], boss: BOSS })
+
+    await syncRaidDamage(db, raidApi)
+
+    expect(await db.pendingSync.get(staleId)).toBeUndefined()
+  })
+
+  it('週替わりが無い（bossId同一）通常の未受理分は消さず残す（部分受理の既存仕様を壊さない）', async () => {
+    const db = newDb()
+    await seedJoinedRaidState(db) // BOSSと同一bossId（週替わりなし）
+    const id1 = await addPendingRaidDamage(db, 'a-1')
+    const raidApi = new FakeRaidApi(true)
+    raidApi.syncDamage.mockResolvedValueOnce({ acceptedIds: [], boss: BOSS })
+
+    await syncRaidDamage(db, raidApi)
+
+    expect(await db.pendingSync.get(id1!)).toBeDefined()
   })
 })
 

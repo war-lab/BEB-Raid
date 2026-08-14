@@ -49,3 +49,13 @@ export const GHOST_MULTIPLIER_SOLID = 0.5
 
 /** ゴーストボスの防御倍率「弱点」（ボス役が誤答した問題。docs/03 6.3節の確定値） */
 export const GHOST_MULTIPLIER_WEAK = 2.0
+
+/**
+ * 週次RaidBossDOの保持期間（週数。T-247・29のQ-29。掃除方針は docs/17_M3実装計画.md
+ * 3.4節「週次クローズ後のデータ」節に記録）。RaidBossDOは1週=1インスタンスで、bossIdごとに
+ * 別々のSQLiteストレージを持つため削除経路が無いと無期限に蓄積する。前週分のダメージ集計は
+ * cronの実行直後にEMA・ゴーストクローズ・raidSummary（KV）へ転記済みで、それより古い週の
+ * DOはどの経路からも参照されない（直近参照は常に「当週」「前週」のみ）。8週（約2ヶ月）は
+ * 障害調査・手動確認のための余裕として置いた暫定値
+ */
+export const RAID_BOSS_RETENTION_WEEKS = 8

@@ -140,6 +140,11 @@ describe('DiagnosticScreen: 自己申告なし', () => {
     // 30問全問正解なのでレートは初期値(400)より上がっているはず
     expect(l!.rating).toBeGreaterThan(400)
     expect(r!.rating).toBeGreaterThan(400)
+    // T-306（K-34）: 診断（L/R各15問）が既に与えたレート変動の実績を早期K
+    // （最初の50問はK=32）の消費量として引き継ぐ。0のままだと診断後さらに丸ごと
+    // 50問分の早期Kが乗り、K=32区間が仕様（50問）より長引く
+    expect(l!.answerCount).toBe(15)
+    expect(r!.answerCount).toBe(15)
 
     const profile = await db.profile.get(PROFILE_ID)
     expect(profile?.initialToeic).toBeNull()
@@ -204,6 +209,37 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
     expect(skipButton.disabled).toBe(true)
   })
 
+  // T-187（Q-36）: 何を防ぐか。桁誤り（6500円のつもりで入力等）がNaNチェックを素通りして
+  // そのままR=TOEIC×1000/990の初期レートへ確定するのを防ぐ。スキップ経路は30問診断を
+  // 経ずにレートを確定させるため、範囲外は「診断を始める」「スキップ」の両方で入力時に拒否する
+  it('TOEICスコアが990を超えると診断開始・スキップの両方が無効になる', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '6500' } })
+
+    const startButton = screen.getByText('診断を始める') as HTMLButtonElement
+    const skipButton = screen.getByText('自己申告スコアで診断をスキップ') as HTMLButtonElement
+    expect(startButton.disabled).toBe(true)
+    expect(skipButton.disabled).toBe(true)
+  })
+
+  it('TOEICスコアが10未満だと診断開始・スキップの両方が無効になる', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    fireEvent.change(await screen.findByPlaceholderText('表示名'), { target: { value: 'てすと' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 650'), { target: { value: '6' } })
+
+    const startButton = screen.getByText('診断を始める') as HTMLButtonElement
+    const skipButton = screen.getByText('自己申告スコアで診断をスキップ') as HTMLButtonElement
+    expect(startButton.disabled).toBe(true)
+    expect(skipButton.disabled).toBe(true)
+  })
+
   it('自己申告スコアでスキップすると30問答えずにR=TOEIC×1000/990でratings/profileが確定する', async () => {
     const db = newDb()
     render(
@@ -221,6 +257,10 @@ describe('DiagnosticScreen: 診断スキップ（ユーザー指示による機�
     const r = await db.ratings.get('R')
     expect(l?.rating).toBeCloseTo(expectedRating)
     expect(r?.rating).toBeCloseTo(expectedRating)
+    // T-306（K-34）: スキップ経路は実際の解答を経ていないため、早期K（K=32）の
+    // 消費量は0のまま（30問診断のように15を引き継がない）
+    expect(l?.answerCount).toBe(0)
+    expect(r?.answerCount).toBe(0)
 
     const profile = await db.profile.get(PROFILE_ID)
     expect(profile?.initialToeic).toBe(650)
@@ -280,6 +320,37 @@ describe('DiagnosticScreen: audio_qa の正答応答リーク防止', () => {
     fireEvent.click(screen.getByText('タップして開始'))
 
     await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledWith('/dev-audio/dummy.mp3', {}))
+  })
+})
+
+// T-218（Q-55）: リスニング15問が毎問「タップして開始」を要していた。アプリの最初の体験
+// （診断）で15回の追加タップが入っていたため、DrillScreenのT-110（初回成功後は自動再生）と
+// 同じ方式を適用する
+describe('DiagnosticScreen: リスニング設問の自動再生（T-218。T-110相当）', () => {
+  it('1問目は開始タップが必要だが、2問目以降のリスニング設問はタップなしで自動再生する', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={buildPool()} />)
+    await startDiagnostic('')
+
+    // turn0（1/30）はL（audio_qa）。初回は開始タップが必要
+    await screen.findByText('1/30')
+    expect(screen.getByText('タップして開始')).toBeTruthy()
+    fireEvent.click(screen.getByText('タップして開始'))
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(1))
+    fireEvent.click(await screen.findByText('a'))
+
+    // turn1（2/30）はR（text_blank）。音声ゲート自体が無い
+    await screen.findByText('2/30')
+    fireEvent.click(screen.getByText('a'))
+
+    // turn2（3/30）は2問目のL。「タップして開始」を出さずに自動再生する。
+    // 実質の確認は「タップせずに再生が始まる」ことなので先にそれを待つ。
+    // 表示直後に同期でボタン不在を見ると、自動再生effectが走る前のフレームを
+    // 拾って落ちることがある（並列実行時のフレークの原因だった）
+    await screen.findByText('3/30')
+    await waitFor(() => expect(audioPlayer.play).toHaveBeenCalledTimes(2))
+    expect(screen.queryByText('タップして開始')).toBeNull()
   })
 })
 
@@ -380,7 +451,9 @@ describe('DiagnosticScreen: 途中保存・離脱確認（T-113）', () => {
     })
   })
 
-  it('「中断」でホームへ戻れる（プロフィール未作成のままでよい）', async () => {
+  // T-316（K-49）: 従来は「中断」ボタンが確認なしで即ホームへ遷移していた（誤タップで
+  // 測定中の解答を無言で切り上げる）。DrillScreen・VocabScreenと同じ確認導線を挟む
+  it('「中断」を押しても確認するまでは診断画面に留まる', async () => {
     const db = newDb()
     render(
       <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
@@ -390,8 +463,40 @@ describe('DiagnosticScreen: 途中保存・離脱確認（T-113）', () => {
 
     fireEvent.click(screen.getByText('中断'))
 
+    // 確認ダイアログが出て、診断画面自体はまだ表示されたまま（即離脱しない）
+    expect(await screen.findByText(/中断してホームへ戻りますか/)).toBeTruthy()
+    expect(screen.getByText('1/30')).toBeTruthy()
+  })
+
+  it('確認して「中断してホームへ」を押すとホームへ戻る（プロフィール未作成のままでよい）', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+    render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={buildPool()} />)
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('中断してホームへ'))
+
     expect(useAppStore.getState().screen).toBe('home')
     expect(await db.profile.get(PROFILE_ID)).toBeUndefined()
+    // T-315（K-48）: 中断導線でも再生中の音声を止める
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
+  it('確認して「キャンセル」を押すと診断画面に留まる', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(await screen.findByText('キャンセル'))
+
+    expect(screen.queryByText(/中断してホームへ戻りますか/)).toBeNull()
+    expect(screen.getByText('1/30')).toBeTruthy()
   })
 })
 
@@ -521,5 +626,83 @@ describe('DiagnosticScreen: 完了画面の振り返り（T-174。J-95。docs/27
 
     await screen.findByText('診断完了')
     expect(screen.queryByTestId('diagnostic-review-list')).toBeNull()
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 設問文・選択肢本文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('DiagnosticScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('text_blank（Reading）の設問文にlang="en"が付く', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+    await screen.findByText('1/30')
+    const startButton = screen.queryByText('タップして開始')
+    if (startButton) fireEvent.click(startButton)
+    // 1問目（L=audio_qa）を解答して2問目（R=text_blank）へ進む
+    fireEvent.click(await screen.findByText('a'))
+    await screen.findByText('2/30')
+
+    expect(screen.getByText('dummy blank').getAttribute('lang')).toBe('en')
+    // 選択肢本文にもlang="en"が付く（ChoiceButton経由）
+    expect(screen.getByText('a').getAttribute('lang')).toBe('en')
+  })
+
+  it('振り返り一覧: 設問文はtext_blankの行だけlang="en"、選択/正解の選択肢本文には常に付く', async () => {
+    const db = newDb()
+    render(
+      <DiagnosticScreen db={db} audioPlayer={new FakeAudioPlayer()} questionPool={buildPool()} />,
+    )
+    await startDiagnostic('')
+
+    // 全問「b」を選ぶ（buildPoolの正解は'A'='a'なので全問誤答=全行にnoteが出る）
+    for (let i = 1; i <= 30; i++) {
+      await screen.findByText(`${i}/30`)
+      const startButton = screen.queryByText('タップして開始')
+      if (startButton) fireEvent.click(startButton)
+      fireEvent.click(await screen.findByText('b'))
+      if (i < 30) await screen.findByText(`${i + 1}/30`)
+    }
+    await screen.findByText('診断完了')
+
+    const list = await screen.findByTestId('diagnostic-review-list')
+    const items = Array.from(list.querySelectorAll('.result-list__item'))
+    expect(items.length).toBe(30)
+
+    // text_blank（設問文あり=15問）だけ設問部にlang="en"が付く。audio_qa（設問文無し=
+    // 「音声問題」の日本語フォールバック=15問）には付かない
+    const withQuestionLang = items.filter((el) =>
+      el.querySelector('.result-list__question [lang="en"]'),
+    )
+    const withoutQuestionLang = items.filter(
+      (el) => !el.querySelector('.result-list__question [lang="en"]'),
+    )
+    expect(withQuestionLang.length).toBe(15)
+    expect(withoutQuestionLang.length).toBe(15)
+
+    // 選択・正解の選択肢本文（英文）は全問に付く（全問誤答なのでnoteが全行に出る）
+    const notes = Array.from(list.querySelectorAll('.result-list__note'))
+    expect(notes.length).toBe(30)
+    for (const note of notes) {
+      expect(note.querySelectorAll('[lang="en"]').length).toBe(2)
+    }
+  })
+})
+
+// 何を防ぐか（T-315・K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstate
+// ハンドラのみで実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+describe('DiagnosticScreen: unmount時の音声停止（T-315・K-48）', () => {
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const pool = buildPool()
+    const audioPlayer = new FakeAudioPlayer()
+    const view = render(<DiagnosticScreen db={db} audioPlayer={audioPlayer} questionPool={pool} />)
+    await startDiagnostic('')
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
   })
 })

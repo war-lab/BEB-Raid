@@ -13,5 +13,29 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // T-286（K-13。docs/32 3節J-126）: 閾値は導入時点（2026-08-06）の実測値をそのまま
+    // 下限として固定する。以後この値を下げない
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      thresholds: {
+        statements: 60.45,
+        branches: 52.4,
+        functions: 56.63,
+        lines: 62.83,
+      },
+    },
+    // T-287（K-14）: 消費側がpackage.jsonのexports経由でdistを見るため、
+    // shared-schemaを変更してもビルドし直さない限りテストが古いコードを見ていた
+    alias: {
+      '@beb-raid/shared-schema': fileURLToPath(
+        new URL('../shared-schema/src/index.ts', import.meta.url),
+      ),
+    },
+    // 【フレーク対策・2026-08-05】ルートの `npm test` は全ワークスペースを並列で回すため、
+    // 他パッケージ（特にworkerdを多数起動するapi）と負荷を奪い合う。App.test.tsx の
+    // findByText が既定タイムアウト（5秒）に間に合わず、フルスイートでのみ不定に落ちる
+    // 事象が観測された（単独実行では4回連続で全pass）。アサーションは変えずに余裕を持たせる
+    testTimeout: 20000,
   },
 })

@@ -9,7 +9,7 @@ const VALID_INVITE_CODE = 'test-invite-code'
 const HOUR_MS = 60 * 60 * 1000
 
 async function registerDevice(displayName = '太郎'): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -157,6 +157,88 @@ describe('POST /raid/sync', () => {
     const body = (await res.json()) as { acceptedIds: string[]; boss: { hp: number } }
     expect(body.acceptedIds).toEqual(['a-1'])
     expect(body.boss.hp).toBe(700)
+  })
+
+  // T-285（K-8）: 当週ボスがまだ生成されていない（週次cron未実行・遅延等）場合、従来は
+  // 応答全体を404にしてacceptedIdsを丸ごと捨てていた。受理済み（前週分等）のIDは
+  // クライアントへ返し、pendingSyncから正しく排出できるようにする。bossはnullで返し、
+  // クライアントはboss=nullのときraidStateの更新をスキップする
+  it('当週ボスが未生成でも200で{acceptedIds, boss:null}を返す（K-8）', async () => {
+    const deviceToken = await registerDevice()
+    const current = isoWeekInfo(Date.now())
+    const previous = previousWeekInfo(current)
+    const previousBossId = bossIdFor(previous)
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(previousBossId))
+    await runInDurableObject(stub, (instance: RaidBossDO) => {
+      instance.init({
+        bossId: previousBossId,
+        profile: bossProfileForWeek(previous.isoWeek),
+        maxHp: 1000,
+        startAt: previous.weekStartAt,
+        endAt: weekEndAt(previous.weekStartAt),
+      })
+    })
+    // 当週ボスはあえて初期化しない
+
+    const res = await SELF.fetch(
+      syncRequest(deviceToken, [
+        {
+          attemptId: 'a-old-week',
+          bossId: previousBossId,
+          damage: 100,
+          questionCount: 1,
+          answeredAt: previous.weekStartAt + HOUR_MS,
+        },
+      ]),
+    )
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { acceptedIds: string[]; boss: unknown }
+    expect(body.acceptedIds).toEqual(['a-old-week'])
+    expect(body.boss).toBeNull()
+  })
+
+  // T-243・29のQ-22: bossIdはクライアントの自己申告文字列で、以前は「1〜200字の非空文字列」
+  // としか検証していなかった。認証済みメンバーはidFromName(bossId)経由で任意個の
+  // RaidBossDOインスタンスを作れてしまい（コンストラクタでSQLiteテーブルをCREATEするため
+  // 未初期化ボス宛でも永続ストレージが発生する）、1リクエストの上限（500件）まで
+  // 任意種のインスタンスを一括生成できた。boss-<ISO年>-W<ISO週番号2桁>の形式のみ許可する
+  it('bossIdが `boss-YYYY-Wnn` 形式でないpayloadは400になる（任意DO作成の防止）', async () => {
+    const deviceToken = await registerDevice()
+    const { startAt } = await initCurrentBoss(1000)
+    const base = { questionCount: 1, answeredAt: startAt + HOUR_MS }
+
+    for (const bossId of [
+      'arbitrary-attacker-controlled-id',
+      'boss-2026-W3', // 週番号が1桁（2桁固定でない）
+      'boss-26-W03', // 年が2桁
+      'boss-2026-w03', // 小文字
+      'boss-2026-W03-extra', // 余分な文字列
+      '../../../etc/passwd',
+    ]) {
+      const res = await SELF.fetch(
+        syncRequest(deviceToken, [{ attemptId: `bad-boss-${bossId}`, bossId, damage: 1, ...base }]),
+      )
+      expect(res.status).toBe(400)
+    }
+  })
+
+  it('bossIdが正しい形式（前週分含む）なら受理される', async () => {
+    const deviceToken = await registerDevice()
+    const { bossId, startAt } = await initCurrentBoss(1000)
+
+    const res = await SELF.fetch(
+      syncRequest(deviceToken, [
+        {
+          attemptId: 'valid-boss-id',
+          bossId,
+          damage: 100,
+          questionCount: 1,
+          answeredAt: startAt + HOUR_MS,
+        },
+      ]),
+    )
+    expect(res.status).toBe(200)
   })
 
   it('冪等系: 同一attemptIdの二重送信は二重計上されない', async () => {

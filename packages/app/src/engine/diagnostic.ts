@@ -14,10 +14,24 @@ import { RATING_K_EARLY, difficultyToRatingSpace, expectedAccuracy } from './rat
 export const DIAGNOSTIC_ITEMS_PER_SECTION = 15
 export const DIAGNOSTIC_TOTAL_ITEMS = DIAGNOSTIC_ITEMS_PER_SECTION * 2
 
-/** 自己申告TOEICスコア→初期R（03の5.1: `R = TOEIC×1000/990`）。未申告時は既定値をそのまま返す */
+/** 自己申告TOEICスコアの許容範囲（公式スコアの最小・最大）。T-187（Q-36） */
+export const TOEIC_SCORE_MIN = 10
+export const TOEIC_SCORE_MAX = 990
+
+/**
+ * 自己申告TOEICスコア→初期R（03の5.1: `R = TOEIC×1000/990`）。未申告時は既定値をそのまま返す。
+ * T-187（Q-36）: 入力側（DiagnosticScreen）で範囲外は拒否するが、保存済み途中経過の復元など
+ * 入力検証を経由しない値が渡ってもレート計算が壊れないよう、engine層でも10〜990にクランプする
+ * （多層防御）。桁誤り（65や6500）が初期レートへそのまま伝播すると、以降の全出題難易度・
+ * クイックパック構成・予測スコアに波及し、修正手段が診断のやり直ししか無くなるため
+ */
 export function initialRatingFromToeic(toeic: number | null, fallbackRating: number): number {
-  if (toeic === null) return fallbackRating
-  return (toeic * 1000) / 990
+  // T-312（K-45）: toeicがNaNだと、Math.max/Math.minはNaNを伝播させるだけで実際には
+  // クランプされず、fallbackRatingへの退避も起きない。結果のNaNがinitializeRatings経由で
+  // L/Rレートへ永続化され、以降のレート計算がすべてNaNに汚染される
+  if (toeic === null || !Number.isFinite(toeic)) return fallbackRating
+  const clamped = Math.min(TOEIC_SCORE_MAX, Math.max(TOEIC_SCORE_MIN, toeic))
+  return (clamped * 1000) / 990
 }
 
 /**

@@ -16,7 +16,7 @@ import type { ListeningStage, SrsCardRecord } from '../db/schema'
 import { templateForSeason } from './curriculum'
 import { getActiveReviewWords, similarOrFallback } from './keyVocab'
 import rawConfig from './quickPackConfig.json'
-import { getSrsQueue } from './srs'
+import { DEFAULT_SRS_OPTIONS, getSrsQueue } from './srs'
 import { getWeakTags } from './tagStats'
 import type {
   CurriculumTemplate,
@@ -70,6 +70,29 @@ export function validateQuickPackConfig(config: QuickPackConfig): void {
     throw new Error(
       `quickPackConfig の recentlyCorrectWeight は0より大きい必要がある（実際: ${config.recentlyCorrectWeight}）`,
     )
+  }
+  // T-311（K-41）: 以下は従来検証が無く、不正値がJSON差し替え時に静かに素通りしていた
+  if (!(config.priorityWeight > 0)) {
+    throw new Error(
+      `quickPackConfig の priorityWeight は0より大きい必要がある（実際: ${config.priorityWeight}）`,
+    )
+  }
+  if (!(config.newCardShare >= 0 && config.newCardShare <= 1)) {
+    throw new Error(
+      `quickPackConfig の newCardShare は0以上1以下である必要がある（実際: ${config.newCardShare}）`,
+    )
+  }
+  if (!(config.srsCapPerPack >= 0)) {
+    throw new Error(
+      `quickPackConfig の srsCapPerPack は0以上である必要がある（実際: ${config.srsCapPerPack}）`,
+    )
+  }
+  for (const [key, durationConfig] of Object.entries(config.durations)) {
+    if (!(durationConfig.totalItems > 0)) {
+      throw new Error(
+        `quickPackConfig の durations.${key}.totalItems は0より大きい必要がある（実際: ${durationConfig.totalItems}）`,
+      )
+    }
   }
 }
 
@@ -457,7 +480,11 @@ export async function generateQuickPack(
   const config = QUICK_PACK_CONFIG
   const durationConfig = config.durations[String(request.duration) as '3' | '7' | '15']
 
-  const queue = await getSrsQueue(db, now)
+  // T-188（Q-98）: 新規停止の滞留判定を、実際の出題候補プールに対する isServable 基準にする。
+  // 配信から外れたパックの問題カードで滞留枠が占有され、新規導入が恒久停止するのを防ぐ
+  const queue = await getSrsQueue(db, now, DEFAULT_SRS_OPTIONS, (c) =>
+    isServable(c, request.questions),
+  )
   const items: QuickPackItem[] = []
 
   // ① SRS期限超過（上限 = min(15, パック容量)。溢れは次パックへ）

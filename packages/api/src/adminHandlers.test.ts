@@ -4,7 +4,7 @@
 // - 既にボスがある週に generateWeeklyBoss を再実行して emaDailyDamage を二度平滑化すること
 //   （③ボスDO初期化は冪等だが①EMA更新は冪等でない）
 import { env, reset, runInDurableObject, SELF } from 'cloudflare:test'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { bossProfileForWeek } from './bossProfiles'
 import { memberKey, type MemberRecord } from './env'
@@ -106,5 +106,20 @@ describe('POST /admin/raid/generate', () => {
       }),
     )
     expect(res.status).toBe(404)
+  })
+
+  // T-250・29のQ-32: 以前はadminトークンの照合が`!==`だった。`!==`は不一致文字までの
+  // 応答時間差から秘密値を推測されうる（タイミング攻撃）。crypto.subtle.timingSafeEqualが
+  // 実際に比較へ使われていることを、そのメソッドの呼び出しをスパイして確認する
+  // （`!==`のままだと本テストはtimingSafeEqualが一度も呼ばれず失敗する）
+  it('adminトークンの照合はcrypto.subtle.timingSafeEqualで行われる（タイミングセーフ比較）', async () => {
+    const spy = vi.spyOn(crypto.subtle, 'timingSafeEqual')
+    try {
+      const res = await SELF.fetch(generateRequest(ADMIN_TOKEN))
+      expect(res.status).toBe(200)
+      expect(spy).toHaveBeenCalled()
+    } finally {
+      spy.mockRestore()
+    }
   })
 })

@@ -86,15 +86,28 @@ export interface SubQuestion {
 }
 
 /**
+ * passages[].kind の許容値（実データで使用中の分類。04の2節）。
+ * T-239（Q-82）: 以前はdocコメントでのみ列挙されバリデータで強制されていなかった。
+ * 新しい分類を追加する場合は本型と validate.ts の PASSAGE_KINDS を同じPRで更新する。
+ */
+export type PassageKind =
+  'email' | 'notice' | 'article' | 'chat' | 'form' | 'advertisement' | 'memo'
+
+/**
  * text_passage（Part6/7）の刺激文書（正本: docs/24 3.1節・ADR 0006 判断3）。
  * Part6・Part7単一は1件、Part7複数パッセージは2〜3件。
  * Part6は text に空所マーカー [[1]]…[[4]] を埋め込み、subQuestions の n 番目が [[n]] に対応する。
  */
 export interface Passage {
   id: string
-  /** email | notice | article | chat | form | advertisement 等。表示ラベルと出題文脈 */
-  kind: string
+  /** 表示ラベルと出題文脈（PassageKind参照） */
+  kind: PassageKind
   text: string
+  /**
+   * 本文の日本語訳（T-347・K-89）。復習時に本文の意味を確認する手段が設問文訳のみだったため追加。
+   * 省略時は本文訳を表示しない（既存コンテンツとの後方互換のためoptional）
+   */
+  translation?: string
 }
 
 /**
@@ -149,6 +162,14 @@ export interface PackMeta {
   targetLevel: [number, number]
   /** オフラインキャッシュの容量表示用。ビルド時（T-32）に確定するため生成段階では省略可 */
   sizeBytes?: number
+  /**
+   * AIクロスレビュー＋敵対的検証の工程（T-355・docs/32 8節）の記録。任意フィールドで、
+   * 既存パックの移行を止めないため必須化しない。origin文字列にも工程名・日付を記録するが、
+   * ここでは同じ内容を機械可読な形で持つ
+   */
+  reviewedBy?: string
+  reviewedAt?: string
+  reviewMethod?: string
 }
 
 /** 問題パックJSON全体（コンテンツ層の配信単位） */
@@ -262,7 +283,12 @@ export interface RaidSyncResponse {
    * クライアントは期間外になりうるpayloadをそもそもエンキューしない責務を持つ）
    */
   acceptedIds: string[]
-  boss: RaidBossState
+  /**
+   * 当週ボスが未生成（週次cron未実行・遅延等）の場合はnull（T-285・K-8）。
+   * 受理済みのacceptedIdsは（前週分等が含まれる場合があるため）nullでも意味を持つため、
+   * この場合も200で返す。クライアントはboss===nullのときraidStateの更新をスキップする
+   */
+  boss: RaidBossState | null
 }
 
 /**
@@ -420,6 +446,14 @@ export type BattleClientMessage =
 /** ルーム参加者1件（表示名のみ。個人紐づき情報は含めない） */
 export interface BattleParticipant {
   displayName: string
+  /**
+   * 現在WebSocket接続中かどうか（T-265・29のQ-...で見つかった追加課題）。
+   * ロスター（deviceToken単位のParticipantState）はルームの生存期間中保持されるため、
+   * falseは瞬断中または離脱済みを示すのみで一覧からは消えない
+   * （常にロスター全件を返す。切断済みでも常時「参加者」として表示され続ける懸念は
+   * このフラグでUI側が区別する前提で許容する。docs/22 3.2節・docs/30 17節参照）
+   */
+  connected: boolean
 }
 
 /** Server→Client: ルーム状態（参加者一覧） */
@@ -443,6 +477,8 @@ export interface BattleQuestionOpenMessage {
 export interface BattleStandingEntry {
   displayName: string
   totalPoints: number
+  /** 現在WebSocket接続中かどうか（T-265。BattleParticipant.connectedと同じ意味） */
+  connected: boolean
 }
 
 /** Server→Client: 各問クローズ後の順位表示 */

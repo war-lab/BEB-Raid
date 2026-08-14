@@ -121,6 +121,14 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
     }
   }, [allDone, db])
 
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
+
   const question = shadowingQuestions[index]
   const laps = question ? (lapsByQuestionId[question.id] ?? 0) : 0
   // 完了は周回数から導く（素材ごとに保持されるので、実施済み素材へ戻ると「次へ」のまま）。
@@ -200,6 +208,11 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
 
   /** 次の素材へ（T-120・J-59: 3周完了前でも常時移動可。移動時は素材固有stateをリセットする） */
   function handleNext() {
+    // T-315（K-48）: 旧素材の再生中に移動すると、onPositionが生きたまま新素材の原稿上で
+    // 旧音声の時計に沿ったハイライトが進み、旧音声が自然終了すると（stop()を経ないため
+    // 'ended'として解決される）handlePlaybackEndedが旧素材の周回を加算してしまう
+    // （T-157「中断は周回に数えない」規約への退行）
+    audioPlayer.stop()
     userMovedRef.current = true
     setIndex((i) => i + 1)
     // 周回数は素材ごとに保持するのでリセットしない（T-157。docs/27 のS-37）
@@ -214,6 +227,8 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
    * 古い値で通過してしまい、負のindexになって画面が壊れる
    */
   function handlePrev() {
+    // T-315（K-48）: handleNextと同じ理由。旧素材の再生を明示的に止める
+    audioPlayer.stop()
     userMovedRef.current = true
     setIndex((i) => (i > 0 ? i - 1 : i))
     // 周回数は素材ごとに保持するのでリセットしない（T-157。docs/27 のS-37）
@@ -307,7 +322,15 @@ export function ShadowingScreen({ db, audioPlayer, shadowingQuestions }: Props) 
             次の素材へ
           </button>
           {/* 進行中の脱出導線（DrillScreenの中断と同じ思想。従来は素材完了までこの画面から出られなかった） */}
-          <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={() => {
+              // T-221（Q-15）: 再生中の音声を止めずに離れると、ホーム画面で流れ続けていた
+              audioPlayer.stop()
+              navigate('home')
+            }}
+          >
             中断してホームへ
           </button>
           <div className="shadowing-speed-chips">

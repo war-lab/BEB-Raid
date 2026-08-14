@@ -38,7 +38,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'delivery',
     tags: ['ビジネス名詞'],
-    question: 'The ___ of the new equipment was delayed by a week.',
+    question: 'The ___ of the new equipment to our loading dock was delayed by a week.',
     correctText: 'delivery',
     distractors: ['renewal', 'warranty', 'inspection'],
     explanation:
@@ -60,7 +60,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'training',
     tags: ['ビジネス名詞'],
-    question: 'All new hires must complete safety ___ before starting work.',
+    question: 'All new hires must complete a two-week safety ___ course before starting work.',
     correctText: 'training',
     distractors: ['qualification', 'certification', 'orientation'],
     explanation:
@@ -82,12 +82,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'reception',
     tags: ['ビジネス名詞'],
-    question: 'Please leave your bag at the ___ desk.',
+    question:
+      'Please leave your bag at the ___ desk when you arrive at our office for the interview.',
     correctText: 'reception',
     distractors: ['checkpoint', 'gateway', 'concierge'],
     explanation:
-      '来客対応の「受付」はreception。checkpoint（検問所）・gateway（玄関口）・concierge（コンシェルジュ、人を指す名詞）は受付デスクの名称として不自然。',
-    translation: 'かばんは受付のデスクに預けてください。',
+      '来客対応の「受付」はreception。checkpoint（検問所）・gateway（玄関口）は受付デスクの名称として不自然。concierge（コンシェルジュ）はホテル等の接客係を指す語で、一般的な会社の受付には使わない（2026-08-07訂正・T-342・K-80: 旧設問は場面が曖昧で"concierge desk"というホテル用語とも解釈でき二重正答の疑いがあったため、面接で訪れる一般オフィスという場面を明示した）。',
+    translation: '面接のため当社オフィスにいらっしゃる際は、かばんを受付のデスクに預けてください。',
     difficulty: 2,
   },
   {
@@ -104,12 +105,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'estate',
     tags: ['ビジネス名詞'],
-    question: 'The company purchased a large real ___ near the airport last spring.',
+    question: 'The company hired a local ___ agent to help find office space downtown.',
     correctText: 'estate',
-    distractors: ['premises', 'facility', 'venue'],
+    distractors: ['venue', 'facility', 'premises'],
     explanation:
-      '"real estate"（不動産）は定番表現。premises（構内）・facility（施設）・venue（会場）はこの決まり文句には当てはまらない。',
-    translation: 'その会社は昨春、空港近くの広大な不動産を購入した。',
+      '不動産業者を表す"estate agent"（不動産仲介業者）は定番表現。venue（会場）・facility（施設）・premises（構内）はagentと結びつく業種を表さない（2026-08-07訂正・T-342・K-80: 旧設問"a large real ___"は空所前のrealに固定され、estate以外を入れると非文になる欠陥があった）。',
+    translation:
+      'その会社は、中心街でオフィススペースを見つけるのを手伝ってもらうため、地元の不動産仲介業者を雇った。',
     difficulty: 3,
   },
   {
@@ -148,7 +150,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'freight',
     tags: ['ビジネス名詞'],
-    question: 'The ___ was delayed at the port due to a customs issue.',
+    question: 'The ___ charges for the cargo vessel rose after the delay at the port.',
     correctText: 'freight',
     distractors: ['merchandise', 'inventory', 'consignment'],
     explanation:
@@ -183,9 +185,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'The new manufacturing ___ will open next spring.',
     correctText: 'facility',
-    distractors: ['estate', 'premises', 'venue'],
+    distractors: ['warehouse', 'showroom', 'venue'],
     explanation:
-      '生産のための「施設」はfacility。estate（地所）・premises（構内、単体では工場全体を指さない）・venue（会場）は製造拠点を表す語として不自然。',
+      '生産のための「施設」はfacility。warehouse（倉庫）・showroom（展示室）・venue（会場）は製造拠点を表す語として不自然。',
     translation: '新しい製造施設は来春オープンする。',
     difficulty: 2,
   },
@@ -341,9 +343,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['頻出動詞'],
     question: 'The CEO decided to ___ daily operations to the vice president last week.',
     correctText: 'delegate',
-    distractors: ['authorize', 'comply', 'notify'],
+    distractors: ['terminate', 'prioritize', 'recruit'],
     explanation:
-      '業務を部下に「委任する」はdelegate。authorize（承認する）・comply（従う）・notify（通知する）は権限移譲の意味を持たない。',
+      '業務を部下に「委任する」はdelegate。terminate（解雇する）・prioritize（優先順位をつける）・recruit（採用する）はいずれも「〜をXに」の形で権限移譲を表せない。',
     translation: 'CEOは先週、日常業務を副社長に委任することにした。',
     difficulty: 3,
   },
@@ -372,7 +374,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'supervise',
     tags: ['頻出動詞'],
-    question: 'A senior technician will ___ the new interns throughout their first three months.',
+    question: 'A senior technician will directly ___ and train the new interns for three months.',
     correctText: 'supervise',
     distractors: ['oversee', 'coordinate', 'recruit'],
     explanation:
@@ -385,9 +387,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['頻出動詞'],
     question: 'The regional director will ___ all three branch offices starting next month.',
     correctText: 'oversee',
-    distractors: ['supervise', 'coordinate', 'recruit'],
+    distractors: ['recruit', 'delegate', 'authorize'],
     explanation:
-      '複数の組織を広く「統括する」はoversee。supervise（個々の人を直接監督する）・coordinate（調整する）・recruit（採用する）は複数拠点の統括を表す語として弱い。',
+      '複数の組織を広く「統括する」はoversee。recruit（採用する）・delegate（委任する。通常はタスクを対象にとる）・authorize（承認する）は拠点そのものを目的語にとる統括の意味を表せない。',
     translation: '地域統括責任者は来月から、3つの支店すべてを統括する。',
     difficulty: 3,
   },
@@ -395,7 +397,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     word: 'recruit',
     tags: ['頻出動詞'],
     question:
-      'The company plans to ___ ten new engineers for its growing research division this year.',
+      'The company plans to ___ ten new engineers through job fairs for its research division this year.',
     correctText: 'recruit',
     distractors: ['hire', 'terminate', 'delegate'],
     explanation:
@@ -408,9 +410,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['頻出動詞'],
     question: 'We need to ___ additional staff for the holiday season.',
     correctText: 'hire',
-    distractors: ['recruit', 'terminate', 'delegate'],
+    distractors: ['comply', 'expedite', 'prioritize'],
     explanation:
-      '人を「雇う」はhire。recruit（募集する。より広い採用活動を指す）・terminate（解雇する）・delegate（委任する）はこの文脈に合わない。',
+      '人を「雇う」はhire。comply（従う。目的語をとらない自動詞的用法）・expedite（促進する。手続き等が対象）・prioritize（優先順位をつける。タスクが対象）はいずれもadditional staffを目的語にとる意味として不自然。',
     translation: '私たちは休暇シーズンのために追加のスタッフを雇う必要がある。',
     difficulty: 2,
   },
@@ -419,9 +421,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['頻出動詞'],
     question: 'Please ___ the shipping department of any address changes.',
     correctText: 'notify',
-    distractors: ['authorize', 'comply', 'delegate'],
+    distractors: ['recruit', 'terminate', 'oversee'],
     explanation:
-      '相手に「通知する」はnotify。authorize（承認する）・comply（従う）・delegate（委任する）は情報を伝える意味を持たない。',
+      '相手に「通知する」はnotify。recruit（採用する）・terminate（解雇する）・oversee（統括する）はいずれも「〜をXについて」の形で情報を伝える意味を表せない。',
     translation: '住所変更があれば配送部門に通知してください。',
     difficulty: 2,
   },
@@ -474,9 +476,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'She is planning her ___ after twenty-five years of service with the firm.',
     correctText: 'retirement',
-    distractors: ['appraisal', 'retention', 'attrition'],
+    distractors: ['appraisal', 'retention', 'mentorship'],
     explanation:
-      '勤続後の「退職」はretirement。appraisal（人事評価）・retention（人材の定着）・attrition（自然減）は退職という個人の行為そのものを指さない。',
+      '勤続後の「退職」はretirement。appraisal（人事評価）・retention（人材の定着）・mentorship（指導制度）は退職という個人の行為そのものを指さない。',
     translation: '彼女はその会社での25年間の勤続の後、退職を計画している。',
     difficulty: 3,
   },
@@ -561,12 +563,12 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'client',
     tags: ['ビジネス名詞'],
-    question: 'The lawyer met with her ___ to discuss the case.',
+    question: 'The consultant met with her ___ to discuss the renewal of the contract.',
     correctText: 'client',
     distractors: ['competitor', 'affiliate', 'stakeholder'],
     explanation:
       '専門家に依頼する側の「顧客・依頼人」はclient。competitor（競合他社）・affiliate（提携先）・stakeholder（利害関係者）は依頼人を意味しない。',
-    translation: 'その弁護士は依頼人と会って案件について話し合った。',
+    translation: 'そのコンサルタントは顧客と会って契約の更新について話し合った。',
     difficulty: 2,
   },
   {
@@ -605,7 +607,7 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'presentation',
     tags: ['ビジネス名詞'],
-    question: 'She gave a ___ on the new marketing strategy.',
+    question: 'She gave a slide ___ on the new marketing strategy.',
     correctText: 'presentation',
     distractors: ['briefing', 'ceremony', 'testimonial'],
     explanation:
@@ -638,12 +640,14 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'premises',
     tags: ['ビジネス名詞'],
-    question: 'Visitors must sign in before entering the ___ during regular business hours.',
+    question:
+      'Visitors must sign in at the front gate before entering the ___, which includes the parking area and every building on site.',
     correctText: 'premises',
-    distractors: ['facility', 'estate', 'venue'],
+    distractors: ['showroom', 'warehouse', 'venue'],
     explanation:
-      '建物・敷地全体を指す「構内」はpremises。facility（施設という機能面の語）・estate（地所）・venue（会場）はこの文脈では代わりにくい。',
-    translation: '訪問者は、通常の営業時間内に構内に入る前に署名しなければならない。',
+      '建物・敷地全体（駐車場や複数棟を含む一区画）を指す「構内」はpremises。showroom（展示室）・warehouse（倉庫）・venue（会場）はこの文脈では代わりにくい（2026-08-07訂正・T-342・K-80: 旧設問は"敷地全体"という限定が無く二重正答になり得たため、駐車場・複数棟を含む区画であることを明示した）。',
+    translation:
+      '訪問者は、駐車場と敷地内のすべての建物を含む構内に入る前に、正門で署名しなければならない。',
     difficulty: 3,
   },
   {
@@ -704,12 +708,14 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'retail',
     tags: ['ビジネス名詞'],
-    question: 'The brand plans to expand into the ___ market across several new countries.',
+    question:
+      'The clothing brand plans to expand into the ___ market by opening standalone stores across several new countries.',
     correctText: 'retail',
     distractors: ['freight', 'catering', 'hospitality'],
     explanation:
-      '「小売」市場はretail market。freight（貨物輸送）・catering（ケータリング）・hospitality（もてなし業）は市場の種類として合わない。',
-    translation: 'そのブランドは、いくつかの新しい国々にまたがって小売市場への進出を計画している。',
+      '「小売」市場はretail market。freight（貨物輸送）・catering（ケータリング）・hospitality（もてなし業。ホテルやレストラン業を指し、衣料品の店舗展開には当てはまらない）は市場の種類として合わない（2026-08-07訂正・T-342・K-80: 旧設問はブランドの業種が不明でhospitality marketとも読め二重正答の疑いがあったため、衣料品ブランドが実店舗を展開する場面と明示した）。',
+    translation:
+      'その衣料品ブランドは、いくつかの新しい国々で単独店舗を展開することにより、小売市場への進出を計画している。',
     difficulty: 3,
   },
   {
@@ -726,12 +732,12 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'inquiry',
     tags: ['ビジネス名詞'],
-    question: 'The hotel received an ___ about group discounts.',
+    question: 'The hotel received several ___s about group discounts last week.',
     correctText: 'inquiry',
     distractors: ['dispute', 'testimonial', 'briefing'],
     explanation:
       '情報を求める「問い合わせ」はinquiry。dispute（紛争）・testimonial（推薦の声）・briefing（説明会）は問い合わせという行為を表さない。',
-    translation: 'そのホテルは団体割引についての問い合わせを受けた。',
+    translation: 'そのホテルは先週、団体割引についての問い合わせを何件か受けた。',
     difficulty: 2,
   },
   {
@@ -804,12 +810,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'dispute',
     tags: ['ビジネス名詞'],
-    question: 'The two companies settled their ___ out of court after months of negotiation.',
+    question:
+      'The two companies settled their ___ over the delivery terms after months of negotiation.',
     correctText: 'dispute',
     distractors: ['inquiry', 'variance', 'infringement'],
     explanation:
       '当事者間の「紛争」はdispute。inquiry（問い合わせ）・variance（例外許可）・infringement（侵害。紛争の原因になり得るが紛争自体ではない）はこの文脈に合わない。',
-    translation: 'その2社は数か月の交渉の後、法廷外で紛争を解決した。',
+    translation: 'その2社は数か月の交渉の後、納期条件をめぐる意見の相違を解決した。',
     difficulty: 3,
   },
   {
@@ -827,12 +834,13 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'firewall',
     tags: ['ビジネス名詞'],
-    question: "The IT team installed a new ___ to block intrusions after last month's breach.",
+    question: 'The IT team installed a new ___ as part of this year’s scheduled network upgrade.',
     correctText: 'firewall',
     distractors: ['password', 'protocol', 'middleware'],
     explanation:
       '不正アクセスを防ぐ「ファイアウォール」はfirewall。password（パスワード）・protocol（通信規約）・middleware（ミドルウェア）は侵入を遮断する装置そのものを指さない。',
-    translation: 'IT部門は先月の侵入事件を受けて、侵入を遮断する新しいファイアウォールを導入した。',
+    translation:
+      'IT部門は今年の予定されたネットワーク更新の一環として、新しいファイアウォールを導入した。',
     difficulty: 4,
   },
   {
@@ -863,21 +871,22 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'The opening ___ will take place in the main hall.',
     correctText: 'ceremony',
-    distractors: ['briefing', 'outreach', 'testimonial'],
+    distractors: ['inspection', 'orientation', 'sabbatical'],
     explanation:
-      '公式な「式典」はceremony。briefing（説明会）・outreach（働きかけ）・testimonial（推薦の声）は式典そのものを意味しない。',
+      '公式な「式典」はceremony。inspection（検査）・orientation（新人研修）・sabbatical（研究休暇）は式典そのものを意味しない。',
     translation: '開会式はメインホールで行われる。',
     difficulty: 2,
   },
   {
     word: 'regulation',
     tags: ['ビジネス名詞'],
-    question: 'The factory must follow strict safety ___ set by the state government.',
+    question:
+      'The factory must comply with a new safety ___ issued by the state government last month.',
     correctText: 'regulation',
     distractors: ['variance', 'protocol', 'condemnation'],
     explanation:
-      '法令上の「規制」はregulation。variance（例外許可。むしろ規制からの逸脱を指す）・protocol（通信規約）・condemnation（使用不可宣告）は規制そのものを意味しない。',
-    translation: 'その工場は、州政府が定めた厳格な安全規制に従わなければならない。',
+      '行政が発する「規則」はregulation。variance（例外許可。むしろ規制からの逸脱を指す）・protocol（手順書。組織が自ら定める運用手順で、政府がissueするものではない）・condemnation（使用不可宣告）はいずれも州政府が発する規則を指さない。',
+    translation: 'その工場は、州政府が先月発した新しい安全規則を遵守しなければならない。',
     difficulty: 3,
   },
   {
@@ -885,9 +894,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'The manager held a ___ before the client visit to review the agenda.',
     correctText: 'briefing',
-    distractors: ['ceremony', 'outreach', 'testimonial'],
+    distractors: ['endorsement', 'demonstration', 'inauguration'],
     explanation:
-      '短時間の「説明会」はbriefing。ceremony（式典）・outreach（働きかけ）・testimonial（推薦の声）は事前説明の意味を持たない。',
+      '短時間の「説明会」はbriefing。endorsement（推薦）・demonstration（実演）・inauguration（就任式）は事前説明の意味を持たない。',
     translation: '部長は、議題を確認するため顧客訪問の前に説明会を開いた。',
     difficulty: 3,
   },
@@ -929,21 +938,21 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: '___ at the mall dropped sharply after the new highway opened last spring.',
     correctText: 'footfall',
-    distractors: ['occupancy', 'throughput', 'retention'],
+    distractors: ['latency', 'bandwidth', 'encryption'],
     explanation:
-      '店舗等への「来店客数」はfootfall。occupancy（入居率）・throughput（処理能力）・retention（人材の定着）は来店客数を意味しない。',
+      '店舗等への「来店客数」はfootfall。latency（通信の遅延）・bandwidth（帯域幅）・encryption（暗号化）はいずれもIT分野の語でモールへの来店客数を意味しない。',
     translation: '昨春、新しい高速道路が開通した後、モールへの来店客数は大きく減少した。',
     difficulty: 4,
   },
   {
-    word: 'attrition',
+    word: 'apprenticeship',
     tags: ['ビジネス名詞'],
-    question: "The company's employee ___ rate fell last year for the third year in a row.",
-    correctText: 'attrition',
-    distractors: ['retention', 'redundancy', 'downsizing'],
+    question: 'The workshop offers a two-year ___ for students entering the furniture trade.',
+    correctText: 'apprenticeship',
+    distractors: ['retention', 'appraisal', 'onboarding'],
     explanation:
-      '自然に人員が減っていく「自然減」はattrition。retention（定着。むしろ逆の概念）・redundancy（人員整理）・downsizing（人員削減）はいずれも意図的な削減を指し、自然減とは異なる。',
-    translation: 'その会社の従業員自然減率は、3年連続で昨年低下した。',
+      '実務を学びながら技能を身につける「実習生制度」はapprenticeship。retention（人材の定着）・appraisal（人事評価）・onboarding（入社直後の新人研修）はいずれも複数年の技能訓練課程を指さない。',
+    translation: 'その工房は、家具業界に入る学生向けに2年間の実習生制度を設けている。',
     difficulty: 4,
   },
   {
@@ -985,32 +994,33 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'Each staff member has an annual performance ___ conducted by their supervisor.',
     correctText: 'appraisal',
-    distractors: ['retention', 'attrition', 'onboarding'],
+    distractors: ['retention', 'mentorship', 'onboarding'],
     explanation:
-      '個人の業績を評価する「人事評価」はappraisal。retention（定着）・attrition（自然減）・onboarding（新人研修）は評価という行為を意味しない。',
+      '個人の業績を評価する「人事評価」はappraisal。retention（定着）・mentorship（指導制度）・onboarding（新人研修）は評価という行為を意味しない。',
     translation: '各スタッフは、上司によって行われる年次の人事評価を受ける。',
     difficulty: 4,
   },
   {
     word: 'retention',
     tags: ['ビジネス名詞'],
-    question: 'The HR team launched a new employee ___ program to reduce turnover this year.',
+    question: 'The HR team launched a new employee ___ program to keep experienced staff.',
     correctText: 'retention',
-    distractors: ['attrition', 'downsizing', 'onboarding'],
+    distractors: ['appraisal', 'mentorship', 'onboarding'],
     explanation:
-      '人材をつなぎとめる「定着」はretention。attrition（自然減。逆方向の概念）・downsizing（人員削減）・onboarding（新人研修）は定着施策そのものを意味しない。',
-    translation: '人事チームは、今年の離職率を下げるために新しい従業員定着プログラムを開始した。',
+      '人材をつなぎとめる「定着」はretention。appraisal（人事評価）・mentorship（指導制度）・onboarding（新人研修）は定着施策そのものを意味しない。',
+    translation:
+      '人事チームは、経験豊富なスタッフをつなぎとめるために新しい従業員定着プログラムを開始した。',
     difficulty: 4,
   },
   {
     word: 'amenity',
     tags: ['ビジネス名詞'],
-    question: 'The hotel offers many ___ including a rooftop pool and a modern gym.',
+    question: 'The rooftop pool is the hotel’s most popular ___ among business travelers.',
     correctText: 'amenity',
     distractors: ['utility', 'throughput', 'concierge'],
     explanation:
       '快適に過ごすための「設備」はamenity。utility（公共料金）・throughput（処理能力）・concierge（コンシェルジュ、人を指す）は設備を意味しない。',
-    translation: 'そのホテルは、屋上プールや最新のジムを含む多くの設備を提供している。',
+    translation: '屋上プールは、出張客に最も人気のあるそのホテルの設備だ。',
     difficulty: 3,
   },
   {
@@ -1040,9 +1050,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['言い換え語彙'],
     question: 'Being ___ is essential for this customer-facing role at the front desk.',
     correctText: 'punctual',
-    distractors: ['chartered', 'obsolete', 'nonrefundable'],
+    distractors: ['confidential', 'proprietary', 'habitable'],
     explanation:
-      '「時間に正確な」はpunctual。chartered（貸し切りの）・obsolete（旧式の）・nonrefundable（払い戻し不可の）は人の性質を表す語として合わない。',
+      '「時間に正確な」はpunctual。confidential（機密の）・proprietary（独自の、専有の）・habitable（居住可能な）は人の性質を表す語として合わない。',
     translation: 'フロントデスクでのこの顧客対応の役職には、時間を守ることが不可欠だ。',
     difficulty: 3,
   },
@@ -1074,9 +1084,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'Passengers must clear ___ before collecting luggage at the arrival hall downstairs.',
     correctText: 'immigration',
-    distractors: ['boarding', 'checkpoint', 'stopover'],
+    distractors: ['layover', 'concierge', 'reception'],
     explanation:
-      '空港の「出入国審査」はimmigration。boarding（搭乗）・checkpoint（検問所）・stopover（短期滞在）は出入国審査という手続きそのものを意味しない。',
+      '空港の「出入国審査」はimmigration。layover（乗り継ぎ待ち）・concierge（コンシェルジュ）・reception（受付）は出入国審査という手続きそのものを意味しない。',
     translation:
       '乗客は、下の階の到着ロビーで荷物を受け取る前に出入国審査を通過しなければならない。',
     difficulty: 3,
@@ -1084,12 +1094,12 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'stopover',
     tags: ['ビジネス名詞'],
-    question: 'Our flight includes a two-hour ___ in Tokyo before continuing on to Seoul.',
+    question: 'Our itinerary includes an overnight ___ in Tokyo before continuing on to Seoul.',
     correctText: 'stopover',
     distractors: ['boarding', 'immigration', 'gateway'],
     explanation:
       '目的地までの「短期滞在」はstopover。boarding（搭乗）・immigration（出入国審査）・gateway（玄関口）は途中滞在を意味しない。',
-    translation: '私たちの便は、ソウルへ向かう前に東京での2時間の短期滞在を含んでいる。',
+    translation: '私たちの旅程は、ソウルへ向かう前に東京での一泊の滞在を含んでいる。',
     difficulty: 3,
   },
   {
@@ -1118,13 +1128,14 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'overbook',
     tags: ['頻出動詞'],
-    question: 'The airline apologized after it decided to ___ the flight during the holiday rush.',
+    question:
+      'The airline apologized to passengers after it had ___ed the flight during the holiday rush.',
     correctText: 'overbook',
     distractors: ['terminate', 'allocate', 'authorize'],
     explanation:
       '定員を超えて予約を取る「オーバーブッキングする」はoverbook。terminate（終了させる）・allocate（割り当てる）・authorize（承認する）はこの意味を持たない。',
     translation:
-      'その航空会社は、休暇シーズンの混雑中に便をオーバーブッキングしたことについて謝罪した。',
+      'その航空会社は、休暇シーズンの混雑中に便を超過予約したことについて乗客に謝罪した。',
     difficulty: 4,
   },
   {
@@ -1132,21 +1143,21 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['言い換え語彙'],
     question: 'The old software became ___ after the update was rolled out company-wide.',
     correctText: 'obsolete',
-    distractors: ['punctual', 'chartered', 'nonrefundable'],
+    distractors: ['confidential', 'habitable', 'biodegradable'],
     explanation:
-      '時代遅れで使われなくなった「旧式の」はobsolete。punctual（時間に正確な）・chartered（貸し切りの）・nonrefundable（払い戻し不可の）はこの文脈に合わない。',
+      '時代遅れで使われなくなった「旧式の」はobsolete。confidential（機密の）・habitable（居住可能な）・biodegradable（生分解性の）はソフトウェアの状態を表す語として合わない。',
     translation: '古いソフトウェアは、全社的にアップデートが展開された後、旧式のものとなった。',
     difficulty: 3,
   },
   {
-    word: 'infringement',
+    word: 'relocation',
     tags: ['ビジネス名詞'],
-    question: 'The lawsuit involved a patent ___ claim filed by a rival manufacturer.',
-    correctText: 'infringement',
-    distractors: ['dispute', 'condemnation', 'acquittal'],
+    question: 'The board approved the ___ of the regional office to a larger building downtown.',
+    correctText: 'relocation',
+    distractors: ['acquisition', 'renovation', 'expansion'],
     explanation:
-      '権利の「侵害」はinfringement。dispute（紛争一般）・condemnation（使用不可宣告）・acquittal（無罪判決）は権利侵害という具体的行為を意味しない。',
-    translation: 'その訴訟は、競合の製造会社が提起した特許侵害の主張を含んでいた。',
+      '事業拠点の「移転」はrelocation。acquisition（買収）・renovation（改装）・expansion（拡大）はこの文脈に合わない。',
+    translation: '取締役会は、地域オフィスを中心街のより大きなビルへ移転することを承認した。',
     difficulty: 4,
   },
   {
@@ -1172,25 +1183,25 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     difficulty: 2,
   },
   {
-    word: 'redundancy',
+    word: 'turnaround',
     tags: ['ビジネス名詞'],
-    question: 'The merger led to significant staff ___ across both companies within a year.',
-    correctText: 'redundancy',
-    distractors: ['downsizing', 'attrition', 'retention'],
+    question: 'The new management team engineered a remarkable ___ within just one year.',
+    correctText: 'turnaround',
+    distractors: ['stagnation', 'decline', 'shortage'],
     explanation:
-      '役職廃止に伴う「人員整理」はredundancy。downsizing（全体的な人員削減。近い意味だが規模縮小の視点）・attrition（自然減）・retention（定着）はこの文脈での言い換えとしては不正確。',
-    translation: 'その合併は、1年以内に両社にわたる大幅な人員整理につながった。',
+      '業績の「立て直し」はturnaround。stagnation（停滞）・decline（衰退）・shortage（不足）は好転を意味しない。',
+    translation: '新しい経営陣は、わずか1年で見事な業績の立て直しを成し遂げた。',
     difficulty: 4,
   },
   {
-    word: 'downsizing',
+    word: 'modernization',
     tags: ['ビジネス名詞'],
-    question: 'The company announced a major ___ plan that will affect several offices.',
-    correctText: 'downsizing',
-    distractors: ['redundancy', 'retention', 'attrition'],
+    question: 'The company announced a major ___ plan to upgrade equipment at several factories.',
+    correctText: 'modernization',
+    distractors: ['consolidation', 'diversification', 'expansion'],
     explanation:
-      '組織全体の規模を縮小する「人員削減」はdownsizing。redundancy（個々の役職廃止）・retention（定着）・attrition（自然減）はこの文脈での言い換えとしては不正確。',
-    translation: 'その会社は、複数の拠点に影響する大規模な人員削減計画を発表した。',
+      '設備・体制を「近代化する」計画はmodernization。consolidation（統合）・diversification（多角化）・expansion（拡大）はこの文脈での言い換えとしては不正確。',
+    translation: 'その会社は、複数の工場に影響する大規模な近代化計画を発表した。',
     difficulty: 4,
   },
   {
@@ -1198,9 +1209,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['言い換え語彙'],
     question: 'The ticket is ___ once purchased, even if the event is canceled.',
     correctText: 'nonrefundable',
-    distractors: ['punctual', 'chartered', 'obsolete'],
+    distractors: ['proprietary', 'biodegradable', 'habitable'],
     explanation:
-      '「払い戻し不可の」はnonrefundable。punctual（時間に正確な）・chartered（貸し切りの）・obsolete（旧式の）はチケットの返金可否を表さない。',
+      '「払い戻し不可の」はnonrefundable。proprietary（独自の）・biodegradable（生分解性の）・habitable（居住可能な）はチケットの返金可否を表さない。',
     translation: 'そのチケットは、購入後は、たとえイベントが中止になっても払い戻し不可となる。',
     difficulty: 3,
   },
@@ -1220,9 +1231,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'Two-factor ___ adds an extra layer of security to every login attempt.',
     correctText: 'authentication',
-    distractors: ['encryption', 'protocol', 'firewall'],
+    distractors: ['recall', 'liability', 'warranty'],
     explanation:
-      '本人確認を行う「認証」はauthentication。encryption（暗号化）・protocol（通信規約）・firewall（ファイアウォール）は本人確認の手続きそのものを意味しない。',
+      '本人確認を行う「認証」はauthentication。recall（製品回収）・liability（法的責任）・warranty（保証）はいずれもセキュリティの手続きを意味せず、この文脈に合わない。',
     translation: '二要素認証は、あらゆるログイン試行に追加のセキュリティ層を加える。',
     difficulty: 4,
   },
@@ -1242,9 +1253,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'The devices communicate using a standard ___ recognized across the entire industry.',
     correctText: 'protocol',
-    distractors: ['middleware', 'firewall', 'endpoint'],
+    distractors: ['warranty', 'liability', 'recall'],
     explanation:
-      '通信の規約・手順を表す「通信規約」はprotocol。middleware（ミドルウェア）・firewall（ファイアウォール）・endpoint（末端機器）は通信手順そのものを意味しない。',
+      '通信の規約・手順を表す「通信規約」はprotocol。warranty（保証）・liability（法的責任）・recall（製品回収）はいずれも通信手順を意味せず、この文脈に合わない。',
     translation: 'それらの機器は、業界全体で認識されている標準的な通信規約を使って通信する。',
     difficulty: 4,
   },
@@ -1287,24 +1298,25 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
   {
     word: 'cybersecurity',
     tags: ['ビジネス名詞'],
-    question: 'The firm invested heavily in ___ after the data breach made headlines nationwide.',
+    question:
+      'The firm invested heavily in ___, covering everything from staff training to network defenses.',
     correctText: 'cybersecurity',
     distractors: ['authentication', 'encryption', 'firewall'],
     explanation:
       'デジタル環境全般を守る「サイバーセキュリティ」はcybersecurity。authentication（認証）・encryption（暗号化）・firewall（ファイアウォール）はいずれもサイバーセキュリティを構成する個別要素であり、全体を表す語ではない。',
     translation:
-      'その会社は、データ漏えいが全国的なニュースになった後、サイバーセキュリティに多額の投資をした。',
+      'その会社は、社員研修からネットワーク防御まで含むサイバーセキュリティに多額の投資をした。',
     difficulty: 4,
   },
   {
     word: 'phishing',
     tags: ['ビジネス名詞'],
-    question: 'Employees were warned about a new ___ email scam targeting company executives.',
+    question: 'Employees completed a short training course on how to recognize a ___ email.',
     correctText: 'phishing',
     distractors: ['infringement', 'condemnation', 'dispute'],
     explanation:
       '偽メール等で情報を盗む「フィッシング詐欺」はphishing。infringement（侵害）・condemnation（使用不可宣告）・dispute（紛争）はこの種の詐欺行為を意味しない。',
-    translation: '従業員は、会社の役員を狙う新しいフィッシング詐欺メールについて警告を受けた。',
+    translation: '従業員は、フィッシングメールの見分け方についての短い研修を修了した。',
     difficulty: 4,
   },
   {
@@ -1313,9 +1325,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     question:
       'The software update improved ___ between departments across the whole global organization.',
     correctText: 'integration',
-    distractors: ['virtualization', 'provisioning', 'throughput'],
+    distractors: ['recall', 'warranty', 'liability'],
     explanation:
-      '複数のものを一つにまとめる「統合」はintegration。virtualization（仮想化）・provisioning（プロビジョニング）・throughput（処理能力）は部門間の連携強化を意味しない。',
+      '複数のものを一つにまとめる「統合」はintegration。recall（製品回収）・warranty（保証）・liability（法的責任）はいずれも部門間の連携強化を意味せず、この文脈に合わない。',
     translation: 'そのソフトウェア更新は、組織全体にわたって部門間の統合を改善した。',
     difficulty: 3,
   },
@@ -1347,9 +1359,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'The website features a customer ___ on the homepage next to the pricing chart.',
     correctText: 'testimonial',
-    distractors: ['briefing', 'ceremony', 'outreach'],
+    distractors: ['inspection', 'orientation', 'demonstration'],
     explanation:
-      '利用者による「推薦の声」はtestimonial。briefing（説明会）・ceremony（式典）・outreach（働きかけ）は推薦の言葉そのものを意味しない。',
+      '利用者による「推薦の声」はtestimonial。inspection（検査）・orientation（新人研修）・demonstration（実演）は推薦の言葉そのものを意味しない。',
     translation: 'そのウェブサイトは、料金表の隣のホームページに顧客の推薦の声を掲載している。',
     difficulty: 3,
   },
@@ -1358,9 +1370,9 @@ export const KEY_VOCAB_SIMILAR_S3_RAW: KeyVocabSimilarS3RawEntry[] = [
     tags: ['ビジネス名詞'],
     question: 'The product is sold through an online ___ program run by several bloggers.',
     correctText: 'affiliate',
-    distractors: ['competitor', 'client', 'supplier'],
+    distractors: ['franchise', 'subsidiary', 'vendor'],
     explanation:
-      '提携して販売等を行う「提携先」はaffiliate。competitor（競合他社）・client（顧客）・supplier（仕入れ先）は提携関係を意味しない。',
+      '提携して販売等を行う「提携先」はaffiliate。franchise（フランチャイズ権）・subsidiary（子会社）・vendor（販売業者）はブロガーが運営する提携プログラムの呼称として不自然。',
     translation:
       'その製品は、複数のブロガーが運営するオンラインの提携プログラムを通じて販売されている。',
     difficulty: 3,

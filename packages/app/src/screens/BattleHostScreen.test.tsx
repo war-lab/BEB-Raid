@@ -195,7 +195,10 @@ describe('BattleHostScreen: ロビーの投影レイアウト（V-22）', () => 
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
     socket.emitMessage({
       type: 'roomState',
-      participants: [{ displayName: '花子' }, { displayName: '太郎' }],
+      participants: [
+        { displayName: '花子', connected: true },
+        { displayName: '太郎', connected: true },
+      ],
     })
     await screen.findByText('花子')
     const chips = container.querySelectorAll('[data-testid="battle-host-participants"] > li')
@@ -226,7 +229,10 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
     expect((await screen.findByTestId('battle-host-room-code')).textContent).toContain('ABCD')
 
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '花子' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '花子', connected: true }],
+    })
     expect(await screen.findByText('花子')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: '開始する' }))
@@ -249,7 +255,7 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
 
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '花子', totalPoints: 90 }],
+      entries: [{ displayName: '花子', totalPoints: 90, connected: true }],
     })
     expect(await screen.findByTestId('battle-host-standings')).toBeTruthy()
 
@@ -269,7 +275,7 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
     })
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '花子', totalPoints: 150 }],
+      entries: [{ displayName: '花子', totalPoints: 150, connected: true }],
     })
     // 最終問終了後は「次の問題へ」ではなく「結果発表」になる
     const finishButton = await screen.findByRole('button', { name: '結果発表' })
@@ -278,7 +284,7 @@ describe('BattleHostScreen: ルーム作成→進行→表彰の一連', () => {
 
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '花子', totalPoints: 150 }],
+      entries: [{ displayName: '花子', totalPoints: 150, connected: true }],
       bestGrowth: { displayName: '花子' },
     })
     expect(await screen.findByTestId('battle-host-result')).toBeTruthy()
@@ -366,7 +372,7 @@ describe('BattleHostScreen: 音声は自動再生しない（発起人の要望�
     )
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '太郎', totalPoints: 10 }],
+      entries: [{ displayName: '太郎', totalPoints: 10, connected: true }],
     })
 
     // 2問目: 「次の問題へ」だけでは再生しない
@@ -514,6 +520,28 @@ describe('BattleHostScreen: 離脱時の後始末', () => {
     unmount()
     expect(socket.closed).toBe(true)
   })
+
+  // 何を防ぐか（T-315・K-48）: T-221は「画面離脱時に音声を停止」を中断導線と
+  // popstateハンドラのみで実装しており、useEffectのunmount cleanupでの停止が
+  // 1件も無かった（投影中に離脱すると音声が流れ続ける）
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const socket = new FakeBattleSocket()
+    const audioPlayer = new ControllableAudioPlayer()
+    const { unmount } = render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={audioPlayer}
+        questionPool={[textBlankQuestion('q-1')]}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    unmount()
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
 })
 
 // V-11 投影用意匠（docs/25 4.3節・JV-5・JV-6）。防ぐもの:
@@ -588,7 +616,7 @@ describe('BattleHostScreen: 投影用意匠（V-11）', () => {
 
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: 'テスト1', totalPoints: 90 }],
+      entries: [{ displayName: 'テスト1', totalPoints: 90, connected: true }],
     })
     await screen.findByTestId('battle-host-standings')
     expect(view.container.querySelector('.screen-layout')).toBeNull()
@@ -613,6 +641,113 @@ describe('BattleHostScreen: 投影用意匠（V-11）', () => {
     expect(document.documentElement.dataset.theme).toBe('light')
     unmount()
     expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+})
+
+// T-217（Q-51）: ホストは出題中・順位表示中に中止・退出導線が無く、中止するにはブラウザバック
+// 頼みだった（socket切断で全参加者が落ちる=battleRoomDo.tsのcloseRoom）。ロビーの「やめる」も
+// 参加者が入室済みでも確認なしでルームを閉じていた。中止導線と確認を追加する
+describe('BattleHostScreen: 中止・退出導線（T-217）', () => {
+  it('ロビーの「やめる」は確認を経てから閉じる（参加者が入室済みでも無confirmで閉じない）', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '花子', connected: true }],
+    })
+    await screen.findByText('花子')
+
+    fireEvent.click(screen.getByRole('button', { name: 'やめる' }))
+    // 確認ダイアログを経るまでソケットは閉じない
+    expect(socket.closed).toBe(false)
+    expect(await screen.findByRole('alertdialog')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '終了する' }))
+    expect(socket.closed).toBe(true)
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('出題中は中止ボタンが出て、確認後に終了する（参加者全員が切断される契機）', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1'), textBlankQuestion('q-2')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 20_000,
+    })
+    await screen.findByTestId('battle-host-timer')
+
+    fireEvent.click(screen.getByRole('button', { name: '中止' }))
+    expect(await screen.findByRole('alertdialog')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '終了する' }))
+    expect(socket.closed).toBe(true)
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('途中順位フェーズでも中止ボタンが出る', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1'), textBlankQuestion('q-2')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: '花子', totalPoints: 90, connected: true }],
+    })
+    await screen.findByTestId('battle-host-standings')
+
+    expect(screen.getByRole('button', { name: '中止' })).toBeTruthy()
+  })
+
+  it('確認ダイアログで「続ける」を選ぶとソケットを閉じずに進行を続ける', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'やめる' }))
+    expect(await screen.findByRole('alertdialog')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '続ける' }))
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(socket.closed).toBe(false)
   })
 })
 
@@ -662,5 +797,60 @@ describe('BattleHostScreen: 切断理由ごとの案内', () => {
     const body = await renderAndClose(1006)
     expect(screen.getByText('接続が切れました')).toBeTruthy()
     expect(body.textContent).toContain('通信が途切れた')
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 抽選プレビュー・投影中の設問文・選択肢本文
+// （英文）に lang="en" が無く、lang="ja" の文書内で日本語の音声として読み上げられていたこと
+describe('BattleHostScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('抽選プレビューはquestion.questionがある行だけlang="en"が付く（音声問題の行は付かない）', () => {
+    const leaky = audioQaQuestion('q-leak-lang')
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={new FakeBattleSocket()}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[
+          leaky,
+          ...Array.from({ length: 20 }, (_, i) => textBlankQuestion(`p5-lang-${i}`)),
+        ]}
+        rng={() => 0.3}
+      />,
+    )
+
+    const preview = screen.getByTestId('battle-host-lottery-preview')
+    const textEl = screen.getByText('Please ___ the p5-lang-0.')
+    expect(textEl.getAttribute('lang')).toBe('en')
+    const audioRow = screen.getByText('音声問題（q-leak-lang）')
+    expect(audioRow.getAttribute('lang')).toBeNull()
+    expect(preview).toBeTruthy()
+  })
+
+  it('投影中の設問文にlang="en"が付く', async () => {
+    const socket = new FakeBattleSocket()
+    render(
+      <BattleHostScreen
+        raidApi={new FakeRaidApi()}
+        battleSocket={socket}
+        audioPlayer={new ControllableAudioPlayer()}
+        questionPool={[textBlankQuestion('q-1-lang')]}
+        rng={() => 0.3}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'ルームを作成' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    fireEvent.click(screen.getByRole('button', { name: '開始する' }))
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1-lang',
+      deadlineAt: Date.now() + 20_000,
+    })
+    await screen.findByTestId('battle-host-timer')
+
+    const questionEl = await screen.findByText('Please ___ the q-1-lang.')
+    expect(questionEl.getAttribute('lang')).toBe('en')
+    // 選択肢本文（投影専用の描画。ChoiceButtonを使わないため個別に検証する）
+    expect(screen.getByText('submit').getAttribute('lang')).toBe('en')
   })
 })

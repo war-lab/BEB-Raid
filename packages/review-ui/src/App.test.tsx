@@ -56,6 +56,7 @@ function part5Draft(id: string, answer = 'A'): GeneratedItemDraft {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  localStorage.clear()
 })
 
 describe('App: 1サイクル（読込→採用/破棄→書出）', () => {
@@ -143,6 +144,64 @@ describe('App: 1サイクル（読込→採用/破棄→書出）', () => {
     const [, accepted, rejected] = submitSpy.mock.calls[0]!
     expect(accepted).toEqual([])
     expect(rejected).toEqual([{ id: 'v-1', kind: 'vocab_card', reason: '重複語彙' }])
+  })
+})
+
+describe('App: 取り消しと途中保存（T-238・Q-80）', () => {
+  it('採用後に前へ戻り「取り消す」でpendingへ戻せる（再度採用/破棄を選べる）', async () => {
+    vi.spyOn(api, 'fetchDraftFiles').mockResolvedValue(['vocab.jsonl'])
+    vi.spyOn(api, 'fetchDrafts').mockResolvedValue([vocabDraft('v-1'), vocabDraft('v-2')])
+
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('vocab.jsonl')).toBeTruthy())
+    fireEvent.change(screen.getByLabelText('ドラフトファイル'), {
+      target: { value: 'vocab.jsonl' },
+    })
+    await screen.findByText('id: v-1 / kind: vocab_card / status: pending')
+
+    fireEvent.click(screen.getByText('採用'))
+    // 自動的にv-2（次のpending）へ進む
+    await screen.findByText('id: v-2 / kind: vocab_card / status: pending')
+
+    fireEvent.click(screen.getByText('前へ'))
+    expect(await screen.findByText('id: v-1 / kind: vocab_card / status: accepted')).toBeTruthy()
+    expect((screen.getByText('採用') as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.click(screen.getByText('取り消す'))
+    expect(await screen.findByText('id: v-1 / kind: vocab_card / status: pending')).toBeTruthy()
+    expect((screen.getByText('採用') as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('途中保存: 編集・採用した状態がリロード（再選択）後も復元される', async () => {
+    vi.spyOn(api, 'fetchDraftFiles').mockResolvedValue(['vocab.jsonl'])
+    vi.spyOn(api, 'fetchDrafts').mockResolvedValue([vocabDraft('v-1'), vocabDraft('v-2')])
+
+    const { unmount } = render(<App />)
+    await waitFor(() => expect(screen.getByText('vocab.jsonl')).toBeTruthy())
+    fireEvent.change(screen.getByLabelText('ドラフトファイル'), {
+      target: { value: 'vocab.jsonl' },
+    })
+    await screen.findByText('id: v-1 / kind: vocab_card / status: pending')
+
+    fireEvent.change(screen.getByDisplayValue('Please submit the report.'), {
+      target: { value: 'Please submit the report by Friday.' },
+    })
+    fireEvent.click(screen.getByText('採用'))
+    await screen.findByText('id: v-2 / kind: vocab_card / status: pending')
+
+    // リロード相当: アンマウントして再度App/同じファイルを選択し直す
+    unmount()
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('vocab.jsonl')).toBeTruthy())
+    fireEvent.change(screen.getByLabelText('ドラフトファイル'), {
+      target: { value: 'vocab.jsonl' },
+    })
+
+    // v-1の採用状態と編集済みpayloadが保持されたまま、未レビューのv-2から再開する
+    expect(await screen.findByText('id: v-2 / kind: vocab_card / status: pending')).toBeTruthy()
+    fireEvent.click(screen.getByText('前へ'))
+    expect(await screen.findByText('id: v-1 / kind: vocab_card / status: accepted')).toBeTruthy()
+    expect(screen.getByDisplayValue('Please submit the report by Friday.')).toBeTruthy()
   })
 })
 

@@ -13,10 +13,16 @@ import type { Question } from '@beb-raid/shared-schema'
 import type { CorrectionsFile } from './calibrate.js'
 import {
   applyCorrections,
+  ADVERSARIAL_DIMENSION_COUNT,
+  ADVERSARIAL_REVIEWED_AT,
+  CROSS_REVIEW_MODEL_BY_PACK_ID,
+  originFor,
+  reviewMethodFor,
   buildAllPacks,
   buildManifest,
   buildPack,
   scanAudioFiles,
+  scanImageFiles,
   validateExplanationQuality,
   type PackSource,
 } from './build.js'
@@ -61,6 +67,29 @@ function part2Question(overrides: Partial<Question> = {}): Question {
   }
 }
 
+function part5Question(id: string, answer: string, overrides: Partial<Question> = {}): Question {
+  return {
+    id,
+    part: 5,
+    format: 'text_blank',
+    difficulty: 2,
+    tags: ['品詞'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    question:
+      'Please submit the quarterly report to the department by Friday afternoon without fail.',
+    choices: [
+      { key: 'A', text: 'submit' },
+      { key: 'B', text: 'submits' },
+      { key: 'C', text: 'submitting' },
+      { key: 'D', text: 'submitted' },
+    ],
+    answer,
+    explanation: '正しい選択肢の理由を説明する十分な長さのテキストです。',
+    translation: '和訳テキスト',
+    ...overrides,
+  }
+}
+
 function source(overrides: Partial<PackSource> = {}): PackSource {
   return {
     id: 'pack-vocab-s-001',
@@ -69,6 +98,10 @@ function source(overrides: Partial<PackSource> = {}): PackSource {
     origin: 'テストフィクスチャ',
     targetLevel: [600, 600],
     questions: [vocabQuestion()],
+    // T-355: 工程記録はPackSourceの必須項目（loadPackSourcesが必ず埋める）
+    reviewedBy: 'test',
+    reviewedAt: '2026-08-13',
+    reviewMethod: 'テスト用の工程名',
     ...overrides,
   }
 }
@@ -139,6 +172,56 @@ describe('buildPack', () => {
     const { built, errors } = buildPack(source({ questions: [vocabQuestion()] }), AUDIO_FILES)
     expect(errors).toEqual([])
     expect(built).not.toBeNull()
+  })
+
+  // 再発防止の追加修正: contentLintの⑥⑧⑨はT-236/T-237で実コンテンツの違反件数が0に
+  // なったため、buildPack側でwarningsではなくerrors（ブロッキング）に昇格させた
+  // （正本: docs/29 Q-77・Q-79）。①②③④⑤⑦は既存違反が残っているため引き続き警告のみ
+  it('text_blankパック全体が決定的循環になっているとエラーで止める（⑨の昇格。再発防止）', () => {
+    const pattern = ['A', 'D', 'C', 'B']
+    const questions = Array.from({ length: 20 }, (_, i) =>
+      part5Question(`p5-cyc-${i}`, pattern[i % 4]!),
+    )
+    const { built, errors } = buildPack(source({ questions }), AUDIO_FILES)
+    expect(built).toBeNull()
+    expect(errors.some((e) => e.includes('決定的循環'))).toBe(true)
+  })
+
+  it('循環していないtext_blankパックはビルドできる（誤検出でブロックしないことの確認）', () => {
+    const pattern = ['A', 'B', 'A', 'D', 'C', 'C', 'B', 'D', 'A', 'B', 'C', 'D', 'A', 'D', 'B', 'C']
+    const questions = pattern.map((answer, i) => part5Question(`p5-mix-${i}`, answer))
+    const { built, errors } = buildPack(source({ questions }), AUDIO_FILES)
+    expect(errors.some((e) => e.includes('決定的循環'))).toBe(false)
+    expect(built).not.toBeNull()
+  })
+
+  it('解説の記号と品詞ラベルが矛盾しているとエラーで止める（⑧の昇格。再発防止。part5-notify型の再現）', () => {
+    const q = part5Question('p5-notify-like', 'B', {
+      keyVocab: [{ word: 'notify', sense: '通知する', freqRank: 'S' }],
+      question: 'Employees will be ___ of the schedule change by email.',
+      choices: [
+        { key: 'A', text: 'notification' },
+        { key: 'B', text: 'notified' },
+        { key: 'C', text: 'notifying' },
+        { key: 'D', text: 'notify' },
+      ],
+      explanation:
+        'will be の後で受動態を作る過去分詞notifiedが正しい。A原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。',
+    })
+    const { built, errors } = buildPack(source({ questions: [q] }), AUDIO_FILES)
+    expect(built).toBeNull()
+    expect(errors.some((e) => e.includes('矛盾'))).toBe(true)
+  })
+
+  it('警告のみのルール（④text_blank本文長。既存違反が残るため据え置き）はビルドを止めない', () => {
+    const q = part5Question('p5-warn-test', 'A', {
+      difficulty: 4,
+      question: 'Please submit it.',
+    })
+    const { built, errors, warnings } = buildPack(source({ questions: [q] }), AUDIO_FILES)
+    expect(built).not.toBeNull()
+    expect(errors).toEqual([])
+    expect(warnings.some((w) => w.includes('本文'))).toBe(true)
   })
 })
 
@@ -274,6 +357,89 @@ describe('scanAudioFiles', () => {
   })
 })
 
+// T-239（Q-82）: image（audio_photo）は実ファイル存在チェックの対象外だった
+// （audioFilesはaudio/phraseAudioのみを列挙していたため）。scanImageFilesで
+// images/配下を列挙し、buildPack/buildAllPacksに渡せるようにする
+describe('scanImageFiles（T-239・Q-82）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-build-image-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('images配下を再帰的に列挙し、contentRoot基準の相対パス（/区切り）を返す', async () => {
+    await mkdir(join(dir, 'images/part1'), { recursive: true })
+    await writeFile(join(dir, 'images/part1/q-0001.jpg'), 'dummy')
+
+    const files = await scanImageFiles(dir)
+    expect(files).toEqual(new Set(['images/part1/q-0001.jpg']))
+  })
+
+  it('imagesディレクトリが無ければ空集合を返す（現状の全パックがこの経路）', async () => {
+    const files = await scanImageFiles(dir)
+    expect(files.size).toBe(0)
+  })
+})
+
+describe('buildPack: audio_photoのimage存在チェック（T-239・Q-82）', () => {
+  function audioPhotoQuestion(overrides: Partial<Question> = {}): Question {
+    return {
+      id: 'p1-photo-001',
+      part: 1,
+      format: 'audio_photo',
+      difficulty: 1,
+      tags: [],
+      keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+      audio: 'audio/part1/photo-001.mp3',
+      audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 3000 },
+      script: 'A man is submitting a report.',
+      image: 'images/part1/photo-001.jpg',
+      choices: [
+        { key: 'A', text: 'A man is submitting a report.' },
+        { key: 'B', text: 'A man is filing a form.' },
+      ],
+      answer: 'A',
+      explanation: '"submitting a report"が写真の内容と一致する。',
+      ...overrides,
+    }
+  }
+
+  it('imageFilesを渡すと、一覧に無いimageを参照するパックはbuilt=nullになる', () => {
+    const audioFiles = new Set(['audio/part1/photo-001.mp3'])
+    const imageFiles = new Set(['images/part1/other.jpg'])
+    const { built, errors } = buildPack(
+      source({ questions: [audioPhotoQuestion()] }),
+      audioFiles,
+      imageFiles,
+    )
+    expect(built).toBeNull()
+    expect(errors.some((e) => e.includes('photo-001.jpg'))).toBe(true)
+  })
+
+  it('imageFilesに実ファイルがあれば通る', () => {
+    const audioFiles = new Set(['audio/part1/photo-001.mp3'])
+    const imageFiles = new Set(['images/part1/photo-001.jpg'])
+    const { built, errors } = buildPack(
+      source({ questions: [audioPhotoQuestion()] }),
+      audioFiles,
+      imageFiles,
+    )
+    expect(errors).toEqual([])
+    expect(built).not.toBeNull()
+  })
+
+  it('imageFiles未指定なら存在チェックはスキップされる（従来どおり）', () => {
+    const audioFiles = new Set(['audio/part1/photo-001.mp3'])
+    const { built, errors } = buildPack(source({ questions: [audioPhotoQuestion()] }), audioFiles)
+    expect(errors).toEqual([])
+    expect(built).not.toBeNull()
+  })
+})
+
 describe('applyCorrections（T-34）', () => {
   function part2Question(overrides: Partial<Question> = {}): Question {
     return {
@@ -349,5 +515,37 @@ describe('applyCorrections（T-34）', () => {
       wordFreqRank: {},
     })
     expect(original.difficulty).toBe(3)
+  })
+})
+
+// T-355 / ADR 0014 Amendment: クロスレビューは実施したパックだけモデル名を記録する。
+// 未実施のパックに工程名を書くと出所を偽ることになるため、両方の分岐を固定する
+describe('reviewMethodFor / originFor（工程記録の書式。docs/32 8.2節）', () => {
+  it('クロスレビュー実施済みなら両段を並べる', () => {
+    expect(reviewMethodFor(6, '2026-08-13', 'Fable')).toBe(
+      'AIクロスレビュー（Fable）＋敵対的検証（6観点・2026-08-13）',
+    )
+  })
+
+  it('クロスレビュー未実施なら敵対的検証の段だけにする', () => {
+    expect(reviewMethodFor(6, '2026-08-13')).toBe('敵対的検証（6観点・2026-08-13）')
+    expect(reviewMethodFor(6, '2026-08-13', undefined)).toBe('敵対的検証（6観点・2026-08-13）')
+  })
+
+  it('originは生成手段＋工程名で組み立て、音声を持たないパックには＋TTSを付けない', () => {
+    const method = reviewMethodFor(ADVERSARIAL_DIMENSION_COUNT, ADVERSARIAL_REVIEWED_AT, 'Fable')
+    expect(originFor('エージェント直接執筆', method, true)).toBe(
+      `エージェント直接執筆＋${method}＋TTS`,
+    )
+    expect(originFor('エージェント直接執筆', method, false)).toBe(`エージェント直接執筆＋${method}`)
+  })
+
+  it('配信中の全パックにクロスレビューの実施モデルが記録されている', () => {
+    // 未実施のまま配信すると origin が「敵対的検証のみ」になり、出所表記で区別できる。
+    // 現在は24パックすべてに実施モデルが入っている前提を固定する
+    expect(CROSS_REVIEW_MODEL_BY_PACK_ID.size).toBe(24)
+    for (const model of CROSS_REVIEW_MODEL_BY_PACK_ID.values()) {
+      expect(model).not.toBe('')
+    }
   })
 })

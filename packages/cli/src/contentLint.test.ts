@@ -4,7 +4,11 @@
 import type { Question } from '@beb-raid/shared-schema'
 import { describe, expect, it } from 'vitest'
 
-import { validateContentLint } from './contentLint.js'
+import {
+  firstOrderMarkovAccuracy,
+  markovNullThreshold,
+  validateContentLint,
+} from './contentLint.js'
 import { buildDictationQuestions } from './dictationQuestion.js'
 import {
   buildKeyVocabSimilarQuestions,
@@ -43,7 +47,7 @@ function part2Question(overrides: Partial<Question> = {}): Question {
       { key: 'B', text: 'Yes, I did.' },
     ],
     answer: 'A',
-    explanation: '解説テキスト',
+    explanation: '解説テキスト。他の選択肢は誤り。',
     translation: '和訳',
     ...overrides,
   }
@@ -63,7 +67,7 @@ function part5Question(overrides: Partial<Question> = {}): Question {
       { key: 'B', text: 'submits' },
     ],
     answer: 'A',
-    explanation: '解説テキスト',
+    explanation: '解説テキスト。他の選択肢は誤り。',
     translation: '和訳',
     ...overrides,
   }
@@ -87,7 +91,7 @@ function textPassageQuestion(overrides: Partial<Question> = {}): Question {
           { key: 'B', text: 'A resume' },
         ],
         answer: 'A',
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       },
     ],
@@ -234,7 +238,20 @@ describe('checkTextBlankLength（④。警告のみ）', () => {
 describe('checkOpeningPhraseDiversity（⑤。警告のみ）', () => {
   it('文頭の使い回しが5%以下なら問題なし', () => {
     const questions = Array.from({ length: 20 }, (_, i) =>
-      part5Question({ id: `p5-${i}`, question: `Sentence number ${i} goes here today.` }),
+      part5Question({
+        id: `p5-${i}`,
+        question: `Sentence number ${i} goes here today.`,
+        // ⑨（決定的循環）・⑩（正答位置の予測可能性）に引っかからないよう、4択にしたうえで
+        // 一定差分にならない正答位置の並びを与える（隣接差分の最頻値は43%、1次マルコフ的中率
+        // 42.1%で、同条件のランダム列の95%点57.9%を下回る）
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitted' },
+          { key: 'D', text: 'submitting' },
+        ],
+        answer: 'ABCD'[[2, 2, 3, 0, 2, 3, 2, 3, 1, 1, 1, 2, 2, 1, 0, 3, 1, 3, 0, 0][i]!]!,
+      }),
     )
     expect(validateContentLint(questions, 'pack-p5-test')).toEqual([])
   })
@@ -266,7 +283,7 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
           { key: 'D', text: 'A catalog' },
         ],
         answer,
-        explanation: '解説テキスト',
+        explanation: '解説テキスト。他の選択肢は誤り。',
         translation: '和訳',
       })),
     })
@@ -300,6 +317,371 @@ describe('checkAnswerKeyCycle（⑥。text_passageの正答キー決定的循環
     const problems = validateContentLint(questions, 'pack-p6-test')
     expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
   })
+
+  // T-237（docs/29 Q-79）: audio_set（Part3/4）もrotateSubQuestionChoicesが同じ
+  // index%4ローテーションを使うため、text_passageと同じ決定的循環が起きる。対象formatを拡大した
+  function audioSetCycleSet(setId: string, answers: string[]): Question {
+    return {
+      id: setId,
+      part: 3,
+      format: 'audio_set',
+      difficulty: 2,
+      tags: ['会話'],
+      keyVocab: [{ word: 'invoice', sense: '請求書', freqRank: 'S' }],
+      audio: `audio/part34/${setId}.mp3`,
+      audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 20000 },
+      script: 'W: ... M: ...',
+      subQuestions: answers.map((answer, i) => ({
+        id: `${setId}-q${i + 1}`,
+        question: `Question ${i + 1} of ${setId}?`,
+        choices: [
+          { key: 'A', text: 'An invoice' },
+          { key: 'B', text: 'A resume' },
+          { key: 'C', text: 'A receipt' },
+          { key: 'D', text: 'A catalog' },
+        ],
+        answer,
+        explanation: '解説テキスト。他の選択肢は誤り。',
+        translation: '和訳',
+      })),
+    }
+  }
+
+  it('audio_set（Part3/4）も同一差分の循環なら警告する（T-237でtext_passageから対象拡大）', () => {
+    const questions = [
+      audioSetCycleSet('p34-cyc-1', ['A', 'D', 'C', 'B']),
+      audioSetCycleSet('p34-cyc-2', ['D', 'C', 'B', 'A']),
+      audioSetCycleSet('p34-cyc-3', ['C', 'B', 'A', 'D']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p34-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('audio_set'),
+      ),
+    ).toBe(true)
+  })
+
+  it('audio_setがシャッフル済みなら警告しない', () => {
+    const questions = [
+      audioSetCycleSet('p34-mix-1', ['B', 'B', 'D', 'A']),
+      audioSetCycleSet('p34-mix-2', ['C', 'A', 'A', 'D']),
+      audioSetCycleSet('p34-mix-3', ['D', 'B', 'C', 'C']),
+    ]
+    const problems = validateContentLint(questions, 'pack-p34-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+})
+
+describe('checkFlatAnswerKeyCycle（⑨。text_blank/audio_qaのパック全体を1設問列とした決定的循環検出。T-237）', () => {
+  /** rotatePart5Choices相当（index%4）の決定的ローテーションをそのまま再現する（4択A〜D） */
+  function cyclicPart5Questions(count: number): Question[] {
+    const pattern = ['A', 'D', 'C', 'B']
+    return Array.from({ length: count }, (_, i) =>
+      part5Question({
+        id: `p5-cyc-${i}`,
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitting' },
+          { key: 'D', text: 'submitted' },
+        ],
+        answer: pattern[i % 4]!,
+      }),
+    )
+  }
+
+  /** rotatePart2Choices相当（index%3）の決定的ローテーションをそのまま再現する（3択） */
+  function cyclicPart2Questions(count: number): Question[] {
+    const pattern = ['A', 'C', 'B']
+    return Array.from({ length: count }, (_, i) =>
+      part2Question({
+        id: `p2-cyc-${i}`,
+        choices: [
+          { key: 'A', text: 'By Friday.' },
+          { key: 'B', text: 'Yes, I did.' },
+          { key: 'C', text: 'In the meeting room.' },
+        ],
+        answer: pattern[i % 3]!,
+      }),
+    )
+  }
+
+  it('text_blank全パックが一定差分の循環（pack-p5-s-002等の再現）なら警告する', () => {
+    const problems = validateContentLint(cyclicPart5Questions(20), 'pack-p5-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('text_blank'),
+      ),
+    ).toBe(true)
+  })
+
+  it('audio_qa全パックが一定差分の循環（pack-p2-s-001等の再現。3択ABC）なら警告する', () => {
+    const problems = validateContentLint(cyclicPart2Questions(12), 'pack-p2-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('決定的循環') && p.includes('audio_qa'),
+      ),
+    ).toBe(true)
+  })
+
+  it('シャッフル済み（循環が崩れている）なら警告しない', () => {
+    const pattern = ['A', 'B', 'A', 'D', 'C', 'C', 'B', 'D', 'A', 'B', 'C', 'D', 'A', 'D', 'B', 'C']
+    const questions = pattern.map((answer, i) =>
+      part5Question({
+        id: `p5-mix-${i}`,
+        choices: [
+          { key: 'A', text: 'submit' },
+          { key: 'B', text: 'submits' },
+          { key: 'C', text: 'submitting' },
+          { key: 'D', text: 'submitted' },
+        ],
+        answer,
+      }),
+    )
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('8問未満なら判定しない（小規模フィクスチャの誤検出防止）', () => {
+    const problems = validateContentLint(cyclicPart5Questions(6), 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('正答キーが常に同じ（delta=0）は⑨の対象外（別種の問題であり誤検出防止のため対象を分ける）', () => {
+    const questions = Array.from({ length: 20 }, (_, i) =>
+      part5Question({ id: `p5-same-${i}`, answer: 'A' }),
+    )
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('決定的循環'))).toBe(false)
+  })
+
+  it('完全な循環でなくても大半（84%）が同一差分なら統計的に警告する（pack-p5-s-001の再現。T-339・K-75）', () => {
+    const choices = [
+      { key: 'A', text: 'submit' },
+      { key: 'B', text: 'submits' },
+      { key: 'C', text: 'submitting' },
+      { key: 'D', text: 'submitted' },
+    ]
+    // 20問連続A→D→C→Bの後、循環を崩す4問を挟む（docs/31 K-75の実測値=的中率83.7%相当）
+    const cyclicPart = Array.from({ length: 20 }, (_, i) =>
+      part5Question({ id: `p5-cyc-${i}`, choices, answer: ['A', 'D', 'C', 'B'][i % 4]! }),
+    )
+    const brokenPart = ['A', 'A', 'B', 'B'].map((answer, i) =>
+      part5Question({ id: `p5-brk-${i}`, choices, answer }),
+    )
+    const questions = [...cyclicPart, ...brokenPart]
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(
+      problems.some(
+        (p) => p.startsWith('[警告]') && p.includes('text_blank') && p.includes('循環'),
+      ),
+    ).toBe(true)
+  })
+
+  it('シャッフル済み（最頻差分が5割程度）は統計判定でも警告しない（誤検出防止の下限確認）', () => {
+    const pattern = ['A', 'B', 'A', 'D', 'C', 'C', 'B', 'D', 'A', 'B', 'C', 'D', 'A', 'D', 'B', 'C']
+    const questions = pattern.map((answer, i) => part5Question({ id: `p5-mix2-${i}`, answer }))
+    const problems = validateContentLint(questions, 'pack-p5-test')
+    expect(problems.some((p) => p.includes('循環'))).toBe(false)
+  })
+})
+
+describe('checkPart34SpeakerGenderConsistency（⑩。Part3話者ラベルと性別指示の整合検出。T-338・K-73）', () => {
+  function part34SetQuestion(overrides: Partial<Question> = {}): Question {
+    return {
+      id: 'p3-gender-test',
+      part: 3,
+      format: 'audio_set',
+      difficulty: 4,
+      tags: ['意図推定'],
+      keyVocab: [{ word: 'lease', sense: '賃貸借', freqRank: 'S' }],
+      audio: 'audio/part34/p3-gender-test.mp3',
+      audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 20000 },
+      script: "A: I saw the numbers already. B: Let's bring that to the meeting.",
+      subQuestions: [
+        {
+          id: 'p3-gender-test-q1',
+          question: 'What will the man do next?',
+          choices: [
+            { key: 'A', text: 'Bring it to the meeting' },
+            { key: 'B', text: 'Cancel the meeting' },
+          ],
+          answer: 'A',
+          explanation: '男性は"Let\'s bring that to the meeting"と述べている。',
+          translation: '男性は次に何をしますか。',
+        },
+      ],
+      ...overrides,
+    }
+  }
+
+  it('引用文の話者（script上のA/B）と解説の性別ラベルが一致していれば警告しない', () => {
+    const problems = validateContentLint([part34SetQuestion()], 'pack-p34-test')
+    expect(problems.some((p) => p.includes('K-73') || p.includes('誤帰属'))).toBe(false)
+  })
+
+  it('B（男性）の発言を解説が「女性は」と誤帰属していたら警告する（K-73の再現）', () => {
+    const question = part34SetQuestion({
+      subQuestions: [
+        {
+          id: 'p3-gender-test-q1',
+          question: 'What will the woman do next?',
+          choices: [
+            { key: 'A', text: 'Bring it to the meeting' },
+            { key: 'B', text: 'Cancel the meeting' },
+          ],
+          answer: 'A',
+          explanation: '女性は"Let\'s bring that to the meeting"と述べている。',
+          translation: '女性は次に何をしますか。',
+        },
+      ],
+    })
+    const problems = validateContentLint([question], 'pack-p34-test')
+    expect(problems.some((p) => p.startsWith('[警告]') && p.includes('誤帰属'))).toBe(true)
+  })
+
+  it('Part4（単一話者）は対象外で警告しない', () => {
+    const question = part34SetQuestion({
+      part: 4,
+      script: 'Attention all staff: the meeting has been moved.',
+      subQuestions: [
+        {
+          id: 'p4-gender-test-q1',
+          question: 'What is the announcement about?',
+          choices: [
+            { key: 'A', text: 'A meeting change' },
+            { key: 'B', text: 'A holiday schedule' },
+          ],
+          answer: 'A',
+          explanation: '女性は"the meeting has been moved"と述べている。',
+          translation: '発表は何についてですか。',
+        },
+      ],
+    })
+    const problems = validateContentLint([question], 'pack-p34-test')
+    expect(problems.some((p) => p.includes('誤帰属'))).toBe(false)
+  })
+})
+
+describe('checkChoiceTagConsistency（⑧。解説内の記号と品詞ラベルの不一致検出。T-236）', () => {
+  it('記号と品詞ラベルが選択肢の実際の内容と一致していれば問題なし', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'client', sense: '顧客・依頼人', freqRank: 'S' }],
+      question: 'The client we met yesterday wants to revise the contract.',
+      choices: [
+        { key: 'A', text: 'whose' },
+        { key: 'B', text: 'which' },
+        { key: 'C', text: 'where' },
+        { key: 'D', text: 'whom' },
+      ],
+      answer: 'D',
+      explanation:
+        '目的格の関係代名詞whomが正しい。A所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。他の選択肢はいずれも先行詞clientを受けられない。',
+    })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('原形ラベルが実際と異なる記号に付いていれば検出する（pack-p5-s-001 part5-notifyの再現。修正前の実データと同一内容）', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'notify', sense: '通知する', freqRank: 'S' }],
+      question: 'Employees will be ___ of the schedule change by email.',
+      choices: [
+        { key: 'A', text: 'notification' },
+        { key: 'B', text: 'notified' },
+        { key: 'C', text: 'notifying' },
+        { key: 'D', text: 'notify' },
+      ],
+      answer: 'B',
+      explanation:
+        'will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。A原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。',
+    })
+    const problems = validateContentLint([q], 'pack-p5-test')
+    expect(problems.some((p) => p.includes('矛盾') && p.includes('A'))).toBe(true)
+  })
+
+  it('関係代名詞/関係副詞ラベルが入れ替わっていれば2件検出する（pack-p5-s-001 part5-clientの再現。修正前の実データと同一内容）', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'client', sense: '顧客・依頼人', freqRank: 'S' }],
+      question: 'The client we met yesterday wants to revise the contract.',
+      choices: [
+        { key: 'A', text: 'whose' },
+        { key: 'B', text: 'which' },
+        { key: 'C', text: 'where' },
+        { key: 'D', text: 'whom' },
+      ],
+      answer: 'D',
+      explanation:
+        '先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、C物を指す関係代名詞、D関係副詞は文脈に合わない。',
+    })
+    const problems = validateContentLint([q], 'pack-p5-test')
+    expect(problems.filter((p) => p.includes('矛盾')).length).toBe(2)
+  })
+
+  it('修正後（B物を指す関係代名詞・C関係副詞）は問題なし', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'client', sense: '顧客・依頼人', freqRank: 'S' }],
+      question: 'The client we met yesterday wants to revise the contract.',
+      choices: [
+        { key: 'A', text: 'whose' },
+        { key: 'B', text: 'which' },
+        { key: 'C', text: 'where' },
+        { key: 'D', text: 'whom' },
+      ],
+      answer: 'D',
+      explanation:
+        '先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、B物を指す関係代名詞、C関係副詞は文脈に合わない。',
+    })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('英単語"All"のように大文字始まりの英単語をA-D記号と誤認しない（false positive防止。pack-p5-s-001 part5-correspondenceの実データ）', () => {
+    const q = part5Question({
+      keyVocab: [{ word: 'correspondence', sense: '文書のやり取り', freqRank: 'S' }],
+      question: 'All ___ with the client should be kept on file.',
+      choices: [
+        { key: 'A', text: 'corresponded' },
+        { key: 'B', text: 'corresponding' },
+        { key: 'C', text: 'correspondence' },
+        { key: 'D', text: 'correspond' },
+      ],
+      answer: 'C',
+      explanation:
+        '数量形容詞Allの後には名詞correspondence（やり取り）が続く。correspond動詞原形、corresponded過去形/過去分詞、corresponding動名詞/現在分詞は名詞の位置には合わない。',
+    })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('判定不能なラベル（正規表現の対象外の品詞語）は誤検出しない', () => {
+    const q = part5Question({ explanation: 'Aは名詞で受動態の形には合わない。他の選択肢も同様。' })
+    expect(validateContentLint([q], 'pack-p5-test')).toEqual([])
+  })
+
+  it('text_passageはsubQuestions単位で検証する', () => {
+    const q = textPassageQuestion({
+      subQuestions: [
+        {
+          id: 'p7s-test-q1',
+          question: 'Which word fits?',
+          choices: [
+            { key: 'A', text: 'who' },
+            { key: 'B', text: 'submit' },
+          ],
+          answer: 'A',
+          explanation: 'B現在分詞が正しい。',
+          translation: '和訳',
+        },
+      ],
+    })
+    const problems = validateContentLint([q], 'pack-p7s-test')
+    expect(problems.some((p) => p.includes('矛盾') && p.includes('p7s-test-q1'))).toBe(true)
+  })
+})
+
+describe('全パック一括検査（T-236完了条件: 実データの記号とラベルの矛盾がゼロ件になる）', () => {
+  it('part5QuestionsS.ts修正後は矛盾検出が0件になる', () => {
+    const problems = validateContentLint(buildPart5Questions(), 'pack-p5-s-001')
+    expect(problems.filter((p) => p.includes('矛盾'))).toEqual([])
+  })
 })
 
 describe('全パック一括検査（T-81完了条件: T-80ルール①③の検出ゼロ）', () => {
@@ -332,5 +714,66 @@ describe('全パック一括検査（T-81完了条件: T-80ルール①③の検
     // T-81完了条件: T-80で検出した既知の①43問・③6問が、S1選択肢書き換え・S2縮約修正により0件になる
     expect(scriptMismatches.length).toBe(0)
     expect(casualContractions.length).toBe(0)
+  })
+})
+
+describe('firstOrderMarkovAccuracy / markovNullThreshold（⑩。T-339の完了条件の指標）', () => {
+  it('要素が2件未満なら0を返す', () => {
+    expect(firstOrderMarkovAccuracy([])).toBe(0)
+    expect(firstOrderMarkovAccuracy([1])).toBe(0)
+  })
+
+  it('完全に周期的な列は的中率100%になる', () => {
+    expect(firstOrderMarkovAccuracy([0, 1, 2, 3, 0, 1, 2, 3, 0, 1])).toBe(100)
+  })
+
+  it('帰無分布の95%点は選択肢数のランダム値より高く、標本が増えるほど下がる', () => {
+    const small = markovNullThreshold(50, 4)
+    const large = markovNullThreshold(200, 4)
+    expect(small).toBeGreaterThan(25)
+    expect(small).toBeGreaterThan(large)
+  })
+
+  it('同じ引数なら何度呼んでも同じ値を返す（決定的PRNG）', () => {
+    expect(markovNullThreshold(60, 4)).toBe(markovNullThreshold(60, 4))
+  })
+})
+
+describe('checkExplanationMentionsDistractor（⑪。T-343の完了条件の指標）', () => {
+  const base = (explanation: string | null): Question => ({
+    id: 'part5-test',
+    part: 5,
+    format: 'text_blank',
+    difficulty: 3,
+    tags: ['動詞の形'],
+    keyVocab: [{ word: 'submit', sense: '提出する', freqRank: 'S' }],
+    question: 'Please ___ the expense report by Friday afternoon today.',
+    choices: [
+      { key: 'A', text: 'submit' },
+      { key: 'B', text: 'submitted' },
+    ],
+    answer: 'A',
+    explanation,
+    translation: '和訳',
+  })
+
+  it('誤答の本文を引用していれば通る', () => {
+    const problems = validateContentLint([base('原形submitが正しい。submittedは過去形。')], 'p')
+    expect(problems.filter((p) => p.includes('誤答選択肢'))).toEqual([])
+  })
+
+  it('「他の選択肢」等の総称でも通る', () => {
+    const problems = validateContentLint([base('原形が正しい。他の選択肢は形が合わない。')], 'p')
+    expect(problems.filter((p) => p.includes('誤答選択肢'))).toEqual([])
+  })
+
+  it('正答の説明しかない解説は検出する', () => {
+    const problems = validateContentLint([base('命令文なので原形が正しい。')], 'p')
+    expect(problems.some((p) => p.includes('解説が誤答選択肢に言及していない'))).toBe(true)
+  })
+
+  it('解説が無い場合も検出する', () => {
+    const problems = validateContentLint([base(null)], 'p')
+    expect(problems.some((p) => p.includes('解説が無い'))).toBe(true)
   })
 })

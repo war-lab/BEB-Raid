@@ -2,7 +2,7 @@
 // 係数はdamageConfig.jsonの仮値（J-47。docs/16）を前提に検証する
 import { describe, expect, it } from 'vitest'
 
-import { computeDamage, type DamageModeConfig } from './damage'
+import { computeDamage, validateDamageConfig, type DamageModeConfig } from './damage'
 
 describe('computeDamage', () => {
   it('raidモードは係数1.0（基礎点そのまま）', () => {
@@ -26,5 +26,30 @@ describe('computeDamage', () => {
     expect(computeDamage(50, 'raid', custom)).toBe(100)
     expect(computeDamage(50, 'solo', custom)).toBe(50)
     expect(computeDamage(50, 'srs', custom)).toBe(5)
+  })
+})
+
+// 何を防ぐか（T-311・K-41）: 従来は検証が無く、負値・NaN・非数値がJSON差し替え時に
+// 静かに素通りし、ダメージが負・NaNになりうる
+describe('validateDamageConfig（T-311・K-41）', () => {
+  it('同梱の damageConfig.json は検証を通る', () => {
+    expect(() => validateDamageConfig({ raid: 1.0, solo: 0.5, srs: 0 })).not.toThrow()
+  })
+
+  it('0は許容される（srs:0が既定値のため）', () => {
+    expect(() => validateDamageConfig({ srs: 0 })).not.toThrow()
+  })
+
+  it('負の係数は拒否される', () => {
+    expect(() => validateDamageConfig({ raid: -1 })).toThrow(/raid/)
+  })
+
+  it('NaN・Infinityは拒否される', () => {
+    expect(() => validateDamageConfig({ raid: NaN })).toThrow(/raid/)
+    expect(() => validateDamageConfig({ raid: Infinity })).toThrow(/raid/)
+  })
+
+  it('未定義のmodeは検証対象外（computeDamageの既定0と同じ扱い）', () => {
+    expect(() => validateDamageConfig({})).not.toThrow()
   })
 })

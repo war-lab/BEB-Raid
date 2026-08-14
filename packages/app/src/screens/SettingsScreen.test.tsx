@@ -3,7 +3,7 @@
 // - エクスポート→インポート往復がUI経由で動く（ファイルダウンロードはモック）
 // - dbVersionが新しいバックアップはUI経由でも拒否される
 import 'fake-indexeddb/auto'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
@@ -11,6 +11,8 @@ import { PROFILE_ID } from '../db/schema'
 import type { CacheUsage, PackCache, RaidApi } from '../platform'
 import { getFontSizeScale } from '../fontSize'
 import { AnthropicAiClient, DEFAULT_BYOK_MODEL } from '../platform/ai/AnthropicAiClient'
+import { PACK_SYNC_STATE_KEY } from '../services/packSync'
+import { clearPackSyncProgress, setPackSyncProgress } from '../services/packSyncProgress'
 import { getTheme } from '../theme'
 import { SettingsScreen } from './SettingsScreen'
 
@@ -23,10 +25,20 @@ function newDb(): BebRaidDatabase {
   return db
 }
 
+/**
+ * インポートの確認ダイアログ（T-202・Q-35）で「復元する」を押す。
+ * ファイル選択後は対象ストアと件数を提示してから実行の可否を問うようになったため、
+ * 従来の「選択→即復元」だったテストはこの1手順を挟む
+ */
+async function confirmImport() {
+  fireEvent.click(await screen.findByText('復元する', { selector: '.confirm-dialog__primary' }))
+}
+
 class FakePackCache implements PackCache {
   private stored = new Set<string>(['a.mp3', 'b.mp3'])
   has = vi.fn(async (url: string) => this.stored.has(url))
   get = vi.fn(async () => null)
+  put = vi.fn(async () => {})
   addAll = vi.fn(async () => {})
   delete = vi.fn(async () => {})
   keys = vi.fn(async () => [...this.stored])
@@ -160,7 +172,9 @@ describe('SettingsScreen: 永続化', () => {
     expect(getFontSizeScale()).toBe('L')
   })
 
-  it('キャッシュ使用量が表示され、削除で0件になる', async () => {
+  // T-202（Q-46）: window.confirmはPWAでネイティブダイアログが出て文脈が切れるため、
+  // ConfirmDialogへ置換した（T-162時点で置換漏れていた2箇所の1つ）
+  it('キャッシュ使用量が表示され、確認後の削除で0件になる（キャンセルでは消えない）', async () => {
     const db = newDb()
     const cache = new FakePackCache()
     render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
@@ -168,11 +182,37 @@ describe('SettingsScreen: 永続化', () => {
 
     expect(screen.getByText(/2件/)).toBeTruthy()
 
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByText('キャッシュを削除'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(cache.clear).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('キャッシュを削除'))
+    fireEvent.click(await screen.findByText('削除する'))
 
     expect(await screen.findByText(/0件/)).toBeTruthy()
     expect(cache.clear).toHaveBeenCalled()
+  })
+
+  it('T-183 Q-11の対: キャッシュ削除は同期状態（packSyncState）もリセットする', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: PACK_SYNC_STATE_KEY,
+      value: { packHashes: { 'pack-a': 'h1' }, totalSizeBytes: 100, lastSyncedAt: 0 },
+    })
+    const cache = new FakePackCache()
+    render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('キャッシュを削除'))
+    fireEvent.click(await screen.findByText('削除する'))
+    await screen.findByText(/0件/)
+
+    // 実体だけでなく同期状態も消えていないと、ハッシュ一致のみを見るsyncPacksが
+    // 「同期済み」と誤認し、削除後も再同期されない（Q-11の対の症状）
+    expect(await db.settings.get(PACK_SYNC_STATE_KEY)).toBeUndefined()
   })
 
   it('再計算ボタンでキャッシュ使用量が再取得される（T-107c）', async () => {
@@ -189,6 +229,23 @@ describe('SettingsScreen: 永続化', () => {
     fireEvent.click(screen.getByText('再計算'))
 
     expect(await screen.findByText(/3件/)).toBeTruthy()
+  })
+
+  it('T-321: パック同期中は音声ダウンロードの進捗が表示され、完了すると消える', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.queryByText(/音声を取得中/)).toBeNull()
+
+    act(() => {
+      setPackSyncProgress({ packId: 'pack-p2-s-001', completed: 3, total: 50 })
+    })
+    expect(screen.getByText(/音声を取得中: 3\/50（pack-p2-s-001）/)).toBeTruthy()
+
+    act(() => {
+      clearPackSyncProgress()
+    })
+    expect(screen.queryByText(/音声を取得中/)).toBeNull()
   })
 
   it('T-72: 永続化状態・端末ストレージ使用量が表示される', async () => {
@@ -219,7 +276,119 @@ describe('SettingsScreen: 永続化', () => {
   })
 })
 
+// T-296（K-22）: persisted()拒否時の告知もバックアップ督促も無かった
+// （非インストールのSafariタブ等では7日間開かないとIndexedDBごと退避されうる）
+describe('SettingsScreen: 永続化拒否時のエクスポート導線とエクスポート督促（T-296・K-22）', () => {
+  afterEach(() => {
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
+  })
+
+  it('persisted=falseのとき、注意表示に加えてエクスポート導線（ボタン）が出る', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { persisted: async () => false, estimate: async () => null },
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText('永続化: 無効')).toBeTruthy()
+    expect(screen.getByText('今すぐエクスポート')).toBeTruthy()
+  })
+
+  it('一度もエクスポートしていない状態で解答が1件でもあると督促メッセージが出る', async () => {
+    const db = newDb()
+    await db.attempts.add({
+      id: 'a-1',
+      questionId: 'q-1',
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 1000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: Date.now(),
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText(/エクスポートしていません/)).toBeTruthy()
+  })
+
+  it('解答が0件（診断直後）なら督促しない', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.queryByText(/エクスポートしていません/)).toBeNull()
+  })
+
+  it('督促表示中に「今すぐエクスポート」を押すと督促が消える（lastExportedAtが記録される）', async () => {
+    const db = newDb()
+    await db.attempts.add({
+      id: 'a-1',
+      questionId: 'q-1',
+      mode: 'solo',
+      isCorrect: true,
+      responseMs: 1000,
+      isTimeout: false,
+      isGuess: false,
+      answeredAt: Date.now(),
+    })
+    const createObjectURL = vi.fn((blob: Blob) => `blob:mock:${blob.size}`)
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+    expect(screen.getByText(/エクスポートしていません/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('今すぐエクスポート'))
+    await screen.findByText('エクスポートしました。')
+
+    expect(screen.queryByText(/エクスポートしていません/)).toBeNull()
+    expect(await db.settings.get('lastExportedAt')).toBeDefined()
+  })
+})
+
+// T-297（K-23）: アンマウント時flush失敗の退避は、次回起動時に気づける通知が無ければ
+// 記録するだけで実際には誰にも見えない（画面ごと消えた後の話なので、その場のエラー表示は
+// 効かない）。設定画面で通知が出るか・確認で消えるかを検証する
+describe('SettingsScreen: アンマウント時flush失敗の通知（T-297・K-23）', () => {
+  it('退避が無ければ通知は出ない', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.queryByText(/保存できなかった解答/)).toBeNull()
+  })
+
+  it('退避があれば通知が出て、確認すると消える（settingsから削除される）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: 'pendingCommitFailedAt', value: Date.now() })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText(/保存できなかった解答/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('確認した'))
+
+    await vi.waitFor(() => expect(screen.queryByText(/保存できなかった解答/)).toBeNull())
+    expect(await db.settings.get('pendingCommitFailedAt')).toBeUndefined()
+  })
+})
+
 describe('SettingsScreen: エクスポート/インポート', () => {
+  // T-279（K-2）: バックアップに共有APIの認証情報（deviceToken）が含まれないことをUIで明示する
+  it('エクスポート/インポートの説明に、学習データを含み共有APIの認証情報を含まない旨が表示される', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    expect(screen.getByText(/このファイルは学習データを含みます/)).toBeTruthy()
+    expect(screen.getByText(/共有APIの認証情報は含まれません/)).toBeTruthy()
+  })
+
   it('エクスポート→インポート往復がUI経由で動く', async () => {
     const db = newDb()
     await db.profile.put({
@@ -254,9 +423,66 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([backupText], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
 
     await screen.findByText('復元しました。')
     expect((await db.profile.get(PROFILE_ID))?.displayName).toBe('たろう')
+  })
+
+  // T-202（docs/29 Q-35・J-105）: ファイル選択後に確認もプレビューもなく即実行されていた。
+  // 件数の提示がないと古いファイルの誤選択に実行前に気づけない
+  it('ファイル選択後は対象ストアと件数を提示し、キャンセルすれば復元されない', async () => {
+    const db = newDb()
+    await db.profile.put({
+      id: PROFILE_ID,
+      displayName: 'もとの名前',
+      initialToeic: null,
+      createdAt: 0,
+      deviceToken: 'token',
+    })
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    const backup = emptyBackup(db.verno, {
+      profile: [
+        {
+          id: PROFILE_ID,
+          displayName: '復元後の名前',
+          initialToeic: null,
+          createdAt: 0,
+          deviceToken: 'token',
+        },
+      ],
+      attempts: [
+        {
+          id: 'a1',
+          questionId: 'q1',
+          mode: 'solo',
+          isCorrect: true,
+          responseMs: 1000,
+          isTimeout: false,
+          isGuess: false,
+          answeredAt: 0,
+        },
+      ],
+    })
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    // 対象ストアと件数を提示する（まだ実行しない）
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.getByText(/プロフィール: 1件/)).toBeTruthy()
+    expect(screen.getByText(/解答履歴: 1件/)).toBeTruthy()
+    expect(screen.getByText(/語彙SRSカード: 0件/)).toBeTruthy()
+    // インポートはまだ実行されていない
+    expect(screen.getByDisplayValue('もとの名前')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(screen.getByDisplayValue('もとの名前')).toBeTruthy()
+    expect(await db.profile.get(PROFILE_ID)).toMatchObject({ displayName: 'もとの名前' })
   })
 
   it('dbVersionが新しいバックアップはUI経由でも拒否される', async () => {
@@ -291,6 +517,24 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     fireEvent.change(fileInput)
 
     expect(await screen.findByText(/dbVersion/)).toBeTruthy()
+  })
+
+  // T-207（Q-45）: JSONでないファイルを選ぶとJSON.parseの英語メッセージ
+  // （"Unexpected token..."）がそのまま表示されていた。importAll由来のメッセージは
+  // 既に日本語のため、JSON.parse失敗時だけが英語のまま生表示される不整合があった
+  it('JSONとして読み込めないファイルは日本語のエラーになる（英語のJSON.parseメッセージを出さない）', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    const fileInput = screen.getByLabelText('インポート') as HTMLInputElement
+    const file = new File(['これはJSONではない'], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fireEvent.change(fileInput)
+
+    const message = await screen.findByRole('status')
+    expect(message.textContent).not.toMatch(/Unexpected token/i)
+    expect(message.textContent).toMatch(/[ぁ-んァ-ヶ一-龠]/) // 日本語であること
   })
 
   function emptyBackup(dbVersion: number, overrides: Record<string, unknown[]> = {}) {
@@ -351,6 +595,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
 
     await screen.findByText('復元しました。')
     expect(screen.getByDisplayValue('インポート後')).toBeTruthy()
@@ -378,6 +623,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
 
     await screen.findByText('復元しました。')
     expect(onThemePreferenceChange).toHaveBeenCalledWith('dark')
@@ -394,6 +640,7 @@ describe('SettingsScreen: エクスポート/インポート', () => {
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
     Object.defineProperty(fileInput, 'files', { value: [file] })
     fireEvent.change(fileInput)
+    await confirmImport()
     await screen.findByText('復元しました。')
     expect((screen.getByLabelText(/イヤホンなしモード/) as HTMLInputElement).checked).toBe(true)
 
@@ -405,8 +652,68 @@ describe('SettingsScreen: エクスポート/インポート', () => {
   })
 })
 
+describe('SettingsScreen: 読込失敗時のガードとエクスポート失敗ハンドリング（T-208・Q-52）', () => {
+  // 何を防ぐか: load()にcatchが無いと、読込失敗時にトグルがReactの初期値（既定値）の
+  // まま描画される。この状態でユーザーがトグルを操作すると「既定値の反転」がDBの実際の値を
+  // 確認せずに書き込まれ、実際の設定値（この試験ではDB上は false）を静かに上書きしてしまう
+  // （T-106で塞いだ経路と同型の残り）。読込失敗時はトグルを無効化し、書き込み自体を防ぐ
+  it('load()が失敗すると既定値を表示したままトグルは無効化され、操作してもDBを上書きしない', async () => {
+    const db = newDb()
+    // DB上の実際の値はfalse（Reactの初期値=trueとは食い違わせる）
+    await db.settings.put({ key: 'hapticsEnabled', value: false })
+    const cache = new FakePackCache()
+    cache.usage.mockRejectedValueOnce(new Error('boom'))
+
+    render(<SettingsScreen db={db} packCache={cache} raidApi={new FakeRaidApi()} />)
+
+    // 読込失敗時はsettings-loadedマーカーが立たないため、無効化を直接待つ
+    await vi.waitFor(() => {
+      expect((screen.getByLabelText(/ハプティクス/) as HTMLInputElement).disabled).toBe(true)
+    })
+
+    // 無効化されたチェックボックスはクリックしても操作を受け付けない
+    fireEvent.click(screen.getByLabelText(/ハプティクス/))
+    expect((await db.settings.get('hapticsEnabled'))?.value).toBe(false)
+  })
+
+  it('エクスポート失敗時はエラーメッセージを出す（無反応・unhandled rejectionにしない）', async () => {
+    const db = newDb()
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: () => {
+        throw new Error('boom')
+      },
+      revokeObjectURL: vi.fn(),
+    })
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('エクスポート'))
+
+    const message = await screen.findByRole('status')
+    expect(message.textContent).toContain('失敗')
+  })
+
+  it('エクスポート成功時に完了メッセージを出す', async () => {
+    const db = newDb()
+    const createObjectURL = vi.fn((blob: Blob) => `blob:mock:${blob.size}`)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    fireEvent.click(screen.getByText('エクスポート'))
+
+    expect(await screen.findByText('エクスポートしました。')).toBeTruthy()
+  })
+})
+
 describe('SettingsScreen: BYOK設定（T-55）', () => {
-  it('APIキーを保存するとマスク表示になり、削除すると入力欄に戻る', async () => {
+  // T-202（docs/29 Q-33〜Q-35と同種の不可逆操作）: 確認なしの1タップで削除されていた
+  it('APIキーを保存するとマスク表示になり、確認後の削除で入力欄に戻る（キャンセルでは消えない）', async () => {
     const db = newDb()
     render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
     await flushLoad()
@@ -422,8 +729,34 @@ describe('SettingsScreen: BYOK設定（T-55）', () => {
     expect(screen.queryByText('sk-ant-abcd1234')).toBeNull()
 
     fireEvent.click(screen.getByText('削除'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(await db.settings.get('byokApiKey')).toBeDefined()
+
+    fireEvent.click(screen.getByText('削除'))
+    fireEvent.click(await screen.findByText('削除する'))
+
     await vi.waitFor(() => expect(screen.getByPlaceholderText('sk-...')).toBeTruthy())
     expect(await db.settings.get('byokApiKey')).toBeUndefined()
+  })
+
+  // T-220（Q-58）: APIキー入力欄がform外にあり、Chromeが「Password field is not contained
+  // in a form」と警告していた（パスワードマネージャ連携も効かない）。formで括る
+  it('APIキー入力欄はform内にあり、Enter送信でも保存できる', async () => {
+    const db = newDb()
+    render(<SettingsScreen db={db} packCache={new FakePackCache()} raidApi={new FakeRaidApi()} />)
+    await flushLoad()
+
+    const input = screen.getByPlaceholderText('sk-...')
+    expect(input.closest('form')).not.toBeNull()
+
+    fireEvent.change(input, { target: { value: 'sk-ant-formtest' } })
+    fireEvent.submit(input.closest('form')!)
+
+    await vi.waitFor(() => expect(screen.getByText('sk-***...test')).toBeTruthy())
+    expect((await db.settings.get('byokApiKey'))?.value).toBe('sk-ant-formtest')
   })
 
   it('注記2点（端末内平文保存・支出上限推奨）が常に表示される', async () => {

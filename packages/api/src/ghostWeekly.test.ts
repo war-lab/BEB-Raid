@@ -2,7 +2,7 @@
 // 週次cron（generateWeeklyBoss）へのゴースト選定・defense変換・defeatedCount加算・
 // クールダウン・撤回スキップの分岐と、GET /raid/currentでのdefense配信を検証する
 import { env, reset, runInDurableObject, SELF } from 'cloudflare:test'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { bossProfileForWeek } from './bossProfiles'
 import { ghostKey, type GhostRecord } from './ghostStore'
@@ -16,7 +16,7 @@ const DAY_MS = 24 * HOUR_MS
 const VALID_INVITE_CODE = 'test-invite-code'
 
 async function registerDevice(displayName = '太郎'): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -141,6 +141,40 @@ describe('generateWeeklyBoss（ゴースト週の生成）', () => {
     expect(state?.bossType).toBe('synthetic')
   })
 
+  // T-244・29のQ-23: env.MEMBERS.list({prefix: 'ghost:'})は1ページ最大1,000件しか返さない。
+  // 以前はcursorを見ずに1ページ目だけで最古のcreatedAtを探しており、承認済みゴースト記録が
+  // 1,000件を超えると、KVのキー順（辞書順）で1,000件目より後ろに位置する記録が
+  // 無言で選定対象から漏れていた。decoyのdeviceTokenを`decoy-*`（キー順で先頭側）、
+  // 本命を`zzz-target-ghost`（キー順で末尾）にして、1,000件のcursor境界を跨がせて再現する
+  it('ゴースト記録が1,000件を超えても、キー順で末尾側にある最古の記録を正しく選定する（KV.listのcursor対応）', async () => {
+    const monday = Date.UTC(2027, 6, 26) // 他テストと衝突しない週
+    const decoyPuts: Promise<unknown>[] = []
+    for (let i = 0; i < 1000; i++) {
+      decoyPuts.push(
+        seedGhostRecord(`decoy-${String(i).padStart(5, '0')}`, {
+          displayName: `デコイ${i}`,
+          createdAt: 1000, // 本命(createdAt=1)より新しい=本命が読めていれば選ばれない
+        }),
+      )
+    }
+    await Promise.all(decoyPuts)
+    // キー名`ghost:zzz-target-ghost`はデコイ群（`ghost:decoy-*`）より辞書順で後ろに来るため、
+    // cursorを追わずに1ページ目だけ読む実装だと本命は選定候補にすら入らない
+    await seedGhostRecord('zzz-target-ghost', {
+      displayName: '本命ゴースト',
+      createdAt: 1, // 全デコイより古い=cursor対応していれば必ずこちらが選ばれる
+    })
+
+    await generateWeeklyBoss(env, monday)
+
+    const current = isoWeekInfo(monday)
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossIdFor(current)))
+    const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+      instance.getBossState(monday),
+    )
+    expect(state?.ghost?.displayName).toBe('本命ゴースト')
+  }, 30_000)
+
   it('複数の承認済み記録がある場合、createdAtが最古のものが選ばれる', async () => {
     const monday = Date.UTC(2027, 3, 5)
     const older = `ghost-device-${crypto.randomUUID()}`
@@ -156,6 +190,46 @@ describe('generateWeeklyBoss（ゴースト週の生成）', () => {
       instance.getBossState(monday),
     )
     expect(state?.ghost?.displayName).toBe('古参ゴースト')
+  })
+
+  // T-248・29のQ-30: 選定したghost記録のlastUsedBossId書込は、selectGhostRecordでの
+  // 読取から実際の書込までの間に全メンバーのEMA更新ループを挟むため、
+  // closeOutPreviousGhost側より窓が広い。この間に`DELETE /ghosts/own`が完了すると、
+  // 修正前は撤回済みレコードがlastUsedBossId付きで復活していた
+  it('選定時の読取後にDELETE /ghosts/ownが割り込んでも、撤回済みレコードは復活しない（lastUsedBossId書込の競合）', async () => {
+    const monday = Date.UTC(2027, 4, 24)
+    const deviceToken = `ghost-device-${crypto.randomUUID()}`
+    await seedGhostRecord(deviceToken, { createdAt: 100 })
+
+    const targetKey = ghostKey(deviceToken)
+    // env.MEMBERS.getはオーバーロードを持つが、このテストでは常に(key: string)の
+    // 単純な形でしか呼ばれないため、その形に絞った型でスパイする（anyを避ける）
+    const originalGet = env.MEMBERS.get.bind(env.MEMBERS) as (key: string) => Promise<string | null>
+    // DELETE /ghosts/ownは1回のリクエストなので、割り込みも1回だけ起こす
+    let interruptFired = false
+    const fakeGet = async (key: string): Promise<string | null> => {
+      const value = await originalGet(key)
+      if (key === targetKey && !interruptFired) {
+        interruptFired = true
+        // selectGhostRecordが選定のために読み取った直後、ユーザーのDELETE /ghosts/ownが
+        // 完了した想定（この後もEMA更新ループ等を経てから書込に至るため、実運用では
+        // ここより更に広い窓で同じことが起こりうる）。1回きりの割り込み
+        await env.MEMBERS.delete(targetKey)
+      }
+      return value
+    }
+    const getSpy = vi
+      .spyOn(env.MEMBERS, 'get')
+      .mockImplementation(fakeGet as typeof env.MEMBERS.get)
+
+    try {
+      await generateWeeklyBoss(env, monday)
+    } finally {
+      getSpy.mockRestore()
+    }
+
+    // 撤回済みなので、lastUsedBossId付きで復活してはいけない（修正前はここが復活していた）
+    expect(await env.MEMBERS.get(targetKey)).toBeNull()
   })
 })
 
@@ -247,6 +321,69 @@ describe('generateWeeklyBoss（ゴースト週クローズ処理・defeatedCount
     await expect(generateWeeklyBoss(env, week2)).resolves.not.toThrow()
     // 撤回済みなので加算対象レコード自体が存在しない（再作成もされない）
     expect(await env.MEMBERS.get(ghostKey(deviceToken))).toBeNull()
+  })
+
+  // T-248・29のQ-30: 修正前は「読取→加算→書込」を素朴に行っており、cronの読取と書込の間に
+  // `DELETE /ghosts/own`（撤回）が割り込むと、撤回済みレコードが古い内容のまま復活していた。
+  // env.MEMBERS.getをスパイし、「cronがdefeatedCount加算のために読み取った直後に、
+  // ユーザーが撤回を完了させる」という割り込み順序を確定的に再現する
+  it('cronの読取後にDELETE /ghosts/ownが割り込んでも、撤回済みレコードは復活しない（read-modify-write競合）', async () => {
+    const week1 = Date.UTC(2027, 4, 17)
+    const deviceToken = `ghost-device-${crypto.randomUUID()}`
+    await seedGhostRecord(deviceToken, { createdAt: 100, defeatedCount: 2 })
+
+    await generateWeeklyBoss(env, week1)
+    const week1Stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossIdFor(isoWeekInfo(week1))))
+    const week1State = await runInDurableObject(week1Stub, (instance: RaidBossDO) =>
+      instance.getBossState(week1),
+    )
+    await runInDurableObject(week1Stub, (instance: RaidBossDO) =>
+      instance.syncDamage(
+        'killer-device',
+        [
+          {
+            attemptId: 'kill-1',
+            damage: week1State!.maxHp,
+            questionCount: 1,
+            answeredAt: week1 + HOUR_MS,
+          },
+        ],
+        week1 + HOUR_MS,
+      ),
+    )
+
+    const targetKey = ghostKey(deviceToken)
+    // env.MEMBERS.getはオーバーロードを持つが、このテストでは常に(key: string)の
+    // 単純な形でしか呼ばれないため、その形に絞った型でスパイする（anyを避ける）
+    const originalGet = env.MEMBERS.get.bind(env.MEMBERS) as (key: string) => Promise<string | null>
+    // DELETE /ghosts/ownは1回のリクエストなので、割り込みも1回だけ起こす。
+    // 割り込み後の読取（selectGhostRecordの走査等）まで毎回削除し直すと、
+    // read-modify-writeの結果そのものが上書きされてしまい、resurrection（復活）が
+    // 起きたかどうかをテストが正しく観測できなくなる
+    let interruptFired = false
+    const fakeGet = async (key: string): Promise<string | null> => {
+      const value = await originalGet(key)
+      if (key === targetKey && !interruptFired) {
+        interruptFired = true
+        // cronがdefeatedCount加算のために読み取った直後、ユーザーのDELETE /ghosts/ownが
+        // 完了した想定（読取→ユーザー削除→cronの書込、という割り込み順序）。1回きりの割り込み
+        await env.MEMBERS.delete(targetKey)
+      }
+      return value
+    }
+    const getSpy = vi
+      .spyOn(env.MEMBERS, 'get')
+      .mockImplementation(fakeGet as typeof env.MEMBERS.get)
+
+    const week2 = week1 + 7 * DAY_MS
+    try {
+      await generateWeeklyBoss(env, week2)
+    } finally {
+      getSpy.mockRestore()
+    }
+
+    // 撤回済みなので復活してはいけない（修正前はここが古い内容のまま復活していた）
+    expect(await env.MEMBERS.get(targetKey)).toBeNull()
   })
 
   it('同じ週内でcronが2回実行されてもdefeatedCountは二重加算されない（冪等）', async () => {

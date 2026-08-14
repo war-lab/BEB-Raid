@@ -17,6 +17,7 @@ import { syncRaidDamage } from '../services/raidSync'
 import { completeSession } from '../services/session'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
+import { InfoDisclosure } from '../components/InfoDisclosure'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 
@@ -123,6 +124,17 @@ export function ResultScreen({ db, raidApi }: Props) {
   const [phaseOutcome, setPhaseOutcome] = useState<PhaseTransitionOutcome | null>(null)
   // T-77: reduced-motion環境では最初から静止表示。タップで途中スキップも可能にする
   const [skipAnimation, setSkipAnimation] = useState(prefersReducedMotion)
+
+  // T-319（K-52）: 演出スキップは`.result-content`のonClickのみで、キーボード操作からは
+  // 到達できなかった（divはタブ順に入らずEnter/Spaceも拾わない）。700ms後に自動で
+  // 確定させることで、キーボード利用者も待てば（追加操作無しで）演出後の状態に進める
+  useEffect(() => {
+    if (skipAnimation) return
+    const timer = setTimeout(() => setSkipAnimation(true), POINTS_COUNTUP_MS)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 初回マウント時に1回だけ仕掛ける
+  }, [])
+
   // T-109: 中断・再開を跨いだセッション全体の正解数・問題リスト集計（3.2節J-52）。
   // snapshot.attemptIdsはstartSessionから完了まで累積するため、resultsストア
   // （このマウント後に解答した分のみ）よりも正確な全体集計の入力に使える
@@ -214,8 +226,18 @@ export function ResultScreen({ db, raidApi }: Props) {
   function handleHome() {
     // レビューF5: スナップショット削除の失敗で「ホームへ」が無反応にならないようにする。
     // 削除に失敗して残ったスナップショットは次回startSessionで上書きされるため、
-    // ログだけ残してホーム遷移は必ず実行する
-    void completeSession(db)
+    // ログだけ残してホーム遷移は必ず実行する。
+    //
+    // T-267（docs/29 Q-5・PR #137）: DrillScreen/ReadingScreenがリザルトへ遷移する
+    // すべての経路でcompleteSessionを呼ぶようになったため、通常はこの時点で既に
+    // アクティブセッションは削除済みであり、ここでの呼び出しは基本的に空振りになる。
+    // それでも撤去せず残すのは、将来リザルトへの新しい到達経路が追加されたときに
+    // ここが最後の安全網になるため（DrillScreen/ReadingScreen側の呼び出し漏れを
+    // 個別に見つけるより、ここで一括して保証する方が壊れにくい）。
+    //
+    // T-193: snapshotが無い（=このセッションを完了する対象が無い）場合は
+    // completeSession自体を呼ばない（sessionIdが必須引数のため）
+    void (snapshot ? completeSession(db, snapshot.sessionId) : Promise.resolve())
       .catch((e: unknown) => {
         console.warn('[ResultScreen] セッション完了処理に失敗', e)
       })
@@ -306,24 +328,33 @@ export function ResultScreen({ db, raidApi }: Props) {
             色は --ok を使わない（docs/25 5.1節の既知#1: ライトテーマの --ok は --surface 上
             4.358で本文基準未達）。docs/25 4.7節のトーン（誤答＝悪ではない）にも合わせる */}
         {tallyEntries.length > 0 && (
-          <ul className="result-quality-tiles">
-            <li
-              className="result-highlight-tile result-quality-tile"
-              style={{ animationDelay: '250ms' }}
-              data-testid="result-guess-count"
-              title="2秒未満の誤答。弱点統計では重みを半分にして数えています"
-            >
-              当て勘 {guessCount}
-            </li>
-            <li
-              className="result-highlight-tile result-quality-tile"
-              style={{ animationDelay: '300ms' }}
-              data-testid="result-timeout-count"
-              title="時間切れ。知識不足とは別に数えています"
-            >
-              速度不足 {timeoutCount}
-            </li>
-          </ul>
+          <>
+            <ul className="result-quality-tiles">
+              <li
+                className="result-highlight-tile result-quality-tile"
+                style={{ animationDelay: '250ms' }}
+                data-testid="result-guess-count"
+                title="2秒未満の誤答。弱点統計では重みを半分にして数えています"
+              >
+                当て勘 {guessCount}
+              </li>
+              <li
+                className="result-highlight-tile result-quality-tile"
+                style={{ animationDelay: '300ms' }}
+                data-testid="result-timeout-count"
+                title="時間切れ。知識不足とは別に数えています"
+              >
+                速度不足 {timeoutCount}
+              </li>
+            </ul>
+            {/* T-210(Q-39・J-107): タイルのtitleはhover専用でタッチ端末では読めないため、
+                その場で開ける説明を添える（各タイルのtitleは残す。textContentを変えないため
+                タイル外に単独で置く） */}
+            <InfoDisclosure className="info-help-link" label="「当て勘」「速度不足」とは">
+              <p>当て勘: 2秒未満の誤答。弱点統計では重みを半分にして数えます。</p>
+              <p>速度不足: 時間切れによる不正解。知識不足とは別に数えます。</p>
+            </InfoDisclosure>
+          </>
         )}
         <ul className="result-stats">
           {ratingBefore && ratingAfter && (
@@ -374,7 +405,10 @@ export function ResultScreen({ db, raidApi }: Props) {
           {tallyEntries.map((a, i) => (
             <li key={i} className="result-list__item" data-correct={a.isCorrect}>
               <span aria-hidden="true" className="result-list__icon" />
-              <span className="result-list__question">
+              {/* T-224（J-108）: resultQuestionLabelは通常英文を返す（問題が引けない場合の
+                  questionIdへのフォールバックのみ言語中立だが、既存ellipsis表示を壊さないため
+                  分岐せず一括で付ける） */}
+              <span className="result-list__question" lang="en">
                 {resultQuestionLabel(a.questionId, questions.get(a.questionId))}
               </span>
               {/* T-163（J-92）: 時間切れは知識不足による誤答と混ざると振り返りを誤らせる。

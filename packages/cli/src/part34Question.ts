@@ -18,6 +18,7 @@ import {
   type Question,
   type SubQuestion,
 } from '@beb-raid/shared-schema'
+import { rotationAmount } from './choiceRotation.js'
 import {
   PART34_ENTRIES_S,
   type Part34RawEntry,
@@ -63,15 +64,19 @@ function vocabEntryForWord(word: string): { sense: string; freqRank: FreqRank } 
 /**
  * 正答キーの決定的ローテーション分散（M1レビュー⑦の方式）。
  * rawの設問は常に correctText を「正解」・distractors を「誤答3件」として書き、
- * globalIndex%4の回転で選択肢の並び順・正答キーを機械的に決める（4択A〜D。
- * globalIndexは全60設問を通した連番で、rotatePart5Choicesと同じ考え方）
+ * 選択肢の並び順・正答キーを機械的に決める（4択A〜D）。
+ * 【T-266】ローテーション量は設問文＋correctTextのハッシュから導出する（呼び出し側の
+ * 連番globalIndexは使わない。rotatePart5Choicesと同じ理由。連番をそのまま使うと、
+ * 1セット3問という固定長ゆえにセット内の差分が常に一定になり、かつセットをまたいでも
+ * 同じ差分になる決定的循環を生んでいた＝29のQ-79・contentLint.tsのcheckAnswerKeyCycleが
+ * 検出する構造欠陥）
  */
-export function rotateSubQuestionChoices(
-  raw: Part34RawSubQuestion,
-  globalIndex: number,
-): { choices: Choice[]; answer: string } {
+export function rotateSubQuestionChoices(raw: Part34RawSubQuestion): {
+  choices: Choice[]
+  answer: string
+} {
   const texts = [raw.correctText, raw.distractors[0], raw.distractors[1], raw.distractors[2]]
-  const rotation = globalIndex % 4
+  const rotation = rotationAmount(`${raw.question}|${raw.correctText}`, 4)
   const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
   const keys = ['A', 'B', 'C', 'D']
   const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
@@ -79,17 +84,10 @@ export function rotateSubQuestionChoices(
   return { choices, answer }
 }
 
-/**
- * エントリ→Question（audio_set）への変換。globalSubQuestionStartIndexはこのセットの
- * 1問目が全体の何番目の設問かを示す（rotateSubQuestionChoicesの分散用）
- */
-export function part34Question(
-  entry: Part34RawEntry,
-  globalSubQuestionStartIndex: number,
-  setIndex: number,
-): Question {
+/** エントリ→Question（audio_set）への変換。setIndexは話者アクセントローテーション用 */
+export function part34Question(entry: Part34RawEntry, setIndex: number): Question {
   const subQuestions: SubQuestion[] = entry.subQuestions.map((raw, i) => {
-    const { choices, answer } = rotateSubQuestionChoices(raw, globalSubQuestionStartIndex + i)
+    const { choices, answer } = rotateSubQuestionChoices(raw)
     return {
       id: `p34-${entry.setId}-q${i + 1}`,
       question: raw.question,
@@ -121,11 +119,11 @@ export function part34Question(
   }
 }
 
-/** エントリ一覧→Question配列。globalSubQuestionStartIndexはセットの出現順に3ずつ進める */
+/** エントリ一覧→Question配列 */
 export function buildPart34Questions(
   entries: readonly Part34RawEntry[] = PART34_ENTRIES_S,
 ): Question[] {
-  return entries.map((entry, setIndex) => part34Question(entry, setIndex * 3, setIndex))
+  return entries.map((entry, setIndex) => part34Question(entry, setIndex))
 }
 
 /** T-30のレビュー往復フォーマット（GeneratedItemDraft）に包んだ一覧を組み立てる */
@@ -133,7 +131,7 @@ export function buildPart34Drafts(
   entries: readonly Part34RawEntry[] = PART34_ENTRIES_S,
 ): GeneratedItemDraft[] {
   return entries.map((entry, setIndex) => {
-    const question = part34Question(entry, setIndex * 3, setIndex)
+    const question = part34Question(entry, setIndex)
     return {
       id: question.id,
       kind: 'audio_set',

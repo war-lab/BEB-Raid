@@ -24,14 +24,35 @@ class FakeAudioBufferSourceNode {
   }
 }
 
-/** AudioContext の最小フェイク。decodeAudioData はテキスト内容から仕込んだ長さを返す */
+/** AudioContext の最小フェイク。decodeAudioData はテキスト内容から仕込んだ長さ・サイズを返す */
 class FakeAudioContext {
-  state: 'suspended' | 'running' | 'closed' = 'suspended'
+  state: 'suspended' | 'running' | 'closed' | 'interrupted' = 'suspended'
   currentTime = 0
   sampleRate = 44100
   destination = {}
   createdSources: FakeAudioBufferSourceNode[] = []
   durations = new Map<string, number>()
+  private stateChangeListeners: Array<() => void> = []
+
+  addEventListener(type: string, listener: () => void): void {
+    if (type === 'statechange') this.stateChangeListeners.push(listener)
+  }
+  removeEventListener(type: string, listener: () => void): void {
+    if (type !== 'statechange') return
+    this.stateChangeListeners = this.stateChangeListeners.filter((l) => l !== listener)
+  }
+  /** テストからiOSの通話割り込み等によるAudioContext状態変化を模擬する（T-324・K-57） */
+  setState(state: 'suspended' | 'running' | 'closed' | 'interrupted'): void {
+    this.state = state
+    for (const listener of this.stateChangeListeners) listener()
+  }
+  /**
+   * T-222（Q-16）: バイト数基準のキャッシュ上限をテストするため、srcごとに
+   * decodeAudioData が返すAudioBufferの疑似サイズ（バイト）を仕込めるようにする。
+   * 実際にその容量を確保するわけではなく、length/numberOfChannelsの値を
+   * 逆算するだけ（4バイト/サンプル=Float32のPCM表現）
+   */
+  sizesBytes = new Map<string, number>()
 
   async resume(): Promise<void> {
     this.state = 'running'
@@ -50,7 +71,8 @@ class FakeAudioContext {
   async decodeAudioData(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
     const text = new TextDecoder().decode(arrayBuffer)
     const duration = this.durations.get(text) ?? 1
-    return { duration } as AudioBuffer
+    const bytes = this.sizesBytes.get(text) ?? 4 // 既定は極小（duration系テストへの影響を避ける）
+    return { duration, length: bytes / 4, numberOfChannels: 1 } as AudioBuffer
   }
 }
 
@@ -107,6 +129,9 @@ class FakePackCache implements PackCache {
   async get(url: string): Promise<Blob | null> {
     this.getCalls.push(url)
     return this.blobs.get(url) ?? null
+  }
+  async put(url: string, blob: Blob): Promise<void> {
+    this.blobs.set(url, blob)
   }
   async addAll(): Promise<void> {}
   async delete(): Promise<void> {}
@@ -260,6 +285,38 @@ describe('WebAudioPlayer', () => {
 
     ctx.createdSources[0]!.end()
     await done
+  })
+
+  // 何を防ぐか: フォールバック取得した内容をキャッシュへ書き戻さないと、オンラインの間は
+  // fetchでしのげてしまい気づかないまま、次回以降も同じmissを繰り返す。
+  // オフラインに入った瞬間に再生できなくなる（T-183 Q-13）
+  it('T-183 Q-13: AudioBuffer経路のフォールバック取得結果をPackCacheへ書き戻す', async () => {
+    const { player, ctx, packCache } = createPlayer({ 'a.mp3': 1 }, { seedCache: false })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3')
+    await tick()
+    ctx.createdSources[0]!.end()
+    await done
+
+    expect(await packCache.get('a.mp3')).not.toBeNull()
+  })
+
+  it('T-183 Q-13: rate経路のフォールバック取得結果をPackCacheへ書き戻す', async () => {
+    const { player, ctx, packCache, audioElements } = createPlayer(
+      { 'a.mp3': 1 },
+      { seedCache: false },
+    )
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3', { rate: 0.85 })
+    await tick()
+    audioElements[0]!.end()
+    await done
+
+    expect(await packCache.get('a.mp3')).not.toBeNull()
   })
 })
 
@@ -648,5 +705,126 @@ describe('WebAudioPlayer: 完走と中断の区別（T-155）', () => {
     await tick()
     player.stop()
     await expect(interrupted).resolves.toBe('interrupted')
+  })
+
+  // 何を防ぐか（T-324・K-57）: iOSの通話・Siri等の割り込みでAudioContextが
+  // running以外へ落ちても、source.onendedは発火しないため誰も待っているPromiseを
+  // 解決せず、呼び出し側（DrillScreen等）が「再生中…」のUIで固着する
+  it("再生中にAudioContextがrunning以外へ落ちると、UIが固着せず'interrupted'を返す", async () => {
+    const { player, ctx } = createPlayer({ 'a.mp3': 5 })
+    await player.unlock()
+    ctx.createdSources = []
+
+    const done = player.play('a.mp3')
+    await tick()
+    ctx.setState('interrupted')
+
+    await expect(done).resolves.toBe('interrupted')
+  })
+})
+
+// T-222（Q-16）: デコード済みAudioBufferのキャッシュ上限が件数50のみで、バイト数を
+// 見ていなかった。decodeAudioDataはサンプルレートに応じたfloat32 PCMへ展開するため、
+// Part3/4級（30秒前後）の音声は1件あたり数MB〜10MB超になりうる。件数ではなく
+// バイト数基準の上限に変える
+describe('WebAudioPlayer: デコード済みバッファのキャッシュ上限（T-222・Q-16）', () => {
+  it('合計サイズが上限を超えると、古いエントリだけを追い出してPackCacheを再取得させる', async () => {
+    const { player, ctx, packCache } = createPlayer({
+      'a.mp3': 1,
+      'b.mp3': 1,
+      'c.mp3': 1,
+      'd.mp3': 1,
+    })
+    // 1件で上限の大部分を占める疑似サイズを仕込む（実容量は確保しない）
+    ctx.sizesBytes.set('a.mp3', 50 * 1024 * 1024)
+    ctx.sizesBytes.set('b.mp3', 10 * 1024 * 1024)
+    ctx.sizesBytes.set('c.mp3', 10 * 1024 * 1024)
+    ctx.sizesBytes.set('d.mp3', 20 * 1024 * 1024)
+    await player.unlock()
+    ctx.createdSources = []
+
+    // a→b→cの順でロードする（合計70MiBは上限80MiBに収まるため、まだ何も追い出されない）
+    for (const src of ['a.mp3', 'b.mp3', 'c.mp3']) {
+      const done = player.play(src)
+      await tick()
+      ctx.createdSources[ctx.createdSources.length - 1]!.end()
+      await done
+    }
+
+    // d（20MiB）を追加すると合計90MiBが上限(既定80MiB)を超えるため、
+    // 最も古いa（50MiB）だけが追い出される（b・cは残り、合計は40MiBに収まる）
+    const dDone = player.play('d.mp3')
+    await tick()
+    ctx.createdSources[ctx.createdSources.length - 1]!.end()
+    await dDone
+
+    // b・cはまだキャッシュに残っているはず（1回目の取得のみ）。
+    // a.mp3のチェックより先に行う——a.mp3を再ロードするとまた追い出しが起き、
+    // ここでの判定が汚染されるため
+    const replayB = player.play('b.mp3')
+    await tick()
+    expect(packCache.getCalls.filter((url) => url === 'b.mp3').length).toBe(1)
+    ctx.createdSources[ctx.createdSources.length - 1]!.end()
+    await replayB
+
+    const replayC = player.play('c.mp3')
+    await tick()
+    expect(packCache.getCalls.filter((url) => url === 'c.mp3').length).toBe(1)
+    ctx.createdSources[ctx.createdSources.length - 1]!.end()
+    await replayC
+
+    // a.mp3 は追い出されているため、再生するとPackCacheへ再取得しにいく
+    const replayA = player.play('a.mp3')
+    await tick()
+    expect(packCache.getCalls.filter((url) => url === 'a.mp3').length).toBe(2)
+    ctx.createdSources[ctx.createdSources.length - 1]!.end()
+    await replayA
+  })
+
+  it('単独で上限を超える大きさのバッファも拒否せずキャッシュする（再生に必要なため）', async () => {
+    const { player, ctx, packCache } = createPlayer({ 'huge.mp3': 1 })
+    ctx.sizesBytes.set('huge.mp3', 200 * 1024 * 1024) // 単独で既定上限(80MiB)を超える
+    await player.unlock()
+    ctx.createdSources = []
+
+    const first = player.play('huge.mp3')
+    await tick()
+    ctx.createdSources[0]!.end()
+    await first
+
+    // 2回目はメモリキャッシュから再利用され、PackCacheを再取得しない
+    const second = player.play('huge.mp3')
+    await tick()
+    expect(packCache.getCalls.filter((url) => url === 'huge.mp3').length).toBe(1)
+    ctx.createdSources[1]!.end()
+    await second
+  })
+
+  it('件数が50件未満でも、合計サイズが上限を超えれば追い出す（従来の件数50上限は撤廃）', async () => {
+    const { player, ctx, packCache } = createPlayer()
+    const srcs = Array.from({ length: 5 }, (_, i) => `f${i}.mp3`)
+    for (const src of srcs) {
+      packCache.setBlob(src, src)
+      ctx.durations.set(src, 1)
+      // 5件×20MiB=100MiBで既定上限80MiBを超える
+      ctx.sizesBytes.set(src, 20 * 1024 * 1024)
+    }
+    await player.unlock()
+    ctx.createdSources = []
+
+    for (let i = 0; i < srcs.length; i++) {
+      const done = player.play(srcs[i]!)
+      await tick()
+      ctx.createdSources[i]!.end()
+      await done
+    }
+
+    // 最初のエントリ（f0.mp3）は追い出されているはず（件数は50件を大きく下回るが
+    // バイト数超過で追い出される）
+    const replay = player.play(srcs[0]!)
+    await tick()
+    expect(packCache.getCalls.filter((url) => url === srcs[0]).length).toBe(2)
+    ctx.createdSources[srcs.length]!.end()
+    await replay
   })
 })

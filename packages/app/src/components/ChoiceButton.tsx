@@ -76,14 +76,27 @@ export function ChoiceButton({
       {/* 形は装飾（aria-hidden）なので、支援技術には選択肢記号を文字で伝える。
           記号表示のときはマーカーの文字がそのまま見えているため補わない */}
       {shape !== null && <span className="visually-hidden">選択肢{marker}</span>}
-      <span className="choice-button__label">{children}</span>
+      {/* T-224（J-108）: 選択肢本文は英文そのもの（全呼び出し元でchoice.textを渡す） */}
+      <span className="choice-button__label" lang="en">
+        {children}
+      </span>
       {/* アイコン枠は常時確保（状態変化でレイアウトを動かさないため） */}
       <span className="choice-button__icon" aria-hidden={icon === ''}>
         {icon}
       </span>
-      {/* スクリーンリーダー向けの状態読み上げ（色に依存しない） */}
-      {state === 'correct' && <span className="visually-hidden">（正解）</span>}
-      {state === 'wrong' && <span className="visually-hidden">（誤答）</span>}
+      {/* スクリーンリーダー向けの状態読み上げ（色に依存しない）。T-231(Q-69): role="status"
+          （暗黙のaria-live="polite"）を付け、解答直後にDOM挿入されたタイミングで自動読み上げ
+          させる。role="status"はDrillScreenのスキップ・取り消し通知と同じ既存パターン */}
+      {state === 'correct' && (
+        <span className="visually-hidden" role="status">
+          （正解）
+        </span>
+      )}
+      {state === 'wrong' && (
+        <span className="visually-hidden" role="status">
+          （誤答）
+        </span>
+      )}
     </button>
   )
 }

@@ -22,6 +22,7 @@ import { useAppStore } from '../store/appStore'
 import { Heatmap, type HeatmapCell } from '../components/charts/Heatmap'
 import { LineChart, type LineChartPoint } from '../components/charts/LineChart'
 import { WeakBars } from '../components/charts/WeakBars'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ScreenLayout } from '../components/ScreenLayout'
 
 interface Props {
@@ -41,6 +42,11 @@ function forecastMessage(forecast: ForecastResult): string {
   if (forecast.kind === 'measuring') return '計測中（データが14日分たまると表示されます）'
   if (forecast.kind === 'onTrack') {
     return `このペースなら${forecast.year}年${forecast.month}月頃到達（参考値）`
+  }
+  if (forecast.kind === 'behindDaily') {
+    // T-310（K-40）: 既に週7日（毎日）学習しているため「あとN日増やす」提案が
+    // 成立しない。日数以外の助言（1問あたりの精度・難易度への言及）に分岐させる
+    return 'このペースでは到達しない見込み。既に毎日学習しているため、1問ごとの見直し（間違えた問題・弱点タグ）を増やすことを目安に（参考値）'
   }
   return `このペースでは到達しない見込み。週の学習日数をあと${forecast.addDaysPerWeek}日増やすことを目安に（参考値）`
 }
@@ -70,6 +76,14 @@ function growthRankProgress(result: GrowthRankResult): number | null {
 /** 学習ヒートマップの表示週数（07 8節: 直近15週程度） */
 const HEATMAP_WEEKS = 15
 
+/**
+ * 実試験スコアのL/R各セクションの妥当な範囲（TOEIC公式の配点は各5〜495点。T-205・Q-53）。
+ * 範囲検証が無いと桁誤り（例: 650を6500と入力）がそのまま登録され、「予測帯との差」表示に
+ * 残り続ける（登録後の修正・削除手段も無かったため一度入ると気づいても直せなかった）
+ */
+const EXAM_SECTION_SCORE_MIN = 5
+const EXAM_SECTION_SCORE_MAX = 495
+
 export function DashboardScreen({ db, questionPool }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const [growthPoints, setGrowthPoints] = useState<LineChartPoint[] | null>(null)
@@ -86,6 +100,11 @@ export function DashboardScreen({ db, questionPool }: Props) {
   const [examListening, setExamListening] = useState('')
   const [examReading, setExamReading] = useState('')
   const [examSource, setExamSource] = useState<ExamScoreSource>('IP')
+  // T-205（Q-53）: 登録済みスコアの修正手段。nullなら新規登録、idがあれば編集モード
+  // （フォームは新規登録と共用し、送信時の分岐だけで賄う。専用モーダルは作らない）
+  const [editingScoreId, setEditingScoreId] = useState<string | null>(null)
+  // T-205（Q-53）: 削除は不可逆操作のため確認を挟む（T-202と同じ方針）
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   async function reloadForecastAndExamScores() {
     const [totalRating, history, scores] = await Promise.all([
@@ -142,29 +161,74 @@ export function DashboardScreen({ db, questionPool }: Props) {
         setReadingPace(computeReadingPace(attempts, lookup))
       }
     }
-    void load()
+    // T-301（K-29）フォローアップ: load()にcatchが無く、アンマウント後（DBクローズ・削除等）に
+    // 内部のDB操作が失敗すると未処理rejectionになっていた（従来はcountLearningDaysが読み取り
+    // 1回だけで完了が速く表面化しにくかったが、キャッシュ化で読み書きの往復が増えて顕在化した）
+    void load().catch((err: unknown) => {
+      console.error('[DashboardScreen] データ読み込みに失敗', err)
+    })
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- questionPoolは起動時に固定される想定
   }, [db])
 
+  /** L/Rそれぞれが妥当な範囲内の数値か（T-205・Q-53） */
+  function isValidSectionScore(input: string): boolean {
+    if (input.trim() === '') return false
+    const n = Number(input)
+    return !Number.isNaN(n) && n >= EXAM_SECTION_SCORE_MIN && n <= EXAM_SECTION_SCORE_MAX
+  }
+
+  const examListeningValid = isValidSectionScore(examListening)
+  const examReadingValid = isValidSectionScore(examReading)
+  const examFormValid = examDate !== '' && examListeningValid && examReadingValid
+
+  function resetExamForm() {
+    setEditingScoreId(null)
+    setExamDate('')
+    setExamListening('')
+    setExamReading('')
+    setExamSource('IP')
+  }
+
+  /**
+   * 新規登録・編集の両方をこの関数で扱う（T-205）。ボタンのdisabledに加えて、
+   * ここでも範囲外なら早期returnする（フォームのEnter暗黙送信がdisabledを迂回する
+   * 経路を多層防御する。DiagnosticScreenのTOEICスコア検証=T-187と同じ方針）
+   */
   async function handleRegisterExamScore(e: FormEvent) {
     e.preventDefault()
+    if (!examFormValid) return
     const listening = Number(examListening)
     const reading = Number(examReading)
-    if (!examDate || Number.isNaN(listening) || Number.isNaN(reading)) return
     await db.examScores.put({
-      id: crypto.randomUUID(),
+      id: editingScoreId ?? crypto.randomUUID(),
       date: examDate,
       listening,
       reading,
       total: listening + reading,
       source: examSource,
     })
-    setExamDate('')
-    setExamListening('')
-    setExamReading('')
+    resetExamForm()
+    await reloadForecastAndExamScores()
+  }
+
+  /** 登録済みスコアの修正（T-205）。フォームへ値を流し込み、送信時にeditingScoreIdで上書きする */
+  function handleEditExamScore(score: ExamScoreRecord) {
+    setEditingScoreId(score.id)
+    setExamDate(score.date)
+    setExamListening(String(score.listening))
+    setExamReading(String(score.reading))
+    setExamSource(score.source)
+  }
+
+  /** 登録済みスコアの削除（T-205。確認後に実行する不可逆操作） */
+  async function handleConfirmDeleteExamScore() {
+    if (!deleteConfirmId) return
+    await db.examScores.delete(deleteConfirmId)
+    setDeleteConfirmId(null)
+    if (editingScoreId === deleteConfirmId) resetExamForm()
     await reloadForecastAndExamScores()
   }
 
@@ -175,7 +239,19 @@ export function DashboardScreen({ db, questionPool }: Props) {
     forecast === null ||
     growthRank === null
   ) {
-    return null
+    // T-211(Q-59): return nullのままだと読み込み中に白画面になる。RaidScreenの
+    // 読み込み中表示と揃える
+    return (
+      <ScreenLayout
+        action={
+          <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+            ホームへ
+          </button>
+        }
+      >
+        <p>読み込み中…</p>
+      </ScreenLayout>
+    )
   }
 
   const rankProgress = growthRankProgress(growthRank)
@@ -191,11 +267,19 @@ export function DashboardScreen({ db, questionPool }: Props) {
       <h1 style={{ fontSize: 'var(--fs-heading)' }}>ダッシュボード</h1>
 
       <section className="dashboard-forecast-hero">
-        <p className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
-          {Math.round(forecast.scoreBand.low)}–{Math.round(forecast.scoreBand.high)}
-        </p>
-        <p className="dashboard-forecast-note">予測スコア帯（参考値。社内問題での推定）</p>
-        <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+        {/* T-199（Q-9）: measuring（データ14日未満）はまだ帯の数値が意味を持たないため、
+            数値と「計測中」文言を同時に出さない（排他）。数値は計測完了後にのみ表示する */}
+        {forecast.kind === 'measuring' ? (
+          <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+        ) : (
+          <>
+            <p className="display-num" style={{ fontSize: 'var(--fs-display)' }}>
+              {Math.round(forecast.scoreBand.low)}–{Math.round(forecast.scoreBand.high)}
+            </p>
+            <p className="dashboard-forecast-note">予測スコア帯（参考値。社内問題での推定）</p>
+            <p data-testid="forecast-message">{forecastMessage(forecast)}</p>
+          </>
+        )}
       </section>
 
       {/* docs/25 4.5節（V-14）: 色（data-rank）＋台座の線の本数でランク段数を二重符号化する。
@@ -214,10 +298,11 @@ export function DashboardScreen({ db, questionPool }: Props) {
             <span key={i} className="dashboard-growth-rank__tier-bar" />
           ))}
         </div>
-        <p className="dashboard-forecast-note">現在 {growthRank.rankPoints}pt</p>
-        {growthRank.nextRank ? (
+        {/* T-197（Q-6）: rankPointsはレート差分＋学習日数の合算で小数になりうる。表示は丸める */}
+        <p className="dashboard-forecast-note">現在 {Math.round(growthRank.rankPoints)}pt</p>
+        {growthRank.nextRank !== null && growthRank.pointsToNext !== null ? (
           <p data-testid="growth-rank-next">
-            次のランク（{growthRank.nextRank.name}）まで残り {growthRank.pointsToNext}pt
+            次のランク（{growthRank.nextRank.name}）まで残り {Math.round(growthRank.pointsToNext)}pt
           </p>
         ) : (
           <p data-testid="growth-rank-next">最上位ランクに到達</p>
@@ -296,6 +381,8 @@ export function DashboardScreen({ db, questionPool }: Props) {
             L
             <input
               type="number"
+              min={EXAM_SECTION_SCORE_MIN}
+              max={EXAM_SECTION_SCORE_MAX}
               value={examListening}
               onChange={(e) => setExamListening(e.target.value)}
               required
@@ -305,11 +392,25 @@ export function DashboardScreen({ db, questionPool }: Props) {
             R
             <input
               type="number"
+              min={EXAM_SECTION_SCORE_MIN}
+              max={EXAM_SECTION_SCORE_MAX}
               value={examReading}
               onChange={(e) => setExamReading(e.target.value)}
               required
             />
           </label>
+          {/* T-205（Q-53）: 範囲外入力で登録ボタンが無効になる理由を示す（無言で押せない
+              だけだと桁誤りに気づけない。DiagnosticScreenのTOEICスコア検証=T-187と同じ様式） */}
+          {examListening.trim() !== '' && !examListeningValid && (
+            <p style={{ color: 'var(--ng)', fontSize: 'var(--fs-note)' }} role="alert">
+              Lは{EXAM_SECTION_SCORE_MIN}〜{EXAM_SECTION_SCORE_MAX}の範囲で入力してください
+            </p>
+          )}
+          {examReading.trim() !== '' && !examReadingValid && (
+            <p style={{ color: 'var(--ng)', fontSize: 'var(--fs-note)' }} role="alert">
+              Rは{EXAM_SECTION_SCORE_MIN}〜{EXAM_SECTION_SCORE_MAX}の範囲で入力してください
+            </p>
+          )}
           <label>
             種別
             <select
@@ -323,7 +424,15 @@ export function DashboardScreen({ db, questionPool }: Props) {
               ))}
             </select>
           </label>
-          <button type="submit">登録</button>
+          <button type="submit" disabled={!examFormValid}>
+            {editingScoreId ? '更新' : '登録'}
+          </button>
+          {/* T-205: 編集モードから抜ける（新規登録に戻す） */}
+          {editingScoreId && (
+            <button type="button" className="secondary-action" onClick={resetExamForm}>
+              編集をやめる
+            </button>
+          )}
         </form>
         {examScores.length > 0 && (
           <ul data-testid="exam-score-list">
@@ -331,9 +440,31 @@ export function DashboardScreen({ db, questionPool }: Props) {
               <li key={score.id}>
                 {score.date} {score.source} 合計{score.total}
                 （予測帯との差 {Math.round(score.total - forecast.scoreBand.center)}）
+                {/* T-205（Q-53）: 誤登録の修正・削除手段が無く、「予測帯との差」表示に残り
+                    続けていた */}
+                <button type="button" onClick={() => handleEditExamScore(score)}>
+                  編集
+                </button>
+                <button type="button" onClick={() => setDeleteConfirmId(score.id)}>
+                  削除
+                </button>
               </li>
             ))}
           </ul>
+        )}
+        {deleteConfirmId && (
+          <ConfirmDialog
+            message="この実試験スコアを削除しますか？（元に戻せません）"
+            onDismiss={() => setDeleteConfirmId(null)}
+            actions={[
+              {
+                label: '削除する',
+                primary: true,
+                onSelect: () => void handleConfirmDeleteExamScore(),
+              },
+              { label: 'キャンセル', onSelect: () => setDeleteConfirmId(null) },
+            ]}
+          />
         )}
       </section>
     </ScreenLayout>

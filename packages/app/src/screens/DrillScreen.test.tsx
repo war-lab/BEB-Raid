@@ -15,7 +15,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { AudioPlayer, PlaybackOutcome } from '../platform'
+import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
+  ACTIVE_SESSION_KEY,
   advanceSession,
   answerCurrentQuestion,
   resumeSession,
@@ -192,6 +194,48 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
     expect(useAppStore.getState().screen).toBe('result')
   })
 
+  // 何を防ぐか（T-320・K-53）: snapshotはあるがitemが無い（=全item解答済み）状態での
+  // finishSession()呼び出しが、レンダー本体（return null直前）に書かれていた。
+  // このケースは通常、最終問の「次へ」ボタン（onClick={finishSession}、イベント
+  // ハンドラなので問題ない）を経由するが、中断復帰などでsnapshot自体が
+  // 「既に全問解答済み」の状態のままDrillScreenが最初にレンダーされることもある
+  // （ボタンクリックを経由せずレンダー本体のガードが初回レンダーで直接実行される経路）。
+  // レンダー本体からnavigate/completeSessionを直接呼ぶのはReactのレンダー純粋性に反するため
+  // useEffectへ移した（T-320）。この経路が退行してリザルトへ進まなくなることを防ぐ
+  it('既に全問解答済みのsnapshotで初回レンダーされた場合もリザルトへ進み、セッションが完了する（T-320・K-53）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    const snapshot = await startSession(db, { items })
+    const answeredSnapshot = { ...snapshot, answeredCount: items.length }
+    useSessionStore.getState().begin(answeredSnapshot, QUESTIONS, { L: 400, R: 400 })
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    const active = await db.settings.get(ACTIVE_SESSION_KEY)
+    expect(active).toBeUndefined()
+  })
+
+  it('全問完走してリザルトへ進んだ時点でDB上のセッションを完了させる（T-267・Q-5）', async () => {
+    // 何を防ぐか: 途中終了ボタン（T-196）だけでなく、通常どおり全問解いて
+    // 「次へ」でリザルトへ進む正規完走の経路でも、ResultScreenの「ホームへ」を
+    // 待たずにこの時点でDBのアクティブセッションを消す。完走の方が途中終了より
+    // 通過頻度が高いため、ここが直っていないとQ-5の症状（終了したはずのセッションが
+    // 進行中として残る）が日常的に発生する
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    await answerAndSettle('a', 1)
+    fireEvent.click(await screen.findByText('次へ'))
+    await answerAndSettle('b', 2) // q-2（最終問）の正解
+    fireEvent.click(await screen.findByText('次へ'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('SRS由来item（srsCardIdあり）の解答で reviewSrsCard が呼ばれる', async () => {
     const db = newDb()
     await db.srsCards.put({
@@ -236,10 +280,26 @@ describe('DrillScreen: 出題→解答→正誤→解説→次問→リザルト
 
     render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
     fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(screen.getByText('中断してホームへ'))
 
     expect(useAppStore.getState().screen).toBe('home')
     // 進行中セッションはDB上に残っている（中断=破棄ではない）
     expect(await db.settings.get('activeSession')).toBeTruthy()
+  })
+
+  // T-221（Q-15）: 「中断してホームへ」はaudioPlayer.stop()を呼ばず、Part3/4の
+  // 約30秒音声の再生中に中断するとホーム画面で音声が流れ続けていた
+  it('「中断してホームへ」でaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(screen.getByText('中断してホームへ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
   })
 })
 
@@ -392,7 +452,7 @@ describe('DrillScreen: Part2音声のみモード（ADR 0008・T-154）', () => 
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
     // 再生完了後にタイマーが出る（従来の15秒ではなく6秒）
-    await vi.waitFor(() => expect(screen.getByText('6')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り6秒')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(6000)
     await vi.waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
@@ -809,6 +869,32 @@ describe('DrillScreen: 誤タップの取り消し猶予（ADR 0009）', () => {
     expect(useSessionStore.getState().snapshot?.answeredCount).toBe(2)
   })
 
+  // 何を防ぐか（T-297・K-23）: アンマウント時のflushでcommitAnswerが失敗すると、
+  // 従来はconsole.errorに流すだけで解答が無言で失われていた（saveErrorバナー・再試行ボタンは
+  // アンマウント済みの画面には効かない）。次回起動時に気づけるよう退避されているか検証する
+  it('猶予中にアンマウント→flushが失敗すると、次回起動時の通知用に退避される（K-23）', async () => {
+    const db = newDb()
+    const snapshot = await setupWithUndo(
+      db,
+      QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' })),
+      QUESTIONS,
+    )
+    const view = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    fireEvent.click(await screen.findByText('a'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // 画面が持つsnapshotを裏でstaleにする（他タブ・多重解答の再現。DBは正常なまま）。
+    // flush時のrecordAnswerPipelineはこのstale snapshotで呼ばれ、StaleSnapshotErrorになる
+    await answerCurrentQuestion(db, snapshot, { isCorrect: true, responseMs: 1000 })
+
+    view.unmount()
+
+    await waitFor(async () => expect(await loadPendingCommitFailure(db)).not.toBeNull())
+    // 猶予中の解答自体は書かれない（元の設計どおり、失われたデータは再送できない）
+    expect(await db.attempts.count()).toBe(1) // answerCurrentQuestionで直接書いた1件のみ
+  })
+
   it('設定OFFなら従来どおり即記録する（回帰）', async () => {
     const db = newDb()
     // setupSession が OFF にするのでそのまま使う
@@ -1115,8 +1201,11 @@ describe('DrillScreen: 解答保存失敗リカバリ（T-76。J-35のpipeline�
 
     fireEvent.click(screen.getByText('b')) // q-1（正解はA）に解答を試みる
 
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
 
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
@@ -1179,6 +1268,63 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
     const attempt = (await db.attempts.toArray())[0]!
     expect(attempt.mode).toBe('srs')
     expect(attempt.isCorrect).toBe(true)
+  })
+
+  // T-210(Q-39・J-107): 頻出度ランク・SRS間隔（もう一回/OK/余裕）の意味はtitle属性のみ
+  // （hover専用）で提供されており、タッチ端末では説明に到達できなかった
+  it('T-210: 頻出度ランクの意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/頻出度ランク（Sが最も頻出/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '頻出度ランク Sの説明を表示' }))
+    expect(screen.getByText(/頻出度ランク（Sが最も頻出/)).toBeTruthy()
+  })
+
+  it('T-210: SRS間隔（もう一回/OK/余裕）の意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('submit の意味'))
+    expect(screen.getByText('もう一回')).toBeTruthy()
+
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/間隔を短くしてすぐに復習／OK＝通常の間隔で復習/)).toBeNull()
+    fireEvent.click(screen.getByText('間隔について'))
+    expect(
+      screen.getByText(
+        /間隔を短くしてすぐに復習／OK＝通常の間隔で復習／余裕＝間隔を大きく広げて復習/,
+      ),
+    ).toBeTruthy()
   })
 
   it('解答前はフレーズがDOMに存在しない（文脈からの推測を防ぐ。2026-07-29）', async () => {
@@ -1354,8 +1500,11 @@ describe('DrillScreen: vocab_card混在（T-21。クイックパックにkind=sr
 
     fireEvent.click(screen.getByText('OK'))
 
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
@@ -1474,10 +1623,16 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
     const audioPlayer = new FakeAudioPlayer()
 
+    // T-309（K-38）: fireEventは即時発火するためresponseMsが実質0msになり、GUESS_THRESHOLD_MS
+    // （2000ms）未満の「速答」としてtagStatsの重みが0.5に下がってしまう。この時刻経過は
+    // テストの本題（レート対象外でもtagStatsは更新される）とは無関係なので、Date.nowを
+    // 進めて実際に3秒かけて解答したのと同じ状態を作る
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
     await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
     fireEvent.click(screen.getByText('submit'))
+    nowSpy.mockReturnValue(1_003_000)
     fireEvent.click(screen.getByText('確定'))
 
     await waitFor(() => expect(useSessionStore.getState().snapshot?.answeredCount).toBe(1))
@@ -1486,6 +1641,7 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
     expect(await db.ratings.get('R')).toBeUndefined()
     const tagStat = await db.tagStats.get('弱形・連結')
     expect(tagStat?.windowTotal).toBe(1)
+    nowSpy.mockRestore()
   })
 
   it('「やり直す」で穴の記入をリセットできる', async () => {
@@ -1563,8 +1719,11 @@ describe('DrillScreen: dictation（M2・T-47）', () => {
 
     fireEvent.click(screen.getByText('確定'))
 
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
     // 再同期後、DB上で既に解答済みの1問目はスキップされ、2問目（attend）が表示される
     await waitFor(() => expect(screen.getByText(/attend/)).toBeTruthy())
@@ -1756,7 +1915,7 @@ describe('DrillScreen: audio_set（M2・T-49）', () => {
     fireEvent.click(screen.getByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // サブ設問はsnapshot経由でないため進行せず、同じ設問のまま（選択肢もまだ見える）
     expect(screen.getByText('設問0')).toBeTruthy()
@@ -2101,6 +2260,24 @@ describe('DrillScreen: セッション途中終了導線（T-122・J-61）', () 
     expect(useSessionStore.getState().snapshot?.sessionId).toBe(snapshot.sessionId)
   })
 
+  it('「ここで終了して結果を見る」をタップした時点でDB上のセッションを完了させる（T-196・Q-5）', async () => {
+    // 何を防ぐか: 「終了」を選んだのにDB上は中断（進行中）扱いのまま残ると、ResultScreenで
+    // 「ホームへ」をタップする前にタブを閉じる／アプリを離れるだけでホームに
+    // 「続きから再開」バナーが残り続ける。文言（終了）と状態（中断扱い）が矛盾する。
+    // 「終了」を選んだ時点でDBのアクティブセッションを確実に消す（ResultScreenの
+    // 「ホームへ」を待たない）のが正しい挙動
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    await answerAndSettle('a', 1) // q-1に正解（残りq-2の1問）
+    fireEvent.click(screen.getByText('ここで終了して結果を見る'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('最終問の解説では「ここで終了して結果を見る」は出ない（「次へ」自体がリザルトへ進むため）', async () => {
     const db = newDb()
     const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
@@ -2204,7 +2381,7 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
 
-    await waitFor(() => expect(screen.getByText('6')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('残り6秒')).toBeTruthy())
   })
 
   // 何を防ぐか: 聞き直しが解答時間の減少というペナルティになること（J-91）
@@ -2224,17 +2401,17 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
-    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り15秒')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(3000)
-    await vi.waitFor(() => expect(screen.getByText('12')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り12秒')).toBeTruthy())
 
     fireEvent.click(screen.getByText('もう一度再生'))
     await vi.waitFor(() => expect(screen.getByText('再生中は停止')).toBeTruthy())
 
     // リプレイ中は何秒経ってもカウントが進まない
     await vi.advanceTimersByTimeAsync(5000)
-    expect(screen.getByText('12')).toBeTruthy()
+    expect(screen.getByText('残り12秒')).toBeTruthy()
 
     await act(async () => {
       pending.resolve?.('ended')
@@ -2243,7 +2420,7 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     // 再生終了後は残り時間（12秒）から再開する。リセットされて15秒に戻ることはない
     await vi.waitFor(() => expect(screen.queryByText('再生中は停止')).toBeNull())
     await vi.advanceTimersByTimeAsync(2000)
-    await vi.waitFor(() => expect(screen.getByText('10')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り10秒')).toBeTruthy())
   })
 
   it('リプレイを複数回してもタイマーはリセットされない', async () => {
@@ -2255,10 +2432,10 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
-    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り15秒')).toBeTruthy())
 
     await vi.advanceTimersByTimeAsync(4000)
-    await vi.waitFor(() => expect(screen.getByText('11')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り11秒')).toBeTruthy())
 
     // replay は即座に 'ended' で解決するフェイクなので、押した分だけ停止→再開が起きる。
     // 再開（setIsReplaying(false)）はawait後＝act外で起きるため、actで囲んで
@@ -2273,11 +2450,11 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     }
 
     // 残り時間は据え置き（15秒に巻き戻らない）
-    expect(screen.getByText('11')).toBeTruthy()
+    expect(screen.getByText('残り11秒')).toBeTruthy()
     // 再開後はカウントが進む。なおリプレイのたびにintervalを張り直すため1秒未満の端数は
     // 切り捨てられる（学習者に有利な方向のずれなので許容する）
     await vi.advanceTimersByTimeAsync(1000)
-    await vi.waitFor(() => expect(screen.getByText('10')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り10秒')).toBeTruthy())
   })
 
   it('リプレイが失敗してもタイマーは再開する（停止したまま固まらない）', async () => {
@@ -2290,14 +2467,14 @@ describe('DrillScreen: タイマーと中断（T-158。docs/27 のS-2・S-9）',
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
     fireEvent.click(screen.getByText('音声を再生'))
-    await vi.waitFor(() => expect(screen.getByText('15')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り15秒')).toBeTruthy())
 
     fireEvent.click(screen.getByText('もう一度再生'))
     await vi.waitFor(() => expect(screen.getByText('音声を再生できませんでした')).toBeTruthy())
 
     expect(screen.queryByText('再生中は停止')).toBeNull()
     await vi.advanceTimersByTimeAsync(1000)
-    await vi.waitFor(() => expect(screen.getByText('14')).toBeTruthy())
+    await vi.waitFor(() => expect(screen.getByText('残り14秒')).toBeTruthy())
   })
 })
 
@@ -2349,7 +2526,7 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     fireEvent.click(await screen.findByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 正誤表示は保持する（再解答を求めない）
     expect(screen.getByText('a').closest('button')?.dataset.state).toBe('correct')
@@ -2360,10 +2537,35 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
     await waitFor(() =>
       expect(
-        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        screen.queryByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeNull(),
     )
     expect(screen.queryByText('保存を再試行する')).toBeNull()
+    addSpy.mockRestore()
+  })
+
+  // 何を防ぐか（T-299・K-25）: 容量不足（QuotaExceededError）でも一律「空き容量を
+  // 確認してください」だけで、確認した後の具体的な回復手段（エクスポート）を示していなかった
+  it('QuotaExceededErrorのときは専用の文言とエクスポート導線が出る', async () => {
+    const db = newDb()
+    const q = part5Question('q-quota', 'A', 'submit')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new DOMException('quota exceeded', 'QuotaExceededError'))
+
+    fireEvent.click(await screen.findByText('a'))
+
+    expect(
+      await screen.findByText(
+        '端末のストレージ容量が不足しています。データをエクスポートして空き容量を確保してください',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
     addSpy.mockRestore()
   })
 
@@ -2423,7 +2625,7 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
     fireEvent.click(await screen.findByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 進行導線は出さず、再試行だけが前進手段になる
     expect(screen.queryByText('次へ')).toBeNull()
@@ -2453,8 +2655,11 @@ describe('DrillScreen: 進捗表示の実解答回数化と保存失敗の再試
 
     fireEvent.click(screen.getByText('b'))
 
+    // T-298（K-24）: StaleSnapshotErrorは容量不足ではないため専用の文言になる
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText(
+        'この解答は保存されていません（別のセッションが開始された可能性があります）',
+      ),
     ).toBeTruthy()
     // やり直しても同じ検知で弾かれるため再試行は出さない
     expect(screen.queryByText('保存を再試行する')).toBeNull()
@@ -2562,5 +2767,134 @@ describe('DrillScreen: 進捗の上限（レビュー指摘）', () => {
     const bar = screen.getByRole('progressbar')
     expect(bar.getAttribute('aria-valuenow')).toBe('3')
     expect(bar.getAttribute('aria-label')).toBe('進捗 3/3')
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 問題文・語彙単語・ディクテーションのスクリプトに
+// lang="en" が無く、lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('DrillScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('text_blank（Part5）の設問文にlang="en"が付く', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(container.querySelector('.question-text')?.getAttribute('lang')).toBe('en')
+  })
+
+  it('選択肢本文にもlang="en"が付く（ChoiceButton経由）', async () => {
+    const db = newDb()
+    const items: SessionItem[] = QUESTIONS.map((q) => ({ questionId: q.id, mode: 'solo' }))
+    await setupSession(db, items, QUESTIONS)
+
+    render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(screen.getByText('a').getAttribute('lang')).toBe('en')
+  })
+
+  it('vocab_cardの対象語（単語）にlang="en"が付く', async () => {
+    const db = newDb()
+    await db.srsCards.put({
+      id: 'vocab:submit',
+      refType: 'vocab',
+      refId: 'submit',
+      stage: 0,
+      dueAt: Date.now() - 1000,
+      lapses: 0,
+      introducedDate: '2026-07-01',
+      graduatedAt: null,
+      sourceQuestionId: null,
+    })
+    const q = vocabCardQuestion('submit')
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'srs', srsCardId: 'vocab:submit' }]
+    await setupSession(db, items, [q])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    expect(container.querySelector('.vocab-card__word')?.getAttribute('lang')).toBe('en')
+  })
+
+  it('dictationの語バンクの単語にlang="en"が付く', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-lang', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+
+    const bankButtons = screen
+      .getAllByRole('button')
+      .filter((b) => b.parentElement?.className === 'dictation-word-bank')
+    expect(bankButtons.length).toBeGreaterThan(0)
+    for (const b of bankButtons) expect(b.getAttribute('lang')).toBe('en')
+  })
+
+  it('dictationの確定後、スクリプト全文にlang="en"が付く', async () => {
+    const db = newDb()
+    const q = dictationQuestion('dict-lang-2', 'Please submit the report today', [
+      { index: 1, answer: 'submit' },
+    ])
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('submit')).toBeTruthy())
+    fireEvent.click(screen.getByText('submit'))
+    fireEvent.click(screen.getByText('確定'))
+
+    await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
+    const script = container.querySelector('.dictation-script [lang="en"]')
+    expect(script?.textContent).toBe('Please submit the report today')
+  })
+
+  it('audio_setのサブ設問文（再生中～解答前）にlang="en"が付く', async () => {
+    const db = newDb()
+    const set = audioSetQuestion('s-lang', 3)
+    await setupSession(db, [{ questionId: set.id, mode: 'solo' }], [set])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    fireEvent.click(await screen.findByText('もう再生する'))
+    await waitFor(() => expect(screen.getByText('設問0')).toBeTruthy())
+
+    const span = container.querySelector('.question-text [lang="en"]')
+    expect(span?.textContent).toBe('設問0')
+  })
+
+  it('audio_qaの解答後、scriptにlang="en"が付く', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-lang', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const { container } = render(<DrillScreen db={db} audioPlayer={new FakeAudioPlayer()} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+    await answerAndSettle('Yesterday.', 1)
+
+    const span = container.querySelector('.question-text [lang="en"]')
+    expect(span?.textContent).toBe(q.script)
+  })
+})
+
+// 何を防ぐか（T-315・K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラ
+// のみで実装しており、useEffectのunmount cleanupでの停止が1件も無かった。最終問で再生中に
+// リザルトへ進むと、再生中の音声がリザルト画面まで流れ続ける
+describe('DrillScreen: unmount時の音声停止（T-315・K-48）', () => {
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const q = audioQaQuestion('p2-unmount', 'A')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+    const audioPlayer = new FakeAudioPlayer()
+
+    const view = render(<DrillScreen db={db} audioPlayer={audioPlayer} />)
+    fireEvent.click(screen.getByText('音声を再生'))
+    await waitFor(() => expect(screen.getByText('Yesterday.')).toBeTruthy())
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
   })
 })

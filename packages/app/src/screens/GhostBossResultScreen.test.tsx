@@ -10,7 +10,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import type { RaidApi } from '../platform'
-import { GHOST_BOSS_SUBMITTED_AT_KEY } from '../services/settingsKeys'
+import {
+  GHOST_BOSS_PENDING_RESULT_KEY,
+  GHOST_BOSS_SUBMITTED_AT_KEY,
+} from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { GhostBossResultScreen } from './GhostBossResultScreen'
@@ -161,7 +164,9 @@ describe('GhostBossResultScreen: 記録プレビュー', () => {
     expect(await screen.findByTestId('ghost-boss-sent')).toBeTruthy()
   })
 
-  it('破棄するとsendGhostRecordを呼ばずホームへ戻る', async () => {
+  // T-202（docs/29 Q-34）: 「送信する」の直下に隣接し、確認なしの1タップで記録が
+  // 失われていた。確認ダイアログを経由するようになった
+  it('破棄は確認を経てからsendGhostRecordを呼ばずホームへ戻る（キャンセルでは閉じない）', async () => {
     const db = newDb()
     await seedGhostBossSession(db)
     const raidApi = new FakeRaidApi()
@@ -169,9 +174,77 @@ describe('GhostBossResultScreen: 記録プレビュー', () => {
     render(<GhostBossResultScreen db={db} raidApi={raidApi} />)
     fireEvent.click(screen.getByText('破棄する'))
 
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(useAppStore.getState().screen).not.toBe('home')
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+
+    fireEvent.click(screen.getByText('破棄する'))
+    fireEvent.click(await screen.findByText('破棄する', { selector: '.confirm-dialog__primary' }))
+
     await waitFor(() => expect(useAppStore.getState().screen).toBe('home'))
     expect(raidApi.sendGhostRecord).not.toHaveBeenCalled()
     expect(await db.settings.get(GHOST_BOSS_SUBMITTED_AT_KEY)).toBeUndefined()
+  })
+
+  // T-272（docs/30 17節）: 送信成功前にアプリを終了・再読み込みすると、結果の保持が
+  // React state（useSessionStore）のみだったため解き切った結果がそのまま失われていた。
+  // この画面が表示された時点でsettingsへ一時保存し、次回起動時に復帰できるようにする
+  it('画面表示直後（送信前）に未送信結果がsettingsへ一時保存される（T-272）', async () => {
+    const db = newDb()
+    await seedGhostBossSession(db)
+    const raidApi = new FakeRaidApi()
+
+    render(<GhostBossResultScreen db={db} raidApi={raidApi} />)
+
+    await waitFor(async () => {
+      const stored = await db.settings.get(GHOST_BOSS_PENDING_RESULT_KEY)
+      expect(stored?.value).toMatchObject({
+        records: [
+          { questionId: 'q-1', correct: true },
+          { questionId: 'q-2', correct: false },
+          { questionId: 'q-3', correct: false },
+        ],
+      })
+    })
+  })
+
+  it('送信成功後は一時保存が削除される（次回起動時に復帰させる必要が無いため。T-272）', async () => {
+    const db = newDb()
+    await seedGhostBossSession(db)
+    const raidApi = new FakeRaidApi()
+
+    render(<GhostBossResultScreen db={db} raidApi={raidApi} />)
+    await waitFor(async () => {
+      expect(await db.settings.get(GHOST_BOSS_PENDING_RESULT_KEY)).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByText('送信する'))
+    await waitFor(() => expect(raidApi.sendGhostRecord).toHaveBeenCalledTimes(1))
+
+    await waitFor(async () => {
+      expect(await db.settings.get(GHOST_BOSS_PENDING_RESULT_KEY)).toBeUndefined()
+    })
+  })
+
+  it('破棄確定後も一時保存が削除される（再起動しても消えた記録が復活しない。T-272）', async () => {
+    const db = newDb()
+    await seedGhostBossSession(db)
+    const raidApi = new FakeRaidApi()
+
+    render(<GhostBossResultScreen db={db} raidApi={raidApi} />)
+    await waitFor(async () => {
+      expect(await db.settings.get(GHOST_BOSS_PENDING_RESULT_KEY)).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByText('破棄する'))
+    fireEvent.click(await screen.findByText('破棄する', { selector: '.confirm-dialog__primary' }))
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('home'))
+    await waitFor(async () => {
+      expect(await db.settings.get(GHOST_BOSS_PENDING_RESULT_KEY)).toBeUndefined()
+    })
   })
 
   it('送信失敗時はエラーメッセージを表示し、送信済みフラグは保存されない', async () => {
@@ -189,5 +262,19 @@ describe('GhostBossResultScreen: 記録プレビュー', () => {
     expect(await screen.findByText(/送信に失敗しました/)).toBeTruthy()
     expect(await db.settings.get(GHOST_BOSS_SUBMITTED_AT_KEY)).toBeUndefined()
     warnSpy.mockRestore()
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 一覧の設問ラベル（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('GhostBossResultScreen: 一覧の設問ラベルのlang="en"（T-224・J-108）', () => {
+  it('resultQuestionLabelの表示にlang="en"が付く', async () => {
+    const db = newDb()
+    await seedGhostBossSession(db)
+
+    render(<GhostBossResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    const label = await screen.findByText('question q-1')
+    expect(label.getAttribute('lang')).toBe('en')
   })
 })

@@ -93,16 +93,27 @@ describe('usePendingCommit', () => {
     expect(commit).toHaveBeenCalledTimes(1)
   })
 
-  it('連続して予約すると前の予約は破棄され、最後の1件だけがコミットされる', () => {
+  // T-194（Q-107）: 猶予中にscheduleを再度呼ぶケース。以前はここで前のペイロードのタイマーだけを
+  // 解除し、前の解答をコミットせずに捨てていた（本テストは元々「'b'だけがコミットされる」＝
+  // 'a'が消えることを正としていたが、それ自体がバグの症状だった）。
+  // 現状はDrillScreenのfinalizeAnswerが早期returnでこの再呼び出し自体を防いでいるため実害は
+  // ないが、フックのAPIとして無防備だった。前のペイロードは即flushし、解答を失わないようにする
+  it('猶予中に再度scheduleすると、前のペイロードは即flushされ、新しいペイロードは通常どおり猶予後にコミットされる', () => {
     const commit = vi.fn()
     const { result } = renderHook(() => usePendingCommit<string>(commit))
 
     act(() => result.current.schedule('a'))
     act(() => void vi.advanceTimersByTime(UNDO_WINDOW_MS / 2))
     act(() => result.current.schedule('b'))
+
+    // 'a'は猶予を待たず、2回目のscheduleの時点で即座にコミットされる（消えない）
+    expect(commit).toHaveBeenCalledExactlyOnceWith('a')
+    expect(result.current.pending).toBe('b')
+
     act(() => void vi.advanceTimersByTime(UNDO_WINDOW_MS))
 
-    expect(commit).toHaveBeenCalledExactlyOnceWith('b')
+    expect(commit).toHaveBeenCalledTimes(2)
+    expect(commit).toHaveBeenNthCalledWith(2, 'b')
   })
 
   it('コミットは毎レンダーの最新の関数を呼ぶ（初回レンダーのクロージャに焼き付かない）', () => {

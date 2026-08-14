@@ -16,8 +16,10 @@ import {
 } from './App'
 import { getDb } from './db/database'
 import type { PackCache } from './platform'
+import { WebAudioPlayer } from './platform/audio/WebAudioPlayer'
 import { createProfile } from './services/profile'
 import { startSession } from './services/session'
+import { GHOST_BOSS_PENDING_RESULT_KEY } from './services/settingsKeys'
 import { useAppStore } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
 
@@ -46,6 +48,20 @@ describe('App（配線確認）', () => {
     expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
     expect(screen.getByText('今日のクエスト')).toBeTruthy()
   })
+
+  // T-211(Q-40): 起動チェック完了（hasProfile・パック読込等のPromise.all解決）まで
+  // return nullだと、index.htmlの静的スプラッシュがReactマウントの瞬間に#rootごと
+  // 消え、以降は完全な白画面になる。マウント直後（起動チェック完了前）の同期描画を
+  // 確認して白画面でないことを保証する
+  it('T-211: 起動チェック完了前は白画面ではなく読み込み中の表示を出す', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    const { container } = render(<App />)
+    // 起動チェックのPromiseはまだ解決していないはずの、マウント直後の同期描画を見る
+    expect(container.textContent).not.toBe('')
+    expect(screen.getByText('読み込み中…')).toBeTruthy()
+    // 起動チェック完了後は通常どおりホーム画面まで到達できる
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
+  })
 })
 
 describe('App: 結果画面の振り分け（M4・T-128）', () => {
@@ -67,6 +83,44 @@ describe('App: 結果画面の振り分け（M4・T-128）', () => {
     render(<App />)
 
     expect(await screen.findByText('リザルト')).toBeTruthy()
+    expect(screen.queryByText('ボス役の記録')).toBeNull()
+  })
+})
+
+// T-272（docs/30 17節）: ボス役リザルトの保持がReact state（useSessionStore）のみだと、
+// 送信成功前にアプリを終了・再読み込みすると解き切った結果が失われていた。
+// settingsに一時保存された未送信結果があれば、起動時にGhostBossResultScreenへ
+// 自動的に復帰させることでこの経路を塞ぐ
+describe('App: 未送信のボス役結果からの起動時復帰（T-272）', () => {
+  it('起動時にsettingsへ未送信のボス役結果があれば、GhostBossResultScreenへ自動復帰する', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await getDb().settings.put({
+      key: GHOST_BOSS_PENDING_RESULT_KEY,
+      value: {
+        records: [
+          { questionId: 'q-1', correct: true },
+          { questionId: 'q-2', correct: false },
+        ],
+        savedAt: Date.now(),
+      },
+    })
+    // 直前にどの画面にいたかに関わらず復帰させる（起動時の判定のため'home'から始める）
+    useAppStore.setState({ screen: 'home' })
+
+    render(<App />)
+
+    expect(await screen.findByText('ボス役の記録')).toBeTruthy()
+    expect(screen.getByText('正解 1 / 2')).toBeTruthy()
+    expect(useSessionStore.getState().isGhostBossSession).toBe(true)
+  })
+
+  it('未送信のボス役結果が無ければ、通常どおりホーム画面から始まる', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    useAppStore.setState({ screen: 'home' })
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /BEB RAID/ })).toBeTruthy()
     expect(screen.queryByText('ボス役の記録')).toBeNull()
   })
 })
@@ -112,6 +166,27 @@ describe('App: History API最小統合（T-114）', () => {
     })
 
     expect(await screen.findByText(`続きから再開（残り${snapshot.items.length}問）`)).toBeTruthy()
+  })
+
+  // T-221（Q-15）: audioPlayerはApp.tsxのモジュールスコープ・シングルトンで、Part3/4の
+  // 約30秒音声の再生中にブラウザバックで離脱しても止まらず、ホーム画面で流れ続けていた
+  it('ドリル進行中のpopstateでaudioPlayer.stop()が呼ばれる', async () => {
+    const stopSpy = vi.spyOn(WebAudioPlayer.prototype, 'stop')
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    await startSession(getDb(), { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    render(<App />)
+    await screen.findByRole('heading', { name: /BEB RAID/ })
+
+    act(() => {
+      useAppStore.getState().navigate('drill')
+    })
+    stopSpy.mockClear()
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { screen: 'home' } }))
+    })
+
+    expect(stopSpy).toHaveBeenCalled()
   })
 })
 
@@ -261,6 +336,7 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     return {
       has: vi.fn(async () => false),
       get,
+      put: vi.fn(async () => {}),
       addAll: vi.fn(async () => {}),
       delete: vi.fn(async () => {}),
       keys: vi.fn(async () => []),
@@ -269,24 +345,53 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
     }
   }
 
-  /** 12パック全てにcacheヒットするfetchImpl（実fetchへのフォールバックを起こさせないため） */
+  const CACHED_PACK_IDS = [
+    'pack-vocab-s-001',
+    'pack-p2-s-001',
+    'pack-p5-s-001',
+    'pack-p5-similar-s-001',
+    'pack-vocab-a-001',
+    'pack-vocab-b-001',
+    'pack-p2-s-002',
+    'pack-p5-s-002',
+    'pack-p34-s-001',
+    'pack-dict-s-001',
+    'pack-shadow-s-001',
+    'pack-p5-similar-s-002',
+  ]
+
+  /**
+   * T-325: loadQuestionPoolは対象パックID一覧をmanifest.json経由（cache-first→fetch）で
+   * 解決する。このfetchImplはmanifest.jsonにCACHED_PACK_IDSを返す（実fetchへの
+   * フォールバックを起こさせないため。manifest.json自体はpackCacheに無い前提でよい）
+   */
+  function manifestFetchImpl(): typeof fetch {
+    return vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        return {
+          ok: true,
+          json: async () => ({
+            schemaVersion: 2,
+            packs: CACHED_PACK_IDS.map((id) => ({
+              id,
+              title: id,
+              targetLevel: [600, 600],
+              sizeBytes: 10,
+              hash: `h-${id}`,
+            })),
+          }),
+        } as Response
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+  }
+
+  /** 12パック全てにcacheヒットするPackCache（実fetchへのフォールバックを起こさせないため） */
   function allPacksCached(overrides: Record<string, () => Promise<Blob | null>> = {}) {
-    const ids = [
-      'pack-vocab-s-001',
-      'pack-p2-s-001',
-      'pack-p5-s-001',
-      'pack-p5-similar-s-001',
-      'pack-vocab-a-001',
-      'pack-vocab-b-001',
-      'pack-p2-s-002',
-      'pack-p5-s-002',
-      'pack-p34-s-001',
-      'pack-dict-s-001',
-      'pack-shadow-s-001',
-      'pack-p5-similar-s-002',
-    ]
     return fakePackCache(async (url) => {
-      const id = ids.find((i) => url === `/packs/${i}.json`)
+      if (url === '/manifest.json') return null
+      const id = CACHED_PACK_IDS.find((i) => url === `/packs/${i}.json`)
       if (!id) throw new Error(`unexpected url: ${url}`)
       if (overrides[id]) return overrides[id]!()
       return new Blob([JSON.stringify(pack(id, []))])
@@ -300,7 +405,7 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
       'pack-p2-s-001': async () =>
         new Blob([JSON.stringify(pack('pack-p2-s-001', [{ id: 'p2-1' } as never]))]),
     })
-    const pool = await loadQuestionPool(packCache, '/')
+    const pool = await loadQuestionPool(packCache, '/', manifestFetchImpl())
     expect(pool.map((q) => q.id)).toEqual(['v-1', 'p2-1'])
   })
 
@@ -312,8 +417,62 @@ describe('loadQuestionPool（T-37: 実パック配線）', () => {
       'pack-p2-s-001': async () =>
         new Blob([JSON.stringify(pack('pack-p2-s-001', [{ id: 'p2-1' } as never]))]),
     })
-    const pool = await loadQuestionPool(packCache, '/')
+    const pool = await loadQuestionPool(packCache, '/', manifestFetchImpl())
     expect(pool.map((q) => q.id)).toEqual(['p2-1'])
+  })
+
+  // 何を防ぐか（T-325・K-60）: PACK_IDSはcli側パック定義の手動複製のため、新パック追加時に
+  // 追記を忘れると出題プールから静かに漏れる。manifest.json由来で解決すれば、
+  // PACK_IDSに載っていない新パックでもmanifestに載っていれば読み込まれる
+  it('PACK_IDSに含まれない新パックでも、manifestに載っていれば読み込まれる', async () => {
+    const newPackId = 'pack-not-in-PACK_IDS-001'
+    const packCache = fakePackCache(async (url) => {
+      if (url === '/manifest.json') return null
+      if (url === `/packs/${newPackId}.json`) {
+        return new Blob([JSON.stringify(pack(newPackId, [{ id: 'new-pack-question' } as never]))])
+      }
+      throw new Error(`unexpected url: ${url}`)
+    })
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        return {
+          ok: true,
+          json: async () => ({
+            schemaVersion: 2,
+            packs: [
+              {
+                id: newPackId,
+                title: newPackId,
+                targetLevel: [600, 600],
+                sizeBytes: 10,
+                hash: 'h',
+              },
+            ],
+          }),
+        } as Response
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+
+    const pool = await loadQuestionPool(packCache, '/', fetchImpl)
+    expect(pool.map((q) => q.id)).toEqual(['new-pack-question'])
+  })
+
+  // 何を防ぐか: manifestが全く読めない（PackCacheにも無く、fetchも失敗する）完全オフライン
+  // 初回起動でパック一覧が空にならないよう、PACK_IDSへフォールバックする
+  it('manifestが読めない場合はPACK_IDSへフォールバックする', async () => {
+    const packCache = fakePackCache(async () => null)
+    const fetchImpl = vi.fn(async () => {
+      throw new Error('network error')
+    }) as unknown as typeof fetch
+
+    const pool = await loadQuestionPool(packCache, '/', fetchImpl)
+    // PACK_IDSの各パックはcacheにも無くfetchも失敗するため、プールは空になる
+    // （フォールバックのID一覧自体は使われている＝各IDでloadPackQuestionsが試行される）
+    expect(pool).toEqual([])
+    expect(fetchImpl).toHaveBeenCalledWith('/manifest.json')
+    expect(fetchImpl).toHaveBeenCalledWith(`/packs/${PACK_IDS[0]}.json`)
   })
 })
 
@@ -336,6 +495,7 @@ describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () =
     return {
       has: vi.fn(async () => false),
       get,
+      put: vi.fn(async () => {}),
       addAll: vi.fn(async () => {}),
       delete: vi.fn(async () => {}),
       keys: vi.fn(async () => []),
@@ -500,6 +660,70 @@ describe('syncPacksAndReload（T-73: 同期後のプール即時反映）', () =
       await vi.waitFor(() => expect(manifestFetchCount).toBe(1))
     } finally {
       global.fetch = originalFetch
+    }
+  })
+})
+
+// T-284（K-7）: マウント時同期（起動直後の背後同期）とonline再同期（オンライン復帰時）が
+// それぞれ独立したinFlightフラグを持っていたため、圏外遷移からの復帰直後などで両方が
+// 並行して走り、manifest・パックへの二重fetchが発生しうる状態だった
+describe('App: マウント時同期とonline再同期のinFlight共有（T-284・K-7）', () => {
+  it('マウント時同期のmanifest取得が完了する前にonlineが発火しても、manifestは1回しかfetchされない', async () => {
+    await createProfile(getDb(), { displayName: 'てすと', initialToeic: null })
+    // T-325: 起動チェック（loadQuestionPool→resolvePackIds）もmanifest.jsonをcache-first→
+    // fetchで読むようになった。本テストが検証したいのは「マウント時同期とonline再同期」の
+    // 重複防止（この2つのみ）なので、resolvePackIds側はキャッシュ命中させてfetchさせない
+    // （キャッシュを空のままにすると起動チェックのfetchと検証対象のfetchが同じmanifestPromiseを
+    // 待つことになり、起動チェック自体が完了できず本文の見出しが出ないまま固まる）
+    const manifestJson = JSON.stringify({ schemaVersion: 2, packs: [] })
+    vi.stubGlobal('caches', {
+      open: vi.fn(async () => ({
+        match: vi.fn(async (url: string) =>
+          url === '/manifest.json'
+            ? { blob: async () => ({ text: async () => manifestJson }) }
+            : undefined,
+        ),
+        put: vi.fn(async () => {}),
+        delete: vi.fn(async () => false),
+        keys: vi.fn(async () => []),
+      })),
+    })
+    let manifestFetchCount = 0
+    let resolveManifest: (value: Response) => void = () => {}
+    const manifestPromise = new Promise<Response>((resolve) => {
+      resolveManifest = resolve
+    })
+    const originalFetch = global.fetch
+    global.fetch = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/manifest.json') {
+        manifestFetchCount++
+        return manifestPromise
+      }
+      // パック本体・その他のfetchは無関係（loadPackQuestionsが例外を捕捉し[]へ落とす）
+      return Promise.reject(new Error(`unexpected fetch: ${url}`))
+    }) as unknown as typeof fetch
+
+    try {
+      render(<App />)
+      await screen.findByRole('heading', { name: /BEB RAID/ })
+
+      // マウント時同期のmanifest fetchが発行されるまで待つ
+      await vi.waitFor(() => expect(manifestFetchCount).toBe(1))
+
+      // マウント時同期がまだ完了していない間にオンライン復帰が発火する
+      act(() => {
+        window.dispatchEvent(new Event('online'))
+      })
+      await Promise.resolve()
+
+      // inFlightを共有していれば、online側は即returnしmanifestは再fetchされない
+      expect(manifestFetchCount).toBe(1)
+
+      resolveManifest({ ok: true, json: async () => ({ schemaVersion: 2, packs: [] }) } as Response)
+    } finally {
+      global.fetch = originalFetch
+      vi.unstubAllGlobals()
     }
   })
 })

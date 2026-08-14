@@ -7,10 +7,13 @@ import { useEffect, useRef, useState } from 'react'
 import type { Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import {
+  DIAGNOSTIC_ITEMS_PER_SECTION,
   DIAGNOSTIC_TOTAL_ITEMS,
   initialRatingFromToeic,
   sectionForTurn,
   selectNextQuestion,
+  TOEIC_SCORE_MAX,
+  TOEIC_SCORE_MIN,
   updateDiagnosticRating,
 } from '../engine/diagnostic'
 import { DEFAULT_INITIAL_RATING, initializeRatings, sectionForPart } from '../engine/rating'
@@ -23,6 +26,7 @@ import { DIAGNOSTIC_PROGRESS_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
@@ -125,6 +129,13 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   const [askedR, setAskedR] = useState<ReadonlySet<string>>(new Set())
   const [startedAt, setStartedAt] = useState(() => now())
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'played'>('idle')
+  /**
+   * T-218（Q-55。DrillScreenのT-110と同じ方式）: 一度ユーザージェスチャー起点の再生に
+   * 成功したら、以降のリスニング設問は自動再生する（毎問「タップして開始」を要求しない）。
+   * アプリの最初の体験（診断）で15回の追加タップが入っていた問題への対処。
+   * DiagnosticScreenは1セッション=1マウントで再マウントされないため、refで保持してよい
+   */
+  const hasPlayedOnceRef = useRef(false)
   // T-159: 解答処理中フラグ。refは連打の同期的な遮断用、stateはボタンの無効化用
   const submittingRef = useRef(false)
   const [submitting, setSubmitting] = useState(false)
@@ -147,6 +158,10 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
   // T-113: 診断途中経過の永続化。マウント時に残っていれば再開/やり直しを提示する
   const [progressChecked, setProgressChecked] = useState(false)
   const [savedProgress, setSavedProgress] = useState<DiagnosticProgress | null>(null)
+  // T-316（K-49）: 中断の確認。診断画面だけ「中断」ボタンが確認なしで即ホームへ遷移しており、
+  // 誤タップで測定中の解答を無言で切り上げていた（進行は途中経過に保存済みなので実際には
+  // 失われないが、確認が無いこと自体が他画面との不整合＝T-162の方針から外れていた）
+  const [abortConfirm, setAbortConfirm] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -171,8 +186,64 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     }
   }, [step, db])
 
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
+
   const lPool = questionPool.filter((q) => sectionForPart(q.part) === 'L')
   const rPool = questionPool.filter((q) => sectionForPart(q.part) === 'R')
+
+  // 出題対象の計算はstep==='intro'/'complete'のearly returnより前に置く（Hooksを
+  // 常に同じ順で呼ぶため。以下のuseEffectがこれらの値に依存する）
+  const section = sectionForTurn(turn)
+  const pool = section === 'L' ? lPool : rPool
+  const asked = section === 'L' ? askedL : askedR
+  const rating = section === 'L' ? ratingL : ratingR
+  const question = selectNextQuestion(pool, asked, rating)
+  const needsAudioGate = question?.format === 'audio_qa'
+
+  async function handlePlayStart() {
+    setPlayState('playing')
+    setAudioError(null)
+    try {
+      await audioPlayer.unlock()
+      if (question!.audio) {
+        // audio_qa の音声は「設問＋正答応答」を1ファイルに連結しているため、
+        // questionEndMs で打ち切って正答応答の読み上げを漏らさない（DrillScreen と同じ規約）。
+        // 旧生成分（questionEndMs 無し）は従来どおり全長再生にフォールバックする
+        const questionEndMs = question!.audioMeta?.questionEndMs
+        const options =
+          needsAudioGate && typeof questionEndMs === 'number' ? { durationMs: questionEndMs } : {}
+        await audioPlayer.play(question!.audio, options)
+      }
+    } catch (err) {
+      console.warn('[DiagnosticScreen] 音声再生に失敗', err)
+      setPlayState('idle')
+      setAudioError('音声を再生できませんでした')
+      return
+    }
+    // T-218: 自動再生が拒否される環境（iOS Safari等）では、この行に到達せず上のcatchで
+    // playState='idle'に戻る＝hasPlayedOnceRefも立たないため、次回も従来のタップ開始UIになる
+    hasPlayedOnceRef.current = true
+    setPlayState('played')
+  }
+
+  /**
+   * T-218（Q-55。DrillScreenのT-110と同じ方式）: セッション内で一度ユーザージェスチャー
+   * 起点の再生に成功したら（hasPlayedOnceRef）、以降のリスニング設問は自動再生する。
+   * 自動再生が拒否された場合はhandlePlayStart内のcatchが従来のタップ開始UIへ戻す
+   */
+  useEffect(() => {
+    if (step !== 'quiz' || !needsAudioGate || playState !== 'idle' || !hasPlayedOnceRef.current) {
+      return
+    }
+    void handlePlayStart()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, question?.id, needsAudioGate])
 
   function handleStart() {
     const trimmed = displayName.trim()
@@ -281,7 +352,12 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
       )
     }
 
-    const toeicValid = toeicInput.trim() === '' || !Number.isNaN(Number(toeicInput))
+    const toeicNum = Number(toeicInput)
+    // T-187（Q-36）: NaNチェックのみだと桁誤り（65や6500）がそのまま初期レートへ伝播する。
+    // 特にスキップ経路は30問診断を経ずにレートを確定させるため、範囲外は入力時に拒否する
+    const toeicValid =
+      toeicInput.trim() === '' ||
+      (!Number.isNaN(toeicNum) && toeicNum >= TOEIC_SCORE_MIN && toeicNum <= TOEIC_SCORE_MAX)
     const canSkip = toeicInput.trim() !== '' && toeicValid && displayName.trim() !== ''
     return (
       <ScreenLayout
@@ -335,6 +411,13 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
               placeholder="例: 650"
             />
           </label>
+          {/* T-187（Q-36）: 範囲外入力でボタンが無効になる理由を示す（無言で押せないだけだと
+              桁誤りに気づけない） */}
+          {toeicInput.trim() !== '' && !toeicValid && (
+            <p style={{ color: 'var(--ng)', fontSize: 'var(--fs-note)' }} role="alert">
+              TOEICスコアは{TOEIC_SCORE_MIN}〜{TOEIC_SCORE_MAX}の範囲で入力してください
+            </p>
+          )}
         </div>
       </ScreenLayout>
     )
@@ -377,15 +460,34 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
                 return (
                   <li key={i} className="result-list__item" data-correct={entry.isCorrect}>
                     <span aria-hidden="true" className="result-list__icon" />
+                    {/* T-224（J-108）: 番号・セクション記号は言語中立、設問文だけが英文
+                        （無ければaudio_qa用の日本語フォールバック） */}
                     <span className="result-list__question">
-                      {i + 1}. [{entry.section}] {entry.question.question ?? '音声問題'}
+                      {i + 1}. [{entry.section}]{' '}
+                      {entry.question.question ? (
+                        <span lang="en">{entry.question.question}</span>
+                      ) : (
+                        '音声問題'
+                      )}
                     </span>
                     {/* 誤答のときだけ「何を選んで何が正解だったか」を出す。
-                        正解した問題に同じ量の情報を出すと一覧が読めなくなる */}
+                        正解した問題に同じ量の情報を出すと一覧が読めなくなる。
+                        T-224（J-108）: 選択肢本文（英文）だけをspanで括る（記号のみの
+                        フォールバックは言語中立なので付けない） */}
                     {!entry.isCorrect && (
                       <span className="result-list__note">
-                        選択: {selectedChoice?.text ?? entry.selectedKey} / 正解:{' '}
-                        {correctChoice?.text ?? entry.question.answer}
+                        選択:{' '}
+                        {selectedChoice ? (
+                          <span lang="en">{selectedChoice.text}</span>
+                        ) : (
+                          entry.selectedKey
+                        )}{' '}
+                        / 正解:{' '}
+                        {correctChoice ? (
+                          <span lang="en">{correctChoice.text}</span>
+                        ) : (
+                          entry.question.answer
+                        )}
                       </span>
                     )}
                   </li>
@@ -398,13 +500,8 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     )
   }
 
-  // step === 'quiz'
-  const section = sectionForTurn(turn)
-  const pool = section === 'L' ? lPool : rPool
-  const asked = section === 'L' ? askedL : askedR
-  const rating = section === 'L' ? ratingL : ratingR
-  const question = selectNextQuestion(pool, asked, rating)
-
+  // step === 'quiz'（section・pool・asked・rating・question・needsAudioGateは
+  // Hooksの呼び出し順を保つため上でまとめて計算済み）
   if (!question) {
     return (
       <ScreenLayout
@@ -415,31 +512,7 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     )
   }
 
-  const needsAudioGate = question.format === 'audio_qa'
   const choicesInteractive = !needsAudioGate || playState === 'played'
-
-  async function handlePlayStart() {
-    setPlayState('playing')
-    setAudioError(null)
-    try {
-      await audioPlayer.unlock()
-      if (question!.audio) {
-        // audio_qa の音声は「設問＋正答応答」を1ファイルに連結しているため、
-        // questionEndMs で打ち切って正答応答の読み上げを漏らさない（DrillScreen と同じ規約）。
-        // 旧生成分（questionEndMs 無し）は従来どおり全長再生にフォールバックする
-        const questionEndMs = question!.audioMeta?.questionEndMs
-        const options =
-          needsAudioGate && typeof questionEndMs === 'number' ? { durationMs: questionEndMs } : {}
-        await audioPlayer.play(question!.audio, options)
-      }
-    } catch (err) {
-      console.warn('[DiagnosticScreen] 音声再生に失敗', err)
-      setPlayState('idle')
-      setAudioError('音声を再生できませんでした')
-      return
-    }
-    setPlayState('played')
-  }
 
   /** 音声再生に失敗した際、音声なしで解答へ進むフォールバック */
   function handlePlayWithoutAudio() {
@@ -513,7 +586,14 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     const finalListening = section === 'L' ? newRating : ratingL
     const finalReading = section === 'R' ? newRating : ratingR
     if (nextTurn >= DIAGNOSTIC_TOTAL_ITEMS) {
-      await initializeRatings(db, { listening: finalListening, reading: finalReading })
+      // T-306（K-34）: 30問診断（L/R各15問）が既に与えたレート変動の実績を早期K
+      // （最初の50問はK=32）の消費量として引き継ぐ。0のままだと診断後さらに
+      // 丸ごと50問分の早期Kが乗り、K=32区間が仕様（50問）より長引く
+      await initializeRatings(db, {
+        listening: finalListening,
+        reading: finalReading,
+        answerCount: DIAGNOSTIC_ITEMS_PER_SECTION,
+      })
       await createProfile(db, {
         displayName: displayName.trim(),
         initialToeic: toeicInput.trim() === '' ? null : Number(toeicInput),
@@ -545,12 +625,35 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
     })
   }
 
+  // T-316（K-49）: 途中経過はT-113で1問ごとに保存済みのため、実際には失われない。
+  // その事実を確認文言に含めることで、誤タップへの不安を減らす（VocabScreen・DrillScreenと
+  // 同じ位置づけの確認だが、診断は「進捗はここまで保存される」という他画面と異なる事実がある）
+  const abortDialog = abortConfirm ? (
+    <ConfirmDialog
+      message="診断を中断してホームへ戻りますか？（ここまでの進捗は保存され、次回続きから再開できます）"
+      onDismiss={() => setAbortConfirm(false)}
+      actions={[
+        {
+          label: '中断してホームへ',
+          primary: true,
+          onSelect: () => {
+            setAbortConfirm(false)
+            audioPlayer.stop()
+            navigate('home')
+          },
+        },
+        { label: 'キャンセル', onSelect: () => setAbortConfirm(false) },
+      ]}
+    />
+  ) : null
+
   return (
     <ScreenLayout
       status={
         <>
           <SessionProgress current={turn + 1} total={DIAGNOSTIC_TOTAL_ITEMS} />
-          <button type="button" className="drill-abort" onClick={() => navigate('home')}>
+          {abortDialog}
+          <button type="button" className="drill-abort" onClick={() => setAbortConfirm(true)}>
             中断
           </button>
           <p>{section === 'L' ? 'リスニング' : 'リーディング'}</p>
@@ -613,7 +716,10 @@ export function DiagnosticScreen({ db, audioPlayer, questionPool }: Props) {
               : '音声を聞いて解答してください'}
         </p>
       ) : (
-        <p className="question-text">{question.question}</p>
+        // T-224（J-108）: 設問文は英文そのもの
+        <p className="question-text" lang="en">
+          {question.question}
+        </p>
       )}
     </ScreenLayout>
   )

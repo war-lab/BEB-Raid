@@ -39,9 +39,34 @@ describe('InstallHint: appinstalledでヒントが閉じる（T-107b）', () => 
     render(<InstallHint />)
     expect(screen.getByRole('note')).toBeTruthy()
 
+    // T-213: 既定折りたたみになったため、実機の操作順に合わせて開いてから閉じる
+    fireEvent.click(screen.getByText('ホーム画面への追加案内'))
     fireEvent.click(screen.getByText('閉じる'))
 
     expect(screen.queryByRole('note')).toBeNull()
     expect(localStorage.getItem(DISMISS_KEY)).toBe('1')
+  })
+})
+
+// 何を防ぐか（T-213。docs/29 Q-43・J-109）: この案内が既定で全文展開され、
+// モバイル幅のファーストビューでCTAより上を占有していたこと
+describe('InstallHint: 既定で折りたたむ（T-213・J-109）', () => {
+  it('初期表示では案内文・ボタンが折りたたまれている', () => {
+    const { container } = render(<InstallHint />)
+
+    const details = container.querySelector('details')
+    expect(details).toBeTruthy()
+    expect(details?.open).toBe(false)
+    // 折りたたみの見出しだけは常に見える
+    expect(screen.getByText('ホーム画面への追加案内')).toBeTruthy()
+  })
+
+  it('見出しをクリックすると展開される', () => {
+    const { container } = render(<InstallHint />)
+
+    fireEvent.click(screen.getByText('ホーム画面への追加案内'))
+
+    const details = container.querySelector('details')
+    expect(details?.open).toBe(true)
   })
 })

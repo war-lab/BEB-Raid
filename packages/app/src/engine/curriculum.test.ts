@@ -241,20 +241,120 @@ describe('evaluateSetAccuracy', () => {
     }))
   }
 
+  /** audio_set（Part3/4）の親問題フィクスチャ。setAttemptsのsetIdと対にして使う */
+  function audioSetQuestion(id: string, subCount = 3): Question {
+    return {
+      id,
+      part: 3,
+      format: 'audio_set',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [],
+      subQuestions: Array.from({ length: subCount }, (_, i) => ({
+        id: `${id}-q${i}`,
+        question: `設問${i}`,
+        choices: [
+          { key: 'A', text: '正解' },
+          { key: 'B', text: '誤答' },
+        ],
+        answer: 'A',
+      })),
+    }
+  }
+
+  /** text_passage（Part6/7・読解）の親問題フィクスチャ。setAccuracyの分母に混ざってはいけない側 */
+  function textPassageQuestion(id: string, subCount = 3): Question {
+    return {
+      id,
+      part: 7,
+      format: 'text_passage',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [],
+      passages: [{ id: `${id}-p1`, kind: 'article', text: '本文' }],
+      subQuestions: Array.from({ length: subCount }, (_, i) => ({
+        id: `${id}-q${i}`,
+        question: `設問${i}`,
+        choices: [
+          { key: 'A', text: '正解' },
+          { key: 'B', text: '誤答' },
+        ],
+        answer: 'A',
+      })),
+    }
+  }
+
   it('windowSetsの半分未満のセット数なら分母不足', () => {
-    const ctx = emptyContext({ attempts: setAttempts('set-1', 3, 3, 0) })
+    const questionLookup = new Map<string, Question>([['set-1', audioSetQuestion('set-1')]])
+    const ctx = emptyContext({ attempts: setAttempts('set-1', 3, 3, 0), questionLookup })
     const result = evaluateSetAccuracy({ type: 'setAccuracy', min: 0.6, windowSets: 20 }, ctx)
     expect(result.insufficientData).toBe(true)
   })
 
+  // 何を防ぐか（T-308・K-37）: 3問中2問で中断したセットはtotal=2・correct=2に見え、
+  // correct/total>=2/3の比率判定では「完全正解セット」と誤認される。親のsubQuestions数と
+  // totalが一致するセット（全設問に解答済み）のみを移行判定に採用する
+  it('途中放棄したセット（3問中2問で中断）のみの場合、分母不足になる（「完全正解」への誤認を防ぐ）', () => {
+    const questionLookup = new Map<string, Question>([['set-1', audioSetQuestion('set-1', 3)]])
+    // 3問中2問で放棄。除外されなければ correct/total = 2/2 = 100% で「完全正解」に誤認される
+    const ctx = emptyContext({ attempts: setAttempts('set-1', 2, 2, 0), questionLookup })
+    const result = evaluateSetAccuracy({ type: 'setAccuracy', min: 0.6, windowSets: 1 }, ctx)
+    // 放棄セットが除外されれば有効なセットが0件になり、分母不足でmet=falseに強制される
+    expect(result.insufficientData).toBe(true)
+    expect(result.met).toBe(false)
+  })
+
   it('直近windowSetsセットの正解率が閾値以上なら成立', () => {
-    const attempts = Array.from({ length: 20 }, (_, i) =>
-      setAttempts(`set-${i}`, i < 15 ? 3 : 1, 3, i),
-    ).flat()
-    const ctx = emptyContext({ attempts })
+    const setIds = Array.from({ length: 20 }, (_, i) => `set-${i}`)
+    const attempts = setIds.map((id, i) => setAttempts(id, i < 15 ? 3 : 1, 3, i)).flat()
+    const questionLookup = new Map<string, Question>(setIds.map((id) => [id, audioSetQuestion(id)]))
+    const ctx = emptyContext({ attempts, questionLookup })
     const result = evaluateSetAccuracy({ type: 'setAccuracy', min: 0.6, windowSets: 20 }, ctx)
     expect(result.insufficientData).toBe(false)
     expect(result.met).toBe(true) // 15/20 = 75%
+  })
+
+  // T-185（Q-3）: aggregateSetsが親のformatを確認していなかったため、text_passage
+  // （読解）の解答がaudio_setのセット正解率判定（P2→P3・L3→L4）に混入していた。
+  it('親がtext_passage（読解）のサブ設問はセット集計から除外される', () => {
+    // audio_setの実データは3セットのみ（本来は分母不足=windowSets20の半分=10未満）。
+    // 読解17セット（全問正解）を混ぜれば20セットに達して分母不足を回避してしまうのが旧実装のバグ
+    const audioSetIds = ['as-0', 'as-1', 'as-2']
+    const audioAttempts = audioSetIds.map((id, i) => setAttempts(id, 3, 3, i)).flat()
+
+    const readingIds = Array.from({ length: 17 }, (_, i) => `read-${i}`)
+    const readingAttempts = readingIds.map((id, i) => setAttempts(id, 3, 3, 100 + i)).flat()
+
+    const questionLookup = new Map<string, Question>([
+      ...audioSetIds.map((id) => [id, audioSetQuestion(id)] as const),
+      ...readingIds.map((id) => [id, textPassageQuestion(id)] as const),
+    ])
+
+    const ctx = emptyContext({
+      attempts: [...audioAttempts, ...readingAttempts],
+      questionLookup,
+    })
+    const result = evaluateSetAccuracy({ type: 'setAccuracy', min: 0.6, windowSets: 20 }, ctx)
+    // 読解を除外した実データはaudio_set 3セットのみなので分母不足のまま（met=falseに強制される）
+    expect(result.insufficientData).toBe(true)
+    expect(result.met).toBe(false)
+  })
+
+  // T-185: evaluateAccuracyにあるisCountableAttempt（vocab:/shadow:除外）をevaluateSetAccuracyにも適用する
+  it('vocab:/shadow:プレフィックスの解答は、-q番号形式に見えてもセット集計に混入しない', () => {
+    const questionLookup = new Map<string, Question>([
+      ['set-1', audioSetQuestion('set-1')],
+      // 万一lookupに存在しても、prefixチェックで先に除外されるべき
+      ['vocab:set-1', audioSetQuestion('vocab:set-1')],
+    ])
+    const attempts = [
+      ...setAttempts('set-1', 3, 3, 0),
+      ...setAttempts('vocab:set-1', 3, 3, 1), // プレフィックス付きの別セットもどき
+    ]
+    const ctx = emptyContext({ attempts, questionLookup })
+    // 実セットは'set-1'の1件のみ。混入すれば2件と誤認してwindowSets=4の半分(2)を満たしてしまう
+    const result = evaluateSetAccuracy({ type: 'setAccuracy', min: 0.6, windowSets: 4 }, ctx)
+    expect(result.insufficientData).toBe(true)
   })
 })
 
@@ -321,6 +421,27 @@ describe('evaluatePhaseTransition: P1→P2・P2→P3・L1→L2', () => {
     const aWords = Array.from({ length: 20 }, (_, i) => `a${i}`)
     for (const w of aWords) questionLookup.set(`vocab-${w}`, vocabCard(w, 'A'))
     questionLookup.set('p5-1', part5Question('p5-1'))
+    // setAccuracy判定はaudio_setの親を引いてformatを確認する（T-185）ため、
+    // ここでも各セットの親問題をlookupへ登録する
+    for (let i = 0; i < 20; i++) {
+      questionLookup.set(`set-${i}`, {
+        id: `set-${i}`,
+        part: 3,
+        format: 'audio_set',
+        difficulty: 2,
+        tags: [],
+        keyVocab: [],
+        subQuestions: Array.from({ length: 3 }, (_, q) => ({
+          id: `set-${i}-q${q}`,
+          question: `設問${q}`,
+          choices: [
+            { key: 'A', text: '正解' },
+            { key: 'B', text: '誤答' },
+          ],
+          answer: 'A',
+        })),
+      })
+    }
 
     const srsCards = aWords.map((w) => srsCard(w, 3))
     const setAttempts = Array.from({ length: 20 }, (_, i) =>

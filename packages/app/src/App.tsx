@@ -2,7 +2,7 @@
 // 画面コンポーネントを切り替える。S1ホーム（T-21）で暫定の確認画面から差し替え済み。
 // 起動時、profile未作成（=P0診断未完了）なら診断画面から始める（T-20）。
 import { useEffect, useState } from 'react'
-import type { Question } from '@beb-raid/shared-schema'
+import { validateManifest, type Question } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from './db/database'
 import { getDb } from './db/database'
 import { PROFILE_ID } from './db/schema'
@@ -17,7 +17,9 @@ import {
   type PackCache,
 } from './platform'
 import { exportAll } from './services/backup'
+import { loadPendingGhostBossResult } from './services/ghostBoss'
 import { loadPackQuestions, syncPacks } from './services/packSync'
+import { clearPackSyncProgress, setPackSyncProgress } from './services/packSyncProgress'
 import { hasProfile } from './services/profile'
 import { sendQuestionStats } from './services/questionStats'
 import { syncRaidDamage } from './services/raidSync'
@@ -44,11 +46,17 @@ import { useAppStore, type ScreenName } from './store/appStore'
 import { useSessionStore } from './store/sessionStore'
 
 /**
- * 配布パック全20件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2。
- * T-32/T-64/T-83〜T-85/T-107のPACK_DEFINITIONSと対応。cli側の定義を
+ * 配布パック全24件（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1＋読解R-2の3。
+ * T-32/T-64/T-83〜T-85/T-107/T-349のPACK_DEFINITIONSと対応。cli側の定義を
  * appから直接importはしない——cliはビルド時ツールでappの実行時依存にしない構成のため、
- * idはここに複製する）。手動複製のため追加漏れが起きうる——App.test.tsxで
- * content/manifest.json（build成果物）のパック一覧との一致をテストで検証する
+ * idはここに複製する）。
+ *
+ * T-325（K-60）: 通常はresolvePackIds()がmanifest.json（PackCacheのcache-first→
+ * fetchフォールバック）からパックID一覧を動的に解決するため、このリストは
+ * 「manifest.jsonを一切読めない」完全オフライン初回起動時のみのフォールバックとして残す
+ * （PACK_IDSとmanifestの二重管理そのものはこの用途のために意図的に残す判断。手動複製のため
+ * 追加漏れが起きうる——App.test.tsxでcontent/manifest.json（build成果物）のパック一覧との
+ * 一致をテストで検証する）
  */
 export const PACK_IDS = [
   'pack-vocab-s-001',
@@ -71,24 +79,71 @@ export const PACK_IDS = [
   'pack-vocab-s-002',
   'pack-reading-p6-s-001',
   'pack-reading-p7single-s-001',
+  'pack-p2-s-003',
+  'pack-reading-p7multi-s-001',
+  'pack-reading-p6url-s-001',
+  'pack-reading-p7url-s-001',
 ]
+
+/**
+ * manifest.jsonから配布パックID一覧を解決する（T-325・K-60）。
+ * PackCacheのcache-first→fetchフォールバックで読む（loadPackQuestionsと同じ経路）。
+ * syncPacksが同期成功時にmanifest.jsonをPackCacheへ書き戻しているため、2回目以降の
+ * 起動はオフラインでもcache-firstで読める。どちらも読めない場合（完全オフラインの
+ * 初回起動等）だけPACK_IDSへフォールバックする
+ */
+async function resolvePackIds(
+  packCache: PackCache,
+  baseUrl: string,
+  fetchImpl: typeof fetch,
+): Promise<string[]> {
+  const manifestUrl = `${baseUrl}manifest.json`
+  const idsFromManifest = (body: unknown): string[] | null => {
+    if (!validateManifest(body).ok) return null
+    return (body as { packs: { id: string }[] }).packs.map((p) => p.id)
+  }
+  try {
+    const cached = await packCache.get(manifestUrl)
+    if (cached) {
+      const ids = idsFromManifest(JSON.parse(await cached.text()))
+      if (ids) return ids
+    }
+  } catch {
+    // 読み込み・パース失敗はfetchフォールバックへ委ねる
+  }
+  try {
+    const res = await fetchImpl(manifestUrl)
+    if (res.ok) {
+      const ids = idsFromManifest(await res.json())
+      if (ids) return ids
+    }
+  } catch {
+    // 無視（オフラインが正常系）
+  }
+  return PACK_IDS
+}
 
 /**
  * 全パックの問題を読み込み1つのプールにまとめる（T-37: ダミーパック削除・実パック配線）。
  * PackCacheファースト（loadPackQuestions）で読み、1パックの取得に失敗しても
- * 他パックは読み込みを続行する（オフラインが正常系。取得できたぶんだけで動かす）
+ * 他パックは読み込みを続行する（オフラインが正常系。取得できたぶんだけで動かす）。
+ * 対象パックID一覧はmanifest.json由来（T-325・resolvePackIds）
  */
 export async function loadQuestionPool(
   packCache: PackCache,
   baseUrl: string = import.meta.env.BASE_URL,
+  fetchImpl: typeof fetch = fetch,
 ): Promise<Question[]> {
+  const packIds = await resolvePackIds(packCache, baseUrl, fetchImpl)
   const results = await Promise.all(
-    PACK_IDS.map((id) =>
-      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`).catch((err: unknown) => {
-        // オフラインが正常系のため描画はブロックしないが、原因追跡のためコンソールには残す
-        console.warn(`[loadQuestionPool] パック取得に失敗: ${id}`, err)
-        return [] as Question[]
-      }),
+    packIds.map((id) =>
+      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`, fetchImpl, baseUrl).catch(
+        (err: unknown) => {
+          // オフラインが正常系のため描画はブロックしないが、原因追跡のためコンソールには残す
+          console.warn(`[loadQuestionPool] パック取得に失敗: ${id}`, err)
+          return [] as Question[]
+        },
+      ),
     ),
   )
   return results.flat()
@@ -103,9 +158,18 @@ export async function syncPacksAndReload(
   db: BebRaidDatabase,
   packCache: PackCache,
 ): Promise<Question[] | null> {
-  const result = await syncPacks({ db, packCache })
-  if (!result || result.synced.length === 0) return null
-  return loadQuestionPool(packCache)
+  // T-321: 音声ダウンロードの進捗を設定画面へ流す（完了・失敗のどちらでも必ず消す）
+  try {
+    const result = await syncPacks({
+      db,
+      packCache,
+      onAudioProgress: (info) => setPackSyncProgress(info),
+    })
+    if (!result || result.synced.length === 0) return null
+    return loadQuestionPool(packCache)
+  } finally {
+    clearPackSyncProgress()
+  }
 }
 
 /**
@@ -190,10 +254,19 @@ export function App() {
       resumeSession(getDb()),
       getDb().settings.get(THEME_PREFERENCE_KEY),
       getDb().settings.get(FONT_SIZE_KEY),
+      loadPendingGhostBossResult(getDb()),
     ])
-      .then(([exists, pool, resumed, themeSetting, fontSetting]) => {
+      .then(([exists, pool, resumed, themeSetting, fontSetting, pendingGhostBoss]) => {
         if (cancelled) return
-        if (!exists) navigate('diagnostic')
+        if (!exists) {
+          navigate('diagnostic')
+        } else if (pendingGhostBoss) {
+          // T-272: 送信成功前にアプリを終了・再読み込みした未送信のボス役結果があれば、
+          // 送信/破棄の画面へ復帰させる（次回起動が唯一の再試行機会のため、黙って
+          // 通常のホームへ進ませない）
+          useSessionStore.getState().hydrateGhostBossResults(pendingGhostBoss.records, pool)
+          navigate('result')
+        }
         setQuestionPool(pool)
         setResumeSnapshot(resumed)
         const pref = (themeSetting?.value as ThemePreference | undefined) ?? 'system'
@@ -231,6 +304,10 @@ export function App() {
   // 拾わないため、ブラウザ既定（アプリ終了）に任せる
   useEffect(() => {
     function handlePopState(event: PopStateEvent) {
+      // T-221（Q-15）: audioPlayerはモジュールスコープのシングルトンで、popstateで
+      // 画面を離れても再生中の音声が止まらなかった（Part3/4の約30秒音声がホーム画面で
+      // 流れ続ける）。再生していなければ no-op なので、画面を問わず常に呼んでよい
+      audioPlayer.stop()
       const state = event.state as { screen?: ScreenName } | null
       useAppStore.getState().navigateFromPopState(state?.screen ?? 'home')
     }
@@ -256,23 +333,25 @@ export function App() {
   // 独立に走らせる（オフライン・取得失敗時は静かにスキップするため描画をブロックしない）。
   // T-73: 新規/更新パックが同期できたら（synced.length>0）questionPoolを再読込し、
   // 初回同期直後から新パックが出題対象になるようにする
-  useEffect(() => {
-    let cancelled = false
-    void syncPacksAndReload(getDb(), packCache).then((pool) => {
-      if (!cancelled && pool) setQuestionPool(pool)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
+  //
+  // T-201（docs/29 Q-57）: 実機の開発ビルドでパックJSON・音声ファイルへの同一URL GETが
+  // 複数回記録された所見の調査結果。原因は本エフェクトの実装ではなく、main.tsxの
+  // <StrictMode> が開発時のみマウント→アンマウント→再マウントを行うこと（cancelledガードは
+  // setState を止めるだけで、既に発行済みのfetch自体は中断しない）。本番ビルド
+  // （`vite build` + `vite preview`）でPlaywrightから実機同等の操作を行い、パックJSON・
+  // audioとも同一URLへのGETは1回のみであることを確認済み（2026-08-04）。モバイル回線の
+  // 初回コスト倍増という懸念は本番では発生しない。再現しないため修正はしない
   // T-107(a): オフライン起動でパック取得に失敗した後、オンライン復帰しても再同期されず
-  // 「開き直してください」のまま固まる問題への対処。online復帰のたびに再同期を試みる
+  // 「開き直してください」のまま固まる問題への対処。online復帰のたびに再同期を試みる。
+  // T-284（K-7）: マウント時同期とonline再同期を同じハンドラ（＝同じinFlightフラグ）で
+  // 行う。従来は別々のinFlightを持ち、マウント時同期が完了する前にonlineが発火すると
+  // 2つの同期が並行して走ってしまっていた
   useEffect(() => {
     let cancelled = false
     const handleOnline = createOnlineResyncHandler(getDb(), packCache, (pool) => {
       if (!cancelled) setQuestionPool(pool)
     })
+    handleOnline()
     window.addEventListener('online', handleOnline)
     return () => {
       cancelled = true
@@ -352,7 +431,16 @@ export function App() {
     )
   }
 
-  if (!bootChecked) return null
+  // T-211(Q-40): 起動チェック完了までreturn nullだと、index.htmlの静的スプラッシュが
+  // Reactマウントの瞬間に#rootごと消え、以降は完全な白画面になる（低速回線ではPromise.all
+  // で20パックの取得を待つため数秒間続く）。RaidScreenの読み込み中表示と揃える
+  if (!bootChecked) {
+    return (
+      <ScreenLayout status={<p>BEB Raid</p>} action={null}>
+        <p>読み込み中…</p>
+      </ScreenLayout>
+    )
+  }
 
   const vocabQuestions = questionPool.filter((q) => q.format === 'vocab_card')
   const shadowingQuestions = questionPool.filter((q) => q.format === 'shadowing')

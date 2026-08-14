@@ -79,9 +79,17 @@ export function usePendingCommit<T>(
 
   const schedule = useCallback(
     (payload: T) => {
+      // T-194（Q-107）: 猶予中に再度scheduleが呼ばれると、以前は前のペイロードのタイマーだけを
+      // clearTimerで解除しており、前の解答がコミットされずに消えていた。現状はDrillScreenの
+      // finalizeAnswerが早期returnでこの再呼び出し自体をガードしていて到達しないが、フックの
+      // APIとしては無防備だった。前のpendingが残っていれば即flushしてから新しい予約を始める
+      const previous = pendingRef.current
+      clearTimer()
+      if (previous !== null) {
+        void commitRef.current(previous)
+      }
       pendingRef.current = payload
       setPending(payload)
-      clearTimer()
       timerRef.current = setTimeout(() => void commitRef.current(payload), windowMs)
     },
     [clearTimer, windowMs],

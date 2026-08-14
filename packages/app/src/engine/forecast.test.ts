@@ -84,8 +84,9 @@ describe('computeForecast: behind（現ペースでは到達しない）', () =>
     }
   })
 
-  it('傾きが負（下降）ならbehind', () => {
-    const history = Array.from({ length: 28 }, (_, i) => point(27 - i, 550 - i * 2))
+  it('傾きが負（下降）ならbehind（週7日未満の学習ペース）', () => {
+    // 2日おきにしか値が変わらない（週7日未満の学習ペースを模す。K-40のbehindDaily対象外）
+    const history = Array.from({ length: 28 }, (_, i) => point(27 - i, 550 - Math.floor(i / 2) * 2))
     const result = computeForecast(history, 496, NOW)
     expect(result.kind).toBe('behind')
   })
@@ -106,6 +107,29 @@ describe('computeForecast: behind（現ペースでは到達しない）', () =>
       expect(result.addDaysPerWeek).toBe(7)
     }
   })
+
+  // 何を防ぐか（T-310・K-40）: 既に週7日（毎日）学習している場合、「週の学習日数を
+  // あとN日増やす」という助言は7日を超える提案になり実行不可能。日数以外の助言
+  // （behindDaily）に分岐させる
+  it('既に週7日（毎日）学習しているのに到達しない場合はbehindDaily（日数提案しない）', () => {
+    // 27日連続で毎日値が変わる（=毎日学習している）が下降傾向
+    const history = Array.from({ length: 28 }, (_, i) => point(27 - i, 550 - i * 2))
+    const result = computeForecast(history, 496, NOW)
+    expect(result.kind).toBe('behindDaily')
+  })
+})
+
+// 何を防ぐか（T-310・K-39）: 傾きがわずかに正だとdaysToTargetが極端に大きくなり
+// 「2127年」「NaN年NaN月」等の非現実的な表示になる。上限（約3年）を超える・有限値でない
+// 場合はonTrackとして扱わず、到達しない側（behind系）へ倒す
+describe('computeForecast: daysToTargetの異常値ガード（T-310・K-39）', () => {
+  it('傾きがわずかに正で到達が3年を大幅に超える場合、onTrackではなくbehind系になる', () => {
+    // 28日でごくわずかにしか上昇しない（傾き約0.01/日）。目標(768)まで数万日かかる
+    const history = Array.from({ length: 28 }, (_, i) => point(27 - i, 500 + i * 0.01))
+    const result = computeForecast(history, 500.27, NOW)
+    expect(result.kind).not.toBe('onTrack')
+    expect(['behind', 'behindDaily']).toContain(result.kind)
+  })
 })
 
 describe('computeForecast: 断定しない表現（データ構造のみ検証。文言はUI側）', () => {
@@ -118,6 +142,22 @@ describe('computeForecast: 断定しない表現（データ構造のみ検証�
     )
     expect(measuring.scoreBand).toBeDefined()
     expect(behind.scoreBand).toBeDefined()
+  })
+})
+
+describe('computeForecast: 未来日付のスナップショットを窓から除外する（T-191・Q-110の回帰）', () => {
+  it('時計巻き戻し等で生成された未来日付の高レート点に引っ張られてonTrackにならない', () => {
+    // 直近28日は横ばい（500固定・14日分あれば判定に入る）→ 本来は behind
+    const history = Array.from({ length: 14 }, (_, i) => point(13 - i, 500))
+    const future = new Date(NOW)
+    future.setDate(future.getDate() + 10)
+    const futureDate = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`
+    // 未来日付・高レートの1件が窓に混入すると回帰の傾きが正転し、誤ってonTrackになる
+    const withFuturePoint = [...history, { date: futureDate, rating: 2000 }]
+
+    const result = computeForecast(withFuturePoint, 500, NOW)
+
+    expect(result.kind).toBe('behind')
   })
 })
 

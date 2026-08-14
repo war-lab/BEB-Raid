@@ -70,7 +70,10 @@ describe('BattleServerMessage: JSON往復', () => {
   it('roomState', () => {
     const msg: BattleRoomStateMessage = {
       type: 'roomState',
-      participants: [{ displayName: '太郎' }, { displayName: '花子' }],
+      participants: [
+        { displayName: '太郎', connected: true },
+        { displayName: '花子', connected: false },
+      ],
     }
     expect(roundTrip(msg)).toEqual(msg)
     expect(isBattleServerMessage(roundTrip(msg))).toBe(true)
@@ -91,8 +94,8 @@ describe('BattleServerMessage: JSON往復', () => {
     const msg: BattleStandingsMessage = {
       type: 'standings',
       entries: [
-        { displayName: '太郎', totalPoints: 48 },
-        { displayName: '花子', totalPoints: 40 },
+        { displayName: '太郎', totalPoints: 48, connected: true },
+        { displayName: '花子', totalPoints: 40, connected: false },
       ],
     }
     expect(roundTrip(msg)).toEqual(msg)
@@ -103,8 +106,8 @@ describe('BattleServerMessage: JSON往復', () => {
     const msg: BattleResultMessage = {
       type: 'result',
       entries: [
-        { displayName: '太郎', totalPoints: 240 },
-        { displayName: '花子', totalPoints: 200 },
+        { displayName: '太郎', totalPoints: 240, connected: true },
+        { displayName: '花子', totalPoints: 200, connected: false },
       ],
       bestGrowth: { displayName: '花子' },
     }
@@ -154,6 +157,116 @@ describe('未知typeの判別（discriminated unionの受信側ガード）', ()
     expect(isBattleClientMessage(null)).toBe(false)
     expect(isBattleClientMessage('join')).toBe(false)
     expect(isBattleServerMessage(undefined)).toBe(false)
+  })
+})
+
+// T-275（K-12）: isBattleServerMessageはtypeフィールドしか検証していなかったため、
+// roomState.participants[]・standings.entries[]がconnectedを欠いた不正なJSONでも
+// 既知メッセージとして受理してしまっていた（実測。修正前は以下2件が失敗する）
+describe('isBattleServerMessage: roomState/standingsの要素にconnectedが無い場合の検証（T-275・K-12）', () => {
+  it('roomState.participants[]の要素がconnectedを欠く場合はfalseになる', () => {
+    const malformed = {
+      type: 'roomState',
+      participants: [{ displayName: '太郎' }],
+    }
+    expect(isBattleServerMessage(malformed)).toBe(false)
+  })
+
+  it('standings.entries[]の要素がconnectedを欠く場合はfalseになる', () => {
+    const malformed = {
+      type: 'standings',
+      entries: [{ displayName: '太郎', totalPoints: 48 }],
+    }
+    expect(isBattleServerMessage(malformed)).toBe(false)
+  })
+
+  it('roomState.participantsが空配列の場合はconnected検証が無いためtrueのまま', () => {
+    const msg = { type: 'roomState', participants: [] }
+    expect(isBattleServerMessage(msg)).toBe(true)
+  })
+})
+
+describe('isBattleClientMessage: ペイロード検証（T-182・Q-19）', () => {
+  // 修正前は type しか見ていないため、下記はいずれも誤って true になっていた
+  // （29の所見Q-19: 得点を任意値で送れる／表示名が無制限）
+  it('answer.points が負数のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 0, points: -1 })).toBe(false)
+  })
+
+  it('answer.points が NaN のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 0, points: Number.NaN })).toBe(
+      false,
+    )
+  })
+
+  it('answer.points が文字列のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 0, points: '999' })).toBe(false)
+  })
+
+  it('answer.points が桁違いに大きいメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({ type: 'answer', questionIndex: 0, points: Number.MAX_SAFE_INTEGER }),
+    ).toBe(false)
+  })
+
+  it('answer.questionIndex が負数・非数のメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: -1, points: 10 })).toBe(false)
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 'x', points: 10 })).toBe(false)
+  })
+
+  it('join.displayName が空文字のメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({ type: 'join', displayName: '', expectedPointsPerQuestion: 10 }),
+    ).toBe(false)
+  })
+
+  it('join.displayName が上限を超えるメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({
+        type: 'join',
+        displayName: 'あ'.repeat(1000),
+        expectedPointsPerQuestion: 10,
+      }),
+    ).toBe(false)
+  })
+
+  it('join.expectedPointsPerQuestion が数値でないメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({
+        type: 'join',
+        displayName: '太郎',
+        expectedPointsPerQuestion: 'たくさん',
+      }),
+    ).toBe(false)
+  })
+
+  it('openQuestion.questionIndex／questionId が不正なメッセージは拒否する', () => {
+    expect(
+      isBattleClientMessage({ type: 'openQuestion', questionIndex: -1, questionId: 'q-1' }),
+    ).toBe(false)
+    expect(isBattleClientMessage({ type: 'openQuestion', questionIndex: 0, questionId: '' })).toBe(
+      false,
+    )
+    expect(isBattleClientMessage({ type: 'openQuestion', questionIndex: 0, questionId: 123 })).toBe(
+      false,
+    )
+  })
+
+  it('closeQuestion.questionIndex が不正なメッセージは拒否する', () => {
+    expect(isBattleClientMessage({ type: 'closeQuestion', questionIndex: -1 })).toBe(false)
+    expect(isBattleClientMessage({ type: 'closeQuestion', questionIndex: 'x' })).toBe(false)
+  })
+
+  it('正当な値の各メッセージは引き続き true になる（回帰防止）', () => {
+    expect(
+      isBattleClientMessage({ type: 'join', displayName: '太郎', expectedPointsPerQuestion: 40 }),
+    ).toBe(true)
+    expect(isBattleClientMessage({ type: 'answer', questionIndex: 2, points: 0 })).toBe(true)
+    expect(
+      isBattleClientMessage({ type: 'openQuestion', questionIndex: 0, questionId: 'q-101' }),
+    ).toBe(true)
+    expect(isBattleClientMessage({ type: 'closeQuestion', questionIndex: 0 })).toBe(true)
+    expect(isBattleClientMessage({ type: 'finish' })).toBe(true)
   })
 })
 

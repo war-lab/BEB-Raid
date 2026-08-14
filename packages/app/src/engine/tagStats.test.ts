@@ -3,7 +3,7 @@
 // 弱点として抽出される。tagStats が attempts から再構築可能
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { AttemptRecord } from '../db/schema'
@@ -13,6 +13,7 @@ import {
   getWeakTags,
   GUESS_WEIGHT,
   recomputeTagStats,
+  TAG_ATTEMPTS_READ_LIMIT,
   TAG_WINDOW_SIZE,
   toTagAccuracy,
   updateTagStatsForAnswer,
@@ -64,7 +65,7 @@ describe('computeTagWindow: 移動窓の集計', () => {
     const attempts = [
       attempt('q-1'), // 正解
       attempt('q-1', { isCorrect: false }), // 通常誤答
-      attempt('q-2', { isCorrect: false, isGuess: true }), // 当て勘誤答
+      attempt('q-2', { isCorrect: false, isGuess: true, responseMs: 1000 }), // 当て勘誤答
     ]
     expect(computeTagWindow(attempts, '品詞', lookup)).toEqual({
       windowCorrect: 1,
@@ -74,6 +75,31 @@ describe('computeTagWindow: 移動窓の集計', () => {
     expect(computeTagWindow(attempts, '動詞の形', lookup)).toEqual({
       windowCorrect: 0,
       windowTotal: GUESS_WEIGHT,
+    })
+  })
+
+  // 何を防ぐか（T-309・K-38）: isGuessは定義上「誤答かつ応答2秒未満」のみで立つため、
+  // 従来の実装（attempt.isGuessをそのまま使う）は正答側の「まぐれ当たり」（同じ2秒未満の
+  // 速答で偶然正解した場合）を検知できず、常に重み1（満額）で数えていた。当て勘の多い
+  // タグはまぐれ正解が満点計上される一方で当て勘の誤答は軽く数えられる非対称になり、
+  // 正答率が実力より高く出て弱点タグが立たなくなる
+  it('応答2秒未満の正解（まぐれ当たり）も当て勘の誤答と対称に重み0.5になる', () => {
+    const attempts = [
+      attempt('q-1', { isCorrect: true, responseMs: 1000 }), // まぐれ当たり（速答の正解）
+      attempt('q-1', { isCorrect: false, isGuess: true, responseMs: 1000 }), // 当て勘誤答
+    ]
+    // 従来（isGuessのみで判定）ならwindowCorrect=1・windowTotal=1.5になっていた
+    expect(computeTagWindow(attempts, '品詞', lookup)).toEqual({
+      windowCorrect: GUESS_WEIGHT,
+      windowTotal: GUESS_WEIGHT + GUESS_WEIGHT,
+    })
+  })
+
+  it('応答2秒以上の正解は当て勘とみなさず満額（1）で数える', () => {
+    const attempts = [attempt('q-1', { isCorrect: true, responseMs: 3000 })]
+    expect(computeTagWindow(attempts, '品詞', lookup)).toEqual({
+      windowCorrect: 1,
+      windowTotal: 1,
     })
   })
 
@@ -161,7 +187,7 @@ describe('DB統合: 解答の流し込み→更新→再構築', () => {
     const db = newDb()
     await db.attempts.bulkAdd([
       attempt('q-part-of-speech'),
-      attempt('q-part-of-speech', { isCorrect: false, isGuess: true }),
+      attempt('q-part-of-speech', { isCorrect: false, isGuess: true, responseMs: 1000 }),
       attempt('q-both', { isCorrect: false }),
     ])
     await recomputeTagStats(db, lookup)
@@ -173,6 +199,44 @@ describe('DB統合: 解答の流し込み→更新→再構築', () => {
     expect(await db.tagStats.get('品詞')).toMatchObject({
       windowCorrect: 1,
       windowTotal: 2.5,
+    })
+  })
+
+  // T-189（Q-99）: recomputeTagStatsは解答パイプラインの単一トランザクション（ADR 0010）の
+  // 内側で毎解答時に走るため、db.attempts.toArray()（全件読み）は1年運用相当のデータ量で
+  // 数百ms級に劣化する。phase.tsのT-74と同じ、answeredAt降順の打ち切り読みへ揃える
+  it('T-189: attempts全件走査（Table.toArray）を行わず、打ち切り読みで済ませる', async () => {
+    const db = newDb()
+    // Table.toArray（全件読み）とCollection.toArray（打ち切り読み後のtoArray）は別関数のため、
+    // Table側だけをスパイすれば「全件読みが無くなったこと」を直接検証できる
+    const tableToArraySpy = vi.spyOn(db.attempts, 'toArray')
+    await db.attempts.bulkAdd([attempt('q-part-of-speech')])
+
+    await recomputeTagStats(db, lookup)
+
+    expect(tableToArraySpy).not.toHaveBeenCalled()
+  })
+
+  it('T-189: 打ち切り件数を超えるattemptsがあっても、直近の窓は正しく計算される', async () => {
+    const db = newDb()
+    // TAG_ATTEMPTS_READ_LIMITより古い誤答を大量に積んでから、直近にTAG_WINDOW_SIZE分の
+    // 正解を積む。全件読みなら古い誤答も混ざりうるが、打ち切り読みでも直近の窓が
+    // TAG_WINDOW_SIZE件の正解だけで構成されることを確認する（本来やるべき正確な打ち切り境界）
+    const oldWrongCount = TAG_ATTEMPTS_READ_LIMIT + 50
+    await db.attempts.bulkAdd(
+      Array.from({ length: oldWrongCount }, () =>
+        attempt('q-part-of-speech', { isCorrect: false }),
+      ),
+    )
+    await db.attempts.bulkAdd(
+      Array.from({ length: TAG_WINDOW_SIZE }, () => attempt('q-part-of-speech')),
+    )
+
+    await recomputeTagStats(db, lookup)
+
+    expect(await db.tagStats.get('品詞')).toMatchObject({
+      windowCorrect: TAG_WINDOW_SIZE,
+      windowTotal: TAG_WINDOW_SIZE,
     })
   })
 })

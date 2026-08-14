@@ -4,7 +4,10 @@
 // - keyVocabWordsがS/A/B語彙カード（600語）に実在し、scriptに文字列として含まれる
 // - 各設問（subQuestions）が4択（A〜D）で正答キーが決定的ローテーションで分散する
 import { describe, expect, it } from 'vitest'
+import { validateContentLintBlocking } from './contentLint.js'
 import { PART34_ENTRIES_S } from './data/part34SetsS.js'
+import { PART34_ENTRIES_S2 } from './data/part34SetsS2.js'
+import { PART34_ENTRIES_S3 } from './data/part34SetsS3.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
@@ -76,36 +79,67 @@ describe('PART34_ENTRIES_S（データ本体）', () => {
 })
 
 describe('rotateSubQuestionChoices（正答キーの決定的ローテーション。M1レビュー⑦の方式）', () => {
-  it('globalIndex%4に応じてcorrectTextの位置が機械的に決まる', () => {
+  it('choicesが4つで、answerが実際にcorrectTextの位置と一致する', () => {
     const raw = PART34_ENTRIES_S[0]!.subQuestions[0]!
-    const r0 = rotateSubQuestionChoices(raw, 0)
-    const r1 = rotateSubQuestionChoices(raw, 1)
-    const r4 = rotateSubQuestionChoices(raw, 4)
-    expect(r0.choices.find((c) => c.key === r0.answer)?.text).toBe(raw.correctText)
-    expect(r1.choices.find((c) => c.key === r1.answer)?.text).toBe(raw.correctText)
-    expect(r4.answer).toBe(r0.answer) // 周期4なのでindex 0と4は同じ結果になる
+    const r = rotateSubQuestionChoices(raw)
+    expect(r.choices).toHaveLength(4)
+    expect(r.choices.find((c) => c.key === r.answer)?.text).toBe(raw.correctText)
   })
 
-  it('60設問を通してA/B/C/Dの正答キーがほぼ均等に分散する', () => {
+  it('同じrawエントリなら常に同じ結果になる（配列内位置に依存しない決定的な値。T-266）', () => {
+    const raw = PART34_ENTRIES_S[0]!.subQuestions[0]!
+    expect(rotateSubQuestionChoices(raw)).toEqual(rotateSubQuestionChoices(raw))
+  })
+
+  // 【T-266】ローテーション量が設問文＋correctTextのハッシュ由来になったため、
+  // globalIndex%4の厳密な周期分散ではなく統計的な分散になった。極端な偏りだけを検出する
+  // 目安として「公平配分の半分〜倍」を許容範囲にする（part5Question.test.tsと同じ考え方）
+  it('60設問を通してA/B/C/Dの正答キーが極端に偏らず分散する', () => {
     const questions = buildPart34Questions()
     const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 }
+    let total = 0
     for (const q of questions) {
       for (const sub of q.subQuestions ?? []) {
         counts[sub.answer] = (counts[sub.answer] ?? 0) + 1
+        total += 1
       }
     }
     expect(counts.A! + counts.B! + counts.C! + counts.D!).toBe(60)
+    const fairShare = total / 4
     for (const key of ['A', 'B', 'C', 'D']) {
-      expect(counts[key]).toBeGreaterThanOrEqual(10)
-      expect(counts[key]).toBeLessThanOrEqual(20)
+      expect(counts[key]).toBeGreaterThanOrEqual(Math.floor(fairShare / 2))
+      expect(counts[key]).toBeLessThanOrEqual(Math.ceil(fairShare * 2))
     }
+  })
+
+  // T-266（29のQ-79）: 修正前はrotateSubQuestionChoicesがglobalIndex%4（呼び出し側が渡す
+  // セット横断の連番）をローテーション量に使っており、1セット3問という固定長ゆえにセット内の
+  // 差分が常に一定になり、かつセットをまたいでも同じ差分になる決定的循環が生じていた
+  // （T-237で既存パックを手動シャッフルする対処をした根本原因）。修正後は設問文＋correctText
+  // のハッシュ由来のため循環しないことを、contentLint.tsの実検出ロジック
+  // （checkAnswerKeyCycle）で確認する。S・S2・S3すべてで確認する
+  it('T-266: S/S2/S3を通しで生成してもsubQuestionsの正答キー列が一定差分の決定的循環にならない', () => {
+    const sProblems = validateContentLintBlocking(buildPart34Questions(), 'test-pack-p34-s')
+    expect(sProblems.some((p) => p.includes('決定的循環'))).toBe(false)
+
+    const s2Problems = validateContentLintBlocking(
+      buildPart34Questions(PART34_ENTRIES_S2),
+      'test-pack-p34-s2',
+    )
+    expect(s2Problems.some((p) => p.includes('決定的循環'))).toBe(false)
+
+    const s3Problems = validateContentLintBlocking(
+      buildPart34Questions(PART34_ENTRIES_S3),
+      'test-pack-p34-s3',
+    )
+    expect(s3Problems.some((p) => p.includes('決定的循環'))).toBe(false)
   })
 })
 
 describe('part34Question', () => {
   it('audio_set形式のQuestionを組み立てる（keyVocab・audio予約パス・subQuestionsを含む）', () => {
     const entry = PART34_ENTRIES_S[0]!
-    const question = part34Question(entry, 0, 0)
+    const question = part34Question(entry, 0)
     expect(question.part).toBe(3)
     expect(question.format).toBe('audio_set')
     expect(question.id).toBe(`p34-${entry.setId}`)
@@ -120,7 +154,7 @@ describe('part34Question', () => {
 
   it('存在しないkeyVocabWordはエラーになる（S/A/B語彙カードとの整合を強制）', () => {
     const entry = { ...PART34_ENTRIES_S[0]!, keyVocabWords: ['not-a-real-word'] }
-    expect(() => part34Question(entry, 0, 0)).toThrow()
+    expect(() => part34Question(entry, 0)).toThrow()
   })
 })
 
@@ -161,5 +195,22 @@ describe('buildPart34Drafts', () => {
       expect(d.preview.length).toBeGreaterThan(0)
       expect((d.payload as { format: string }).format).toBe('audio_set')
     }
+  })
+})
+
+describe('本試験長尺化（T-352・docs/32のK-81完了ゲート）', () => {
+  it('S/S2/S3を通したscript語数の中央値が90語以上になる', () => {
+    const words = [...PART34_ENTRIES_S, ...PART34_ENTRIES_S2, ...PART34_ENTRIES_S3]
+      .map(
+        (e) =>
+          e.script
+            .replace(/^[AB]:\s*/gm, '')
+            .split(/\s+/)
+            .filter(Boolean).length,
+      )
+      .sort((a, b) => a - b)
+    const mid = Math.floor(words.length / 2)
+    const median = words.length % 2 ? words[mid]! : (words[mid - 1]! + words[mid]!) / 2
+    expect(median).toBeGreaterThanOrEqual(90)
   })
 })

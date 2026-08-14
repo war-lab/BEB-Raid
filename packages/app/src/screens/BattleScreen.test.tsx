@@ -5,7 +5,7 @@
 import 'fake-indexeddb/auto'
 import type { Question } from '@beb-raid/shared-schema'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
@@ -81,7 +81,10 @@ describe('BattleScreen: join→questionOpen→解答→standings→result', () =
       }),
     )
 
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     expect(await screen.findByText('ロビー')).toBeTruthy()
     expect(screen.getByText('太郎')).toBeTruthy()
 
@@ -91,7 +94,11 @@ describe('BattleScreen: join→questionOpen→解答→standings→result', () =
       questionId: 'q-1',
       deadlineAt: Date.now() + 30_000,
     })
-    expect(await screen.findByText(q1.question!)).toBeTruthy()
+    const questionEl = await screen.findByText(q1.question!)
+    expect(questionEl).toBeTruthy()
+    // T-225(Q-63): question-textクラスが無く、文字サイズ設定（S/M/L）が効かなかった不具合の再発防止。
+    // T-224でlang="en"のspanを挟んだため、マッチするのは内側のspan（.closest('p')が外側）
+    expect(questionEl.closest('.question-text')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /submit$/ }))
     await waitFor(() =>
@@ -105,13 +112,13 @@ describe('BattleScreen: join→questionOpen→解答→standings→result', () =
 
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '太郎', totalPoints: 90 }],
+      entries: [{ displayName: '太郎', totalPoints: 90, connected: true }],
     })
     expect(await screen.findByTestId('battle-standings')).toBeTruthy()
 
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '太郎', totalPoints: 90 }],
+      entries: [{ displayName: '太郎', totalPoints: 90, connected: true }],
       bestGrowth: { displayName: '太郎' },
     })
     expect(await screen.findByTestId('battle-result')).toBeTruthy()
@@ -141,7 +148,10 @@ describe('BattleScreen: パック未取得問題', () => {
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('WXYZ'))
 
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     socket.emitMessage({
       type: 'questionOpen',
       questionIndex: 0,
@@ -152,11 +162,14 @@ describe('BattleScreen: パック未取得問題', () => {
     expect(await screen.findByTestId('battle-pack-missing')).toBeTruthy()
 
     // 進行は壊れず、次のstandings/resultへも到達できる
-    socket.emitMessage({ type: 'standings', entries: [{ displayName: '太郎', totalPoints: 0 }] })
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: '太郎', totalPoints: 0, connected: true }],
+    })
     expect(await screen.findByTestId('battle-standings')).toBeTruthy()
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '太郎', totalPoints: 0 }],
+      entries: [{ displayName: '太郎', totalPoints: 0, connected: true }],
       bestGrowth: { displayName: '太郎' },
     })
     expect(await screen.findByTestId('battle-result')).toBeTruthy()
@@ -181,7 +194,10 @@ describe('BattleScreen: 誤答のattempts記録・復習デッキ登録・レー
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('AAAA'))
 
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     socket.emitMessage({
       type: 'questionOpen',
       questionIndex: 0,
@@ -202,7 +218,7 @@ describe('BattleScreen: 誤答のattempts記録・復習デッキ登録・レー
 
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '太郎', totalPoints: 0 }],
+      entries: [{ displayName: '太郎', totalPoints: 0, connected: true }],
       bestGrowth: { displayName: '太郎' },
     })
     await screen.findByTestId('battle-result')
@@ -241,7 +257,10 @@ describe('BattleScreen: バトル後の復習', () => {
     fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'cccc' } })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('CCCC'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
 
     // 1問目は誤答、2問目は正解
     socket.emitMessage({
@@ -260,7 +279,7 @@ describe('BattleScreen: バトル後の復習', () => {
     fireEvent.click(await screen.findByRole('button', { name: /submit$/ }))
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '太郎', totalPoints: 10 }],
+      entries: [{ displayName: '太郎', totalPoints: 10, connected: true }],
       bestGrowth: { displayName: '太郎' },
     })
 
@@ -286,7 +305,10 @@ describe('BattleScreen: バトル後の復習', () => {
     fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'dddd' } })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('DDDD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     socket.emitMessage({
       type: 'questionOpen',
       questionIndex: 0,
@@ -296,7 +318,7 @@ describe('BattleScreen: バトル後の復習', () => {
     fireEvent.click(await screen.findByRole('button', { name: /submit$/ }))
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '太郎', totalPoints: 10 }],
+      entries: [{ displayName: '太郎', totalPoints: 10, connected: true }],
       bestGrowth: { displayName: '太郎' },
     })
 
@@ -325,7 +347,10 @@ describe('BattleScreen: 切断・離脱時の後始末', () => {
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('BBBB'))
 
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     socket.emitMessage({
       type: 'questionOpen',
       questionIndex: 0,
@@ -361,6 +386,68 @@ describe('BattleScreen: 切断・離脱時の後始末', () => {
 
     unmount()
     expect(socket.closed).toBe(true)
+  })
+})
+
+// T-282（K-5）: handleJoinがhasConnectedRefしかリセットしないため、前回のルームで
+// 未解答のまま切断されたquestionがcurrentQuestionRefに残り、再参加後の最初のquestionOpenで
+// finalizeUnansweredQuestionが誤ってそれを時間切れattemptとして記録してしまっていた
+describe('BattleScreen: 再参加時の状態リセット（T-282・K-5）', () => {
+  it('前回のルームで未解答だった問題が、再参加後に偽の時間切れattemptとして記録されない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const q1 = textBlankQuestion('q-1', 'A')
+    const q2 = textBlankQuestion('q-2', 'A')
+    const socket = new FakeBattleSocket()
+
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[q1, q2]} />)
+
+    // ルームA: 参加し、q1が出題されるが未解答のまま切断される
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'aaaa' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('AAAA'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-1',
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByText(q1.question!)
+    socket.emitClose(1006) // 未解答のまま切断
+    await screen.findByText('接続が切れました')
+
+    // ルームBへ再参加する
+    fireEvent.click(screen.getByRole('button', { name: 'もう一度試す' }))
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'bbbb' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('BBBB'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: 'q-2',
+      deadlineAt: Date.now() + 30_000,
+    })
+    await screen.findByText(q2.question!)
+
+    // ルームAのq1が偽の時間切れattemptとして紛れ込んでいないこと
+    await waitFor(async () => {
+      const attempts = await db.attempts.toArray()
+      expect(attempts.some((a) => a.questionId === 'q-1')).toBe(false)
+    })
   })
 })
 
@@ -443,16 +530,114 @@ describe('BattleScreen: 切断理由ごとの案内', () => {
     expect(body.textContent).toContain('主催者がバトルを終了しました')
   })
 
-  it('未知の理由・理由なしなら通信断の汎用案内に落とす', async () => {
+  // T-212(Q-44): renderAndCloseはroomStateを一度も送らないまま閉じる（＝一度も接続できて
+  // いない）。このケースで「接続が切れました」（＝一度は繋がっていた前提の文言）を出すのは
+  // 誤りだったため、「接続できませんでした」に変える
+  it('一度も接続できていない状態で未知の理由・理由なしに閉じると「接続できませんでした」と案内する', async () => {
     const body = await renderAndClose(1006)
+    expect(screen.getByText('接続できませんでした')).toBeTruthy()
+    expect(body.textContent).not.toContain('通信が途切れた')
+  })
+
+  it('一度も接続できていない状態でサーバーが未知のreasonを返しても「接続できませんでした」と案内する', async () => {
+    await renderAndClose(1011, 'something_unexpected')
+    expect(screen.getByText('接続できませんでした')).toBeTruthy()
+  })
+
+  it('roomStateを受信した後（＝接続実績あり）に通信が切れた場合は従来どおり「接続が切れました」と案内する', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
+    await screen.findByText('ロビー')
+
+    socket.emitClose(1006)
+    const body = await screen.findByTestId('battle-close-reason')
     expect(screen.getByText('接続が切れました')).toBeTruthy()
     expect(body.textContent).toContain('通信が途切れた')
   })
+})
 
-  it('サーバーが未知のreasonを返しても汎用案内に落とす', async () => {
-    const body = await renderAndClose(1011, 'something_unexpected')
-    expect(screen.getByText('接続が切れました')).toBeTruthy()
-    expect(body.textContent).toContain('通信が途切れた')
+function setOnline(value: boolean) {
+  Object.defineProperty(window.navigator, 'onLine', { configurable: true, value })
+}
+
+// T-212(Q-44): 従来は「ホームへ戻る」しか導線が無く、再試行にはコードの再入力から
+// やり直しになっていた。「もう一度試す」でentryへ戻り、codeInputは保持されるため
+// 打ち直しが要らないことを確認する。あわせてnavigator.onLineでオフラインと
+// サーバー障害（の可能性）を出し分けることも確認する
+describe('BattleScreen: 切断からの再試行導線とオフライン/サーバー障害の区別（T-212）', () => {
+  afterEach(() => {
+    setOnline(true)
+  })
+
+  it('「もう一度試す」でentryへ戻り、ルームコードの再入力なしに再度参加できる', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitClose(1006)
+    await screen.findByText('接続できませんでした')
+
+    fireEvent.click(screen.getByRole('button', { name: 'もう一度試す' }))
+    // entryへ戻った上で、ルームコードを打ち直さずに再度「参加する」を押せる
+    const input = screen.getByLabelText('ルームコード（4文字）') as HTMLInputElement
+    expect(input.value).toBe('ABCD')
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+  })
+
+  it('オンライン中の接続失敗は、ルームコード誤りかサーバー障害の可能性を案内する', async () => {
+    setOnline(true)
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitClose(1006)
+
+    const body = await screen.findByTestId('battle-close-reason')
+    expect(body.textContent).toContain('ルームコードが違っているか')
+    expect(body.textContent).not.toContain('オフライン')
+  })
+
+  it('オフライン中の接続失敗は、オフラインである旨を案内する', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    setOnline(false)
+    socket.emitClose(1006)
+
+    const body = await screen.findByTestId('battle-close-reason')
+    expect(body.textContent).toContain('オフラインになっています')
   })
 })
 
@@ -500,13 +685,39 @@ describe('BattleScreen: 待機系画面の表層（V-13。docs/25 4.4節）', ()
     const names = Array.from({ length: 10 }, (_, i) => `参加者${i + 1}`)
     socket.emitMessage({
       type: 'roomState',
-      participants: names.map((displayName) => ({ displayName })),
+      participants: names.map((displayName) => ({ displayName, connected: true })),
     })
     await screen.findByText('ロビー')
 
     const chips = document.querySelectorAll('.battle-lobby__chip')
     expect(chips).toHaveLength(10)
     expect(Array.from(chips).map((el) => el.textContent)).toEqual(names)
+  })
+
+  // T-265: サーバーはロスター基準で常に全参加者を返すため、瞬断中でもロビーのチップは
+  // 消えず、data-connectedと「（切断中）」の表示で在席状態を示すだけになる
+  it('瞬断中の参加者もロビーのチップから消えず、切断中の表示が付く', async () => {
+    const socket = await renderEntry()
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), {
+      target: { value: 'abcd' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [
+        { displayName: '太郎', connected: true },
+        { displayName: 'アリス', connected: false },
+      ],
+    })
+    await screen.findByText('ロビー')
+
+    const chips = document.querySelectorAll('.battle-lobby__chip')
+    expect(chips).toHaveLength(2)
+    expect(chips[0]!.getAttribute('data-connected')).toBeNull()
+    expect(chips[1]!.getAttribute('data-connected')).toBe('false')
+    expect(screen.getByText('（切断中）')).toBeTruthy()
   })
 
   it('切断画面は見出しと本文の階層を持つカードになり、文言はbattleCloseMessageの出力と一致する', async () => {
@@ -560,7 +771,10 @@ describe('BattleScreen: 4択の形マーカー（V-12。docs/25 4.4節）', () =
     })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     socket.emitMessage({
       type: 'questionOpen',
       questionIndex: 0,
@@ -652,7 +866,10 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     await screen.findByText('ロビー')
     socket.emitMessage({
       type: 'questionOpen',
@@ -675,8 +892,9 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     ).toBeTruthy()
   })
 
-  // 何を防ぐか（S-33）: 出題が始まると退出手段が無く（退出ボタンはロビーのみ）、
-  // 会議・電車の都合で抜けたいときにブラウザバックしかなかった
+  // 何を防ぐか（S-33・T-202のQ-46）: 出題が始まると退出手段が無く（退出ボタンはロビーのみ）、
+  // 会議・電車の都合で抜けたいときにブラウザバックしかなかった。従来はwindow.confirmで
+  // 確認していたが、PWAでネイティブダイアログが出ると文脈が切れるためConfirmDialogに揃えた
   it('出題中に退出できる（確認あり。キャンセルでは閉じない）', async () => {
     const db = newDb()
     await seedProfile(db)
@@ -686,16 +904,18 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
 
     // この画面は自分でscreenを設定しないため、遷移の有無を見るために現在値を明示しておく
     useAppStore.setState({ screen: 'battle' })
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     fireEvent.click(screen.getByRole('button', { name: '退出する' }))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
     expect(socket.closed).toBe(false)
     expect(useAppStore.getState().screen).toBe('battle')
 
-    confirmSpy.mockReturnValue(true)
     fireEvent.click(screen.getByRole('button', { name: '退出する' }))
+    fireEvent.click(await screen.findByText('退出する', { selector: '.confirm-dialog__primary' }))
     expect(socket.closed).toBe(true)
     expect(useAppStore.getState().screen).toBe('home')
-    confirmSpy.mockRestore()
   })
 
   // 何を防ぐか（S-36前半）: 解答後に選択肢の色と獲得点しか出ず、間違えた理由がその場で
@@ -723,7 +943,10 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     await screen.findByText('ロビー')
 
     // 締切を至近に設定して、解答せずに通過させる
@@ -750,7 +973,10 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     await screen.findByText('ロビー')
     socket.emitMessage({
       type: 'questionOpen',
@@ -780,7 +1006,10 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
     await screen.findByText('ロビー')
 
     // 締切はまだ先（ローカルタイマーは発火していない）
@@ -796,7 +1025,7 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     // サーバーが先に締切を判定して順位を送ってきた
     socket.emitMessage({
       type: 'standings',
-      entries: [{ displayName: '太郎', totalPoints: 0 }],
+      entries: [{ displayName: '太郎', totalPoints: 0, connected: true }],
     })
 
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
@@ -807,7 +1036,7 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     // 続く result 受信でも二重記録しない
     socket.emitMessage({
       type: 'result',
-      entries: [{ displayName: '太郎', totalPoints: 0 }],
+      entries: [{ displayName: '太郎', totalPoints: 0, connected: true }],
       bestGrowth: { displayName: '太郎' },
     })
     await waitFor(async () => expect(await db.attempts.count()).toBe(1))
@@ -823,7 +1052,10 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
     fireEvent.click(screen.getByRole('button', { name: '参加する' }))
     await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
-    socket.emitMessage({ type: 'roomState', participants: [{ displayName: '太郎' }] })
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
 
     // 1問目を受けるまでは秒数が分からないので、その旨を出す
     expect(await screen.findByText('1問あたりの制限時間はホストの設定に従います')).toBeTruthy()
@@ -836,7 +1068,94 @@ describe('BattleScreen: 参加者画面の情報と退出導線（T-178。docs/2
     })
     await screen.findByRole('button', { name: /submit$/ })
     // 順位表示を経てロビーには戻らないため、ここでは実測値が保持されることだけ確認する
-    socket.emitMessage({ type: 'standings', entries: [{ displayName: '太郎', totalPoints: 0 }] })
+    socket.emitMessage({
+      type: 'standings',
+      entries: [{ displayName: '太郎', totalPoints: 0, connected: true }],
+    })
     expect(await screen.findByTestId('battle-standings')).toBeTruthy()
+  })
+
+  // T-207（Q-56）: 「最新パックを取得してから参加してください」に対応する操作がアプリ内に
+  // 存在しない（パック同期は起動時とonline復帰時の自動のみ）。文言を実装に合わせる
+  it('ロビーの案内文はパック同期が自動であることに合わせた文言で、手動操作を促さない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
+    await screen.findByText('ロビー')
+
+    expect(screen.queryByText(/取得してから参加してください/)).toBeNull()
+    expect(
+      await screen.findByText(/問題パックは自動で同期されます（未取得の問題は0点で流れます）/),
+    ).toBeTruthy()
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 設問文・選択肢本文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('BattleScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  async function joinAndOpen(db: BebRaidDatabase, question: Question, socket: FakeBattleSocket) {
+    render(<BattleScreen db={db} battleSocket={socket} questionPool={[question]} />)
+    fireEvent.change(screen.getByLabelText('ルームコード（4文字）'), { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: '参加する' }))
+    await waitFor(() => expect(socket.connectedCode).toBe('ABCD'))
+    socket.emitMessage({
+      type: 'roomState',
+      participants: [{ displayName: '太郎', connected: true }],
+    })
+    await screen.findByText('ロビー')
+    socket.emitMessage({
+      type: 'questionOpen',
+      questionIndex: 0,
+      questionId: question.id,
+      deadlineAt: Date.now() + 30_000,
+    })
+  }
+
+  it('question.questionがある設問は英文にlang="en"が付く', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    await joinAndOpen(db, textBlankQuestion('q-lang'), socket)
+
+    const questionEl = await screen.findByText('Please ___ the q-lang.')
+    expect(questionEl.getAttribute('lang')).toBe('en')
+    // 選択肢本文（ChoiceButton経由）にも付く
+    expect(screen.getByText('submit').getAttribute('lang')).toBe('en')
+  })
+
+  it('question.questionが無い音声問題の指示文（日本語）にはlang="en"を付けない', async () => {
+    const db = newDb()
+    await seedProfile(db)
+    const socket = new FakeBattleSocket()
+    const audioQuestion: Question = {
+      id: 'p2-lang',
+      part: 2,
+      format: 'audio_qa',
+      difficulty: 2,
+      tags: [],
+      keyVocab: [],
+      audio: '/audio/p2-lang.mp3',
+      choices: [
+        { key: 'A', text: 'Yesterday.' },
+        { key: 'B', text: 'By email.' },
+      ],
+      answer: 'A',
+      explanation: '解説',
+      translation: '和訳',
+    }
+    await joinAndOpen(db, audioQuestion, socket)
+
+    const promptEl = await screen.findByText(
+      '音声で質問が流れます。応答として正しい選択肢を選んでください',
+    )
+    expect(promptEl.getAttribute('lang')).toBeNull()
   })
 })

@@ -15,27 +15,35 @@ import { totalAnswerSlots } from '../engine/answerSlots'
 import { shuffle } from '../engine/shuffle'
 import { supportsAudioOnlyPart2 } from '../engine/audioOnlyPart2'
 import { SEASON_LABELS, evaluatePhaseCriteria } from '../engine/curriculum'
-import { daysBetween, localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
+import { localMidnightAfterDays, startOfLocalDay, toDateString } from '../engine/date'
 import { buildHeatmapCells } from '../engine/heatmapCells'
 import { applyNoEarphoneFilter } from '../engine/noEarphoneFilter'
 import { applyRatingDifficultyFilter, orderByRating } from '../engine/ratingDifficultyFilter'
 import { DEFAULT_INITIAL_RATING } from '../engine/rating'
-import { generateQuickPack } from '../engine/quickPack'
+import { generateQuickPack, isServable } from '../engine/quickPack'
 import { formatRelativeTime } from '../engine/relativeTime'
 import { getSrsQueue } from '../engine/srs'
 import { evaluateStreak, getStreak } from '../engine/streak'
 import type { PhaseState, QuickPackDuration, QuickPackItem } from '../engine/types'
 import type { RaidApi } from '../platform'
 import { buildCriterionContext, getOrInitPhaseState } from '../services/phase'
-import { startSession, type SessionItem, type SessionSnapshot } from '../services/session'
 import {
+  currentSubAnswers,
+  startSession,
+  type SessionItem,
+  type SessionSnapshot,
+} from '../services/session'
+import {
+  DIAGNOSTIC_PROGRESS_KEY,
   LAST_SEEN_STREAK_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
   READING_SET_COUNT_KEY,
   SINGLE_MODE_COUNT_KEY,
 } from '../services/settingsKeys'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import { InstallHint } from '../pwa/InstallHint'
+import { UpdateHint } from '../pwa/UpdateHint'
 import { useAppStore } from '../store/appStore'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -67,14 +75,22 @@ export function confirmDiscardMessage(remaining: number): string {
 /**
  * 中断セッションの残り解答回数（T-175。docs/27 のS-26）。
  * item数で数えると audio_set（1itemで3サブ設問）を1回と数えてしまい、
- * ドリル画面の進捗表示（実解答回数）と食い違う
+ * ドリル画面の進捗表示（実解答回数）と食い違う。
+ *
+ * T-200（Q-10）: `snapshot.answeredCount` はitem単位でしか進まないため、
+ * 現在item（読解・audio_set）内で答え終えたサブ設問（`snapshot.subAnswers`）は
+ * まだ反映されていない。それを引かないと、Part7で3問中1問だけ解答して
+ * 「次へ」を押す前に中断した場合、その1問分が残数に反映されず「残り7問」のまま
+ * （実際は6問）になる。Part5等サブ設問を持たないitemは常にsubAnswersが空なので
+ * この補正は効かず、従来どおりの挙動を保つ
  */
 export function remainingAnswerSlots(
   snapshot: SessionSnapshot,
   questionPool: readonly Question[],
 ): number {
   const lookup = new Map(questionPool.map((q) => [q.id, q]))
-  return totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
+  const total = totalAnswerSlots(snapshot.items.slice(snapshot.answeredCount), lookup)
+  return Math.max(0, total - currentSubAnswers(snapshot).length)
 }
 
 const DURATIONS: QuickPackDuration[] = [3, 7, 15]
@@ -108,8 +124,6 @@ const EMPTY_PACK_MESSAGE = '今は出題できる問題がありません'
 /** 3分クエスト選択時のみ続ける補足文（J-60。3分=SRS復習中心の構成のため空になりやすい） */
 const EMPTY_PACK_QUEST_3MIN_HINT =
   '3分クエストはSRS復習が中心です。復習カードが無いときは7分・15分をお試しください'
-/** 途切れ判定の閾値（レビューフォローアップ3.8節: gap≥2） */
-const BROKEN_GAP_DAYS = 2
 /** ホームのミニヒートマップの表示週数（T-78。DashboardScreenの15週の縮小版） */
 const MINI_HEATMAP_WEEKS = 4
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -170,6 +184,16 @@ export function formatReadingEstimate(estimate: ReadingEstimate): string {
   return `約${minQuestions}〜${maxQuestions}設問（目安${minQuestions}〜${maxQuestions}分）`
 }
 
+/**
+ * 端末ストレージ使用率が事前警告のしきい値（80%）を超えたか（T-299・K-25）。
+ * QuotaExceededErrorで解答保存が失敗する前に、起動時（ホーム表示時）に気づけるようにする。
+ * quotaが0または取得不可（Safari非対応・非HTTPS等）ならestimate自体が信用できないため警告しない
+ */
+export function shouldWarnStorageUsage(estimate: StorageEstimate | null): boolean {
+  if (!estimate || !estimate.usage || !estimate.quota) return false
+  return estimate.usage / estimate.quota > 0.8
+}
+
 export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props) {
   const navigate = useAppStore((s) => s.navigate)
   const beginSession = useSessionStore((s) => s.begin)
@@ -196,15 +220,45 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   // T-121(J-60): 生成パックが0問だったときの案内（今日のクエスト・単独モード共通）。
   // セッション開始成功時・単独モード開始時にクリアする。自動では消さない
   const [emptyPackMessage, setEmptyPackMessage] = useState<string | null>(null)
+  // T-316（K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のためApp.tsxの
+  // 起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで働かない。
+  // 同一セッション内でホームに来られるようになった以上、続きへ戻る導線をここに出す
+  const [pendingDiagnostic, setPendingDiagnostic] = useState(false)
   /**
    * T-162（docs/27 のS-38）: 進行中セッションがある状態で新規開始したときの確認。
    * 選択が決まるまで開始要求を保持しておく（window.confirm を置き換えたため、
-   * 判断を待つ間の状態を画面側で持つ必要がある）
+   * 判断を待つ間の状態を画面側で持つ必要がある）。
+   *
+   * T-206（Q-42）: Part2・Part5・Part7は「モーダルで問数/再生方法を選ぶ→開始ボタン」の
+   * 2段階になっている。従来はkind:'start'（開始直前・アイテム確定済み）の1種類しか
+   * 無かったため、確認がモーダルの開始ボタンの後にしか出せず、「やめる」を選ぶと
+   * モーダルでの選択操作が丸ごと無駄になっていた。タイルタップ直後
+   * （モーダルを開く前）に確認できるよう、kind:'openModal'（モーダルをこれから開く）を追加する
    */
-  const [discardConfirm, setDiscardConfirm] = useState<{
-    items: SessionItem[]
-    options?: StartOptions
-  } | null>(null)
+  const [discardConfirm, setDiscardConfirm] = useState<
+    | { kind: 'start'; items: SessionItem[]; options?: StartOptions }
+    | { kind: 'openModal'; modal: 'part2' | 'part5' | 'reading' }
+    | null
+  >(null)
+
+  /** T-206: 破棄確認を経ずにモーダルを直接開く（resumeSnapshotが無い場合の通常経路） */
+  function openModalDirectly(modal: 'part2' | 'part5' | 'reading') {
+    if (modal === 'part2') setShowPart2Options(true)
+    else if (modal === 'part5') setShowPart5Options(true)
+    else setShowReadingOptions(true)
+  }
+
+  /**
+   * T-206（Q-42）: モード選択タイルのタップ時に呼ぶ。進行中セッションがあれば、
+   * モーダルを開く前に破棄確認を出す（無ければ従来どおり即座にモーダルを開く）
+   */
+  function openSingleModeOptions(modal: 'part2' | 'part5' | 'reading') {
+    if (resumeSnapshot) {
+      setDiscardConfirm({ kind: 'openModal', modal })
+      return
+    }
+    openModalDirectly(modal)
+  }
   // T-54: 現フェーズ（シーズン表示・クイックパックのフェーズ駆動化に使う）
   const [phase, setPhase] = useState<PhaseState | null>(null)
   // 現シーズンの次フェーズへの達成条件のうち、満たしている条件の割合（進捗バー表示用）
@@ -219,8 +273,23 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
   const [raidState, setRaidState] = useState<RaidStateRecord | null>(null)
   // T-105: 60秒tickで相対時刻・raidEnded判定を更新するための現在時刻state
   const [nowMs, setNowMs] = useState(now())
+  // T-299（K-25）: 起動時（ホーム表示時）の端末ストレージ使用率の事前警告。
+  // QuotaExceededErrorで解答保存が失敗した後ではなく、失敗する前に気づけるようにする
+  const [storageWarning, setStorageWarning] = useState(false)
   // T-105: 日付跨ぎ検出用。読込完了時点の日付を覚えておき、visibilitychange時に比較する
   const loadedDateRef = useRef(toDateString(now()))
+  /**
+   * T-203（docs/29 Q-37）: Part2再生方法・Part5問数・読解パッセージ数の3モーダルは
+   * role="dialog" aria-modal="true" を宣言しながら、フォーカストラップ・初期フォーカス・
+   * Esc・閉時のフォーカス復帰・背景タップ閉じがいずれも無かった。ConfirmDialogから
+   * 抽出したuseDialogA11yで同等の作法を適用する
+   */
+  const part2DialogRef = useRef<HTMLDivElement>(null)
+  const part5DialogRef = useRef<HTMLDivElement>(null)
+  const readingDialogRef = useRef<HTMLDivElement>(null)
+  useDialogA11y(part2DialogRef, showPart2Options, () => setShowPart2Options(false))
+  useDialogA11y(part5DialogRef, showPart5Options, () => setShowPart5Options(false))
+  useDialogA11y(readingDialogRef, showReadingOptions, () => setShowReadingOptions(false))
   // T-105: visibilitychangeで日付跨ぎを検出したときに再読込をトリガーするカウンタ
   const [dateReloadToken, setDateReloadToken] = useState(0)
 
@@ -242,6 +311,8 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         questDurationSetting,
         singleModeCountSetting,
         readingSetCountSetting,
+        diagnosticProgressSetting,
+        storageEstimate,
       ] = await Promise.all([
         evaluateStreak(db),
         getStreak(db),
@@ -253,8 +324,13 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         db.settings.get(QUEST_DURATION_KEY),
         db.settings.get(SINGLE_MODE_COUNT_KEY),
         db.settings.get(READING_SET_COUNT_KEY),
+        db.settings.get(DIAGNOSTIC_PROGRESS_KEY),
+        // T-299（K-25）: navigator.storage未対応（Safari非対応・非HTTPS等）ならnullのまま
+        navigator.storage?.estimate?.() ?? Promise.resolve(null),
       ])
       if (cancelled) return
+      setPendingDiagnostic(diagnosticProgressSetting !== undefined)
+      setStorageWarning(shouldWarnStorageUsage(storageEstimate))
       setRaidState(raidStateRecord ?? null)
       // T-112: 「今日のクエスト」の時間チップ選択を画面遷移・再起動を跨いで復元する
       const savedDuration = questDurationSetting?.value as QuickPackDuration | undefined
@@ -271,13 +347,24 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       if (savedReadingCount !== undefined && READING_SET_COUNTS.includes(savedReadingCount)) {
         setReadingSetCount(savedReadingCount)
       }
-      const today = toDateString(Date.now())
-      const gap = record.lastActiveDate ? daysBetween(record.lastActiveDate, today) : 0
-      const isBroken =
-        record.lastActiveDate !== null && gap >= BROKEN_GAP_DAYS && !status.todayCompleted
+      // T-195（Q-102フォローアップ）: 「途切れ」判定はエンジン（evaluateStreak）を単一の
+      // 情報源にする。以前はホーム側で gap>=2 を独自に再計算しており、gap===2かつ保護（週1回
+      // まで1日の欠席を免除）が使える状態でもエンジンは継続中と判定しているのに、ホームだけが
+      // 「途切れ」と表示する不整合があった（streak.tsの方針「エンジンは事実だけを返す」に反する
+      // 事実でない表示）。evaluateStreakは途切れ確定時のみcurrentDays=0を返すため、
+      // 「status.currentDays===0なのにrecord.currentDays（生データ）は0でない」ことをもって
+      // 途切れと判定する（保護がまだ使える間は0にならないため途切れ扱いしない）
+      const isBroken = status.currentDays === 0 && record.currentDays > 0
       setStreakDays(status.currentDays)
-      setBrokenSinceDays(isBroken ? status.currentDays : null)
-      setDueCount(queue.dueReviews.length)
+      // 「前回N日」はstatus.currentDaysではなくrecord（生データ）から取る。evaluateStreakは
+      // 途切れ確定時にcurrentDaysを0で返すが、この「前回何日だったか」の文脈表示は
+      // 途切れる前の値をそのまま見せたいため、DBの生の値（record.currentDays）を使う
+      setBrokenSinceDays(isBroken ? record.currentDays : null)
+      // 「SRS期限 N」は語彙SRSの復習キューが実際に出題できる件数と一致させる。
+      // VocabScreenは対応する問題を引けないカード（パック撤去・別端末復元）をisServableで
+      // 除外するため、ここで全件を数えると「消せないバッジ」が残る。
+      // コンテンツ更新で設問idが消えるたびに起きうる（例: main←devで52件のidが消える）
+      setDueCount(queue.dueReviews.filter((card) => isServable(card, questionPool)).length)
       setPhase(phaseState)
 
       const lastSeen = (lastSeenSetting?.value as number | undefined) ?? 0
@@ -419,7 +506,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
     }
     const selected = shuffle(pool).slice(0, readingSetCount)
     const items: SessionItem[] = selected.map((q) => ({ questionId: q.id, mode: 'solo' }))
-    await startSessionAndNavigate(items, { toScreen: 'reading' })
+    // T-206: 破棄確認は openSingleModeOptions がモーダルを開く前に済ませているため、
+    // ここではstartSessionAndNavigateを経由せず直接開始する（二重確認を避ける）
+    await beginNewSession(items, { toScreen: 'reading' })
   }
 
   /** T-118: 問数選択チップの選択（保存＋画面遷移・再起動を跨いで復元） */
@@ -459,16 +548,20 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       )
       return
     }
-    await startSessionAndNavigate(items, options)
+    // T-206: 破棄確認は openSingleModeOptions がモーダルを開く前に済ませているため、
+    // ここではstartSessionAndNavigateを経由せず直接開始する（二重確認を避ける）
+    await beginNewSession(items, options)
   }
 
   async function startSessionAndNavigate(items: SessionItem[], options?: StartOptions) {
     if (items.length === 0) return
     // T-162（docs/27 のS-38）: window.confirm のYes/Noでは「続きから再開する」を
     // その場で選べず、ホームへ戻って別のボタンを探させることになっていた。
-    // 3択のアプリ内ダイアログへ置き換える（開始要求を保持して選択後に続行する）
+    // 3択のアプリ内ダイアログへ置き換える（開始要求を保持して選択後に続行する）。
+    // 「今日のクエスト」専用（Part2/Part5/読解はモーダルを開く前にopenSingleModeOptionsで
+    // 確認済みのため、この関数を経由せずbeginNewSessionを直接呼ぶ。T-206）
     if (resumeSnapshot) {
-      setDiscardConfirm({ items, options })
+      setDiscardConfirm({ kind: 'start', items, options })
       return
     }
     await beginNewSession(items, options)
@@ -538,7 +631,14 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
                   onSelect: () => {
                     const pending = discardConfirm
                     setDiscardConfirm(null)
-                    void beginNewSession(pending.items, pending.options)
+                    // T-206: quest（kind:'start'）はアイテム確定済みなので即開始。
+                    // Part2/Part5/読解（kind:'openModal'）はここではまだ問数/再生方法を
+                    // 選んでいないため、モーダルを開くだけにとどめる
+                    if (pending.kind === 'start') {
+                      void beginNewSession(pending.items, pending.options)
+                    } else {
+                      openModalDirectly(pending.modal)
+                    }
                   },
                 },
                 { label: 'やめる', onSelect: () => setDiscardConfirm(null) },
@@ -563,71 +663,39 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       }
       action={
         <>
-          {resumeSnapshot && (
-            <button type="button" className="secondary-action" onClick={() => void handleResume()}>
-              続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
-            </button>
-          )}
-          {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
-              ボタン・チップをひとつのグループにまとめラベルを付ける（Part2瞬発等には作用しない） */}
-          <div className="home-quest-group">
-            <PrimaryButton
-              onClick={() => void handleStartQuest()}
-              disabled={questionPool.length === 0}
-            >
-              {/* docs/20 3.4節: 金CTAにサブテキストでパック内訳を添える（V-3）。
-                  新規カード数はここでは未確定のため、実データがあるSRS復習件数のみ示す */}
-              <span className="home-cta-label">今日のクエスト</span>
-              {/* 時間チップの表記「7分」等と完全一致すると同一文言で複数要素になり
-                  テスト上も判別不能になるため、「〜のクエスト」で必ず区別できる文にする */}
-              <small className="home-cta-sub">
-                {duration}分のクエスト{dueCount > 0 ? ` ・ SRS復習${dueCount}件` : ''}
-              </small>
-            </PrimaryButton>
-            {questionPool.length === 0 && (
-              <p className="home-pool-empty-hint">
-                問題データを取得できていません。オンラインで開き直してください
-              </p>
-            )}
-            {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
-            <p className="home-duration-chips__label">クエストの長さ</p>
-            <div className="home-duration-chips">
-              {DURATIONS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`home-chip${d === duration ? ' is-selected' : ''}`}
-                  onClick={() => {
-                    setDuration(d)
-                    void db.settings.put({ key: QUEST_DURATION_KEY, value: d })
-                  }}
-                >
-                  {d}分
-                </button>
-              ))}
-            </div>
-          </div>
           {showPart2Options && (
             // T-116(8): ホーム下部へのインライン挿入だとスクロールしないと見えなかったため、
             // 画面中央固定のオーバーレイに変更する（スクロール位置に依存せず必ず見える）
+            // T-203: 背景タップで閉じる（内側のクリックは伝播で拾わない）
             <div
+              ref={part2DialogRef}
               className="home-part2-modal"
               role="dialog"
               aria-modal="true"
               aria-label="音声の再生方法を選択"
+              onClick={() => setShowPart2Options(false)}
             >
-              <div className="home-part2-options">
+              <div className="home-part2-options" onClick={(e) => e.stopPropagation()}>
                 <p>音声の再生方法を選んでください</p>
                 {/* T-118: 問数チップ（J-57。既定20問。プールが問数未満ならある分だけで開始する） */}
                 <p className="home-duration-chips__label">問題数</p>
                 <div className="home-duration-chips">
+                  {/* T-228（Q-66）: 選択状態が枠色のみで符号化されていた。aria-pressedで
+                      支援技術に伝え、選択中はチェックマーク（aria-hiddenでaria-pressedと
+                      二重に読み上げさせない）で色以外の状態表現も加える */}
                   {SINGLE_MODE_COUNTS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       className={`home-chip${c === singleModeCount ? ' is-selected' : ''}`}
+                      aria-pressed={c === singleModeCount}
                       onClick={() => handleSelectSingleModeCount(c)}
                     >
+                      {c === singleModeCount && (
+                        <span aria-hidden="true" className="home-chip__check">
+                          ✓{' '}
+                        </span>
+                      )}
                       {c}問
                     </button>
                   ))}
@@ -674,23 +742,33 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
           )}
           {showPart5Options && (
             // T-118: Part5は従来即時開始だったが、問数選択を挟む同型モーダルを新設する
+            // T-203: 背景タップで閉じる（内側のクリックは伝播で拾わない）
             <div
+              ref={part5DialogRef}
               className="home-part2-modal"
               role="dialog"
               aria-modal="true"
               aria-label="Part5の問題数を選択"
+              onClick={() => setShowPart5Options(false)}
             >
-              <div className="home-part2-options">
+              <div className="home-part2-options" onClick={(e) => e.stopPropagation()}>
                 <p>Part5の問題数を選んでください</p>
                 <p className="home-duration-chips__label">問題数</p>
                 <div className="home-duration-chips">
+                  {/* T-228（Q-66） */}
                   {SINGLE_MODE_COUNTS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       className={`home-chip${c === singleModeCount ? ' is-selected' : ''}`}
+                      aria-pressed={c === singleModeCount}
                       onClick={() => handleSelectSingleModeCount(c)}
                     >
+                      {c === singleModeCount && (
+                        <span aria-hidden="true" className="home-chip__check">
+                          ✓{' '}
+                        </span>
+                      )}
                       {c}問
                     </button>
                   ))}
@@ -713,23 +791,33 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
           {showReadingOptions && (
             // T-143(J-80): 読解はパッセージ数で選ぶ（1パッセージが2〜4設問を要求するため、
             // 他の単独モードの問数チップは使えない）。あわせて設問数の目安を出す
+            // T-203: 背景タップで閉じる（内側のクリックは伝播で拾わない）
             <div
+              ref={readingDialogRef}
               className="home-part2-modal"
               role="dialog"
               aria-modal="true"
               aria-label="読解のパッセージ数を選択"
+              onClick={() => setShowReadingOptions(false)}
             >
-              <div className="home-part2-options">
+              <div className="home-part2-options" onClick={(e) => e.stopPropagation()}>
                 <p>読解（Part7）のパッセージ数を選んでください</p>
                 <p className="home-duration-chips__label">パッセージ数</p>
                 <div className="home-duration-chips">
+                  {/* T-228（Q-66） */}
                   {READING_SET_COUNTS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       className={`home-chip${c === readingSetCount ? ' is-selected' : ''}`}
+                      aria-pressed={c === readingSetCount}
                       onClick={() => handleSelectReadingSetCount(c)}
                     >
+                      {c === readingSetCount && (
+                        <span aria-hidden="true" className="home-chip__check">
+                          ✓{' '}
+                        </span>
+                      )}
                       {c}本
                     </button>
                   ))}
@@ -759,7 +847,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <button
               type="button"
               className="home-mode-tile"
-              onClick={() => setShowPart2Options(true)}
+              onClick={() => openSingleModeOptions('part2')}
             >
               <svg
                 className="home-mode-tile__icon"
@@ -785,7 +873,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <button
               type="button"
               className="home-mode-tile"
-              onClick={() => setShowPart5Options(true)}
+              onClick={() => openSingleModeOptions('part5')}
             >
               <svg
                 className="home-mode-tile__icon"
@@ -810,7 +898,7 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
             <button
               type="button"
               className="home-mode-tile"
-              onClick={() => setShowReadingOptions(true)}
+              onClick={() => openSingleModeOptions('reading')}
             >
               <svg
                 className="home-mode-tile__icon"
@@ -1015,6 +1103,82 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
       }
     >
       <Wordmark />
+      {/* T-213（Q-43・J-109）: 「続きから再開」と「今日のクエスト」は起動直後の
+          最初の操作対象なのに、従来はヒーローカード・ヒートマップより後（action=画面下の
+          操作ゾーン）にあり、モバイル幅（390×844）の1画面目には入らなかった。
+          ScreenLayoutの「操作要素はactionに置く」原則（親指リーチ）より、起動直後の
+          到達性を優先し、この2つだけ表示専用のchildren側・ヒーローカードより前へ移す
+          （docs/07 5.1節・7節S1を本タスクで改訂）。ボタンの機能・ハンドラは変更しない */}
+      {resumeSnapshot && (
+        <button type="button" className="secondary-action" onClick={() => void handleResume()}>
+          続きから再開（残り{remainingAnswerSlots(resumeSnapshot, questionPool)}問）
+        </button>
+      )}
+      {/* T-316（K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のため
+          App.tsxの起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで
+          働かない。同一セッション内でホームに来られる以上、続きへ戻る導線をここに出す */}
+      {pendingDiagnostic && (
+        <button type="button" className="secondary-action" onClick={() => navigate('diagnostic')}>
+          初期診断の続きから再開
+        </button>
+      )}
+      {/* T-112: チップは「今日のクエスト」専用であることをUIで明示するため、
+          ボタン・チップをひとつのグループにまとめラベルを付ける（Part2瞬発等には作用しない） */}
+      <div className="home-quest-group">
+        <PrimaryButton onClick={() => void handleStartQuest()} disabled={questionPool.length === 0}>
+          {/* docs/20 3.4節: 金CTAにサブテキストでパック内訳を添える（V-3）。
+              新規カード数はここでは未確定のため、実データがあるSRS復習件数のみ示す */}
+          <span className="home-cta-label">今日のクエスト</span>
+          {/* 時間チップの表記「7分」等と完全一致すると同一文言で複数要素になり
+              テスト上も判別不能になるため、「〜のクエスト」で必ず区別できる文にする */}
+          <small className="home-cta-sub">
+            {duration}分のクエスト{dueCount > 0 ? ` ・ SRS復習${dueCount}件` : ''}
+          </small>
+        </PrimaryButton>
+        {questionPool.length === 0 && (
+          <p className="home-pool-empty-hint">
+            {/* T-207（Q-56）: T-107aの自動再同期により「開き直してください」という
+                操作案内は不要（online復帰時に自動で再同期される）。実装に合わせる */}
+            問題データを取得できていません。オンラインになると自動で取得します
+          </p>
+        )}
+        {emptyPackMessage && <p className="home-pool-empty-hint">{emptyPackMessage}</p>}
+        {/* T-299（K-25）: QuotaExceededErrorで解答保存が失敗する前に、起動時に気づけるようにする */}
+        {storageWarning && (
+          <p className="home-pool-empty-hint">
+            端末のストレージ使用量が上限に近づいています。解答が保存できなくなる前にエクスポートしてください
+            <button type="button" onClick={() => navigate('settings')}>
+              設定でエクスポート
+            </button>
+          </p>
+        )}
+        <p className="home-duration-chips__label">クエストの長さ</p>
+        <div className="home-duration-chips">
+          {/* T-228（Q-66）: 選択状態が枠色（--line→--gold）と文字色のみで符号化され、
+              支援技術に選択中の値が伝わらなかった（docs/07の「色に頼らない」原則とも不整合）。
+              aria-pressedを付け、選択中はチェックマークで色以外の状態表現も加える
+              （aria-hiddenでaria-pressedと二重に読み上げさせない） */}
+          {DURATIONS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              className={`home-chip${d === duration ? ' is-selected' : ''}`}
+              aria-pressed={d === duration}
+              onClick={() => {
+                setDuration(d)
+                void db.settings.put({ key: QUEST_DURATION_KEY, value: d })
+              }}
+            >
+              {d === duration && (
+                <span aria-hidden="true" className="home-chip__check">
+                  ✓{' '}
+                </span>
+              )}
+              {d}分
+            </button>
+          ))}
+        </div>
+      </div>
       {/* docs/20 3.4節(S1): ヒーローカード。レイド参加中はBossSigil＋
           HPバー、未参加時はシーズン表示に縮退する（JV-2） */}
       {showRaidHp ? (
@@ -1093,6 +1257,9 @@ export function HomeScreen({ db, questionPool, resumeSnapshot, raidApi }: Props)
         </div>
       )}
       <InstallHint />
+      {/* T-280（K-3）: 更新の適用はユーザー操作（このボタン）に限定する。セッション非進行中の
+          ホーム表示に限定するJ-118の条件を、ホーム画面のみに置くことで自然に満たす */}
+      <UpdateHint />
       {loaded && <span data-testid="home-loaded" style={{ display: 'none' }} />}
     </ScreenLayout>
   )

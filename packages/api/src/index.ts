@@ -1,7 +1,7 @@
 // 共有API本体（正本: docs/17_M3実装計画.md 3.1節・3.10節、docs/16）。
 // T-90時点は/healthのみだった。/stats/questionsはT-100、/reportsはT-101で追加した
 
-import { handleAdminGenerateBoss } from './adminHandlers'
+import { authenticateAdminRequest, handleAdminGenerateBoss } from './adminHandlers'
 import { authenticateRequest } from './auth'
 import { handleCreateBattleRoom } from './battleHandlers'
 import { handlePreflight, withCors } from './cors'
@@ -11,9 +11,17 @@ import { handleRaidCurrent, handleRaidSync } from './raidHandlers'
 import { handleGetRaidSummary } from './raidSummaryHandlers'
 import { handleRegister } from './register'
 import { generateWeeklyBoss } from './scheduled'
-import { handleGetStats, handlePostReport, handlePostStats } from './statsHandlers'
+import {
+  errorResponse,
+  handleGetStats,
+  handlePostReport,
+  handlePostStats,
+  parseStatsRequestBody,
+} from './statsHandlers'
 
 export { BattleRoomDO } from './battleRoomDo'
+export { InviteRateLimitDo } from './inviteRateLimitDo'
+export { RegistryDo } from './registryDo'
 export { RaidBossDO } from './raidBossDo'
 export { StatsDO } from './statsDo'
 
@@ -29,8 +37,14 @@ const BATTLE_WS_PATH = /^\/battle\/rooms\/([A-Z0-9]{4})\/ws$/
  * 追加cronの発火でも走り、emaDailyDamage（翌週以降のボスHP算出に使う）のEMA平滑化が
  * 崩れて前週値へ収束する＝レイド難易度調整が無症状で壊れる事故経路になっていた。
  * cron追加時は必ずここに分岐を足すこと（式を文字列リテラルで散らさない）
+ *
+ * 曜日フィールドは使わず日次発火にする（docs/30 J-100・T-180）。「Cloudflareは1=日曜〜
+ * 7=土曜」という解釈が本番ログで確定していないため、曜日番号の書き換えでは解釈が誤っていた
+ * 場合に発火日を別の誤った曜日へ動かしてしまう。generateWeeklyBossはRaidBossDO側で週の
+ * 生成権を主張する形で完全に冪等化した（T-179）ため、日次発火でも週1回しか生成されない
  */
-const CRON_WEEKLY_BOSS = '0 0 * * 1'
+// T-288（K-15）: index.test.tsがwrangler.tomlのcronsと直接照合するためexportする
+export const CRON_WEEKLY_BOSS = '0 0 * * *'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -51,7 +65,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method === 'POST' && url.pathname === '/register') {
-    return handleRegister(request, env)
+    return handleRegister(request, env, Date.now())
   }
 
   if (request.method === 'GET' && url.pathname === '/raid/current') {
@@ -69,13 +83,26 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (request.method === 'POST' && url.pathname === '/stats/questions') {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
-    return handlePostStats(request, env)
+    // T-334（K-69）: リクエスト本体の解析・検証はここで完結させ、handlePostStats本体には
+    // 検証済みペイロードのみを渡す（Requestを渡さない。questionStatsの匿名性を
+    // 伝送・処理経路全体で保つため。parseStatsRequestBodyのコメント参照）
+    const parsed = await parseStatsRequestBody(request)
+    if (parsed === 'invalid_json') {
+      return errorResponse(400, 'invalid_body', 'JSONの解析に失敗しました')
+    }
+    if (parsed === 'invalid_shape') {
+      return errorResponse(400, 'invalid_body', 'リクエストボディの形式が不正です')
+    }
+    return handlePostStats(env, parsed)
   }
 
+  // 【T-249・29のQ-31】管理用エンドポイント。以前は一般メンバーのBearer
+  // （authenticateRequest）で保護しており、「管理用」という注記とアクセス制御が
+  // 一致していなかった（内容は匿名統計のため実害は薄いが、意図どおりADMIN_TOKENで分離する）
   if (request.method === 'GET' && url.pathname === '/stats/questions') {
-    const auth = await authenticateRequest(request, env)
-    if (auth instanceof Response) return auth
-    return handleGetStats(env)
+    const authError = authenticateAdminRequest(request, env)
+    if (authError) return authError
+    return handleGetStats(env, request)
   }
 
   if (request.method === 'POST' && url.pathname === '/reports') {
@@ -87,7 +114,8 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (request.method === 'POST' && url.pathname === '/ghosts') {
     const auth = await authenticateRequest(request, env)
     if (auth instanceof Response) return auth
-    return handlePostGhost(request, env, auth.deviceToken, Date.now())
+    // 表示名はbodyの自己申告ではなく登録済みメンバーレコードから渡す（T-251・29のQ-26）
+    return handlePostGhost(request, env, auth.deviceToken, auth.member.displayName, Date.now())
   }
 
   if (request.method === 'DELETE' && url.pathname === '/ghosts/own') {
@@ -96,9 +124,11 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handleDeleteGhostOwn(env, auth.deviceToken, Date.now())
   }
 
+  // 【T-249・29のQ-31】statsHandlers.handleGetStatsと同格の管理用エンドポイント。
+  // 同じ理由でADMIN_TOKENによる認可へ分離する
   if (request.method === 'GET' && url.pathname === '/raid/summary') {
-    const auth = await authenticateRequest(request, env)
-    if (auth instanceof Response) return auth
+    const authError = authenticateAdminRequest(request, env)
+    if (authError) return authError
     return handleGetRaidSummary(env)
   }
 

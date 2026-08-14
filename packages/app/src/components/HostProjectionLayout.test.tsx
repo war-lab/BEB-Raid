@@ -2,8 +2,8 @@
 // - 外周リングが1秒刻みの離散更新でなくなること（秒未満の変化で描画が変わること）
 // - reduced-motion でリングが残らず、残秒数の数値表示へ縮退しなくなること
 // - 縦3分割（ScreenLayout）に戻ること＝投影レイアウトの前提が崩れること
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { HostProjectionLayout } from './HostProjectionLayout'
 
 /** matchMedia を差し替えて prefers-reduced-motion を切り替える（BattleAward.test.tsxと同じ手法） */
@@ -129,5 +129,29 @@ describe('HostProjectionLayout: 投影レイアウトの構造', () => {
     expect(
       container.querySelector('.battle-host-stage__foot')?.querySelector('button'),
     ).not.toBeNull()
+  })
+})
+
+// T-217（Q-51）: 出題中・順位表示中はブラウザバック頼みでしか中止できず、
+// ホストの瞬断1回で全参加者が切断される非対称があった。ヘッダに中止導線を出す
+describe('HostProjectionLayout: 中止導線（T-217）', () => {
+  it('onAbortを渡さなければ中止ボタンは出ない', () => {
+    render(
+      <HostProjectionLayout meta="Q1 / 12" action={<span />}>
+        <p>本文</p>
+      </HostProjectionLayout>,
+    )
+    expect(screen.queryByRole('button', { name: '中止' })).toBeNull()
+  })
+
+  it('onAbortを渡すとヘッダに中止ボタンが出て、押すと呼ばれる', () => {
+    const onAbort = vi.fn()
+    render(
+      <HostProjectionLayout meta="Q1 / 12" action={<span />} onAbort={onAbort}>
+        <p>本文</p>
+      </HostProjectionLayout>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '中止' }))
+    expect(onAbort).toHaveBeenCalledTimes(1)
   })
 })

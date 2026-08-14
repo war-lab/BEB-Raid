@@ -42,6 +42,15 @@ describe('DashboardScreen: データ0件・1件でも壊れない', () => {
     expect(await screen.findByText(/まだ記録がありません/)).toBeTruthy()
   })
 
+  // T-211(Q-59): データ読込中（growthPoints等がnullの間）はreturn nullで白画面になっていた。
+  // マウント直後（load()のPromiseが解決する前）の同期描画を見て白画面でないことを確認する
+  it('T-211: データ読み込み中は白画面ではなく読み込み中の表示を出す', () => {
+    const db = newDb()
+    const { container } = render(<DashboardScreen db={db} questionPool={[]} />)
+    expect(container.textContent).not.toBe('')
+    expect(screen.getByText('読み込み中…')).toBeTruthy()
+  })
+
   it('T-75: 「ホームへ」ボタンでホーム画面へ戻れる', async () => {
     const db = newDb()
     useAppStore.setState({ screen: 'dashboard' })
@@ -260,6 +269,26 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
     )
   })
 
+  // 何を防ぐか: rankPointsはレート差分（小数を持ちうる）＋学習日数の合算なので丸めずに
+  // 表示すると「現在 6.450246125604053pt」のような小数が出る（実機所見、docs/29 Q-6）
+  it('T-197: rankPointsが小数でも丸めた整数で表示される', async () => {
+    const db = newDb()
+    await db.ratingHistory.bulkPut([{ date: '2026-07-01', section: 'total', rating: 400 }])
+    await db.ratings.put({
+      section: 'total',
+      rating: 406.450246125604053,
+      updatedAt: Date.now(),
+    })
+    render(<DashboardScreen db={db} questionPool={[]} />)
+
+    const rankSection = await screen.findByTestId('growth-rank')
+    expect(rankSection.textContent).toContain('現在 6pt')
+    expect(rankSection.textContent).not.toMatch(/\d+\.\d+pt/)
+    expect((await screen.findByTestId('growth-rank-next')).textContent).toBe(
+      '次のランク（シルバー）まで残り 34pt',
+    )
+  })
+
   // docs/25 V-14: 色＋台座段数の二重符号化。色を落としても段数でランクが判別できること
   it('ランクIDが data-rank に載り、台座の線の本数が段数（ブロンズ=1）になる', async () => {
     const db = newDb()
@@ -289,11 +318,24 @@ describe('DashboardScreen: 成長ランク（M4・T-130）', () => {
 })
 
 describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () => {
-  it('ratings不在でもヒーロー数値と「計測中」表示が壊れず出る', async () => {
+  it('ratings不在でも「計測中」表示は壊れず出る', async () => {
     const db = newDb()
     render(<DashboardScreen db={db} questionPool={[]} />)
     await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
     expect(screen.getByTestId('forecast-message').textContent).toContain('計測中')
+  })
+
+  // 何を防ぐか: measuring（データ14日未満）でも予測スコア帯の数値（display-num）を
+  // 同時に出すと「604–704」と「計測中」が矛盾して見える（実機所見、docs/29 Q-9）。
+  // 排他にする＝measuringの間は数値を一切出さない
+  it('T-199: measuringでは予測スコア帯の数値を出さず「計測中」のみになる', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    expect(screen.getByTestId('forecast-message').textContent).toContain('計測中')
+    expect(document.querySelector('.dashboard-forecast-hero .display-num')).toBeNull()
+    expect(screen.queryByText('予測スコア帯（参考値。社内問題での推定）')).toBeNull()
   })
 
   it('14日以上の履歴があると断定しない到達予測が表示される（onTrack）', async () => {
@@ -314,6 +356,8 @@ describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () =>
     const message = screen.getByTestId('forecast-message').textContent!
     expect(message).toContain('参考値')
     expect(message).not.toMatch(/します|なります|保証/) // 断定表現を含まない
+    // T-199: measuringでないときは排他の反対側（数値が出る）も壊れていないことを確認する
+    expect(document.querySelector('.dashboard-forecast-hero .display-num')).not.toBeNull()
   })
 
   it('実試験スコアを登録すると一覧に表示され、予測帯との差が併記される', async () => {
@@ -330,6 +374,100 @@ describe('DashboardScreen: 予測スコア・到達予測（M2・T-53）', () =>
     expect(list.textContent).toContain('2026-07-14')
     expect(list.textContent).toContain('合計810')
     expect(await db.examScores.count()).toBe(1)
+  })
+})
+
+// 何を防ぐか（T-205。docs/29 Q-53）: L/Rは本来各5〜495点なのに範囲検証が無く、
+// 桁誤り（例: 650を6500と入力）がそのまま登録され、修正・削除手段も無いため
+// 「予測帯との差」表示に誤登録が残り続けていた
+describe('DashboardScreen: 実試験スコアの範囲検証・修正・削除（T-205）', () => {
+  it('L/Rが範囲外（5〜495の外）だと登録ボタンが無効になり、理由が表示される', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '6500' } }) // 桁誤り
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '410' } })
+
+    expect(screen.getByText(/Lは5〜495の範囲で入力してください/)).toBeTruthy()
+    expect((screen.getByText('登録') as HTMLButtonElement).disabled).toBe(true)
+
+    // 直接handleRegisterExamScoreを叩かれても（disabledを迂回する経路があっても）多層防御で拒否される
+    fireEvent.submit(screen.getByText('登録').closest('form')!)
+    expect(await db.examScores.count()).toBe(0)
+  })
+
+  it('範囲の境界値（5・495）は登録でき、範囲外（4・496）は拒否される', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '496' } })
+    expect((screen.getByText('登録') as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '495' } })
+    expect((screen.getByText('登録') as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(screen.getByText('登録'))
+
+    await waitFor(async () => expect(await db.examScores.count()).toBe(1))
+  })
+
+  it('登録済みスコアを編集できる（同じidのまま値だけ更新される）', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '400' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '410' } })
+    fireEvent.click(screen.getByText('登録'))
+    await screen.findByTestId('exam-score-list')
+    const originalId = (await db.examScores.toArray())[0]!.id
+
+    fireEvent.click(screen.getByText('編集'))
+    // フォームに既存値が流し込まれる
+    expect((screen.getByLabelText('L') as HTMLInputElement).value).toBe('400')
+    expect(screen.getByText('更新')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '450' } })
+    fireEvent.click(screen.getByText('更新'))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('exam-score-list').textContent).toContain('合計860'),
+    )
+    // 新規行が増えたのではなく、同じidの内容が更新されている
+    expect(await db.examScores.count()).toBe(1)
+    expect((await db.examScores.toArray())[0]!.id).toBe(originalId)
+    expect((await db.examScores.toArray())[0]!.listening).toBe(450)
+  })
+
+  it('削除は確認を経てから実行され、キャンセルでは消えない', async () => {
+    const db = newDb()
+    render(<DashboardScreen db={db} questionPool={[]} />)
+    await waitFor(() => expect(screen.getByTestId('forecast-message')).toBeTruthy())
+
+    fireEvent.change(screen.getByLabelText('日付'), { target: { value: '2026-07-14' } })
+    fireEvent.change(screen.getByLabelText('L'), { target: { value: '400' } })
+    fireEvent.change(screen.getByLabelText('R'), { target: { value: '410' } })
+    fireEvent.click(screen.getByText('登録'))
+    await screen.findByTestId('exam-score-list')
+
+    fireEvent.click(screen.getByText('削除'))
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(await db.examScores.count()).toBe(1)
+
+    fireEvent.click(screen.getByText('削除'))
+    fireEvent.click(await screen.findByText('削除する'))
+
+    await waitFor(async () => expect(await db.examScores.count()).toBe(0))
+    expect(screen.queryByTestId('exam-score-list')).toBeNull()
   })
 })
 

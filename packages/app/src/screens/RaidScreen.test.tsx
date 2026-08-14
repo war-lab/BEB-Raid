@@ -570,11 +570,38 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     await screen.findByTestId('raid-boss')
 
     const section = screen.getByTestId('raid-badges')
-    expect(section.querySelector('.raid-badges__list')).toBeNull()
+    // T-150: 未取得バッジ（シルエット）が並ぶため一覧自体は出る。取得済みが0件であることを見る
+    expect(section.querySelectorAll('[data-testid="raid-badge-earned"]')).toHaveLength(0)
+    expect(section.querySelectorAll('[data-testid="raid-badge-locked"]').length).toBeGreaterThan(0)
     const empty = screen.getByTestId('raid-badges-empty')
     expect(empty.textContent).toContain('まだバッジはありません')
     // 煽らない・責めないトーン（4.6節）: 次の行動が分かる文になっている
     expect(empty.textContent).toContain('ボスを討伐すると')
+  })
+
+  // T-150（docs/25 6.4節・docs/07 6節「未取得はシルエット表示」）
+  it('未取得バッジをシルエットで並べる（固定バッジ＋進行中ボスの討伐バッジ）', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.badges.put({ badgeId: 'raid-first-clear', earnedAt: 1000 })
+    const raidApi = new FakeRaidApi()
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    const section = screen.getByTestId('raid-badges')
+    // 取得済みの初回討伐と、未取得の今週分（ACTIVE_BOSS=boss-2026-W30）が並ぶ
+    expect(section.querySelectorAll('[data-testid="raid-badge-earned"]')).toHaveLength(1)
+    const locked = section.querySelectorAll('[data-testid="raid-badge-locked"]')
+    expect(locked).toHaveLength(1)
+    expect(locked[0]?.textContent).toContain('2026年 第30週')
+    // 色だけに頼らない（07の原則4）: 未取得は文字でも示す
+    expect(locked[0]?.textContent).toContain('未取得')
+    // 取得済みが1件でもあれば案内文は出さない
+    expect(screen.queryByTestId('raid-badges-empty')).toBeNull()
   })
 
   it('レイド系以外のバッジ（badgeIdがraid-*でない）は一覧に含めない', async () => {
@@ -589,8 +616,10 @@ describe('RaidScreen: 獲得バッジ一覧（M3・T-102）', () => {
     )
     await screen.findByTestId('raid-boss')
 
-    // セクションは出るが一覧は空（=レイド系以外は列挙されない）
-    expect(screen.getByTestId('raid-badges').querySelector('.raid-badges__list')).toBeNull()
+    // レイド系以外は列挙されない（T-150で未取得のレイドバッジは並ぶが、first-sessionは出ない）
+    expect(
+      screen.getByTestId('raid-badges').querySelectorAll('[data-testid="raid-badge-earned"]'),
+    ).toHaveLength(0)
     expect(screen.getByTestId('raid-badges-empty')).toBeTruthy()
     expect(screen.getByTestId('raid-badges').textContent).not.toContain('first-session')
   })
@@ -690,6 +719,84 @@ describe('RaidScreen: 404と通信失敗の区別（レビューF1(b)）', () =>
     expect(await screen.findByText('最新情報を取得できませんでした')).toBeTruthy()
     expect(screen.queryByTestId('raid-boss-cached')).toBeNull()
     expect(screen.queryByText('今週のボスはまだ生成されていません')).toBeNull()
+  })
+})
+
+function setOnline(value: boolean) {
+  Object.defineProperty(window.navigator, 'onLine', { configurable: true, value })
+}
+
+// T-212(Q-44): 取得失敗の表示に再試行導線が無く、オフラインとサーバー障害の区別も
+// 付かなかった。「開き直す」以外の復帰手段が無い状態だった
+describe('RaidScreen: 取得失敗からの再試行とオフライン/サーバー障害の区別（T-212）', () => {
+  afterEach(() => {
+    setOnline(true)
+  })
+
+  it('再試行ボタンをタップし、成功すればボス表示に復帰する', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.fetchShouldFail = true
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    expect(await screen.findByText('最新情報を取得できませんでした')).toBeTruthy()
+    const retryButton = screen.getByTestId('raid-retry-boss-fetch')
+    expect(retryButton.textContent).toBe('再試行')
+
+    // 再試行時に通信が復旧した状態を模する
+    raidApi.fetchShouldFail = false
+    fireEvent.click(retryButton)
+
+    expect(await screen.findByTestId('raid-boss')).toBeTruthy()
+    expect(screen.queryByText('最新情報を取得できませんでした')).toBeNull()
+    expect(screen.queryByTestId('raid-retry-boss-fetch')).toBeNull()
+  })
+
+  it('再試行しても失敗が続く場合は取得失敗表示のまま留まる', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.fetchShouldFail = true
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+
+    expect(await screen.findByText('最新情報を取得できませんでした')).toBeTruthy()
+    const callsBeforeRetry = raidApi.fetchCurrentBoss.mock.calls.length
+    fireEvent.click(screen.getByTestId('raid-retry-boss-fetch'))
+
+    await waitFor(() =>
+      expect(raidApi.fetchCurrentBoss.mock.calls.length).toBe(callsBeforeRetry + 1),
+    )
+    expect(screen.getByText('最新情報を取得できませんでした')).toBeTruthy()
+  })
+
+  it('オフライン時はオフラインの案内を、オンライン時はサーバー障害の案内を出す', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    const raidApi = new FakeRaidApi()
+    raidApi.fetchShouldFail = true
+
+    setOnline(false)
+    const { unmount } = render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    expect(await screen.findByText(/オフラインになっています/)).toBeTruthy()
+    unmount()
+
+    setOnline(true)
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    expect(await screen.findByText(/サーバー側に問題が発生している可能性/)).toBeTruthy()
   })
 })
 
@@ -999,6 +1106,35 @@ describe('RaidScreen: 貢献一覧・注記の表記（レビューF1(i)(j)）',
     expect(list!.querySelector('.standings__points.display-num')?.textContent).toBe('100')
   })
 
+  // T-216（Q-50）: 自分の貢献ダメージが4〜5桁でも桁区切りが付く（BOSS HP・貢献リストと表記を揃える）
+  it('自分の貢献ダメージは桁区切りで表示される', async () => {
+    const db = newDb()
+    await putProfile(db)
+    await db.settings.put({ key: RAID_REGISTERED_AT_KEY, value: 1000 })
+    await db.settings.put({ key: RAID_SYNC_ENABLED_KEY, value: true })
+    await db.raidState.put({
+      id: RAID_STATE_ID,
+      bossId: ACTIVE_BOSS.bossId,
+      profileJson: JSON.stringify({ name: ACTIVE_BOSS.name }),
+      hp: ACTIVE_BOSS.hp,
+      maxHp: ACTIVE_BOSS.maxHp,
+      myDamage: 12345,
+      joined: true,
+      startAt: ACTIVE_BOSS.startAt,
+      endAt: ACTIVE_BOSS.endAt,
+      lastSyncedAt: Date.now() - 60_000,
+    })
+    const raidApi = new FakeRaidApi()
+    raidApi.currentBoss = { ...ACTIVE_BOSS, myDamage: 12345 }
+
+    render(
+      <RaidScreen db={db} raidApi={raidApi} questionPool={QUESTION_POOL} resumeSnapshot={null} />,
+    )
+    await screen.findByTestId('raid-boss')
+
+    expect(screen.getByText('12,345')).toBeTruthy()
+  })
+
   it('貢献リストは順位・相対バー・自分の行の識別を持ち、正答率は表示しない（V-15・プライバシー境界）', async () => {
     const db = newDb()
     await putProfile(db)
@@ -1238,7 +1374,9 @@ describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）'
     expect(await screen.findByTestId('raid-boss')).toBeTruthy()
   })
 
-  it('送信済み記録がある場合は「ボス役記録を撤回する」ボタンが立候補ボタンの代わりに出て、撤回するとdeleteOwnGhostRecordが呼ばれる', async () => {
+  // T-202（docs/29 Q-33）: 確認なしの1タップでサーバーから即時削除されていた
+  // （立候補側は同意画面＋チェックボックスの二重防御なのに撤回は無防備だった）
+  it('送信済み記録がある場合は「ボス役記録を撤回する」ボタンが立候補ボタンの代わりに出て、確認後にdeleteOwnGhostRecordが呼ばれる（キャンセルでは呼ばれない）', async () => {
     const { db, raidApi, pool } = await registeredSetup()
     const { GHOST_BOSS_SUBMITTED_AT_KEY } = await import('../services/settingsKeys')
     await db.settings.put({ key: GHOST_BOSS_SUBMITTED_AT_KEY, value: Date.now() })
@@ -1250,6 +1388,14 @@ describe('RaidScreen: ボス役セッション（M4・T-128。docs/22 3.5節）'
     const withdrawButton = await screen.findByTestId('ghost-boss-withdraw')
 
     fireEvent.click(withdrawButton)
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('キャンセル'))
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(raidApi.deleteOwnGhostRecord).not.toHaveBeenCalled()
+
+    fireEvent.click(withdrawButton)
+    fireEvent.click(await screen.findByText('撤回する', { selector: '.confirm-dialog__primary' }))
 
     await waitFor(() => expect(raidApi.deleteOwnGhostRecord).toHaveBeenCalledTimes(1))
     await waitFor(async () => {

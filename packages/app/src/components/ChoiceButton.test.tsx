@@ -27,6 +27,20 @@ describe('ChoiceButton（07の6節: 4状態・二重符号化・レイアウト�
     expect(screen.getByText('（誤答）')).toBeTruthy()
   })
 
+  // T-231(Q-69): 正誤の読み上げにaria-liveが無く、スクリーンリーダーに自動で伝わらなかった
+  // 不具合の再発防止。role="status"は暗黙のaria-live="polite"を持つ
+  it('正解表示はrole="status"を持ち、挿入時に読み上げ対象になる（Q-69）', () => {
+    renderChoice('correct')
+    const status = screen.getByText('（正解）')
+    expect(status.getAttribute('role')).toBe('status')
+  })
+
+  it('誤答表示もrole="status"を持つ（Q-69）', () => {
+    renderChoice('wrong')
+    const status = screen.getByText('（誤答）')
+    expect(status.getAttribute('role')).toBe('status')
+  })
+
   it('減光状態: is-dimmed クラスが付き、アイコンは空', () => {
     renderChoice('dimmed')
     const btn = screen.getByRole('button')
@@ -102,5 +116,19 @@ describe('ChoiceButton: 形マーカー（イベントバトル専用。docs/25 
     const btn = screen.getByRole('button')
     expect(btn.querySelector('.choice-button__marker')?.textContent).toBe('E')
     expect(btn.getAttribute('data-marker-variant')).toBeNull()
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 選択肢本文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('ChoiceButton: 選択肢本文のlang="en"（T-224・J-108）', () => {
+  it('選択肢本文を持つ要素にlang="en"が付く', () => {
+    render(
+      <ChoiceButton marker="A" state="idle">
+        Please attend the meeting.
+      </ChoiceButton>,
+    )
+    const label = screen.getByText('Please attend the meeting.')
+    expect(label.getAttribute('lang')).toBe('en')
   })
 })

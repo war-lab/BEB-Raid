@@ -8,9 +8,12 @@
 // text_blankはaudio不要のためT-31（TTS）への予約パスは存在しない。
 // 【M2・T-61追記】追加100問（part5QuestionsS2.ts）はS/A/B語彙カード（600語）横断でkeyVocabを
 // 解決し（vocabEntryForWord。part2Question.tsのT-60実装と同方式）、正答キーはrotatePart5Choices
-// による決定的ローテーション（4択A〜D・index%4）で分散する（M1レビュー⑦の方式）。
+// による決定的ローテーション（4択A〜D）で分散する（M1レビュー⑦の方式）。
+// 【T-266追記】ローテーション量はkeyVocabWordのハッシュ由来で、配列内indexには依存しない
+// （choiceRotation.ts参照。index依存だと一定差分の決定的循環を生む構造欠陥があった）。
 
 import { SCHEMA_VERSION, validatePack, type FreqRank, type Question } from '@beb-raid/shared-schema'
+import { rotationAmount } from './choiceRotation.js'
 import { PART5_ENTRIES_S, type Part5Entry } from './data/part5QuestionsS.js'
 import { PART5_ENTRIES_S2_RAW, type Part5RawEntry } from './data/part5QuestionsS2.js'
 import { PART5_ENTRIES_S3_RAW } from './data/part5QuestionsS3.js'
@@ -76,15 +79,17 @@ export function buildPart5Drafts(
 /**
  * 正答キーの決定的ローテーション分散（M1レビュー⑦の方式。M2・T-61）。
  * rawエントリは常に correctText を「正解」・distractors を「誤答3件」として書き、
- * index%4の回転で選択肢の並び順・正答キーを機械的に決める（part2Question.tsの
- * rotatePart2Choicesと同方式。4択A〜D）
+ * 選択肢の並び順・正答キーを機械的に決める（part2Question.tsのrotatePart2Choicesと
+ * 同方式。4択A〜D）。
+ * 【T-266】ローテーション量はkeyVocabWordのハッシュから導出する（配列内のindexは使わない）。
+ * indexをそのまま使うと、rawエントリの並び順が変わらない限り正答キーが一定差分で
+ * 循環してしまう（29のQ-79・contentLint.tsのcheckFlatAnswerKeyCycleが検出する構造欠陥）。
+ * keyVocabWordはS/A/B語彙カード横断で重複しないことをテストで担保しているため、
+ * エントリ固有のシードとして安全に使える
  */
-export function rotatePart5Choices(
-  raw: Part5RawEntry,
-  index: number,
-): Pick<Part5Entry, 'choices' | 'answer'> {
+export function rotatePart5Choices(raw: Part5RawEntry): Pick<Part5Entry, 'choices' | 'answer'> {
   const texts = [raw.correctText, raw.distractors[0], raw.distractors[1], raw.distractors[2]]
-  const rotation = index % 4
+  const rotation = rotationAmount(raw.keyVocabWord, 4)
   const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
   const keys = ['A', 'B', 'C', 'D']
   const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
@@ -93,8 +98,8 @@ export function rotatePart5Choices(
 }
 
 /** rawエントリ（correctText/distractors形式）→Part5Entry（choices/answer確定済み）への変換 */
-export function part5EntryFromRaw(raw: Part5RawEntry, index: number): Part5Entry {
-  const { choices, answer } = rotatePart5Choices(raw, index)
+export function part5EntryFromRaw(raw: Part5RawEntry): Part5Entry {
+  const { choices, answer } = rotatePart5Choices(raw)
   return {
     keyVocabWord: raw.keyVocabWord,
     tags: raw.tags,
@@ -107,18 +112,48 @@ export function part5EntryFromRaw(raw: Part5RawEntry, index: number): Part5Entry
   }
 }
 
+/**
+ * M1のPart5 50問（PART5_ENTRIES_S）にkeyVocabWord由来の決定的ローテーションを適用する。
+ *
+ * S2・S3はcorrectText/distractors形式で書かれているためpart5EntryFromRawがローテーションを
+ * かけるが、Sだけはchoices/answerを手書きした旧形式で、生成時に何の分散処理も通っていない。
+ * その結果、正答位置の並びが手書き時の癖を保ったままパックへ出ていた
+ * （T-237の一回限りシャッフルはドラフトJSONLに対して行われたため、`beb generate` の
+ * 再生成で失われる。正本のTS側で分散させないと再発する）。
+ *
+ * choicesの中身は変えず、keyVocabWordのハッシュ量だけ回して正答キーを付け替える。
+ */
+export function rotatePreKeyedEntry(entry: Part5Entry): Part5Entry {
+  const correctText = entry.choices.find((c) => c.key === entry.answer)?.text
+  if (correctText === undefined) return entry
+  const rotation = rotationAmount(entry.keyVocabWord, entry.choices.length)
+  const texts = entry.choices.map((c) => c.text)
+  const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
+  const keys = entry.choices.map((c) => c.key)
+  return {
+    ...entry,
+    choices: rotatedTexts.map((text, i) => ({ key: keys[i]!, text })),
+    answer: keys[rotatedTexts.indexOf(correctText)]!,
+  }
+}
+
+/** M1のPart5 50問（S）をPart5Entry形式に組み立てる（正答位置の分散を適用する） */
+export function buildPart5EntriesS(entries: readonly Part5Entry[] = PART5_ENTRIES_S): Part5Entry[] {
+  return entries.map((e) => rotatePreKeyedEntry(e))
+}
+
 /** Part5追加分（M2・T-61・S2）100問をPart5Entry形式に組み立てる */
 export function buildPart5EntriesS2(
   raw: readonly Part5RawEntry[] = PART5_ENTRIES_S2_RAW,
 ): Part5Entry[] {
-  return raw.map((r, i) => part5EntryFromRaw(r, i))
+  return raw.map((r) => part5EntryFromRaw(r))
 }
 
 /** Part5追加分（T-85・d4帯・S3）50問をPart5Entry形式に組み立てる */
 export function buildPart5EntriesS3(
   raw: readonly Part5RawEntry[] = PART5_ENTRIES_S3_RAW,
 ): Part5Entry[] {
-  return raw.map((r, i) => part5EntryFromRaw(r, i))
+  return raw.map((r) => part5EntryFromRaw(r))
 }
 
 /**

@@ -89,6 +89,26 @@ describe('StandingsList', () => {
     expect(screen.getByText('FINAL RESULT')).toBeTruthy()
   })
 
+  // T-265: サーバーはロスター基準で常に全参加者を返すため、瞬断中・離脱済みでも一覧からは
+  // 消えない。StandingsList側はconnected:falseの行を「消す」のではなく「薄くして区別する」
+  it('connected:falseの行は一覧からは消えず、data-connectedとバッジで在席状態を示す', () => {
+    const withDisconnected = [
+      { displayName: 'アルファ', totalPoints: 1240, connected: true },
+      { displayName: 'ブラボー', totalPoints: 620, connected: false },
+    ]
+    const { container } = render(<StandingsList entries={withDisconnected} />)
+    const list = rows(container)
+    expect(list).toHaveLength(2)
+    expect(list.map((li) => li.getAttribute('data-connected'))).toEqual([null, 'false'])
+    expect(screen.getByText('通信切断中')).toBeTruthy()
+  })
+
+  it('connectedを省略した場合は接続中扱いになる（既存呼び出し元との後方互換）', () => {
+    const { container } = render(<StandingsList entries={ENTRIES} />)
+    expect(container.querySelector('[data-connected]')).toBeNull()
+    expect(screen.queryByText('通信切断中')).toBeNull()
+  })
+
   it('V-10の拡張点: fromRankで下位だけを描画しても、バーの基準は全体の1位のまま', () => {
     const { container } = render(
       <StandingsList

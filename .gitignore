@@ -6,6 +6,9 @@ dist/
 packages/app/dev-dist/
 *.tsbuildinfo
 
+# カバレッジレポート（T-286。npm run test:coverageの出力）
+coverage/
+
 # ローカル環境変数（LLM/TTSキーは環境変数のみ。リポジトリに含めない）
 .env
 .env.*
@@ -35,4 +38,12 @@ Thumbs.db
 # Piperボイスモデル（TTS生成のローカル依存。数十MB/ファイルのためリポジトリに含めない。
 # 導入: pip install piper-tts && python -m piper.download_voices <voice> --download-dir .piper-voices）
 /.piper-voices/
+# `--download-dir` を付け忘れるとリポジトリ直下へ落ちるため、置き場所によらず除外する
+# （1ファイル約63MBで、`git add -A` で誤って取り込むと差し戻しが重い）
+*.onnx
+*.onnx.json
 
+
+# 実機確認の一時スクリーンショット（記録として残すものは docs/dogfood/ 配下へ移す。30のJ-112）
+/*.jpeg
+/*.jpg

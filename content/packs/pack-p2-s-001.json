@@ -4,1550 +4,17 @@
     "id": "pack-p2-s-001",
     "title": "Part2瞬発 Sランク50問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）＋TTS",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 73328
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 63292
   },
   "questions": [
-    {
-      "id": "part2-submit",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "submit",
-          "sense": "提出する",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/submit.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8150,
-        "questionEndMs": 2696,
-        "responseOffsetsMs": [
-          2896,
-          4573,
-          6540
-        ],
-        "responsesTextDigest": "b47edc4f"
-      },
-      "script": "When should I submit the expense report? — By the end of this week.",
-      "translation": "経費報告書はいつ提出すればいいですか？ — 今週末までに。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "By the end of this week."
-        },
-        {
-          "key": "B",
-          "text": "To the accounting office."
-        },
-        {
-          "key": "C",
-          "text": "Yes, I already did."
-        }
-      ],
-      "answer": "A",
-      "explanation": "When（いつ）への応答は時。「To the accounting office.」は場所（Where）への応答、「Yes, I already did.」はYes/No疑問文への応答で、いずれもWhen疑問文には合わない。"
-    },
-    {
-      "id": "part2-reschedule",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "reschedule",
-          "sense": "予定を変更する",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/reschedule.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8490,
-        "questionEndMs": 2011,
-        "responseOffsetsMs": [
-          2211,
-          4016,
-          6378
-        ],
-        "responsesTextDigest": "d0c29fbc"
-      },
-      "script": "Why did you reschedule the meeting? — The client had a conflict.",
-      "translation": "なぜ会議の予定を変更したのですか？ — 取引先の予定が重なってしまったからです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "At two o’clock."
-        },
-        {
-          "key": "B",
-          "text": "In the main conference room."
-        },
-        {
-          "key": "C",
-          "text": "The client had a conflict."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Why（なぜ）への応答は理由。「At two o’clock.」は時刻（When）、「In the main conference room.」は場所（Where）への応答で、Whyの質問には合わない。"
-    },
-    {
-      "id": "part2-invoice",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "invoice",
-          "sense": "請求書",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/invoice.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 6949,
-        "questionEndMs": 1779,
-        "responseOffsetsMs": [
-          1979,
-          3853,
-          5878
-        ],
-        "responsesTextDigest": "ccd82736"
-      },
-      "script": "Who prepared this invoice? — Someone from the accounting team.",
-      "translation": "この請求書は誰が作成しましたか？ — 経理チームの誰かです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Because the client requested it."
-        },
-        {
-          "key": "B",
-          "text": "Someone from the accounting team."
-        },
-        {
-          "key": "C",
-          "text": "Last Tuesday."
-        }
-      ],
-      "answer": "B",
-      "explanation": "Who（誰）への応答は人物。「Last Tuesday.」は時（When）、「Because the client requested it.」は理由（Why）への応答であり、Whoの質問には合わない。"
-    },
-    {
-      "id": "part2-warehouse",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 1,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "warehouse",
-          "sense": "倉庫",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/warehouse.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8934,
-        "questionEndMs": 2290,
-        "responseOffsetsMs": [
-          2490,
-          4840,
-          6970
-        ],
-        "responsesTextDigest": "8c215f3a"
-      },
-      "script": "Where should we store the extra chairs? — In the warehouse next door.",
-      "translation": "余分な椅子はどこに保管すればいいですか？ — 隣の倉庫にお願いします。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "In the warehouse next door."
-        },
-        {
-          "key": "B",
-          "text": "Around fifty of them."
-        },
-        {
-          "key": "C",
-          "text": "Yes, we ordered more."
-        }
-      ],
-      "answer": "A",
-      "explanation": "Where（どこ）への応答は場所。「Around fifty of them.」は数量（How many）、「Yes, we ordered more.」はYes/No疑問文への応答で、Whereには合わない。"
-    },
-    {
-      "id": "part2-candidate",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "弱形・連結"
-      ],
-      "keyVocab": [
-        {
-          "word": "candidate",
-          "sense": "候補者",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/candidate.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7837,
-        "questionEndMs": 2766,
-        "responseOffsetsMs": [
-          2966,
-          4515,
-          6134
-        ],
-        "responsesTextDigest": "82c81ea6"
-      },
-      "script": "How many candidates applied for the position? — About thirty, I believe.",
-      "translation": "その職に何人の候補者が応募しましたか？ — 30人くらいだと思います。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "She did a great job."
-        },
-        {
-          "key": "B",
-          "text": "Next Monday afternoon."
-        },
-        {
-          "key": "C",
-          "text": "About thirty, I believe."
-        }
-      ],
-      "answer": "C",
-      "explanation": "How many（いくつ）への応答は数量。「She did a great job.」は評価に関する応答、「Next Monday afternoon.」は時（When）への応答で、質問に合わない。"
-    },
-    {
-      "id": "part2-budget",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "budget",
-          "sense": "予算",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/budget.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9744,
-        "questionEndMs": 2220,
-        "responseOffsetsMs": [
-          2420,
-          4666,
-          7620
-        ],
-        "responsesTextDigest": "87201da7"
-      },
-      "script": "What is the budget for this project? — Around fifty thousand dollars.",
-      "translation": "このプロジェクトの予算はいくらですか？ — 約5万ドルです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "It starts next month."
-        },
-        {
-          "key": "B",
-          "text": "Around fifty thousand dollars."
-        },
-        {
-          "key": "C",
-          "text": "The marketing department."
-        }
-      ],
-      "answer": "B",
-      "explanation": "What（何）への応答は内容・金額。「The marketing department.」は部署（Which department）、「It starts next month.」は開始時期に関する応答で、質問の意図に合わない。"
-    },
-    {
-      "id": "part2-delivery",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "数字・時刻"
-      ],
-      "keyVocab": [
-        {
-          "word": "delivery",
-          "sense": "配達",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/delivery.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7915,
-        "questionEndMs": 2150,
-        "responseOffsetsMs": [
-          2350,
-          4666,
-          6366
-        ],
-        "responsesTextDigest": "a89970f9"
-      },
-      "script": "When will the delivery arrive? — Sometime around three o’clock.",
-      "translation": "配達はいつ届きますか？ — 3時頃です。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Sometime around three o’clock."
-        },
-        {
-          "key": "B",
-          "text": "From the main warehouse."
-        },
-        {
-          "key": "C",
-          "text": "Twenty boxes in total."
-        }
-      ],
-      "answer": "A",
-      "explanation": "When（いつ）への応答は時刻。「From the main warehouse.」は場所（Where）、「Twenty boxes in total.」は数量（How many）への応答で、Whenには合わない。"
-    },
-    {
-      "id": "part2-contract",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "contract",
-          "sense": "契約書",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/contract.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 8960,
-        "questionEndMs": 1825,
-        "responseOffsetsMs": [
-          2025,
-          4422,
-          6831
-        ],
-        "responsesTextDigest": "bc526d07"
-      },
-      "script": "Who signed the new contract? — Our sales director did.",
-      "translation": "新しい契約書には誰がサインしましたか？ — 営業部長です。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "It expires next year."
-        },
-        {
-          "key": "B",
-          "text": "At the downtown office."
-        },
-        {
-          "key": "C",
-          "text": "Our sales director did."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Who（誰）への応答は人物。「It expires next year.」は有効期限に関する応答、「At the downtown office.」は場所（Where）への応答であり、質問に合わない。"
-    },
-    {
-      "id": "part2-inspection",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "弱形・連結"
-      ],
-      "keyVocab": [
-        {
-          "word": "inspection",
-          "sense": "検査",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/inspection.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7628,
-        "questionEndMs": 2673,
-        "responseOffsetsMs": [
-          2873,
-          4434,
-          6459
-        ],
-        "responsesTextDigest": "5f9a6661"
-      },
-      "script": "Has the inspection been completed yet? — Yes, it finished this morning.",
-      "translation": "検査はもう終わりましたか？ — はい、今朝終わりました。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "About two hours."
-        },
-        {
-          "key": "B",
-          "text": "Yes, it finished this morning."
-        },
-        {
-          "key": "C",
-          "text": "By the quality team."
-        }
-      ],
-      "answer": "B",
-      "explanation": "Yes/No疑問文には端的な肯定・否定＋補足で応じる「Yes, this morning.」が自然。「By the quality team.」は行為者（Who）、「About two hours.」は所要時間（How long）への応答で合わない。"
-    },
-    {
-      "id": "part2-venue",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "venue",
-          "sense": "会場・開催場所",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/venue.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9482,
-        "questionEndMs": 1941,
-        "responseOffsetsMs": [
-          2141,
-          5397,
-          7271
-        ],
-        "responsesTextDigest": "fafe1cba"
-      },
-      "script": "Where is the venue for the conference? — At the downtown convention center.",
-      "translation": "会議の会場はどこですか？ — 中心街のコンベンションセンターです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "At the downtown convention center."
-        },
-        {
-          "key": "B",
-          "text": "Next Wednesday."
-        },
-        {
-          "key": "C",
-          "text": "About two hundred people."
-        }
-      ],
-      "answer": "A",
-      "explanation": "Where（どこ）への応答は場所。「Next Wednesday.」は日時（When）、「About two hundred people.」は人数（How many）への応答であり、質問に合わない。"
-    },
-    {
-      "id": "part2-refund",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "refund",
-          "sense": "返金",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/refund.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7941,
-        "questionEndMs": 1976,
-        "responseOffsetsMs": [
-          2176,
-          3876,
-          5553
-        ],
-        "responsesTextDigest": "0b3d5171"
-      },
-      "script": "How can I request a refund? — Please contact the customer service desk.",
-      "translation": "返金はどうすれば請求できますか？ — カスタマーサービスにご連絡ください。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Within thirty days."
-        },
-        {
-          "key": "B",
-          "text": "Because it was defective."
-        },
-        {
-          "key": "C",
-          "text": "Please contact the customer service desk."
-        }
-      ],
-      "answer": "C",
-      "explanation": "How（どうやって）への応答は方法。「Within thirty days.」は期限（When）、「Because it was defective.」は理由（Why）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-training",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 1,
-      "tags": [
-        "数字・時刻"
-      ],
-      "keyVocab": [
-        {
-          "word": "training",
-          "sense": "研修",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/training.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 11154,
-        "questionEndMs": 2383,
-        "responseOffsetsMs": [
-          2583,
-          5665,
-          8724
-        ],
-        "responsesTextDigest": "38eb2127"
-      },
-      "script": "When does the new employee training start? — It starts at nine tomorrow morning.",
-      "translation": "新入社員研修はいつ始まりますか？ — 明朝9時に始まります。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Around twenty new employees."
-        },
-        {
-          "key": "B",
-          "text": "It starts at nine tomorrow morning."
-        },
-        {
-          "key": "C",
-          "text": "In the third-floor conference room."
-        }
-      ],
-      "answer": "B",
-      "explanation": "When（いつ）への応答は時刻。「In the third-floor conference room.」は場所（Where）、「Around twenty new employees.」は人数（How many）への応答であり、質問に合わない。"
-    },
-    {
-      "id": "part2-quality",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "quality",
-          "sense": "品質",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/quality.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7811,
-        "questionEndMs": 2185,
-        "responseOffsetsMs": [
-          2385,
-          4863,
-          6366
-        ],
-        "responsesTextDigest": "fef2b8e2"
-      },
-      "script": "Why was the shipment rejected? — The quality did not meet our standards.",
-      "translation": "なぜ出荷分は却下されたのですか？ — 品質が基準を満たしていなかったからです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "The quality did not meet our standards."
-        },
-        {
-          "key": "B",
-          "text": "Last Thursday."
-        },
-        {
-          "key": "C",
-          "text": "By the logistics team."
-        }
-      ],
-      "answer": "A",
-      "explanation": "Why（なぜ）への応答は理由。「Last Thursday.」は時（When）、「By the logistics team.」は行為者（Who）への応答であり、Whyには合わない。"
-    },
-    {
-      "id": "part2-account",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "弱形・連結"
-      ],
-      "keyVocab": [
-        {
-          "word": "account",
-          "sense": "口座",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/account.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9326,
-        "questionEndMs": 2348,
-        "responseOffsetsMs": [
-          2548,
-          4794,
-          7191
-        ],
-        "responsesTextDigest": "4b633add"
-      },
-      "script": "Could you check the balance on this account? — Sure, let me look it up.",
-      "translation": "この口座の残高を確認していただけますか？ — もちろんです、少々お待ちください。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "It opened last year."
-        },
-        {
-          "key": "B",
-          "text": "At the branch downtown."
-        },
-        {
-          "key": "C",
-          "text": "Sure, let me look it up."
-        }
-      ],
-      "answer": "C",
-      "explanation": "依頼（Could you...）への応答は快諾・応対がまず自然。「It opened last year.」は口座の開設時期、「At the branch downtown.」は場所への応答で、依頼への返答として噛み合わない。"
-    },
-    {
-      "id": "part2-proposal",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "proposal",
-          "sense": "提案書",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/proposal.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7863,
-        "questionEndMs": 2766,
-        "responseOffsetsMs": [
-          2966,
-          4829,
-          6750
-        ],
-        "responsesTextDigest": "10aa8e99"
-      },
-      "script": "What did the client think of our proposal? — They seemed very impressed.",
-      "translation": "クライアントは私たちの提案書についてどう思いましたか？ — とても感心していました。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "About ten pages long."
-        },
-        {
-          "key": "B",
-          "text": "They seemed very impressed."
-        },
-        {
-          "key": "C",
-          "text": "Next Monday morning."
-        }
-      ],
-      "answer": "B",
-      "explanation": "What（何）への応答は意見・感想。「Next Monday morning.」は日時（When）、「About ten pages long.」は分量（How long）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-warranty",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "warranty",
-          "sense": "保証",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/warranty.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10501,
-        "questionEndMs": 2487,
-        "responseOffsetsMs": [
-          2687,
-          5560,
-          8491
-        ],
-        "responsesTextDigest": "d97aa3e4"
-      },
-      "script": "How long is the warranty on this printer? — It comes with a two-year warranty.",
-      "translation": "このプリンターの保証期間はどのくらいですか？ — 2年間の保証が付いています。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "It comes with a two-year warranty."
-        },
-        {
-          "key": "B",
-          "text": "In the electronics department."
-        },
-        {
-          "key": "C",
-          "text": "Because it stopped working."
-        }
-      ],
-      "answer": "A",
-      "explanation": "How long（どのくらいの期間）への応答は期間。「In the electronics department.」は場所（Where）、「Because it stopped working.」は理由（Why）への応答であり、質問に合わない。"
-    },
-    {
-      "id": "part2-itinerary",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "弱形・連結"
-      ],
-      "keyVocab": [
-        {
-          "word": "itinerary",
-          "sense": "旅程表",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/itinerary.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9091,
-        "questionEndMs": 2963,
-        "responseOffsetsMs": [
-          3163,
-          5026,
-          6935
-        ],
-        "responsesTextDigest": "7b5bc8f6"
-      },
-      "script": "Have you finished the itinerary for the business trip? — Almost, just one more stop to add.",
-      "translation": "出張の旅程表は仕上がりましたか？ — ほぼ完成です、あと1件追加するだけです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "By plane and then by train."
-        },
-        {
-          "key": "B",
-          "text": "Because the flight was delayed."
-        },
-        {
-          "key": "C",
-          "text": "Almost, just one more stop to add."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Yes/No系の進捗確認には「ほぼ終わった」のような端的な応答が自然。「By plane and then by train.」は手段（How）、「Because the flight was delayed.」は理由（Why）への応答であり合わない。"
-    },
-    {
-      "id": "part2-headquarters",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 1,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "headquarters",
-          "sense": "本社",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/headquarters.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10527,
-        "questionEndMs": 2522,
-        "responseOffsetsMs": [
-          2722,
-          5699,
-          8293
-        ],
-        "responsesTextDigest": "5c0337f3"
-      },
-      "script": "Where is the company headquarters located? — It’s in downtown Chicago.",
-      "translation": "会社の本社はどこにありますか？ — シカゴのダウンタウンにあります。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "About five hundred employees."
-        },
-        {
-          "key": "B",
-          "text": "It’s in downtown Chicago."
-        },
-        {
-          "key": "C",
-          "text": "Since the company was founded."
-        }
-      ],
-      "answer": "B",
-      "explanation": "Where（どこ）への応答は場所。「Since the company was founded.」は時期（Since when）、「About five hundred employees.」は人数（How many）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-merger",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "merger",
-          "sense": "合併",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/merger.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7758,
-        "questionEndMs": 1814,
-        "responseOffsetsMs": [
-          2014,
-          4109,
-          6274
-        ],
-        "responsesTextDigest": "d484080b"
-      },
-      "script": "When was the merger announced? — Just last week, actually.",
-      "translation": "その合併はいつ発表されましたか？ — 実はつい先週です。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Just last week, actually."
-        },
-        {
-          "key": "B",
-          "text": "Between two software companies."
-        },
-        {
-          "key": "C",
-          "text": "For a much lower price."
-        }
-      ],
-      "answer": "A",
-      "explanation": "When（いつ）への応答は時。「Between two software companies.」は対象（Between whom）、「For a much lower price.」は価格に関する応答であり、質問に合わない。"
-    },
-    {
-      "id": "part2-reception",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "reception",
-          "sense": "受付",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/reception.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9352,
-        "questionEndMs": 2673,
-        "responseOffsetsMs": [
-          2873,
-          5154,
-          6970
-        ],
-        "responsesTextDigest": "c42d388d"
-      },
-      "script": "Who is organizing the reception tonight? — The events team is handling it.",
-      "translation": "今夜の歓迎会は誰が企画していますか？ — イベントチームが担当しています。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Starting at seven o’clock."
-        },
-        {
-          "key": "B",
-          "text": "On the top floor."
-        },
-        {
-          "key": "C",
-          "text": "The events team is handling it."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Who（誰）への応答は人物・組織。「Starting at seven o’clock.」は時刻（When）、「On the top floor.」は場所（Where）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-shipment",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "数字・時刻"
-      ],
-      "keyVocab": [
-        {
-          "word": "shipment",
-          "sense": "発送・積み荷",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/shipment.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7497,
-        "questionEndMs": 2441,
-        "responseOffsetsMs": [
-          2641,
-          4434,
-          6378
-        ],
-        "responsesTextDigest": "86f1fe09"
-      },
-      "script": "When can we expect the next shipment? — It should arrive by Thursday.",
-      "translation": "次の出荷はいつ届く予定ですか？ — 木曜日までには届くはずです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Through our regular carrier."
-        },
-        {
-          "key": "B",
-          "text": "It should arrive by Thursday."
-        },
-        {
-          "key": "C",
-          "text": "Two hundred units."
-        }
-      ],
-      "answer": "B",
-      "explanation": "When（いつ）への応答は時。「Two hundred units.」は数量（How many）、「Through our regular carrier.」は手段（How）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-promotion",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "promotion",
-          "sense": "昇進",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/promotion.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9691,
-        "questionEndMs": 1733,
-        "responseOffsetsMs": [
-          1933,
-          4968,
-          7307
-        ],
-        "responsesTextDigest": "c040dfab"
-      },
-      "script": "Why did she get the promotion? — Her performance has been outstanding.",
-      "translation": "なぜ彼女は昇進したのですか？ — 業績が非常に優れていたからです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Her performance has been outstanding."
-        },
-        {
-          "key": "B",
-          "text": "Starting next quarter."
-        },
-        {
-          "key": "C",
-          "text": "In the finance department."
-        }
-      ],
-      "answer": "A",
-      "explanation": "Why（なぜ）への応答は理由。「Starting next quarter.」は時期（When）、「In the finance department.」は部署（Which department）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-compliance",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "弱形・連結"
-      ],
-      "keyVocab": [
-        {
-          "word": "compliance",
-          "sense": "法令遵守",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/compliance.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9587,
-        "questionEndMs": 3416,
-        "responseOffsetsMs": [
-          3616,
-          5258,
-          6947
-        ],
-        "responsesTextDigest": "baeb982b"
-      },
-      "script": "Is the factory in compliance with the new regulations? — Yes, we passed the audit last week.",
-      "translation": "工場は新しい規制を遵守していますか？ — はい、先週の監査に合格しました。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "The regional inspector."
-        },
-        {
-          "key": "B",
-          "text": "For safety reasons."
-        },
-        {
-          "key": "C",
-          "text": "Yes, we passed the audit last week."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Yes/No疑問文への応答はまず肯定・否定で答える「Yes, we passed the audit.」が自然。「The regional inspector.」は行為者（Who）、「For safety reasons.」は理由（Why）への応答であり合わない。"
-    },
-    {
-      "id": "part2-subscription",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "subscription",
-          "sense": "購読",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/subscription.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10109,
-        "questionEndMs": 2731,
-        "responseOffsetsMs": [
-          2931,
-          5223,
-          7841
-        ],
-        "responsesTextDigest": "c6f2dadd"
-      },
-      "script": "How much does the subscription cost per month? — It’s fifteen dollars a month.",
-      "translation": "購読料は月にいくらですか？ — 月15ドルです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Through the company website."
-        },
-        {
-          "key": "B",
-          "text": "It’s fifteen dollars a month."
-        },
-        {
-          "key": "C",
-          "text": "It renews automatically."
-        }
-      ],
-      "answer": "B",
-      "explanation": "How much（いくら）への応答は金額。「It renews automatically.」は更新方法、「Through the company website.」は手段（Where/How）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-inventory",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "数字・時刻"
-      ],
-      "keyVocab": [
-        {
-          "word": "inventory",
-          "sense": "在庫",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/inventory.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7654,
-        "questionEndMs": 2522,
-        "responseOffsetsMs": [
-          2722,
-          4329,
-          5960
-        ],
-        "responsesTextDigest": "ae80131e"
-      },
-      "script": "How often do you check the inventory? — We check it twice a month.",
-      "translation": "在庫はどのくらいの頻度で確認していますか？ — 月に2回確認しています。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "We check it twice a month."
-        },
-        {
-          "key": "B",
-          "text": "In the back storage room."
-        },
-        {
-          "key": "C",
-          "text": "Because stock levels were low."
-        }
-      ],
-      "answer": "A",
-      "explanation": "How often（どのくらいの頻度で）への応答は頻度。「In the back storage room.」は場所（Where）、「Because stock levels were low.」は理由（Why）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-renovation",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "renovation",
-          "sense": "改装",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/renovation.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10214,
-        "questionEndMs": 2510,
-        "responseOffsetsMs": [
-          2710,
-          4805,
-          7504
-        ],
-        "responsesTextDigest": "f862adc6"
-      },
-      "script": "When will the office renovation be finished? — Probably by the end of next month.",
-      "translation": "オフィスの改装はいつ終わりますか？ — おそらく来月末までには終わります。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "The construction crew."
-        },
-        {
-          "key": "B",
-          "text": "Because the lobby was outdated."
-        },
-        {
-          "key": "C",
-          "text": "Probably by the end of next month."
-        }
-      ],
-      "answer": "C",
-      "explanation": "When（いつ）への応答は時期。「The construction crew.」は行為者（Who）、「Because the lobby was outdated.」は理由（Why）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-vendor",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "vendor",
-          "sense": "業者",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/vendor.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9064,
-        "questionEndMs": 3010,
-        "responseOffsetsMs": [
-          3210,
-          5456,
-          8178
-        ],
-        "responsesTextDigest": "b2bc1b6b"
-      },
-      "script": "Which vendor supplies our office furniture? — We usually order from Grantline Supplies.",
-      "translation": "どの業者が私たちのオフィス家具を納入していますか？ — 通常はGrantline Suppliesに発注しています。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Because the old vendor closed."
-        },
-        {
-          "key": "B",
-          "text": "We usually order from Grantline Supplies."
-        },
-        {
-          "key": "C",
-          "text": "Twice a year."
-        }
-      ],
-      "answer": "B",
-      "explanation": "Which（どちらの）への応答は具体的な業者名。「Twice a year.」は頻度（How often）、「Because the old vendor closed.」は理由（Why）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-audit",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "弱形・連結"
-      ],
-      "keyVocab": [
-        {
-          "word": "audit",
-          "sense": "監査",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/audit.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10162,
-        "questionEndMs": 2139,
-        "responseOffsetsMs": [
-          2339,
-          5015,
-          7853
-        ],
-        "responsesTextDigest": "5155af3e"
-      },
-      "script": "Did the audit find any problems? — No, everything looked fine.",
-      "translation": "監査で問題は見つかりましたか？ — いいえ、全て問題ありませんでした。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "No, everything looked fine."
-        },
-        {
-          "key": "B",
-          "text": "The external accounting firm."
-        },
-        {
-          "key": "C",
-          "text": "It took about three days."
-        }
-      ],
-      "answer": "A",
-      "explanation": "Yes/No疑問文には端的な肯定・否定がまず自然。「The external accounting firm.」は行為者（Who）、「It took about three days.」は所要時間（How long）への応答であり合わない。"
-    },
-    {
-      "id": "part2-extension",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "extension",
-          "sense": "延長",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/extension.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7758,
-        "questionEndMs": 2603,
-        "responseOffsetsMs": [
-          2803,
-          4248,
-          5832
-        ],
-        "responsesTextDigest": "a1e318c4"
-      },
-      "script": "Why do you need an extension on the deadline? — We are still waiting on client feedback.",
-      "translation": "なぜ締切の延長が必要なのですか？ — まだクライアントからのフィードバック待ちだからです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Two more weeks."
-        },
-        {
-          "key": "B",
-          "text": "The project manager."
-        },
-        {
-          "key": "C",
-          "text": "We are still waiting on client feedback."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Why（なぜ）への応答は理由。「Two more weeks.」は期間（How long）、「The project manager.」は人物（Who）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-estate",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "estate",
-          "sense": "財産・地所（real estateで不動産）",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/estate.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9352,
-        "questionEndMs": 2487,
-        "responseOffsetsMs": [
-          2687,
-          4979,
-          8084
-        ],
-        "responsesTextDigest": "fb6821af"
-      },
-      "script": "Who is handling the real estate sale? — A local agency is handling it.",
-      "translation": "その不動産売却は誰が担当していますか？ — 地元の代理店が担当しています。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "For a reasonable price."
-        },
-        {
-          "key": "B",
-          "text": "A local agency is handling it."
-        },
-        {
-          "key": "C",
-          "text": "Next spring."
-        }
-      ],
-      "answer": "B",
-      "explanation": "Who（誰）への応答は人物・組織。「Next spring.」は時期（When）、「For a reasonable price.」は価格に関する応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-utility",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "utility",
-          "sense": "公共料金",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/utility.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 7811,
-        "questionEndMs": 2487,
-        "responseOffsetsMs": [
-          2687,
-          4689,
-          6378
-        ],
-        "responsesTextDigest": "43dd90a3"
-      },
-      "script": "How much are the utility bills this month? — A bit higher than usual.",
-      "translation": "今月の公共料金はどのくらいですか？ — いつもより少し高めです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "A bit higher than usual."
-        },
-        {
-          "key": "B",
-          "text": "From the property manager."
-        },
-        {
-          "key": "C",
-          "text": "Every month on the first."
-        }
-      ],
-      "answer": "A",
-      "explanation": "How much（どのくらい）への応答は程度・金額。「From the property manager.」は送付元（Who/From whom）、「Every month on the first.」は時期（When）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-catering",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "catering",
-          "sense": "ケータリング",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/catering.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10553,
-        "questionEndMs": 3195,
-        "responseOffsetsMs": [
-          3395,
-          6163,
-          7852
-        ],
-        "responsesTextDigest": "dc068568"
-      },
-      "script": "Which company is providing the catering for the event? — Riverside Catering, as usual.",
-      "translation": "どの会社がそのイベントのケータリングを担当していますか？ — いつも通りRiverside Cateringです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "About one hundred guests."
-        },
-        {
-          "key": "B",
-          "text": "Starting at noon."
-        },
-        {
-          "key": "C",
-          "text": "Riverside Catering, as usual."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Which（どちらの）への応答は具体的な業者名。「About one hundred guests.」は人数（How many）、「Starting at noon.」は時刻（When）への応答であり、質問には合わない。"
-    },
     {
       "id": "part2-malfunction",
       "part": 2,
@@ -1567,15 +34,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8856,
-        "questionEndMs": 2812,
-        "responseOffsetsMs": [
-          3012,
-          5142,
-          7783
-        ],
-        "responsesTextDigest": "c486853b"
+        "voice": "pending-tts",
+        "durationMs": 5250
       },
       "script": "Did the server malfunction again last night? — Yes, but the technician already fixed it.",
       "translation": "昨夜またサーバーが故障したのですか？ — はい、でも技術者がもう直してくれました。",
@@ -1597,7 +57,7 @@
       "explanation": "Yes/No疑問文には端的な肯定・否定がまず自然。「In the server room.」は場所への応答、「The IT department ordered it.」は無関係な内容であり、故障の有無を尋ねる質問には合わない。"
     },
     {
-      "id": "part2-occupant",
+      "id": "part2-utility",
       "part": 2,
       "format": "audio_qa",
       "difficulty": 2,
@@ -1606,46 +66,80 @@
       ],
       "keyVocab": [
         {
-          "word": "occupant",
-          "sense": "入居者",
+          "word": "utility",
+          "sense": "公共料金",
           "freqRank": "S"
         }
       ],
-      "audio": "audio/part2/occupant.mp3",
+      "audio": "audio/part2/utility.mp3",
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10005,
-        "questionEndMs": 2882,
-        "responseOffsetsMs": [
-          3082,
-          6048,
-          8271
-        ],
-        "responsesTextDigest": "88b2916d"
+        "voice": "pending-tts",
+        "durationMs": 4900
       },
-      "script": "How many occupants are currently in the building? — Around two hundred, I think.",
-      "translation": "現在この建物には何人の入居者がいますか？ — 200人くらいだと思います。",
+      "script": "How much are the utility bills this month? — A bit higher than usual.",
+      "translation": "今月の公共料金はどのくらいですか？ — いつもより少し高めです。",
       "choices": [
         {
           "key": "A",
-          "text": "Around two hundred, I think."
+          "text": "A bit higher than usual."
         },
         {
           "key": "B",
-          "text": "Since last January."
+          "text": "From the property manager."
         },
         {
           "key": "C",
-          "text": "The building manager."
+          "text": "Every month on the first."
         }
       ],
       "answer": "A",
-      "explanation": "How many（何人）への応答は人数。「Since last January.」は時期（Since when）、「The building manager.」は人物（Who）への応答であり、質問には合わない。"
+      "explanation": "How much（どのくらい）への応答は程度・金額。「From the property manager.」は送付元（Who/From whom）、「Every month on the first.」は時期（When）への応答であり、質問には合わない。"
     },
     {
-      "id": "part2-freight",
+      "id": "part2-refund",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "refund",
+          "sense": "返金",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/refund.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "How can I request a refund? — Please contact the customer service desk.",
+      "translation": "返金はどうすれば請求できますか？ — カスタマーサービスにご連絡ください。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Within thirty days."
+        },
+        {
+          "key": "B",
+          "text": "Because it was defective."
+        },
+        {
+          "key": "C",
+          "text": "Please contact the customer service desk."
+        }
+      ],
+      "answer": "C",
+      "explanation": "How（どうやって）への応答は方法。「Within thirty days.」は期限（When）、「Because it was defective.」は理由（Why）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-shipment",
       "part": 2,
       "format": "audio_qa",
       "difficulty": 2,
@@ -1654,238 +148,39 @@
       ],
       "keyVocab": [
         {
-          "word": "freight",
-          "sense": "貨物",
+          "word": "shipment",
+          "sense": "発送・積み荷",
           "freqRank": "S"
         }
       ],
-      "audio": "audio/part2/freight.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8020,
-        "questionEndMs": 3091,
-        "responseOffsetsMs": [
-          3291,
-          4829,
-          6413
-        ],
-        "responsesTextDigest": "a736638a"
-      },
-      "script": "How long does the freight take to arrive by sea? — Usually about three weeks.",
-      "translation": "船便の貨物はどのくらいで届きますか？ — 通常は3週間ほどです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "From the southern port."
-        },
-        {
-          "key": "B",
-          "text": "Because of the weather."
-        },
-        {
-          "key": "C",
-          "text": "Usually about three weeks."
-        }
-      ],
-      "answer": "C",
-      "explanation": "How long（どのくらいの期間）への応答は期間。「From the southern port.」は出発地（Where from）、「Because of the weather.」は理由（Why）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-outsource",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "outsource",
-          "sense": "外部委託する",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/outsource.mp3",
+      "audio": "audio/part2/shipment.mp3",
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10867,
-        "questionEndMs": 3358,
-        "responseOffsetsMs": [
-          3558,
-          6129,
-          8886
-        ],
-        "responsesTextDigest": "18b33ce4"
+        "voice": "pending-tts",
+        "durationMs": 4550
       },
-      "script": "Why did the company decide to outsource its customer service? — To reduce operating costs.",
-      "translation": "なぜ会社は顧客サービスを外部委託することにしたのですか？ — 運営コストを削減するためです。",
+      "script": "When can we expect the next shipment? — It should arrive by Thursday.",
+      "translation": "次の出荷はいつ届く予定ですか？ — 木曜日までには届くはずです。",
       "choices": [
         {
           "key": "A",
-          "text": "A team in another country."
+          "text": "Through our regular carrier."
         },
         {
           "key": "B",
-          "text": "To reduce operating costs."
+          "text": "It should arrive by Thursday."
         },
         {
           "key": "C",
-          "text": "Starting next quarter."
+          "text": "Two hundred units."
         }
       ],
       "answer": "B",
-      "explanation": "Why（なぜ）への応答は理由。「Starting next quarter.」は時期（When）、「A team in another country.」は対象（Whom）への応答であり、質問には合わない。"
+      "explanation": "When（いつ）への応答は時。「Two hundred units.」は数量（How many）、「Through our regular carrier.」は手段（How）への応答であり、質問には合わない。"
     },
     {
-      "id": "part2-endorsement",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "弱形・連結"
-      ],
-      "keyVocab": [
-        {
-          "word": "endorsement",
-          "sense": "（有名人の）宣伝起用・推薦",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/endorsement.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8673,
-        "questionEndMs": 2928,
-        "responseOffsetsMs": [
-          3128,
-          5537,
-          6808
-        ],
-        "responsesTextDigest": "452d4da8"
-      },
-      "script": "Has the athlete signed the endorsement deal yet? — Not yet, they’re still negotiating.",
-      "translation": "その選手はもう広告契約にサインしましたか？ — まだです、まだ交渉中です。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Not yet, they’re still negotiating."
-        },
-        {
-          "key": "B",
-          "text": "For three years."
-        },
-        {
-          "key": "C",
-          "text": "A well-known sportswear brand."
-        }
-      ],
-      "answer": "A",
-      "explanation": "Yes/No疑問文への応答は端的な肯定・否定がまず自然。「For three years.」は契約期間（How long）、「A well-known sportswear brand.」は相手（Which company）への応答であり合わない。"
-    },
-    {
-      "id": "part2-brochure",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 1,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "brochure",
-          "sense": "パンフレット",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/brochure.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9953,
-        "questionEndMs": 2998,
-        "responseOffsetsMs": [
-          3198,
-          5560,
-          7330
-        ],
-        "responsesTextDigest": "bd357d97"
-      },
-      "script": "Where can I pick up a brochure about the new product? — There’s a stack at the front desk.",
-      "translation": "新製品のパンフレットはどこで受け取れますか？ — 受付にたくさん置いてあります。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Around fifty copies."
-        },
-        {
-          "key": "B",
-          "text": "Next Monday."
-        },
-        {
-          "key": "C",
-          "text": "There’s a stack at the front desk."
-        }
-      ],
-      "answer": "C",
-      "explanation": "Where（どこ）への応答は場所。「Around fifty copies.」は数量（How many）、「Next Monday.」は時（When）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-stakeholder",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "stakeholder",
-          "sense": "利害関係者",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/stakeholder.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9091,
-        "questionEndMs": 2534,
-        "responseOffsetsMs": [
-          2734,
-          4748,
-          7737
-        ],
-        "responsesTextDigest": "27454f2c"
-      },
-      "script": "Who are the key stakeholders in this project? — Mainly the investors and the city council.",
-      "translation": "このプロジェクトの主な利害関係者は誰ですか？ — 主に投資家と市議会です。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "About three million dollars."
-        },
-        {
-          "key": "B",
-          "text": "Mainly the investors and the city council."
-        },
-        {
-          "key": "C",
-          "text": "It began two years ago."
-        }
-      ],
-      "answer": "B",
-      "explanation": "Who（誰）への応答は人物・関係者。「It began two years ago.」は開始時期（When）、「About three million dollars.」は金額に関する応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-facility",
+      "id": "part2-renovation",
       "part": 2,
       "format": "audio_qa",
       "difficulty": 2,
@@ -1894,43 +189,77 @@
       ],
       "keyVocab": [
         {
-          "word": "facility",
-          "sense": "施設",
+          "word": "renovation",
+          "sense": "改装",
           "freqRank": "S"
         }
       ],
-      "audio": "audio/part2/facility.mp3",
+      "audio": "audio/part2/renovation.mp3",
       "audioMeta": {
-        "accent": "UK",
+        "accent": "US",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 12069,
-        "questionEndMs": 2917,
-        "responseOffsetsMs": [
-          3117,
-          6896,
-          9235
-        ],
-        "responsesTextDigest": "851d5706"
+        "voice": "pending-tts",
+        "durationMs": 5250
       },
-      "script": "How large is the new manufacturing facility? — It covers about ten thousand square meters.",
-      "translation": "新しい製造施設はどのくらいの広さですか？ — 約1万平方メートルあります。",
+      "script": "When will the office renovation be finished? — Probably by the end of next month.",
+      "translation": "オフィスの改装はいつ終わりますか？ — おそらく来月末までには終わります。",
       "choices": [
         {
           "key": "A",
-          "text": "It covers about ten thousand square meters."
+          "text": "The construction crew."
         },
         {
           "key": "B",
-          "text": "It opened last spring."
+          "text": "Because the lobby was outdated."
         },
         {
           "key": "C",
-          "text": "Around three hundred workers."
+          "text": "Probably by the end of next month."
         }
       ],
-      "answer": "A",
-      "explanation": "How large（どのくらいの広さ）への応答は面積・規模。「It opened last spring.」は開設時期（When）、「Around three hundred workers.」は人数（How many）への応答であり、質問には合わない。"
+      "answer": "C",
+      "explanation": "When（いつ）への応答は時期。「The construction crew.」は行為者（Who）、「Because the lobby was outdated.」は理由（Why）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-extension",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "extension",
+          "sense": "延長",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/extension.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5950
+      },
+      "script": "Why do you need an extension on the deadline? — We are still waiting on client feedback.",
+      "translation": "なぜ締切の延長が必要なのですか？ — まだクライアントからのフィードバック待ちだからです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Two more weeks."
+        },
+        {
+          "key": "B",
+          "text": "The project manager."
+        },
+        {
+          "key": "C",
+          "text": "We are still waiting on client feedback."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Why（なぜ）への応答は理由。「Two more weeks.」は期間（How long）、「The project manager.」は人物（Who）への応答であり、質問には合わない。"
     },
     {
       "id": "part2-liability",
@@ -1951,15 +280,8 @@
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 10397,
-        "questionEndMs": 3091,
-        "responseOffsetsMs": [
-          3291,
-          5316,
-          7632
-        ],
-        "responsesTextDigest": "a0a3355b"
+        "voice": "pending-tts",
+        "durationMs": 4900
       },
       "script": "Does the company carry liability insurance? — Yes, it’s required for all our contracts.",
       "translation": "会社は賠償責任保険に加入していますか？ — はい、全ての契約で必須です。",
@@ -1981,6 +303,170 @@
       "explanation": "Yes/No疑問文には端的な肯定・否定がまず自然。「Since the company was founded.」は時期（Since when）、「A national insurance provider.」は提供元（Which company）への応答であり合わない。"
     },
     {
+      "id": "part2-vendor",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "vendor",
+          "sense": "業者",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/vendor.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "Which vendor supplies our office furniture? — We usually order from Grantline Supplies.",
+      "translation": "どの業者が私たちのオフィス家具を納入していますか？ — 通常はGrantline Suppliesに発注しています。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Because the old vendor closed."
+        },
+        {
+          "key": "B",
+          "text": "We usually order from Grantline Supplies."
+        },
+        {
+          "key": "C",
+          "text": "Twice a year."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Which（どちらの）への応答は具体的な業者名。「Twice a year.」は頻度（How often）、「Because the old vendor closed.」は理由（Why）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-reschedule",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "reschedule",
+          "sense": "予定を変更する",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/reschedule.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4200
+      },
+      "script": "Why did you reschedule the meeting? — The client had a conflict.",
+      "translation": "なぜ会議の予定を変更したのですか？ — 取引先の予定が重なってしまったからです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "At two o’clock."
+        },
+        {
+          "key": "B",
+          "text": "In the main conference room."
+        },
+        {
+          "key": "C",
+          "text": "The client had a conflict."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Why（なぜ）への応答は理由。「At two o’clock.」は時刻（When）、「In the main conference room.」は場所（Where）への応答で、Whyの質問には合わない。"
+    },
+    {
+      "id": "part2-endorsement",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "弱形・連結"
+      ],
+      "keyVocab": [
+        {
+          "word": "endorsement",
+          "sense": "（有名人の）宣伝起用・推薦",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/endorsement.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "Has the athlete signed the endorsement deal yet? — Not yet, they’re still negotiating.",
+      "translation": "その選手はもう広告契約にサインしましたか？ — まだです、まだ交渉中です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Not yet, they’re still negotiating."
+        },
+        {
+          "key": "B",
+          "text": "For three years."
+        },
+        {
+          "key": "C",
+          "text": "A well-known sportswear brand."
+        }
+      ],
+      "answer": "A",
+      "explanation": "Yes/No疑問文への応答は端的な肯定・否定がまず自然。「For three years.」は契約期間（How long）、「A well-known sportswear brand.」は相手（Which company）への応答であり合わない。"
+    },
+    {
+      "id": "part2-merger",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "merger",
+          "sense": "合併",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/merger.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 3500
+      },
+      "script": "When was the merger announced? — Just last week, actually.",
+      "translation": "その合併はいつ発表されましたか？ — 実はつい先週です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Just last week, actually."
+        },
+        {
+          "key": "B",
+          "text": "Between two software companies."
+        },
+        {
+          "key": "C",
+          "text": "For a much lower price."
+        }
+      ],
+      "answer": "A",
+      "explanation": "When（いつ）への応答は時。「Between two software companies.」は対象（Between whom）、「For a much lower price.」は価格に関する応答であり、質問に合わない。"
+    },
+    {
       "id": "part2-projection",
       "part": 2,
       "format": "audio_qa",
@@ -1999,15 +485,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9822,
-        "questionEndMs": 3091,
-        "responseOffsetsMs": [
-          3291,
-          5189,
-          8015
-        ],
-        "responsesTextDigest": "3f2586b4"
+        "voice": "pending-tts",
+        "durationMs": 4900
       },
       "script": "What do the sales projections look like for next quarter? — Quite optimistic, actually.",
       "translation": "来四半期の売上予測はどのような感じですか？ — 実はかなり楽観的です。",
@@ -2029,247 +508,48 @@
       "explanation": "What（どのような）への応答は様子・内容。「By the finance team.」は作成者（Who）、「Around March.」は時期（When）への応答であり、質問には合わない。"
     },
     {
-      "id": "part2-certification",
+      "id": "part2-account",
       "part": 2,
       "format": "audio_qa",
       "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "certification",
-          "sense": "認定",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/certification.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8359,
-        "questionEndMs": 3381,
-        "responseOffsetsMs": [
-          3581,
-          4840,
-          6575
-        ],
-        "responsesTextDigest": "c08db341"
-      },
-      "script": "When did she earn her project management certification? — Just last year.",
-      "translation": "彼女はいつプロジェクトマネジメントの認定を取得したのですか？ — つい昨年です。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Just last year."
-        },
-        {
-          "key": "B",
-          "text": "From an online course."
-        },
-        {
-          "key": "C",
-          "text": "Because her manager suggested it."
-        }
-      ],
-      "answer": "A",
-      "explanation": "When（いつ）への応答は時。「From an online course.」は方法（How）、「Because her manager suggested it.」は理由（Why）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-lease",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "lease",
-          "sense": "賃貸借契約",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/lease.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9665,
-        "questionEndMs": 2058,
-        "responseOffsetsMs": [
-          2258,
-          4086,
-          7238
-        ],
-        "responsesTextDigest": "aade5fb9"
-      },
-      "script": "When does the office lease expire? — At the end of this calendar year.",
-      "translation": "オフィスの賃貸借契約はいつ切れますか？ — 今年の年末です。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "The building owner."
-        },
-        {
-          "key": "B",
-          "text": "About two thousand dollars a month."
-        },
-        {
-          "key": "C",
-          "text": "At the end of this calendar year."
-        }
-      ],
-      "answer": "C",
-      "explanation": "When（いつ）への応答は時期。「The building owner.」は人物（Who）、「About two thousand dollars a month.」は金額（How much）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-supervisor",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 2,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "supervisor",
-          "sense": "上司",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/supervisor.mp3",
-      "audioMeta": {
-        "accent": "US",
-        "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9352,
-        "questionEndMs": 2661,
-        "responseOffsetsMs": [
-          2861,
-          5107,
-          7574
-        ],
-        "responsesTextDigest": "bc36c43a"
-      },
-      "script": "Who is your direct supervisor these days? — Ms. Alvarez, since last month.",
-      "translation": "最近のあなたの直属の上司は誰ですか？ — 先月からAlvarezさんです。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Because of the reorganization."
-        },
-        {
-          "key": "B",
-          "text": "Ms. Alvarez, since last month."
-        },
-        {
-          "key": "C",
-          "text": "In the human resources office."
-        }
-      ],
-      "answer": "B",
-      "explanation": "Who（誰）への応答は人物。「In the human resources office.」は場所（Where）、「Because of the reorganization.」は理由（Why）への応答であり、質問には合わない。"
-    },
-    {
-      "id": "part2-defect",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
       "tags": [
         "弱形・連結"
       ],
       "keyVocab": [
         {
-          "word": "defect",
-          "sense": "欠陥",
+          "word": "account",
+          "sense": "口座",
           "freqRank": "S"
         }
       ],
-      "audio": "audio/part2/defect.mp3",
-      "audioMeta": {
-        "accent": "UK",
-        "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 9796,
-        "questionEndMs": 2998,
-        "responseOffsetsMs": [
-          3198,
-          5467,
-          7864
-        ],
-        "responsesTextDigest": "ef95ae01"
-      },
-      "script": "Did the inspector find any defects in the batch? — Just a few minor ones.",
-      "translation": "検査官はそのロットに欠陥を見つけましたか？ — 軽微なものが少しだけありました。",
-      "choices": [
-        {
-          "key": "A",
-          "text": "Just a few minor ones."
-        },
-        {
-          "key": "B",
-          "text": "The quality control team."
-        },
-        {
-          "key": "C",
-          "text": "It took most of the morning."
-        }
-      ],
-      "answer": "A",
-      "explanation": "Yes/No疑問文には端的な回答（結果）がまず自然。「The quality control team.」は行為者（Who）、「It took most of the morning.」は所要時間（How long）への応答であり合わない。"
-    },
-    {
-      "id": "part2-strategy",
-      "part": 2,
-      "format": "audio_qa",
-      "difficulty": 3,
-      "tags": [
-        "疑問詞聞き取り"
-      ],
-      "keyVocab": [
-        {
-          "word": "strategy",
-          "sense": "戦略",
-          "freqRank": "S"
-        }
-      ],
-      "audio": "audio/part2/strategy.mp3",
+      "audio": "audio/part2/account.mp3",
       "audioMeta": {
         "accent": "US",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 9195,
-        "questionEndMs": 3358,
-        "responseOffsetsMs": [
-          3558,
-          5026,
-          6970
-        ],
-        "responsesTextDigest": "5e2e32e2"
+        "voice": "pending-tts",
+        "durationMs": 5250
       },
-      "script": "What is our strategy for entering the Asian market? — We plan to partner with a local distributor.",
-      "translation": "アジア市場に参入する戦略は何ですか？ — 現地の販売代理店と提携する予定です。",
+      "script": "Could you check the balance on this account? — Sure, let me look it up.",
+      "translation": "この口座の残高を確認していただけますか？ — もちろんです、少々お待ちください。",
       "choices": [
         {
           "key": "A",
-          "text": "Sometime next year."
+          "text": "It opened last year."
         },
         {
           "key": "B",
-          "text": "The regional sales manager."
+          "text": "At the branch downtown."
         },
         {
           "key": "C",
-          "text": "We plan to partner with a local distributor."
+          "text": "Sure, let me look it up."
         }
       ],
       "answer": "C",
-      "explanation": "What（何を）への応答は内容・方針。「Sometime next year.」は時期（When）、「The regional sales manager.」は担当者（Who）への応答であり、質問には合わない。"
+      "explanation": "依頼（Could you...）への応答は快諾・応対がまず自然。「It opened last year.」は口座の開設時期、「At the branch downtown.」は場所への応答で、依頼への返答として噛み合わない。"
     },
     {
-      "id": "part2-negotiate",
+      "id": "part2-catering",
       "part": 2,
       "format": "audio_qa",
       "difficulty": 2,
@@ -2278,43 +558,159 @@
       ],
       "keyVocab": [
         {
-          "word": "negotiate",
-          "sense": "交渉する",
+          "word": "catering",
+          "sense": "ケータリング（出張料理）",
           "freqRank": "S"
         }
       ],
-      "audio": "audio/part2/negotiate.mp3",
+      "audio": "audio/part2/catering.mp3",
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10240,
-        "questionEndMs": 2615,
-        "responseOffsetsMs": [
-          2815,
-          5270,
-          8468
-        ],
-        "responsesTextDigest": "17448f9d"
+        "voice": "pending-tts",
+        "durationMs": 4900
       },
-      "script": "Who will negotiate the price with the supplier? — Our procurement manager will handle it.",
-      "translation": "仕入れ先との価格交渉は誰が行いますか？ — 調達マネージャーが担当します。",
+      "script": "Which company is providing the catering for the event? — Riverside Catering, as usual.",
+      "translation": "どの会社がそのイベントのケータリングを担当していますか？ — いつも通りRiverside Cateringです。",
       "choices": [
         {
           "key": "A",
-          "text": "A ten percent discount."
+          "text": "About one hundred guests."
         },
         {
           "key": "B",
-          "text": "Our procurement manager will handle it."
+          "text": "Starting at noon."
         },
         {
           "key": "C",
-          "text": "Sometime this Friday."
+          "text": "Riverside Catering, as usual."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Which（どちらの）への応答は具体的な業者名。「About one hundred guests.」は人数（How many）、「Starting at noon.」は時刻（When）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-freight",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "数字・時刻"
+      ],
+      "keyVocab": [
+        {
+          "word": "freight",
+          "sense": "貨物",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/freight.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5250
+      },
+      "script": "How long does the freight take to arrive by sea? — Usually about three weeks.",
+      "translation": "船便の貨物はどのくらいで届きますか？ — 通常は3週間ほどです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "From the southern port."
+        },
+        {
+          "key": "B",
+          "text": "Because of the weather."
+        },
+        {
+          "key": "C",
+          "text": "Usually about three weeks."
+        }
+      ],
+      "answer": "C",
+      "explanation": "How long（どのくらいの期間）への応答は期間。「From the southern port.」は出発地（Where from）、「Because of the weather.」は理由（Why）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-candidate",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "弱形・連結"
+      ],
+      "keyVocab": [
+        {
+          "word": "candidate",
+          "sense": "候補者",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/candidate.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4200
+      },
+      "script": "How many candidates applied for the position? — About thirty, I believe.",
+      "translation": "その職に何人の候補者が応募しましたか？ — 30人くらいだと思います。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "She did a great job."
+        },
+        {
+          "key": "B",
+          "text": "Next Monday afternoon."
+        },
+        {
+          "key": "C",
+          "text": "About thirty, I believe."
+        }
+      ],
+      "answer": "C",
+      "explanation": "How many（いくつ）への応答は数量。「She did a great job.」は評価に関する応答、「Next Monday afternoon.」は時（When）への応答で、質問に合わない。"
+    },
+    {
+      "id": "part2-proposal",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "proposal",
+          "sense": "提案書",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/proposal.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "What did the client think of our proposal? — They seemed very impressed.",
+      "translation": "クライアントは私たちの提案書についてどう思いましたか？ — とても感心していました。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "About ten pages long."
+        },
+        {
+          "key": "B",
+          "text": "They seemed very impressed."
+        },
+        {
+          "key": "C",
+          "text": "Next Monday morning."
         }
       ],
       "answer": "B",
-      "explanation": "Who（誰）への応答は人物。「Sometime this Friday.」は時期（When）、「A ten percent discount.」は金額に関する応答であり、質問には合わない。"
+      "explanation": "What（何）への応答は意見・感想。「Next Monday morning.」は日時（When）、「About ten pages long.」は分量（How long）への応答であり、質問には合わない。"
     },
     {
       "id": "part2-branch",
@@ -2333,17 +729,10 @@
       ],
       "audio": "audio/part2/branch.mp3",
       "audioMeta": {
-        "accent": "US",
+        "accent": "UK",
         "tts": true,
-        "voice": "piper:en_US-lessac-medium+piper:en_US-ryan-medium",
-        "durationMs": 8385,
-        "questionEndMs": 2928,
-        "responseOffsetsMs": [
-          3128,
-          4793,
-          6633
-        ],
-        "responsesTextDigest": "df8f1d27"
+        "voice": "pending-tts",
+        "durationMs": 5600
       },
       "script": "How many branches does the bank have in this city? — About a dozen, I think.",
       "translation": "この街に銀行の支店はいくつありますか？ — 12店舗くらいだと思います。",
@@ -2365,6 +754,1031 @@
       "explanation": "How many（いくつ）への応答は数量。「Since the early nineties.」は時期（Since when）、「The main branch downtown.」は場所（Which one）への応答であり、質問には合わない。"
     },
     {
+      "id": "part2-occupant",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "occupant",
+          "sense": "入居者",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/occupant.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "How many occupants are currently in the building? — Around two hundred, I think.",
+      "translation": "現在この建物には何人の入居者がいますか？ — 200人くらいだと思います。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Around two hundred, I think."
+        },
+        {
+          "key": "B",
+          "text": "Since last January."
+        },
+        {
+          "key": "C",
+          "text": "The building manager."
+        }
+      ],
+      "answer": "A",
+      "explanation": "How many（何人）への応答は人数。「Since last January.」は時期（Since when）、「The building manager.」は人物（Who）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-outsource",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "outsource",
+          "sense": "外部委託する",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/outsource.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5250
+      },
+      "script": "Why did the company decide to outsource its customer service? — To reduce operating costs.",
+      "translation": "なぜ会社は顧客サービスを外部委託することにしたのですか？ — 運営コストを削減するためです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "A team in another country."
+        },
+        {
+          "key": "B",
+          "text": "To reduce operating costs."
+        },
+        {
+          "key": "C",
+          "text": "Starting next quarter."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Why（なぜ）への応答は理由。「Starting next quarter.」は時期（When）、「A team in another country.」は対象（Whom）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-submit",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "submit",
+          "sense": "提出する",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/submit.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "When should I submit the expense report? — By the end of this week.",
+      "translation": "経費報告書はいつ提出すればいいですか？ — 今週末までに。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "By the end of this week."
+        },
+        {
+          "key": "B",
+          "text": "To the accounting office."
+        },
+        {
+          "key": "C",
+          "text": "Yes, I already did."
+        }
+      ],
+      "answer": "A",
+      "explanation": "When（いつ）への応答は時。「To the accounting office.」は場所（Where）への応答、「Yes, I already did.」はYes/No疑問文への応答で、いずれもWhen疑問文には合わない。"
+    },
+    {
+      "id": "part2-estate",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "estate",
+          "sense": "財産・地所（real estateで不動産）",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/estate.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "Who is handling the real estate sale? — A local agency is handling it.",
+      "translation": "その不動産売却は誰が担当していますか？ — 地元の代理店が担当しています。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "For a reasonable price."
+        },
+        {
+          "key": "B",
+          "text": "A local agency is handling it."
+        },
+        {
+          "key": "C",
+          "text": "Next spring."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Who（誰）への応答は人物・組織。「Next spring.」は時期（When）、「For a reasonable price.」は価格に関する応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-reception",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "reception",
+          "sense": "受付",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/reception.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "Who is organizing the reception tonight? — The events team is handling it.",
+      "translation": "今夜の歓迎会は誰が企画していますか？ — イベントチームが担当しています。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Starting at seven o’clock."
+        },
+        {
+          "key": "B",
+          "text": "On the top floor."
+        },
+        {
+          "key": "C",
+          "text": "The events team is handling it."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Who（誰）への応答は人物・組織。「Starting at seven o’clock.」は時刻（When）、「On the top floor.」は場所（Where）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-compliance",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "弱形・連結"
+      ],
+      "keyVocab": [
+        {
+          "word": "compliance",
+          "sense": "法令遵守",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/compliance.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5950
+      },
+      "script": "Is the factory in compliance with the new regulations? — Yes, we passed the audit last week.",
+      "translation": "工場は新しい規制を遵守していますか？ — はい、先週の監査に合格しました。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "The regional inspector."
+        },
+        {
+          "key": "B",
+          "text": "For safety reasons."
+        },
+        {
+          "key": "C",
+          "text": "Yes, we passed the audit last week."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Yes/No疑問文への応答はまず肯定・否定で答える「Yes, we passed the audit.」が自然。「The regional inspector.」は行為者（Who）、「For safety reasons.」は理由（Why）への応答であり合わない。"
+    },
+    {
+      "id": "part2-stakeholder",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "stakeholder",
+          "sense": "利害関係者",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/stakeholder.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5600
+      },
+      "script": "Who are the key stakeholders in this project? — Mainly the investors and the city council.",
+      "translation": "このプロジェクトの主な利害関係者は誰ですか？ — 主に投資家と市議会です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "About three million dollars."
+        },
+        {
+          "key": "B",
+          "text": "Mainly the investors and the city council."
+        },
+        {
+          "key": "C",
+          "text": "It began two years ago."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Who（誰）への応答は人物・関係者。「It began two years ago.」は開始時期（When）、「About three million dollars.」は金額に関する応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-lease",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "lease",
+          "sense": "賃貸借契約",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/lease.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "When does the office lease expire? — At the end of this calendar year.",
+      "translation": "オフィスの賃貸借契約はいつ切れますか？ — 今年の年末です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "The building owner."
+        },
+        {
+          "key": "B",
+          "text": "About two thousand dollars a month."
+        },
+        {
+          "key": "C",
+          "text": "At the end of this calendar year."
+        }
+      ],
+      "answer": "C",
+      "explanation": "When（いつ）への応答は時期。「The building owner.」は人物（Who）、「About two thousand dollars a month.」は金額（How much）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-itinerary",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "弱形・連結"
+      ],
+      "keyVocab": [
+        {
+          "word": "itinerary",
+          "sense": "旅程表",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/itinerary.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5950
+      },
+      "script": "Have you finished the itinerary for the business trip? — Almost, just one more stop to add.",
+      "translation": "出張の旅程表は仕上がりましたか？ — ほぼ完成です、あと1件追加するだけです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "By plane and then by train."
+        },
+        {
+          "key": "B",
+          "text": "Because the flight was delayed."
+        },
+        {
+          "key": "C",
+          "text": "Almost, just one more stop to add."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Yes/No系の進捗確認には「ほぼ終わった」のような端的な応答が自然。「By plane and then by train.」は手段（How）、「Because the flight was delayed.」は理由（Why）への応答であり合わない。"
+    },
+    {
+      "id": "part2-delivery",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "数字・時刻"
+      ],
+      "keyVocab": [
+        {
+          "word": "delivery",
+          "sense": "配達",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/delivery.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 3500
+      },
+      "script": "When will the delivery arrive? — Sometime around three o’clock.",
+      "translation": "配達はいつ届きますか？ — 3時頃です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Sometime around three o’clock."
+        },
+        {
+          "key": "B",
+          "text": "From the main warehouse."
+        },
+        {
+          "key": "C",
+          "text": "Twenty boxes in total."
+        }
+      ],
+      "answer": "A",
+      "explanation": "When（いつ）への応答は時刻。「From the main warehouse.」は場所（Where）、「Twenty boxes in total.」は数量（How many）への応答で、Whenには合わない。"
+    },
+    {
+      "id": "part2-venue",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "venue",
+          "sense": "会場・開催場所",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/venue.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "Where is the venue for the conference? — At the downtown convention center.",
+      "translation": "会議の会場はどこですか？ — 中心街のコンベンションセンターです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "At the downtown convention center."
+        },
+        {
+          "key": "B",
+          "text": "Next Wednesday."
+        },
+        {
+          "key": "C",
+          "text": "About two hundred people."
+        }
+      ],
+      "answer": "A",
+      "explanation": "Where（どこ）への応答は場所。「Next Wednesday.」は日時（When）、「About two hundred people.」は人数（How many）への応答であり、質問に合わない。"
+    },
+    {
+      "id": "part2-quality",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "quality",
+          "sense": "品質",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/quality.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "Why was the shipment rejected? — The quality did not meet our standards.",
+      "translation": "なぜ出荷分は却下されたのですか？ — 品質が基準を満たしていなかったからです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "The quality did not meet our standards."
+        },
+        {
+          "key": "B",
+          "text": "Last Thursday."
+        },
+        {
+          "key": "C",
+          "text": "By the logistics team."
+        }
+      ],
+      "answer": "A",
+      "explanation": "Why（なぜ）への応答は理由。「Last Thursday.」は時（When）、「By the logistics team.」は行為者（Who）への応答であり、Whyには合わない。"
+    },
+    {
+      "id": "part2-inventory",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "数字・時刻"
+      ],
+      "keyVocab": [
+        {
+          "word": "inventory",
+          "sense": "在庫",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/inventory.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "How often do you check the inventory? — We check it twice a month.",
+      "translation": "在庫はどのくらいの頻度で確認していますか？ — 月に2回確認しています。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "We check it twice a month."
+        },
+        {
+          "key": "B",
+          "text": "In the back storage room."
+        },
+        {
+          "key": "C",
+          "text": "Because stock levels were low."
+        }
+      ],
+      "answer": "A",
+      "explanation": "How often（どのくらいの頻度で）への応答は頻度。「In the back storage room.」は場所（Where）、「Because stock levels were low.」は理由（Why）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-inspection",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "弱形・連結"
+      ],
+      "keyVocab": [
+        {
+          "word": "inspection",
+          "sense": "検査",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/inspection.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4200
+      },
+      "script": "Has the inspection been completed yet? — Yes, it finished this morning.",
+      "translation": "検査はもう終わりましたか？ — はい、今朝終わりました。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "About two hours."
+        },
+        {
+          "key": "B",
+          "text": "Yes, it finished this morning."
+        },
+        {
+          "key": "C",
+          "text": "By the quality team."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Yes/No疑問文には端的な肯定・否定＋補足で応じる「Yes, this morning.」が自然。「By the quality team.」は行為者（Who）、「About two hours.」は所要時間（How long）への応答で合わない。"
+    },
+    {
+      "id": "part2-headquarters",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 1,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "headquarters",
+          "sense": "本社",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/headquarters.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 3850
+      },
+      "script": "Where is the company headquarters located? — It’s in downtown Chicago.",
+      "translation": "会社の本社はどこにありますか？ — シカゴのダウンタウンにあります。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "About five hundred employees."
+        },
+        {
+          "key": "B",
+          "text": "It’s in downtown Chicago."
+        },
+        {
+          "key": "C",
+          "text": "Since the company was founded."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Where（どこ）への応答は場所。「Since the company was founded.」は時期（Since when）、「About five hundred employees.」は人数（How many）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-warranty",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "warranty",
+          "sense": "保証",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/warranty.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5250
+      },
+      "script": "How long is the warranty on this printer? — It comes with a two-year warranty.",
+      "translation": "このプリンターの保証期間はどのくらいですか？ — 2年間の保証が付いています。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "It comes with a two-year warranty."
+        },
+        {
+          "key": "B",
+          "text": "In the electronics department."
+        },
+        {
+          "key": "C",
+          "text": "Because it stopped working."
+        }
+      ],
+      "answer": "A",
+      "explanation": "How long（どのくらいの期間）への応答は期間。「In the electronics department.」は場所（Where）、「Because it stopped working.」は理由（Why）への応答であり、質問に合わない。"
+    },
+    {
+      "id": "part2-invoice",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "invoice",
+          "sense": "請求書",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/invoice.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 3500
+      },
+      "script": "Who prepared this invoice? — Someone from the accounting team.",
+      "translation": "この請求書は誰が作成しましたか？ — 経理チームの誰かです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Because the client requested it."
+        },
+        {
+          "key": "B",
+          "text": "Someone from the accounting team."
+        },
+        {
+          "key": "C",
+          "text": "Last Tuesday."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Who（誰）への応答は人物。「Last Tuesday.」は時（When）、「Because the client requested it.」は理由（Why）への応答であり、Whoの質問には合わない。"
+    },
+    {
+      "id": "part2-promotion",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "promotion",
+          "sense": "昇進",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/promotion.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4200
+      },
+      "script": "Why did she get the promotion? — Her performance has been outstanding.",
+      "translation": "なぜ彼女は昇進したのですか？ — 業績が非常に優れていたからです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Her performance has been outstanding."
+        },
+        {
+          "key": "B",
+          "text": "Starting next quarter."
+        },
+        {
+          "key": "C",
+          "text": "In the finance department."
+        }
+      ],
+      "answer": "A",
+      "explanation": "Why（なぜ）への応答は理由。「Starting next quarter.」は時期（When）、「In the finance department.」は部署（Which department）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-strategy",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "strategy",
+          "sense": "戦略",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/strategy.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 6300
+      },
+      "script": "What is our strategy for entering the Asian market? — We plan to partner with a local distributor.",
+      "translation": "アジア市場に参入する戦略は何ですか？ — 現地の販売代理店と提携する予定です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Sometime next year."
+        },
+        {
+          "key": "B",
+          "text": "The regional sales manager."
+        },
+        {
+          "key": "C",
+          "text": "We plan to partner with a local distributor."
+        }
+      ],
+      "answer": "C",
+      "explanation": "What（何を）への応答は内容・方針。「Sometime next year.」は時期（When）、「The regional sales manager.」は担当者（Who）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-defect",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 3,
+      "tags": [
+        "弱形・連結"
+      ],
+      "keyVocab": [
+        {
+          "word": "defect",
+          "sense": "欠陥",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/defect.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5250
+      },
+      "script": "Did the inspector find any defects in the batch? — Just a few minor ones.",
+      "translation": "検査官はそのロットに欠陥を見つけましたか？ — 軽微なものが少しだけありました。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Just a few minor ones."
+        },
+        {
+          "key": "B",
+          "text": "The quality control team."
+        },
+        {
+          "key": "C",
+          "text": "It took most of the morning."
+        }
+      ],
+      "answer": "A",
+      "explanation": "Yes/No疑問文には端的な回答（結果）がまず自然。「The quality control team.」は行為者（Who）、「It took most of the morning.」は所要時間（How long）への応答であり合わない。"
+    },
+    {
+      "id": "part2-facility",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "facility",
+          "sense": "施設",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/facility.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5250
+      },
+      "script": "How large is the new manufacturing facility? — It covers about ten thousand square meters.",
+      "translation": "新しい製造施設はどのくらいの広さですか？ — 約1万平方メートルあります。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "It covers about ten thousand square meters."
+        },
+        {
+          "key": "B",
+          "text": "It opened last spring."
+        },
+        {
+          "key": "C",
+          "text": "Around three hundred workers."
+        }
+      ],
+      "answer": "A",
+      "explanation": "How large（どのくらいの広さ）への応答は面積・規模。「It opened last spring.」は開設時期（When）、「Around three hundred workers.」は人数（How many）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-supervisor",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "supervisor",
+          "sense": "上司",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/supervisor.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "Who is your direct supervisor these days? — Ms. Alvarez, since last month.",
+      "translation": "最近のあなたの直属の上司は誰ですか？ — 先月からAlvarezさんです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Because of the reorganization."
+        },
+        {
+          "key": "B",
+          "text": "Ms. Alvarez, since last month."
+        },
+        {
+          "key": "C",
+          "text": "In the human resources office."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Who（誰）への応答は人物。「In the human resources office.」は場所（Where）、「Because of the reorganization.」は理由（Why）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-budget",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "budget",
+          "sense": "予算",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/budget.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4200
+      },
+      "script": "What is the budget for this project? — Around fifty thousand dollars.",
+      "translation": "このプロジェクトの予算はいくらですか？ — 約5万ドルです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "It starts next month."
+        },
+        {
+          "key": "B",
+          "text": "Around fifty thousand dollars."
+        },
+        {
+          "key": "C",
+          "text": "The marketing department."
+        }
+      ],
+      "answer": "B",
+      "explanation": "What（何）への応答は内容・金額。「The marketing department.」は部署（Which department）、「It starts next month.」は開始時期に関する応答で、質問の意図に合わない。"
+    },
+    {
+      "id": "part2-warehouse",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 1,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "warehouse",
+          "sense": "倉庫",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/warehouse.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4550
+      },
+      "script": "Where should we store the extra chairs? — In the warehouse next door.",
+      "translation": "余分な椅子はどこに保管すればいいですか？ — 隣の倉庫にお願いします。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "In the warehouse next door."
+        },
+        {
+          "key": "B",
+          "text": "Around fifty of them."
+        },
+        {
+          "key": "C",
+          "text": "Yes, we ordered more."
+        }
+      ],
+      "answer": "A",
+      "explanation": "Where（どこ）への応答は場所。「Around fifty of them.」は数量（How many）、「Yes, we ordered more.」はYes/No疑問文への応答で、Whereには合わない。"
+    },
+    {
+      "id": "part2-negotiate",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "negotiate",
+          "sense": "交渉する",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/negotiate.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 5250
+      },
+      "script": "Who will negotiate the price with the supplier? — Our procurement manager will handle it.",
+      "translation": "仕入れ先との価格交渉は誰が行いますか？ — 調達マネージャーが担当します。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "A ten percent discount."
+        },
+        {
+          "key": "B",
+          "text": "Our procurement manager will handle it."
+        },
+        {
+          "key": "C",
+          "text": "Sometime this Friday."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Who（誰）への応答は人物。「Sometime this Friday.」は時期（When）、「A ten percent discount.」は金額に関する応答であり、質問には合わない。"
+    },
+    {
       "id": "part2-acquisition",
       "part": 2,
       "format": "audio_qa",
@@ -2383,15 +1797,8 @@
       "audioMeta": {
         "accent": "UK",
         "tts": true,
-        "voice": "piper:en_GB-jenny_dioco-medium+piper:en_GB-alan-medium",
-        "durationMs": 10449,
-        "questionEndMs": 2383,
-        "responseOffsetsMs": [
-          2583,
-          5154,
-          7922
-        ],
-        "responsesTextDigest": "393100b6"
+        "voice": "pending-tts",
+        "durationMs": 4900
       },
       "script": "When will the acquisition be finalized? — By the end of the third quarter.",
       "translation": "その買収はいつ最終合意に至りますか？ — 第3四半期の終わりまでには合意する見込みです。",
@@ -2411,6 +1818,252 @@
       ],
       "answer": "C",
       "explanation": "When（いつ）への応答は時期。「A mid-sized software firm.」は対象（Which company）、「For roughly ten million dollars.」は金額（How much）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-audit",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "弱形・連結"
+      ],
+      "keyVocab": [
+        {
+          "word": "audit",
+          "sense": "監査",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/audit.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 3850
+      },
+      "script": "Did the audit find any problems? — No, everything looked fine.",
+      "translation": "監査で問題は見つかりましたか？ — いいえ、全て問題ありませんでした。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "No, everything looked fine."
+        },
+        {
+          "key": "B",
+          "text": "The external accounting firm."
+        },
+        {
+          "key": "C",
+          "text": "It took about three days."
+        }
+      ],
+      "answer": "A",
+      "explanation": "Yes/No疑問文には端的な肯定・否定がまず自然。「The external accounting firm.」は行為者（Who）、「It took about three days.」は所要時間（How long）への応答であり合わない。"
+    },
+    {
+      "id": "part2-brochure",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 1,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "brochure",
+          "sense": "パンフレット（案内小冊子）",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/brochure.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 6650
+      },
+      "script": "Where can I pick up a brochure about the new product? — There’s a stack at the front desk.",
+      "translation": "新製品のパンフレットはどこで受け取れますか？ — 受付にたくさん置いてあります。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Around fifty copies."
+        },
+        {
+          "key": "B",
+          "text": "Next Monday."
+        },
+        {
+          "key": "C",
+          "text": "There’s a stack at the front desk."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Where（どこ）への応答は場所。「Around fifty copies.」は数量（How many）、「Next Monday.」は時（When）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-contract",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "contract",
+          "sense": "契約書",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/contract.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 3500
+      },
+      "script": "Who signed the new contract? — Our sales director did.",
+      "translation": "新しい契約書には誰がサインしましたか？ — 営業部長です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "It expires next year."
+        },
+        {
+          "key": "B",
+          "text": "At the downtown office."
+        },
+        {
+          "key": "C",
+          "text": "Our sales director did."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Who（誰）への応答は人物。「It expires next year.」は有効期限に関する応答、「At the downtown office.」は場所（Where）への応答であり、質問に合わない。"
+    },
+    {
+      "id": "part2-certification",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "certification",
+          "sense": "認定",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/certification.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4200
+      },
+      "script": "When did she earn her project management certification? — Just last year.",
+      "translation": "彼女はいつプロジェクトマネジメントの認定を取得したのですか？ — つい昨年です。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Just last year."
+        },
+        {
+          "key": "B",
+          "text": "From an online course."
+        },
+        {
+          "key": "C",
+          "text": "Because her manager suggested it."
+        }
+      ],
+      "answer": "A",
+      "explanation": "When（いつ）への応答は時。「From an online course.」は方法（How）、「Because her manager suggested it.」は理由（Why）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-subscription",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 2,
+      "tags": [
+        "疑問詞聞き取り"
+      ],
+      "keyVocab": [
+        {
+          "word": "subscription",
+          "sense": "購読",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/subscription.mp3",
+      "audioMeta": {
+        "accent": "US",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "How much does the subscription cost per month? — It’s fifteen dollars a month.",
+      "translation": "購読料は月にいくらですか？ — 月15ドルです。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Through the company website."
+        },
+        {
+          "key": "B",
+          "text": "It’s fifteen dollars a month."
+        },
+        {
+          "key": "C",
+          "text": "It renews automatically."
+        }
+      ],
+      "answer": "B",
+      "explanation": "How much（いくら）への応答は金額。「It renews automatically.」は更新方法、「Through the company website.」は手段（Where/How）への応答であり、質問には合わない。"
+    },
+    {
+      "id": "part2-training",
+      "part": 2,
+      "format": "audio_qa",
+      "difficulty": 1,
+      "tags": [
+        "数字・時刻"
+      ],
+      "keyVocab": [
+        {
+          "word": "training",
+          "sense": "研修",
+          "freqRank": "S"
+        }
+      ],
+      "audio": "audio/part2/training.mp3",
+      "audioMeta": {
+        "accent": "UK",
+        "tts": true,
+        "voice": "pending-tts",
+        "durationMs": 4900
+      },
+      "script": "When does the new employee training start? — It starts at nine tomorrow morning.",
+      "translation": "新入社員研修はいつ始まりますか？ — 明朝9時に始まります。",
+      "choices": [
+        {
+          "key": "A",
+          "text": "Around twenty new employees."
+        },
+        {
+          "key": "B",
+          "text": "It starts at nine tomorrow morning."
+        },
+        {
+          "key": "C",
+          "text": "In the third-floor conference room."
+        }
+      ],
+      "answer": "B",
+      "explanation": "When（いつ）への応答は時刻。「In the third-floor conference room.」は場所（Where）、「Around twenty new employees.」は人数（How many）への応答であり、質問に合わない。"
     }
   ]
 }

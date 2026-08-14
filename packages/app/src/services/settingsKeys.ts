@@ -76,3 +76,67 @@ export const AUTO_PLAY_ENABLED_KEY = 'autoPlayEnabled'
  * 有無を都度問い合わせない端末内キャッシュ。撤回=DELETE成功時に削除する）
  */
 export const GHOST_BOSS_SUBMITTED_AT_KEY = 'ghostBossSubmittedAt'
+/**
+ * ボス役セッションの完走済み結果（正誤一覧）で、まだPOST /ghostsの送信が
+ * 成功していないものの一時保存（T-272。docs/30 17節）。
+ *
+ * GhostBossResultScreenの結果保持がReact state（useSessionStore）のみだと、
+ * 送信成功前にアプリを終了・再読み込みすると解き切った結果がそのまま失われる。
+ * API断が続く状況では再試行の機会が次回起動になるため現実に起こりうる。
+ * DrillScreen側で既にcompleteSessionが呼ばれた後（＝セッション自体は完了済み）の
+ * 状態を保存するので、activeSession（進行中セッションの再開）とは別のキーにする。
+ * 送信成功時・破棄確定時に削除する（settings.deleteは冪等）
+ */
+export const GHOST_BOSS_PENDING_RESULT_KEY = 'ghostBossPendingResult'
+
+/**
+ * 成長ランクのrankPointsが到達した最大値（T-305・K-33）。
+ * rankPointsはratingHistory（section='total'）の最古行をinitialRatingとして算定するため、
+ * 過去日付でスナップショットが書かれると最古行が入れ替わり、初期値が現在レートへ移動して
+ * rankPointsが下落しうる（実測でマスター→ゴールドへ退行）。「累積の継続装置」という
+ * 位置づけ（docs/22 3.7節）に反するため、到達済みの最大値をここに永続化して
+ * 単調性を保証する（engine/growthRank.ts参照）
+ */
+export const GROWTH_RANK_MAX_POINTS_KEY = 'growthRankMaxPoints'
+
+/**
+ * 最終エクスポート日時（epoch ms。T-296・K-22）。
+ * `navigator.storage.persist()` は起動時に1回呼ぶだけで、拒否されても告知が無く
+ * バックアップの督促も無かった。非インストールのSafariタブ等で7日間開かないと
+ * IndexedDBごと退避されうるため、一度もエクスポートしていない・久しく
+ * エクスポートしていない場合にSettingsScreenが督促を出す判断材料に使う
+ */
+export const LAST_EXPORTED_AT_KEY = 'lastExportedAt'
+
+/**
+ * アンマウント時flush（猶予付き確定。ADR 0009）の確定が失敗した記録（epoch ms。T-297・K-23）。
+ *
+ * commit はアンマウント後にも走るため、失敗時のUI復旧（saveErrorバナー・再試行ボタン）は
+ * 既にアンマウント済みのコンポーネントに対しては効かず（画面ごと消えている）、
+ * 従来は例外を握ってconsole.errorに流すだけで解答が無言で失われていた。
+ * ここに退避しておき、次回起動時にApp.tsxが気づいて通知する（送信対象はUIの再試行なので、
+ * 実データそのものは持たず「あった」ことだけを記録する。データ自体はundo猶予後の再解答で
+ * 再度発生させるしかない＝再送不可）
+ */
+export const PENDING_COMMIT_FAILURE_KEY = 'pendingCommitFailedAt'
+
+/**
+ * 学習日数（成長ランクのrankPoints算定用）の差分加算キャッシュ（T-301・K-29）。
+ * countLearningDaysは従来attempts全件をevery呼び出しでフルスキャンしており、
+ * ホーム・ダッシュボード表示のたびに件数に比例したコストがかかっていた。
+ * attemptsは追記のみ（削除されない）ため、前回までの学習日集合とwatermark
+ * （処理済みの最大answeredAt）を持てば、以降はwatermarkより新しい分だけを
+ * 見ればよい（暦日集合への追加は同じ日を2回加えても副作用が無いため、
+ * watermark前後の境界の重複走査があっても結果は狂わない）
+ */
+export const GROWTH_RANK_LEARNING_DAYS_CACHE_KEY = 'growthRankLearningDaysCache'
+
+/**
+ * questionStats送信で「送信済み」を判定する補助キー（T-302・K-30）。
+ * QUESTION_STATS_LAST_SENT_AT_KEY（answeredAtのwatermark）だけでは、端末の時計が
+ * 巻き戻ると新規attemptsのanswered Atがwatermark以下になり、above()クエリで
+ * 永続的に取りこぼす。ここに「処理済みattempts件数」を持ち、時計ベースの
+ * watermarkクエリで見つかった件数が総件数との差分に届かない（巻き戻り発生）ときは
+ * 全件を対象に取り直すフォールバックのトリガーに使う（services/questionStats.ts参照）
+ */
+export const QUESTION_STATS_PROCESSED_COUNT_KEY = 'questionStatsProcessedCount'

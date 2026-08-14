@@ -18,8 +18,10 @@ import {
   type FreqRank,
   type Question,
 } from '@beb-raid/shared-schema'
+import { fnv1a, rotationAmount } from './choiceRotation.js'
 import { PART2_ENTRIES_S, type Part2Entry } from './data/part2QuestionsS.js'
 import { PART2_ENTRIES_S2_RAW, type Part2RawEntry } from './data/part2QuestionsS2.js'
+import { PART2_ENTRIES_S3_RAW } from './data/part2QuestionsS3.js'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
@@ -106,15 +108,15 @@ export function buildPart2Drafts(
 /**
  * 正答キーの決定的ローテーション分散（M1レビュー⑦の方式。M2・T-60）。
  * rawエントリは常に correctText を「正解」・distractors を「誤答2件」として書き、
- * index%3の回転で選択肢の並び順・正答キーを機械的に決める（著者が手作業で
- * A/B/Cの出現頻度を気にする必要をなくし、常に同じ記号が正答になる構造欠陥を防ぐ）
+ * 選択肢の並び順・正答キーを機械的に決める（著者が手作業でA/B/Cの出現頻度を気にする
+ * 必要をなくし、常に同じ記号が正答になる構造欠陥を防ぐ）。
+ * 【T-266】ローテーション量はkeyVocabWordのハッシュから導出する（配列内のindexは使わない。
+ * part5Question.tsのrotatePart5Choicesと同じ理由。indexをそのまま使うと一定差分の
+ * 決定的循環を生む＝29のQ-79・contentLint.tsのcheckFlatAnswerKeyCycleが検出する構造欠陥）
  */
-export function rotatePart2Choices(
-  raw: Part2RawEntry,
-  index: number,
-): Pick<Part2Entry, 'choices' | 'answer'> {
+export function rotatePart2Choices(raw: Part2RawEntry): Pick<Part2Entry, 'choices' | 'answer'> {
   const texts = [raw.correctText, raw.distractors[0], raw.distractors[1]]
-  const rotation = index % 3
+  const rotation = rotationAmount(raw.keyVocabWord, 3)
   const rotatedTexts = [...texts.slice(rotation), ...texts.slice(0, rotation)]
   const keys = ['A', 'B', 'C']
   const choices = rotatedTexts.map((text, i) => ({ key: keys[i]!, text }))
@@ -123,8 +125,8 @@ export function rotatePart2Choices(
 }
 
 /** rawエントリ（correctText/distractors形式）→Part2Entry（choices/answer確定済み）への変換 */
-export function part2EntryFromRaw(raw: Part2RawEntry, index: number): Part2Entry {
-  const { choices, answer } = rotatePart2Choices(raw, index)
+export function part2EntryFromRaw(raw: Part2RawEntry): Part2Entry {
+  const { choices, answer } = rotatePart2Choices(raw)
   return {
     keyVocabWord: raw.keyVocabWord,
     tags: raw.tags,
@@ -137,11 +139,44 @@ export function part2EntryFromRaw(raw: Part2RawEntry, index: number): Part2Entry
   }
 }
 
+/**
+ * M1のPart2 50問（PART2_ENTRIES_S）の出題順を決定的に並べ替える。
+ *
+ * Part2は「設問＋応答A〜C」を1音声ファイルに連結しており、responseOffsetsMsが選択肢の
+ * key昇順＝読み上げ順に対応する（part2Responses.ts）。そのため選択肢の並び替えでは
+ * 循環を解消できず、出題順の並べ替えしか手段がない
+ * （shuffle-cyclic-choices.mjs のorderモードと同じ考え方）。
+ *
+ * S2・S3はcorrectText/distractors形式でrotatePart2Choicesがkeyを分散させるが、Sだけは
+ * choices/answerを手書きした旧形式で、正答キー列が一定差分2の決定的循環になっていた。
+ * T-237のorderモードはドラフトJSONLを直接並べ替える一回限りの処置だったため、
+ * `beb generate` の再生成で失われる。正本のTS側で並べ替えないと再発する。
+ *
+ * 元の配列順に依存しないよう、まずkeyVocabWordの辞書順へ正規化してから、
+ * 各エントリのハッシュをソートキーにして並べ替える（何度実行しても同じ順に収束する）。
+ */
+export function orderPart2EntriesS(entries: readonly Part2Entry[] = PART2_ENTRIES_S): Part2Entry[] {
+  return [...entries]
+    .sort((a, b) =>
+      a.keyVocabWord < b.keyVocabWord ? -1 : a.keyVocabWord > b.keyVocabWord ? 1 : 0,
+    )
+    .map((entry) => ({ entry, seed: fnv1a(`part2-s|${entry.keyVocabWord}`) }))
+    .sort((a, b) => a.seed - b.seed)
+    .map((x) => x.entry)
+}
+
 /** Part2追加分（M2・T-60・S2）100問をPart2Entry形式に組み立てる */
 export function buildPart2EntriesS2(
   raw: readonly Part2RawEntry[] = PART2_ENTRIES_S2_RAW,
 ): Part2Entry[] {
-  return raw.map((r, i) => part2EntryFromRaw(r, i))
+  return raw.map((r) => part2EntryFromRaw(r))
+}
+
+/** Part2追加分（T-349・S3。平叙文・付加疑問・選択疑問）をPart2Entry形式に組み立てる */
+export function buildPart2EntriesS3(
+  raw: readonly Part2RawEntry[] = PART2_ENTRIES_S3_RAW,
+): Part2Entry[] {
+  return raw.map((r) => part2EntryFromRaw(r))
 }
 
 /**

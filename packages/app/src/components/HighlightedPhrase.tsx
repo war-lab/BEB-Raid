@@ -14,10 +14,12 @@ interface Props {
 }
 
 export function HighlightedPhrase({ phrase, word }: Props) {
-  if (!word) return <>{phrase}</>
+  // T-224（J-108）: フレーズは英文そのものなのでlang="en"を付ける（WCAG 3.1.2）。
+  // Fragmentはlang属性を持てないため、実要素（span）で括る
+  if (!word) return <span lang="en">{phrase}</span>
   const parts = phrase.split(new RegExp(`(${escapeRegExp(word)})`, 'i'))
   return (
-    <>
+    <span lang="en">
       {parts.map((part, i) =>
         part.toLowerCase() === word.toLowerCase() ? (
           <strong key={i} className="vocab-card__target">
@@ -27,6 +29,6 @@ export function HighlightedPhrase({ phrase, word }: Props) {
           <span key={i}>{part}</span>
         ),
       )}
-    </>
+    </span>
   )
 }

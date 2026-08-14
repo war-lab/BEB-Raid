@@ -1,7 +1,7 @@
 // T-24 完了条件: 各コマンドの雛形が動き、APIキーが環境変数から読まれる
 // T-25 完了条件: freq-list コマンドが動き、S200語がランク根拠付きで出力される
 // T-30 完了条件: review-export/review-import の実ファイル往復（ダミーデータ）
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -25,16 +25,19 @@ async function run(argv: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('コマンド体系（04の5節）', () => {
-  it('generate / freq-list / review-export / review-import / tts / calibrate / kpi / build の8コマンドがある', () => {
+  it('generate / freq-list / review-export / review-import / adversarial-init / adversarial-summary / tts / calibrate / kpi / build / verify-content の11コマンドがある', () => {
     expect(commands.map((c) => c.name)).toEqual([
       'generate',
       'freq-list',
       'review-export',
       'review-import',
+      'adversarial-init',
+      'adversarial-summary',
       'tts',
       'calibrate',
       'kpi',
       'build',
+      'verify-content',
     ])
   })
 
@@ -67,6 +70,78 @@ describe('コマンド体系（04の5節）', () => {
     expect((await run(['review-export', 'a.jsonl'])).code).toBe(1)
     expect((await run(['review-import'])).code).toBe(1)
     expect((await run(['review-import', 'a.jsonl', 'b.tsv', 'c.jsonl'])).code).toBe(1)
+  })
+
+  it('adversarial-init / adversarial-summary は引数不足だと使い方をstderrに出して異常終了する', async () => {
+    expect((await run(['adversarial-init'])).code).toBe(1)
+    expect((await run(['adversarial-init', 'a.jsonl'])).code).toBe(1)
+    expect((await run(['adversarial-summary'])).code).toBe(1)
+  })
+})
+
+describe('adversarial-init / adversarial-summary（T-355）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-adversarial-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('ドラフトJSONLからidを抽出して雛形TSVを書き出す', async () => {
+    const draftPath = join(dir, 'draft.jsonl')
+    const tsvPath = join(dir, 'adversarial.tsv')
+    await run(['generate', 'vocab_card', draftPath], {})
+    const { code, output } = await run(['adversarial-init', draftPath, tsvPath])
+    expect(code).toBe(0)
+    expect(output).toContain('200件')
+    const tsv = await readFile(tsvPath, 'utf-8')
+    expect(tsv.trim().split('\n')).toHaveLength(201) // ヘッダー + 200件
+  })
+
+  it('パックJSONのquestions[].idから雛形TSVを書き出す', async () => {
+    const packPath = join(dir, 'pack.json')
+    const tsvPath = join(dir, 'adversarial.tsv')
+    await writeFile(
+      packPath,
+      JSON.stringify({ questions: [{ id: 'q1' }, { id: 'q2' }, { id: 'q3' }] }),
+      'utf-8',
+    )
+    const { code, output } = await run(['adversarial-init', packPath, tsvPath])
+    expect(code).toBe(0)
+    expect(output).toContain('3件')
+  })
+
+  it('記入済みTSVを集計し、revise/rejectを一覧する', async () => {
+    const tsvPath = join(dir, 'reviewed.tsv')
+    await writeFile(
+      tsvPath,
+      [
+        'id\tverdict\tobservation\treviewer\treviewedAt',
+        'q1\taccept\t\tclaude-opus-5\t2026-08-12',
+        'q2\trevise\t二重正答の疑い\tclaude-opus-5\t2026-08-12',
+      ].join('\n'),
+      'utf-8',
+    )
+    const { code, output } = await run(['adversarial-summary', tsvPath])
+    expect(code).toBe(0)
+    expect(output).toContain('accept 1件')
+    expect(output).toContain('revise 1件')
+    expect(output).toContain('q2（revise）')
+  })
+
+  it('verdictが不正な値ならエラーで異常終了する', async () => {
+    const tsvPath = join(dir, 'bad.tsv')
+    await writeFile(
+      tsvPath,
+      ['id\tverdict\tobservation\treviewer\treviewedAt', 'q1\tmaybe\t\t\t'].join('\n'),
+      'utf-8',
+    )
+    const { code, errOutput } = await run(['adversarial-summary', tsvPath])
+    expect(code).toBe(1)
+    expect(errOutput).toContain('q1')
   })
 })
 
@@ -379,17 +454,17 @@ describe('generate dictation（M2・T-62）', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('APIキー不要で40件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
+  it('APIキー不要で44件のdictationドラフト（バリデーション通過済み）が出力される', async () => {
     const outputPath = join(dir, 'dictation-s.jsonl')
     const { code, output } = await run(['generate', 'dictation', outputPath], {})
     expect(code).toBe(0)
-    expect(output).toContain('40件')
+    expect(output).toContain('44件')
 
     const drafts = parseJsonl<{
       kind: string
       payload: { format: string; blanks: { index: number; answer: string }[] }
     }>(await readFile(outputPath, 'utf-8'))
-    expect(drafts).toHaveLength(40)
+    expect(drafts).toHaveLength(44)
     expect(drafts.every((d) => d.kind === 'dictation')).toBe(true)
     expect(drafts.every((d) => d.payload.blanks.length >= 1 && d.payload.blanks.length <= 3)).toBe(
       true,
@@ -422,6 +497,67 @@ describe('generate shadowing（M2・T-62）', () => {
     expect(drafts.every((d) => d.kind === 'shadowing')).toBe(true)
     expect(
       drafts.every((d) => Array.isArray(d.payload.timing) && d.payload.timing.length > 0),
+    ).toBe(true)
+  })
+})
+
+describe('generate text_passage_p6_url / text_passage_p7_url（T-273: URL・メールアドレスを含む題材）', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beb-cli-generate-reading-url-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('text_passage_p6_urlがAPIキー不要でバリデーション通過済みのドラフトを出力する', async () => {
+    const outputPath = join(dir, 'text-passage-p6-url-s.jsonl')
+    const { code, output } = await run(['generate', 'text_passage_p6_url', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('バリデーション')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        part: number
+        passages: { text: string }[]
+        subQuestions: unknown[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts.length).toBeGreaterThanOrEqual(1)
+    expect(drafts.every((d) => d.kind === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.format === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.part === 6)).toBe(true)
+    // URL・メールアドレスを含む題材であることを確認する（本タスクの主目的）
+    expect(
+      drafts.some((d) => /https?:\/\/|@[a-z0-9.-]+\.[a-z]{2,}/i.test(d.payload.passages[0]!.text)),
+    ).toBe(true)
+  })
+
+  it('text_passage_p7_urlがAPIキー不要でバリデーション通過済みのドラフトを出力する', async () => {
+    const outputPath = join(dir, 'text-passage-p7-url-s.jsonl')
+    const { code, output } = await run(['generate', 'text_passage_p7_url', outputPath], {})
+    expect(code).toBe(0)
+    expect(output).toContain('バリデーション')
+
+    const drafts = parseJsonl<{
+      kind: string
+      payload: {
+        format: string
+        part: number
+        passages: { text: string }[]
+        subQuestions: unknown[]
+      }
+    }>(await readFile(outputPath, 'utf-8'))
+    expect(drafts.length).toBeGreaterThanOrEqual(1)
+    expect(drafts.every((d) => d.kind === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.format === 'text_passage')).toBe(true)
+    expect(drafts.every((d) => d.payload.part === 7)).toBe(true)
+    expect(
+      drafts.some((d) => /https?:\/\/|@[a-z0-9.-]+\.[a-z]{2,}/i.test(d.payload.passages[0]!.text)),
     ).toBe(true)
   })
 })
@@ -665,6 +801,7 @@ describe('build（T-32）', () => {
     await writeFile(join(dir, 'audio/vocab/buy.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/submit.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part2/revise.mp3'), 'dummy')
+    await writeFile(join(dir, 'audio/part2/notify.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-01.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-11.mp3'), 'dummy')
     await writeFile(join(dir, 'audio/part34/p3-21.mp3'), 'dummy')
@@ -1146,6 +1283,34 @@ describe('build（T-32）', () => {
       JSON.stringify(part34S3Draft) + '\n',
       'utf-8',
     )
+    const part2S3Draft: GeneratedItemDraft = {
+      id: 'part2-notify',
+      kind: 'audio_qa',
+      preview: 'notify',
+      payload: {
+        id: 'part2-notify',
+        part: 2,
+        format: 'audio_qa',
+        difficulty: 2,
+        tags: ['平叙文'],
+        keyVocab: [{ word: 'notify', sense: '通知する', freqRank: 'S' }],
+        audio: 'audio/part2/notify.mp3',
+        audioMeta: { accent: 'US', tts: true, voice: 'piper:test', durationMs: 2500 },
+        script: 'Please notify the shipping department. — I already did.',
+        choices: [
+          { key: 'A', text: 'I already did.' },
+          { key: 'B', text: 'The shipping department is closed.' },
+        ],
+        answer: 'A',
+        explanation: '間接応答: すでに対応済みであることを示している。',
+        translation: '配送部門に通知してください。 — すでに対応しました。',
+      },
+    }
+    await writeFile(
+      join(dir, 'drafts/part2-s3.jsonl'),
+      JSON.stringify(part2S3Draft) + '\n',
+      'utf-8',
+    )
 
     // T-107: 読解R-1（Part6・Part7単一）。音声を持たないためaudioディレクトリ追加は不要
     const textPassageP6Draft: GeneratedItemDraft = {
@@ -1224,21 +1389,37 @@ describe('build（T-32）', () => {
       JSON.stringify(textPassageP7SingleDraft) + '\n',
       'utf-8',
     )
+    // 読解R-2（2026-08-13配信開始）。複数パッセージ・URL題材の3パック分
+    await writeFile(
+      join(dir, 'drafts/text-passage-p7-multi-s.jsonl'),
+      JSON.stringify(textPassageP7SingleDraft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/text-passage-p6-url-s.jsonl'),
+      JSON.stringify(textPassageP6Draft) + '\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'drafts/text-passage-p7-url-s.jsonl'),
+      JSON.stringify(textPassageP7SingleDraft) + '\n',
+      'utf-8',
+    )
   })
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('20パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2）', async () => {
+  it('24パック分のドラフトから packs/*.json と manifest.json を生成する（M1の4＋M2の8＋T-83の1＋T-84の2＋T-85の2＋初級追加の1＋読解R-1の2＋T-349の1＋読解R-2の3）', async () => {
     const { code, output } = await run(['build', dir])
     expect(code).toBe(0)
-    expect(output).toContain('20パック')
+    expect(output).toContain('24パック')
 
     const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf-8')) as {
       packs: { id: string; hash: string; sizeBytes: number }[]
     }
-    expect(manifest.packs).toHaveLength(20)
+    expect(manifest.packs).toHaveLength(24)
     expect(manifest.packs.map((p) => p.id)).toEqual([
       'pack-vocab-s-001',
       'pack-p2-s-001',
@@ -1260,6 +1441,10 @@ describe('build（T-32）', () => {
       'pack-vocab-s-002',
       'pack-reading-p6-s-001',
       'pack-reading-p7single-s-001',
+      'pack-reading-p7multi-s-001',
+      'pack-reading-p6url-s-001',
+      'pack-reading-p7url-s-001',
+      'pack-p2-s-003',
     ])
     for (const entry of manifest.packs) {
       expect(entry.hash).toMatch(/^[0-9a-f]{16}$/)
@@ -1373,5 +1558,149 @@ describe('build（T-32）', () => {
     const { code, errOutput } = await run(['kpi'])
     expect(code).toBe(1)
     expect(errOutput).toContain('使い方')
+  })
+
+  describe('verify-content（T-234。docs/29 Q-74・Q-83のCIゲート）', () => {
+    /**
+     * 全パックへ「全設問accept」の敵対的検証記録を置く（T-355でverify-contentが必須化した）。
+     * 記録の有無そのものを検査するテストがあるので、雛形の自動生成はbuild側では行わない
+     */
+    async function writeAdversarialRecords(): Promise<void> {
+      const packDir = join(dir, 'packs')
+      for (const file of await readdir(packDir)) {
+        if (!file.endsWith('.json')) continue
+        const pack = JSON.parse(await readFile(join(packDir, file), 'utf-8')) as {
+          pack: { id: string }
+          questions: { id: string }[]
+        }
+        const rows = ['id\tverdict\tobservation\treviewer\treviewedAt']
+        for (const q of pack.questions) rows.push(`${q.id}\taccept\t\ttest\t2026-08-13`)
+        await writeFile(
+          join(dir, 'drafts', `${pack.pack.id}.adversarial.tsv`),
+          rows.join('\n') + '\n',
+          'utf-8',
+        )
+      }
+    }
+
+    it('build直後は検証OKになる（配信物・manifest・音声・draftsが整合した基準状態）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await writeAdversarialRecords()
+
+      const { code, output } = await run(['verify-content', dir])
+      expect(code).toBe(0)
+      expect(output).toContain('検証OK')
+    })
+
+    it('敵対的検証の記録が無いパックを検出する（T-355。CLAUDE.mdの不変条件の機械強制）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await writeAdversarialRecords()
+      await rm(join(dir, 'drafts/pack-p5-s-001.adversarial.tsv'))
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('pack-p5-s-001')
+      expect(errOutput).toContain('adversarial.tsv')
+    })
+
+    it('acceptになっていない設問が残っていると検出する（T-355）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await writeAdversarialRecords()
+      const tsvPath = join(dir, 'drafts/pack-p5-s-001.adversarial.tsv')
+      const lines = (await readFile(tsvPath, 'utf-8')).split('\n')
+      lines[1] = lines[1]!.replace('\taccept\t', '\treject\t')
+      await writeFile(tsvPath, lines.join('\n'), 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('acceptになっていない')
+    })
+
+    it('パックJSONを直接編集してdraftsを更新しないと、drafts乖離として検出する（Q-74の核心シナリオ）', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+
+      // drafts側は変えず、配信パックだけを直接書き換える（ビルドを経由しない改変）
+      const packPath = join(dir, 'packs/pack-p5-s-001.json')
+      const pack = JSON.parse(await readFile(packPath, 'utf-8')) as {
+        pack: Record<string, unknown>
+      }
+      pack.pack.origin = `${pack.pack.origin as string} 手編集`
+      await writeFile(packPath, JSON.stringify(pack, null, 2) + '\n', 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('pack-p5-s-001')
+      expect(errOutput).toContain('drafts')
+      expect(errOutput).toContain('一致しない')
+    })
+
+    it('manifest.jsonのhashを書き換えると不一致として検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+
+      const manifestPath = join(dir, 'manifest.json')
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf-8')) as {
+        packs: { id: string; hash: string }[]
+      }
+      const entry = manifest.packs.find((p) => p.id === 'pack-p5-s-001')
+      if (!entry) throw new Error('fixture broken: pack-p5-s-001 not in manifest')
+      entry.hash = 'deadbeefdeadbeef'
+      await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('pack-p5-s-001')
+      expect(errOutput).toContain('hash')
+    })
+
+    it('パックが参照する音声ファイルを削除すると参照切れとして検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await rm(join(dir, 'audio/part2/submit.mp3'))
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('音声参照切れ')
+    })
+
+    it('どのパックからも参照されない音声ファイルを孤児として検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      await writeFile(join(dir, 'audio/part2/orphan.mp3'), 'dummy')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('孤児音声ファイル')
+      expect(errOutput).toContain('orphan.mp3')
+    })
+
+    it('manifest.jsonに登録されていないパックJSONを孤児として検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+      const source = JSON.parse(await readFile(join(dir, 'packs/pack-p5-s-001.json'), 'utf-8')) as {
+        pack: Record<string, unknown>
+      }
+      source.pack.id = 'pack-orphan-test'
+      await writeFile(
+        join(dir, 'packs/pack-orphan-test.json'),
+        JSON.stringify(source, null, 2) + '\n',
+        'utf-8',
+      )
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('孤児パックJSON')
+    })
+
+    it('licenseを欠いたパックJSONを直接置くと、drafts経由でなくてもvalidatePackエラーとして検出する', async () => {
+      expect((await run(['build', dir])).code).toBe(0)
+
+      const packPath = join(dir, 'packs/pack-p5-s-001.json')
+      const pack = JSON.parse(await readFile(packPath, 'utf-8')) as {
+        pack: Record<string, unknown>
+      }
+      delete pack.pack.license
+      await writeFile(packPath, JSON.stringify(pack, null, 2) + '\n', 'utf-8')
+
+      const { code, errOutput } = await run(['verify-content', dir])
+      expect(code).toBe(1)
+      expect(errOutput).toContain('license が必要')
+    })
   })
 })

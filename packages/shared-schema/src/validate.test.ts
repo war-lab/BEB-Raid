@@ -4,8 +4,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { part2ResponsesDigest } from './part2Responses.js'
-import type { Question, QuestionPack } from './types.js'
-import { validatePack } from './validate.js'
+import type { Manifest, PassageKind, Question, QuestionPack } from './types.js'
+import { validateManifest, validatePack } from './validate.js'
 
 /** docs/04_データ設計.md 2節のサンプルJSON（コメントを除きそのまま） */
 function docsSamplePack(): QuestionPack {
@@ -1030,6 +1030,266 @@ describe('validatePack: text_passage（Part6/7・T-103）', () => {
     const result = validatePack(pack)
     expect(result.errors).toContainEqual(
       expect.objectContaining({ path: 'questions[0].passages[1].id', code: 'invalid_value' }),
+    )
+  })
+})
+
+// T-239（Q-82）: 型定義のみで実行時検証が無かった箇所（translation/explanation/image/
+// Manifest/passages[].kind）に検証を追加する。既存20パック1055問には translation/explanation
+// が欠落（省略・null）している問題が現に存在するため（Part3/4の3パック計50問）、
+// 「存在する場合のみ型を検査する」方針にする（必須化すると既存データが壊れる）。
+describe('validatePack: translation/explanation の型検証（T-239・Q-82）', () => {
+  it('translation が文字列以外なら拒否する', () => {
+    const pack = docsSamplePack()
+    ;(firstQuestion(pack) as unknown as { translation: unknown }).translation = 123
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].translation', code: 'invalid_value' }),
+    )
+  })
+
+  it('translation が省略・nullなら通る（Part3/4のような欠落を許容する）', () => {
+    const pack = docsSamplePack()
+    const q = firstQuestion(pack) as unknown as Record<string, unknown>
+    delete q.translation
+    expect(validatePack(pack).ok).toBe(true)
+
+    q.translation = null
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('explanation が文字列以外なら拒否する', () => {
+    const pack = docsSamplePack()
+    ;(firstQuestion(pack) as unknown as { explanation: unknown }).explanation = ['a', 'b']
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].explanation', code: 'invalid_value' }),
+    )
+  })
+
+  it('explanation が省略・nullなら通る', () => {
+    const pack = docsSamplePack()
+    const q = firstQuestion(pack) as unknown as Record<string, unknown>
+    delete q.explanation
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('subQuestion の translation/explanation が文字列以外なら拒否する', () => {
+    const pack = docsSamplePack()
+    const base = firstQuestion(pack)
+    pack.questions = [
+      {
+        ...base,
+        format: 'audio_set',
+        part: 3,
+        choices: null,
+        answer: null,
+        subQuestions: [
+          {
+            id: 'sq-1',
+            question: '設問1',
+            choices: [
+              { key: 'A', text: 'a' },
+              { key: 'B', text: 'b' },
+            ],
+            answer: 'A',
+            translation: 999 as unknown as string,
+            explanation: { not: 'a string' } as unknown as string,
+          },
+        ],
+      },
+    ]
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        path: 'questions[0].subQuestions[0].translation',
+        code: 'invalid_value',
+      }),
+    )
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        path: 'questions[0].subQuestions[0].explanation',
+        code: 'invalid_value',
+      }),
+    )
+  })
+})
+
+describe('validatePack: pack.reviewedBy/reviewedAt/reviewMethod（T-355）', () => {
+  it('省略なら通る（既存パックとの後方互換）', () => {
+    const pack = docsSamplePack()
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('文字列を指定すれば通る', () => {
+    const pack = docsSamplePack()
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedBy = 'claude-opus-5'
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedAt = '2026-08-12'
+    ;(pack.pack as unknown as Record<string, unknown>).reviewMethod = '敵対的検証（6観点）'
+    expect(validatePack(pack).ok).toBe(true)
+  })
+
+  it('文字列以外なら拒否する', () => {
+    const pack = docsSamplePack()
+    ;(pack.pack as unknown as Record<string, unknown>).reviewedBy = 123
+    const result = validatePack(pack)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'pack.reviewedBy', code: 'invalid_value' }),
+    )
+  })
+})
+
+describe('validatePack: imageFiles 指定時の image 存在チェック（T-239・Q-82）', () => {
+  function audioPhotoPack(image: string): QuestionPack {
+    const pack = docsSamplePack()
+    pack.questions = [{ ...firstQuestion(pack), format: 'audio_photo', part: 1, image }]
+    return pack
+  }
+
+  it('imageFiles 指定時、一覧に無い画像を拒否する', () => {
+    const result = validatePack(audioPhotoPack('images/q-0001.jpg'), {
+      imageFiles: new Set(['images/other.jpg']),
+    })
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].image', code: 'missing_image_file' }),
+    )
+  })
+
+  it('imageFiles に画像が存在すれば通る', () => {
+    const result = validatePack(audioPhotoPack('images/q-0001.jpg'), {
+      imageFiles: new Set(['images/q-0001.jpg']),
+    })
+    expect(result.ok).toBe(true)
+  })
+
+  it('imageFiles 未指定なら存在チェックはスキップされる', () => {
+    expect(validatePack(audioPhotoPack('images/q-0001.jpg')).ok).toBe(true)
+  })
+})
+
+describe('validatePack: passages[].kind のenum検証（T-239・Q-82）', () => {
+  function part6PackWithKind(kind: string): QuestionPack {
+    const pack = docsSamplePack()
+    pack.questions = [
+      {
+        ...firstQuestion(pack),
+        format: 'text_passage',
+        part: 6,
+        choices: null,
+        answer: null,
+        // 不正なkind文字列を検証する目的で意図的にPassageKindの範囲外を渡す
+        passages: [{ id: 'p1', kind: kind as PassageKind, text: 'Please [[1]] your plan.' }],
+        subQuestions: [
+          {
+            id: 'sq-1',
+            question: '(1)',
+            choices: [
+              { key: 'A', text: 'renew' },
+              { key: 'B', text: 'renewed' },
+            ],
+            answer: 'A',
+          },
+        ],
+      },
+    ]
+    return pack
+  }
+
+  it('未知のkindを拒否する', () => {
+    const result = validatePack(part6PackWithKind('not-a-real-kind'))
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'questions[0].passages[0].kind', code: 'invalid_value' }),
+    )
+  })
+
+  it.each(['email', 'notice', 'article', 'chat', 'form', 'advertisement', 'memo'])(
+    '実データで使われているkind "%s" は通る',
+    (kind) => {
+      const result = validatePack(part6PackWithKind(kind))
+      expect(result.errors).not.toContainEqual(
+        expect.objectContaining({ path: 'questions[0].passages[0].kind' }),
+      )
+    },
+  )
+})
+
+describe('validateManifest（T-239・Q-82）', () => {
+  function validManifest(): Manifest {
+    return {
+      schemaVersion: 2,
+      packs: [
+        {
+          id: 'pack-a',
+          title: 'パックA',
+          targetLevel: [300, 500],
+          sizeBytes: 12345,
+          hash: 'abc123',
+        },
+      ],
+    }
+  }
+
+  it('正常なmanifestを通す', () => {
+    expect(validateManifest(validManifest()).ok).toBe(true)
+  })
+
+  it('オブジェクトでない入力を拒否する', () => {
+    const result = validateManifest('not a manifest')
+    expect(result.ok).toBe(false)
+    expect(result.errors[0]?.code).toBe('invalid_structure')
+  })
+
+  it('schemaVersion不一致を拒否する', () => {
+    const manifest = validManifest() as unknown as Record<string, unknown>
+    manifest.schemaVersion = 1
+    const result = validateManifest(manifest)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'schemaVersion', code: 'invalid_value' }),
+    )
+  })
+
+  it('packsが配列でなければ拒否する', () => {
+    const manifest = validManifest() as unknown as Record<string, unknown>
+    manifest.packs = 'not-an-array'
+    const result = validateManifest(manifest)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'packs', code: 'invalid_structure' }),
+    )
+  })
+
+  it('パックエントリのid重複を拒否する', () => {
+    const manifest = validManifest()
+    manifest.packs.push({ ...manifest.packs[0]! })
+    const result = validateManifest(manifest)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'packs[1].id', code: 'invalid_value' }),
+    )
+  })
+
+  it('targetLevelの下限が上限を超えていれば拒否する', () => {
+    const manifest = validManifest()
+    manifest.packs[0]!.targetLevel = [900, 300]
+    const result = validateManifest(manifest)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'packs[0].targetLevel', code: 'invalid_value' }),
+    )
+  })
+
+  it('sizeBytesが負なら拒否する', () => {
+    const manifest = validManifest()
+    manifest.packs[0]!.sizeBytes = -1
+    const result = validateManifest(manifest)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'packs[0].sizeBytes', code: 'invalid_value' }),
+    )
+  })
+
+  it('hashが欠落していれば拒否する', () => {
+    const manifest = validManifest() as unknown as { packs: Record<string, unknown>[] }
+    delete manifest.packs[0]!.hash
+    const result = validateManifest(manifest)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ path: 'packs[0].hash', code: 'missing_field' }),
     )
   })
 })

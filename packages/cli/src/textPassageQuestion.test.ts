@@ -103,10 +103,10 @@ describe('PART7_SINGLE_ENTRIES_S（データ本体）', () => {
     }
   })
 
-  it('設問数の合計がおよそ120問（docs/24 3.6節の初期在庫目標）', () => {
+  it('設問数の合計がおよそ150問（docs/24 3.6節の初期在庫目標＋T-350の追加設問）', () => {
     const total = PART7_SINGLE_ENTRIES_S.reduce((sum, e) => sum + e.subQuestions.length, 0)
-    expect(total).toBeGreaterThanOrEqual(110)
-    expect(total).toBeLessThanOrEqual(130)
+    expect(total).toBeGreaterThanOrEqual(140)
+    expect(total).toBeLessThanOrEqual(160)
   })
 
   it('全セットのkeyVocabWordsがS/A/B語彙カード（600語）に実在する', () => {

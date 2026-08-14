@@ -67,16 +67,33 @@ describe('parseReviewTsv: 往復', () => {
     expect(result.rejected).toEqual([{ id: 'v-1', kind: 'vocab_card', reason: '(理由未記入)' }])
   })
 
-  it('修正内容が不正なJSONの場合は解析失敗として破棄扱いになる', () => {
+  // T-240（Q-84）: 「修正」列のJSON解析失敗は、以前は黙って破棄側に振り分けられていた。
+  // レビューアの修正意図（採用したかった内容）がrejected.jsonlの理由文字列に埋もれて
+  // 消えるため、明示的なエラーで中断し、レビューアにTSVの修正を促す。
+  it('修正内容が不正なJSONの場合は明示的なエラーを投げる（黙って破棄側に回さない）', () => {
     const tsv = [
       'id\t種別\t本文プレビュー\tstatus\t修正内容\t破棄理由',
       'v-1\tvocab_card\tsubmit\t修正\t{不正なJSON\t',
     ].join('\n')
 
-    const result = parseReviewTsv(tsv, draftsById(DRAFTS))
-    expect(result.accepted).toHaveLength(0)
-    expect(result.rejected).toHaveLength(1)
-    expect(result.rejected[0]?.reason).toContain('JSON解析に失敗')
+    expect(() => parseReviewTsv(tsv, draftsById(DRAFTS))).toThrow(/v-1.*JSON解析に失敗/s)
+  })
+
+  it('不正なJSONの行が複数あれば、すべてのidをまとめてエラーメッセージに含める', () => {
+    const tsv = [
+      'id\t種別\t本文プレビュー\tstatus\t修正内容\t破棄理由',
+      'v-1\tvocab_card\tsubmit\t修正\t{不正なJSON\t',
+      'v-2\tvocab_card\tattend\t修正\t{もっと不正\t',
+    ].join('\n')
+
+    try {
+      parseReviewTsv(tsv, draftsById(DRAFTS))
+      expect.unreachable('エラーが投げられるはず')
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      expect(message).toContain('v-1')
+      expect(message).toContain('v-2')
+    }
   })
 
   it('status未記入・対応ドラフト無しの行はスキップされる（次回に持ち越し）', () => {

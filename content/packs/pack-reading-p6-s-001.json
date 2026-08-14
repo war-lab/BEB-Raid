@@ -4,12 +4,15 @@
     "id": "pack-reading-p6-s-001",
     "title": "Part6読解 30セット120問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル3並列AIクロスレビュー＋must-fix修正＋独立再検証、発起人H-R1レビュー承認 2026-07-23（T-107）",
+    "origin": "エージェント直接執筆＋別モデル3並列クロスレビュー＋発起人H-R1レビュー承認（2026-07-23。T-107）＋AIクロスレビュー（別モデル3並列）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       730
     ],
-    "sizeBytes": 145980
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（別モデル3並列）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 174412
   },
   "questions": [
     {
@@ -37,7 +40,8 @@
         {
           "id": "p6-001-doc1",
           "kind": "email",
-          "text": "Subject: Office Relocation Update\n\nDear Staff,\n\nAs most of you know, our current facility [[1]] a major renovation next month, so the entire Marketing team will move to the third floor for eight weeks. Please pack any personal items in the boxes provided by Friday. IT will [[2]] all computers and phones over the weekend, so do not attempt to move electronics yourself. [[3]] the move, temporary desks will be assigned on a first-come basis. [[4]] We appreciate your patience during this transition.\n\nBest regards,\nFacilities Team"
+          "text": "Subject: Office Relocation Update\n\nDear Staff,\n\nAs most of you know, our current facility [[1]] a major renovation next month, so the entire Marketing team will move to the third floor for eight weeks. Please pack any personal items in the boxes provided by Friday. IT will [[2]] all computers and phones over the weekend, so do not attempt to move electronics yourself. [[3]] the move, temporary desks will be assigned on a first-come basis. [[4]] We appreciate your patience during this transition.\n\nBest regards,\nFacilities Team",
+          "translation": "件名: オフィス移転に関する最新情報\n\nスタッフの皆様へ\n\nご存知のとおり、現在のオフィスは来月大規模な改装を行う予定のため、マーケティング部門全体が8週間、3階へ移動します。金曜日までに私物を配布された箱にまとめてください。ITが週末にすべてのパソコンと電話の接続を外しますので、電子機器は自分で移動しないでください。引っ越しの間、仮の席は早い者順で割り当てられます。新しい座席番号付きのフロア図を月曜日にメールで送ります。この移行期間中、ご不便をおかけしますがご理解のほどよろしくお願いいたします。\n\n敬具\n施設管理チーム"
         }
       ],
       "subQuestions": [
@@ -47,23 +51,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "undergo"
-            },
-            {
-              "key": "B",
-              "text": "is undergoing"
-            },
-            {
-              "key": "C",
               "text": "undergone"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "had undergone"
+            },
+            {
+              "key": "C",
+              "text": "is undergoing"
+            },
+            {
+              "key": "D",
+              "text": "undergo"
             }
           ],
-          "answer": "B",
-          "explanation": "主語facilityは単数で、来月から始まる予定の進行中の出来事を表すため現在進行形が適切。原形・過去分詞・過去完了は時制・主語一致の点で不適。",
+          "answer": "C",
+          "explanation": "主語facilityは単数で、来月から始まる予定の進行中の出来事を表すため現在進行形が適切。undergo（原形）・undergone（過去分詞）・had undergone（過去完了）はいずれも時制・主語一致の点で不適。",
           "translation": "現在の施設は来月大規模な改装を行う予定です。"
         },
         {
@@ -76,18 +80,18 @@
             },
             {
               "key": "B",
-              "text": "disconnect"
+              "text": "disconnects"
             },
             {
               "key": "C",
-              "text": "disconnects"
+              "text": "disconnect"
             },
             {
               "key": "D",
               "text": "disconnecting"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "助動詞willの直後は動詞の原形が入る。disconnectingは動名詞、disconnectionは名詞、disconnectsは三単現でwillの後には続かない。",
           "translation": "ITは週末にすべてのパソコンと電話の接続を外します。"
         },
@@ -97,22 +101,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Because"
+              "text": "During"
             },
             {
               "key": "B",
-              "text": "Unless"
-            },
-            {
-              "key": "C",
               "text": "Although"
             },
             {
+              "key": "C",
+              "text": "Because"
+            },
+            {
               "key": "D",
-              "text": "During"
+              "text": "Unless"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "直後が名詞句the moveなので前置詞Duringが入る。Although/Because/Unlessは接続詞で後ろに主語+動詞の節が必要になる。",
           "translation": "引っ越しの間、仮の席は早い者順で割り当てられます。"
         },
@@ -122,23 +126,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Employees are reminded to submit expense reports by the fifth of each month."
-            },
-            {
-              "key": "B",
               "text": "A full floor map with new seat numbers will be emailed on Monday."
             },
             {
+              "key": "B",
+              "text": "The cafeteria on the second floor will remain open as usual."
+            },
+            {
               "key": "C",
-              "text": "The company picnic has been rescheduled to early June."
+              "text": "Employees are reminded to submit expense reports by the fifth of each month."
             },
             {
               "key": "D",
-              "text": "The cafeteria on the second floor will remain open as usual."
+              "text": "The company picnic has been rescheduled to early June."
             }
           ],
-          "answer": "B",
-          "explanation": "直前の文が仮の席割りに触れているため、座席番号を知らせるフロアマップの案内が最も自然につながる。他の3文は移動や座席と無関係。",
+          "answer": "A",
+          "explanation": "直前の文が仮の席割りに触れているため、座席番号を知らせるフロアマップの案内が最も自然につながる。他の3文は移動や座席と無関係。他の選択肢（\"The cafeteria on the second floor will remain open as usual.\"／\"Employees are reminded to submit expense reports by the fifth of each month.\"／\"The company picnic has been rescheduled to early June.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "新しい座席番号付きのフロア図を月曜日にメールで送ります。"
         }
       ]
@@ -168,7 +172,8 @@
         {
           "id": "p6-002-doc1",
           "kind": "notice",
-          "text": "NOTICE: Elevator Maintenance\n\nThe elevator in the West Building [[1]] out of service on Thursday, June 4, from 9 a.m. to 3 p.m. for routine maintenance. A licensed technician will [[2]] a full inspection of the cables and doors during this time. Visitors and staff on the upper floors should use the stairs or the elevator in the East Building. [[3]] the inspection reveals a problem, the elevator may remain closed longer than planned. [[4]] We apologize for any inconvenience this may cause."
+          "text": "NOTICE: Elevator Maintenance\n\nThe elevator in the West Building [[1]] out of service on Thursday, June 4, from 9 a.m. to 3 p.m. for routine maintenance. A licensed technician will [[2]] a full inspection of the cables and doors during this time. Visitors and staff on the upper floors should use the stairs or the elevator in the East Building. [[3]] the inspection reveals a problem, the elevator may remain closed longer than planned. [[4]] We apologize for any inconvenience this may cause.",
+          "translation": "案内: エレベーター保守作業のお知らせ\n\n西棟のエレベーターは6月4日木曜日午前9時から午後3時まで、定期保守のため運転を停止します。その間、有資格の技術者がケーブルとドアの点検を行います。上層階を利用する来訪者・スタッフは階段または東棟のエレベーターをご利用ください。点検で問題が見つかった場合、エレベーターは予定より長く停止することがあります。停止が延びる場合は、更新されたスケジュールをロビーに掲示します。ご不便をおかけしますことをお詫びいたします。"
         }
       ],
       "subQuestions": [
@@ -178,22 +183,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "will be"
-            },
-            {
-              "key": "B",
               "text": "was"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "has been"
+            },
+            {
+              "key": "C",
+              "text": "will be"
             },
             {
               "key": "D",
               "text": "is being"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "文末にon Thursdayという未来の予定が示されているため、未来を表すwill beが適切。is being/was/has beenはいずれも未来の予定を表せない。",
           "translation": "西棟のエレベーターは6月4日木曜午前9時から午後3時まで停止します。"
         },
@@ -207,15 +212,15 @@
             },
             {
               "key": "B",
-              "text": "be performed"
+              "text": "perform to"
             },
             {
               "key": "C",
-              "text": "performing"
+              "text": "be performed"
             },
             {
               "key": "D",
-              "text": "perform to"
+              "text": "performing"
             }
           ],
           "answer": "A",
@@ -228,22 +233,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "If"
-            },
-            {
-              "key": "B",
-              "text": "In case of"
-            },
-            {
-              "key": "C",
               "text": "Despite"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "So that"
+            },
+            {
+              "key": "C",
+              "text": "In case of"
+            },
+            {
+              "key": "D",
+              "text": "If"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "直後に主語+動詞（the inspection reveals）が続く条件節なので接続詞Ifが適切。Despite/In case ofは前置詞、So thatは目的を表し意味が合わない。",
           "translation": "点検で問題が見つかった場合、エレベーターは予定より長く停止することがあります。"
         },
@@ -257,19 +262,19 @@
             },
             {
               "key": "B",
-              "text": "The elevator was installed three years ago by a local contractor."
+              "text": "An updated schedule will be posted in the lobby if the closure is extended."
             },
             {
               "key": "C",
-              "text": "An updated schedule will be posted in the lobby if the closure is extended."
+              "text": "The elevator was installed three years ago by a local contractor."
             },
             {
               "key": "D",
               "text": "Parking permits must be renewed at the front desk every January."
             }
           ],
-          "answer": "C",
-          "explanation": "直前の文が停止が延びる可能性に触れているため、延長時の更新スケジュール告知が自然につながる。他の3文は今回の停止と無関係。",
+          "answer": "B",
+          "explanation": "直前の文が停止が延びる可能性に触れているため、延長時の更新スケジュール告知が自然につながる。他の3文は今回の停止と無関係。他の選択肢（\"The building will host a fire drill later this month.\"／\"The elevator was installed three years ago by a local contractor.\"／\"Parking permits must be renewed at the front desk every January.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "停止が延びる場合は、更新されたスケジュールをロビーに掲示します。"
         }
       ]
@@ -304,7 +309,8 @@
         {
           "id": "p6-003-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: All Employees\nFrom: Accounting Department\n\nStarting next quarter, the expense reimbursement process [[1]] change. All receipts must be submitted through the new online system rather than on paper forms. The deadline for each month's expenses [[2]] the fifth business day of the following month. [[3]] the deadline is missed, reimbursement may be delayed until the next payment cycle. [[4]] Please direct any questions to the accounting help desk."
+          "text": "MEMO\nTo: All Employees\nFrom: Accounting Department\n\nStarting next quarter, the expense reimbursement process [[1]] change. All receipts must be submitted through the new online system rather than on paper forms. The deadline for each month's expenses [[2]] the fifth business day of the following month. [[3]] the deadline is missed, reimbursement may be delayed until the next payment cycle. [[4]] Please direct any questions to the accounting help desk.",
+          "translation": "社内メモ\n宛先: 全従業員\n発信: 経理部\n\n来四半期から経費精算のプロセスが変更されます。すべての領収書は紙の申請書ではなく、新しいオンラインシステムを通じて提出する必要があります。毎月の経費の締切は翌月の第5営業日です。締切に遅れた場合、精算は次の支払いサイクルまで延びることがあります。新システムの操作を説明する短い研修動画が社内サイトで見られます。ご質問は経理部のヘルプデスクへお問い合わせください。"
         }
       ],
       "subQuestions": [
@@ -314,7 +320,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "having"
+              "text": "would"
             },
             {
               "key": "B",
@@ -322,7 +328,7 @@
             },
             {
               "key": "C",
-              "text": "would"
+              "text": "having"
             },
             {
               "key": "D",
@@ -339,11 +345,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "is"
+              "text": "being"
             },
             {
               "key": "B",
-              "text": "being"
+              "text": "is"
             },
             {
               "key": "C",
@@ -354,7 +360,7 @@
               "text": "be"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "主語The deadlineは単数なのでisが適切。areは複数主語用、beは原形で単独では動詞として使えない、beingは進行・受動の補助でここでは不要。",
           "translation": "毎月の経費の締切は翌月の第5営業日です。"
         },
@@ -364,7 +370,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "During"
+              "text": "Except for"
             },
             {
               "key": "B",
@@ -376,7 +382,7 @@
             },
             {
               "key": "D",
-              "text": "Except for"
+              "text": "During"
             }
           ],
           "answer": "B",
@@ -389,23 +395,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "A short training video on the new system is available on the intranet."
+              "text": "The accounting department relocated to the fourth floor in March."
             },
             {
               "key": "B",
-              "text": "The company holiday party will be held in December this year."
+              "text": "A short training video on the new system is available on the intranet."
             },
             {
               "key": "C",
-              "text": "The accounting department relocated to the fourth floor in March."
+              "text": "The company holiday party will be held in December this year."
             },
             {
               "key": "D",
               "text": "Employees should park only in the designated visitor spaces."
             }
           ],
-          "answer": "A",
-          "explanation": "新しいオンラインシステムへの移行を説明した直後の一文として、操作を学べる研修動画の案内が自然に続く。他の3文は経費精算と無関係。",
+          "answer": "B",
+          "explanation": "新しいオンラインシステムへの移行を説明した直後の一文として、操作を学べる研修動画の案内が自然に続く。他の3文は経費精算と無関係。他の選択肢（\"The accounting department relocated to the fourth floor in March.\"／\"The company holiday party will be held in December this year.\"／\"Employees should park only in the designated visitor spaces.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "新システムの操作を説明する短い研修動画が社内サイトで見られます。"
         }
       ]
@@ -427,7 +433,7 @@
         },
         {
           "word": "network",
-          "sense": "ネットワーク",
+          "sense": "ネットワーク（回線・人脈）",
           "freqRank": "S"
         }
       ],
@@ -435,7 +441,8 @@
         {
           "id": "p6-004-doc1",
           "kind": "email",
-          "text": "Subject: Scheduled Network Upgrade\n\nDear Team,\n\nOur IT department will [[1]] a network upgrade this Saturday to improve connection speed across all offices. During the upgrade, the network [[2]] be unavailable from 6 a.m. to noon. Any files saved [[3]] the shared drive will remain safe, but please save your work locally as a backup. [[4]] Contact IT support if you notice any issues after the upgrade is complete."
+          "text": "Subject: Scheduled Network Upgrade\n\nDear Team,\n\nOur IT department will [[1]] a network upgrade this Saturday to improve connection speed across all offices. During the upgrade, the network [[2]] be unavailable from 6 a.m. to noon. Any files saved [[3]] the shared drive will remain safe, but please save your work locally as a backup. [[4]] Contact IT support if you notice any issues after the upgrade is complete.",
+          "translation": "件名: ネットワーク更新作業のお知らせ\n\nチームの皆様へ\n\nIT部門は今週土曜日、全オフィスの接続速度を改善するためのネットワーク更新を行います。更新中、ネットワークは午前6時から正午まで利用できません。共有ドライブに保存されたファイルは安全なままですが、念のためローカルにも保存してください。この更新はメールや会社のウェブサイトには影響しません。更新完了後に問題があれば、ITサポートまでご連絡ください。"
         }
       ],
       "subQuestions": [
@@ -445,22 +452,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "perform"
-            },
-            {
-              "key": "B",
-              "text": "performs"
-            },
-            {
-              "key": "C",
               "text": "performing"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "performed"
+            },
+            {
+              "key": "C",
+              "text": "performs"
+            },
+            {
+              "key": "D",
+              "text": "perform"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "助動詞willの後は動詞の原形が続くためperformが適切。performingは動名詞、performedは過去形/過去分詞、performsは三単現でwillの直後には置けない。",
           "translation": "IT部門は今週土曜日に接続速度改善のためのネットワーク更新を行います。"
         },
@@ -474,7 +481,7 @@
             },
             {
               "key": "B",
-              "text": "does"
+              "text": "has"
             },
             {
               "key": "C",
@@ -482,7 +489,7 @@
             },
             {
               "key": "D",
-              "text": "has"
+              "text": "does"
             }
           ],
           "answer": "C",
@@ -495,22 +502,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "on"
-            },
-            {
-              "key": "B",
-              "text": "at"
-            },
-            {
-              "key": "C",
               "text": "by"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "from"
+            },
+            {
+              "key": "C",
+              "text": "on"
+            },
+            {
+              "key": "D",
+              "text": "at"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "「共有ドライブ上に保存された」という意味ではsaved on the shared driveが自然な前置詞コロケーション。at/by/fromは同じ意味を表さない。",
           "translation": "共有ドライブに保存されたファイルは安全なままですが、念のためローカルにも保存してください。"
         },
@@ -520,7 +527,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "The upgrade will not affect email or the company website."
+              "text": "The company plans to open a new office overseas next year."
             },
             {
               "key": "B",
@@ -532,11 +539,11 @@
             },
             {
               "key": "D",
-              "text": "The company plans to open a new office overseas next year."
+              "text": "The upgrade will not affect email or the company website."
             }
           ],
-          "answer": "A",
-          "explanation": "直前でネットワークが一時利用不可になると述べた後、影響範囲を補足する一文（メールとサイトは影響なし）が自然につながる。他の3文は更新作業と無関係。",
+          "answer": "D",
+          "explanation": "直前でネットワークが一時利用不可になると述べた後、影響範囲を補足する一文（メールとサイトは影響なし）が自然につながる。他の3文は更新作業と無関係。他の選択肢（\"The company plans to open a new office overseas next year.\"／\"Employees are encouraged to take the stairs for exercise.\"／\"The cafeteria menu will change starting next Monday.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この更新はメールや会社のウェブサイトには影響しません。"
         }
       ]
@@ -571,7 +578,8 @@
         {
           "id": "p6-005-doc1",
           "kind": "email",
-          "text": "Subject: Annual Sales Conference — Registration Reminder\n\nDear Attendee,\n\nThis is a reminder that registration for the annual sales conference closes this Friday. The conference venue, [[1]] is located near the airport, offers a shuttle service every thirty minutes. Once you register, you [[2]] receive a full itinerary with session times and room numbers. [[3]] you have already registered, please double-check that your dietary preferences are up to date. [[4]] We look forward to seeing you there."
+          "text": "Subject: Annual Sales Conference — Registration Reminder\n\nDear Attendee,\n\nThis is a reminder that registration for the annual sales conference closes this Friday. The conference venue, [[1]] is located near the airport, offers a shuttle service every thirty minutes. Once you register, you [[2]] automatically receive a full itinerary with session times and room numbers. [[3]] you have already registered, please double-check that your dietary preferences are up to date. [[4]] We look forward to seeing you there.",
+          "translation": "件名: 年次セールスカンファレンス — 登録のリマインダー\n\n参加者の皆様へ\n\n年次セールスカンファレンスの登録は今週金曜日で締め切りとなりますので、リマインダーとしてお知らせします。空港近くにある会議会場では30分おきにシャトルサービスが利用できます。登録すると、セッション時間と会場番号が書かれた全日程表を自動的に受け取ります。既に登録済みの方は、食事の希望が最新であるか再確認してください。締切後の登録は、いかなる事情でも受け付けられません。当日お会いできることを楽しみにしております。"
         }
       ],
       "subQuestions": [
@@ -581,22 +589,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "what"
+              "text": "which"
             },
             {
               "key": "B",
-              "text": "whose"
-            },
-            {
-              "key": "C",
               "text": "who"
             },
             {
+              "key": "C",
+              "text": "whose"
+            },
+            {
               "key": "D",
-              "text": "which"
+              "text": "what"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "先行詞the venue（物）を修飾する関係代名詞なのでwhichが適切。whoは人を先行詞にし、whoseは所有格、whatは先行詞を取らない。",
           "translation": "空港近くにある会議会場では30分おきにシャトルサービスが利用できます。"
         },
@@ -606,24 +614,24 @@
           "choices": [
             {
               "key": "A",
-              "text": "should"
+              "text": "will"
             },
             {
               "key": "B",
-              "text": "must"
-            },
-            {
-              "key": "C",
               "text": "would"
             },
             {
+              "key": "C",
+              "text": "should"
+            },
+            {
               "key": "D",
-              "text": "will"
+              "text": "must"
             }
           ],
-          "answer": "D",
-          "explanation": "登録後に自動的に届く未来の出来事を述べているためwillが適切。wouldは仮定、shouldは義務・助言、mustは強い義務でここでは意味が合わない。",
-          "translation": "登録すると、セッション時間と会場番号が書かれた全日程表を受け取ります。"
+          "answer": "A",
+          "explanation": "直後のautomaticallyと組み合わさる未来の出来事を述べているためwillが適切。wouldは仮定、shouldは義務・助言（automaticallyとは意味的に噛み合わない）、mustは強い義務でここでは意味が合わない。",
+          "translation": "登録すると、セッション時間と会場番号が書かれた全日程表を自動的に受け取ります。"
         },
         {
           "id": "p6-005-q3",
@@ -631,22 +639,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "If"
+              "text": "In case of"
             },
             {
               "key": "B",
-              "text": "Unless"
+              "text": "If"
             },
             {
               "key": "C",
-              "text": "In case of"
+              "text": "Unless"
             },
             {
               "key": "D",
               "text": "Whereas"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "直後に主語+動詞の節が続き「もし既に登録済みなら」という条件を表すIfが適切。Unlessは否定条件で意味が逆になり、Whereasは対比を表し、In case ofは前置詞句で節を続けられない。",
           "translation": "既に登録済みの方は、食事の希望が最新であるか再確認してください。"
         },
@@ -656,7 +664,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "The conference was first held over twenty years ago."
+              "text": "Parking at the venue is free for all registered guests."
             },
             {
               "key": "B",
@@ -668,11 +676,11 @@
             },
             {
               "key": "D",
-              "text": "Parking at the venue is free for all registered guests."
+              "text": "The conference was first held over twenty years ago."
             }
           ],
           "answer": "C",
-          "explanation": "直前の文が登録締切のリマインダーであるため、締切後の登録を一切受け付けないという厳格な注意が最も自然に続く。他の3文は登録の締切と直接関係しない。",
+          "explanation": "直前の文が登録締切のリマインダーであるため、締切後の登録を一切受け付けないという厳格な注意が最も自然に続く。他の3文は登録の締切と直接関係しない。他の選択肢（\"Parking at the venue is free for all registered guests.\"／\"Last year's keynote speaker received excellent feedback.\"／\"The conference was first held over twenty years ago.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "締切後の登録は、いかなる事情でも受け付けられません。"
         }
       ]
@@ -697,7 +705,8 @@
         {
           "id": "p6-006-doc1",
           "kind": "notice",
-          "text": "NOTICE: Updated Security Badge Policy\n\nEffective July 1, all employees must wear their security badge visibly at [[1]] times while inside the building. The new badges include an authentication chip that is [[2]] secure than the previous magnetic strip. Employees who have not been [[3]] to enter restricted areas should not attempt to use side entrances. [[4]] Badges can be updated at the security desk on the ground floor."
+          "text": "NOTICE: Updated Security Badge Policy\n\nEffective July 1, all employees must wear their security badge visibly at [[1]] times while inside the building. The new badges include an authentication chip that is [[2]] secure than the previous magnetic strip. Employees who have not been [[3]] to enter restricted areas should not attempt to use side entrances. [[4]] Badges can be updated at the security desk on the ground floor.",
+          "translation": "案内: セキュリティバッジ規定の更新について\n\n7月1日以降、全従業員は建物内で常にセキュリティバッジを見えるように着用しなければなりません。新しいバッジには、以前の磁気ストライプよりも安全な認証チップが搭載されています。制限区域への入室を許可されていない従業員は、側面の入口を使おうとしないでください。紛失または破損したバッジは、直ちに警備スタッフへ報告してください。バッジは1階の警備デスクで更新できます。"
         }
       ],
       "subQuestions": [
@@ -707,23 +716,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "every"
+              "text": "most"
             },
             {
               "key": "B",
-              "text": "each"
-            },
-            {
-              "key": "C",
               "text": "all"
             },
             {
+              "key": "C",
+              "text": "every"
+            },
+            {
               "key": "D",
-              "text": "most"
+              "text": "each"
             }
           ],
-          "answer": "C",
-          "explanation": "「常時」という意味の定型表現はat all timesであり、all以外の語はこの慣用句では使えない。",
+          "answer": "B",
+          "explanation": "「常時」という意味の定型表現はat all timesであり、every・each・mostはこの慣用句では使えない。",
           "translation": "7月1日以降、全従業員は建物内で常にセキュリティバッジを見えるように着用しなければなりません。"
         },
         {
@@ -732,22 +741,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "much"
+              "text": "many"
             },
             {
               "key": "B",
-              "text": "most"
-            },
-            {
-              "key": "C",
               "text": "more"
             },
             {
+              "key": "C",
+              "text": "most"
+            },
+            {
               "key": "D",
-              "text": "many"
+              "text": "much"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "直後にthanが続く比較の文なのでmoreが適切。mostは最上級、much/manyはthanと結び付く比較表現を作れない。",
           "translation": "新しいバッジには、以前の磁気ストライプよりも安全な認証チップが搭載されています。"
         },
@@ -761,18 +770,18 @@
             },
             {
               "key": "B",
-              "text": "authorized"
+              "text": "authorization"
             },
             {
               "key": "C",
-              "text": "authorize"
+              "text": "authorized"
             },
             {
               "key": "D",
-              "text": "authorization"
+              "text": "authorize"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "「have been+過去分詞」の受動態が正しい形。authorizeは原形、authorizingは進行形用、authorizationは名詞でこの位置には入らない。",
           "translation": "制限区域への入室を許可されていない従業員は、側面の入口を使おうとしないでください。"
         },
@@ -782,23 +791,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Lost or damaged badges should be reported immediately to security staff."
+              "text": "Employees may bring guests to the cafeteria during lunch hours."
             },
             {
               "key": "B",
-              "text": "The building was renovated two years ago to add more parking."
-            },
-            {
-              "key": "C",
               "text": "The security team hosts a training session every spring."
             },
             {
+              "key": "C",
+              "text": "Lost or damaged badges should be reported immediately to security staff."
+            },
+            {
               "key": "D",
-              "text": "Employees may bring guests to the cafeteria during lunch hours."
+              "text": "The building was renovated two years ago to add more parking."
             }
           ],
-          "answer": "A",
-          "explanation": "直後の文がバッジの更新場所の案内であるため、その前に紛失・破損時の報告手順を置くとバッジ管理の話題として自然につながる。他の3文はバッジ管理と直接関係しない。",
+          "answer": "C",
+          "explanation": "直後の文がバッジの更新場所の案内であるため、その前に紛失・破損時の報告手順を置くとバッジ管理の話題として自然につながる。他の3文はバッジ管理と直接関係しない。他の選択肢（\"Employees may bring guests to the cafeteria during lunch hours.\"／\"The security team hosts a training session every spring.\"／\"The building was renovated two years ago to add more parking.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "紛失または破損したバッジは、直ちに警備担当者に報告してください。"
         }
       ]
@@ -823,7 +832,8 @@
         {
           "id": "p6-007-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: Department Heads\nFrom: Office Administration\n\nTo make meeting room [[1]] fairer for everyone, we are launching a new booking system next Monday. Each department will receive an equal number of reservation credits [[2]] month. Rooms cannot be booked more than two weeks [[3]] advance under the new system. [[4]] Please share this update with your teams before the launch date."
+          "text": "MEMO\nTo: Department Heads\nFrom: Office Administration\n\nTo make meeting room [[1]] fairer for everyone, we are launching a new booking system next Monday. Each department will receive an equal number of reservation credits [[2]] month. Rooms cannot be booked more than two weeks [[3]] advance under the new system. [[4]] Please share this update with your teams before the launch date.",
+          "translation": "社内メモ\n宛先: 各部門責任者\n発信: 総務部\n\n誰にとっても会議室の予約をより公平にするため、来週月曜から新しい予約システムを開始します。各部署は月ごとに同数の予約枠を受け取ります。新システムでは、会議室は2週間より前に予約することができません。未使用の予約枠は翌月に持ち越されません。開始日までに、この案内を各チームへ共有してください。"
         }
       ],
       "subQuestions": [
@@ -833,11 +843,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "reservations"
+              "text": "reserve"
             },
             {
               "key": "B",
-              "text": "reserve"
+              "text": "reserved"
             },
             {
               "key": "C",
@@ -845,10 +855,10 @@
             },
             {
               "key": "D",
-              "text": "reserved"
+              "text": "reservations"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "直前のmeeting roomを修飾し、booking systemの対象である名詞が必要なのでreservations（予約）が適切。reserveは動詞、reservedは形容詞的用法だが文意に合わず、reservingは動名詞でここには入らない。",
           "translation": "誰にとっても会議室の予約をより公平にするため、来週月曜から新しい予約システムを開始します。"
         },
@@ -858,22 +868,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "upon"
-            },
-            {
-              "key": "B",
-              "text": "per"
-            },
-            {
-              "key": "C",
               "text": "within"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "among"
+            },
+            {
+              "key": "C",
+              "text": "upon"
+            },
+            {
+              "key": "D",
+              "text": "per"
             }
           ],
-          "answer": "B",
+          "answer": "D",
           "explanation": "「月ごとに」という意味を表す前置詞はper monthが定型。withinは「〜以内に」で意味が合わず、amongは複数名詞を取る前置詞、uponは「〜の上に・〜次第」でいずれもこの文脈に合わない。",
           "translation": "各部署は月ごとに同数の予約枠を受け取ります。"
         },
@@ -883,11 +893,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "at"
+              "text": "for"
             },
             {
               "key": "B",
-              "text": "for"
+              "text": "in"
             },
             {
               "key": "C",
@@ -895,10 +905,10 @@
             },
             {
               "key": "D",
-              "text": "in"
+              "text": "at"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "「事前に」という意味の定型表現はin advanceであり、on/at/forはこの慣用句では使えない。",
           "translation": "新システムでは、会議室は2週間より前に予約することができません。"
         },
@@ -908,23 +918,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Unused credits will not carry over to the following month."
+              "text": "The IT helpdesk is open from 9 a.m. to 5 p.m. on weekdays."
             },
             {
               "key": "B",
-              "text": "The office recently switched to recycled paper for all printing."
-            },
-            {
-              "key": "C",
               "text": "A new coffee machine was installed in the break room last week."
             },
             {
+              "key": "C",
+              "text": "Unused credits will not carry over to the following month."
+            },
+            {
               "key": "D",
-              "text": "The IT helpdesk is open from 9 a.m. to 5 p.m. on weekdays."
+              "text": "The office recently switched to recycled paper for all printing."
             }
           ],
-          "answer": "A",
-          "explanation": "直前で予約枠の付与について述べた後、未使用枠の扱い（翌月に持ち越されない）を補足する一文が自然につながる。他の3文は予約システムと無関係。",
+          "answer": "C",
+          "explanation": "直前で予約枠の付与について述べた後、未使用枠の扱い（翌月に持ち越されない）を補足する一文が自然につながる。他の3文は予約システムと無関係。他の選択肢（\"The IT helpdesk is open from 9 a.m. to 5 p.m. on weekdays.\"／\"A new coffee machine was installed in the break room last week.\"／\"The office recently switched to recycled paper for all printing.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "未使用の予約枠は翌月に持ち越されません。"
         }
       ]
@@ -954,7 +964,8 @@
         {
           "id": "p6-008-doc1",
           "kind": "email",
-          "text": "Subject: Invoice Discrepancy — Order 4482\n\nDear Ms. Patel,\n\nWe [[1]] your invoice for order 4482 and noticed the total does not match our purchase order. Our records show a quantity of 200 units, while the invoice [[2]] 250 units. Could you please reconcile this difference and send a corrected invoice [[3]] the end of this week? [[4]] We would like to complete payment before the end of the month."
+          "text": "Subject: Invoice Discrepancy — Order 4482\n\nDear Ms. Patel,\n\nWe [[1]] your invoice for order 4482 and noticed the total does not match our purchase order. Our records show a quantity of 200 units, while the invoice [[2]] 250 units. Could you please reconcile this difference and send a corrected invoice [[3]] the end of this week? [[4]] We would like to complete payment before the end of the month.",
+          "translation": "件名: 請求書の不一致について — 注文4482\n\nPatel様\n\n注文4482の請求書を確認したところ、合計額が発注書と一致しないことに気づきました。当社の記録では200個となっていますが、請求書には250個と記載されています。この差異を確認し、今週末までに修正した請求書を送っていただけますか。必要であれば、当社の経理チームが電話でこの件についてご相談に応じます。今月末までにお支払いを完了したいと考えております。"
         }
       ],
       "subQuestions": [
@@ -964,22 +975,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "review"
-            },
-            {
-              "key": "B",
-              "text": "will review"
-            },
-            {
-              "key": "C",
               "text": "have reviewed"
             },
             {
-              "key": "D",
+              "key": "B",
+              "text": "review"
+            },
+            {
+              "key": "C",
               "text": "reviewing"
+            },
+            {
+              "key": "D",
+              "text": "will review"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "直後にnoticedという過去形が続き、過去に行った確認作業が現在の指摘につながっているため、現在完了形have reviewedが最も自然。原形・進行形・未来形は文脈の時制と合わない。",
           "translation": "注文4482の請求書を確認したところ、合計額が発注書と一致しないことに気づきました。"
         },
@@ -989,7 +1000,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "listing"
+              "text": "listed"
             },
             {
               "key": "B",
@@ -1001,7 +1012,7 @@
             },
             {
               "key": "D",
-              "text": "listed"
+              "text": "listing"
             }
           ],
           "answer": "B",
@@ -1014,22 +1025,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "until"
+              "text": "during"
             },
             {
               "key": "B",
-              "text": "since"
-            },
-            {
-              "key": "C",
               "text": "by"
             },
             {
+              "key": "C",
+              "text": "until"
+            },
+            {
               "key": "D",
-              "text": "during"
+              "text": "since"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "「今週末までに」という期限を表す前置詞はbyが適切。untilは継続の終点、sinceは起点、duringは期間中を表し、いずれも期限の意味には合わない。",
           "translation": "この差異を確認し、今週末までに修正した請求書を送っていただけますか。"
         },
@@ -1039,23 +1050,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "We recently updated our supplier evaluation process."
-            },
-            {
-              "key": "B",
               "text": "Order 4482 was shipped by a different carrier than usual."
             },
             {
+              "key": "B",
+              "text": "We recently updated our supplier evaluation process."
+            },
+            {
               "key": "C",
-              "text": "The company plans to expand its warehouse next year."
+              "text": "Our accounting team is available to discuss the matter by phone if needed."
             },
             {
               "key": "D",
-              "text": "Our accounting team is available to discuss the matter by phone if needed."
+              "text": "The company plans to expand its warehouse next year."
             }
           ],
-          "answer": "D",
-          "explanation": "直前で修正請求書の送付を依頼しているため、必要なら電話で相談できるという補足が自然に続く。他の3文は請求書の不一致問題と直接関係しない。",
+          "answer": "C",
+          "explanation": "直前で修正請求書の送付を依頼しているため、必要なら電話で相談できるという補足が自然に続く。他の3文は請求書の不一致問題と直接関係しない。他の選択肢（\"Order 4482 was shipped by a different carrier than usual.\"／\"We recently updated our supplier evaluation process.\"／\"The company plans to expand its warehouse next year.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "必要であれば、当社の経理チームが電話でこの件についてご相談に応じます。"
         }
       ]
@@ -1085,7 +1096,8 @@
         {
           "id": "p6-009-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: All Staff\nFrom: Human Resources\n\nBeginning next month, our remote work policy will be updated to give the workforce more flexibility. Employees [[1]] work from home up to three days per week, provided their manager approves the arrangement in advance. [[2]] the new policy takes effect, all employees must complete a short online compliance training. [[3]] the training, employees will confirm they understand the data security requirements for remote work. [[4]] Managers will receive a separate briefing next week."
+          "text": "MEMO\nTo: All Staff\nFrom: Human Resources\n\nBeginning next month, our remote work policy will be updated to give the workforce more flexibility. Employees [[1]] work from home up to three days per week, provided their manager approves the arrangement in advance. [[2]] the new policy takes effect, all employees must complete a short online compliance training. [[3]] the training, employees will confirm they understand the data security requirements for remote work. [[4]] Managers will receive a separate briefing next week.",
+          "translation": "社内メモ\n宛先: 全従業員\n発信: 人事部\n\n来月から、従業員により大きな柔軟性を与えるためリモート勤務規定が更新されます。従業員は、事前に上司の承認があれば週に最大3日まで自宅で勤務できます。新しい制度が施行される前に、全従業員は簡単なオンラインコンプライアンス研修を完了する必要があります。研修中、従業員はリモート勤務のデータセキュリティ要件を理解していることを確認します。この研修はオンラインで完了するまで約20分かかります。管理職向けには来週別途説明会を行います。"
         }
       ],
       "subQuestions": [
@@ -1095,22 +1107,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "might have"
+              "text": "could have"
             },
             {
               "key": "B",
-              "text": "would have"
-            },
-            {
-              "key": "C",
               "text": "may"
             },
             {
+              "key": "C",
+              "text": "might have"
+            },
+            {
               "key": "D",
-              "text": "could have"
+              "text": "would have"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "現在から将来にかけての許可を表す用法にはmayが適切。might have/would have/could haveはいずれも過去に対する推量や仮定を表し、これからの許可を述べる文には合わない。",
           "translation": "従業員は、事前に上司の承認があれば週に最大3日まで自宅で勤務できます。"
         },
@@ -1120,7 +1132,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "In spite of"
+              "text": "Before"
             },
             {
               "key": "B",
@@ -1132,10 +1144,10 @@
             },
             {
               "key": "D",
-              "text": "Before"
+              "text": "In spite of"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "直後に主語+動詞（the new policy takes effect）が続く時間関係を表す接続詞なのでBeforeが適切。Despite/Because of/In spite ofは前置詞でこの節構造には合わない。",
           "translation": "新しい制度が施行される前に、全従業員は簡単なオンラインコンプライアンス研修を完了する必要があります。"
         },
@@ -1145,7 +1157,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Meanwhile"
+              "text": "Although"
             },
             {
               "key": "B",
@@ -1153,11 +1165,11 @@
             },
             {
               "key": "C",
-              "text": "Although"
+              "text": "While"
             },
             {
               "key": "D",
-              "text": "While"
+              "text": "Meanwhile"
             }
           ],
           "answer": "B",
@@ -1186,7 +1198,7 @@
             }
           ],
           "answer": "B",
-          "explanation": "直前でコンプライアンス研修の完了を求めているため、研修の所要時間を補足する一文が自然に続く。他の3文はこの研修と直接関係しない。",
+          "explanation": "直前でコンプライアンス研修の完了を求めているため、研修の所要時間を補足する一文が自然に続く。他の3文はこの研修と直接関係しない。他の選択肢（\"The human resources office relocated last spring.\"／\"The company was founded more than thirty years ago.\"／\"Employees can order office supplies through the intranet portal.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この研修はオンラインで完了するまで約20分かかります。"
         }
       ]
@@ -1203,7 +1215,7 @@
       "keyVocab": [
         {
           "word": "recycling",
-          "sense": "リサイクル",
+          "sense": "リサイクル（再利用）",
           "freqRank": "A"
         },
         {
@@ -1216,7 +1228,8 @@
         {
           "id": "p6-010-doc1",
           "kind": "notice",
-          "text": "NOTICE: New Recycling Program\n\nStarting this month, the office is launching a recycling program to support our sustainable business goals. Blue bins will be placed [[1]] every floor for paper and cardboard, while green bins will be used [[2]] plastic and glass. Employees are asked to rinse containers [[3]] placing them in the green bins. [[4]] A short guide explaining what belongs in each bin will be posted near the bins."
+          "text": "NOTICE: New Recycling Program\n\nStarting this month, the office is launching a recycling program to support our sustainable business goals. Blue bins will be placed [[1]] every floor for paper and cardboard, while green bins will be used [[2]] plastic and glass. Employees are asked to rinse containers [[3]] placing them in the green bins. [[4]] A short guide explaining what belongs in each bin will be posted near the bins.",
+          "translation": "案内: 新しいリサイクル制度について\n\n今月から、持続可能な事業目標を支えるためオフィスでリサイクル制度を開始します。各フロアには紙・段ボール用の青い箱が設置され、プラスチック・ガラス用には緑の箱が使われます。従業員は緑の箱に入れる前に容器をすすぐようお願いします。電池や電子機器は、依然としてロビーの回収場所へ持って行ってください。各箱に入れるべきものを説明した簡単なガイドを箱の近くに掲示します。"
         }
       ],
       "subQuestions": [
@@ -1226,11 +1239,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "on"
+              "text": "in"
             },
             {
               "key": "B",
-              "text": "in"
+              "text": "at"
             },
             {
               "key": "C",
@@ -1238,10 +1251,10 @@
             },
             {
               "key": "D",
-              "text": "at"
+              "text": "on"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "「各フロアに」という意味ではon every floorが自然な前置詞コロケーション。in/at/toはこの文脈で位置を表す表現として使われない。",
           "translation": "各フロアには紙・段ボール用の青い箱が設置され、プラスチック・ガラス用には緑の箱が使われます。"
         },
@@ -1251,22 +1264,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "about"
-            },
-            {
-              "key": "B",
-              "text": "of"
-            },
-            {
-              "key": "C",
               "text": "for"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "with"
+            },
+            {
+              "key": "C",
+              "text": "of"
+            },
+            {
+              "key": "D",
+              "text": "about"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "「〜のために使われる」という意味を表すused forが自然な前置詞コロケーション。with/of/aboutはこの意味を表さない。",
           "translation": "緑の箱はプラスチックとガラス用に使われます。"
         },
@@ -1309,15 +1322,15 @@
             },
             {
               "key": "C",
-              "text": "Employees are reminded to badge in at the front desk each morning."
+              "text": "The office cafeteria will introduce a new lunch menu next week."
             },
             {
               "key": "D",
-              "text": "The office cafeteria will introduce a new lunch menu next week."
+              "text": "Employees are reminded to badge in at the front desk each morning."
             }
           ],
           "answer": "B",
-          "explanation": "直前でリサイクル箱の使い分けを説明した後、電池や電子機器は別の回収場所へという補足情報が自然に続く。他の3文はリサイクル制度と関係しない。",
+          "explanation": "直前でリサイクル箱の使い分けを説明した後、電池や電子機器は別の回収場所へという補足情報が自然に続く。他の3文はリサイクル制度と関係しない。他の選択肢（\"A new printer was installed on the third floor last month.\"／\"The office cafeteria will introduce a new lunch menu next week.\"／\"Employees are reminded to badge in at the front desk each morning.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "電池や電子機器は、依然としてロビーの回収場所へ持って行ってください。"
         }
       ]
@@ -1333,7 +1346,7 @@
       "keyVocab": [
         {
           "word": "catering",
-          "sense": "ケータリング",
+          "sense": "ケータリング（出張料理）",
           "freqRank": "S"
         }
       ],
@@ -1341,7 +1354,8 @@
         {
           "id": "p6-011-doc1",
           "kind": "email",
-          "text": "Subject: Cafeteria Menu Change Notice\n\nDear Employees,\n\nOur catering provider [[1]] the lunch menu starting next Monday to include more vegetarian and gluten-free options. The salad bar [[2]] available daily, and hot meal choices will rotate weekly. If you have a specific dietary need not covered by the new menu, please [[3]] the cafeteria manager directly. [[4]] We hope these changes make lunchtime more enjoyable for everyone."
+          "text": "Subject: Cafeteria Menu Change Notice\n\nDear Employees,\n\nOur catering provider [[1]] the lunch menu starting next Monday to include more vegetarian and gluten-free options. The salad bar [[2]] available daily, and hot meal choices will rotate weekly. If you have a specific dietary need not covered by the new menu, please [[3]] the cafeteria manager directly. [[4]] We hope these changes make lunchtime more enjoyable for everyone.",
+          "translation": "件名: カフェテリアのメニュー変更のお知らせ\n\n従業員の皆様へ\n\nケータリング業者は来週月曜からベジタリアン向け・グルテンフリーの選択肢を増やす形でランチメニューを変更します。サラダバーは毎日利用可能で、ホットミールの選択肢は週替わりになります。新しいメニューでは対応できない特別な食事制限がある場合は、直接カフェテリア担当者にご連絡ください。新しいメニューの印刷版はカフェテリアの入口に掲示されます。この変更により、皆様のランチタイムがより快適になれば幸いです。"
         }
       ],
       "subQuestions": [
@@ -1359,14 +1373,14 @@
             },
             {
               "key": "C",
-              "text": "will update"
+              "text": "has updated"
             },
             {
               "key": "D",
-              "text": "has updated"
+              "text": "will update"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "文末のstarting next Mondayから未来の変更を述べているためwill updateが適切。updatesは現在の習慣的動作、updatingは動名詞、has updatedは既に完了した過去の行為を表し文脈に合わない。",
           "translation": "ケータリング業者は来週月曜からベジタリアン向け・グルテンフリーの選択肢を増やす形でランチメニューを変更します。"
         },
@@ -1376,22 +1390,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "to remain"
-            },
-            {
-              "key": "B",
-              "text": "remain"
-            },
-            {
-              "key": "C",
               "text": "remaining"
             },
             {
-              "key": "D",
+              "key": "B",
+              "text": "to remain"
+            },
+            {
+              "key": "C",
               "text": "will remain"
+            },
+            {
+              "key": "D",
+              "text": "remain"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "来週月曜以降の今後の状態を述べているためwill remainが適切。remainは三人称単数の主語The salad barと一致せず、remaining/to remainは定形動詞にならないため文が成立しない。",
           "translation": "サラダバーは毎日利用可能で、ホットミールの選択肢は週替わりになります。"
         },
@@ -1401,22 +1415,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "contacts"
-            },
-            {
-              "key": "B",
               "text": "contacting"
             },
             {
+              "key": "B",
+              "text": "contacted"
+            },
+            {
               "key": "C",
-              "text": "contact"
+              "text": "contacts"
             },
             {
               "key": "D",
-              "text": "contacted"
+              "text": "contact"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "please+動詞の原形という命令文の形が正しいためcontactが適切。contactingは動名詞、contactedは過去形、contactsは三単現で命令文には使えない。",
           "translation": "新しいメニューでは対応できない特別な食事制限がある場合は、直接カフェテリア担当者にご連絡ください。"
         },
@@ -1426,23 +1440,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "The cafeteria will close for renovation next year."
-            },
-            {
-              "key": "B",
               "text": "The building's parking garage was repaved last summer."
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "A printed copy of the new menu will be displayed at the cafeteria entrance."
+            },
+            {
+              "key": "C",
+              "text": "The cafeteria will close for renovation next year."
             },
             {
               "key": "D",
               "text": "Employees are welcome to bring guests to the annual company picnic."
             }
           ],
-          "answer": "C",
-          "explanation": "直前で新しいメニューの内容について説明しているため、印刷版の掲示場所を伝える一文が自然に続く。他の3文はメニュー変更と直接関係しない。",
+          "answer": "B",
+          "explanation": "直前で新しいメニューの内容について説明しているため、印刷版の掲示場所を伝える一文が自然に続く。他の3文はメニュー変更と直接関係しない。他の選択肢（\"The building's parking garage was repaved last summer.\"／\"The cafeteria will close for renovation next year.\"／\"Employees are welcome to bring guests to the annual company picnic.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "新しいメニューの印刷版はカフェテリアの入口に掲示されます。"
         }
       ]
@@ -1471,7 +1485,8 @@
         {
           "id": "p6-012-doc1",
           "kind": "article",
-          "text": "Local Employees Take Part in Community Volunteer Day\n\nLast Saturday, more than sixty employees from Greenfield Logistics took part in a community volunteer initiative [[1]] focused on cleaning up the riverside park. The event, [[2]] was organized by the human resources department, also included a lunch for all participants. Volunteers [[3]] planted trees were given small certificates to recognize their effort. [[4]] Organizers say they plan to coordinate a similar event again next spring."
+          "text": "Local Employees Take Part in Community Volunteer Day\n\nLast Saturday, more than sixty employees from Greenfield Logistics took part in a community volunteer initiative [[1]] focused on cleaning up the riverside park. The event, [[2]] was organized by the human resources department, also included a lunch for all participants. Volunteers [[3]] planted trees were given small certificates to recognize their effort. [[4]] Organizers say they plan to coordinate a similar event again next spring.",
+          "translation": "地元従業員が地域ボランティアデーに参加\n\n先週土曜日、Greenfield Logisticsの60名を超える従業員が河川公園の清掃に重点を置いた地域ボランティア活動に参加しました。このイベントは人事部が主催し、参加者全員に昼食も提供されました。木を植えたボランティアには、その努力を評価する小さな証明書が贈られました。いくつかの地元企業が、この日のために道具や軽食を提供しました。主催者は来春にも同様のイベントを行う予定だと述べています。"
         }
       ],
       "subQuestions": [
@@ -1481,22 +1496,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "who"
-            },
-            {
-              "key": "B",
               "text": "whose"
             },
             {
+              "key": "B",
+              "text": "that"
+            },
+            {
               "key": "C",
-              "text": "whom"
+              "text": "who"
             },
             {
               "key": "D",
-              "text": "that"
+              "text": "whom"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "先行詞a community volunteer initiative（物）を修飾する関係代名詞なのでthatが適切。who/whomは人を先行詞にし、whoseは所有格でここでは使えない。",
           "translation": "先週土曜日、Greenfield Logisticsの60名を超える従業員が河川公園の清掃に重点を置いた地域ボランティア活動に参加しました。"
         },
@@ -1531,11 +1546,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "who"
+              "text": "whose"
             },
             {
               "key": "B",
-              "text": "which"
+              "text": "who"
             },
             {
               "key": "C",
@@ -1543,10 +1558,10 @@
             },
             {
               "key": "D",
-              "text": "whose"
+              "text": "which"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "先行詞Volunteers（人）を主語として修飾する関係代名詞はwho。whomは目的格、whichは物を先行詞にし、whoseは所有格でこの文には合わない。",
           "translation": "木を植えたボランティアには、その努力を評価する小さな証明書が贈られました。"
         },
@@ -1556,23 +1571,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "The riverside park is popular with joggers on weekends."
-            },
-            {
-              "key": "B",
-              "text": "Greenfield Logistics was founded nearly forty years ago."
-            },
-            {
-              "key": "C",
               "text": "The company's annual report will be published next month."
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "Several local businesses donated tools and refreshments for the day."
+            },
+            {
+              "key": "C",
+              "text": "Greenfield Logistics was founded nearly forty years ago."
+            },
+            {
+              "key": "D",
+              "text": "The riverside park is popular with joggers on weekends."
             }
           ],
-          "answer": "D",
-          "explanation": "直前でボランティアイベントの内容を説明しているため、地元企業による道具・飲食物の提供という関連情報が自然に続く。他の3文はイベントと直接関係しない。",
+          "answer": "B",
+          "explanation": "直前でボランティアイベントの内容を説明しているため、地元企業による道具・飲食物の提供という関連情報が自然に続く。他の3文はイベントと直接関係しない。他の選択肢（\"The company's annual report will be published next month.\"／\"Greenfield Logistics was founded nearly forty years ago.\"／\"The riverside park is popular with joggers on weekends.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "いくつかの地元企業が、この日のために道具や軽食を提供しました。"
         }
       ]
@@ -1607,7 +1622,8 @@
         {
           "id": "p6-013-doc1",
           "kind": "email",
-          "text": "Subject: Vendor Contract Renewal — Action Needed\n\nDear Mr. Sato,\n\nOur contract with your company [[1]] expires at the end of next month. [[2]] we have been satisfied with your service, we would like to discuss renewal terms before the current agreement ends. Please let us know [[3]] you are available for a short call this week. [[4]] We would also appreciate an updated price list for the coming year."
+          "text": "Subject: Vendor Contract Renewal — Action Needed\n\nDear Mr. Sato,\n\nOur contract with your company [[1]] expires at the end of next month. [[2]] we have been satisfied with your service, we would like to discuss renewal terms before the current agreement ends. Please let us know [[3]] you are available for a short call this week. [[4]] We would also appreciate an updated price list for the coming year.",
+          "translation": "件名: 業者契約の更新について — ご対応のお願い\n\nSato様\n\n御社との契約は現在、来月末に期限を迎えます。御社のサービスに満足しているため、契約終了前に更新条件について相談したいと考えています。今週いつ短い電話でお話しできるかお知らせください。双方にとって利益があれば、より長期の契約についても検討する用意があります。来年度の最新の価格表もいただけますと幸いです。"
         }
       ],
       "subQuestions": [
@@ -1617,11 +1633,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "currency"
+              "text": "currents"
             },
             {
               "key": "B",
-              "text": "currents"
+              "text": "currently"
             },
             {
               "key": "C",
@@ -1629,10 +1645,10 @@
             },
             {
               "key": "D",
-              "text": "currently"
+              "text": "currency"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "動詞expiresを修飾するのは副詞currentlyが適切。currentは形容詞、currencyは名詞（通貨）、currentsは名詞の複数形でここでは使えない。",
           "translation": "御社との契約は現在、来月末に期限を迎えます。"
         },
@@ -1642,22 +1658,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Despite"
+              "text": "Unless"
             },
             {
               "key": "B",
-              "text": "Since"
-            },
-            {
-              "key": "C",
               "text": "During"
             },
             {
+              "key": "C",
+              "text": "Since"
+            },
+            {
               "key": "D",
-              "text": "Unless"
+              "text": "Despite"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "直後に主語+動詞（we have been satisfied）が続き、理由を表す接続詞なのでSinceが適切。Despite/During は前置詞、Unlessは否定条件でここでは意味が合わない。",
           "translation": "御社のサービスに満足しているため、契約終了前に更新条件について相談したいと考えています。"
         },
@@ -1667,11 +1683,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "that"
+              "text": "which"
             },
             {
               "key": "B",
-              "text": "which"
+              "text": "when"
             },
             {
               "key": "C",
@@ -1679,10 +1695,10 @@
             },
             {
               "key": "D",
-              "text": "when"
+              "text": "that"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "「いつ都合が良いか」という間接疑問を導くのはwhen。what/that/whichはこの文脈での時間を尋ねる意味を表せない。",
           "translation": "今週いつ短い電話でお話しできるかお知らせください。"
         },
@@ -1692,23 +1708,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Our company recently moved to a larger office building."
-            },
-            {
-              "key": "B",
-              "text": "The current contract was signed by our previous procurement manager."
-            },
-            {
-              "key": "C",
               "text": "We plan to attend the industry trade show again this year."
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "We are also open to discussing a longer-term agreement if it benefits both parties."
+            },
+            {
+              "key": "C",
+              "text": "Our company recently moved to a larger office building."
+            },
+            {
+              "key": "D",
+              "text": "The current contract was signed by our previous procurement manager."
             }
           ],
-          "answer": "D",
-          "explanation": "直前で更新条件の相談と価格表の依頼をしているため、双方に利益があれば長期契約も検討したいという補足が自然に続く。他の3文は契約更新と直接関係しない。",
+          "answer": "B",
+          "explanation": "直前で更新条件の相談と価格表の依頼をしているため、双方に利益があれば長期契約も検討したいという補足が自然に続く。他の3文は契約更新と直接関係しない。他の選択肢（\"We plan to attend the industry trade show again this year.\"／\"Our company recently moved to a larger office building.\"／\"The current contract was signed by our previous procurement manager.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "双方にとって利益があれば、より長期の契約についても検討する用意があります。"
         }
       ]
@@ -1738,7 +1754,8 @@
         {
           "id": "p6-014-doc1",
           "kind": "email",
-          "text": "Subject: New Employee Orientation Reminder\n\nDear New Team Members,\n\nWelcome to the company! Your orientation [[1]] will begin this Monday at 9 a.m. in the main conference room. Please bring a valid photo ID and any completed [[2]] forms from human resources. The morning session covers company policies, and the afternoon includes hands-on training [[3]] your department's main software tools. [[4]] Lunch will be provided on the first day."
+          "text": "Subject: New Employee Orientation Reminder\n\nDear New Team Members,\n\nWelcome to the company! Your orientation [[1]] will begin this Monday at 9 a.m. in the main conference room. Please bring a valid photo ID and any completed [[2]] forms from human resources. The morning session covers company policies, and the afternoon includes hands-on training [[3]] your department's main software tools. [[4]] Lunch will be provided on the first day.",
+          "translation": "件名: 新入社員オリエンテーションのご案内（リマインダー）\n\n新しいチームメンバーの皆様へ\n\n入社おめでとうございます！新入社員の皆さんのオリエンテーションは今週月曜午前9時にメイン会議室で始まります。有効な写真付き身分証明書と、人事部から受け取った登録書類の記入済み分をお持ちください。午前は会社の規定について、午後の部では各部署の主要なソフトウェアツールに関する実践研修が行われます。簡単な受付手続きのため、15分早めにお越しください。初日は昼食が用意されています。"
         }
       ],
       "subQuestions": [
@@ -1756,11 +1773,11 @@
             },
             {
               "key": "C",
-              "text": "sessioning"
+              "text": "sessional"
             },
             {
               "key": "D",
-              "text": "sessional"
+              "text": "sessioning"
             }
           ],
           "answer": "B",
@@ -1773,22 +1790,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "enroll"
+              "text": "enrollment"
             },
             {
               "key": "B",
-              "text": "enrolling"
+              "text": "enroll"
             },
             {
               "key": "C",
-              "text": "enrollment"
+              "text": "enrolling"
             },
             {
               "key": "D",
               "text": "enrolled"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "直前のcompletedに修飾される名詞が必要なためenrollment（登録）が適切。enrollは動詞、enrollingは動名詞、enrolledは過去分詞（形容詞的にも使えるが名詞formsを修飾するにはenrollment formsが自然）。",
           "translation": "有効な写真付き身分証明書と、人事部から受け取った登録書類の記入済み分をお持ちください。"
         },
@@ -1798,11 +1815,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "of"
+              "text": "about"
             },
             {
               "key": "B",
-              "text": "on"
+              "text": "of"
             },
             {
               "key": "C",
@@ -1810,10 +1827,10 @@
             },
             {
               "key": "D",
-              "text": "about"
+              "text": "on"
             }
           ],
-          "answer": "B",
+          "answer": "D",
           "explanation": "「〜に関する研修」という意味ではtraining onが自然な前置詞コロケーション。about/of/forはこの用法では一般的でない。",
           "translation": "午後の部では、各部署の主要なソフトウェアツールに関する実践研修が行われます。"
         },
@@ -1823,23 +1840,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Human resources plans to hire five more employees this year."
-            },
-            {
-              "key": "B",
               "text": "The company was recently recognized for its customer service."
             },
             {
+              "key": "B",
+              "text": "The main conference room can seat up to fifty people."
+            },
+            {
               "key": "C",
-              "text": "Please arrive fifteen minutes early to complete a short check-in process."
+              "text": "Human resources plans to hire five more employees this year."
             },
             {
               "key": "D",
-              "text": "The main conference room can seat up to fifty people."
+              "text": "Please arrive fifteen minutes early to complete a short check-in process."
             }
           ],
-          "answer": "C",
-          "explanation": "直前でオリエンテーションの開始時間と持ち物を伝えているため、受付のために早めに来るよう促す一文が自然に続く。他の3文は当日の案内と直接関係しない。",
+          "answer": "D",
+          "explanation": "直前でオリエンテーションの開始時間と持ち物を伝えているため、受付のために早めに来るよう促す一文が自然に続く。他の3文は当日の案内と直接関係しない。他の選択肢（\"The company was recently recognized for its customer service.\"／\"The main conference room can seat up to fifty people.\"／\"Human resources plans to hire five more employees this year.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "簡単な受付手続きのため、15分早めにお越しください。"
         }
       ]
@@ -1874,7 +1891,8 @@
         {
           "id": "p6-015-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: All Managers\nFrom: Human Resources\n\nAnnual performance evaluations are [[1]] than they were last year, so please review the updated appraisal form before your meetings. Managers are asked to schedule the evaluation [[2]] two weeks before the deadline to allow time for follow-up discussions. Employees should receive their appraisal form [[3]] three days in advance so they can prepare. [[4]] Completed forms must be submitted to HR by the end of the month."
+          "text": "MEMO\nTo: All Managers\nFrom: Human Resources\n\nAnnual performance evaluations are [[1]] than they were last year, so please review the updated appraisal form before your meetings. Managers are asked to schedule the evaluation [[2]] two weeks before the deadline to allow time for follow-up discussions. Employees should receive their appraisal form [[3]] three days in advance so they can prepare. [[4]] Completed forms must be submitted to HR by the end of the month.",
+          "translation": "社内メモ\n宛先: 全管理職\n発信: 人事部\n\n年次評価は昨年よりも詳細になっているため、面談前に更新された評価フォームを確認してください。評価面談は締切の2週間前には設定し、フォローアップの時間を確保してください。従業員が準備できるよう、評価フォームは遅くとも3日前までに渡してください。追加の指導を希望する管理者向けに、人事部が任意の研修会を開催します。記入済みのフォームは今月末までに人事部へ提出してください。"
         }
       ],
       "subQuestions": [
@@ -1884,22 +1902,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "detailing"
-            },
-            {
-              "key": "B",
               "text": "most detailed"
             },
             {
+              "key": "B",
+              "text": "detail"
+            },
+            {
               "key": "C",
-              "text": "more detailed"
+              "text": "detailing"
             },
             {
               "key": "D",
-              "text": "detail"
+              "text": "more detailed"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "直後にthanが続く比較の文なのでmore detailedが適切。most detailedは最上級でthanと結びつかず、detail/detailingは形容詞的比較の形として使えない。",
           "translation": "年次評価は昨年よりも詳細になっているため、面談前に更新された評価フォームを確認してください。"
         },
@@ -1909,22 +1927,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "at least"
-            },
-            {
-              "key": "B",
-              "text": "at most"
-            },
-            {
-              "key": "C",
               "text": "as long as"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "as soon as"
+            },
+            {
+              "key": "C",
+              "text": "at least"
+            },
+            {
+              "key": "D",
+              "text": "at most"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "「少なくとも2週間前に」という意味ではat leastが適切。at mostは「最大でも」で意味が逆になり、as long asは「〜である限り」で期間の下限を表せず、as soon asは「〜するとすぐ」で名詞句の前に置けない。",
           "translation": "評価面談は締切の2週間前には設定し、フォローアップの時間を確保してください。"
         },
@@ -1934,11 +1952,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "no later than"
+              "text": "now that"
             },
             {
               "key": "B",
-              "text": "now that"
+              "text": "no later than"
             },
             {
               "key": "C",
@@ -1949,7 +1967,7 @@
               "text": "in case of"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "「遅くとも〜までに」という期限を表すno later thanが適切。as soon asは「〜するとすぐ」で期限を表せず、in case ofは「〜の場合に備えて」で意味が異なり、now thatは理由を表す接続詞でここでは合わない。",
           "translation": "従業員が準備できるよう、評価フォームは遅くとも3日前までに渡してください。"
         },
@@ -1963,19 +1981,19 @@
             },
             {
               "key": "B",
-              "text": "HR will hold an optional training session for managers who want extra guidance."
-            },
-            {
-              "key": "C",
               "text": "Employees can request vacation days through the online portal."
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "The break room was recently equipped with a new coffee machine."
+            },
+            {
+              "key": "D",
+              "text": "HR will hold an optional training session for managers who want extra guidance."
             }
           ],
-          "answer": "B",
-          "explanation": "直前で評価フォームの提出期限に触れているため、追加のガイダンスを求める管理者向けの研修案内が自然に続く。他の3文は評価プロセスと直接関係しない。",
+          "answer": "D",
+          "explanation": "直前で評価フォームの提出期限に触れているため、追加のガイダンスを求める管理者向けの研修案内が自然に続く。他の3文は評価プロセスと直接関係しない。他の選択肢（\"The company introduced a new logo last quarter.\"／\"Employees can request vacation days through the online portal.\"／\"The break room was recently equipped with a new coffee machine.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "追加の指導を希望する管理者向けに、人事部が任意の研修会を開催します。"
         }
       ]
@@ -1991,12 +2009,12 @@
       "keyVocab": [
         {
           "word": "feedback",
-          "sense": "フィードバック",
+          "sense": "フィードバック（意見・反応）",
           "freqRank": "S"
         },
         {
           "word": "survey",
-          "sense": "アンケート",
+          "sense": "アンケート（調査）",
           "freqRank": "S"
         }
       ],
@@ -2004,7 +2022,8 @@
         {
           "id": "p6-016-doc1",
           "kind": "email",
-          "text": "Subject: Please Share Your Feedback\n\nDear Customer,\n\nThank you for your recent purchase. We would like to [[1]] your opinion through a short survey about your shopping experience. The survey [[2]] about three minutes and can be completed on any device. Everyone who [[3]] the survey by the end of the month will be entered into a prize drawing. [[4]] Your feedback helps us improve our service."
+          "text": "Subject: Please Share Your Feedback\n\nDear Customer,\n\nThank you for your recent purchase. We would like to [[1]] your opinion through a short survey about your shopping experience. The survey [[2]] about three minutes and can be completed on any device. Everyone who [[3]] the survey by the end of the month will be entered into a prize drawing. [[4]] Your feedback helps us improve our service.",
+          "translation": "件名: ご意見をお聞かせください\n\nお客様へ\n\nこの度のご購入ありがとうございます。お客様の購買体験についての短い調査を通じて、ご意見をお聞きしたいと思います。この調査は約3分で完了し、どの端末からでも回答できます。月末までに調査に回答した方全員が抽選に参加できます。抽選の当選者は、来月上旬にメールでお知らせします。皆様のご意見は、サービス向上のために活用させていただきます。"
         }
       ],
       "subQuestions": [
@@ -2018,7 +2037,7 @@
             },
             {
               "key": "B",
-              "text": "hears"
+              "text": "hearing"
             },
             {
               "key": "C",
@@ -2026,7 +2045,7 @@
             },
             {
               "key": "D",
-              "text": "hearing"
+              "text": "hears"
             }
           ],
           "answer": "A",
@@ -2039,7 +2058,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "takes"
+              "text": "take"
             },
             {
               "key": "B",
@@ -2051,10 +2070,10 @@
             },
             {
               "key": "D",
-              "text": "take"
+              "text": "takes"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "主語The surveyは単数のため三単現のtakesが適切。takeは原形/複数形用、takingは動名詞、takenは過去分詞でここには入らない。",
           "translation": "この調査は約3分で完了し、どの端末からでも回答できます。"
         },
@@ -2068,7 +2087,7 @@
             },
             {
               "key": "B",
-              "text": "completed"
+              "text": "completes"
             },
             {
               "key": "C",
@@ -2076,10 +2095,10 @@
             },
             {
               "key": "D",
-              "text": "completes"
+              "text": "completed"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "関係代名詞whoの後は主語Everyoneに対応する三単現の動詞が必要なためcompletesが適切。completingは動名詞、completedは過去形、completeは原形でこの位置には入らない。",
           "translation": "月末までに調査に回答した方全員が抽選に参加できます。"
         },
@@ -2089,23 +2108,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "The drawing winner will be announced by email early next month."
-            },
-            {
-              "key": "B",
               "text": "Shipping delays this season affected several popular items."
             },
             {
+              "key": "B",
+              "text": "Customers can now return items within sixty days of purchase."
+            },
+            {
               "key": "C",
-              "text": "Our store recently opened a new location downtown."
+              "text": "The drawing winner will be announced by email early next month."
             },
             {
               "key": "D",
-              "text": "Customers can now return items within sixty days of purchase."
+              "text": "Our store recently opened a new location downtown."
             }
           ],
-          "answer": "A",
-          "explanation": "直前で抽選への参加条件を述べているため、当選者の発表方法についての一文が自然に続く。他の3文は調査・抽選と直接関係しない。",
+          "answer": "C",
+          "explanation": "直前で抽選への参加条件を述べているため、当選者の発表方法についての一文が自然に続く。他の3文は調査・抽選と直接関係しない。他の選択肢（\"Shipping delays this season affected several popular items.\"／\"Customers can now return items within sixty days of purchase.\"／\"Our store recently opened a new location downtown.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "抽選の当選者は、来月上旬にメールでお知らせします。"
         }
       ]
@@ -2130,7 +2149,8 @@
         {
           "id": "p6-017-doc1",
           "kind": "notice",
-          "text": "NOTICE: Scheduled Network Outage\n\nThe company network will be unavailable this Sunday [[1]] 11 p.m. to 2 a.m. while our technicians perform system upgrades. [[2]] the outage, employees will not be able to access shared drives or company email remotely. If you experience connection issues [[3]] the outage window has ended, please contact the help desk. [[4]] We recommend saving your work before the outage begins."
+          "text": "NOTICE: Scheduled Network Outage\n\nThe company network will be unavailable this Sunday [[1]] 11 p.m. to 2 a.m. while our technicians perform system upgrades. [[2]] the outage, employees will not be able to access shared drives or company email remotely. If you experience connection issues [[3]] the outage window has ended, please contact the help desk. [[4]] We recommend saving your work before the outage begins.",
+          "translation": "案内: ネットワーク停止のお知らせ\n\n会社のネットワークは今週日曜午後11時から午前2時まで、技術者がシステム更新を行うため利用できません。停止時間中、従業員はリモートで共有ドライブや会社のメールにアクセスできません。停止時間が終了した後も接続に問題がある場合は、ヘルプデスクにご連絡ください。この更新が完了すれば、全体的な接続速度の改善が見込まれます。停止が始まる前に作業内容を保存しておくことをお勧めします。"
         }
       ],
       "subQuestions": [
@@ -2140,7 +2160,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "at"
+              "text": "since"
             },
             {
               "key": "B",
@@ -2148,14 +2168,14 @@
             },
             {
               "key": "C",
-              "text": "from"
+              "text": "at"
             },
             {
               "key": "D",
-              "text": "since"
+              "text": "from"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "「〜から〜まで」を表すfrom...to構文なのでfromが適切。since/for/atはこの範囲を表す構文の一部として使えない。",
           "translation": "会社のネットワークは今週日曜午後11時から午前2時まで、技術者がシステム更新を行うため利用できません。"
         },
@@ -2165,7 +2185,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "Because"
+              "text": "While"
             },
             {
               "key": "B",
@@ -2173,14 +2193,14 @@
             },
             {
               "key": "C",
-              "text": "During"
+              "text": "Because"
             },
             {
               "key": "D",
-              "text": "While"
+              "text": "During"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "直後が名詞句the outageなので前置詞Duringが適切。While/Although/Becauseは接続詞で主語+動詞の節を必要とし、名詞句を直接続けられない。",
           "translation": "停止時間中、従業員はリモートで共有ドライブや会社のメールにアクセスできません。"
         },
@@ -2190,22 +2210,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "because of"
-            },
-            {
-              "key": "B",
-              "text": "despite"
-            },
-            {
-              "key": "C",
               "text": "unless"
             },
             {
-              "key": "D",
+              "key": "B",
+              "text": "because of"
+            },
+            {
+              "key": "C",
               "text": "after"
+            },
+            {
+              "key": "D",
+              "text": "despite"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "直後に主語+動詞（the outage window has ended）が続くためafterが適切。despite/because ofは前置詞、unlessは否定条件でここでは意味が合わない。",
           "translation": "停止時間が終了した後も接続に問題がある場合は、ヘルプデスクにご連絡ください。"
         },
@@ -2215,23 +2235,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Employees can request new equipment through the intranet form."
-            },
-            {
-              "key": "B",
               "text": "The upgrade is expected to improve overall connection speed once complete."
             },
             {
+              "key": "B",
+              "text": "The IT department was established over a decade ago."
+            },
+            {
               "key": "C",
-              "text": "The help desk recently moved to a new office location."
+              "text": "Employees can request new equipment through the intranet form."
             },
             {
               "key": "D",
-              "text": "The IT department was established over a decade ago."
+              "text": "The help desk recently moved to a new office location."
             }
           ],
-          "answer": "B",
-          "explanation": "直前でネットワーク停止の理由（システム更新）に触れているため、更新完了後の効果を補足する一文が自然に続く。他の3文は今回の停止と直接関係しない。",
+          "answer": "A",
+          "explanation": "直前でネットワーク停止の理由（システム更新）に触れているため、更新完了後の効果を補足する一文が自然に続く。他の3文は今回の停止と直接関係しない。他の選択肢（\"The IT department was established over a decade ago.\"／\"Employees can request new equipment through the intranet form.\"／\"The help desk recently moved to a new office location.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この更新が完了すれば、全体的な接続速度の改善が見込まれます。"
         }
       ]
@@ -2261,7 +2281,8 @@
         {
           "id": "p6-018-doc1",
           "kind": "article",
-          "text": "Downtown Bank Opens New Branch\n\nRiverstone Bank announced the [[1]] of its newest branch in the downtown business district last week. The branch, which reports directly to headquarters, will offer both retail and small business banking services. Local [[2]] praised the bank for choosing a location close to public transportation. The new branch manager said the team [[3]] over one hundred customers on the first day alone. [[4]] The bank plans to hire additional staff as demand grows."
+          "text": "Downtown Bank Opens New Branch\n\nRiverstone Bank announced the [[1]] of its newest branch in the downtown business district last week. The branch, which reports directly to headquarters, will offer both retail and small business banking services. Local [[2]] praised the bank for choosing a location close to public transportation. The new branch manager said the team [[3]] over one hundred customers on the first day alone. [[4]] The bank plans to hire additional staff as demand grows.",
+          "translation": "都心の銀行が新支店を開設\n\nRiverstone銀行は先週、都心の商業地区に新しい支店を開設したと発表しました。この支店は本部直属で、個人向け・中小企業向けの両方の銀行サービスを提供します。地元住民は、公共交通機関に近い場所を選んだ銀行を評価しました。新しい支店長は、初日だけで100人以上の顧客に対応したと述べました。この支店は祝日を含め週7日営業します。需要の増加に応じて、銀行は追加スタッフを雇用する計画です。"
         }
       ],
       "subQuestions": [
@@ -2271,22 +2292,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "opened"
+              "text": "opens"
             },
             {
               "key": "B",
-              "text": "open"
-            },
-            {
-              "key": "C",
               "text": "opening"
             },
             {
+              "key": "C",
+              "text": "open"
+            },
+            {
               "key": "D",
-              "text": "opens"
+              "text": "opened"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "直前のtheに続く名詞が必要なためopening（開設）が適切。open/opened/opensは動詞形でこの位置の名詞としては使えない。",
           "translation": "Riverstone銀行は先週、都心の商業地区に新しい支店を開設したと発表しました。"
         },
@@ -2296,22 +2317,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "residence"
-            },
-            {
-              "key": "B",
               "text": "reside"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "residential"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "residents"
+            },
+            {
+              "key": "D",
+              "text": "residence"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "主語として動詞praisedを取る名詞（人）が必要なためresidents（住民）が適切。residenceは場所を表す名詞、resideは動詞、residentialは形容詞でここでは使えない。",
           "translation": "地元住民は、公共交通機関に近い場所を選んだ銀行を評価しました。"
         },
@@ -2325,18 +2346,18 @@
             },
             {
               "key": "B",
-              "text": "serves"
-            },
-            {
-              "key": "C",
               "text": "to serve"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "served"
+            },
+            {
+              "key": "D",
+              "text": "serves"
             }
           ],
-          "answer": "D",
+          "answer": "C",
           "explanation": "過去の出来事（first day）について述べているためservedが適切。servesは現在時制、servingは動名詞、to serveは不定詞でthe teamに続く動詞としては合わない。",
           "translation": "新しい支店長は、初日だけで100人以上の顧客に対応したと述べました。"
         },
@@ -2346,15 +2367,15 @@
           "choices": [
             {
               "key": "A",
-              "text": "The bank's mobile app was updated earlier this year."
+              "text": "Riverstone Bank was founded in a small town nearby."
             },
             {
               "key": "B",
-              "text": "Interest rates on savings accounts have remained stable."
+              "text": "The bank's mobile app was updated earlier this year."
             },
             {
               "key": "C",
-              "text": "Riverstone Bank was founded in a small town nearby."
+              "text": "Interest rates on savings accounts have remained stable."
             },
             {
               "key": "D",
@@ -2362,7 +2383,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "直前で新支店の状況（初日の来客数）を述べているため、営業日についての補足が自然に続く。他の3文は新支店開設のニュースと直接関係しない。",
+          "explanation": "直前で新支店の状況（初日の来客数）を述べているため、営業日についての補足が自然に続く。他の3文は新支店開設のニュースと直接関係しない。他の選択肢（\"Riverstone Bank was founded in a small town nearby.\"／\"The bank's mobile app was updated earlier this year.\"／\"Interest rates on savings accounts have remained stable.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この支店は祝日を含め週7日営業します。"
         }
       ]
@@ -2392,7 +2413,8 @@
         {
           "id": "p6-019-doc1",
           "kind": "email",
-          "text": "Subject: Business Trip Itinerary and Expense Policy\n\nDear Mr. Klein,\n\nAttached [[1]] your itinerary for next week's trip to the regional office. Please review the flight and hotel details carefully. All travel expenses [[2]] submitted for reimbursement within two weeks of your return. Keep every receipt, [[3]] small ones such as taxi fares. [[4]] If you have any questions about the policy, contact the travel desk before you depart."
+          "text": "Subject: Business Trip Itinerary and Expense Policy\n\nDear Mr. Klein,\n\nAttached [[1]] your itinerary for next week's trip to the regional office. Please review the flight and hotel details carefully. All travel expenses [[2]] submitted for reimbursement within two weeks of your return. Keep every receipt, [[3]] small ones such as taxi fares. [[4]] If you have any questions about the policy, contact the travel desk before you depart.",
+          "translation": "件名: 出張の日程表と経費規定について\n\nKlein様\n\n添付ファイルは来週の地方オフィス出張の日程表です。フライトとホテルの詳細をよくご確認ください。出張費用はすべて、帰任後2週間以内に精算のため申請しなければなりません。タクシー代のような小さなものも含めて、すべてのレシートを保管してください。各レシートのデジタルコピーも、経費アプリからアップロードできます。規定についてご質問があれば、出発前に出張担当窓口にご連絡ください。"
         }
       ],
       "subQuestions": [
@@ -2402,22 +2424,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "are"
-            },
-            {
-              "key": "B",
               "text": "being"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "is"
+            },
+            {
+              "key": "C",
+              "text": "are"
             },
             {
               "key": "D",
               "text": "be"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "主語your itineraryは単数のためisが適切。areは複数主語用、beは原形、beingは進行・受動の補助でここでは主動詞として使えない。",
           "translation": "添付ファイルは来週の地方オフィス出張の日程表です。"
         },
@@ -2431,7 +2453,7 @@
             },
             {
               "key": "B",
-              "text": "must"
+              "text": "should have"
             },
             {
               "key": "C",
@@ -2439,7 +2461,7 @@
             },
             {
               "key": "D",
-              "text": "should have"
+              "text": "must"
             }
           ],
           "answer": "C",
@@ -2452,11 +2474,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "including"
+              "text": "include"
             },
             {
               "key": "B",
-              "text": "include"
+              "text": "included"
             },
             {
               "key": "C",
@@ -2464,10 +2486,10 @@
             },
             {
               "key": "D",
-              "text": "included"
+              "text": "including"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "直後に名詞句small onesが続くため前置詞的に使うincludingが適切。include/included/includesは動詞形でこの位置には入らない。",
           "translation": "タクシー代のような小さなものも含めて、すべてのレシートを保管してください。"
         },
@@ -2477,23 +2499,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "A digital copy of each receipt can also be uploaded through the expense app."
+              "text": "The regional office was renovated two years ago."
             },
             {
               "key": "B",
-              "text": "The travel desk is closed on public holidays."
-            },
-            {
-              "key": "C",
               "text": "Business class upgrades are not covered under the current policy."
             },
             {
+              "key": "C",
+              "text": "The travel desk is closed on public holidays."
+            },
+            {
               "key": "D",
-              "text": "The regional office was renovated two years ago."
+              "text": "A digital copy of each receipt can also be uploaded through the expense app."
             }
           ],
-          "answer": "A",
-          "explanation": "直前でレシート保管について述べているため、経費アプリでのデジタル提出という補足情報が自然に続く。他の3文は経費精算の手続きと直接関係しない。",
+          "answer": "D",
+          "explanation": "直前でレシート保管について述べているため、経費アプリでのデジタル提出という補足情報が自然に続く。他の3文は経費精算の手続きと直接関係しない。他の選択肢（\"The regional office was renovated two years ago.\"／\"Business class upgrades are not covered under the current policy.\"／\"The travel desk is closed on public holidays.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "各レシートのデジタルコピーも、経費アプリからアップロードできます。"
         }
       ]
@@ -2523,7 +2545,8 @@
         {
           "id": "p6-020-doc1",
           "kind": "notice",
-          "text": "NOTICE: Product Recall — Model X200 Charger\n\nWe have issued a voluntary recall [[1]] the Model X200 charger due to a manufacturing defect found during a routine inspection. Customers who purchased this model should stop using it [[2]] and contact our support line for a free replacement. The defect may cause the charger to overheat [[3]] certain conditions. [[4]] We sincerely apologize for any inconvenience this recall may cause."
+          "text": "NOTICE: Product Recall — Model X200 Charger\n\nWe have issued a voluntary recall [[1]] the Model X200 charger due to a manufacturing defect found during a routine inspection. Customers who purchased this model should stop using it [[2]] and contact our support line for a free replacement. The defect may cause the charger to overheat [[3]] certain conditions. [[4]] We sincerely apologize for any inconvenience this recall may cause.",
+          "translation": "案内: 製品リコール — Model X200充電器\n\n定期検査で見つかった製造上の欠陥のため、Model X200充電器の自主リコールを実施しました。この製品を購入したお客様は、直ちに使用を中止しサポート窓口へご連絡ください。この欠陥により、特定の条件下で充電器が過熱する可能性があります。ご依頼から5営業日以内に交換品を発送いたします。今回のリコールによりご不便をおかけしますことを心よりお詫び申し上げます。"
         }
       ],
       "subQuestions": [
@@ -2533,22 +2556,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "about"
+              "text": "of"
             },
             {
               "key": "B",
-              "text": "on"
-            },
-            {
-              "key": "C",
               "text": "with"
             },
             {
+              "key": "C",
+              "text": "on"
+            },
+            {
               "key": "D",
-              "text": "of"
+              "text": "about"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "「〜のリコール」という意味ではrecall ofが自然な前置詞コロケーション。with/on/aboutはこの用法では使えない。",
           "translation": "定期検査で見つかった製造上の欠陥のため、Model X200充電器の自主リコールを実施しました。"
         },
@@ -2558,22 +2581,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "immediate"
-            },
-            {
-              "key": "B",
-              "text": "immediateness"
-            },
-            {
-              "key": "C",
               "text": "immediately"
             },
             {
-              "key": "D",
+              "key": "B",
+              "text": "immediate"
+            },
+            {
+              "key": "C",
               "text": "immediacy"
+            },
+            {
+              "key": "D",
+              "text": "immediateness"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "動詞stop usingを修飾するのは副詞immediatelyが適切。immediateは形容詞、immediacy/immediatenessは名詞でこの位置には入らない。",
           "translation": "この製品を購入したお客様は、直ちに使用を中止しサポート窓口へご連絡ください。"
         },
@@ -2583,22 +2606,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "above"
-            },
-            {
-              "key": "B",
-              "text": "among"
-            },
-            {
-              "key": "C",
               "text": "under"
             },
             {
-              "key": "D",
+              "key": "B",
+              "text": "above"
+            },
+            {
+              "key": "C",
               "text": "between"
+            },
+            {
+              "key": "D",
+              "text": "among"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "「〜の条件下で」という意味ではunder certain conditionsが自然な前置詞コロケーション。above/between/amongはこの意味を表さない。",
           "translation": "この欠陥により、特定の条件下で充電器が過熱する可能性があります。"
         },
@@ -2608,15 +2631,15 @@
           "choices": [
             {
               "key": "A",
-              "text": "Our support line also handles questions about other products."
+              "text": "The Model X200 was first released three years ago."
             },
             {
               "key": "B",
-              "text": "The company plans to open a new repair center next year."
+              "text": "Our support line also handles questions about other products."
             },
             {
               "key": "C",
-              "text": "The Model X200 was first released three years ago."
+              "text": "The company plans to open a new repair center next year."
             },
             {
               "key": "D",
@@ -2624,7 +2647,7 @@
             }
           ],
           "answer": "D",
-          "explanation": "直前で無料交換の依頼手順を説明しているため、交換品の発送スケジュールを伝える一文が自然に続く。他の3文はこのリコールと直接関係しない。",
+          "explanation": "直前で無料交換の依頼手順を説明しているため、交換品の発送スケジュールを伝える一文が自然に続く。他の3文はこのリコールと直接関係しない。他の選択肢（\"The Model X200 was first released three years ago.\"／\"Our support line also handles questions about other products.\"／\"The company plans to open a new repair center next year.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "ご依頼から5営業日以内に交換品を発送いたします。"
         }
       ]
@@ -2649,7 +2672,8 @@
         {
           "id": "p6-021-doc1",
           "kind": "notice",
-          "text": "NOTICE: Parking Permit Renewal\n\nAll employee parking permits expire on August 31. To avoid any [[1]] in your parking access, please complete the renewal form online before that date. The renewal [[2]] takes less than five minutes and requires your employee ID number. Permits [[3]] renewed by the deadline will be deactivated on September 1. [[4]] New permit stickers will be mailed to your home address within one week."
+          "text": "NOTICE: Parking Permit Renewal\n\nAll employee parking permits expire on August 31. To avoid any [[1]] in your parking access, please complete the renewal form online before that date. The renewal [[2]] takes less than five minutes and requires your employee ID number. Permits [[3]] renewed by the deadline will be deactivated on September 1. [[4]] New permit stickers will be mailed to your home address within one week.",
+          "translation": "案内: 駐車許可証の更新について\n\n従業員用の駐車許可証はすべて8月31日に期限を迎えます。駐車利用が中断されないよう、期日前にオンラインで更新手続きを完了してください。この更新手続きは5分以内で完了し、社員IDが必要です。期日までに更新されなかった許可証は、9月1日に無効化されます。許可証が不要になった場合は、他の人のために解約してください。新しい許可証のステッカーは1週間以内にご自宅へ郵送されます。"
         }
       ],
       "subQuestions": [
@@ -2659,11 +2683,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "interrupt"
+              "text": "interruption"
             },
             {
               "key": "B",
-              "text": "interrupted"
+              "text": "interrupt"
             },
             {
               "key": "C",
@@ -2671,10 +2695,10 @@
             },
             {
               "key": "D",
-              "text": "interruption"
+              "text": "interrupted"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "直前のanyに続く名詞が必要なためinterruption（中断）が適切。interruptは動詞、interruptingは動名詞、interruptedは過去分詞でこの位置には入らない。",
           "translation": "駐車利用が中断されないよう、期日前にオンラインで更新手続きを完了してください。"
         },
@@ -2684,11 +2708,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "processed"
+              "text": "process"
             },
             {
               "key": "B",
-              "text": "processes"
+              "text": "processed"
             },
             {
               "key": "C",
@@ -2696,10 +2720,10 @@
             },
             {
               "key": "D",
-              "text": "process"
+              "text": "processes"
             }
           ],
-          "answer": "D",
+          "answer": "A",
           "explanation": "直前のThe renewalを受けて単数の名詞processが適切。processedは過去分詞、processingは動名詞、processesは複数形で単数主語と一致しない。",
           "translation": "この更新手続きは5分以内で完了し、社員IDが必要です。"
         },
@@ -2709,22 +2733,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "not renewing"
+              "text": "not renewed"
             },
             {
               "key": "B",
-              "text": "no renewed"
+              "text": "not renewing"
             },
             {
               "key": "C",
-              "text": "not renewed"
+              "text": "no renewed"
             },
             {
               "key": "D",
               "text": "not to renew"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "直前のPermitsを修飾する過去分詞句が必要なためnot renewedが適切。not renewingは動名詞句、no renewedは文法的に誤り、not to renewは不定詞句で名詞修飾には合わない。",
           "translation": "期日までに更新されなかった許可証は、9月1日に無効化されます。"
         },
@@ -2734,23 +2758,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "The parking garage was built five years ago."
+              "text": "Visitor parking is located near the main entrance."
             },
             {
               "key": "B",
-              "text": "If you no longer need a permit, please cancel it to free up a space for others."
-            },
-            {
-              "key": "C",
               "text": "The company is considering adding an electric vehicle charging station."
             },
             {
+              "key": "C",
+              "text": "If you no longer need a permit, please cancel it to free up a space for others."
+            },
+            {
               "key": "D",
-              "text": "Visitor parking is located near the main entrance."
+              "text": "The parking garage was built five years ago."
             }
           ],
-          "answer": "B",
-          "explanation": "直前で更新期日を過ぎた許可証の無効化について述べているため、不要な許可証のキャンセルを促す一文が自然に続く。他の3文は更新手続きと直接関係しない。",
+          "answer": "C",
+          "explanation": "直前で更新期日を過ぎた許可証の無効化について述べているため、不要な許可証のキャンセルを促す一文が自然に続く。他の3文は更新手続きと直接関係しない。他の選択肢（\"Visitor parking is located near the main entrance.\"／\"The company is considering adding an electric vehicle charging station.\"／\"The parking garage was built five years ago.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "許可証が不要になった場合は、他の人のために解約してください。"
         }
       ]
@@ -2785,7 +2809,8 @@
         {
           "id": "p6-022-doc1",
           "kind": "advertisement",
-          "text": "Office Supply Spring Sale\n\nVisit Parkview Office Supply this month for a storewide sale on stationery and other office merchandise. [[1]] the sale, all printer paper and notebooks are twenty percent off. Customers who spend more than fifty dollars will receive an additional discount coupon [[2]] their next visit. This offer is available [[3]] supplies last, so early shopping is recommended. [[4]] Visit our website for a full list of items included in the sale."
+          "text": "Office Supply Spring Sale\n\nVisit Parkview Office Supply this month for a storewide sale on stationery and other office merchandise. [[1]] the sale, all printer paper and notebooks are twenty percent off. Customers who spend more than fifty dollars will receive an additional discount coupon [[2]] their next visit. This offer is available [[3]] supplies last, so early shopping is recommended. [[4]] Visit our website for a full list of items included in the sale.",
+          "translation": "オフィス用品 春のセール\n\n今月はParkviewオフィス用品店で、文房具など全店舗商品を対象としたセールを実施中です。セール期間中、すべてのプリンター用紙とノートが20%引きになります。50ドル以上お買い上げのお客様には、次回来店用の追加割引クーポンを差し上げます。この特典は在庫がある限り有効ですので、早めのお買い物をお勧めします。当店の会員プログラムにご加入の方は、さらに5%引きになります。セール対象商品の一覧は当店ウェブサイトでご確認ください。"
         }
       ],
       "subQuestions": [
@@ -2795,11 +2820,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "During"
+              "text": "Because"
             },
             {
               "key": "B",
-              "text": "Because"
+              "text": "During"
             },
             {
               "key": "C",
@@ -2810,7 +2835,7 @@
               "text": "Since"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "直後が名詞句the saleなので前置詞Duringが適切。While/Since/Becauseは接続詞で主語+動詞の節を必要とし、名詞句を直接続けられない。",
           "translation": "セール期間中、すべてのプリンター用紙とノートが20%引きになります。"
         },
@@ -2820,22 +2845,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "for"
+              "text": "of"
             },
             {
               "key": "B",
-              "text": "at"
+              "text": "for"
             },
             {
               "key": "C",
-              "text": "of"
+              "text": "at"
             },
             {
               "key": "D",
               "text": "to"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "「次回来店のための」という意味ではcoupon forが自然な前置詞コロケーション。at/to/ofはこの意味を表さない。",
           "translation": "50ドル以上お買い上げのお客様には、次回来店用の追加割引クーポンを差し上げます。"
         },
@@ -2845,22 +2870,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "during"
-            },
-            {
-              "key": "B",
               "text": "unless"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "while"
+            },
+            {
+              "key": "C",
+              "text": "during"
             },
             {
               "key": "D",
               "text": "until"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "「在庫がある限り」という定型表現はwhile supplies lastであり、during/until/unlessはこの慣用句では使えない。",
           "translation": "この特典は在庫がある限り有効ですので、早めのお買い物をお勧めします。"
         },
@@ -2874,19 +2899,19 @@
             },
             {
               "key": "B",
-              "text": "Our staff can help you find items not currently on display."
+              "text": "The store first opened its doors over twenty years ago."
             },
             {
               "key": "C",
-              "text": "The store will be closed for a holiday next Monday."
+              "text": "Our staff can help you find items not currently on display."
             },
             {
               "key": "D",
-              "text": "The store first opened its doors over twenty years ago."
+              "text": "The store will be closed for a holiday next Monday."
             }
           ],
           "answer": "A",
-          "explanation": "直前で割引条件について述べているため、会員向けの追加特典についての一文が自然に続く。他の3文はこのセールと直接関係しない。",
+          "explanation": "直前で割引条件について述べているため、会員向けの追加特典についての一文が自然に続く。他の3文はこのセールと直接関係しない。他の選択肢（\"The store first opened its doors over twenty years ago.\"／\"Our staff can help you find items not currently on display.\"／\"The store will be closed for a holiday next Monday.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "当店の会員プログラムにご加入の方は、さらに5%引きになります。"
         }
       ]
@@ -2915,7 +2940,8 @@
         {
           "id": "p6-023-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: Accounting Staff\nFrom: Finance Director\n\nBefore closing the books each month, all invoices [[1]] against purchase orders to catch any discrepancies early. Last month, several invoices [[2]] not properly reconciled, which delayed our reporting by two days. Going forward, please [[3]] any mismatched invoice to your supervisor within one business day. [[4]] This extra step should help us close the books on time each month."
+          "text": "MEMO\nTo: Accounting Staff\nFrom: Finance Director\n\nBefore closing the books each month, all invoices [[1]] against purchase orders to catch any discrepancies early. Last month, several invoices [[2]] not properly reconciled, which delayed our reporting by two days. Going forward, please [[3]] any mismatched invoice to your supervisor within one business day. [[4]] This extra step should help us close the books on time each month.",
+          "translation": "社内メモ\n宛先: 経理スタッフ\n発信: 財務ディレクター\n\n毎月の締め処理の前に、すべての請求書は発注書と照合して不一致を早期に見つける必要があります。先月、いくつかの請求書が正しく照合されておらず、報告が2日遅れました。今後は、不一致のある請求書は1営業日以内に上司に報告してください。この作業を助けるための新しいチェックリストが共有ドライブに追加されました。この追加の手順により、毎月の締め処理を期日どおりに行えるようになるはずです。"
         }
       ],
       "subQuestions": [
@@ -2929,18 +2955,18 @@
             },
             {
               "key": "B",
-              "text": "must be reconciled"
+              "text": "have to reconciling"
             },
             {
               "key": "C",
-              "text": "have to reconciling"
+              "text": "must be reconciled"
             },
             {
               "key": "D",
               "text": "must reconcile"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "主語all invoicesが動作を受ける側なので受動態must be reconciledが適切。must reconcileは能動態で主語と意味が合わず、must reconciling/have to reconcilingは文法的に誤り。",
           "translation": "毎月の締め処理の前に、すべての請求書は発注書と照合して不一致を早期に見つける必要があります。"
         },
@@ -2950,7 +2976,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "are"
+              "text": "have been"
             },
             {
               "key": "B",
@@ -2962,7 +2988,7 @@
             },
             {
               "key": "D",
-              "text": "have been"
+              "text": "are"
             }
           ],
           "answer": "B",
@@ -2975,22 +3001,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "reported"
-            },
-            {
-              "key": "B",
               "text": "reports"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "report"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "reporting"
+            },
+            {
+              "key": "D",
+              "text": "reported"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "please+動詞の原形という命令文の形が正しいためreportが適切。reportingは動名詞、reportedは過去形、reportsは三単現で命令文には使えない。",
           "translation": "今後は、不一致のある請求書は1営業日以内に上司に報告してください。"
         },
@@ -3016,7 +3042,7 @@
             }
           ],
           "answer": "C",
-          "explanation": "直前で不一致の報告手順を求めているため、その作業を支援する新しいチェックリストの案内が自然に続く。他の3文は請求書照合の手続きと直接関係しない。",
+          "explanation": "直前で不一致の報告手順を求めているため、その作業を支援する新しいチェックリストの案内が自然に続く。他の3文は請求書照合の手続きと直接関係しない。他の選択肢（\"Our fiscal year begins in April rather than January.\"／\"The accounting office will move to a larger space next year.\"／\"The finance department hired two new employees last quarter.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この作業を助けるための新しいチェックリストが共有ドライブに追加されました。"
         }
       ]
@@ -3045,7 +3071,8 @@
         {
           "id": "p6-024-doc1",
           "kind": "notice",
-          "text": "NOTICE: Gym Facility Now Open to All Staff\n\nWe are pleased to announce that the company gym facility on the second floor is now open [[1]] all employees free of charge. A short orientation session is required [[2]] first-time users to learn about the equipment and safety rules. Sessions are offered every weekday [[3]] 8 a.m. and 6 p.m. [[4]] Towels and water bottles are available for purchase at the front desk."
+          "text": "NOTICE: Gym Facility Now Open to All Staff\n\nWe are pleased to announce that the company gym facility on the second floor is now open [[1]] all employees free of charge. A short orientation session is required [[2]] first-time users to learn about the equipment and safety rules. Sessions are offered every weekday [[3]] 8 a.m. and 6 p.m. [[4]] Towels and water bottles are available for purchase at the front desk.",
+          "translation": "案内: 社内ジム施設が全従業員に開放されました\n\n2階の社内ジム施設は、現在すべての従業員に無料で開放されていることをお知らせいたします。初めて利用する方は、器具や安全ルールを学ぶための短いオリエンテーションが必要です。このセッションは平日午前8時から午後6時の間、毎日開催されます。従業員は自分の運動着とシューズを持参するようお願いします。タオルと水のボトルは受付で購入できます。"
         }
       ],
       "subQuestions": [
@@ -3059,7 +3086,7 @@
             },
             {
               "key": "B",
-              "text": "for"
+              "text": "at"
             },
             {
               "key": "C",
@@ -3067,7 +3094,7 @@
             },
             {
               "key": "D",
-              "text": "at"
+              "text": "for"
             }
           ],
           "answer": "C",
@@ -3080,22 +3107,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "about"
-            },
-            {
-              "key": "B",
               "text": "for"
             },
             {
+              "key": "B",
+              "text": "at"
+            },
+            {
               "key": "C",
-              "text": "with"
+              "text": "about"
             },
             {
               "key": "D",
-              "text": "at"
+              "text": "with"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "「初回利用者には〜が必要」という意味ではrequired forが自然な前置詞コロケーション。at/about/withはこの意味を表さない。",
           "translation": "初めて利用する方は、器具や安全ルールを学ぶための短いオリエンテーションが必要です。"
         },
@@ -3105,22 +3132,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "during"
+              "text": "within"
             },
             {
               "key": "B",
-              "text": "among"
-            },
-            {
-              "key": "C",
               "text": "between"
             },
             {
+              "key": "C",
+              "text": "among"
+            },
+            {
               "key": "D",
-              "text": "within"
+              "text": "during"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "「AとBの間」という時間帯を表すbetween A and Bが適切。among/during/withinはこの構文には合わない。",
           "translation": "このセッションは平日午前8時から午後6時の間、毎日開催されます。"
         },
@@ -3130,23 +3157,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "A yoga class will be added to the schedule next month."
-            },
-            {
-              "key": "B",
               "text": "The gym equipment was purchased from a local supplier."
             },
             {
+              "key": "B",
+              "text": "The second floor also houses the marketing department."
+            },
+            {
               "key": "C",
-              "text": "Employees are asked to bring their own workout clothing and shoes."
+              "text": "A yoga class will be added to the schedule next month."
             },
             {
               "key": "D",
-              "text": "The second floor also houses the marketing department."
+              "text": "Employees are asked to bring their own workout clothing and shoes."
             }
           ],
-          "answer": "C",
-          "explanation": "直前でオリエンテーションと利用時間について説明しているため、持ち物についての注意が自然に続く。他の3文はジム開放の案内と直接関係しない。",
+          "answer": "D",
+          "explanation": "直前でオリエンテーションと利用時間について説明しているため、持ち物についての注意が自然に続く。他の3文はジム開放の案内と直接関係しない。他の選択肢（\"The gym equipment was purchased from a local supplier.\"／\"The second floor also houses the marketing department.\"／\"A yoga class will be added to the schedule next month.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "従業員は自分の運動着とシューズを持参するようお願いします。"
         }
       ]
@@ -3176,7 +3203,8 @@
         {
           "id": "p6-025-doc1",
           "kind": "article",
-          "text": "Company Launches Sustainability Initiative\n\nGreenline Manufacturing announced a new sustainability program that [[1]] to reduce its carbon footprint by thirty percent over the next five years. The plan, which [[2]] with input from employees across all departments, includes switching to eco-friendly packaging materials. Employees who submitted ideas [[3]] the planning phase will be recognized at next month's company meeting. [[4]] The company expects the changes to also lower long-term operating costs."
+          "text": "Company Launches Sustainability Initiative\n\nGreenline Manufacturing announced a new sustainability program that [[1]] to reduce its carbon footprint by thirty percent over the next five years. The plan, which [[2]] with input from employees across all departments, includes switching to eco-friendly packaging materials. Employees who submitted ideas [[3]] the planning phase will be recognized at next month's company meeting. [[4]] The company expects the changes to also lower long-term operating costs.",
+          "translation": "企業が持続可能性への取組みを開始\n\nGreenline製造は、今後5年間で二酸化炭素排出量を30%削減することを目指す新しい持続可能性プログラムを発表しました。この計画は全部署の従業員の意見を取り入れて策定され、環境に配慮した包装材への切り替えを含んでいます。計画段階でアイデアを提出した従業員は、来月の全社会議で表彰されます。専用のウェブページで、この目標に向けた進捗状況を追跡します。この変更により、長期的な運営コストの低下も期待されています。"
         }
       ],
       "subQuestions": [
@@ -3186,22 +3214,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "aiming"
-            },
-            {
-              "key": "B",
               "text": "to aim"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "aims"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "aim"
+            },
+            {
+              "key": "D",
+              "text": "aiming"
             }
           ],
-          "answer": "C",
+          "answer": "B",
           "explanation": "関係代名詞thatの先行詞a new sustainability programは三人称単数なのでaimsが適切。aimは主語と一致せず、aiming/to aimは定形動詞にならないため文が成立しない。",
           "translation": "Greenline製造は、今後5年間で二酸化炭素排出量を30%削減することを目指す新しい持続可能性プログラムを発表しました。"
         },
@@ -3211,22 +3239,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "has develop"
+              "text": "to develop"
             },
             {
               "key": "B",
-              "text": "was developed"
+              "text": "has develop"
             },
             {
               "key": "C",
-              "text": "developing"
+              "text": "was developed"
             },
             {
               "key": "D",
-              "text": "to develop"
+              "text": "developing"
             }
           ],
-          "answer": "B",
+          "answer": "C",
           "explanation": "主語The planは策定される側なので受動態was developedが適切。developing/to developは定形動詞にならず、has developは文法的に誤り（正しくはhas developed）。",
           "translation": "この計画は全部署の従業員の意見を取り入れて策定され、環境に配慮した包装材への切り替えを含んでいます。"
         },
@@ -3236,7 +3264,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "during"
+              "text": "while"
             },
             {
               "key": "B",
@@ -3248,10 +3276,10 @@
             },
             {
               "key": "D",
-              "text": "while"
+              "text": "during"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "直後が名詞句the planning phaseなので前置詞duringが適切。whileは接続詞で主語+動詞の節が必要、betweenは2つの対象が必要、untilは「〜まで」で意味が合わない。",
           "translation": "計画段階でアイデアを提出した従業員は、来月の全社会議で表彰されます。"
         },
@@ -3261,11 +3289,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "Greenline Manufacturing was founded by two former engineers."
+              "text": "A dedicated webpage will track the company's progress toward its goal."
             },
             {
               "key": "B",
-              "text": "Employees can carpool to work using a company shuttle service."
+              "text": "Greenline Manufacturing was founded by two former engineers."
             },
             {
               "key": "C",
@@ -3273,11 +3301,11 @@
             },
             {
               "key": "D",
-              "text": "A dedicated webpage will track the company's progress toward its goal."
+              "text": "Employees can carpool to work using a company shuttle service."
             }
           ],
-          "answer": "D",
-          "explanation": "直前で目標達成に取り組む従業員の表彰について述べているため、進捗を追跡する専用ページの案内が自然に続く。他の3文はこの取組みと直接関係しない。",
+          "answer": "A",
+          "explanation": "直前で目標達成に取り組む従業員の表彰について述べているため、進捗を追跡する専用ページの案内が自然に続く。他の3文はこの取組みと直接関係しない。他の選択肢（\"Greenline Manufacturing was founded by two former engineers.\"／\"The company's headquarters recently added a rooftop garden.\"／\"Employees can carpool to work using a company shuttle service.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "専用のウェブページで、この目標に向けた進捗状況を追跡します。"
         }
       ]
@@ -3307,7 +3335,8 @@
         {
           "id": "p6-026-doc1",
           "kind": "form",
-          "text": "ANNUAL PERFORMANCE APPRAISAL FORM — INSTRUCTIONS\n\nPlease complete this evaluation form carefully and return it to your manager by the [[1]] date shown at the top of the page. Each section requires a written [[2]] as well as a numeric rating from one to five. If a section does not apply to your role, write \"not applicable\" instead of [[3]] it blank. [[4]] Employees who need extra time should contact human resources before the deadline."
+          "text": "ANNUAL PERFORMANCE APPRAISAL FORM — INSTRUCTIONS\n\nPlease complete this evaluation form carefully and return it to your manager by the [[1]] date shown at the top of the page. Each section requires a written [[2]] as well as a numeric rating from one to five. If a section does not apply to your role, write \"not applicable\" instead of [[3]] it blank. [[4]] Employees who need extra time should contact human resources before the deadline.",
+          "translation": "年次業績評価フォーム — 記入案内\n\nこのフォームは、上部に記載された期日までに記入し、上司に提出してください。各項目には、1から5の数値評価に加えて記述式のコメントが必要です。該当しない項目がある場合は、空欄にする代わりに「該当なし」と記入してください。記入済みのサンプルフォームは人事部の社内サイトで確認できます。追加の時間が必要な従業員は、期日前に人事部へご連絡ください。"
         }
       ],
       "subQuestions": [
@@ -3317,22 +3346,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "duly"
+              "text": "due"
             },
             {
               "key": "B",
-              "text": "duty"
+              "text": "duly"
             },
             {
               "key": "C",
-              "text": "due"
+              "text": "duty"
             },
             {
               "key": "D",
               "text": "dues"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "直後の名詞dateを修飾する形容詞が必要なためdue（期日の）が適切。dulyは副詞、dutyは名詞（義務）、duesは名詞の複数形でこの位置には入らない。",
           "translation": "このフォームは、上部に記載された期日までに記入し、上司に提出してください。"
         },
@@ -3342,22 +3371,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "comments"
-            },
-            {
-              "key": "B",
-              "text": "comment"
-            },
-            {
-              "key": "C",
               "text": "commented"
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "commenting"
+            },
+            {
+              "key": "C",
+              "text": "comments"
+            },
+            {
+              "key": "D",
+              "text": "comment"
             }
           ],
-          "answer": "B",
+          "answer": "D",
           "explanation": "直前のwrittenに修飾される単数の名詞が必要なためcomment（コメント）が適切。commentedは過去形、commentingは動名詞、commentsは複数形で単数を表すa writtenの後に置けない。",
           "translation": "各項目には、1から5の数値評価に加えて記述式のコメントが必要です。"
         },
@@ -3371,7 +3400,7 @@
             },
             {
               "key": "B",
-              "text": "left"
+              "text": "leaving"
             },
             {
               "key": "C",
@@ -3379,10 +3408,10 @@
             },
             {
               "key": "D",
-              "text": "leaving"
+              "text": "left"
             }
           ],
-          "answer": "D",
+          "answer": "B",
           "explanation": "直前のinstead ofは前置詞で、後ろには動名詞leavingが続く。leaveは原形、leftは過去形、leavesは三単現で、いずれも前置詞の後に置けない。",
           "translation": "該当しない項目がある場合は、空欄にする代わりに「該当なし」と記入してください。"
         },
@@ -3392,23 +3421,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Managers are expected to attend a leadership retreat each summer."
+              "text": "A sample completed form is available on the human resources intranet page."
             },
             {
               "key": "B",
-              "text": "The human resources office is located on the fourth floor."
-            },
-            {
-              "key": "C",
               "text": "The company introduced performance appraisals over a decade ago."
             },
             {
+              "key": "C",
+              "text": "Managers are expected to attend a leadership retreat each summer."
+            },
+            {
               "key": "D",
-              "text": "A sample completed form is available on the human resources intranet page."
+              "text": "The human resources office is located on the fourth floor."
             }
           ],
-          "answer": "D",
-          "explanation": "直前でフォームの記入方法について説明しているため、記入例の参照先案内が自然に続く。他の3文はこのフォームの記入手順と直接関係しない。",
+          "answer": "A",
+          "explanation": "直前でフォームの記入方法について説明しているため、記入例の参照先案内が自然に続く。他の3文はこのフォームの記入手順と直接関係しない。他の選択肢（\"The company introduced performance appraisals over a decade ago.\"／\"Managers are expected to attend a leadership retreat each summer.\"／\"The human resources office is located on the fourth floor.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "記入済みのサンプルフォームは人事部の社内サイトで確認できます。"
         }
       ]
@@ -3433,7 +3462,8 @@
         {
           "id": "p6-027-doc1",
           "kind": "notice",
-          "text": "NOTICE: Visitor Sign-In Procedure Update\n\n[[1]] a recent security review, all visitors must now sign in at the front desk and wear a visitor badge at all times. Employees who are expecting a guest must [[2]] the visit with security at least one hour in advance. Visitors who are not authorized to enter restricted areas will be asked to remain in the lobby [[3]] their host arrives. [[4]] These steps are meant to keep the building safe for everyone."
+          "text": "NOTICE: Visitor Sign-In Procedure Update\n\n[[1]] a recent security review, all visitors must now sign in at the front desk and wear a visitor badge at all times. Employees who are expecting a guest must [[2]] the visit with security at least one hour in advance. Visitors who are not authorized to enter restricted areas will be asked to remain in the lobby [[3]] their host arrives. [[4]] These steps are meant to keep the building safe for everyone.",
+          "translation": "案内: 来訪者受付手続きの更新について\n\n最近の安全性審査を受けて、すべての来訪者は受付で記名し、常に来訪者バッジを着用しなければなりません。来客を予定している従業員は、少なくとも1時間前に警備担当にその訪問を登録しなければなりません。制限区域への入室を許可されていない訪問者は、案内担当者が到着するまでロビーで待つよう求められます。来訪者バッジは、建物を出る前に受付に返却しなければなりません。これらの手続きは、すべての人にとって建物を安全に保つためのものです。"
         }
       ],
       "subQuestions": [
@@ -3443,22 +3473,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "Following"
+              "text": "While"
             },
             {
               "key": "B",
-              "text": "Although"
+              "text": "Following"
             },
             {
               "key": "C",
-              "text": "While"
+              "text": "Although"
             },
             {
               "key": "D",
               "text": "Because"
             }
           ],
-          "answer": "A",
+          "answer": "B",
           "explanation": "直後が名詞句a recent security reviewなので前置詞的に使うFollowingが適切。Although/Because/Whileは接続詞で主語+動詞の節を必要とし、名詞句を直接続けられない。",
           "translation": "最近の安全性審査を受けて、すべての来訪者は受付で記名し、常に来訪者バッジを着用しなければなりません。"
         },
@@ -3468,22 +3498,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "registering"
-            },
-            {
-              "key": "B",
               "text": "register"
             },
             {
-              "key": "C",
+              "key": "B",
               "text": "registered"
+            },
+            {
+              "key": "C",
+              "text": "registering"
             },
             {
               "key": "D",
               "text": "registration"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "助動詞mustの後は動詞の原形が続くためregisterが適切。registeredは過去形/過去分詞、registeringは動名詞、registrationは名詞でこの位置には入らない。",
           "translation": "来客を予定している従業員は、少なくとも1時間前に警備担当にその訪問を登録しなければなりません。"
         },
@@ -3501,14 +3531,14 @@
             },
             {
               "key": "C",
-              "text": "until"
+              "text": "because"
             },
             {
               "key": "D",
-              "text": "because"
+              "text": "until"
             }
           ],
-          "answer": "C",
+          "answer": "D",
           "explanation": "「〜まで」という時間の継続を表すuntilが適切。sinceは起点、unlessは否定条件、becauseは理由を表し、いずれも意味が合わない。",
           "translation": "制限区域への入室を許可されていない訪問者は、案内担当者が到着するまでロビーで待つよう求められます。"
         },
@@ -3518,23 +3548,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "Visitor badges must be returned to the front desk before leaving the building."
-            },
-            {
-              "key": "B",
-              "text": "The front desk is staffed twenty-four hours a day."
-            },
-            {
-              "key": "C",
               "text": "The security review was conducted by an outside consulting firm."
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "The lobby was recently redecorated with new furniture."
+            },
+            {
+              "key": "C",
+              "text": "Visitor badges must be returned to the front desk before leaving the building."
+            },
+            {
+              "key": "D",
+              "text": "The front desk is staffed twenty-four hours a day."
             }
           ],
-          "answer": "A",
-          "explanation": "直前で訪問者バッジの着用義務について述べているため、退館時の返却手順が自然に続く。他の3文はこの入退室手続きと直接関係しない。",
+          "answer": "C",
+          "explanation": "直前で訪問者バッジの着用義務について述べているため、退館時の返却手順が自然に続く。他の3文はこの入退室手続きと直接関係しない。他の選択肢（\"The security review was conducted by an outside consulting firm.\"／\"The lobby was recently redecorated with new furniture.\"／\"The front desk is staffed twenty-four hours a day.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "来訪者バッジは、建物を出る前に受付に返却しなければなりません。"
         }
       ]
@@ -3568,7 +3598,8 @@
         {
           "id": "p6-028-doc1",
           "kind": "memo",
-          "text": "MEMO\nTo: Store Managers\nFrom: Product Safety Team\n\nAs of this morning, all units of the Model X200 charger [[1]] from store shelves following an internal inspection that found a wiring defect. Please [[2]] any remaining stock in the storage room and label it clearly as \"do not sell.\" A full list of affected serial numbers [[3]] to your store email within the hour. [[4]] Customers who ask about the recall should be directed to our customer service line."
+          "text": "MEMO\nTo: Store Managers\nFrom: Product Safety Team\n\nAs of this morning, all units of the Model X200 charger [[1]] from store shelves following an internal inspection that found a wiring defect. Please [[2]] any remaining stock in the storage room and label it clearly as \"do not sell.\" A full list of affected serial numbers [[3]] to your store email within the hour. [[4]] Customers who ask about the recall should be directed to our customer service line.",
+          "translation": "社内メモ\n宛先: 店長各位\n発信: 製品安全チーム\n\n本日午前より、内部検査で配線の欠陥が見つかったため、Model X200充電器の全在庫の店頭からの撤去が進められています。残っている在庫は保管室に置き、「販売禁止」と明確に表示してください。影響を受けるシリアル番号の完全なリストは、1時間以内に貴店のメールに送付されます。会社の担当者が今後2日以内に各店舗を訪問し、対応状況を確認します。リコールについて尋ねるお客様には、カスタマーサービス窓口をご案内してください。"
         }
       ],
       "subQuestions": [
@@ -3578,7 +3609,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "had remove"
+              "text": "are being removed"
             },
             {
               "key": "B",
@@ -3586,14 +3617,14 @@
             },
             {
               "key": "C",
-              "text": "are being removed"
+              "text": "are removing"
             },
             {
               "key": "D",
-              "text": "are removing"
+              "text": "had remove"
             }
           ],
-          "answer": "C",
+          "answer": "A",
           "explanation": "主語all unitsが撤去される側で、現在進行中の作業を表すため現在進行形の受動態are being removedが適切（後続の「残っている在庫」の指示とも整合する）。have removed/are removingは能動態で主語と意味が合わず、had removeは文法的に誤り。",
           "translation": "本日午前より、内部検査で配線の欠陥が見つかったため、Model X200充電器の全在庫の店頭からの撤去が進められています。"
         },
@@ -3611,11 +3642,11 @@
             },
             {
               "key": "C",
-              "text": "placed"
+              "text": "placing"
             },
             {
               "key": "D",
-              "text": "placing"
+              "text": "placed"
             }
           ],
           "answer": "B",
@@ -3628,22 +3659,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "will be sent"
+              "text": "will send"
             },
             {
               "key": "B",
-              "text": "was sent"
-            },
-            {
-              "key": "C",
               "text": "sending"
             },
             {
+              "key": "C",
+              "text": "was sent"
+            },
+            {
               "key": "D",
-              "text": "will send"
+              "text": "will be sent"
             }
           ],
-          "answer": "A",
+          "answer": "D",
           "explanation": "主語A full listが動作を受ける側で、これから起こる未来の出来事なため未来受動態will be sentが適切。will sendは能動態で主語と意味が合わず、sendingは動名詞、was sentは過去形で未来の出来事を表せない。",
           "translation": "影響を受けるシリアル番号の完全なリストは、1時間以内に貴店のメールに送付されます。"
         },
@@ -3653,23 +3684,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "The customer service line will be closed for the upcoming holiday."
-            },
-            {
-              "key": "B",
-              "text": "Store managers are reminded to submit weekly sales reports on time."
-            },
-            {
-              "key": "C",
               "text": "A company representative will visit each store within the next two days to confirm compliance."
             },
             {
-              "key": "D",
+              "key": "B",
               "text": "The Model X200 was one of our best-selling products last year."
+            },
+            {
+              "key": "C",
+              "text": "Store managers are reminded to submit weekly sales reports on time."
+            },
+            {
+              "key": "D",
+              "text": "The customer service line will be closed for the upcoming holiday."
             }
           ],
-          "answer": "C",
-          "explanation": "直前で対応手順（在庫の隔離とリストの送付）を指示しているため、対応状況を確認する訪問についての一文が自然に続く。他の3文はこのリコール対応と直接関係しない。",
+          "answer": "A",
+          "explanation": "直前で対応手順（在庫の隔離とリストの送付）を指示しているため、対応状況を確認する訪問についての一文が自然に続く。他の3文はこのリコール対応と直接関係しない。他の選択肢（\"The Model X200 was one of our best-selling products last year.\"／\"Store managers are reminded to submit weekly sales reports on time.\"／\"The customer service line will be closed for the upcoming holiday.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "会社の担当者が今後2日以内に各店舗を訪問し、対応状況を確認します。"
         }
       ]
@@ -3699,7 +3730,8 @@
         {
           "id": "p6-029-doc1",
           "kind": "email",
-          "text": "Subject: Delay in Shipment to Regional Warehouse\n\nDear Partner,\n\nWe are writing to inform you [[1]] a short delay in the shipment scheduled to arrive at your regional warehouse this week. The delay is due [[2]] a shortage of shipping containers at our main port. Our distributor expects the shipment to arrive [[3]] three to five days later than originally planned. [[4]] We will send tracking information as soon as the shipment departs."
+          "text": "Subject: Delay in Shipment to Regional Warehouse\n\nDear Partner,\n\nWe are writing to inform you [[1]] a short delay in the shipment scheduled to arrive at your regional warehouse this week. The delay is due [[2]] a shortage of shipping containers at our main port. Our distributor expects the shipment to arrive [[3]] three to five days later than originally planned. [[4]] We will send tracking information as soon as the shipment departs.",
+          "translation": "件名: 地域倉庫への出荷遅延について\n\nパートナー各位\n\n今週貴社の地域倉庫に到着予定の出荷に、短い遅延が生じていることをお知らせいたします。この遅延は、主要港でのコンテナ不足が原因です。当社の配送業者は、当初予定よりおよそ3〜5日遅れて出荷が到着すると見込んでいます。この遅延により貴社の業務にご不便をおかけすることをお詫びいたします。出荷が発送されましたら、直ちに追跡情報をお送りします。"
         }
       ],
       "subQuestions": [
@@ -3709,7 +3741,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "of"
+              "text": "for"
             },
             {
               "key": "B",
@@ -3717,14 +3749,14 @@
             },
             {
               "key": "C",
-              "text": "to"
+              "text": "of"
             },
             {
               "key": "D",
-              "text": "for"
+              "text": "to"
             }
           ],
-          "answer": "A",
+          "answer": "C",
           "explanation": "「〜について知らせる」という意味ではinform someone ofが自然な前置詞コロケーション。to/for/withはこの動詞の用法として使えない。",
           "translation": "今週貴社の地域倉庫に到着予定の出荷に、短い遅延が生じていることをお知らせいたします。"
         },
@@ -3734,11 +3766,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "from"
+              "text": "of"
             },
             {
               "key": "B",
-              "text": "of"
+              "text": "from"
             },
             {
               "key": "C",
@@ -3759,7 +3791,7 @@
           "choices": [
             {
               "key": "A",
-              "text": "nearly"
+              "text": "almost"
             },
             {
               "key": "B",
@@ -3771,7 +3803,7 @@
             },
             {
               "key": "D",
-              "text": "almost"
+              "text": "nearly"
             }
           ],
           "answer": "C",
@@ -3784,23 +3816,23 @@
           "choices": [
             {
               "key": "A",
-              "text": "We apologize for any inconvenience this delay may cause your operations."
+              "text": "We look forward to discussing next year's shipping contract."
             },
             {
               "key": "B",
-              "text": "Our main port has handled shipments for over fifteen years."
+              "text": "We apologize for any inconvenience this delay may cause your operations."
             },
             {
               "key": "C",
-              "text": "The regional warehouse recently expanded its storage capacity."
+              "text": "Our main port has handled shipments for over fifteen years."
             },
             {
               "key": "D",
-              "text": "We look forward to discussing next year's shipping contract."
+              "text": "The regional warehouse recently expanded its storage capacity."
             }
           ],
-          "answer": "A",
-          "explanation": "直前で遅延の見込み日数を伝えているため、その遅延についての謝罪の一文が自然に続く。他の3文は今回の遅延と直接関係しない。",
+          "answer": "B",
+          "explanation": "直前で遅延の見込み日数を伝えているため、その遅延についての謝罪の一文が自然に続く。他の3文は今回の遅延と直接関係しない。他の選択肢（\"We look forward to discussing next year's shipping contract.\"／\"Our main port has handled shipments for over fifteen years.\"／\"The regional warehouse recently expanded its storage capacity.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この遅延により貴社の業務にご不便をおかけすることをお詫びいたします。"
         }
       ]
@@ -3829,7 +3861,8 @@
         {
           "id": "p6-030-doc1",
           "kind": "article",
-          "text": "Local Firm Reaches Major Milestone\n\nParkway Consulting [[1]] its five hundredth client project last month, a milestone the company describes as a new benchmark for its ten-year history. The firm's founder said the achievement [[2]] possible by a dedicated staff and loyal clients. To mark the occasion, the company [[3]] a small celebration for employees at its main office. [[4]] The firm plans to open a second office next year to support continued growth."
+          "text": "Local Firm Reaches Major Milestone\n\nParkway Consulting [[1]] its five hundredth client project last month, a milestone the company describes as a new benchmark for its ten-year history. The firm's founder said the achievement [[2]] possible by a dedicated staff and loyal clients. To mark the occasion, the company [[3]] a small celebration for employees at its main office. [[4]] The firm plans to open a second office next year to support continued growth.",
+          "translation": "地元企業が大きな節目を達成\n\nParkwayコンサルティングは先月、通算500件目のクライアント案件を完了し、これを10年の社史における新たな基準と位置付けています。創業者は、この成果は熱心な社員と忠実な顧客のおかげで実現したと述べました。この節目を記念して、会社は本社で社員向けの小さな祝賀会を開きました。この会社は元々、2人の元エンジニアが小さな事務所から始めたものです。今後の成長を支えるため、来年には2つ目の事務所を開設する予定です。"
         }
       ],
       "subQuestions": [
@@ -3839,15 +3872,15 @@
           "choices": [
             {
               "key": "A",
-              "text": "completing"
+              "text": "completes"
             },
             {
               "key": "B",
-              "text": "has complete"
+              "text": "completing"
             },
             {
               "key": "C",
-              "text": "completes"
+              "text": "has complete"
             },
             {
               "key": "D",
@@ -3868,18 +3901,18 @@
             },
             {
               "key": "B",
-              "text": "was made"
-            },
-            {
-              "key": "C",
               "text": "is making"
             },
             {
-              "key": "D",
+              "key": "C",
               "text": "has make"
+            },
+            {
+              "key": "D",
+              "text": "was made"
             }
           ],
-          "answer": "B",
+          "answer": "D",
           "explanation": "主語the achievementが動作を受ける側で、過去の出来事のため過去受動態was madeが適切。madeは能動態で主語と意味が合わず、is makingは進行形能動態、has makeは文法的に誤り。",
           "translation": "創業者は、この成果は熱心な社員と忠実な顧客のおかげで実現したと述べました。"
         },
@@ -3889,22 +3922,22 @@
           "choices": [
             {
               "key": "A",
-              "text": "holds"
-            },
-            {
-              "key": "B",
               "text": "held"
             },
             {
+              "key": "B",
+              "text": "holds"
+            },
+            {
               "key": "C",
-              "text": "has hold"
+              "text": "holding"
             },
             {
               "key": "D",
-              "text": "holding"
+              "text": "has hold"
             }
           ],
-          "answer": "B",
+          "answer": "A",
           "explanation": "文脈全体が過去の出来事を述べているためheldが適切。holdsは現在時制、holdingは動名詞、has holdは文法的に誤り（held/has heldが正しい形）。",
           "translation": "この節目を記念して、会社は本社で社員向けの小さな祝賀会を開きました。"
         },
@@ -3914,11 +3947,11 @@
           "choices": [
             {
               "key": "A",
-              "text": "The firm's current office is located near the downtown train station."
+              "text": "Employees at the firm receive an annual bonus based on performance."
             },
             {
               "key": "B",
-              "text": "Employees at the firm receive an annual bonus based on performance."
+              "text": "The company was originally founded by two former engineers working from a small office."
             },
             {
               "key": "C",
@@ -3926,11 +3959,11 @@
             },
             {
               "key": "D",
-              "text": "The company was originally founded by two former engineers working from a small office."
+              "text": "The firm's current office is located near the downtown train station."
             }
           ],
-          "answer": "D",
-          "explanation": "記事の冒頭で10年の社史という節目に触れているため、締めくくりとして創業当時の経緯を振り返る補足が記事の流れに合う。他の3文は今回の節目のニュースと直接関係しない。",
+          "answer": "B",
+          "explanation": "記事の冒頭で10年の社史という節目に触れているため、締めくくりとして創業当時の経緯を振り返る補足が記事の流れに合う。他の3文は今回の節目のニュースと直接関係しない。他の選択肢（\"Employees at the firm receive an annual bonus based on performance.\"／\"Parkway Consulting focuses mainly on the manufacturing and logistics industries.\"／\"The firm's current office is located near the downtown train station.\"）は、本文でこの設問の答えとして裏づけられていない。",
           "translation": "この会社は元々、2人の元エンジニアが小さな事務所から始めたものです。"
         }
       ]

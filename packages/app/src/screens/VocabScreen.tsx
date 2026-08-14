@@ -20,23 +20,32 @@ import type { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
 import { isServable } from '../engine/quickPack'
 import { evaluateStreak, getStreak } from '../engine/streak'
-import { addSrsCard, getSrsQueue, markVocabKnown, srsCardId } from '../engine/srs'
+import {
+  addSrsCard,
+  DEFAULT_SRS_OPTIONS,
+  getSrsQueue,
+  markVocabKnown,
+  srsCardId,
+} from '../engine/srs'
 import type { SrsGrade } from '../engine/types'
 import { buildVocabQuizChoices } from '../engine/vocabQuiz'
 import type { AudioPlayer } from '../platform'
 import { recordAnswerPipeline } from '../services/answerPipeline'
 import { countAttemptsToday } from '../services/dailyStats'
+import { recordPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
   AUTO_PLAY_ENABLED_KEY,
   HAPTICS_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
   NO_EARPHONE_MODE_KEY,
 } from '../services/settingsKeys'
+import { isQuotaExceededError, QUOTA_EXCEEDED_SAVE_ERROR } from '../services/storageErrors'
 import { useAppStore } from '../store/appStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
 import { CompletionCard } from '../components/CompletionCard'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { HighlightedPhrase } from '../components/HighlightedPhrase'
+import { InfoDisclosure } from '../components/InfoDisclosure'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { usePendingCommit } from '../hooks/usePendingCommit'
@@ -68,6 +77,20 @@ interface TriagePendingCommit {
   word: string
   /** true=知ってる（卒業済みカード化）／false=知らない（SRS学習カード化） */
   known: boolean
+}
+
+/**
+ * 猶予中の未確定な復習自己評価（T-204。docs/29 Q-38・ADR 0009 2026-08-05 Amendment）。
+ * DrillScreen内のvocab_card自己評価（T-160）と同じ不可逆性（SRS間隔の確定＋次カードへの
+ * 前進）を持つのに、S3側は対象から漏れていた。responseMsはタップ時点で確定させ、commit側で
+ * 再計算しない（commit時刻で計算すると猶予分が乗り、当て勘判定がずれるため。ADR 0009参照）
+ */
+interface ReviewPendingCommit {
+  grade: SrsGrade
+  isCorrect: boolean
+  responseMs: number
+  reviewCard: SrsCardRecord
+  reviewQuestion: Question | undefined
 }
 
 // Date.now() を直接コンポーネント本体に書くと react-hooks/purity に引っかかるため
@@ -123,7 +146,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   const [busy, setBusy] = useState(false)
   // T-159: 記録の保存失敗の表示（DrillScreenのsaveErrorと同じ様式）
   const [saveError, setSaveError] = useState<string | null>(null)
-  // T-161: 誤タップの取り消し猶予の有効/無効（既定ON。ADR 0009 + 2026-07-31 Amendment）
+  // T-161・T-204: 誤タップの取り消し猶予の有効/無効（既定ON。ADR 0009 + 2026-07-31・
+  // 2026-08-05 Amendment）。仕分け（T-161）と復習の自己評価（T-204）の両方で参照する
   const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
   // T-162（docs/27 のS-7）: 中断の確認。復習・仕分けの両フェーズで共用する
   const [abortConfirm, setAbortConfirm] = useState(false)
@@ -136,11 +160,27 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   // 初回ロード失敗時のフラグ。trueならエラー表示＋ホーム導線を出す（永久 return null を防ぐ）
   const [loadError, setLoadError] = useState(false)
 
+  // T-315（K-48）: T-221は「画面離脱時に音声を停止」を中断導線とpopstateハンドラのみで
+  // 実装しており、useEffectのunmount cleanupでの停止が1件も無かった
+  useEffect(() => {
+    return () => {
+      audioPlayer.stop()
+    }
+  }, [audioPlayer])
+
   // 初回ロード: 復習キュー（期限到来＋新規導入。4節）と仕分け候補（未SRS化の語彙）を用意する
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const queue = await getSrsQueue(db)
+      // T-188（Q-98）: 新規停止の滞留判定を、vocabQuestionsに対する実出題可否基準にする。
+      // refType==='question' のカードは本画面のプールでは可否判定できないため素通しし、
+      // 判定を変えない（question側の滞留対策はquickPack.ts側のisServableで別途行う）
+      const queue = await getSrsQueue(
+        db,
+        now(),
+        DEFAULT_SRS_OPTIONS,
+        (c) => c.refType !== 'vocab' || isServable(c, vocabQuestions),
+      )
       // 復習対象は「refType==='vocab' かつ対応する vocab_card 問題が実在する」カードに限る
       // （quickPack.ts の isServable と同種の発見バグ対策）。processWrongAnswer が作る
       // refType==='question' カードや、パック撤去・別端末復元で語が引けないカードが
@@ -205,11 +245,25 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
    */
   const {
     pending: triagePending,
+    mountedRef,
     schedule: scheduleTriageCommit,
     cancel: cancelTriageCommit,
     clearTimer: clearTriageTimer,
     clearPending: clearTriagePending,
   } = usePendingCommit<TriagePendingCommit>((payload) => commitTriage(payload))
+
+  /**
+   * 復習自己評価の猶予付き確定（T-204）。仕分けとは別インスタンスで持つ
+   * （復習フェーズと仕分けフェーズは同時に表示されないため競合しない）。
+   * **早期returnより前に置くこと**——後ろに置くとレンダーごとにフック数が変わる
+   */
+  const {
+    pending: reviewPending,
+    schedule: scheduleReviewCommit,
+    cancel: cancelReviewCommit,
+    clearTimer: clearReviewTimer,
+    clearPending: clearReviewPending,
+  } = usePendingCommit<ReviewPendingCommit>((payload) => commitGrade(payload))
 
   function playPhrase(phraseAudio: string, context: string) {
     void audioPlayer
@@ -330,7 +384,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     )
   }
 
-  if (reviewQueue === null || triageQueue === null) return null
+  if (reviewQueue === null || triageQueue === null) {
+    // T-211(Q-59): return nullのままだと読み込み中に白画面になる。RaidScreenの
+    // 読み込み中表示と揃える
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}
+      >
+        <p>読み込み中…</p>
+      </ScreenLayout>
+    )
+  }
 
   function handleSelectChoice(key: string) {
     if (selectedChoiceKey !== null || dontKnow) return
@@ -366,54 +430,115 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
     setBusy(true)
     try {
       await action()
-      setSaveError(null)
+      if (mountedRef.current) setSaveError(null)
     } catch (err) {
       console.error('[VocabScreen] 記録に失敗', err)
-      setSaveError('記録を保存できませんでした。通信状態と空き容量を確認してください')
+      // T-297（K-23）: アンマウント後（flush経路）の失敗はsaveErrorバナーが出しても
+      // 誰にも見えない（画面ごと消えている）。UI復旧を試みる代わりに退避して
+      // 次回起動時に通知する
+      if (!mountedRef.current) {
+        // 退避自体の失敗（DBクローズ済み等）はここで握る。呼び出し元はvoidで
+        // 投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+        try {
+          await recordPendingCommitFailure(db)
+        } catch (recordErr) {
+          console.error('[VocabScreen] 記録失敗の退避にも失敗', recordErr)
+        }
+      } else if (isQuotaExceededError(err)) {
+        // T-299（K-25）: 従来は「確認してください」までで終わり、確認した後の具体的な
+        // 回復手段（エクスポートして空き容量を作る）を示していなかった
+        setSaveError(QUOTA_EXCEEDED_SAVE_ERROR)
+      } else {
+        // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+        // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
+        setSaveError('記録を保存できませんでした。空き容量を確認してください')
+      }
     } finally {
       busyRef.current = false
       setBusy(false)
     }
   }
 
+  /**
+   * 復習自己評価のタップ（T-204。docs/29 Q-38）。
+   * isCorrectとresponseMsはタップ時点で確定させる（commit側で計算し直すと猶予分の400msが
+   * 乗り、当て勘判定がずれるため。ADR 0009参照）。猶予中は二重評価を受け付けない
+   */
   async function handleGrade(grade: SrsGrade) {
     if (!reviewCard) return
-    await runRecording(() => gradeCard(grade))
-  }
-
-  async function gradeCard(grade: SrsGrade) {
-    if (!reviewCard) return
+    if (busyRef.current || reviewPending !== null) return
     const responseMs = now() - startedAt
     // isCorrectは自己申告ではなく4択の客観的な正誤（ユーザー指摘による設計変更）。
     // gradeは引き続きSRSの間隔調整（もう一回/OK/余裕）専用
     const isCorrect = quizChoices.find((c) => c.key === selectedChoiceKey)?.isCorrect ?? false
-    const questionId = attemptQuestionId(reviewCard.refId, reviewQuestion)
-    // このS3画面はDrillScreenのvocab_card分岐と異なりtagStats/レート更新を元々呼ばない
-    // （tags=[]・part=0で実質no-opの処理をここでも通す意味が無いため=skip全指定）。
-    // evaluateStreakはpipelineに含めず、セッション概念の無い画面としてここに残す
-    await recordAnswerPipeline(db, {
-      questionId,
-      question: reviewQuestion ?? {
-        id: questionId,
-        part: 0,
-        format: 'vocab_card',
-        difficulty: 1,
-        tags: [],
-        keyVocab: [],
-      },
-      lookup: new Map(),
+    const payload: ReviewPendingCommit = {
+      grade,
       isCorrect,
       responseMs,
-      mode: 'srs',
-      srsCardId: reviewCard.id,
-      srsGrade: grade,
-      skip: { wrongAnswer: true, tagStats: true, rating: true },
+      reviewCard,
+      reviewQuestion,
+    }
+    if (mistapUndoEnabled) {
+      scheduleReviewCommit(payload)
+      return
+    }
+    await commitGrade(payload)
+  }
+
+  /**
+   * 復習自己評価の確定（T-204）。猶予タイマーとアンマウント時のflushの両方から呼ばれる
+   * （usePendingCommitの契約により、確定に必要な値はすべてpayloadに載っている）
+   */
+  async function commitGrade(payload: ReviewPendingCommit) {
+    clearReviewTimer()
+    clearReviewPending()
+    await runRecording(async () => {
+      const { grade, isCorrect, responseMs, reviewCard: card, reviewQuestion: question } = payload
+      const questionId = attemptQuestionId(card.refId, question)
+      // このS3画面はDrillScreenのvocab_card分岐と異なりtagStats/レート更新を元々呼ばない
+      // （tags=[]・part=0で実質no-opの処理をここでも通す意味が無いため=skip全指定）。
+      // evaluateStreakはpipelineに含めず、セッション概念の無い画面としてここに残す
+      await recordAnswerPipeline(db, {
+        questionId,
+        question: question ?? {
+          id: questionId,
+          part: 0,
+          format: 'vocab_card',
+          difficulty: 1,
+          tags: [],
+          keyVocab: [],
+        },
+        lookup: new Map(),
+        isCorrect,
+        responseMs,
+        mode: 'srs',
+        srsCardId: card.id,
+        srsGrade: grade,
+        skip: { wrongAnswer: true, tagStats: true, rating: true },
+      })
+      await evaluateStreak(db)
+      const isRetryCard = retryIndices.has(reviewIndex)
+      advanceReview(grade === 'again' && !isRetryCard)
+      setSelectedChoiceKey(null)
+      setDontKnow(false)
+      setStartedAt(now())
     })
-    await evaluateStreak(db)
-    advanceReview(grade)
+  }
+
+  /**
+   * 復習自己評価の取り消し（T-204。docs/29 Q-38・ADR 0009 2026-08-05 Amendment）。
+   * 解答経路（ADR 0009）・DrillScreenのvocab_card評価（T-160）と同じく「記録せずに
+   * 次のカードへ進む」。同じカードを再評価させないのは、評価時点で4択の正誤と正解が
+   * 既に見えているため（再評価を許すとSRS間隔の申告が形骸化する）
+   */
+  function handleReviewUndo() {
+    const payload = cancelReviewCommit()
+    if (!payload) return
     setSelectedChoiceKey(null)
     setDontKnow(false)
     setStartedAt(now())
+    // 記録していないので再投入もしない（requeue=false）
+    advanceReview(false)
   }
 
   /**
@@ -425,13 +550,14 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
    * applyGrade には触らない＝28の1.3節の不変条件）。再投入は1周のみで、再投入された
    * カードで再度「もう一回」を選んでも戻さない（無限ループを避ける）。
    *
-   * T-171（J-96）: 20件ごとに中間画面を挟む。キューの件数自体は変えない
+   * T-171（J-96）: 20件ごとに中間画面を挟む。キューの件数自体は変えない。
+   *
+   * T-204: 引数を grade から shouldRequeue（呼び出し側で判定済みの真偽値）に変えた。
+   * 取り消し（記録なし）の呼び出しで「記録されないagain」のような偽のgradeを渡さずに済む
    */
-  function advanceReview(grade: SrsGrade) {
+  function advanceReview(shouldRequeue: boolean) {
     const current = reviewIndex
-    const isRetryCard = retryIndices.has(current)
-    const shouldRequeue = grade === 'again' && !isRetryCard && reviewCard !== undefined
-    if (shouldRequeue) {
+    if (shouldRequeue && reviewCard !== undefined) {
       setReviewQueue((queue) => {
         if (!queue) return queue
         setRetryIndices((prev) => new Set(prev).add(queue.length))
@@ -470,6 +596,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
           primary: true,
           onSelect: () => {
             setAbortConfirm(false)
+            // T-221（Q-15）: 再生中のフレーズ音声を止めずに離れると、ホーム画面で流れ続ける。
+            // この画面の他の stop() はイヤホンなしモードの切替（T-166）と明示的な停止
+            // ボタン用で、中断導線には無かった（docs/29 のQ-15は「VocabScreenは対処済み」と
+            // 記述していたが、実際にはこの経路が漏れていた）
+            audioPlayer.stop()
             navigate('home')
           },
         },
@@ -618,6 +749,16 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 {saveError}
               </p>
             )}
+            {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+            {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => navigate('settings')}
+              >
+                設定でエクスポート
+              </button>
+            )}
             {quizChoices.map((choice) => {
               let state: ChoiceState = 'idle'
               if (answered) {
@@ -648,9 +789,16 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 わからない
               </button>
             )}
+            {/* T-204: 猶予中は自己評価ボタンを引っ込めて「取り消し」だけを出す（仕分け側の
+                T-161・DrillScreenのvocab_card評価=T-160と同じ思想。二重評価の防止も兼ねる） */}
+            {answered && reviewPending !== null && (
+              <button type="button" className="drill-undo" onClick={handleReviewUndo}>
+                取り消し
+              </button>
+            )}
             {/* 「わからない」で正解を提示した後は、自己評価3段階は出さず「次へ」だけにする
                 （既に「わからない」と申告済みなので間隔はagain固定・タップ数も最小にする） */}
-            {answered && dontKnow && (
+            {answered && reviewPending === null && dontKnow && (
               <button
                 type="button"
                 className="vocab-grade-button"
@@ -660,7 +808,7 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 次へ
               </button>
             )}
-            {answered && !dontKnow && (
+            {answered && reviewPending === null && !dontKnow && (
               <>
                 <button
                   type="button"
@@ -689,6 +837,11 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
                 >
                   余裕
                 </button>
+                {/* T-269（29のQ-39・17節）: 3ボタンのtitleはhover専用でタッチ端末では読めないため、
+                    DrillScreen（T-210）と同じ開閉式の説明を添える（titleは残す） */}
+                <InfoDisclosure className="info-help-link" label="間隔について">
+                  もう一回＝間隔を短くしてすぐに復習／OK＝通常の間隔で復習／余裕＝間隔を大きく広げて復習
+                </InfoDisclosure>
               </>
             )}
           </>
@@ -700,15 +853,22 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
             DOMに出さない（visibility:hidden では退行をテストで検出できない） */}
         <div className="vocab-card vocab-card--recall">
           {reviewQuestion?.freqRank && (
-            <span
+            // T-210(Q-39・J-107): titleのみ（hover専用）ではタッチ端末で読めないため、
+            // タップで開閉する説明に置き換える。titleはデスクトップ併用のため残す
+            <InfoDisclosure
               className="vocab-card__rank"
               data-rank={reviewQuestion.freqRank}
               title={FREQ_RANK_TITLE}
+              aria-label={`頻出度ランク ${reviewQuestion.freqRank}の説明を表示`}
+              label={reviewQuestion.freqRank}
             >
-              {reviewQuestion.freqRank}
-            </span>
+              {FREQ_RANK_TITLE}
+            </InfoDisclosure>
           )}
-          <p className="vocab-card__word">{front}</p>
+          {/* T-224（J-108）: 対象語は英文（単語）そのもの */}
+          <p className="vocab-card__word" lang="en">
+            {front}
+          </p>
           {answered ? (
             <p className="vocab-card__phrase">
               <HighlightedPhrase phrase={phrase} word={front} />
@@ -742,6 +902,12 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
   }
 
   if (triageIndex < triageQueue.length && triageQuestion) {
+    // T-219（Q-60）: 「仕分け 1/645」のように総数をいきなり分母に出すと完走前提に見えて
+    // 負荷感が強い。1回分の区切り（TRIAGE_BATCH_SIZE）を分母にする。総数が1区切り以下の
+    // ときは従来どおり総数のみを分母にする（区切り表記が冗長にならないようにする）
+    const triageBatchStart = Math.floor(triageIndex / TRIAGE_BATCH_SIZE) * TRIAGE_BATCH_SIZE
+    const triageBatchTotal = Math.min(TRIAGE_BATCH_SIZE, triageQueue.length - triageBatchStart)
+    const triageBatchPosition = triageIndex - triageBatchStart + 1
     return (
       <ScreenLayout
         // docs/26 A-1: 仕分けは操作ゾーンの中身が固定（知らない/知ってるの2つ）で、カードを
@@ -750,7 +916,8 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         status={
           <>
             <p>
-              仕分け {triageIndex + 1}/{triageQueue.length}
+              仕分け {triageBatchPosition}/{triageBatchTotal}
+              {triageQueue.length > TRIAGE_BATCH_SIZE && `（全${triageQueue.length}語）`}
             </p>
             {/* 進行中の脱出導線（復習モードと同様。T-162で確認を挟む） */}
             {abortDialog}
@@ -766,6 +933,16 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
               <p className="drill-error" role="alert">
                 {saveError}
               </p>
+            )}
+            {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+            {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => navigate('settings')}
+              >
+                設定でエクスポート
+              </button>
             )}
             {/* T-161: 猶予中は仕分けボタンを引っ込めて「取り消し」だけを出す。
                 「知ってる」は語を恒久的に候補から外すため、ドリルの選択肢タップより不可逆である */}
@@ -817,13 +994,17 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
         <SwipeCard onSwipeRight={() => void handleKnown()} onSwipeLeft={() => void handleUnknown()}>
           <div className="vocab-card">
             {triageQuestion.freqRank && (
-              <span
+              // T-210(Q-39・J-107): titleのみ（hover専用）ではタッチ端末で読めないため、
+              // タップで開閉する説明に置き換える。titleはデスクトップ併用のため残す
+              <InfoDisclosure
                 className="vocab-card__rank"
                 data-rank={triageQuestion.freqRank}
                 title={FREQ_RANK_TITLE}
+                aria-label={`頻出度ランク ${triageQuestion.freqRank}の説明を表示`}
+                label={triageQuestion.freqRank}
               >
-                {triageQuestion.freqRank}
-              </span>
+                {FREQ_RANK_TITLE}
+              </InfoDisclosure>
             )}
             <p className="vocab-card__phrase">
               <HighlightedPhrase
@@ -839,13 +1020,21 @@ export function VocabScreen({ db, audioPlayer, vocabQuestions }: Props) {
 
   return (
     <ScreenLayout action={<PrimaryButton onClick={() => navigate('home')}>ホームへ</PrimaryButton>}>
-      <p>語彙SRSが終了しました</p>
-      {completionStats && (
-        <CompletionCard
-          countLabel={`今日の実施数 ${completionStats.count}問`}
-          streakDays={completionStats.streakDays}
-          message="この調子で続けましょう"
-        />
+      {/* T-214(Q-48): 語彙データ0件（パック未取得等）でも「終了しました」と表示していたが、
+          それは完了ではなく素材が無いだけである。ShadowingScreenの出し分けに揃える */}
+      {vocabQuestions.length === 0 ? (
+        <p>語彙データがありません</p>
+      ) : (
+        <>
+          <p>語彙SRSが終了しました</p>
+          {completionStats && (
+            <CompletionCard
+              countLabel={`今日の実施数 ${completionStats.count}問`}
+              streakDays={completionStats.streakDays}
+              message="この調子で続けましょう"
+            />
+          )}
+        </>
       )}
     </ScreenLayout>
   )

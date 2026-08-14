@@ -29,9 +29,10 @@ export function PassageText({ text, subQuestions, answers, activeIndex, onSelect
   const matches = [...text.matchAll(MARKER_RE)]
 
   // マーカーが無い本文（Part7単一）はそのまま表示する
+  // T-224（J-108）: パッセージは英文そのもの
   if (matches.length === 0) {
     return (
-      <p className="passage-text" data-testid="passage-text">
+      <p className="passage-text" data-testid="passage-text" lang="en">
         {text}
       </p>
     )
@@ -68,8 +69,11 @@ export function PassageText({ text, subQuestions, answers, activeIndex, onSelect
   })
   if (cursor < text.length) nodes.push(text.slice(cursor))
 
+  // T-224（J-108）: このpの中身（本文の英文断片＋空所ボタンの選択肢文言）はすべて英文
+  // （プレースホルダー`___(n)___`のみ言語中立の記号だが、混在要素全体を分割するほどの
+  // ものではない。日本語の文言はこのコンポーネントには一切無い）
   return (
-    <p className="passage-text" data-testid="passage-text">
+    <p className="passage-text" data-testid="passage-text" lang="en">
       {nodes}
     </p>
   )

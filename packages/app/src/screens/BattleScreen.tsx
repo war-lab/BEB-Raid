@@ -4,7 +4,11 @@
 // BattleRoomDOはコンテンツ非依存（questionIdと換算点のみ）のため、問題文・選択肢の解決・
 // 正誤判定はこの画面（各参加端末のローカルパック）が担う（3.2節）。
 import { useEffect, useRef, useState } from 'react'
-import type { BattleServerMessage, Question } from '@beb-raid/shared-schema'
+import {
+  isBattleCloseReason,
+  type BattleServerMessage,
+  type Question,
+} from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { PROFILE_ID } from '../db/schema'
 import { basePoints, difficultyToRatingSpace, DEFAULT_INITIAL_RATING } from '../engine/rating'
@@ -53,6 +57,14 @@ interface AnsweredRecord {
 interface StandingRow {
   displayName: string
   totalPoints: number
+  /** 現在WebSocket接続中かどうか（T-265）。ロビーの参加者チップにも同じ考え方を使う */
+  connected: boolean
+}
+
+/** ロビーの参加者チップ1件（T-265でconnectedを追加。一覧からは消えず状態だけ変わる） */
+interface ParticipantChip {
+  displayName: string
+  connected: boolean
 }
 
 function now(): number {
@@ -83,7 +95,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const review = useReviewSession(db, questionPool)
   const [phase, setPhase] = useState<Phase>('entry')
   const [codeInput, setCodeInput] = useState('')
-  const [participants, setParticipants] = useState<string[]>([])
+  const [participants, setParticipants] = useState<ParticipantChip[]>([])
   /** 自分の表示名（join時に確定）。順位表で自分の行を示すために保持する（V-9） */
   const [selfDisplayName, setSelfDisplayName] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -107,12 +119,22 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   const [reviewIds, setReviewIds] = useState<string[]>([])
   /** サーバーが付与した切断理由（closed表示の案内文の出し分けに使う。通信断時は空文字） */
   const [closeReason, setCloseReason] = useState('')
+  // T-202（docs/29 Q-46）: window.confirmはPWAでネイティブダイアログが出て文脈が切れる
+  // （ConfirmDialog導入の理由そのもの。T-162時点で置換漏れていた2箇所の1つ）
+  const [leaveConfirm, setLeaveConfirm] = useState(false)
 
   // questionPoolはprops経由で固定のためMapはマウント時に1回だけ作る
   const questionLookup = useRef<QuestionLookup>(new Map(questionPool.map((q) => [q.id, q])))
   const answeredThisQuestion = useRef(false)
   const answerRecords = useRef<AnsweredRecord[]>([])
   const finalized = useRef(false)
+  /**
+   * T-212(Q-44): 一度でもroomStateを受信した（＝実際に接続できた）かどうか。
+   * closeReasonが未知（通信断・サーバー到達不可・ルーム不在の一部はいずれも空文字で
+   * 区別が付かない）のとき、接続済みからの切断（「接続が切れました」）と、そもそも
+   * 接続できなかった（「接続できませんでした」）を出し分けるために使う
+   */
+  const hasConnectedRef = useRef(false)
   /**
    * attempts記録の直列化チェーン。解答のたびにここへ繋いで記録する（最終リザルト受信まで
    * 貯めておくと、ホスト切断・通信断でclosedへ落ちた回の解答が1件も残らないため。
@@ -187,7 +209,10 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   useEffect(() => {
     battleSocket.onMessage((message: BattleServerMessage) => {
       if (message.type === 'roomState') {
-        setParticipants(message.participants.map((p) => p.displayName))
+        hasConnectedRef.current = true
+        setParticipants(
+          message.participants.map((p) => ({ displayName: p.displayName, connected: p.connected })),
+        )
         setPhase((p) => (p === 'connecting' ? 'lobby' : p))
         return
       }
@@ -295,6 +320,36 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
     }
   }, [phase])
 
+  /**
+   * 再参加（「もう一度試す」→別ルームへhandleJoin）のたびに前回のルームの状態を消す
+   * （T-282・K-5）。従来はhasConnectedRefしかリセットしていなかったため、前回未解答の
+   * まま切断されたquestionがcurrentQuestionRef等に残り、再参加後最初のquestionOpenで
+   * finalizeUnansweredQuestionが誤ってそれを時間切れattemptとして記録していた
+   */
+  function resetBattleState(): void {
+    hasConnectedRef.current = false
+    answeredThisQuestion.current = false
+    answerRecords.current = []
+    finalized.current = false
+    currentQuestionRef.current = null
+    questionOpenedAtRef.current = 0
+    setParticipants([])
+    setCurrentQuestionIndex(null)
+    setCurrentQuestion(null)
+    setPackMissing(false)
+    setDeadlineAt(null)
+    setRemainingSec(0)
+    setSelectedKey(null)
+    setOwnPoints(null)
+    setStandings([])
+    setResultEntries([])
+    setBestGrowthName(null)
+    setWrongCount(0)
+    setReviewIds([])
+    setCloseReason('')
+    setQuestionSeconds(null)
+  }
+
   async function handleJoin() {
     const code = normalizeRoomCode(codeInput)
     if (code.length !== 4) {
@@ -302,6 +357,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
       return
     }
     setErrorMessage(null)
+    resetBattleState()
     setPhase('connecting')
     try {
       const [profile, totalRating] = await Promise.all([
@@ -369,9 +425,27 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
    * ロビーの退出（確認なし）とは別に確認を挟む
    */
   function handleLeaveWithConfirm() {
-    if (!window.confirm('バトルから退出しますか？（このバトルの続きには戻れません）')) return
-    handleLeave()
+    setLeaveConfirm(true)
   }
+
+  /** 退出確認ダイアログ（T-202。docs/29 Q-46）。出題中・順位表示中の両方から共用する */
+  const leaveConfirmDialog = leaveConfirm ? (
+    <ConfirmDialog
+      message="バトルから退出しますか？（このバトルの続きには戻れません）"
+      onDismiss={() => setLeaveConfirm(false)}
+      actions={[
+        {
+          label: '退出する',
+          primary: true,
+          onSelect: () => {
+            setLeaveConfirm(false)
+            handleLeave()
+          },
+        },
+        { label: 'キャンセル', onSelect: () => setLeaveConfirm(false) },
+      ]}
+    />
+  ) : null
 
   if (phase === 'entry' || phase === 'connecting') {
     return (
@@ -434,16 +508,25 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
           <p className="battle-lobby__eyebrow">LOBBY</p>
           <p className="battle-lobby__wait">ホストが開始するまでお待ちください</p>
           <ul className="battle-lobby__chips">
-            {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う */}
-            {participants.map((name, i) => (
-              <li key={i} className="battle-lobby__chip">
-                {name}
+            {/* 表示名は重複しうる（同名の参加者）ためkeyには使わず、サーバー送出順のindexを使う。
+                T-265: サーバーはロスター基準で常に全参加者を返すため、瞬断中でもチップは消えず、
+                data-connectedで薄く表示するだけにする */}
+            {participants.map((p, i) => (
+              <li
+                key={i}
+                className="battle-lobby__chip"
+                data-connected={p.connected ? undefined : 'false'}
+              >
+                {p.displayName}
+                {!p.connected && <span className="battle-lobby__chip-offline">（切断中）</span>}
               </li>
             ))}
           </ul>
         </div>
+        {/* T-207（Q-56）: 「取得してから参加してください」に対応する操作がアプリ内に無い
+            （パック同期は起動時とonline復帰時の自動のみ）。実装に合わせた文言にする */}
         <p className="battle-lobby-hint">
-          最新パックを取得してから参加してください（未取得の問題は0点で流れます）
+          問題パックは自動で同期されます（未取得の問題は0点で流れます）
         </p>
         {/* T-178（docs/27 のS-35のうちクライアント側で解消できる部分）: 1問の制限時間を
             事前に知らせる。従来は questionOpen 受信時にいきなり「残り30秒」が出ていた。
@@ -496,6 +579,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
             <button type="button" className="secondary-action" onClick={handleLeaveWithConfirm}>
               退出する
             </button>
+            {leaveConfirmDialog}
           </>
         }
       >
@@ -507,7 +591,17 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
                 空白＋選択肢だけが並び、投影を見られない位置の参加者は何を問われているか
                 分からないまま制限時間が減っていた。ホスト投影側（BattleHostScreen の
                 projectedQuestionText）と同じ補完をする */}
-            <p>{participantQuestionText(currentQuestion)}</p>
+            {/* T-225(Q-63): question-textクラスが無く文字サイズ設定（--fs-question）が
+                効いていなかった。ドリル・診断・読解・ディクテーションと同じクラスを適用する */}
+            {/* T-224（J-108）: question.questionがある場合は英文、無い場合はaudio_qa用の
+                日本語指示文（participantQuestionText参照）。英文の場合だけlangを付ける */}
+            <p className="question-text">
+              {currentQuestion.question ? (
+                <span lang="en">{participantQuestionText(currentQuestion)}</span>
+              ) : (
+                participantQuestionText(currentQuestion)
+              )}
+            </p>
             {currentQuestion.choices?.map((choice) => {
               let state: ChoiceState = 'idle'
               if (selectedKey !== null) {
@@ -547,6 +641,7 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
             <button type="button" className="secondary-action" onClick={handleLeaveWithConfirm}>
               退出する
             </button>
+            {leaveConfirmDialog}
           </>
         }
       >
@@ -630,11 +725,35 @@ export function BattleScreen({ db, battleSocket, questionPool }: Props) {
   // V-13（docs/25 4.4節）: 文言はbattleCloseMessage.tsのまま変えず、面をカード化して
   // 見出し（title）と本文（body）の階層を付けるだけに留める。見出しはステータス帯から
   // カード内へ移し、本文と隣り合わせて読めるようにする（重複表示はしない）
-  const closeMessage = resolveBattleCloseMessage(closeReason, 'participant')
+  //
+  // T-212(Q-44): reasonが未知（通信断・サーバー到達不可はブラウザのWebSocket APIでは
+  // いずれも空文字にしかならず区別できない）かつ一度もroomStateを受信していない
+  // （＝接続実績が無い）場合は、「切れた」ではなく「そもそも繋がらなかった」と伝える。
+  // navigator.onLineでオフラインかどうかだけは区別できるため、その旨を添える
+  const knownReason = isBattleCloseReason(closeReason)
+  const closeMessage =
+    !knownReason && !hasConnectedRef.current
+      ? {
+          title: '接続できませんでした',
+          body: navigator.onLine
+            ? 'ルームコードが違っているか、サーバー側に問題が発生している可能性があります。ルームコードを主催者に確認してください。'
+            : '通信がオフラインになっています。電波の届く場所でもう一度お試しください。',
+        }
+      : resolveBattleCloseMessage(closeReason, 'participant')
   return (
     <ScreenLayout
       status={<p>イベントバトル</p>}
-      action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+      action={
+        <>
+          {/* T-212(Q-44): 従来は「ホームへ戻る」のみで、再試行にはコード再入力からの
+              やり直しが必要だった。codeInputは保持したままentryへ戻すことで、
+              コード再入力なしに再試行（または誤りの修正）ができるようにする */}
+          <PrimaryButton onClick={() => setPhase('entry')}>もう一度試す</PrimaryButton>
+          <button type="button" className="secondary-action" onClick={() => navigate('home')}>
+            ホームへ戻る
+          </button>
+        </>
+      }
     >
       <div className="battle-closed">
         <p className="battle-closed__title">{closeMessage.title}</p>

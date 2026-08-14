@@ -15,13 +15,13 @@
 # `environment:` は Environment 保護のためではなく、GitHubのEnvironmentsタブに
 # 環境別のデプロイ履歴を残すために付けている（保護ルールは意図的に設定していない）。
 #
-# 【前提=人間タスク H-1】このワークフローは以下を GitHub Secrets に要求する:
+# 【前提=人間タスク H-1（✅完了・2026-07-22）】このワークフローは以下を GitHub Secrets に要求する:
 # CLOUDFLARE_API_TOKEN（権限=「Edit Cloudflare Workers」）・CLOUDFLARE_ACCOUNT_ID。
-# さらに packages/api/wrangler.toml の KV namespace id が実IDに差し替わっている必要がある
-# （現状はプレースホルダー REPLACE_WITH_REAL_KV_NAMESPACE_ID*）。
-# **H-1 未了（CLOUDFLARE_API_TOKEN 未設定）のときはデプロイstepをスキップする**（下の guard step）。
-# これによりH-1前でもワークフローは緑（成功）で終わり、H-1後は自動でデプロイが有効になる。
-# シークレット値はこのファイルに一切書かない（publicリポジトリのため。docs/17 H-1）。
+# packages/api/wrangler.toml の KV namespace id も実IDへ差し替え済み。
+# H-1完了済みのため現在はCLOUDFLARE_API_TOKENが設定されており、デプロイstepは常に実行される。
+# 下の guard step は「シークレットが何らかの理由で失われた場合にワークフローを赤くせず
+# 通知のみで済ませる」ための保険として残している（2026-08-07訂正・T-365・K-99）。
+# シークレット値はこのファイルに一切書かない（publicリポジトリのため。docs/17 3.11節）。
 name: Deploy API (Cloudflare Workers)
 
 on:

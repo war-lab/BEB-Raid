@@ -100,7 +100,16 @@ function isValidSnapshot(value: unknown): value is SessionSnapshot {
   )
 }
 
-/** セッションを開始し、スナップショットを保存して返す（既存の進行中セッションは上書き） */
+/**
+ * セッションを開始し、スナップショットを保存して返す（既存の進行中セッションは上書き）。
+ *
+ * ブロックはしない——HomeScreenの「新しく始める」（discardConfirm）は同一タブ内で
+ * 未完了セッションを確認の上で上書きする正規の操作で、ここを通る。
+ * T-193（completeSessionのsessionId照合）とここが非対称だった（K-24）: 別タブが
+ * 未完了のまま進行中に新セッションを開始されると、旧タブの次の解答は
+ * StaleSnapshotErrorで失われる。ここでは検出（console.warn）だけ行い、
+ * 実際の通知は失敗した解答側（recoverFromSaveError。T-298）に委ねる
+ */
 export async function startSession(
   db: BebRaidDatabase,
   input: { items: SessionItem[]; startedAt?: number },
@@ -117,6 +126,16 @@ export async function startSession(
     subAnswers: [],
     startedAt: now,
     updatedAt: now,
+  }
+  const existing = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as SessionSnapshot | undefined
+  if (
+    existing &&
+    existing.sessionId !== snapshot.sessionId &&
+    existing.answeredCount < existing.items.length
+  ) {
+    console.warn(
+      `[session] 進行中セッション(${existing.sessionId})が完了前に上書きされる（新sessionId=${snapshot.sessionId}）`,
+    )
   }
   await db.settings.put({ key: ACTIVE_SESSION_KEY, value: snapshot })
   return snapshot
@@ -282,7 +301,20 @@ export async function resumeSession(db: BebRaidDatabase): Promise<SessionSnapsho
   return isValidSnapshot(record.value) ? record.value : null
 }
 
-/** セッションを終了し、スナップショットを破棄する（解答ログは attempts に残る） */
-export async function completeSession(db: BebRaidDatabase): Promise<void> {
-  await db.settings.delete(ACTIVE_SESSION_KEY)
+/**
+ * セッションを終了し、スナップショットを破棄する（解答ログは attempts に残る）。
+ *
+ * T-193（Q-103）: sessionId照合を行う。answerCurrentQuestion等の解答系はstale検知
+ * （StaleSnapshotError）を持つのに、本関数は従来ACTIVE_SESSION_KEYを無条件削除しており
+ * 非対称だった。複数タブで古いタブのリザルト画面が閉じ遅れて呼ばれた場合、既に別タブが
+ * 開始した新しい進行中セッションを誤って破棄してしまうバグの修正。
+ * 呼び出し元が保持するsessionIdとDB上の現在値が一致する場合のみ削除する
+ * （既に削除済み=undefinedの場合は何もしない。冪等）
+ */
+export async function completeSession(db: BebRaidDatabase, sessionId: string): Promise<void> {
+  await db.transaction('rw', db.settings, async () => {
+    const stored = (await db.settings.get(ACTIVE_SESSION_KEY))?.value as SessionSnapshot | undefined
+    if (stored !== undefined && stored.sessionId !== sessionId) return
+    await db.settings.delete(ACTIVE_SESSION_KEY)
+  })
 }

@@ -10,9 +10,11 @@ import { describe, expect, it } from 'vitest'
 import { VOCAB_CARDS_A } from './data/vocabCardsA.js'
 import { VOCAB_CARDS_B } from './data/vocabCardsB.js'
 import { VOCAB_CARDS_S } from './data/vocabCardsS.js'
+import { validateContentLintBlocking } from './contentLint.js'
 import {
   buildKeyVocabSimilarDrafts,
   buildKeyVocabSimilarQuestions,
+  buildKeyVocabSimilarS3Entries,
   KEY_VOCAB_SIMILAR_ENTRIES,
   KEY_VOCAB_SIMILAR_ENTRIES_S2,
   keyVocabSimilarQuestion,
@@ -189,5 +191,26 @@ describe('buildKeyVocabSimilarDrafts（S2）', () => {
       expect(d.preview.length).toBeGreaterThan(0)
       expect((d.payload as { format: string }).format).toBe('text_blank')
     }
+  })
+})
+
+// T-342（K-80再検証時に発覚）: buildKeyVocabSimilarS3EntriesはT-266以前のindex%4
+// ローテーション（rotateKeyVocabSimilarS3Choices）を使っていたため、正答キー列が
+// 一定差分の決定的循環になっていた（pack-p5-similar-s-003で実測100%一致）。
+// part5Question.tsのT-266修正と同じ、エントリ固有のシード（word）由来のローテーションへ直す
+describe('buildKeyVocabSimilarS3Entries（T-342: 決定的循環の再発防止）', () => {
+  it('120問を通して正答キー列が一定差分の決定的循環にならない', () => {
+    const entries = buildKeyVocabSimilarS3Entries()
+    const problems = validateContentLintBlocking(
+      buildKeyVocabSimilarQuestions(entries),
+      'test-pack-p5-similar-s3',
+    )
+    expect(problems.some((p) => p.includes('循環'))).toBe(false)
+  })
+
+  it('同じrawエントリなら常に同じ結果になる（配列内位置に依存しない決定的な値）', () => {
+    const entries1 = buildKeyVocabSimilarS3Entries()
+    const entries2 = buildKeyVocabSimilarS3Entries()
+    expect(entries1).toEqual(entries2)
   })
 })

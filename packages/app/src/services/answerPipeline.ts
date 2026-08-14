@@ -108,8 +108,14 @@ function resolveGhostDefenseMultiplier(
 ): number | undefined {
   if (raidState.bossType !== 'ghost' || !raidState.defenseJson) return undefined
   try {
-    const map = JSON.parse(raidState.defenseJson) as Record<string, number>
-    return map[questionId]
+    const map = JSON.parse(raidState.defenseJson) as Record<string, unknown>
+    const value = map[questionId]
+    // T-192（Q-106）: JSON.parse自体は成功しても、値が数値でない・NaN・負値の場合がある
+    // （外部編集されたバックアップ、破損したキャッシュ等）。ここで弾かないと
+    // damage = baseDamage * multiplier にそのまま乗り、ダメージが負値やNaNになる。
+    // baseDamage<=0のガードは倍率適用より前に効くため、ここが最後の防波堤になる
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return undefined
+    return value
   } catch {
     return undefined
   }
@@ -124,11 +130,21 @@ interface RaidStateRecordLike {
 /** enqueueRaidSyncIfEnabledの戻り値。呼び出し側（DrillScreen等）が解説カードの
  * 「今回の実ダメージ」「堅い/弱点」バッジを、倍率計算を再実装せずに表示するために使う */
 export interface RaidDamageResult {
-  /** 倍率適用後（pendingSyncへ積んだ）最終ダメージ */
+  /** 倍率適用後（表示用）の実ダメージ。非整数になりうる（solo係数0.5・ghost防御0.5等） */
   damage: number
   /** ghost週かつdefenseに該当questionIdがある場合のみ設定（0.5=堅い/2.0=弱点）。
    * 該当なし・synthetic週はundefined（バッジを出さない判定に使う） */
   ghostDefenseMultiplier?: number
+}
+
+/**
+ * レイドダメージ送信値の整数化（T-274・K-1。正本: docs/32 3節J-115）。
+ * api側の isRaidSyncRequest は Number.isInteger を要求するが、solo係数0.5・ghost防御0.5等の
+ * 乗算で小数になりうる。表示用の実ダメージ（RaidDamageResult.damage）とは分離し、
+ * 送信直前のこの関数でのみ丸める（0.5を切り捨てず常に不利にならないようMath.roundを使う）
+ */
+export function roundDamageForSync(damage: number): number {
+  return Math.round(damage)
 }
 
 /**
@@ -172,7 +188,7 @@ async function enqueueRaidSyncIfEnabled(
   const payload = buildDamageSyncPayload({
     attemptId: params.attemptId,
     bossId: raidState.bossId,
-    damage,
+    damage: roundDamageForSync(damage),
     questionCount: 1,
     answeredAt: params.answeredAt,
   })
@@ -198,7 +214,7 @@ export async function recordAnswerPipeline(
     questionId,
     question,
     lookup,
-    isCorrect,
+    isCorrect: rawIsCorrect,
     responseMs,
     isTimeout = false,
     mode,
@@ -206,6 +222,11 @@ export async function recordAnswerPipeline(
     srsGrade,
     skip,
   } = input
+  // T-192（Q-108）: buildAttempt（services/attempts.ts）はisTimeout時にisCorrectをfalseへ
+  // 強制するが、この正規化はattempt記録の直前でしか行われず、processWrongAnswer・
+  // updateTagStatsForAnswer・applyRatingUpdateには呼び出し側の生のisCorrectがそのまま
+  // 渡っていた。正規化をパイプライン冒頭へ移し、以降すべての処理で一致させる
+  const isCorrect = isTimeout ? false : rawIsCorrect
 
   let nextSnapshot: SessionSnapshot | undefined
   let attemptId = ''

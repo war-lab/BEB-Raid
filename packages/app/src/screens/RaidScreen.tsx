@@ -28,6 +28,7 @@ import {
   RAID_SYNC_ENABLED_KEY,
 } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
+import { buildRaidBadgeList } from '../engine/raidBadgeList'
 import { useRaidSyncStore } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BossSigil } from '../components/BossSigil'
@@ -139,6 +140,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   // レビューF1(b): 404（今週のボス未生成）と通信失敗を区別する。
   // fetchCurrentBoss()は404をnullで返し、通信失敗はthrowするため、catch側でこのフラグを立てる
   const [bossFetchFailed, setBossFetchFailed] = useState(false)
+  // T-212(Q-44): 再試行導線が無く、通信状態が変わっても復帰手段が「開き直す」しかなかった
+  const [bossFetchRetrying, setBossFetchRetrying] = useState(false)
+  // T-150: 取得済み＋未取得（固定バッジ＋進行中ボスの討伐バッジ）を並べる
+  const badgeList = buildRaidBadgeList(raidBadges, currentBoss?.bossId ?? null)
   // T-105(b): 相対時刻・raidEnded判定のtick更新用の現在時刻state
   const [nowMs, setNowMs] = useState(now())
   // T-121(J-60): 生成パックが0問だったときの案内。自動では消さず、セッション開始成功でクリアする
@@ -155,6 +160,9 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
   const [ghostBossSubmitted, setGhostBossSubmitted] = useState(false)
   const [ghostBossWithdrawing, setGhostBossWithdrawing] = useState(false)
   const [ghostBossWithdrawError, setGhostBossWithdrawError] = useState<string | null>(null)
+  // T-202（docs/29 Q-33・J-105）: 撤回はサーバーから即時削除される不可逆操作なのに確認が
+  // 無かった（立候補側は同意画面＋チェックボックスの二重防御なのに撤回は無防備だった）
+  const [ghostBossWithdrawConfirm, setGhostBossWithdrawConfirm] = useState(false)
 
   // レイド機能が利用可能な間だけ60秒tickで現在時刻を進める（raidEnded・残り日数・最終同期表示に使う）
   useEffect(() => {
@@ -248,6 +256,26 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
     const lookup = buildFullQuestionLookup(questionPool)
     return buildGhostWeaknessMap(currentBoss.defense, lookup)
   }, [currentBoss, questionPool])
+
+  /**
+   * T-212(Q-44): ボス情報の取得失敗（通信断・サーバー障害）からの再試行導線。
+   * 従来は「最新情報を取得できませんでした」を表示するのみで、復帰にはアプリの
+   * 開き直し（起動時の初回読み込みのやり直し）しか手段が無かった
+   */
+  async function handleRetryBossFetch() {
+    if (!raidApi.isConfigured()) return
+    setBossFetchRetrying(true)
+    try {
+      const boss = await raidApi.fetchCurrentBoss() // 404はnull・通信失敗はthrow
+      setCurrentBoss(boss)
+      setBossFetchFailed(false)
+    } catch (e) {
+      setBossFetchFailed(true)
+      console.warn('[RaidScreen] 現ボスの再取得に失敗', e)
+    } finally {
+      setBossFetchRetrying(false)
+    }
+  }
 
   async function handleRegister() {
     setRegisterError(null)
@@ -705,6 +733,20 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       }
       action={
         <>
+          {/* T-212(Q-44): 取得失敗からの再試行導線。オフライン中はraidApi呼び出し自体が
+              失敗するだけなので無効化はしない（タップして初めて最新のnavigator.onLineを
+              見られるほうが、オンライン復帰直後に有効化されないより実害が小さい） */}
+          {!currentBoss && bossFetchFailed && (
+            <button
+              type="button"
+              className="secondary-action"
+              data-testid="raid-retry-boss-fetch"
+              onClick={() => void handleRetryBossFetch()}
+              disabled={bossFetchRetrying}
+            >
+              {bossFetchRetrying ? '再試行中…' : '再試行'}
+            </button>
+          )}
           {!joined && currentBoss && (
             <PrimaryButton onClick={() => void handleJoin()} disabled={raidEnded}>
               参加する
@@ -752,11 +794,29 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
               type="button"
               className="secondary-action"
               data-testid="ghost-boss-withdraw"
-              onClick={() => void handleWithdrawGhostBoss()}
+              onClick={() => setGhostBossWithdrawConfirm(true)}
               disabled={ghostBossWithdrawing}
             >
               ボス役記録を撤回する
             </button>
+          )}
+          {/* T-202（Q-33）: 確認なしの1タップ即時削除だった。撤回後は取り消せないことを明示する */}
+          {ghostBossWithdrawConfirm && (
+            <ConfirmDialog
+              message="ボス役記録を撤回しますか？（サーバーから即時削除され、元に戻せません）"
+              onDismiss={() => setGhostBossWithdrawConfirm(false)}
+              actions={[
+                {
+                  label: '撤回する',
+                  primary: true,
+                  onSelect: () => {
+                    setGhostBossWithdrawConfirm(false)
+                    void handleWithdrawGhostBoss()
+                  },
+                },
+                { label: 'キャンセル', onSelect: () => setGhostBossWithdrawConfirm(false) },
+              ]}
+            />
           )}
           {ghostBossWithdrawError && <p className="drill-error">{ghostBossWithdrawError}</p>}
           <button type="button" className="secondary-action" onClick={() => navigate('home')}>
@@ -770,6 +830,14 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       {!currentBoss && bossFetchFailed && (
         <div data-testid="raid-fetch-failed">
           <p className="drill-error">最新情報を取得できませんでした</p>
+          {/* T-212(Q-44): navigator.onLineでオフラインとサーバー障害を大まかに区別する
+              （オフライン中はブラウザが確実にfalseを返す。true側は「サーバー障害」を断定
+              できないため「の可能性」に留める） */}
+          <p className="result-list__note">
+            {navigator.onLine
+              ? 'サーバー側に問題が発生している可能性があります'
+              : '通信がオフラインになっています。電波状況をご確認ください'}
+          </p>
           {cachedBossName !== null && raidState && (
             <div data-testid="raid-boss-cached">
               <div className="raid-boss-header">
@@ -834,7 +902,10 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
           <p>貢献者 {currentBoss.participantCount}人</p>
           {joined && (
             <p>
-              自分の貢献ダメージ: <span className="display-num">{currentBoss.myDamage}</span>
+              {/* T-216（Q-50）: 貢献リスト（RaidContributionList）・リザルトのBOSS HPと
+                  桁区切りを揃える（従来は素の数値のみで4〜5桁でも読みにくかった） */}
+              自分の貢献ダメージ:{' '}
+              <span className="display-num">{currentBoss.myDamage.toLocaleString('ja-JP')}</span>
             </p>
           )}
           {/* V-15（docs/25 4.6節）: 順位表（V-9）と同じ構造の貢献リスト。空状態は
@@ -879,16 +950,34 @@ export function RaidScreen({ db, raidApi, questionPool, resumeSnapshot }: Props)
       <section className="raid-badges" data-testid="raid-badges">
         <p className="raid-badges__eyebrow">Badges</p>
         <h2 className="raid-badges__heading">獲得バッジ</h2>
-        {raidBadges.length === 0 ? (
+        {/* T-150で未取得バッジ（シルエット）を並べるようになったため、一覧は常に1件以上ある。
+            ただし1つも獲得していないときの案内（4.6節「どうすれば増えるか」）は残す価値があるので、
+            一覧と入れ替えるのではなく上に添える */}
+        {raidBadges.length === 0 && (
           <RaidEmptyNote testId="raid-badges-empty">
             まだバッジはありません。ボスを討伐すると、その週のバッジがここに並びます
           </RaidEmptyNote>
-        ) : (
+        )}
+        {badgeList.length > 0 && (
           <ul className="raid-badges__list">
-            {raidBadges.map((b) => (
-              <li key={b.badgeId} className="raid-badges__item">
+            {badgeList.map((b) => (
+              <li
+                key={b.badgeId}
+                className={
+                  b.earnedAt === null
+                    ? 'raid-badges__item raid-badges__item--locked'
+                    : 'raid-badges__item'
+                }
+                data-testid={b.earnedAt === null ? 'raid-badge-locked' : 'raid-badge-earned'}
+              >
                 <span className="raid-badges__name">{raidBadgeLabel(b.badgeId)}</span>
-                <span className="raid-badges__date display-num">{toDateString(b.earnedAt)}</span>
+                {b.earnedAt === null ? (
+                  /* 未取得は取得日の代わりに状態を文字で置く。07の原則4（色に頼らない）に沿って
+                     枠線の色だけで取得済みと区別しない */
+                  <span className="raid-badges__date">未取得</span>
+                ) : (
+                  <span className="raid-badges__date display-num">{toDateString(b.earnedAt)}</span>
+                )}
               </li>
             ))}
           </ul>

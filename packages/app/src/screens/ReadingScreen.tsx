@@ -23,15 +23,26 @@
 // question.formatを見て、text_passageならこの画面、それ以外ならDrillScreenへ自動的に
 // 切り替える（対の効果をDrillScreen側にも実装）。T-104時点では未実装だった
 // 「通常セッションからreading画面への遷移方式」の設計判断はここで確定した
-import { useEffect, useMemo, useState } from 'react'
-import type { Question } from '@beb-raid/shared-schema'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Question, SubQuestion } from '@beb-raid/shared-schema'
 import type { BebRaidDatabase } from '../db/database'
 import { withSubQuestionLookup } from '../engine/subQuestionLookup'
 import { answerSlotsBefore, totalAnswerSlots } from '../engine/answerSlots'
 import { shuffle } from '../engine/shuffle'
+import type { QuestionLookup } from '../engine/types'
 import type { AiClient, RaidApi } from '../platform'
 import { recordAnswerPipeline, type RaidDamageResult } from '../services/answerPipeline'
-import { advanceSession, currentSubAnswers, type SessionSnapshot } from '../services/session'
+import { recordPendingCommitFailure } from '../services/pendingCommitFailure'
+import {
+  advanceSession,
+  completeSession,
+  currentSubAnswers,
+  StaleSnapshotError,
+  type SessionItem,
+  type SessionSnapshot,
+} from '../services/session'
+import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
+import { isQuotaExceededError, QUOTA_EXCEEDED_SAVE_ERROR } from '../services/storageErrors'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { ChoiceButton, type ChoiceState } from '../components/ChoiceButton'
@@ -41,6 +52,7 @@ import { PassageText, type PassageAnswer } from '../components/PassageText'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SessionProgress } from '../components/SessionProgress'
+import { usePendingCommit } from '../hooks/usePendingCommit'
 import { useSaveGuard } from '../hooks/useSaveGuard'
 
 interface Props {
@@ -107,6 +119,27 @@ function firstUnansweredIndex(answered: ReadonlyMap<number, PassageAnswer>, coun
   return 0
 }
 
+/**
+ * 猶予中の未確定なサブ設問解答（T-268。docs/29 Q-113・ADR 0009 2026-08-05 Amendmentの改訂）。
+ * DrillScreen・VocabScreenの解答経路と同じ理由で、確定に必要な値をタップ時点で確定させて
+ * すべてペイロードに載せる（アンマウント後のflushはクロージャではなくこの値を読む）。
+ * 読解は各subQuestionを独立採点するため（ADR 0006 判断4）、audio_setのような
+ * セット単位の巻き戻しは発生せず、DrillScreenのPendingCommitと同型で足りる
+ */
+interface ReadingPendingCommit {
+  /** どのサブ設問に対する解答か（取り消し時にanswersから該当indexだけ除く） */
+  index: number
+  choiceKey: string
+  isCorrect: boolean
+  /** タップ時点で確定させた応答時間。commit時刻で計算すると猶予分が乗り、当て勘判定がずれる */
+  responseMs: number
+  question: Question
+  sub: SubQuestion
+  item: SessionItem
+  subQuestionLookup: QuestionLookup
+  snapshot: SessionSnapshot | undefined
+}
+
 export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const snapshot = useSessionStore((s) => s.snapshot)
   const questions = useSessionStore((s) => s.questions)
@@ -137,16 +170,28 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // ペース表示用の経過秒数（3.5節: 15秒タイマーは付けない。柔らかい目安のみ）
   const [elapsedSec, setElapsedSec] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // T-281（K-4）: スキップ失敗・advanceReadingItemの失敗を握りつぶすと、中断ボタンすら無い
+  // 白画面に固着する（DrillScreenのsessionErrorと同じ理由）
+  const [sessionError, setSessionError] = useState<string | null>(null)
   // T-176: 保存の進行ガードと再試行導線（多重実行・保存中の進行のガードはフック側）
   const saveGuard = useSaveGuard()
   // T-162（docs/27 のS-7）: 中断の確認
   const [abortConfirm, setAbortConfirm] = useState(false)
+  // 誤タップの取り消し猶予（T-268。ADR 0009。既定ON。DrillScreen・VocabScreenと同じ設定キー）
+  const [mistapUndoEnabled, setMistapUndoEnabled] = useState(true)
   /**
    * T-165（docs/27 のS-32）: 表示中のパッセージ（複数文書のPart7用）。
    * 従来は passages[0] しか描画せず、相互参照型の設問が出ると2通目を読めないまま
    * 解答不能になっていた
    */
   const [activePassageIndex, setActivePassageIndex] = useState(0)
+  // T-230（docs/29 Q-68・WAI-ARIA APG Tabsパターン）: 矢印キー移動時にDOMへ直接フォーカスを
+  // 当てるためのタブリスト要素参照（roving tabindexは選択状態から算出するため配列refは不要）
+  const tabListRef = useRef<HTMLDivElement | null>(null)
+  // T-347（K-89）: 本文の日本語訳は既定で隠し、必要なときだけ開く（英文を読む妨げにしない）。
+  // 「どのpassage.idについて開いたか」を持ち、現在のpassageと比較することで、
+  // 文書切り替え・別の問題への遷移時に自動的に閉じ直す（useEffectでのsetStateは避ける）
+  const [translationShownForId, setTranslationShownForId] = useState<string | null>(null)
 
   const item = snapshot?.items[displayIndex]
   const question = item ? questions.get(item.questionId) : undefined
@@ -156,6 +201,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   const passage = passages[activePassageIndex] ?? passages[0]
   const activeSub = subQuestions[activeIndex]
   const activeAnswer = answers.get(activeIndex) ?? null
+  const showPassageTranslation = translationShownForId === passage?.id
 
   const subQuestionLookup = useMemo(
     () => (question ? withSubQuestionLookup(question, questions) : questions),
@@ -199,19 +245,106 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         if (cancelled) return
         useSessionStore.setState({ snapshot: nextSnapshot })
         if (displayIndex + 1 >= snapshot.items.length) {
+          // T-267: 全問スキップ完了もリザルトへの正規到達経路のひとつ。finishSession()の
+          // 説明（DrillScreenの同名関数と同じ理由）を参照。このeffectのdeps配列に
+          // 新しいローカル関数を足さないため直接呼ぶ
+          void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
+            console.warn('[ReadingScreen] セッション完了処理に失敗', e)
+          })
           navigate('result')
         } else {
           setDisplayIndex((i) => i + 1)
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        if (cancelled) return
+        // T-281（K-4）: 握りつぶすと中断ボタンすら無い白画面に固着する（DrillScreenと同じ理由）
+        console.warn('[ReadingScreen] セッションを進められませんでした', err)
+        setSessionError('セッションを進められませんでした')
+      })
     return () => {
       cancelled = true
     }
   }, [item, question, snapshot, displayIndex, db, navigate])
 
+  // 誤タップの取り消し猶予の設定読み込み（T-268。DrillScreen・VocabScreenと同じ既定ON）
+  useEffect(() => {
+    let cancelled = false
+    void db.settings.get(MISTAP_UNDO_ENABLED_KEY).then((setting) => {
+      if (!cancelled) setMistapUndoEnabled(setting?.value !== false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [db])
+
+  /**
+   * サブ設問解答の猶予付き確定（T-268）。**早期returnより前に置くこと**——後ろに置くと
+   * レンダーごとにフック数が変わる（VocabScreenの2インスタンスと同じ注意）。
+   * commitSubQuestionAnswerは関数宣言のため巻き上げられ、実際に呼ばれるのは
+   * レンダー完了後（タイマー発火・アンマウント時flush・イベントハンドラ経由）なので、
+   * ここで先に参照しても本文の関数定義は解決済みになっている（DrillScreenのcommitAnswer・
+   * VocabScreenのcommitGrade/commitTriageと同じパターン）。
+   */
+  const {
+    pending: readingPending,
+    pendingRef: readingPendingRef,
+    schedule: scheduleReadingCommit,
+    cancel: cancelReadingCommit,
+    clearTimer: clearReadingTimer,
+    clearPending: clearReadingPending,
+    mountedRef,
+  } = usePendingCommit<ReadingPendingCommit>((payload) => commitSubQuestionAnswer(payload))
+
+  /**
+   * リザルト画面へ遷移する時点でDB上のアクティブセッションを確実に消す
+   * （T-196・T-267。docs/29 Q-5、DrillScreenの同名関数と同じ理由）。リザルトへ到達する
+   * 経路はすべてここを通す: 「ここで終了して結果を見る」（早期終了）・全問解答後の
+   * 「次へ」（正規完走）・questionIdが解決できない異常系のスキップ完了・itemが尽きた
+   * ときの描画フォールバック。当初は早期終了のみT-196で対処したが、全問完走の方が
+   * 通過頻度が高く、同じ欠陥がQ-5の症状として日常的に発生しうると判断してT-267で
+   * 経路を揃えた。
+   * useSessionStore側の画面内スナップショットは消さない。ResultScreenのattemptIds基準
+   * 集計（T-109）はこちらを読むため、DB側だけ完了させても表示は壊れない。
+   * completeSessionはsettings.deleteのみで冪等なため、ResultScreen側の「ホームへ」で
+   * 再度呼ばれても害はない（二重呼び出しは許容する。PR #137参照）。
+   * useCallbackで安定化するのは、下のuseEffectの依存配列に含めるため（T-320・K-53）
+   */
+  const finishSession = useCallback(() => {
+    // T-193でcompleteSessionがsessionId照合を要するようになったため、snapshotが無い場合は
+    // 完了対象が無いものとして呼ばない（複数タブでの誤破棄を防ぐ照合の前提を崩さない）
+    if (snapshot) {
+      void completeSession(db, snapshot.sessionId).catch((e: unknown) => {
+        console.warn('[ReadingScreen] セッション完了処理に失敗', e)
+      })
+    }
+    navigate('result')
+  }, [snapshot, db, navigate])
+
+  // T-320（K-53）: 全item解答済み（snapshotはあるがitemが無い）でのfinishSession()呼び出しが
+  // レンダー本体（return null直前）にあり、レンダー中にnavigate（内部的にstateを更新する
+  // pushState相当の操作）を呼んでいた
+  useEffect(() => {
+    if (snapshot && !item) finishSession()
+  }, [snapshot, item, finishSession])
+
+  // T-281（K-4）: セッション進行が失敗した場合は通常描画をやめ、脱出導線（ホームへ戻る）を
+  // 必ず出す（DrillScreenのsessionErrorと同じ理由。握りつぶすと中断ボタンすら無い白画面に固着する）。
+  // **フック呼び出しより後ろに置くこと**——上のuseCallback/useEffectより前だとレンダーごとに
+  // フック数が変わる（rules-of-hooks違反）
+  if (sessionError) {
+    return (
+      <ScreenLayout
+        action={<PrimaryButton onClick={() => navigate('home')}>ホームへ戻る</PrimaryButton>}
+      >
+        <p className="drill-error" role="alert">
+          {sessionError}
+        </p>
+      </ScreenLayout>
+    )
+  }
+
   if (!snapshot || !item || !question) {
-    if (snapshot && !item) navigate('result')
     return null
   }
   // text_passage以外はこのコンポーネントの担当外（上のeffectがdrill画面へ切り替える）。
@@ -230,6 +363,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   // 保存中・保存失敗中は進行させない（レビュー指摘、2026-08-03）。saveError は
   // saveGuard.blocked と重なるが、再試行を出さない失敗経路が将来増えても止まるように併記する
   const canAdvance = !saveGuard.blocked && saveError === null
+  // T-268: 現在表示中のサブ設問が猶予中かどうか（他のサブ設問の猶予中はここではfalse。
+  // 空所タップで別の設問へジャンプできる=3.5節ため、取り消しボタンは表示中の設問のものだけ出す）
+  const pendingForActive = readingPending !== null && readingPending.index === activeIndex
 
   /** 空所タップ・設問切替（該当設問へジャンプ。3.5節）。解答済み設問も閲覧のため切替可 */
   function handleSelectBlank(index: number) {
@@ -237,28 +373,81 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
   }
 
   /**
-   * サブ設問1問の解答を確定して永続化する。
-   *
-   * `retryOf` は保存失敗からの再試行（レビュー指摘、2026-07-31）。
-   * **初回選択時の値をそのまま持ち回す**のが要点で、再試行時刻から回答時間を再計算すると、
-   * エラーバナーを見てから押すまでの時間・保存エラー中に「次へ」を押して startedAt が
-   * 更新された分がそのまま responseMs に乗り、速答判定（isGuess）まで壊れる
+   * 文書タブの矢印キー操作（T-230。docs/29 Q-68・WAI-ARIA APG Tabsパターン）。
+   * roving tabindexなのでTabキーでの移動先はタブリストへの出入りのみ（各タブは個別に
+   * フォーカスストップしない）。Left/Rightは循環、Home/Endは端へ直接移動する。
+   * automatic activation（フォーカス移動と同時に選択も切り替える）はクリック時の挙動と
+   * 揃えている——タブ切替そのものは軽い操作（本文の再取得等を伴わない）ため、
+   * 選択確定の別操作を挟む理由が無い
    */
-  async function finalizeSubQuestionAnswer(
-    index: number,
-    choiceKey: string,
-    retryOf?: { responseMs: number },
-  ) {
+  function handleTabKeyDown(event: { key: string; preventDefault: () => void }, index: number) {
+    let nextIndex: number | null = null
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % passages.length
+    else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + passages.length) % passages.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = passages.length - 1
+    if (nextIndex === null) return
+    event.preventDefault()
+    setActivePassageIndex(nextIndex)
+    // 選択状態の反映を待たずに、その場でDOM上のタブへフォーカスを移す（roving tabindexの定石）
+    const tabs = tabListRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+    tabs?.[nextIndex]?.focus()
+  }
+
+  /**
+   * サブ設問1問のタップを受け付ける（T-268で猶予付きに変更）。
+   * 視覚フィードバック（正誤の色）は即時に出し、`attempts` への書き込みだけを
+   * 猶予中は `commitSubQuestionAnswer` へ委ねる（ADR 0009 2026-08-05 Amendmentの改訂）。
+   * 猶予が無効な設定の場合は従来どおり即座に確定する
+   */
+  function finalizeSubQuestionAnswer(index: number, choiceKey: string) {
     const sub = subQuestions[index]
-    // 再試行時は answers に残っている（正誤表示を保持しているため）ので二重解答ガードを通す
-    if (!question || !item || !sub || (answers.has(index) && !retryOf)) return
+    if (!question || !item || !sub || answers.has(index)) return
     const isCorrect = choiceKey === sub.answer
-    const responseMs = retryOf?.responseMs ?? now() - startedAt
+    const responseMs = now() - startedAt
     setAnswers((prev) => new Map(prev).set(index, { selectedKey: choiceKey, isCorrect }))
     setSaveError(null)
     // 保存を始めた時点で古い再試行の登録を捨てる（同期。これ自体が再入ガードにもなる）
     saveGuard.clearRetry()
 
+    const payload: ReadingPendingCommit = {
+      index,
+      choiceKey,
+      isCorrect,
+      responseMs,
+      question,
+      sub,
+      item,
+      subQuestionLookup,
+      snapshot,
+    }
+    if (mistapUndoEnabled) {
+      scheduleReadingCommit(payload)
+      return
+    }
+    void commitSubQuestionAnswer(payload)
+  }
+
+  /**
+   * サブ設問1問の解答を確定して永続化する（猶予タイマー・アンマウント時のflush・
+   * 保存失敗からの再試行のいずれからも呼ばれる）。**値はすべてpayloadから読む**
+   * （クロージャを読むと、猶予中に離脱した場合に古いitem/questionで保存を試みてしまう。
+   * DrillScreenのcommitAnswerと同じ理由）
+   */
+  async function commitSubQuestionAnswer(payload: ReadingPendingCommit) {
+    clearReadingTimer()
+    clearReadingPending()
+    const {
+      index,
+      choiceKey,
+      isCorrect,
+      responseMs,
+      question: q,
+      sub,
+      item: it,
+      subQuestionLookup: lookup,
+      snapshot: snap,
+    } = payload
     try {
       // 読解は各subQuestionを独立採点（2/3ルール不使用=3.2節）。SRSレビューは
       // 本文まるごと再出題しないため呼ばない（skip.srs）。レート・tagStats・
@@ -274,18 +463,18 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
           // 従来は snapshot を渡さず recordAttempt で直接保存していたため、中断すると
           // 解答済みのサブ設問が再開後に再出題され、完走してもリザルトの集計
           // （snapshot.attemptIds 基準）から漏れていた
-          snapshot,
+          snapshot: snap,
           subQuestion: { selectedKey: choiceKey },
           questionId: sub.id,
-          question,
-          lookup: subQuestionLookup,
+          question: q,
+          lookup,
           isCorrect,
           responseMs,
-          mode: item.mode,
-          skip: { srs: true, rating: item.mode === 'battle' },
+          mode: it.mode,
+          skip: { srs: true, rating: it.mode === 'battle' },
         }),
       )
-      if (raidDamage) {
+      if (raidDamage && mountedRef.current) {
         setGhostDefenseByIndex((prev) => new Map(prev).set(index, raidDamage))
       }
       recordAnswer(nextSnapshot!, {
@@ -293,23 +482,56 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
         isCorrect,
         basePoints: isCorrect ? (ratingUpdate?.basePoints ?? 0) : 0,
       })
+      if (mountedRef.current) setSaveError(null)
       saveGuard.clearRetry()
     } catch (err) {
       console.error('[ReadingScreen] 解答の保存に失敗', err)
-      setSaveError('解答を保存できませんでした。通信状態と空き容量を確認してください')
+      // T-297（K-23）: アンマウント後（flush経路）の失敗はsaveErrorバナー・再試行ボタンが
+      // 出しても誰にも見えない（画面ごと消えている）。UI復旧を試みる代わりに退避して
+      // 次回起動時に通知する
+      if (!mountedRef.current) {
+        // 退避自体の失敗（DBクローズ済み等）はここで握る。呼び出し元はvoidで
+        // 投げっぱなしのため、ここから例外が漏れると未処理rejectionになる
+        try {
+          await recordPendingCommitFailure(db)
+        } catch (recordErr) {
+          console.error('[ReadingScreen] 保存失敗の退避にも失敗', recordErr)
+        }
+        return
+      }
+      if (err instanceof StaleSnapshotError) {
+        // T-298（K-24）: 従来はストレージ不足と同じ文言を出しており、別タブでの新セッション
+        // 開始・二度押しが原因のケースでも「空き容量を確認してください」という誤った
+        // 原因究明をさせていた。この経路は保存先の空き容量とは無関係で、解答が失われた
+        // ことだけが確定している事実
+        setSaveError('この解答は保存されていません（別のセッションが開始された可能性があります）')
+      } else if (isQuotaExceededError(err)) {
+        // T-299（K-25）: 従来は「確認してください」までで終わり、確認した後の具体的な
+        // 回復手段（エクスポートして空き容量を作る）を示していなかった
+        setSaveError(QUOTA_EXCEEDED_SAVE_ERROR)
+      } else {
+        // T-207（Q-41）: 保存先はローカルのIndexedDBで通信は無関係。「通信状態」への言及は
+        // 圏外利用者に誤った原因究明をさせる（オフラインが正常系という設計とも矛盾する）ため外す
+        setSaveError('解答を保存できませんでした。空き容量を確認してください')
+      }
       // T-176（docs/27 のS-27）: 正誤フィードバックは保持したまま再試行させる。
       // 従来は answers から該当indexを消して選び直させていたが、正解が既に見えている
-      // 状態で選び直させることになり操作の意味がなかった
-      saveGuard.offerRetry(() => finalizeSubQuestionAnswer(index, choiceKey, { responseMs }))
+      // 状態で選び直させることになり操作の意味がなかった。再試行は猶予を挟まず
+      // 同じpayloadで直接コミットし直す（DrillScreenのrecoverFromSaveErrorと同じ扱い）
+      saveGuard.offerRetry(() => commitSubQuestionAnswer(payload))
     }
   }
 
   function handleSelectChoice(choiceKey: string) {
     // 保存中・保存失敗中は別のサブ設問の解答も受け付けない（レビュー指摘、2026-08-03）。
     // 空所タップでの設問切替は閲覧目的なので止めない。ここを開けておくと、
-    // 未保存の再試行が残っているのに別の設問を解答して retry の登録を捨ててしまう
-    if (activeAnswer || saveGuard.blocked) return
-    void finalizeSubQuestionAnswer(activeIndex, choiceKey)
+    // 未保存の再試行が残っているのに別の設問を解答して retry の登録を捨ててしまう。
+    // T-268: 猶予中（readingPending !== null）も同様に止める。空所タップで別のサブ設問へ
+    // ジャンプすること自体は許すが（3.5節）、その場でさらに別解答を確定させると、
+    // usePendingCommitが「猶予中に再度scheduleされたら前のpendingを即flushする」ため
+    // （T-194・Q-107）、先行する解答の保存とこの解答の保存が並行して走りうる
+    if (activeAnswer || saveGuard.blocked || readingPending !== null) return
+    finalizeSubQuestionAnswer(activeIndex, choiceKey)
   }
 
   /** 次の未解答設問へ（無ければ次の未解答へ巡回）。全問解答済みならitemを進める */
@@ -321,8 +543,35 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
     return null
   }
 
-  async function handleNext() {
-    if (answers.size >= subQuestions.length) {
+  /** payload.index自身を除いた、他に残る未解答サブ設問（取り消し後の遷移先を探す用） */
+  function firstUnansweredExcluding(
+    excludeIndex: number,
+    answered: ReadonlyMap<number, PassageAnswer>,
+  ): number | null {
+    for (let i = 0; i < subQuestions.length; i++) {
+      if (i === excludeIndex || answered.has(i)) continue
+      return i
+    }
+    return null
+  }
+
+  /**
+   * 現在のitem（パッセージ）を消化済みとして次のitemへ進める。全問解答後の「次へ」
+   * （handleNext）と、取り消しが最後の1問だった場合（handleReadingUndo。他に未解答の
+   * サブ設問が残っていない＝この設問の分だけ未記録のまま進める）の両方から呼ぶ
+   */
+  async function advanceReadingItem() {
+    // T-281（K-46・K-47）: 猶予中（400ms未満）の解答が残っていると、advanceSessionで
+    // itemを進めてしまった後にタイマーが発火してもpayloadの参照先が古いitemのままになり、
+    // 解答が失われたまま次のパッセージへ進んでしまう。アンマウント時flushと同じ規律で、
+    // 進める前にここで確定させる
+    if (readingPendingRef.current) {
+      const payload = readingPendingRef.current
+      clearReadingTimer()
+      clearReadingPending()
+      await commitSubQuestionAnswer(payload)
+    }
+    try {
       const nextSnapshot = await advanceSession(db, snapshot!)
       useSessionStore.setState({ snapshot: nextSnapshot })
       // 終了判定は**item数**で行う（レビュー指摘、2026-07-31）。displayIndex は item 単位、
@@ -330,7 +579,7 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       // 最終itemでも `displayIndex + 1 >= total` が成立せず、範囲外へ進んだ次のレンダーで
       // `!item` のフォールバックに拾われてリザルトへ飛ぶという遠回りになっていた
       if (displayIndex + 1 >= snapshot!.items.length) {
-        navigate('result')
+        finishSession()
         return
       }
       setDisplayIndex((i) => i + 1)
@@ -339,13 +588,60 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       setActiveIndex(0)
       setActivePassageIndex(0)
       setStartedAt(now())
+      setElapsedSec(0)
+    } catch (err) {
+      // T-281（K-4）: 握りつぶすと中断ボタンすら無い白画面に固着する（DrillScreenと同じ理由）
+      console.warn('[ReadingScreen] セッションを進められませんでした', err)
+      setSessionError('セッションを進められませんでした')
+    }
+  }
+
+  async function handleNext() {
+    // T-198（Q-7）: startedAtだけ更新してelapsedSecを残すと、一度60秒を超えた設問の後は
+    // 以降すべての設問で「1分超」表示に固着する（tick用effectはelapsedSec>=60で早期returnし
+    // 自己回復しない）。設問・パッセージを切り替えるたびに両方リセットする
+    if (answers.size >= subQuestions.length) {
+      await advanceReadingItem()
       return
     }
     const next = findNextUnanswered(activeIndex, answers)
     if (next !== null) {
       setActiveIndex(next)
       setStartedAt(now())
+      setElapsedSec(0)
     }
+  }
+
+  /**
+   * サブ設問の解答の取り消し（T-268。ADR 0009 2026-08-05 Amendmentの改訂）。
+   * 「記録せず次へ進む」はDrillScreen・VocabScreenと同じ意味だが、読解は1itemに
+   * 複数サブ設問を持つため、「次へ」は次の未解答サブ設問（同じitem内）を指す。
+   * 同じサブ設問を再表示して選び直させないのは、正解が既に見えているため
+   * isCorrect が偽陽性になるからである（他画面と同じ理由）。
+   * 他に未解答のサブ設問が残っていない場合（取り消した設問がこのitemの最後の1問）は
+   * advanceReadingItemでitemごと進める。audio_setと違い各subQuestionは独立採点なので、
+   * 1問分が未記録のまま進めても他の設問の記録には影響しない
+   */
+  async function handleReadingUndo() {
+    const payload = cancelReadingCommit()
+    if (!payload) return
+    const remaining = new Map(answers)
+    remaining.delete(payload.index)
+    setAnswers(remaining)
+    setGhostDefenseByIndex((prev) => {
+      if (!prev.has(payload.index)) return prev
+      const next = new Map(prev)
+      next.delete(payload.index)
+      return next
+    })
+    const next = firstUnansweredExcluding(payload.index, remaining)
+    if (next !== null) {
+      setActiveIndex(next)
+      setStartedAt(now())
+      setElapsedSec(0)
+      return
+    }
+    await advanceReadingItem()
   }
 
   return (
@@ -402,6 +698,16 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                   保存を再試行する
                 </button>
               )}
+              {/* T-299（K-25）: 容量不足の場合だけ、確認を促すだけでなく具体的な回復手段を出す */}
+              {saveError === QUOTA_EXCEEDED_SAVE_ERROR && (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => navigate('settings')}
+                >
+                  設定でエクスポート
+                </button>
+              )}
             </>
           )}
           {activeSub &&
@@ -417,7 +723,9 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                   key={choice.key}
                   marker={choice.key}
                   state={state}
-                  disabled={activeAnswer !== null}
+                  // T-268: 別のサブ設問が猶予中（readingPending）の間は、このボタンを押しても
+                  // handleSelectChoiceが無視するだけなので、無反応タップにしないよう見た目も止める
+                  disabled={activeAnswer !== null || readingPending !== null}
                   onClick={() => handleSelectChoice(choice.key)}
                 >
                   {choice.text}
@@ -448,21 +756,31 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
                     : null
                 }
               />
+              {/* T-268: 猶予中（ADR 0009）は「取り消し」だけを出す。DrillScreen・VocabScreenと
+                  同じ思想で、解説は猶予中も即時に出しつつ（ADR 0009 T-160 Amendment 決定2）、
+                  未確定のまま次へ進める導線・途中終了は猶予が明けてから出す */}
+              {pendingForActive && (
+                <button
+                  type="button"
+                  className="drill-undo"
+                  onClick={() => void handleReadingUndo()}
+                >
+                  取り消し
+                </button>
+              )}
               {/* 保存が終わるまでは進行導線を出さない（レビュー指摘、2026-08-03）。
                   正誤表示は保存処理より先に出るため、出しておくと最終サブ設問で
                   attempt未保存のまま advanceSession → リザルトへ進めてしまう。
                   保存失敗中（再試行待ち）も同様に止め、再試行だけを前進手段にする */}
-              {canAdvance && <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>}
+              {canAdvance && !pendingForActive && (
+                <PrimaryButton onClick={() => void handleNext()}>次へ</PrimaryButton>
+              )}
               {/* T-164（docs/27 のS-31）: T-122でドリルに入れた途中終了導線を読解にも適用する。
                   従来は全サブ設問を解き切るまでリザルトへ到達できず、抜ける手段は「中断」
                   （ホーム直行）だけだったため、Part7の長文を全問解く覚悟がないと入れなかった。
                   解答済みが1問以上あり、かつ未解答が残っているときだけ出す */}
-              {canAdvance && answers.size < subQuestions.length && (
-                <button
-                  type="button"
-                  className="secondary-action"
-                  onClick={() => navigate('result')}
-                >
+              {canAdvance && !pendingForActive && answers.size < subQuestions.length && (
+                <button type="button" className="secondary-action" onClick={finishSession}>
                   ここで終了して結果を見る
                 </button>
               )}
@@ -474,15 +792,27 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       {/* T-165（docs/27 のS-32）: 複数文書のときだけタブを出す。1件のときは従来の表示を
           変えない（タブが常に出ると単一文書の読解に無用な要素が増える） */}
       {passages.length >= 2 && (
-        <div className="reading-passage-tabs" role="tablist" aria-label="文書の切り替え">
+        <div
+          className="reading-passage-tabs"
+          role="tablist"
+          aria-label="文書の切り替え"
+          ref={tabListRef}
+        >
           {passages.map((p, i) => (
             <button
               key={p.id}
+              // T-230: tabpanel側のaria-labelledbyから参照する安定id（passages[i].id由来）
+              id={`reading-tab-${p.id}`}
               type="button"
               role="tab"
               aria-selected={i === activePassageIndex}
+              aria-controls={`reading-tabpanel-${p.id}`}
+              // T-230: roving tabindex。選択中タブのみ0、他は-1（Tabキーではタブリストへ
+              // 1回入るだけにし、以降の移動は矢印キーに委ねるAPGパターン）
+              tabIndex={i === activePassageIndex ? 0 : -1}
               className={i === activePassageIndex ? 'is-selected' : ''}
               onClick={() => setActivePassageIndex(i)}
+              onKeyDown={(e) => handleTabKeyDown(e, i)}
             >
               文書{i + 1}（{p.kind}）
             </button>
@@ -492,7 +822,14 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
       {passage && (
         // docs/25 4.8節（V-19）: パッセージ面に--surface-gradを当てる。面と罫線だけで、
         // 光暈・アニメーションは足さない（07の原則3: 読解中は静かであるべき）
-        <div className="reading-passage">
+        // T-230: タブが出る（複数文書の）ときだけtabpanelとして紐づける。単一文書には
+        // タブリスト自体が無いため、tabpanel役を持たせる意味が無い
+        <div
+          className="reading-passage"
+          role={passages.length >= 2 ? 'tabpanel' : undefined}
+          id={passages.length >= 2 ? `reading-tabpanel-${passage.id}` : undefined}
+          aria-labelledby={passages.length >= 2 ? `reading-tab-${passage.id}` : undefined}
+        >
           <p className="passage-kind">{passage.kind}</p>
           <PassageText
             text={passage.text}
@@ -501,11 +838,28 @@ export function ReadingScreen({ db, aiClient, raidApi }: Props) {
             activeIndex={activeIndex}
             onSelectBlank={handleSelectBlank}
           />
+          {/* T-347（K-89）: 本文の日本語訳。既定で隠し、押すまで英文だけを読ませる */}
+          {passage.translation && (
+            <>
+              {!showPassageTranslation ? (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => setTranslationShownForId(passage.id)}
+                >
+                  本文の日本語訳を見る
+                </button>
+              ) : (
+                <p className="passage-translation">{passage.translation}</p>
+              )}
+            </>
+          )}
         </div>
       )}
       {activeSub && (
+        // T-224（J-108）: 「設問n/m:」は日本語ラベル、設問文（英文）だけをspanで括る
         <p className="question-text" data-testid="reading-question">
-          設問{activeIndex + 1}/{subQuestions.length}: {activeSub.question}
+          設問{activeIndex + 1}/{subQuestions.length}: <span lang="en">{activeSub.question}</span>
         </p>
       )}
     </ScreenLayout>

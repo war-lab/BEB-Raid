@@ -5,13 +5,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { bossProfileForWeek } from './bossProfiles'
 import { ghostKey, type GhostRecord } from './ghostStore'
 import type { RaidBossDO } from './raidBossDo'
-import { bossIdFor, isoWeekInfo } from './raidWeek'
+import { bossIdFor, isoWeekInfo, previousWeekInfo } from './raidWeek'
 
 const VALID_INVITE_CODE = 'test-invite-code'
 const HOUR_MS = 60 * 60 * 1000
 
 async function registerDevice(displayName = '太郎'): Promise<string> {
-  const deviceToken = `device-${crypto.randomUUID()}`
+  const deviceToken = crypto.randomUUID()
   const res = await SELF.fetch('https://example.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -121,7 +121,9 @@ describe('POST /ghosts', () => {
     expect(res.status).toBe(400)
   })
 
-  it('正常系: 200 { ok: true } を返し、KVにghost:<deviceToken>として保存される', async () => {
+  // 【T-251・29のQ-26】displayNameは登録済みメンバーの表示名（'太郎'。registerDeviceの既定値）
+  // を使う。VALID_PAYLOAD.displayName（'ボス太郎'）は自己申告のため無視される
+  it('正常系: 200 { ok: true } を返し、KVにghost:<deviceToken>として保存される（displayNameは登録済みメンバー名）', async () => {
     const deviceToken = await registerDevice()
     const res = await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
     expect(res.status).toBe(200)
@@ -130,11 +132,27 @@ describe('POST /ghosts', () => {
     const raw = await env.MEMBERS.get(ghostKey(deviceToken))
     expect(raw).not.toBeNull()
     const record = JSON.parse(raw!) as GhostRecord
-    expect(record.displayName).toBe('ボス太郎')
+    expect(record.displayName).toBe('太郎')
     expect(record.consent).toBe(true)
     expect(record.records).toEqual(VALID_PAYLOAD.records)
     expect(record.defeatedCount).toBe(0)
     expect(record.lastUsedBossId).toBeNull()
+  })
+
+  // T-251・29のQ-26: 以前はbody.displayName（自己申告・最大100字）をそのまま保存しており、
+  // 他メンバーの表示名を騙ったゴースト（ボス名として全参加者に配信される）を誰でも作れた。
+  // 修正後は自己申告のdisplayNameが何であっても、登録済みメンバー名で上書きされる
+  it('なりすまし防止: 他メンバーの表示名を自己申告しても、登録済みメンバー名で保存される', async () => {
+    const deviceToken = await registerDevice('本人太郎')
+    const res = await SELF.fetch(
+      postGhost(deviceToken, { ...VALID_PAYLOAD, displayName: '他人になりすまし' }),
+    )
+    expect(res.status).toBe(200)
+
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    expect(record.displayName).toBe('本人太郎')
+    expect(record.displayName).not.toBe('他人になりすまし')
   })
 
   it('再POSTは記録を作り直す（defeatedCount・lastUsedBossIdが初期化される）', async () => {
@@ -156,7 +174,7 @@ describe('POST /ghosts', () => {
 
     const raw = await env.MEMBERS.get(ghostKey(deviceToken))
     const record = JSON.parse(raw!) as GhostRecord
-    expect(record.displayName).toBe('ボス太郎')
+    expect(record.displayName).toBe('太郎')
     expect(record.defeatedCount).toBe(0)
     expect(record.lastUsedBossId).toBeNull()
   })
@@ -234,5 +252,133 @@ describe('DELETE /ghosts/own', () => {
     const deviceToken = await registerDevice()
     const res = await SELF.fetch(deleteGhostOwn(deviceToken))
     expect(res.status).toBe(200)
+  })
+
+  // 何を防ぐか（レビュー2巡目 指摘5）: 記録の作り直し（再POST）でusedBossIdsまで
+  // 初期化すると、W20で使用→再POST→W23で使用→W24で撤回、のときW20のDOに正誤詳細が残る
+  it('ゴーストを作り直しても使用履歴は引き継ぐ', async () => {
+    const deviceToken = await registerDevice()
+    await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
+
+    const older = bossIdFor(previousWeekInfo(previousWeekInfo(isoWeekInfo(Date.now()))))
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    await env.MEMBERS.put(
+      ghostKey(deviceToken),
+      JSON.stringify({ ...record, usedBossIds: [older] }),
+    )
+
+    // 作り直し
+    expect((await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))).status).toBe(200)
+
+    const after = JSON.parse((await env.MEMBERS.get(ghostKey(deviceToken)))!) as GhostRecord
+    expect(after.usedBossIds).toContain(older)
+    // 作り直しで初期化される項目は従来どおり
+    expect(after.defeatedCount).toBe(0)
+    expect(after.lastUsedBossId).toBeNull()
+  })
+
+  // 何を防ぐか（レビュー指摘5）: T-335はlastUsedBossId（直近1週）しか辿らなかったため、
+  // 同じゴーストが複数週で使われていると古い週のDOに問題別正誤詳細（defense）が
+  // 保持期間の終わりまで残っていた。usedBossIdsで全使用週を辿って消す
+  it('複数週で使われた場合、全ての週のDOから正誤詳細が消える', async () => {
+    const deviceToken = await registerDevice()
+    await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
+
+    const current = isoWeekInfo(Date.now())
+    const previous = previousWeekInfo(current)
+    const older = previousWeekInfo(previous)
+    const previousBossId = bossIdFor(previous)
+    const olderBossId = bossIdFor(older)
+
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    await env.MEMBERS.put(
+      ghostKey(deviceToken),
+      JSON.stringify({
+        ...record,
+        lastUsedBossId: previousBossId,
+        usedBossIds: [previousBossId, olderBossId],
+      }),
+    )
+
+    for (const [bossId, week] of [
+      [previousBossId, previous],
+      [olderBossId, older],
+    ] as const) {
+      const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+      await runInDurableObject(stub, (instance: RaidBossDO) => {
+        instance.init({
+          bossId,
+          profile: { name: 'ゴースト・太郎', flavor: 'テスト用ゴースト' },
+          maxHp: 1000,
+          startAt: week.weekStartAt,
+          endAt: Date.now(),
+          bossType: 'ghost',
+          defense: [{ questionId: 'q-1', multiplier: 0.5 }],
+          ghost: { displayName: '太郎', defeatedCount: 0 },
+          ghostSourceToken: deviceToken,
+        })
+      })
+    }
+
+    expect((await SELF.fetch(deleteGhostOwn(deviceToken))).status).toBe(200)
+
+    for (const bossId of [previousBossId, olderBossId]) {
+      const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(Date.now()),
+      )
+      // 修正前は olderBossId 側が bossType='ghost' のまま残っていた
+      expect(state?.bossType).toBe('synthetic')
+      expect(state?.defense).toBeUndefined()
+    }
+  })
+
+  // 何を防ぐか（T-335・K-70）: 同意画面は「いつでも撤回でき撤回すると記録がサーバーから
+  // 即時削除される」と説明する（ADR 0013）。旧実装は当週DOしか差し替えず、この記録が
+  // 直近の別の週（今週は選ばれていない＝lastUsedBossIdが今週と異なる）で使われていた場合、
+  // その週のRaidBossDOには問題別正誤詳細（defense）が残り続けていた
+  it('直近使用週（lastUsedBossId）が当週と異なる場合、そちらのDOも差し替わる', async () => {
+    const deviceToken = await registerDevice()
+    await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
+
+    // 直近使用週は先週だった、というシナリオを再現する（今週は別のghost or syntheticのため
+    // lastUsedBossIdが更新されず先週のbossIdのまま残っている状態）
+    const previous = previousWeekInfo(isoWeekInfo(Date.now()))
+    const previousBossId = bossIdFor(previous)
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    await env.MEMBERS.put(
+      ghostKey(deviceToken),
+      JSON.stringify({ ...record, lastUsedBossId: previousBossId }),
+    )
+
+    const previousStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(previousBossId))
+    await runInDurableObject(previousStub, (instance: RaidBossDO) => {
+      instance.init({
+        bossId: previousBossId,
+        profile: { name: 'ゴースト・太郎', flavor: 'テスト用ゴースト' },
+        maxHp: 1000,
+        startAt: previous.weekStartAt,
+        endAt: Date.now(),
+        bossType: 'ghost',
+        defense: [{ questionId: 'q-1', multiplier: 0.5 }],
+        ghost: { displayName: '太郎', defeatedCount: 0 },
+        ghostSourceToken: deviceToken,
+      })
+    })
+
+    // 今週は無関係（未生成）のまま撤回する
+    const res = await SELF.fetch(deleteGhostOwn(deviceToken))
+    expect(res.status).toBe(200)
+
+    const previousState = await runInDurableObject(previousStub, (instance: RaidBossDO) =>
+      instance.getBossState(Date.now()),
+    )
+    // 修正前はここがbossType='ghost'のまま（defenseが残り続ける）だった
+    expect(previousState?.bossType).toBe('synthetic')
+    expect(previousState?.defense).toBeUndefined()
+    expect(previousState?.ghost).toBeUndefined()
   })
 })

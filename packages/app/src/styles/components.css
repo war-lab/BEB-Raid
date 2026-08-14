@@ -74,6 +74,8 @@
 .choice-button__label {
   flex: 1;
   min-width: 0;
+  /* T-227(Q-65): 長い選択肢文字列（URL等）が390px幅で溢れないようにする */
+  overflow-wrap: anywhere;
 }
 /* T-154: Part2音声のみモードの解答前（記号だけを出す。ADR 0008）。
    ラベルが空でもボタン高さが潰れないよう最小高さを保ち、記号を中央に置く。
@@ -198,7 +200,7 @@
   background: color-mix(in srgb, var(--gold) 6%, transparent);
   color: var(--gold);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow); /* T-232(Q-71): 直書き11pxをトークン化 */
   letter-spacing: 0.1em;
 }
 
@@ -240,7 +242,11 @@
   padding: var(--sp-1);
   border-radius: var(--radius-button);
   background: var(--surface-2);
-  color: var(--gold);
+  /* T-226(Q-64): --gold(#996600)は--surface-2比4.213:1でAA=4.5:1未達（機械計算値）。
+     継承サイズ16px+boldは「大文字テキスト」基準（18.66px bold）に届かないため3:1の緩和は
+     適用できず、--gold-deepで4.667:1（機械計算値）を確保する。ダークは変更前も
+     7.963:1で適合済み（tokens.cssの--gold-deep定義のコメント参照） */
+  color: var(--gold-deep);
   font-weight: 700;
   text-align: center;
   animation: result-scale-in 250ms ease-out;
@@ -289,7 +295,7 @@
 .result-eyebrow {
   margin: 0;
   color: var(--ev-blue);
-  font-size: 12px;
+  font-size: var(--fs-note); /* T-232(Q-71): 直書き12px（--fs-noteと同値）をトークン化 */
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-family: var(--font-display);
@@ -297,7 +303,7 @@
 /* ディスプレイ数字特大（docs/20 3.4節リザルト行）。共有トークン--fs-displayは
    他画面（タイマー等）でも使うため変更せず、リザルト専用に大きいサイズを指定する */
 .result-points-value {
-  font-size: 56px;
+  font-size: var(--fs-display-xl); /* T-232(Q-71): 直書き56pxをトークン化 */
   text-shadow: var(--glow-gold);
 }
 /* --- リザルトのボスHPバー（docs/20 3.4節リザルト行「ボスHPバー削れ」）。
@@ -412,7 +418,7 @@
 }
 .result-rating__label {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow); /* T-232(Q-71): 直書き11pxをトークン化 */
   letter-spacing: 0.16em;
   color: var(--ev-blue);
 }
@@ -567,6 +573,20 @@
   font-size: var(--fs-question);
   line-height: 1.65;
   max-width: 34em;
+  white-space: pre-wrap;
+  /* T-227(Q-65): Part7定番のURL・メールアドレスが390px幅で折り返せず横スクロールする
+     ことがあったため、任意の位置で折り返す */
+  overflow-wrap: anywhere;
+}
+/* 本文の日本語訳（T-347）。英文（.passage-text）と区別できるよう罫線で仕切るだけに留め、
+   面上の--ink-2で.passage-kindと同じコントラスト方針にする */
+.passage-translation {
+  margin: var(--sp-1) 0 0;
+  padding-top: var(--sp-1);
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: var(--fs-sub);
+  line-height: 1.65;
   white-space: pre-wrap;
 }
 /* Part6の空所（未解答=___(n)___・解答済み=選択結果を反映。タップで該当設問へジャンプ） */
@@ -780,7 +800,10 @@
   padding: 0 var(--sp-1);
   background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--line);
+  /* T-226(Q-70): 入力欄はコントロール自体に文字を持たず、枠線が識別の唯一の手掛かりの
+     ため1.4.11の対象。他の入力欄（components.css内の.settings-list input等）と同じ
+     --ink-3の適用漏れだった（--lineは3:1未達=tokens.cssのコメント参照） */
+  border: 1px solid var(--ink-3);
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
 }
@@ -839,17 +862,21 @@
   height: 28px;
   padding: 0 var(--sp-1);
   margin-bottom: var(--sp-2);
+  background: none;
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   font-size: var(--fs-sub);
   color: var(--ink-2);
 }
+/* T-225(Q-72): 英文の例文（フレーズ）も英文問題文相当のため--fs-questionを使い、
+   文字サイズ設定を効かせる（旧: --fs-headingで固定サイズだったため設定が効かなかった） */
 .vocab-card__phrase {
-  font-size: var(--fs-heading);
+  font-size: var(--fs-question);
   line-height: 1.5;
 }
 /* 復習モードで解答前に出す単語単体（2026-07-29。フレーズは解答後に開示する）。
-   フレーズより1段大きくして「今問われているのはこの語」を明示する */
+   太字＋--goldで強調し「今問われているのはこの語」を明示する
+   （T-225でフレーズも--fs-questionに揃えたため、文字サイズは常にフレーズと同じになる） */
 .vocab-card__word {
   font-size: var(--fs-question);
   font-weight: 700;
@@ -893,6 +920,53 @@
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+
+/* --- T-210(J-107): titleのみでは読めない説明をタップで開閉表示（InfoDisclosure） --- */
+.info-disclosure-trigger {
+  cursor: pointer;
+  font-family: inherit;
+}
+.info-disclosure-trigger[aria-expanded='false']::after {
+  content: '▾';
+  margin-left: var(--sp-half);
+}
+.info-disclosure-trigger[aria-expanded='true']::after {
+  content: '▴';
+  margin-left: var(--sp-half);
+}
+.info-disclosure-trigger:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.info-disclosure__body {
+  display: block;
+  margin-top: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  text-align: left;
+}
+/* 文中リンク風のトリガー（SRS間隔・当て勘/速度不足の説明。ボタン群の下に単独で置く） */
+.info-help-link {
+  /* T-317（K-50）: padding上下4px＋line-height1.5の内容高18pxで合計26pxしかなく、
+     48px規則（--tap-min）を満たしていなかった。語彙カードでは56pxの自己評価ボタン
+     直下に密着するため、揺れる車内での誤タップがSRS間隔の確定につながっていた */
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-top: var(--sp-1);
+  padding: var(--sp-half) 0;
+  background: none;
+  border: none;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+  text-decoration: underline;
+}
+
 /* 「わからない」ボタン（ドッグフィードバック 2026-07-22）。回答選択肢A–Dより一段控えめにし、
    当てずっぽうより正直な申告を選びやすくする。破線＋淡色で選択肢とは別物であることを示す */
 /* --- 誤タップの取り消し猶予（ADR 0009） --- */
@@ -1097,6 +1171,14 @@
   width: min(72%, 280px);
   height: auto;
 }
+/* T-213（Q-43・J-109）: モバイル幅（390×844相当）では280px級のロゴ単体で縦170px超を
+   占有し、ヒーローカード・ヒートマップの手前でCTAが1画面目に入らない一因になっていた。
+   ロゴの縦横比(600:407)は保ったまま、幅の上限を下げて高さを縮める（配置・他要素は変えない） */
+@media (max-width: 480px) {
+  .wordmark-logo {
+    width: min(48%, 160px);
+  }
+}
 /* docs/26 A-4: 診断ウェルカムの読み仮名。ロゴ直下に中央で敷く（旧 .diagnostic-wordmark__sub） */
 .wordmark {
   flex-direction: column;
@@ -1118,17 +1200,8 @@
   border-radius: var(--radius-card);
   border: 1px solid var(--hero-line);
   overflow: hidden;
-  /* --hero-skyと同じ理由（両テーマ共通の夜空を維持）で、カード内文字色もテーマに
-     追従させず常にダーク値へ固定する（ライト基調の--ink等をそのまま使うと、常に暗い
-     hero-sky上でほぼ読めなくなるため）。コントラスト機械計算値（--hero-skyの最明部
-     #16204aとの比。テーマ切替時に最も厳しくなる箇所を採用）:
-       #eaedf6(ink) = 13.394:1 / #a6aec6(ink-2) = 7.085:1 / #7e89ac(ink-3) = 4.525:1
-       #4d8dff(ev-blue) = 4.904:1 / #f0647a(ng) = 5.083:1 いずれもAA(4.5:1)適合 */
-  --home-hero-ink: #eaedf6;
-  --home-hero-ink-2: #a6aec6;
-  --home-hero-ink-3: #7e89ac;
-  --home-hero-accent: #4d8dff;
-  --home-hero-danger: #f0647a;
+  /* --home-hero-ink*はtokens.css（3.2節）で両テーマ共通の固定値として定義済み
+     （T-233でトークン化。機械計算値のコントラストもそちらに記載） */
   /* 車窓の星（微小radial-gradientの点描）＋下端の電光青ハイライト＋--hero-skyの3段グラデ */
   background:
     radial-gradient(1.2px 1.2px at 12% 18%, rgba(234, 237, 246, 0.9) 50%, transparent 51%),
@@ -1161,7 +1234,7 @@
 }
 .home-hero-eyebrow {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow); /* T-232(Q-71): 直書き11pxをトークン化 */
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--home-hero-accent);
@@ -1501,7 +1574,9 @@
   font-size: var(--fs-sub);
 }
 .home-mode-tile__hint {
-  font-size: 10.5px;
+  /* T-232(Q-71): 直書き10.5pxは--fs-note（12px）より小さくスケール外だったため、
+     満員電車前提の可読性方針に合わせ--fs-noteへ引き上げる */
+  font-size: var(--fs-note);
   color: var(--ink-3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1634,12 +1709,18 @@
 }
 
 /* --- カラオケハイライト（07 6節131行: 発話中=--gold下線+明るい文字、読了=--ink、未読=--ink-2。背景塗り無し） --- */
+/* T-225(Q-72): シャドーイング本文も英文問題文相当のため--fs-questionを使い、文字サイズ設定を効かせる */
 .karaoke-script {
-  font-size: var(--fs-ui);
+  font-size: var(--fs-question);
   line-height: 1.8;
 }
 .karaoke-sentence {
   cursor: pointer;
+}
+/* T-223(Q-61): キーボード操作時のフォーカスリング（他の操作要素と同じ意匠） */
+.karaoke-sentence:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 .karaoke-read {
   color: var(--ink);
@@ -1683,6 +1764,19 @@
   border: 2px solid var(--line);
   border-radius: var(--radius-button);
   cursor: pointer;
+}
+/* T-213（Q-43・J-109）: 既定折りたたみ。見出し（summary）はタップ目標48pxを確保する。
+   案内文・ボタンは開いたときだけ描画対象になる（<details>のUAデフォルト挙動） */
+.install-hint-summary {
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 700;
+}
+.install-hint-details[open] .install-hint-summary {
+  margin-bottom: var(--sp-1);
 }
 
 /* ダッシュボードの予測スコア帯（ヒーロー数値） */
@@ -1814,7 +1908,9 @@
   padding: 0 var(--sp-1);
   background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--line);
+  /* T-226(Q-70): 入力欄はコントロール自体に文字を持たず、枠線が識別の唯一の手掛かりの
+     ため1.4.11の対象。--lineは3:1未達（tokens.cssのコメント参照）のため--ink-3を使う */
+  border: 1px solid var(--ink-3);
   border-radius: var(--radius-button);
   font-size: var(--fs-ui);
 }
@@ -1841,7 +1937,9 @@
   height: 22px;
   vertical-align: middle;
   background: var(--surface);
-  border: 2px solid var(--line);
+  /* T-226(Q-70): 未チェック時は中身が空で、枠線が「ここにチェック可能な部品がある」ことを
+     示す唯一の手掛かりのため1.4.11の対象。--lineは3:1未達（tokens.cssのコメント参照） */
+  border: 2px solid var(--ink-3);
   cursor: pointer;
 }
 .settings-list input[type='checkbox'] {
@@ -1948,10 +2046,10 @@
 
 /* --- 診断ウェルカム（docs/20 V-6: ワードマーク＋--hero-sky帯＋フォームを--surface-gradカードに）
    --hero-skyは両テーマ共通の夜空色固定（tokens.css）のため、その上のテキストもテーマの
-   var(--ink*)に追従させず固定のダーク基準値にする（ライトテーマの--ink-2をそのまま使うと
-   暗色地に暗色文字が乗りAA未達になるため。機械計算値: 固定#eaedf6は--hero-sky最明部
-   #16204a比13.394:1、固定#a6aec6は7.085:1でAA適合）。ワードマークはhero外（画面地=
-   テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で両テーマ追従させる */
+   var(--ink*)に追従させず--home-hero-ink*（tokens.css 3.2節。T-233で.home-heroと共有する
+   トークンへ統一。docs/26で指摘された生の16進数の重複定義を解消）を使う。ワードマークは
+   hero外（画面地=テーマ追従の--bg上）に置くため、こちらは通常どおりvar(--wordmark-grad)で
+   両テーマ追従させる */
 /* docs/26 A-4: 旧 .diagnostic-wordmark（鋼グラデのテキストワードマーク）は Wordmark
    コンポーネント（ロゴ画像）へ統一したため削除した。読み仮名は .wordmark-sub が持つ */
 .diagnostic-hero {
@@ -1960,14 +2058,14 @@
   background: var(--hero-sky);
   border: 1px solid var(--hero-line);
   border-radius: var(--radius-card);
-  color: #eaedf6;
+  color: var(--home-hero-ink);
 }
 .diagnostic-hero h1 {
   margin: 0 0 var(--sp-1);
 }
 .diagnostic-hero p {
   margin: 0 0 var(--sp-1);
-  color: #a6aec6;
+  color: var(--home-hero-ink-2);
 }
 .diagnostic-hero p:last-child {
   margin-bottom: 0;
@@ -2133,6 +2231,14 @@
   font-size: var(--fs-sub);
   overflow-wrap: anywhere;
 }
+/* T-265: 瞬断中の参加者は一覧から消さず、チップを薄くして区別する（standings__rowと同じ考え方） */
+.battle-lobby__chip[data-connected='false'] {
+  opacity: 0.5;
+}
+.battle-lobby__chip-offline {
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+}
 /* 切断（closed）: 文言はbattleCloseMessage.tsのまま変えず、面をカード化して
    見出しと本文の階層を付けるだけに留める（docs/25 4.4節）。
    原因を利用者のせいにしない方針のため--ng / --warnは使わない */
@@ -2272,6 +2378,17 @@
 }
 .standings__row[data-self='true'] {
   border-left-color: var(--ev-blue);
+}
+/* T-265: 瞬断中・離脱済みの参加者は一覧から消さず、行全体を薄くして区別する
+   （得点は保持されたままなので削除・非表示にはしない） */
+.standings__row[data-connected='false'] {
+  opacity: 0.5;
+}
+.standings__offline {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--fs-note);
+  letter-spacing: 0.02em;
 }
 .standings__main {
   flex: 1;
@@ -2747,6 +2864,26 @@
 .battle-host-stage__timer[data-low='true'] {
   color: var(--raid);
 }
+/* ヘッダの中止ボタン（T-217・Q-51）。進行ボタン（__foot）とは用途が別のため小さく独立させる。
+   タップ目標48px（docs/20 2.3節5）は維持しつつ、投影の主役（進行位置・タイマー）を圧迫しない幅にする */
+.battle-host-stage__abort {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  min-height: var(--tap-min);
+  padding: var(--sp-half) var(--sp-1);
+  margin: 0;
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  font-size: var(--host-fs-label);
+  cursor: pointer;
+}
+.battle-host-stage__abort:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
 .battle-host-stage__body {
   min-width: 0;
   overflow-y: auto;
@@ -3084,6 +3221,17 @@
   border: 1px solid var(--gold);
   border-radius: var(--radius-button);
 }
+/* 未取得バッジ（T-150。07の6節「未取得はシルエット表示」）。
+   獲得済みの --gold 枠に対し輪郭のみ --ink-3 にし、面は塗らない。
+   色だけで区別すると07の原則4（色に頼らない二重符号化）に反するため、
+   文字側にも「未取得」を出し、名前を --ink-2 へ落として主役から外す */
+.raid-badges__item--locked {
+  border-color: var(--ink-3);
+  border-style: dashed;
+}
+.raid-badges__item--locked .raid-badges__name {
+  color: var(--ink-2);
+}
 .raid-badges__name {
   flex: 1;
   min-width: 0;
@@ -3176,6 +3324,8 @@
 .confirm-dialog__message {
   margin: 0 0 var(--sp-2);
   color: var(--ink);
+  /* T-202: インポート確認は対象ストアと件数を複数行で示す（改行を保持する） */
+  white-space: pre-line;
 }
 .confirm-dialog__actions {
   display: flex;

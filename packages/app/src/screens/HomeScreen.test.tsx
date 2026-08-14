@@ -17,6 +17,7 @@ import * as shuffleModule from '../engine/shuffle'
 import type { RaidApi } from '../platform'
 import { syncRaidDamage } from '../services/raidSync'
 import {
+  DIAGNOSTIC_PROGRESS_KEY,
   NO_EARPHONE_MODE_KEY,
   QUEST_DURATION_KEY,
   RAID_REGISTERED_AT_KEY,
@@ -26,7 +27,13 @@ import {
 import { useAppStore } from '../store/appStore'
 import { resetRaidSyncStoreForTest } from '../store/raidSyncStore'
 import { useSessionStore } from '../store/sessionStore'
-import { formatReadingEstimate, HomeScreen, readingQuestionEstimate } from './HomeScreen'
+import {
+  formatReadingEstimate,
+  HomeScreen,
+  readingQuestionEstimate,
+  remainingAnswerSlots,
+  shouldWarnStorageUsage,
+} from './HomeScreen'
 
 let seq = 0
 const dbs: BebRaidDatabase[] = []
@@ -206,10 +213,12 @@ describe('HomeScreen: 実データの表示', () => {
       protectionUsedAt: null,
     })
     await db.srsCards.bulkPut([
+      // refIdはQUESTION_POOLのvocab_cardに実在する語にする。実在しない語のカードは
+      // VocabScreenが出題できず（isServable）、バッジに数えると消せない件数になる
       {
-        id: 'vocab:a',
+        id: 'vocab:submit',
         refType: 'vocab',
-        refId: 'a',
+        refId: 'submit',
         stage: 1,
         dueAt: Date.now() - 1000,
         lapses: 0,
@@ -218,9 +227,9 @@ describe('HomeScreen: 実データの表示', () => {
         sourceQuestionId: null,
       },
       {
-        id: 'vocab:b',
+        id: 'vocab:attend',
         refType: 'vocab',
-        refId: 'b',
+        refId: 'attend',
         stage: 1,
         dueAt: Date.now() - 1000,
         lapses: 0,
@@ -242,6 +251,49 @@ describe('HomeScreen: 実データの表示', () => {
 
     expect(screen.getByText('🔥3')).toBeTruthy()
     expect(screen.getByText('SRS期限 2')).toBeTruthy()
+  })
+
+  // コンテンツ更新で設問・語彙カードが消えると、それを参照するSRSカードは
+  // VocabScreenが出題できなくなる（isServable）。バッジがこれを数えていると
+  // 「タップしても消えない期限N件」が恒久的に残る
+  it('出題できないSRSカード（対応する語彙カードがプールに無い）はSRS期限バッジに数えない', async () => {
+    const db = newDb()
+    await db.srsCards.bulkPut([
+      {
+        id: 'vocab:submit',
+        refType: 'vocab',
+        refId: 'submit', // QUESTION_POOLに実在する
+        stage: 1,
+        dueAt: Date.now() - 1000,
+        lapses: 0,
+        introducedDate: '2026-07-01',
+        graduatedAt: null,
+        sourceQuestionId: null,
+      },
+      {
+        id: 'vocab:severance',
+        refType: 'vocab',
+        refId: 'severance', // T-346で語彙バンクから外れた語を模す（プールに無い）
+        stage: 1,
+        dueAt: Date.now() - 1000,
+        lapses: 0,
+        introducedDate: '2026-07-01',
+        graduatedAt: null,
+        sourceQuestionId: null,
+      },
+    ])
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('SRS期限 1')).toBeTruthy()
   })
 
   it('gap≥2 かつ本日未成立の場合は「途切れ（前回N日）」表示になる', async () => {
@@ -267,6 +319,36 @@ describe('HomeScreen: 実データの表示', () => {
 
     expect(screen.getByText('途切れ（前回5日）')).toBeTruthy()
     expect(screen.queryByText('🔥5')).toBeNull()
+  })
+
+  // T-195フォローアップ: 何を防ぐか。gap===2（1日欠席）はストリーク保護（週1回まで免除）が
+  // 使える状態で、エンジン（evaluateStreak）はまだ継続中と判定する。ホーム側が独自にgapだけで
+  // 「途切れ」を判定すると、保護で救えるはずの状態なのに事実に反して「途切れ」と表示してしまう
+  // （streak.ts冒頭の「エンジンは事実だけを返す」方針にも反する）。判定はエンジンの
+  // currentDays（0になるのは途切れ確定時のみ）を単一の情報源にする
+  it('gap=2で保護が使える状態では「途切れ」を表示しない（保護でまだ救えるため）', async () => {
+    const db = newDb()
+    const twoDaysAgo = toDateString(Date.now() - 2 * 86_400_000)
+    await db.streak.put({
+      id: 'streak',
+      currentDays: 5,
+      bestDays: 5,
+      lastActiveDate: twoDaysAgo,
+      protectionUsedAt: null,
+    })
+
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('🔥5')).toBeTruthy()
+    expect(screen.queryByText(/途切れ/)).toBeNull()
   })
 })
 
@@ -472,6 +554,73 @@ describe('HomeScreen: クエスト開始が2タップ以内', () => {
     expect(screen.getByRole('button', { name: /シャドーイング L1/ })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /シャドーイング/ }))
     expect(useAppStore.getState().screen).toBe('shadowing')
+  })
+})
+
+// 何を防ぐか（T-228。docs/29 Q-66）: 問数・時間チップの選択状態が枠色と文字色のみで
+// 符号化され、支援技術に選択中の値が伝わらず、色だけに頼った状態表現になっていたこと
+describe('HomeScreen: 問数・時間チップのaria-pressedと色以外の状態表現（T-228）', () => {
+  it('時間チップにaria-pressedが付き、選択中はチェックマークが表示される', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const selected = screen.getByText('7分').closest('button')!
+    expect(selected.getAttribute('aria-pressed')).toBe('true')
+    expect(selected.textContent).toContain('✓')
+
+    const unselected = screen.getByText('3分').closest('button')!
+    expect(unselected.getAttribute('aria-pressed')).toBe('false')
+    expect(unselected.textContent).not.toContain('✓')
+
+    fireEvent.click(screen.getByText('3分'))
+    expect(screen.getByText('3分').closest('button')!.getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText('7分').closest('button')!.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('Part2の問数チップにもaria-pressedが付く', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+
+    const selected = screen.getByText('20問').closest('button')!
+    expect(selected.getAttribute('aria-pressed')).toBe('true')
+    expect(selected.textContent).toContain('✓')
+    expect(screen.getByText('10問').closest('button')!.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('読解のパッセージ数チップにもaria-pressedが付く', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={[...QUESTION_POOL, part7Question('p7-a11y')]}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+
+    const selected = screen.getByText('2本').closest('button')!
+    expect(selected.getAttribute('aria-pressed')).toBe('true')
+    expect(selected.textContent).toContain('✓')
+    expect(screen.getByText('1本').closest('button')!.getAttribute('aria-pressed')).toBe('false')
   })
 })
 
@@ -764,6 +913,63 @@ describe('HomeScreen: シーズン表示・フェーズ駆動クエスト（T-54
   })
 })
 
+// 何を防ぐか（T-213。docs/29 Q-43・J-109）: モバイル幅（390×844）の1画面目にCTAが
+// 1つも入らず、巨大ロゴ＋ヒーローカード＋ヒートマップ＋PWA案内で埋まっていたこと。
+// jsdomは実レイアウトを計算しないため画素位置は検証できないが、「続きから再開」と
+// 「今日のクエスト」がヒートマップよりDOM順で前に来ることで配置変更を検証する
+describe('HomeScreen: ファーストビューのCTA到達性（T-213・J-109）', () => {
+  it('「今日のクエスト」がヒートマップよりDOM順で前に描画される', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const questGroup = document.querySelector('.home-quest-group')
+    const heatmap = await screen.findByTestId('home-mini-heatmap')
+    expect(questGroup).toBeTruthy()
+    // DOM順序判定にはcompareDocumentPositionのビットマスク比較が標準的な手段
+    expect(
+      questGroup!.compareDocumentPosition(heatmap) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('進行中セッションがあるとき「続きから再開」もヒートマップよりDOM順で前に描画される', async () => {
+    const db = newDb()
+    const snapshot = {
+      sessionId: 'cta-order-session',
+      items: [
+        { questionId: 'p2-1', mode: 'solo' as const },
+        { questionId: 'p2-2', mode: 'solo' as const },
+      ],
+      answeredCount: 1,
+      attemptIds: ['a-1'],
+      startedAt: 0,
+      updatedAt: 0,
+    }
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const resumeButton = screen.getByText(/続きから再開/)
+    const heatmap = await screen.findByTestId('home-mini-heatmap')
+    expect(
+      resumeButton.compareDocumentPosition(heatmap) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+})
+
 describe('HomeScreen: セッション中断復帰（T-67）', () => {
   function snapshotOf(overrides: Partial<import('../services/session').SessionSnapshot> = {}) {
     return {
@@ -813,6 +1019,40 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
 
     await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
     expect(useSessionStore.getState().snapshot).toEqual(snapshot)
+  })
+
+  // 何を防ぐか（T-200。docs/29 Q-10）: 読解・audio_setは1itemでサブ設問複数を要求し、
+  // 全問終わるまでanswerCurrentSubQuestionはitemを進めない（answeredCountは変わらず
+  // snapshot.subAnswersだけが増える）。remainingAnswerSlotsがsubAnswersを見ずにitem単位で
+  // 数えると、Part7で3問中1問だけ解答して「次へ」の前に中断した場合、その1問分が
+  // 残数に反映されず「残り7問」のまま（実際は6問）になる。実機でも再現した
+  // （Playwrightでpart7を1問解答→中断→ホームで「続きから再開（残り7問）」を確認）
+  it('T-200: 読解の途中（次へを押す前）で中断すると、解答済みサブ設問が残数から引かれる', async () => {
+    const pool = [...QUESTION_POOL, part7Question('p7-resume', 3)]
+    const snapshot = snapshotOf({
+      items: [
+        { questionId: 'p7-resume', mode: 'solo' as const },
+        { questionId: 'p2-1', mode: 'solo' as const },
+      ],
+      answeredCount: 0, // itemはまだ進んでいない（3問中1問答えただけ）
+      attemptIds: ['a-1'],
+      subAnswers: [{ subQuestionId: 'p7-resume-q0', selectedKey: 'A', isCorrect: true }],
+    })
+
+    // 純関数側: p7-resume(3スロット)+p2-1(1スロット)=4 のうち1問答え済みなので残り3
+    expect(remainingAnswerSlots(snapshot, pool)).toBe(3)
+
+    render(
+      <HomeScreen
+        db={newDb()}
+        questionPool={pool}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText('続きから再開（残り3問）')).toBeTruthy()
   })
 
   // T-162（docs/27 のS-38）で window.confirm を3択のアプリ内ダイアログへ置き換えた。
@@ -908,6 +1148,127 @@ describe('HomeScreen: セッション中断復帰（T-67）', () => {
   })
 })
 
+describe('HomeScreen: 破棄確認の前倒し（T-206・Q-42）', () => {
+  // 何を防ぐか: 修正前は再生方法・問数・パッセージ数を選んでモーダルの開始ボタンを
+  // 押した「後」に破棄確認が出ていた。「やめる」を選ぶとモーダルでの選択操作が
+  // すべて無駄になる。モーダルを開く前（タイルタップ直後）に確認を出すべきことを固定する
+  function snapshotOf(overrides: Partial<import('../services/session').SessionSnapshot> = {}) {
+    return {
+      sessionId: 'resume-session-1',
+      items: [
+        { questionId: 'p2-1', mode: 'solo' as const },
+        { questionId: 'p2-2', mode: 'solo' as const },
+      ],
+      answeredCount: 1,
+      attemptIds: ['a-1'],
+      startedAt: 0,
+      updatedAt: 0,
+      ...overrides,
+    }
+  }
+
+  it('Part2瞬発タップ直後（モーダルを開く前）に破棄確認が出る', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+  })
+
+  it('破棄確認で「破棄して新しく始める」を選ぶと再生方法選択モーダルが開く', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(await screen.findByText('破棄して新しく始める'))
+
+    expect(await screen.findByRole('dialog', { name: '音声の再生方法を選択' })).toBeTruthy()
+    fireEvent.click(screen.getByText('通常'))
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('drill'))
+    expect(useSessionStore.getState().snapshot!.sessionId).not.toBe(snapshot.sessionId)
+  })
+
+  it('破棄確認で「やめる」を選ぶとモーダルは開かず、既存セッションも保持される', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part2瞬発/ }))
+    fireEvent.click(await screen.findByText('やめる'))
+
+    expect(screen.queryByTestId('confirm-overlay')).toBeNull()
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  it('Part5タップ直後にも破棄確認が前倒しで出る（T-118モーダルも同型のため）', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
+
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: 'Part5の問題数を選択' })).toBeNull()
+  })
+
+  it('Part7読解タップ直後にも破棄確認が前倒しで出る', async () => {
+    const db = newDb()
+    const snapshot = snapshotOf()
+    const pool = [...QUESTION_POOL, part7Question('p7-1')]
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={pool}
+        resumeSnapshot={snapshot}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+
+    expect(await screen.findByTestId('confirm-overlay')).toBeTruthy()
+    expect(screen.queryByText('読解（Part7）のパッセージ数を選んでください')).toBeNull()
+  })
+})
+
 describe('HomeScreen: 出題プール空の案内（T-73）', () => {
   it('questionPoolが空のとき、主ボタンがdisabledになり案内文が表示される', async () => {
     const db = newDb()
@@ -918,8 +1279,10 @@ describe('HomeScreen: 出題プール空の案内（T-73）', () => {
 
     const button = screen.getByRole('button', { name: /今日のクエスト/ }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
+    // T-207（Q-56）: T-107aの自動再同期により「開き直してください」という操作案内は
+    // 実態と食い違う（online復帰時に自動で再同期される）。実装に合わせた文言にする
     expect(
-      screen.getByText('問題データを取得できていません。オンラインで開き直してください'),
+      screen.getByText('問題データを取得できていません。オンラインになると自動で取得します'),
     ).toBeTruthy()
   })
 
@@ -1298,9 +1661,10 @@ describe('HomeScreen: 時刻追従（T-105）', () => {
     const realNow = Date.now()
     // マウント時点ではまだ期限が来ていないSRSカード（1日後にdueAt）
     await db.srsCards.put({
-      id: 'vocab:tomorrow-due',
+      // refIdはQUESTION_POOLのvocab_cardに実在する語にする（バッジは出題可能な件数を数えるため）
+      id: 'vocab:negotiate',
       refType: 'vocab',
-      refId: 'tomorrow-due',
+      refId: 'negotiate',
       stage: 1,
       dueAt: realNow + 20 * 60 * 60_000, // 20時間後
       lapses: 0,
@@ -1834,5 +2198,262 @@ describe('readingQuestionEstimate（読解の設問数の見積り）', () => {
     expect(formatReadingEstimate({ sets: 1, minQuestions: 3, maxQuestions: 3 })).toBe(
       '約3設問（目安3分）',
     )
+  })
+})
+
+// T-299（K-25）: QuotaExceededErrorで解答保存が失敗する前に、起動時（ホーム表示時）に
+// 気づけるようにする事前警告のしきい値判定
+describe('shouldWarnStorageUsage（T-299・K-25）', () => {
+  it('使用率が80%を超えると警告する', () => {
+    expect(shouldWarnStorageUsage({ usage: 81, quota: 100 } as StorageEstimate)).toBe(true)
+  })
+
+  it('使用率が80%以下なら警告しない', () => {
+    expect(shouldWarnStorageUsage({ usage: 80, quota: 100 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 10, quota: 100 } as StorageEstimate)).toBe(false)
+  })
+
+  it('estimateがnull・usage/quotaが0や未定義なら警告しない（信用できない値のため）', () => {
+    expect(shouldWarnStorageUsage(null)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 0, quota: 100 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({ usage: 90, quota: 0 } as StorageEstimate)).toBe(false)
+    expect(shouldWarnStorageUsage({} as StorageEstimate)).toBe(false)
+  })
+})
+
+describe('HomeScreen: 端末ストレージ使用率の事前警告（T-299・K-25）', () => {
+  afterEach(() => {
+    // @ts-expect-error テスト後にjsdom既定へ戻す
+    delete navigator.storage
+  })
+
+  it('使用率が80%を超えると警告と設定への導線が出る', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { estimate: async () => ({ usage: 90, quota: 100 }) },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.getByText(/ストレージ使用量が上限に近づいています/)).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+  })
+
+  it('使用率が80%以下なら警告は出ない', async () => {
+    const db = newDb()
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { estimate: async () => ({ usage: 10, quota: 100 }) },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/ストレージ使用量が上限に近づいています/)).toBeNull()
+  })
+
+  it('navigator.storage.estimateが無い環境（Safari非対応・非HTTPS等）でも破綻しない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText(/ストレージ使用量が上限に近づいています/)).toBeNull()
+  })
+})
+
+// 何を防ぐか（T-203。docs/29 Q-37）: Part2再生方法・Part5問数・読解パッセージ数の
+// 3モーダルは role="dialog" aria-modal="true" を宣言しながら、フォーカストラップ・
+// 初期フォーカス・Esc・閉時のフォーカス復帰・背景タップ閉じがいずれも無かった。
+// ConfirmDialogと同等の作法（useDialogA11yに共通抽出）を適用したことを確認する
+describe('HomeScreen: モーダルのアクセシビリティ作法（T-203）', () => {
+  const MANY_PART5: Question[] = Array.from({ length: 30 }, (_, i) => part5Question(`p5-many-${i}`))
+  const READING_POOL: Question[] = [
+    ...QUESTION_POOL,
+    part7Question('p7-1', 3),
+    part7Question('p7-2', 2),
+  ]
+
+  async function openPart2Modal() {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    // fireEvent.clickだけではjsdomでフォーカスが移らないため、実ブラウザの
+    // クリック（クリック対象へフォーカスが移る）に合わせて明示的にfocusする
+    // （閉時のフォーカス復帰の検証に必要）
+    const opener = screen.getByRole('button', { name: /Part2瞬発/ })
+    opener.focus()
+    fireEvent.click(opener)
+    await screen.findByRole('dialog', { name: '音声の再生方法を選択' })
+  }
+
+  it('Part2モーダル: 開いたら最初のボタンにフォーカスが移る', async () => {
+    await openPart2Modal()
+    const dialog = screen.getByRole('dialog', { name: '音声の再生方法を選択' })
+    const firstButton = dialog.querySelectorAll('button')[0]
+    expect(document.activeElement).toBe(firstButton)
+  })
+
+  it('Part2モーダル: Escで閉じる', async () => {
+    await openPart2Modal()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+  })
+
+  it('Part2モーダル: 背景タップで閉じ、内側のタップでは閉じない', async () => {
+    await openPart2Modal()
+    // 内側（選択肢の並び）のクリックは伝播で拾わず閉じない
+    fireEvent.click(screen.getByText('音声の再生方法を選んでください'))
+    expect(screen.getByRole('dialog', { name: '音声の再生方法を選択' })).toBeTruthy()
+
+    // 背景（ダイアログのオーバーレイ本体）のクリックで閉じる
+    fireEvent.click(screen.getByRole('dialog', { name: '音声の再生方法を選択' }))
+    expect(screen.queryByRole('dialog', { name: '音声の再生方法を選択' })).toBeNull()
+  })
+
+  it('Part2モーダル: Tabはモーダル内で循環し、背景のボタンへ抜けない', async () => {
+    await openPart2Modal()
+    const dialog = screen.getByRole('dialog', { name: '音声の再生方法を選択' })
+    const buttons = [...dialog.querySelectorAll('button')]
+    const first = buttons[0]!
+    const last = buttons[buttons.length - 1]!
+
+    last.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(first)
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(last)
+  })
+
+  it('Part2モーダル: 閉じたら開く前の要素（Part2瞬発ボタン）へフォーカスを戻す', async () => {
+    await openPart2Modal()
+    const opener = screen.getByRole('button', { name: /Part2瞬発/ })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(document.activeElement).toBe(opener)
+  })
+
+  it('Part5モーダル: Escで閉じ、背景タップでも閉じる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={MANY_PART5}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
+    await screen.findByRole('dialog', { name: 'Part5の問題数を選択' })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Part5の問題数を選択' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Part5/ }))
+    await screen.findByRole('dialog', { name: 'Part5の問題数を選択' })
+    fireEvent.click(screen.getByRole('dialog', { name: 'Part5の問題数を選択' }))
+    expect(screen.queryByRole('dialog', { name: 'Part5の問題数を選択' })).toBeNull()
+  })
+
+  it('読解モーダル: Escで閉じ、背景タップでも閉じる', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={READING_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    await screen.findByRole('dialog', { name: '読解のパッセージ数を選択' })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: '読解のパッセージ数を選択' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /Part7 読解/ }))
+    await screen.findByRole('dialog', { name: '読解のパッセージ数を選択' })
+    fireEvent.click(screen.getByRole('dialog', { name: '読解のパッセージ数を選択' }))
+    expect(screen.queryByRole('dialog', { name: '読解のパッセージ数を選択' })).toBeNull()
+  })
+})
+
+// 何を防ぐか（T-316・K-49）: 診断を「中断」してホームへ戻ると、プロフィール未作成のため
+// App.tsxの起動時ルーティング（!hasProfile→diagnostic）は次回アプリ再起動まで働かない。
+// 同一セッション内でホームに来られる以上、続きへ戻る導線が無いとここで詰む
+describe('HomeScreen: 初期診断の再開導線（T-316・K-49）', () => {
+  it('診断の途中経過が残っていると「初期診断の続きから再開」が出る', async () => {
+    const db = newDb()
+    await db.settings.put({
+      key: DIAGNOSTIC_PROGRESS_KEY,
+      value: {
+        displayName: 'てすと',
+        toeicInput: '',
+        turn: 3,
+        ratingL: 400,
+        ratingR: 400,
+        askedL: [],
+        askedR: [],
+      },
+    })
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    const button = screen.getByText('初期診断の続きから再開')
+    fireEvent.click(button)
+    expect(useAppStore.getState().screen).toBe('diagnostic')
+  })
+
+  it('診断の途中経過が無ければ導線は出ない', async () => {
+    const db = newDb()
+    render(
+      <HomeScreen
+        db={db}
+        questionPool={QUESTION_POOL}
+        resumeSnapshot={null}
+        raidApi={new FakeRaidApi()}
+      />,
+    )
+    await flushLoad()
+
+    expect(screen.queryByText('初期診断の続きから再開')).toBeNull()
   })
 })

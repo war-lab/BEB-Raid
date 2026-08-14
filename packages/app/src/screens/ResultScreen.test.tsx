@@ -655,6 +655,26 @@ describe('ResultScreen: 解答の質（当て勘・速度不足）', () => {
     // 500msの正解は当て勘ではない（当て勘は誤答限定）
     expect(screen.getByTestId('result-timeout-count').textContent).toBe('速度不足 0')
   })
+
+  // T-210(Q-39・J-107): 「当て勘」「速度不足」の定義はtitle属性のみ（hover専用）で提供されて
+  // おり、タッチ端末では説明に到達できなかった。タップで開閉できる説明に置き換える
+  it('T-210: 「当て勘」「速度不足」の定義をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    await answerAndRecord(db, snapshot, { isCorrect: false, basePoints: 0, responseMs: 1500 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+    await waitFor(() =>
+      expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 1'),
+    )
+
+    // 説明は既定で閉じている。タイルのtextContent自体は変えない（既存アサーションを壊さない）
+    expect(screen.queryByText(/2秒未満の誤答。弱点統計では重みを半分にして数えます/)).toBeNull()
+    fireEvent.click(screen.getByText('「当て勘」「速度不足」とは'))
+    expect(screen.getByText(/2秒未満の誤答。弱点統計では重みを半分にして数えます/)).toBeTruthy()
+    expect(screen.getByTestId('result-guess-count').textContent).toBe('当て勘 1')
+  })
 })
 
 describe('ResultScreen: ボスHPバー（docs/20 3.4節リザルト行「ボスHPバー削れ」）', () => {
@@ -700,5 +720,48 @@ describe('ResultScreen: ボスHPバー（docs/20 3.4節リザルト行「ボスH
 
     await waitFor(() => expect(screen.getByText('+60')).toBeTruthy())
     expect(screen.queryByTestId('result-boss-hp')).toBeNull()
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 一覧の設問ラベル（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('ResultScreen: 一覧の設問ラベルのlang="en"（T-224・J-108）', () => {
+  it('resultQuestionLabelの表示にlang="en"が付く', async () => {
+    const db = newDb()
+    const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+    useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+    await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 60 })
+
+    render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+    const label = await screen.findByText('question q-1')
+    expect(label.getAttribute('lang')).toBe('en')
+  })
+})
+
+// 何を防ぐか（T-319・K-52）: 演出スキップは`.result-content`のonClickのみで、
+// タップ・マウスクリックでしか届かなかった（divはタブ順に入らずEnter/Spaceも拾わない）。
+// キーボード利用者は演出（カウントアップ）が終わるまで数値が0のまま待たされていた
+describe('ResultScreen: 演出の自動確定（T-319・K-52）', () => {
+  it('タップしなくても700ms後に演出が自動で確定する（キーボード利用者が操作せずに進める）', async () => {
+    // requestAnimationFrameのコールバックを永久に呼ばせない（rAFベースのカウントアップが
+    // 自然に終わる経路を潰す）ことで、自動確定タイマー（本題）だけを分離して検証する。
+    // これが無いと、rAFの自然完了（約700ms）と自動確定タイマー（700ms）が同じ頃合いに
+    // 重なり、タイマーを削除しても偶然テストが通ってしまう
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(0)
+    try {
+      const db = newDb()
+      const snapshot = await startSession(db, { items: [{ questionId: 'q-1', mode: 'solo' }] })
+      useSessionStore.getState().begin(snapshot, [q('q-1')], { L: 400, R: 400 })
+      await answerAndRecord(db, snapshot, { isCorrect: true, basePoints: 80 })
+
+      render(<ResultScreen db={db} raidApi={new FakeRaidApi()} />)
+
+      // rAFが死んでいるのでカウントアップ演出自体は永久に0のまま。
+      // それでも自動確定タイマーが働けば最終値がそのまま表示される
+      await waitFor(() => expect(screen.getByText('+80')).toBeTruthy(), { timeout: 2000 })
+    } finally {
+      rafSpy.mockRestore()
+    }
   })
 })

@@ -12,7 +12,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import { applyRatingUpdate } from '../engine/rating'
-import { advanceSession, resumeSession, startSession, type SessionItem } from '../services/session'
+import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
+import {
+  ACTIVE_SESSION_KEY,
+  advanceSession,
+  answerCurrentSubQuestion,
+  resumeSession,
+  startSession,
+  type SessionItem,
+} from '../services/session'
+import { MISTAP_UNDO_ENABLED_KEY } from '../services/settingsKeys'
 import { useAppStore } from '../store/appStore'
 import { useSessionStore } from '../store/sessionStore'
 import { readingPaceLabel, ReadingScreen } from './ReadingScreen'
@@ -40,6 +49,10 @@ afterEach(async () => {
 async function setupSession(db: BebRaidDatabase, items: SessionItem[], questions: Question[]) {
   const snapshot = await startSession(db, { items })
   useSessionStore.getState().begin(snapshot, questions, { L: 400, R: 400 })
+  // 誤タップの取り消し猶予（T-268。ADR 0009。既定ON）をOFFにする。ONだと解答から記録まで
+  // 400ms空くため、猶予そのものを検証しない既存テストが軒並み待ちを必要とし遅く不安定になる
+  // （DrillScreen.test.tsx・VocabScreen.test.tsxと同じ対処）
+  await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
   return snapshot
 }
 
@@ -170,6 +183,27 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     expect(rating).toBeDefined()
   })
 
+  it('全問完走してリザルトへ進んだ時点でDB上のセッションを完了させる（T-267・Q-5）', async () => {
+    // 何を防ぐか: DrillScreenと同じ理由（同ファイルの同名テスト参照）。読解でも
+    // 全問（全サブ設問）を解いて最終itemを終えると自動的にリザルトへ遷移するが、
+    // その時点でDBのアクティブセッションを消しておかないと、ResultScreenの
+    // 「ホームへ」を待つ間にアプリを離れただけでホームに再開バナーが残る
+    const db = newDb()
+    const q = part7Question('p7-complete', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByText('a'))
+      await waitFor(() => expect(screen.getByText('正解')).toBeTruthy())
+      fireEvent.click(await screen.findByText('次へ'))
+    }
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('T-106: 正誤混在（正・誤・正）でも各設問が独立採点され、computeSetResultの2/3ルールに基づく一括判定を経由しない', async () => {
     const db = newDb()
     const q = part7Question('p7-mixed', 3)
@@ -232,6 +266,54 @@ describe('ReadingScreen: Part7単一（T-104）', () => {
     const attempts = await db.attempts.toArray()
     expect(attempts).toHaveLength(1)
     expect(attempts[0]?.isCorrect).toBe(false)
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: パッセージ・設問文（英文）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('ReadingScreen: 英文要素のlang="en"（T-224・J-108）', () => {
+  it('Part7単一のパッセージ本文にlang="en"が付く', async () => {
+    const db = newDb()
+    const q = part7Question('p7-lang', 1, 'This invoice is due on the 15th.')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByTestId('passage-text').getAttribute('lang')).toBe('en')
+  })
+
+  it('Part6の空所付きパッセージ本文にもlang="en"が付く', async () => {
+    const db = newDb()
+    const q = part6Question('p6-lang')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByTestId('passage-text').getAttribute('lang')).toBe('en')
+  })
+
+  it('設問文（英文）の部分だけlang="en"が付き、「設問n/m:」ラベルは付かない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-lang-q', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const questionEl = screen.getByTestId('reading-question')
+    // ラベル部分（「設問n/m:」）自体には付かない。英文だけを括った子spanに付く
+    expect(questionEl.getAttribute('lang')).toBeNull()
+    const englishSpan = questionEl.querySelector('[lang="en"]')
+    expect(englishSpan?.textContent).toBe('設問0')
+  })
+
+  it('選択肢本文にもlang="en"が付く（ChoiceButton経由）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-lang-choice', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.getByText('a').getAttribute('lang')).toBe('en')
   })
 })
 
@@ -445,6 +527,22 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
     expect(useAppStore.getState().screen).toBe('result')
   })
 
+  it('「ここで終了して結果を見る」をタップした時点でDB上のセッションを完了させる（T-196・Q-5）', async () => {
+    // DrillScreenのhandleFinishEarlyと同じ理由（同ファイルのコメント参照）。
+    // ResultScreenの「ホームへ」を待たず、この時点でDBのアクティブセッションを消す
+    const db = newDb()
+    const q = part7Question('p7-exit-complete', 3)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    fireEvent.click(screen.getByText('ここで終了して結果を見る'))
+
+    expect(useAppStore.getState().screen).toBe('result')
+    await waitFor(async () => expect(await resumeSession(db)).toBeNull())
+  })
+
   it('最終サブ設問を解答した後は途中終了導線を出さない（「次へ」がitemを進める）', async () => {
     const db = newDb()
     const q = part7Question('p7-exit-last', 2)
@@ -476,6 +574,35 @@ describe('ReadingScreen: 途中終了導線とペース表示（T-164。docs/27 
 
     expect(screen.getByText(readingPaceLabel(0))).toBeTruthy()
     expect(screen.getByText(/目安1問\/分（経過\d+秒）/)).toBeTruthy()
+  })
+
+  // 何を防ぐか（T-198。docs/29 Q-7）: handleNextはstartedAtだけ更新してelapsedSecを
+  // リセットしないため、一度60秒（PACE_GUIDE_SECONDS）を超えると以降の全設問で
+  // 「1分超」表示に固着する（tick用effectがelapsedSec>=60で早期returnし自己回復しない）
+  it('T-198: 設問切替時に経過秒がリセットされ、前設問の「1分超」表示を引き継がない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-elapsed-reset', 2)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    // setInterval/clearInterval・Dateのみフェイク化する（RaidScreen.test.tsxと同じ理由で
+    // setTimeout・Promiseは実時間のまま動かし、findBy*/waitForとのデッドロックを避ける）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    render(<ReadingScreen db={db} />)
+
+    // 1問目で目安の60秒を超えさせ、「1分超」表示に固着させる
+    await vi.advanceTimersByTimeAsync(65_000)
+    expect(screen.getByText(readingPaceLabel(60))).toBeTruthy()
+
+    // 1問目を解答して「次へ」で2問目へ進む
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('次へ'))
+
+    // 2問目は経過秒0からのはず。前問の「1分超」を引き継いでいれば固着したままになる
+    await waitFor(() =>
+      expect(screen.getByTestId('reading-question').textContent).toContain('設問2/2'),
+    )
+    expect(screen.getByText(readingPaceLabel(0))).toBeTruthy()
+    expect(screen.queryByText(readingPaceLabel(60))).toBeNull()
   })
 })
 
@@ -564,6 +691,127 @@ describe('ReadingScreen: Part7複数文書のタブ切替（T-165。docs/27 のS
   })
 })
 
+describe('ReadingScreen: 本文の日本語訳（T-347・K-89）', () => {
+  it('translationがあるパッセージでは既定で訳を隠し、ボタンを押すと表示する', async () => {
+    const db = newDb()
+    const q: Question = {
+      ...part7Question('p7-translation', 1),
+      passages: [
+        {
+          id: 'p7-translation-p1',
+          kind: 'email',
+          text: 'English passage text.',
+          translation: '日本語訳のテキストです。',
+        },
+      ],
+    }
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.queryByText('日本語訳のテキストです。')).toBeNull()
+    fireEvent.click(screen.getByText('本文の日本語訳を見る'))
+    expect(screen.getByText('日本語訳のテキストです。')).toBeTruthy()
+  })
+
+  it('translationが無いパッセージでは訳を見るボタン自体を出さない（後方互換）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-no-translation', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    expect(screen.queryByText('本文の日本語訳を見る')).toBeNull()
+  })
+})
+
+describe('ReadingScreen: 読解タブのWAI-ARIA APG準拠（T-230。docs/29 Q-68）', () => {
+  /** 複数文書のPart7（相互参照型）。従来は1通目しか読めず解答不能になりえた */
+  function part7MultiQuestion(id: string): Question {
+    return {
+      ...part7Question(id, 2),
+      passages: [
+        { id: `${id}-p1`, kind: 'email', text: '1通目の本文です。請求書の件。' },
+        { id: `${id}-p2`, kind: 'email', text: '2通目の本文です。返信の内容。' },
+      ],
+    }
+  }
+
+  // 何を防ぐか: aria-controls/tabpanelの紐づけが無いと、スクリーンリーダー利用者が
+  // タブ切替でどのパネルが更新されたのか把握できない（APG Tabsパターン必須要件）
+  it('各タブがaria-controlsで対応するtabpanelを参照し、tabpanelがaria-labelledbyで紐づく', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-apg')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const tab1 = screen.getByRole('tab', { name: /文書1/ })
+    const tab2 = screen.getByRole('tab', { name: /文書2/ })
+    const panel1 = screen.getByRole('tabpanel')
+
+    // タブ1選択時: タブ1のaria-controlsが現在のtabpanelのidと一致し、
+    // tabpanel側はタブ1のidをaria-labelledbyで指す
+    const tab1ControlledId = tab1.getAttribute('aria-controls')
+    expect(tab1ControlledId).toBeTruthy()
+    expect(panel1.getAttribute('id')).toBe(tab1ControlledId)
+    expect(panel1.getAttribute('aria-labelledby')).toBe(tab1.getAttribute('id'))
+
+    // 各タブは自分自身の（他方とは異なる）tabpanelを指す
+    const tab2ControlledId = tab2.getAttribute('aria-controls')
+    expect(tab2ControlledId).toBeTruthy()
+    expect(tab2ControlledId).not.toBe(tab1ControlledId)
+
+    // タブ2に切り替えると、tabpanel側の紐づけもタブ2のものに変わる
+    fireEvent.click(tab2)
+    await waitFor(() => {
+      const panel2 = screen.getByRole('tabpanel')
+      expect(panel2.getAttribute('id')).toBe(tab2ControlledId)
+      expect(panel2.getAttribute('aria-labelledby')).toBe(tab2.getAttribute('id'))
+    })
+  })
+
+  // 何を防ぐか: roving tabindexが無いと、Tabキーで各タブに個別に止まってしまい
+  // APGパターン（タブリストへは1回、以降は矢印キー）に反する
+  it('選択中タブのみtabIndex=0で、他は-1になる（roving tabindex）', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-roving')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const tab1 = screen.getByRole('tab', { name: /文書1/ })
+    const tab2 = screen.getByRole('tab', { name: /文書2/ })
+    expect(tab1.getAttribute('tabindex')).toBe('0')
+    expect(tab2.getAttribute('tabindex')).toBe('-1')
+
+    fireEvent.click(tab2)
+    await waitFor(() => expect(tab2.getAttribute('tabindex')).toBe('0'))
+    expect(tab1.getAttribute('tabindex')).toBe('-1')
+  })
+
+  // 何を防ぐか: 矢印キーで移動できないと、APGのTabsパターンとして不完全になる
+  // （Tab移動のみでは操作できるが規約違反。docs/30 T-230）
+  it('矢印キー（→/←）でタブが移動し、選択と本文が切り替わる', async () => {
+    const db = newDb()
+    const q = part7MultiQuestion('p7-arrow')
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+
+    const tab1 = screen.getByRole('tab', { name: /文書1/ })
+
+    fireEvent.keyDown(tab1, { key: 'ArrowRight' })
+    const tab2 = await screen.findByRole('tab', { name: /文書2/ })
+    await waitFor(() => expect(tab2.getAttribute('aria-selected')).toBe('true'))
+    expect(screen.getByTestId('passage-text').textContent).toBe('2通目の本文です。返信の内容。')
+
+    fireEvent.keyDown(tab2, { key: 'ArrowLeft' })
+    await waitFor(() => expect(tab1.getAttribute('aria-selected')).toBe('true'))
+    expect(screen.getByTestId('passage-text').textContent).toBe('1通目の本文です。請求書の件。')
+  })
+})
+
 describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビュー指摘）', () => {
   // 何を防ぐか: 「解答済み+1」のままだと最終解答後に 6/5 と出る。バー幅はSessionProgress内で
   // 100%に丸められるが、表示文字とaria-valuenowは超過したままになる
@@ -619,7 +867,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     fireEvent.click(screen.getByText('a'))
 
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
     // 正誤表示は保持され、attemptは書かれていない（ロールバック済み）
     expect(await db.attempts.count()).toBe(0)
@@ -631,7 +879,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     expect(await db.attempts.count()).toBe(1)
     await waitFor(() =>
       expect(
-        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        screen.queryByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeNull(),
     )
     spy.mockRestore()
@@ -662,7 +910,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     render(<ReadingScreen db={db} />)
     fireEvent.click(screen.getByText('a'))
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
 
     // 2回のクリックを**同じ act 内で**発火させる。fireEvent を2回呼ぶとその間に
@@ -678,7 +926,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     // 1件目の再試行が完了した後も増えない（2件目が遅れて走らない）
     await waitFor(() =>
       expect(
-        screen.queryByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        screen.queryByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeNull(),
     )
     expect(await db.attempts.count()).toBe(1)
@@ -705,7 +953,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
       render(<ReadingScreen db={db} />)
       fireEvent.click(screen.getByText('a'))
       expect(
-        await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+        await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
       ).toBeTruthy()
 
       // エラー表示のまま10分放置してから再試行する
@@ -765,7 +1013,7 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     render(<ReadingScreen db={db} />)
     fireEvent.click(screen.getByText('a'))
     expect(
-      await screen.findByText('解答を保存できませんでした。通信状態と空き容量を確認してください'),
+      await screen.findByText('解答を保存できませんでした。空き容量を確認してください'),
     ).toBeTruthy()
 
     expect(screen.queryByText('次へ')).toBeNull()
@@ -776,6 +1024,30 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
     expect(await screen.findByText('次へ')).toBeTruthy()
     expect(screen.getByText('ここで終了して結果を見る')).toBeTruthy()
     spy.mockRestore()
+  })
+
+  // 何を防ぐか（T-299・K-25）: 容量不足（QuotaExceededError）でも一律「空き容量を
+  // 確認してください」だけで、確認した後の具体的な回復手段（エクスポート）を示していなかった
+  it('QuotaExceededErrorのときは専用の文言とエクスポート導線が出る', async () => {
+    const db = newDb()
+    const q = part7Question('p7-quota', 1)
+    await setupSession(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new DOMException('quota exceeded', 'QuotaExceededError'))
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    expect(
+      await screen.findByText(
+        '端末のストレージ容量が不足しています。データをエクスポートして空き容量を確保してください',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+    addSpy.mockRestore()
   })
 
   // 何を防ぐか: 終了判定に解答スロット数（total）を使うこと（レビュー指摘のP2）。
@@ -797,6 +1069,218 @@ describe('ReadingScreen: 進捗の上限と保存再試行の冪等性（レビ�
 
     fireEvent.click(await screen.findByText('次へ'))
     await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+  })
+})
+
+// 誤タップの取り消し猶予（T-268。docs/29 Q-113・ADR 0009 2026-08-05 Amendment）。
+// 何を防ぐか: 読解の選択肢だけが同じChoiceButtonを使いながら猶予の対象外になっていたこと
+// （DrillScreen・VocabScreenには既にADR 0009の猶予が適用済み）。読解は各subQuestionを
+// 独立採点するため、DrillScreenの解答経路と同型の猶予で足りる
+describe('ReadingScreen: 誤タップの取り消し猶予（T-268。ADR 0009）', () => {
+  /** 猶予をONにしたセッション（setupSessionが既定OFFにするため上書きする） */
+  async function setupWithUndo(db: BebRaidDatabase, items: SessionItem[], questions: Question[]) {
+    const snapshot = await setupSession(db, items, questions)
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: true })
+    return snapshot
+  }
+
+  it('猶予中は attempts を書かず、解説は出すが「次へ」「ここで終了」は出ない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-1', 2)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+
+    // 視覚フィードバックは即時（テンポを変えない）
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(screen.getByText('正解')).toBeTruthy()
+    // 猶予中は記録しない
+    expect(await db.attempts.count()).toBe(0)
+    // ADR 0009 T-160 Amendmentどおり解説は猶予中も即時に出す
+    expect(screen.getByText(/設問0の解説/)).toBeTruthy()
+    // 未確定のまま進める導線は出さない
+    expect(screen.queryByText('次へ')).toBeNull()
+    expect(screen.queryByText('ここで終了して結果を見る')).toBeNull()
+  })
+
+  it('猶予が過ぎると記録され、「次へ」が出て「取り消し」が消える', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-2', 2)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+
+    expect(await screen.findByText('次へ')).toBeTruthy()
+    expect(screen.queryByText('取り消し')).toBeNull()
+  })
+
+  it('取り消しで記録せず次の未解答サブ設問へ進む', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-3', 3)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    expect(screen.getByTestId('reading-question').textContent).toContain('設問1/3')
+
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // attemptは作らないが、設問1は消化して次の未解答（設問2）へ進む（同じ設問の
+    // 再解答は許さない: 正解が既に見えているためisCorrectが偽陽性になる）
+    await waitFor(() =>
+      expect(screen.getByTestId('reading-question').textContent).toContain('設問2/3'),
+    )
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('最後の1問を取り消すと、記録せずitemを進めてリザルトへ遷移する', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-last', 1)
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // 他に未解答のサブ設問が残っていない（このitemで唯一の設問だった）ので、
+    // 1問分を未記録のままitemを進める。これが最終itemでもあるためリザルトへ到達する
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    expect(await db.attempts.count()).toBe(0)
+    expect(useSessionStore.getState().snapshot?.attemptIds).toEqual([])
+  })
+
+  // 何を防ぐか（T-297・K-23）: アンマウント時のflushでfinalizeSubQuestionAnswerが失敗すると、
+  // 従来はconsole.errorに流すだけで解答が無言で失われていた（saveErrorバナー・再試行ボタンは
+  // アンマウント済みの画面には効かない）。次回起動時に気づけるよう退避されているか検証する
+  it('猶予中にアンマウント→flushが失敗すると、次回起動時の通知用に退避される（K-23）', async () => {
+    const db = newDb()
+    const q = part7Question('p7-undo-k23', 1)
+    const snapshot = await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    const view = render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // 同じサブ設問を裏で先に記録してしまう（他タブ・多重解答の再現。DBは正常なまま）。
+    // flush時のfinalizeSubQuestionAnswerはこの状態でrecordAnswerPipelineを呼び、
+    // 「既に記録済み」のStaleSnapshotErrorになる
+    await answerCurrentSubQuestion(db, snapshot, {
+      questionId: `${q.id}-q0`,
+      isCorrect: true,
+      responseMs: 1000,
+      selectedKey: 'A',
+    })
+
+    view.unmount()
+
+    await waitFor(async () => expect(await loadPendingCommitFailure(db)).not.toBeNull())
+    // 猶予中の解答自体は書かれない（元の設計どおり、失われたデータは再送できない）
+    expect(await db.attempts.count()).toBe(1) // answerCurrentSubQuestionで直接書いた1件のみ
+  })
+
+  it('Part6: 別の空所が猶予中の間は、表示中の空所の選択肢が無効化される', async () => {
+    const db = newDb()
+    const q = part6Question('p6-undo-1')
+    await setupWithUndo(db, [{ questionId: q.id, mode: 'solo' }], [q])
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a')) // 空所1に解答（猶予中のまま確定を待たせる）
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // 空所2へジャンプする（3.5節: 閲覧目的のジャンプは猶予中も許す）
+    fireEvent.click(screen.getByTestId('passage-blank-2'))
+    await waitFor(() =>
+      expect(screen.getByTestId('reading-question').textContent).toContain('設問2/4'),
+    )
+    // 空所1の猶予が残っている間、空所2の選択肢は無効化される（同時に2件の保存が
+    // 走る経路を作らないため。usePendingCommitは猶予中の再scheduleで前のpendingを
+    // 即flushする＝T-194・Q-107）
+    const choiceButton = screen.getByText('a').closest('button')
+    expect(choiceButton?.disabled).toBe(true)
+
+    // 空所1の猶予が明けると記録され、空所2は再び操作できるようになる
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    await waitFor(() => expect(screen.getByText('a').closest('button')?.disabled).toBe(false))
+  })
+})
+
+describe('ReadingScreen: 全item解答済みのsnapshotでの初回レンダー（T-320・K-53）', () => {
+  // 何を防ぐか: snapshotはあるがitemが無い（=全item解答済み）状態でのfinishSession()
+  // 呼び出しが、レンダー本体（return null直前）に書かれていた。通常は最終設問の
+  // 「次へ」ボタン（イベントハンドラ）を経由するが、中断復帰などでsnapshot自体が
+  // 「既に全問解答済み」のままReadingScreenが最初にレンダーされることもあり、その場合は
+  // ボタンクリックを経由せずレンダー本体のガードが初回レンダーで直接実行される。
+  // レンダー本体からnavigate/completeSessionを直接呼ぶのはReactのレンダー純粋性に反するため
+  // useEffectへ移した（T-320）。この経路が退行してリザルトへ進まなくなることを防ぐ
+  it('既に全問解答済みのsnapshotで初回レンダーされた場合もリザルトへ進み、セッションが完了する', async () => {
+    const db = newDb()
+    const q = part7Question('p7-320', 1)
+    const items: SessionItem[] = [{ questionId: q.id, mode: 'solo' }]
+    const snapshot = await startSession(db, { items })
+    const answeredSnapshot = { ...snapshot, answeredCount: items.length }
+    useSessionStore.getState().begin(answeredSnapshot, [q], { L: 400, R: 400 })
+
+    render(<ReadingScreen db={db} />)
+
+    await waitFor(() => expect(useAppStore.getState().screen).toBe('result'))
+    const active = await db.settings.get(ACTIVE_SESSION_KEY)
+    expect(active).toBeUndefined()
+  })
+})
+
+describe('ReadingScreen: セッション進行の失敗時に白画面で固まらない（T-281・K-4）', () => {
+  // 何を防ぐか: questionIdが解決できないitemのスキップ（advanceSession）失敗が握りつぶされると、
+  // renderがnullのまま固定され「中断ボタンすら無い白画面」で固まる
+  it('スキップ処理が失敗した場合はエラーと「ホームへ戻る」を表示し、白画面で固まらない', async () => {
+    const db = newDb()
+    const q = part7Question('p7-skip-fail', 1)
+    const snapshot = await setupSession(
+      db,
+      [
+        { questionId: 'missing-q', mode: 'solo' }, // questionsに無いID→スキップ経路に入る
+        { questionId: q.id, mode: 'solo' },
+      ],
+      [q],
+    )
+    // 裏でDB上のスナップショットだけ進めてstaleにし、スキップのadvanceSessionを失敗させる
+    await advanceSession(db, snapshot)
+
+    render(<ReadingScreen db={db} />)
+
+    expect(await screen.findByText('セッションを進められませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ戻る'))
+    expect(useAppStore.getState().screen).toBe('home')
+  })
+
+  // 何を防ぐか: advanceReadingItem（全問解答後の「次へ」でitemを進める処理）の失敗が
+  // 握りつぶされると、同様に白画面で固まる
+  it('全問解答後にadvanceReadingItemが失敗した場合もエラーと「ホームへ戻る」を表示する', async () => {
+    const db = newDb()
+    const q1 = part7Question('p7-advance-fail-1', 1)
+    const q2 = part7Question('p7-advance-fail-2', 1)
+    const snapshot = await setupSession(
+      db,
+      [
+        { questionId: q1.id, mode: 'solo' },
+        { questionId: q2.id, mode: 'solo' },
+      ],
+      [q1, q2],
+    )
+
+    render(<ReadingScreen db={db} />)
+    fireEvent.click(screen.getByText('a'))
+    await screen.findByText('次へ')
+
+    // 裏でDB上のスナップショットだけ進めてstaleにし、「次へ」のadvanceSessionを失敗させる
+    await advanceSession(db, snapshot)
+    fireEvent.click(screen.getByText('次へ'))
+
+    expect(await screen.findByText('セッションを進められませんでした')).toBeTruthy()
+    fireEvent.click(screen.getByText('ホームへ戻る'))
+    expect(useAppStore.getState().screen).toBe('home')
   })
 })
 

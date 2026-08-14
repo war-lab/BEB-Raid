@@ -1,7 +1,7 @@
 // T-09: SRSエンジンのテスト（03の2節）。
 // 完了条件: 各評価遷移・卒業・新規停止条件が緑。dueAt 計算が日付境界で破綻しない
 import 'fake-indexeddb/auto'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BebRaidDatabase } from '../db/database'
 import type { SrsCardRecord } from '../db/schema'
@@ -95,6 +95,52 @@ describe('applyGrade: 評価遷移', () => {
 
     // 卒業直前で「もう一回」なら卒業しない
     expect(applyGrade(card({ stage: 5 }), 'again', now).graduated).toBe(false)
+  })
+})
+
+// 何を防ぐか（T-303・K-31）: nowが実際の現在時刻から大きく離れた未来値（端末時計のずれ・
+// 呼び出し元の計算ミス等）だと、dueAtも同様に未来へ飛び、正しい時刻に戻っても長期間
+// （実測1521日）復習キューに現れなくなる。時刻そのものの正当性検証は行わない
+// （J-124）ため、実際の現在時刻（Date.now()）を基準に間隔テーブルの最大値を超えて
+// 先には進めないクランプで防ぐ
+describe('applyGrade: dueAtの上限クランプ（T-303・K-31）', () => {
+  it('nowが実際の現在時刻から遠い未来だと、dueAtは実際の現在時刻+最大間隔（60日）でクランプされる', () => {
+    const realNow = at(2026, 8, 6)
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow)
+    try {
+      const farFutureNow = at(2030, 8, 6) // 4年先（端末時計のずれ等を想定）
+      const result = applyGrade(card({ stage: 2 }), 'good', farFutureNow) // 本来なら+7日で2030年に
+
+      // クランプが無ければ2030年台になるはずだが、実際の現在時刻+60日を超えない
+      expect(result.card.dueAt).toBeLessThanOrEqual(realNow + 60 * 24 * 60 * 60 * 1000)
+      expect(toDateString(result.card.dueAt)).toBe('2026-10-05') // 2026-08-06 + 60日
+    } finally {
+      nowSpy.mockRestore()
+    }
+  })
+
+  it('nowが実際の現在時刻に近い通常の利用ではクランプが効かず、間隔テーブルどおりになる', () => {
+    const realNow = at(2026, 8, 6)
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow)
+    try {
+      const result = applyGrade(card({ stage: 2 }), 'good', realNow) // stage2→3（14日後）
+      expect(toDateString(result.card.dueAt)).toBe('2026-08-20')
+    } finally {
+      nowSpy.mockRestore()
+    }
+  })
+
+  it('卒業時（dueAtを更新しない経路）はクランプの対象外（card.dueAtを据え置く）', () => {
+    const realNow = at(2026, 8, 6)
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow)
+    try {
+      const farFutureDueAt = at(2035, 1, 1)
+      const result = applyGrade(card({ stage: 5, dueAt: farFutureDueAt }), 'good', at(2030, 8, 6))
+      expect(result.graduated).toBe(true)
+      expect(result.card.dueAt).toBe(farFutureDueAt) // 卒業時は据え置き。クランプで書き換えない
+    } finally {
+      nowSpy.mockRestore()
+    }
   })
 })
 
@@ -222,6 +268,36 @@ describe('getSrsQueue: 期限抽出と新規制御', () => {
     const after = await getSrsQueue(db, now)
     expect(after.newStopped).toBe(false)
     expect(after.newCards.map((c) => c.refId)).toEqual(['fresh'])
+  })
+
+  // T-188（Q-98）: 何を防ぐか。配信から外れたパックの問題カードは isServable=false のまま
+  // dueAt超過で残り続ける。isServableを渡さない全件判定だと、これが16枚溜まった時点で
+  // 出題可能なカードが0枚でも newStopped=true に固定され、新規カードの導入が恒久停止する
+  it('isServable基準では出題不可カードが滞留判定を占有しない（Q-98）', async () => {
+    const db = newDb()
+    const now = at(2026, 7, 9)
+    // 配信から外れ、出題不可能な期限超過カードを16枚（newStopBacklog相当）
+    for (let i = 0; i < DEFAULT_SRS_OPTIONS.newStopBacklog; i++) {
+      await db.srsCards.put(
+        card({ id: `vocab:gone-${i}`, refId: `gone-${i}`, dueAt: at(2026, 7, 8) }),
+      )
+    }
+    await addSrsCard(db, { refType: 'vocab', refId: 'fresh', now })
+
+    // isServable未指定（既定）は従来どおり全件を servable 扱いし、新規停止のまま
+    const withoutServable = await getSrsQueue(db, now)
+    expect(withoutServable.newStopped).toBe(true)
+    expect(withoutServable.newCards).toHaveLength(0)
+
+    // isServableで「gone-*」が出題不可と分かっていれば、滞留にカウントされず新規が導入される
+    const withServable = await getSrsQueue(
+      db,
+      now,
+      DEFAULT_SRS_OPTIONS,
+      (c) => !c.refId.startsWith('gone-'),
+    )
+    expect(withServable.newStopped).toBe(false)
+    expect(withServable.newCards.map((c) => c.refId)).toEqual(['fresh'])
   })
 })
 

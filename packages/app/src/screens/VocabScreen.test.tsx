@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BebRaidDatabase } from '../db/database'
 import { evaluateStreak } from '../engine/streak'
 import type { AudioPlayer, PlaybackOutcome } from '../platform'
+import { loadPendingCommitFailure } from '../services/pendingCommitFailure'
 import {
   AUTO_PLAY_ENABLED_KEY,
   MISTAP_UNDO_ENABLED_KEY,
@@ -92,6 +93,22 @@ async function seedDueCard(db: BebRaidDatabase, word: string, now = Date.now()) 
   })
 }
 
+describe('VocabScreen: 読み込み中の表示（T-211・Q-59）', () => {
+  // reviewQueue/triageQueueがnull（初回ロードのPromiseが解決する前）の間はreturn nullで
+  // 白画面になっていた。マウント直後の同期描画を見て白画面でないことを確認する
+  it('マウント直後（データ読み込み中）は白画面ではなく読み込み中の表示を出す', () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    const { container } = render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
+    )
+    expect(container.textContent).not.toBe('')
+    expect(screen.getByText('読み込み中…')).toBeTruthy()
+  })
+})
+
 describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け）', () => {
   it('スワイプ「知らない」で未卒業カードが追加され、「知ってる」（ボタン）では卒業済みカードが追加される（T-119）', async () => {
     const db = newDb()
@@ -122,6 +139,39 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
     expect(betaCard?.graduatedAt).not.toBeNull()
   })
 
+  // T-221（Q-15）: 「中断してホームへ」がaudioPlayer.stop()を呼ばず、再生中のフレーズ音声が
+  // ホーム画面で流れ続けていた。この画面の他のstop()はイヤホンなしモードの切替（T-166）と
+  // 明示的な停止ボタン用で、中断導線には無かった（docs/29のQ-15は対処済みと記述していたが誤り）
+  it('「中断してホームへ」でaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('halt')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('中断')).toBeTruthy())
+    fireEvent.click(screen.getByText('中断'))
+    fireEvent.click(screen.getByText('中断してホームへ'))
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
+  // 何を防ぐか（T-315・K-48）: 中断導線とpopstateハンドラ以外に、useEffectの
+  // unmount cleanupでの音声停止が無かった（画面外からの遷移では止まらない）
+  it('アンマウント時にaudioPlayer.stop()が呼ばれる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('unmount')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    const view = render(
+      <VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />,
+    )
+    await waitFor(() => expect(screen.getByText('中断')).toBeTruthy())
+
+    view.unmount()
+
+    expect(audioPlayer.stop).toHaveBeenCalled()
+  })
+
   it('「知らない」ボタンでも同様に srsCards に追加される', async () => {
     const db = newDb()
     const questions = [vocabQuestion('gamma')]
@@ -132,6 +182,21 @@ describe('VocabScreen: 仕分けモード（新規語彙のスワイプ仕分け
     fireEvent.click(screen.getByText('知らない'))
 
     await waitFor(async () => expect(await db.srsCards.get('vocab:gamma')).toBeDefined())
+  })
+
+  // T-210(Q-39・J-107): 仕分けカードのランクチップもtitle属性のみだった。SwipeCardの
+  // pointerイベントハンドラに巻き込まれてタップが拾われない退行を防ぐ意図も兼ねる
+  it('T-210: 仕分けカードでも頻出度ランクの意味をタップで確認できる', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText(phraseMatcher('I will alpha it.'))).toBeTruthy())
+
+    expect(screen.queryByText(/頻出度ランク（Sが最も頻出/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '頻出度ランク Sの説明を表示' }))
+    expect(screen.getByText(/頻出度ランク（Sが最も頻出/)).toBeTruthy()
   })
 })
 
@@ -158,6 +223,46 @@ describe('VocabScreen: 復習モード（4択リコールテスト→自己評�
     expect(attempt.mode).toBe('srs')
     expect(attempt.questionId).toBe('vocab-delta')
     expect(attempt.isCorrect).toBe(true)
+  })
+
+  // T-210(Q-39・J-107): 頻出度ランクの定義はtitle属性のみ（hover専用）で提供されており、
+  // タッチ端末では説明に到達できなかった。タップで開閉できる説明に置き換える
+  it('T-210: 頻出度ランクの意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'delta')
+    const questions = [vocabQuestion('delta'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('delta')
+
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/頻出度ランク（Sが最も頻出/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '頻出度ランク Sの説明を表示' }))
+    expect(screen.getByText(/頻出度ランク（Sが最も頻出/)).toBeTruthy()
+  })
+
+  // T-269（29のQ-39・17節）: SRS自己評価3ボタン（もう一回/OK/余裕）の説明はDrillScreen側
+  // （T-210）にのみ付き、同一UIを持つVocabScreenには無かった。DrillScreenと同文言で揃える
+  it('T-269: SRS自己評価（もう一回/OK/余裕）の意味をタップで確認できる（titleはhoverでしか読めないため）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'zeta')
+    const questions = [vocabQuestion('zeta'), vocabQuestion('decoy')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+    await waitForReviewCard('zeta')
+    fireEvent.click(screen.getByText('zeta の意味'))
+    expect(screen.getByText('もう一回')).toBeTruthy()
+
+    // 説明は既定で閉じている
+    expect(screen.queryByText(/間隔を短くしてすぐに復習／OK＝通常の間隔で復習/)).toBeNull()
+    fireEvent.click(screen.getByText('間隔について'))
+    expect(
+      screen.getByText(
+        /間隔を短くしてすぐに復習／OK＝通常の間隔で復習／余裕＝間隔を大きく広げて復習/,
+      ),
+    ).toBeTruthy()
   })
 
   it('不正解を選ぶとattemptsにisCorrect=falseで記録される（グレードは自己申告のまま独立）', async () => {
@@ -349,6 +454,9 @@ describe('VocabScreen: フレーズ音声自動再生（既定ON。解答後の�
 describe('VocabScreen: ストリーク成立（02の7節）', () => {
   it('SRS5問完了時に evaluateStreak がストリーク成立を返す', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（ADR 0009の先例と同じ扱い）。このテストの対象は
+    // ストリーク成立であって猶予ではなく、5件×400msの待ちを避ける
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = ['w1', 'w2', 'w3', 'w4', 'w5']
     for (const w of words) await seedDueCard(db, w)
     const questions = words.map((w) => vocabQuestion(w))
@@ -511,8 +619,9 @@ describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）'
 
     render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
 
+    // T-219（Q-60）: 区切り（1回分の件数=20）を分母に出す。総数21は主表示の分母にしない
     for (let i = 0; i < 20; i++) {
-      await waitFor(() => expect(screen.getByText(`仕分け ${i + 1}/21`)).toBeTruthy())
+      await waitFor(() => expect(screen.getByText(`仕分け ${i + 1}/20（全21語）`)).toBeTruthy())
       fireEvent.click(screen.getByText('知ってる'))
     }
 
@@ -522,7 +631,35 @@ describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）'
     expect(await db.srsCards.count()).toBe(20)
 
     fireEvent.click(screen.getByText('続けて仕分ける（残り1語）'))
-    await waitFor(() => expect(screen.getByText('仕分け 21/21')).toBeTruthy())
+    // 2回目の区切り（21語目=2回目の区切りの1件目）も分母は残件数（1）になる
+    await waitFor(() => expect(screen.getByText('仕分け 1/1（全21語）')).toBeTruthy())
+  })
+
+  // T-219（Q-60）: 「仕分け 1/645」のように総数をいきなり分母に出すと完走前提に見えて
+  // 負荷感が強い。1回分の区切り（TRIAGE_BATCH_SIZE=20）を分母にする
+  it('総数が1区切り（20語）を超える場合、主表示の分母は総数ではなく区切りの件数になる', async () => {
+    const db = newDb()
+    const words = Array.from({ length: 45 }, (_, i) => `word${i}`)
+    const questions = words.map((w) => vocabQuestion(w))
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    await waitFor(() => expect(screen.getByText('仕分け 1/20（全45語）')).toBeTruthy())
+    expect(screen.queryByText(/仕分け 1\/45/)).toBeNull()
+  })
+
+  // 区切り以下（総数20以下）では従来どおり総数のみを分母にする（区切り表記の追加が
+  // 少数語のケースで冗長にならないようにする）
+  it('総数が1区切り以下なら、従来どおり総数だけを分母にする', async () => {
+    const db = newDb()
+    const questions = [vocabQuestion('alpha'), vocabQuestion('beta')]
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={questions} />)
+
+    await waitFor(() => expect(screen.getByText('仕分け 1/2')).toBeTruthy())
+    expect(screen.queryByText(/全2語/)).toBeNull()
   })
 
   it('復習画面の「仕分けへ」で、復習キューを消化せず仕分けフェーズへ直行できる', async () => {
@@ -547,6 +684,9 @@ describe('VocabScreen: 語彙仕分けの既知永続化と区切り（T-119）'
 describe('VocabScreen: 完了カード（T-78）', () => {
   it('全復習・仕分けが終わると今日の実施数・ストリークを含む完了カードを表示する', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（ADR 0009の先例と同じ扱い）。このテストの対象は
+    // 完了カードの表示であって猶予ではなく、5件×400msの待ちを避ける
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = ['w1', 'w2', 'w3', 'w4', 'w5']
     for (const w of words) await seedDueCard(db, w)
     const questions = words.map((w) => vocabQuestion(w))
@@ -564,6 +704,21 @@ describe('VocabScreen: 完了カード（T-78）', () => {
     const card = await screen.findByTestId('completion-card')
     expect(card.textContent).toContain(`今日の実施数 ${words.length}問`)
     expect(card.textContent).toContain('🔥')
+  })
+})
+
+// T-214(Q-48): 語彙データ0件（パック未取得の初回オフライン起動等）でも復習・仕分けの
+// 両キューが空になる点は完了時と区別が付かず、「語彙SRSが終了しました」という完了文言が
+// 出ていた。ShadowingScreenの「シャドーイング素材がありません」と同様に区別する
+describe('VocabScreen: 語彙データ0件の表示（T-214・Q-48）', () => {
+  it('vocabQuestionsが空の場合は完了ではなく素材が無い旨の文言を出す', async () => {
+    const db = newDb()
+    const audioPlayer = new FakeAudioPlayer()
+
+    render(<VocabScreen db={db} audioPlayer={audioPlayer} vocabQuestions={[]} />)
+
+    expect(await screen.findByText('語彙データがありません')).toBeTruthy()
+    expect(screen.queryByText('語彙SRSが終了しました')).toBeNull()
   })
 })
 
@@ -670,6 +825,131 @@ describe('VocabScreen: 仕分けスワイプの取り消し猶予（T-161。docs
   })
 })
 
+describe('VocabScreen: 復習自己評価の取り消し猶予（T-204。docs/29 Q-38・ADR 0009 2026-08-05 Amendment）', () => {
+  // 何を防ぐか: DrillScreen内のvocab_card自己評価（T-160）と同じ不可逆性（SRS間隔の確定＋
+  // 次カードへの前進）を持つのに、S3側（VocabScreen）は取り消し猶予の対象から漏れていた。
+  // フレーズや正解を読む前に自己評価を押すとカードが消えて戻れなかった
+  it('自己評価タップで猶予に入り、まだ記録されない', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+    expect(await db.attempts.count()).toBe(0)
+    // 猶予中は自己評価ボタンを引っ込める（二重確定の防止）
+    expect(screen.queryByText('もう一回')).toBeNull()
+    expect(screen.queryByText('余裕')).toBeNull()
+    // カードは保持されたまま（次のカードへ進めない）
+    expect(screen.getByText('復習 1/1')).toBeTruthy()
+    // ADR 0009 2026-07-31 Amendment 決定2と同じく、猶予中もフレーズは開示済みのまま
+    expect(screen.getByText(phraseMatcher('I will alpha it.'))).toBeTruthy()
+  })
+
+  it('取り消すと記録されず次のカードへ進む（正解を見せた後のため同じカードには戻らない）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    fireEvent.click(await screen.findByText('取り消し'))
+
+    // 記録されない
+    expect(await db.attempts.count()).toBe(0)
+    expect(await db.srsCards.get('vocab:alpha')).toMatchObject({ stage: 2 }) // 変わらず
+    // 復習キューを消化して次（仕分けフェーズ。decoyが候補として残る）へ進む。
+    // 同じカードへは戻らない＝alphaの4択が再度出ることはない
+    await waitFor(() => expect(screen.getByText(/仕分け \d/)).toBeTruthy())
+  })
+
+  it('猶予が過ぎると記録され、次のカードへ進む', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(() => expect(screen.getByText(/仕分け \d/)).toBeTruthy())
+    expect(await db.attempts.count()).toBe(1)
+    const attempt = (await db.attempts.toArray())[0]!
+    expect(attempt.isCorrect).toBe(true)
+    expect((await db.srsCards.get('vocab:alpha'))?.stage).toBe(3) // stage2→OK(+1)=3
+  })
+
+  it('猶予中にアンマウントされると記録される（操作は実際に行われたため捨てない）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    const view = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    // DB往復を挟まない（挟むと400msの猶予が経過し、flushではなくタイマー確定を
+    // 検証してしまう。猶予中に書かないことは上のテストが担保する）
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    view.unmount()
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect((await db.srsCards.get('vocab:alpha'))?.stage).toBe(3)
+  })
+
+  // 何を防ぐか（T-297・K-23）: アンマウント時のflushでcommitGradeが失敗すると、
+  // 従来はconsole.errorに流すだけで解答が無言で失われていた（saveErrorバナーは
+  // アンマウント済みの画面には効かない）。次回起動時に気づけるよう退避されているか検証する
+  it('猶予中にアンマウント→flushが失敗すると、次回起動時の通知用に退避される（K-23）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    const view = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+    expect(await screen.findByText('取り消し')).toBeTruthy()
+
+    // カードを裏で削除する（DBは正常なまま、reviewSrsCardだけが失敗する。他タブでの
+    // 削除・多重評価の再現）。flush時のcommitGradeはこの状態でreviewSrsCardを呼ぶ
+    await db.srsCards.delete('vocab:alpha')
+
+    view.unmount()
+
+    await waitFor(async () => expect(await loadPendingCommitFailure(db)).not.toBeNull())
+    // 猶予中の評価自体は書かれない（元の設計どおり、失われたデータは再送できない）
+    expect(await db.attempts.count()).toBe(0)
+  })
+
+  it('設定OFFなら従来どおり即確定する（回帰）', async () => {
+    const db = newDb()
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('alpha')
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    await waitFor(async () => expect(await db.attempts.count()).toBe(1))
+    expect(screen.queryByText('取り消し')).toBeNull()
+  })
+})
+
 describe('VocabScreen: 連打防止と保存失敗の表示（T-159。docs/27 のS-3・S-28）', () => {
   // 何を防ぐか: 反応が遅い端末での連打で setReviewIndex が2回走り、未評価のカードが
   // 1枚無言でスキップされること（SRS間隔も更新されないまま残る）
@@ -743,6 +1023,32 @@ describe('VocabScreen: 連打防止と保存失敗の表示（T-159。docs/27 �
 
     await screen.findByText(/記録を保存できませんでした/)
     expect(screen.getByText('仕分け 1/2')).toBeTruthy()
+  })
+
+  // 何を防ぐか（T-299・K-25）: 容量不足（QuotaExceededError）でも一律「記録を保存
+  // できませんでした」だけで、確認した後の具体的な回復手段（エクスポート）を示していなかった
+  it('QuotaExceededErrorのときは専用の文言とエクスポート導線が出る', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'alpha')
+    const questions = [vocabQuestion('alpha'), vocabQuestion('bravo')]
+
+    const addSpy = vi
+      .spyOn(db.attempts, 'add')
+      .mockRejectedValueOnce(new DOMException('quota exceeded', 'QuotaExceededError'))
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitFor(() => expect(screen.getByText('復習 1/1')).toBeTruthy())
+    fireEvent.click(screen.getByText('alpha の意味'))
+    fireEvent.click(screen.getByText('OK'))
+
+    expect(
+      await screen.findByText(
+        '端末のストレージ容量が不足しています。データをエクスポートして空き容量を確保してください',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('設定でエクスポート'))
+    expect(useAppStore.getState().screen).toBe('settings')
+    addSpy.mockRestore()
   })
 })
 
@@ -849,6 +1155,9 @@ describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦�
   // 仕分け側は20語で区切る配慮があるのに復習側には無く、非対称だった
   it('20件復習するごとに中間画面が出て、「続ける」で再開できる', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（ADR 0009の先例と同じ扱い）。このテストの対象は
+    // 20件区切りであって猶予ではなく、ONのままだと20回×400msでタイムアウトのリスクが増す
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = Array.from({ length: 21 }, (_, i) => `w${i}`)
     for (const w of words) await seedDueCard(db, w)
     const questions = words.map((w) => vocabQuestion(w))
@@ -871,6 +1180,8 @@ describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦�
 
   it('中間画面から仕分けへ直行できる', async () => {
     const db = newDb()
+    // T-204の取り消し猶予をOFFにする（上のテストと同じ理由）
+    await db.settings.put({ key: MISTAP_UNDO_ENABLED_KEY, value: false })
     const words = Array.from({ length: 21 }, (_, i) => `w${i}`)
     for (const w of words) await seedDueCard(db, w)
     const questions = [...words, 'newword'].map((w) => vocabQuestion(w))
@@ -948,5 +1259,33 @@ describe('VocabScreen: 復習の20件区切りと同一セッション再挑戦�
     await screen.findByText('語彙SRSが終了しました')
     // 再投入分も通常どおり記録する（attempts は追記のみ）
     expect(await db.attempts.count()).toBe(2)
+  })
+})
+
+// 何を防ぐか（T-224。docs/29 Q-62・J-108）: 対象語（英単語）に lang="en" が無く、
+// lang="ja" の文書内でスクリーンリーダーが日本語の音声で読み上げていたこと
+describe('VocabScreen: 対象語のlang="en"（T-224・J-108）', () => {
+  it('復習カードの対象語にlang="en"が付く', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'kappa')
+    const questions = [vocabQuestion('kappa'), vocabQuestion('decoy')]
+
+    const { container } = render(
+      <VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />,
+    )
+    await waitForReviewCard('kappa')
+
+    expect(container.querySelector('.vocab-card__word')?.getAttribute('lang')).toBe('en')
+  })
+
+  it('選択肢本文にもlang="en"が付く（ChoiceButton経由）', async () => {
+    const db = newDb()
+    await seedDueCard(db, 'kappa')
+    const questions = [vocabQuestion('kappa'), vocabQuestion('decoy')]
+
+    render(<VocabScreen db={db} audioPlayer={new FakeAudioPlayer()} vocabQuestions={questions} />)
+    await waitForReviewCard('kappa')
+
+    expect(screen.getByText('kappa の意味').getAttribute('lang')).toBe('en')
   })
 })

@@ -4,12 +4,15 @@
     "id": "pack-p5-s-001",
     "title": "Part5文法 Sランク50問",
     "license": "internal-original",
-    "origin": "エージェント直接執筆＋別モデル(Fable 5)AIクロスレビュー 2026-07",
+    "origin": "エージェント直接執筆（2026-07。別モデル(Fable 5)による初回クロスレビュー済み）＋AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）",
     "targetLevel": [
       600,
       600
     ],
-    "sizeBytes": 52696
+    "reviewedBy": "claude-opus-5",
+    "reviewedAt": "2026-08-13",
+    "reviewMethod": "AIクロスレビュー（Fable 5）＋敵対的検証（6観点・2026-08-13）",
+    "sizeBytes": 52885
   },
   "questions": [
     {
@@ -69,22 +72,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "attendance"
-        },
-        {
-          "key": "B",
-          "text": "attended"
-        },
-        {
-          "key": "C",
           "text": "attending"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "attend"
+        },
+        {
+          "key": "C",
+          "text": "attendance"
+        },
+        {
+          "key": "D",
+          "text": "attended"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "to不定詞の後は動詞の原形が続くため、attendが正しい。attendanceは名詞、attendedは過去形、attendingは動名詞/現在分詞で、to不定詞の形に合わない。",
       "translation": "各部門長は四半期会議に出席することが求められている。"
     },
@@ -115,14 +118,14 @@
         },
         {
           "key": "C",
-          "text": "approval"
+          "text": "approve"
         },
         {
           "key": "D",
-          "text": "approve"
+          "text": "approval"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "所有格herの後には名詞が続くため、approval（承認）が正しい。approve/approved/approvinglyはそれぞれ動詞・過去分詞・副詞で名詞の位置には入らない。",
       "translation": "部長は新しいマーケティング予算を承認した。"
     },
@@ -145,7 +148,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "negotiating"
+          "text": "negotiated"
         },
         {
           "key": "B",
@@ -153,11 +156,11 @@
         },
         {
           "key": "C",
-          "text": "negotiation"
+          "text": "negotiating"
         },
         {
           "key": "D",
-          "text": "negotiated"
+          "text": "negotiation"
         }
       ],
       "answer": "B",
@@ -183,22 +186,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "confirm"
+          "text": "confirming"
         },
         {
           "key": "B",
-          "text": "confirmation"
+          "text": "confirm"
         },
         {
           "key": "C",
-          "text": "confirmed"
+          "text": "confirmation"
         },
         {
           "key": "D",
-          "text": "confirming"
+          "text": "confirmed"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "助動詞couldの後は動詞の原形が続くため、confirmが正しい。confirmationは名詞、confirmed/confirmingは過去形/現在分詞で、助動詞の後には置けない。",
       "translation": "水曜日までにご出席を確認していただけますと幸いです。"
     },
@@ -225,18 +228,18 @@
         },
         {
           "key": "B",
-          "text": "authorized"
-        },
-        {
-          "key": "C",
           "text": "authorizing"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "authorize"
+        },
+        {
+          "key": "D",
+          "text": "authorized"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "be動詞isの後で受動態を作る過去分詞authorizedが正しい（「権限を与えられている」）。authorize/authorizingは能動形、authorizationは名詞で、この文脈には合わない。",
       "translation": "5000ドルを超える経費を承認する権限があるのは部長だけだ。"
     },
@@ -259,22 +262,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "implemented"
+          "text": "implement"
         },
         {
           "key": "B",
-          "text": "implementing"
+          "text": "implemented"
         },
         {
           "key": "C",
-          "text": "implement"
+          "text": "implementing"
         },
         {
           "key": "D",
           "text": "implementation"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "decided to の後は動詞の原形が続くため、implementが正しい。implementationは名詞、implemented/implementingは過去形/動名詞で、to不定詞の形には合わない。",
       "translation": "会社は新しい安全方針を直ちに実施することを決定した。"
     },
@@ -297,22 +300,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "compliantly"
+          "text": "compliant"
         },
         {
           "key": "B",
-          "text": "comply"
-        },
-        {
-          "key": "C",
           "text": "compliance"
         },
         {
+          "key": "C",
+          "text": "compliantly"
+        },
+        {
           "key": "D",
-          "text": "compliant"
+          "text": "comply"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "前置詞inの後で名詞complianceが正しい（\"in compliance with\" で「〜を遵守して」の定型表現）。comply動詞、compliant形容詞、compliantly副詞は前置詞の直後の名詞位置には合わない。",
       "translation": "全従業員は新しい安全規則を完全に遵守しなければならない。"
     },
@@ -335,22 +338,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "finalize"
-        },
-        {
-          "key": "B",
-          "text": "finalization"
-        },
-        {
-          "key": "C",
           "text": "finalized"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "finalizing"
+        },
+        {
+          "key": "C",
+          "text": "finalize"
+        },
+        {
+          "key": "D",
+          "text": "finalization"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "need to の後は動詞の原形が続くため、finalizeが正しい。finalizationは名詞、finalized/finalizingは過去形/動名詞で、to不定詞の形には合わない。",
       "translation": "今月末までに契約の詳細を最終決定する必要がある。"
     },
@@ -373,22 +376,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "delegation"
-        },
-        {
-          "key": "B",
           "text": "delegated"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "delegating"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "delegate"
+        },
+        {
+          "key": "D",
+          "text": "delegation"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "how to の後は動詞の原形が続くため、delegateが正しい。delegationは名詞、delegated/delegatingは過去形/動名詞で、to不定詞の形には合わない。",
       "translation": "優秀な管理職は仕事を効果的に任せる方法を知っている。"
     },
@@ -419,14 +422,14 @@
         },
         {
           "key": "C",
-          "text": "prioritize"
+          "text": "priority"
         },
         {
           "key": "D",
-          "text": "priority"
+          "text": "prioritize"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "助動詞shouldの後は動詞の原形が続くため、prioritizeが正しい。priorityは名詞、prioritized/prioritizingは過去形/動名詞で、助動詞の後には置けない。",
       "translation": "朝一番で最も緊急な仕事を優先すべきだ。"
     },
@@ -449,11 +452,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "facilitating"
+          "text": "facilitate"
         },
         {
           "key": "B",
-          "text": "facilitate"
+          "text": "facilitating"
         },
         {
           "key": "C",
@@ -464,7 +467,7 @@
           "text": "facilitated"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "designed to の後は動詞の原形が続くため、facilitateが正しい。facilitationは名詞、facilitated/facilitatingは過去形/動名詞で、to不定詞の形には合わない。",
       "translation": "この新しいソフトウェアは部署間のコミュニケーションを円滑にするために設計されている。"
     },
@@ -487,22 +490,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "coordinate"
+          "text": "coordinating"
         },
         {
           "key": "B",
-          "text": "coordination"
+          "text": "coordinate"
         },
         {
           "key": "C",
-          "text": "coordinated"
+          "text": "coordination"
         },
         {
           "key": "D",
-          "text": "coordinating"
+          "text": "coordinated"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "助動詞willの後は動詞の原形が続くため、coordinateが正しい。coordinationは名詞、coordinated/coordinatingは過去形/動名詞で、助動詞の後には置けない。",
       "translation": "彼女が今年の年次会議の運営調整を担当する。"
     },
@@ -525,22 +528,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "supervision"
+          "text": "supervise"
         },
         {
           "key": "B",
-          "text": "supervised"
+          "text": "supervision"
         },
         {
           "key": "C",
-          "text": "supervising"
+          "text": "supervised"
         },
         {
           "key": "D",
-          "text": "supervise"
+          "text": "supervising"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "to不定詞の後は動詞の原形が続くため、superviseが正しい。supervisionは名詞、supervised/supervisingは過去形/動名詞で、to不定詞の形には合わない。",
       "translation": "彼は新しい生産ラインを監督するために特別に採用された。"
     },
@@ -563,22 +566,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "overseen"
+          "text": "oversight"
         },
         {
           "key": "B",
-          "text": "overseeing"
-        },
-        {
-          "key": "C",
           "text": "oversee"
         },
         {
+          "key": "C",
+          "text": "overseen"
+        },
+        {
           "key": "D",
-          "text": "oversight"
+          "text": "overseeing"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "助動詞willの後は動詞の原形が続くため、overseeが正しい。oversightは名詞、overseen/overseeingは過去分詞/動名詞で、助動詞の後には置けない。",
       "translation": "プロジェクトマネージャーが改装工事全体を統括する。"
     },
@@ -601,7 +604,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "recruiting"
+          "text": "recruited"
         },
         {
           "key": "B",
@@ -609,11 +612,11 @@
         },
         {
           "key": "C",
-          "text": "recruitment"
+          "text": "recruiting"
         },
         {
           "key": "D",
-          "text": "recruited"
+          "text": "recruitment"
         }
       ],
       "answer": "B",
@@ -677,11 +680,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "notification"
+          "text": "notified"
         },
         {
           "key": "B",
-          "text": "notified"
+          "text": "notification"
         },
         {
           "key": "C",
@@ -692,8 +695,8 @@
           "text": "notify"
         }
       ],
-      "answer": "B",
-      "explanation": "will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。A原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。",
+      "answer": "A",
+      "explanation": "will be の後で受動態を作る過去分詞notifiedが正しい（「知らされる」）。notify原形、notifying現在分詞は能動的な形、notificationは名詞で受動態の形には合わない。",
       "translation": "従業員はメールで予定変更について通知される。"
     },
     {
@@ -723,14 +726,14 @@
         },
         {
           "key": "C",
-          "text": "inform"
+          "text": "information"
         },
         {
           "key": "D",
-          "text": "information"
+          "text": "inform"
         }
       ],
-      "answer": "C",
+      "answer": "D",
       "explanation": "regret to の後は動詞の原形が続くため、informが正しい。informationは名詞、informed/informingは過去形/動名詞で、to不定詞の形には合わない。",
       "translation": "残念ながら、フライトが遅延したことをお知らせいたします。"
     },
@@ -757,18 +760,18 @@
         },
         {
           "key": "B",
-          "text": "request"
-        },
-        {
-          "key": "C",
           "text": "requesting"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "requested"
+        },
+        {
+          "key": "D",
+          "text": "request"
         }
       ],
-      "answer": "B",
+      "answer": "D",
       "explanation": "所有格yourの後には名詞requestが続く。requesting動名詞/現在分詞、requested過去形/過去分詞、requestable形容詞（一般的でない語）は名詞の位置には合わない。",
       "translation": "予定変更のご要望は書面でご提出ください。"
     },
@@ -791,22 +794,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "clarify"
-        },
-        {
-          "key": "B",
           "text": "clarification"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "clarified"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "clarifying"
+        },
+        {
+          "key": "D",
+          "text": "clarify"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "助動詞couldの後は動詞の原形が続くため、clarifyが正しい。clarificationは名詞、clarified/clarifyingは過去形/動名詞で、助動詞の後には置けない。",
       "translation": "サービス料に何が含まれているか明確にしていただけますか？"
     },
@@ -867,11 +870,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "renewed"
+          "text": "renewing"
         },
         {
           "key": "B",
-          "text": "renewing"
+          "text": "renew"
         },
         {
           "key": "C",
@@ -879,7 +882,7 @@
         },
         {
           "key": "D",
-          "text": "renew"
+          "text": "renewed"
         }
       ],
       "answer": "C",
@@ -905,22 +908,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "extending"
-        },
-        {
-          "key": "B",
-          "text": "extension"
-        },
-        {
-          "key": "C",
           "text": "extend"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "extended"
+        },
+        {
+          "key": "C",
+          "text": "extension"
+        },
+        {
+          "key": "D",
+          "text": "extending"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "冠詞anの後には名詞extension（延長）が続く。extend動詞原形、extended過去形/過去分詞、extending動名詞は冠詞anの直後の名詞位置には合わない。",
       "translation": "私たちはプロジェクトの締切延長を要請した。"
     },
@@ -943,22 +946,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "promotion"
-        },
-        {
-          "key": "B",
-          "text": "promote"
-        },
-        {
-          "key": "C",
           "text": "promoted"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "promoting"
+        },
+        {
+          "key": "C",
+          "text": "promotion"
+        },
+        {
+          "key": "D",
+          "text": "promote"
         }
       ],
-      "answer": "A",
+      "answer": "C",
       "explanation": "冠詞aの後には名詞promotion（昇進）が続く。promote動詞原形、promoted過去形/過去分詞、promoting動名詞は冠詞の直後の名詞位置には合わない。",
       "translation": "彼女は先月、シニアマネージャーへの昇進を果たした。"
     },
@@ -981,22 +984,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "retire"
-        },
-        {
-          "key": "B",
-          "text": "retired"
-        },
-        {
-          "key": "C",
           "text": "retiring"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "retirement"
+        },
+        {
+          "key": "C",
+          "text": "retire"
+        },
+        {
+          "key": "D",
+          "text": "retired"
         }
       ],
-      "answer": "D",
+      "answer": "B",
       "explanation": "所有格hisの後には名詞retirement（退職）が続く。retireは動詞原形、retiredは過去形/過去分詞で所有格の後に置けない。動名詞retiringは文法上は所有格に続き得るが、確立した名詞retirementがあるこの文脈では用いない。",
       "translation": "彼は来年の春に退職することを計画している。"
     },
@@ -1019,22 +1022,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "evaluated"
+          "text": "evaluate"
         },
         {
           "key": "B",
-          "text": "evaluating"
-        },
-        {
-          "key": "C",
           "text": "evaluation"
         },
         {
+          "key": "C",
+          "text": "evaluated"
+        },
+        {
           "key": "D",
-          "text": "evaluate"
+          "text": "evaluating"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "形容詞annualの後には名詞evaluation（評価）が続く。evaluate動詞原形、evaluated過去形/過去分詞、evaluating動名詞は形容詞の後の名詞位置には合わない。",
       "translation": "彼女の年次評価は来週火曜日に予定されている。"
     },
@@ -1057,7 +1060,7 @@
       "choices": [
         {
           "key": "A",
-          "text": "performing"
+          "text": "performed"
         },
         {
           "key": "B",
@@ -1065,11 +1068,11 @@
         },
         {
           "key": "C",
-          "text": "perform"
+          "text": "performing"
         },
         {
           "key": "D",
-          "text": "performed"
+          "text": "perform"
         }
       ],
       "answer": "B",
@@ -1133,22 +1136,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "liable"
+          "text": "liability"
         },
         {
           "key": "B",
-          "text": "liably"
+          "text": "liable"
         },
         {
           "key": "C",
-          "text": "liabilities"
+          "text": "liably"
         },
         {
           "key": "D",
-          "text": "liability"
+          "text": "liabilities"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "複合名詞\"liability insurance\"（賠償責任保険）として単数形liabilityが正しい。liable形容詞、liably副詞は名詞insuranceを修飾できず、liabilities複数形は定型表現として不自然。",
       "translation": "会社は労働災害に対する賠償責任保険に加入している。"
     },
@@ -1171,22 +1174,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "warranted"
+          "text": "warrant"
         },
         {
           "key": "B",
-          "text": "warranting"
-        },
-        {
-          "key": "C",
           "text": "warranty"
         },
         {
+          "key": "C",
+          "text": "warranted"
+        },
+        {
           "key": "D",
-          "text": "warrant"
+          "text": "warranting"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "形容詞句two-yearの後には名詞warranty（保証）が続く。warrant動詞原形、warranted過去形/過去分詞、warranting動名詞は名詞の位置には合わない。",
       "translation": "この製品には2年間の保証が付いている。"
     },
@@ -1209,22 +1212,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "certifying"
-        },
-        {
-          "key": "B",
-          "text": "certification"
-        },
-        {
-          "key": "C",
           "text": "certify"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "certified"
+        },
+        {
+          "key": "C",
+          "text": "certification"
+        },
+        {
+          "key": "D",
+          "text": "certifying"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "形容詞professionalの後には名詞certification（認定）が続く。certify動詞原形、certified過去形/過去分詞、certifying動名詞は形容詞の後の名詞位置には合わない。",
       "translation": "彼女は昨年、プロジェクトマネジメントの専門認定を取得した。"
     },
@@ -1247,22 +1250,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "Registration"
+          "text": "Registers"
         },
         {
           "key": "B",
-          "text": "Register"
+          "text": "Registration"
         },
         {
           "key": "C",
-          "text": "Registered"
+          "text": "Register"
         },
         {
           "key": "D",
-          "text": "Registers"
+          "text": "Registered"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "文頭の主語位置には、冠詞なしで使える不可算名詞Registration（登録受付）が入る。Registerは動詞原形（命令文と解釈しても後続のclosesと整合しない）、Registeredは過去形/過去分詞で主語になれない。Registersは複数名詞と解釈しても単数動詞closesと数が合わない。",
       "translation": "カンファレンスの登録受付は次の金曜日に締め切られる。"
     },
@@ -1323,22 +1326,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "projected"
+          "text": "projections"
         },
         {
           "key": "B",
-          "text": "projecting"
+          "text": "projected"
         },
         {
           "key": "C",
-          "text": "projections"
+          "text": "projecting"
         },
         {
           "key": "D",
           "text": "project"
         }
       ],
-      "answer": "C",
+      "answer": "A",
       "explanation": "形容詞Financialに続き、複数形の動詞wereと数が一致する複数名詞projectionsが正しい。projectは単数で数が合わず、projectedは過去分詞で主語となる名詞が無くなり、projectingは動名詞で数も文意も合わない。",
       "translation": "来四半期の財務予測が取締役会で提示された。"
     },
@@ -1361,11 +1364,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "acquiring"
+          "text": "acquisition"
         },
         {
           "key": "B",
-          "text": "acquisition"
+          "text": "acquiring"
         },
         {
           "key": "C",
@@ -1376,7 +1379,7 @@
           "text": "acquired"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "冠詞Theの後で文の主語となる名詞acquisition（買収）が正しい。acquire動詞原形、acquired過去形/過去分詞、acquiring動名詞は冠詞の直後の主語位置には合わない。",
       "translation": "その買収により会社は新しい市場に進出することができた。"
     },
@@ -1399,22 +1402,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "merger"
+          "text": "merging"
         },
         {
           "key": "B",
-          "text": "merge"
+          "text": "merger"
         },
         {
           "key": "C",
-          "text": "merged"
+          "text": "merge"
         },
         {
           "key": "D",
-          "text": "merging"
+          "text": "merged"
         }
       ],
-      "answer": "A",
+      "answer": "B",
       "explanation": "冠詞Theの後で文の主語となる名詞merger（合併）が正しい。merge動詞原形、merged過去形/過去分詞、merging動名詞は冠詞の直後の主語位置には合わない。",
       "translation": "両社の合併が本日発表された。"
     },
@@ -1437,22 +1440,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "endorse"
-        },
-        {
-          "key": "B",
           "text": "endorses"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "endorsing"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "endorsement"
+        },
+        {
+          "key": "D",
+          "text": "endorse"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "冠詞anの後で複合名詞\"endorsement deal\"（宣伝起用契約）を作る名詞endorsementが正しい。endorse/endorsesは動詞で名詞を修飾できず、endorsingは\"endorsing deal\"という表現が成立せず不自然。",
       "translation": "その選手はスポーツウェアブランドと広告契約を結んだ。"
     },
@@ -1475,22 +1478,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "corresponded"
+          "text": "correspond"
         },
         {
           "key": "B",
-          "text": "corresponding"
-        },
-        {
-          "key": "C",
           "text": "correspondence"
         },
         {
+          "key": "C",
+          "text": "corresponded"
+        },
+        {
           "key": "D",
-          "text": "correspond"
+          "text": "corresponding"
         }
       ],
-      "answer": "C",
+      "answer": "B",
       "explanation": "数量形容詞Allの後には名詞correspondence（やり取り）が続く。correspond動詞原形、corresponded過去形/過去分詞、corresponding動名詞/現在分詞は名詞の位置には合わない。",
       "translation": "取引先とのやり取りはすべて記録として保管すべきだ。"
     },
@@ -1513,11 +1516,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "participating"
+          "text": "participate"
         },
         {
           "key": "B",
-          "text": "participate"
+          "text": "participating"
         },
         {
           "key": "C",
@@ -1528,7 +1531,7 @@
           "text": "participated"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "to不定詞の後は動詞の原形が続くため、participateが正しい。participationは名詞、participated/participatingは過去形/動名詞で、to不定詞の形には合わない。",
       "translation": "従業員は研修プログラムへの参加を奨励されている。"
     },
@@ -1551,22 +1554,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "reservation"
-        },
-        {
-          "key": "B",
           "text": "reserve"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "reserved"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "reserving"
+        },
+        {
+          "key": "D",
+          "text": "reservation"
         }
       ],
-      "answer": "A",
+      "answer": "D",
       "explanation": "冠詞aの後には名詞reservation（予約）が続く。reserve動詞原形、reserved過去形/過去分詞、reserving動名詞は冠詞の直後の名詞位置には合わない。",
       "translation": "今夜2名で予約をお願いしたいのですが。"
     },
@@ -1589,22 +1592,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "expend"
+          "text": "expenditure"
         },
         {
           "key": "B",
-          "text": "expended"
+          "text": "expend"
         },
         {
           "key": "C",
-          "text": "expending"
+          "text": "expended"
         },
         {
           "key": "D",
-          "text": "expenditure"
+          "text": "expending"
         }
       ],
-      "answer": "D",
+      "answer": "A",
       "explanation": "形容詞Totalの後で文の主語となる名詞expenditure（支出）が正しい。expend動詞原形、expended過去形/過去分詞、expending動名詞は主語位置には合わない。",
       "translation": "今年のマーケティングへの総支出は急激に増加した。"
     },
@@ -1627,22 +1630,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "although"
-        },
-        {
-          "key": "B",
           "text": "despite"
         },
         {
-          "key": "C",
+          "key": "B",
           "text": "because"
         },
         {
-          "key": "D",
+          "key": "C",
           "text": "because of"
+        },
+        {
+          "key": "D",
+          "text": "although"
         }
       ],
-      "answer": "D",
+      "answer": "C",
       "explanation": "空所の後は名詞句（insufficient funds）なので前置詞句because ofが正しい。becauseとalthoughは後ろに節（主語＋動詞）が必要な接続詞。despiteは前置詞だが「〜にもかかわらず」となり文意が通らない。",
       "translation": "口座の残高不足のためその取引は失敗した。"
     },
@@ -1665,22 +1668,22 @@
       "choices": [
         {
           "key": "A",
-          "text": "despite"
-        },
-        {
-          "key": "B",
-          "text": "because"
-        },
-        {
-          "key": "C",
           "text": "because of"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "due to"
+        },
+        {
+          "key": "C",
+          "text": "because"
+        },
+        {
+          "key": "D",
+          "text": "despite"
         }
       ],
-      "answer": "B",
+      "answer": "C",
       "explanation": "空所の後は節(the budget had not...)なので接続詞becauseが正しい。because of/due toは後ろに名詞句が必要な前置詞、despiteは意味が逆（〜にもかかわらず）で合わない。",
       "translation": "そのプロジェクトは予算がまだ承認されていなかったため遅れた。"
     },
@@ -1779,11 +1782,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "strategically"
+          "text": "strategize"
         },
         {
           "key": "B",
-          "text": "strategize"
+          "text": "strategic"
         },
         {
           "key": "C",
@@ -1791,7 +1794,7 @@
         },
         {
           "key": "D",
-          "text": "strategic"
+          "text": "strategically"
         }
       ],
       "answer": "C",
@@ -1817,11 +1820,11 @@
       "choices": [
         {
           "key": "A",
-          "text": "whom"
+          "text": "whose"
         },
         {
           "key": "B",
-          "text": "whose"
+          "text": "whom"
         },
         {
           "key": "C",
@@ -1832,7 +1835,7 @@
           "text": "which"
         }
       ],
-      "answer": "B",
+      "answer": "A",
       "explanation": "空所の後のresumeとの所有関係を表す関係代名詞whoseが正しい。who/whomは人物を直接指す主格/目的格、whichは物を指す関係代名詞で、所有関係を表せない。",
       "translation": "履歴書が採用委員会に感銘を与えた候補者がその職を得た。"
     },
@@ -1855,23 +1858,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "which"
-        },
-        {
-          "key": "B",
-          "text": "whose"
-        },
-        {
-          "key": "C",
           "text": "who"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "whom"
+        },
+        {
+          "key": "C",
+          "text": "which"
+        },
+        {
+          "key": "D",
+          "text": "whose"
         }
       ],
-      "answer": "A",
-      "explanation": "先行詞proposal（物）を受ける目的格の関係代名詞whichが正しい（省略も可）。whose所有格、who/whomは人物を指す関係代名詞で、物を先行詞にはできない。",
+      "answer": "C",
+      "explanation": "先行詞proposal（物）を受ける目的格の関係代名詞whichが正しい（省略も可）。who/whomは人物を指す関係代名詞、whereは場所を指す関係副詞で、いずれも物を先行詞にはできない。",
       "translation": "先週提出した提案書がついに承認された。"
     },
     {
@@ -1893,23 +1896,23 @@
       "choices": [
         {
           "key": "A",
-          "text": "whose"
-        },
-        {
-          "key": "B",
-          "text": "which"
-        },
-        {
-          "key": "C",
           "text": "where"
         },
         {
-          "key": "D",
+          "key": "B",
           "text": "whom"
+        },
+        {
+          "key": "C",
+          "text": "whose"
+        },
+        {
+          "key": "D",
+          "text": "which"
         }
       ],
-      "answer": "D",
-      "explanation": "先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose所有格、C物を指す関係代名詞、D関係副詞は文脈に合わない。",
+      "answer": "B",
+      "explanation": "先行詞client（人）を受ける目的格の関係代名詞whomが正しい（口語ではwhoも可）。whose（所有格）・which（物を指す関係代名詞）・where（関係副詞）はいずれもこの文脈に合わない。",
       "translation": "昨日会ったクライアントが契約の修正を望んでいる。"
     }
   ]

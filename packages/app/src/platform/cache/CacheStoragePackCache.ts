@@ -22,6 +22,15 @@ export class CacheStoragePackCache implements PackCache {
     return res ? res.blob() : null
   }
 
+  async put(url: string, blob: Blob): Promise<void> {
+    const cache = await this.open()
+    // BlobをそのままResponseへ渡すと、実行環境によってはBlobインスタンスの型判定に失敗し
+    // ボディがString(blob)（"[object Blob]"）へ化けることがある（テスト環境のjsdomの
+    // グローバルBlobとfetch実装(undici由来)のResponseが別実装のため。T-294クロスレビュー）。
+    // ArrayBufferへ変換して渡せば実装間の型判定に依存せず安定する
+    await cache.put(url, new Response(await blob.arrayBuffer()))
+  }
+
   async addAll(urls: string[]): Promise<void> {
     const cache = await this.open()
     // Cache.addAll は1件でも失敗すると reject する（パック単位の整合性はこの挙動に乗る）
@@ -42,17 +51,18 @@ export class CacheStoragePackCache implements PackCache {
   async usage(): Promise<CacheUsage> {
     const cache = await this.open()
     const requests = await cache.keys()
-    let bytes = 0
-    for (const req of requests) {
-      const res = await cache.match(req)
-      if (!res) continue
-      const len = res.headers.get('content-length')
-      if (len) {
-        bytes += Number(len)
-      } else {
-        bytes += (await res.clone().blob()).size
-      }
-    }
+    // T-325（K-60）: 旧実装はfor...ofで1件ずつawaitしていた。実測960ファイル規模では
+    // 起動時（設定画面のキャッシュ使用量表示）の合計待ちが直列分だけ積み上がるため並列化する
+    const sizes = await Promise.all(
+      requests.map(async (req) => {
+        const res = await cache.match(req)
+        if (!res) return 0
+        const len = res.headers.get('content-length')
+        if (len) return Number(len)
+        return (await res.clone().blob()).size
+      }),
+    )
+    const bytes = sizes.reduce((sum, size) => sum + size, 0)
     return { bytes, entries: requests.length }
   }
 

@@ -156,7 +156,10 @@ export function ExplanationCard({
           {ghostDefense.multiplier > 1
             ? `弱点 ×${ghostDefense.multiplier}`
             : `堅い ×${ghostDefense.multiplier}`}
-          （今回のダメージ: <span className="display-num">{ghostDefense.damage}</span>）
+          {/* T-216（Q-50）: 他のダメージ表示（RaidScreen・RaidContributionList等）と
+              桁区切りを揃える */}
+          （今回のダメージ:{' '}
+          <span className="display-num">{ghostDefense.damage.toLocaleString('ja-JP')}</span>）
         </p>
       )}
       {question.explanation && <p className="explanation-card__body">{question.explanation}</p>}

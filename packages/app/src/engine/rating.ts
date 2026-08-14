@@ -53,16 +53,25 @@ export function sectionForPart(part: number): 'L' | 'R' | null {
   return null
 }
 
-/** L/R レートの初期化（P0診断=T-20 の出口。総合行と日次スナップショットも作る） */
+/**
+ * L/R レートの初期化（P0診断=T-20 の出口。総合行と日次スナップショットも作る）。
+ *
+ * T-306（K-34）: answerCountは早期K（K=32。最初の50問）の消費量を表す。従来は常に0で
+ * 初期化しており、30問診断（L/R各15問）が既に与えたレート変動の実績を無視していた
+ * ため、診断後さらに丸ごと50問分の早期Kが乗り、K=32区間が仕様（50問）より長引いていた。
+ * 呼び出し元がanswerCountを渡さない場合（自己申告スコアでのスキップ等、実際の解答を
+ * 経ていない初期化）は0のまま（早期Kを全量残す）
+ */
 export async function initializeRatings(
   db: BebRaidDatabase,
-  input: { listening: number; reading: number; now?: number },
+  input: { listening: number; reading: number; answerCount?: number; now?: number },
 ): Promise<void> {
   const now = input.now ?? Date.now()
+  const answerCount = input.answerCount ?? 0
   await db.transaction('rw', db.ratings, db.ratingHistory, async () => {
     await db.ratings.bulkPut([
-      { section: 'L', rating: input.listening, updatedAt: now, answerCount: 0 },
-      { section: 'R', rating: input.reading, updatedAt: now, answerCount: 0 },
+      { section: 'L', rating: input.listening, updatedAt: now, answerCount },
+      { section: 'R', rating: input.reading, updatedAt: now, answerCount },
       { section: 'total', rating: (input.listening + input.reading) / 2, updatedAt: now },
     ])
     await snapshotRatings(db, now)
