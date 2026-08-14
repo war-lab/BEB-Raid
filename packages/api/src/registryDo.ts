@@ -27,8 +27,14 @@ import { listAllKeys } from './kvList'
 /** 登録可能なメンバー数の上限（docs/17 3.2節。register.tsから移設） */
 export const MAX_REGISTERED_MEMBERS = 500
 
-/** reserve() の結果。ok以外はregister.tsがそのままHTTPエラーへ写す */
-export type ReserveOutcome = 'ok' | 'limit_reached' | 'name_taken'
+/**
+ * reserve() の結果。ok以外はregister.tsがそのままHTTPエラーへ写す。
+ *
+ * `storage_error` はKV正本への書き込みに失敗した場合。**例外として投げない**のは、
+ * blockConcurrencyWhile のコールバックが throw するとDurable Object自体が落ち、
+ * 同時に処理していた他リクエストまで巻き込むため（レビュー3巡目 指摘1の対応で判明）
+ */
+export type ReserveOutcome = 'ok' | 'limit_reached' | 'name_taken' | 'storage_error'
 
 interface NameRow extends Record<string, string | number | null> {
   displayName: string
@@ -104,9 +110,28 @@ export class RegistryDo extends DurableObject<Env> {
    * ここに閉じ込めれば「索引とKVが食い違った状態」を外から観測できない。
    *
    * レコードの組み立てもここで行う（呼び出し側で既存レコードを読むと、読みと書きの間に
-   * 別リクエストが挟まる）。RPC越しにコールバックは渡せないため、必要な値だけ受け取る
+   * 別リクエストが挟まる）。RPC越しにコールバックは渡せないため、必要な値だけ受け取る。
+   *
+   * 【blockConcurrencyWhileが要る理由（レビュー3巡目 指摘1）】DOが単一スレッドでも、
+   * **ストレージ以外のI/O（ここではKVのget/put）をawaitしている間は他のイベントが割り込める**。
+   * 入力ゲーティングが効くのはDO自身のストレージ操作だけである。SQL索引を更新したあとKVを
+   * awaitする形だと、同一端末のA/B登録で
+   *   A: 索引をAへ → KV putを待つ / B: 索引をBへ → KV putを待つ / 完了順が入れ替わる
+   * となってKVの最終名と索引が食い違い、Aが失敗したときのrollbackがBの索引を消す。
+   * 判定から書き込みまでをまとめて排他する
    */
   async reserve(
+    deviceToken: string,
+    displayName: string,
+    dailyGoal: DailyGoal,
+    now: number,
+  ): Promise<ReserveOutcome> {
+    return this.ctx.blockConcurrencyWhile(() =>
+      this.reserveExclusive(deviceToken, displayName, dailyGoal, now),
+    )
+  }
+
+  private async reserveExclusive(
     deviceToken: string,
     displayName: string,
     dailyGoal: DailyGoal,
@@ -176,7 +201,8 @@ export class RegistryDo extends DurableObject<Env> {
       if (!isExisting) {
         this.ctx.storage.sql.exec('DELETE FROM members WHERE deviceToken = ?', deviceToken)
       }
-      throw err
+      console.error('[RegistryDo] KV正本への書き込みに失敗（予約は巻き戻した）', err)
+      return 'storage_error'
     }
     return 'ok'
   }

@@ -2,7 +2,7 @@
 // - 1: デプロイ前から存在するメンバー（逆引き索引を持たない）の表示名が保護されること
 // - 4: 並行登録で登録枠・表示名予約が突破されないこと
 import { env, reset } from 'cloudflare:test'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { MEMBER_KEY_PREFIX, memberKey, type MemberRecord } from './env'
 import { MAX_REGISTERED_MEMBERS, registryStub } from './registryDo'
@@ -121,5 +121,69 @@ describe('RegistryDo.reserve のKV書き込み（レビュー2巡目 指摘3・4
     expect(stored.emaUpdatedForBossId).toBe('boss-2026-W33')
     expect(stored.emaDailyDamage).toBe(42)
     expect(stored.registeredAt).toBe(111)
+  })
+})
+
+// 何を防ぐか（レビュー3巡目 指摘1）: DOが単一スレッドでも、ストレージ以外のI/O
+// （KVのget/put）をawaitしている間は他のイベントが割り込める。KVに遅延と失敗を注入して、
+// 索引とKVが食い違わないこと・失敗時のrollbackが他リクエストを壊さないことを見る
+describe('RegistryDo.reserve のKV待機中の割り込み（レビュー3巡目 指摘1）', () => {
+  it('KVのputが遅れて完了順が入れ替わっても、索引とKV正本が一致する', async () => {
+    await clearMembers()
+    const original = env.MEMBERS.put.bind(env.MEMBERS)
+    let call = 0
+    const spy = vi.spyOn(env.MEMBERS, 'put').mockImplementation(async (key, value, opts) => {
+      call += 1
+      // 1回目だけ遅らせる＝先に始まった登録が後に完了する状況を作る
+      const delay = call === 1 ? 40 : 0
+      await new Promise((resolve) => setTimeout(resolve, delay))
+      return original(key as string, value as string, opts)
+    })
+
+    try {
+      await Promise.all([
+        registryStub(env).reserve('token-a', '名前A', 'normal', 1000),
+        registryStub(env).reserve('token-a', '名前B', 'normal', 1000),
+      ])
+    } finally {
+      spy.mockRestore()
+    }
+
+    const stored = JSON.parse((await env.MEMBERS.get(memberKey('token-a')))!) as MemberRecord
+    // KVの最終名が索引でも自分のものになっている（別端末が取れない）
+    expect(await registryStub(env).reserve('token-other', stored.displayName, 'normal', 1000)).toBe(
+      'name_taken',
+    )
+  })
+
+  it('KV書き込みが失敗しても、他リクエストが確定した索引を巻き戻さない', async () => {
+    await clearMembers()
+    const original = env.MEMBERS.put.bind(env.MEMBERS)
+    // 「どちらが先に処理されるか」に依存しないよう、書き込む内容で失敗させる対象を決める
+    const spy = vi.spyOn(env.MEMBERS, 'put').mockImplementation(async (key, value, opts) => {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      if (typeof value === 'string' && value.includes('取れない名前')) {
+        throw new Error('KV書き込み失敗（注入）')
+      }
+      return original(key as string, value as string, opts)
+    })
+
+    const [failed, succeeded] = await Promise.all([
+      registryStub(env).reserve('token-fail', '取れない名前', 'normal', 1000),
+      registryStub(env).reserve('token-ok', '取れる名前', 'normal', 1000),
+    ])
+    spy.mockRestore()
+
+    // 例外は投げない（投げるとblockConcurrencyWhileがDOごと落として他リクエストを巻き込む）
+    expect(failed).toBe('storage_error')
+    expect(succeeded).toBe('ok')
+    // 失敗した側は枠も名前も予約したままにならない
+    expect(await registryStub(env).reserve('token-other', '取れない名前', 'normal', 1000)).toBe(
+      'ok',
+    )
+    // 成功した側の索引は生きている
+    expect(await registryStub(env).reserve('token-third', '取れる名前', 'normal', 1000)).toBe(
+      'name_taken',
+    )
   })
 })

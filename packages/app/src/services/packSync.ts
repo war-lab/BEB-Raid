@@ -221,16 +221,6 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
     return null
   }
   // T-325（K-60）: App.tsx起動時のloadQuestionPoolがPACK_IDS由来ではなく、この
-  // manifest.jsonから対象パックID一覧をcache-firstで読めるようにキャッシュへ書き戻す
-  // （loadPackQuestionsのT-183 Q-13書き戻しと同じ理由でJSON.stringifyから作る。
-  // res.blob()に依存するとテストダブルのResponseがblob()未実装のことがあるため避ける）。
-  // 書き戻し失敗は無視する（次回同期のfetchで再試行されるだけで、同期自体は止めない）
-  try {
-    await packCache.put(manifestUrl, new Blob([JSON.stringify(manifest)]))
-  } catch {
-    // 無視
-  }
-
   const state = await loadPackSyncState(db)
   const packHashes = { ...state.packHashes }
   const synced: string[] = []
@@ -309,6 +299,22 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   // 誤って削除しうる。「manifest取得成功かつ全パックがsyncedまたはskipped」を掃除実行の
   // 必須条件にし、1パックでも失敗していれば掃除自体を全面的に見送る（次回同期時に再試行）
   const allPacksHandled = synced.length + skipped.length === manifest.packs.length
+
+  // manifest.jsonのキャッシュ書き戻しは**全パックが揃ってから**行う（レビュー3巡目 指摘2）。
+  // 先に書くと、resolvePackIds（App.tsx）がキャッシュ済みの新manifestから新パックidを解決し、
+  // loadPackQuestionsがそのパックJSONを直接fetchしてキャッシュへ書き戻してしまう。
+  // 音声が揃っていないパックでもこの経路でJSONだけが公開され、欠落音声を参照する問題が
+  // 出題される（20→24パックの追加で新規パックがある状態が現に成立する）。
+  // manifest・パックJSON・音声を同じ「完成状態」としてまとめて公開する。
+  // 書き戻し失敗は無視する（次回同期のfetchで再試行されるだけで、同期自体は止めない）
+  if (allPacksHandled) {
+    try {
+      await packCache.put(manifestUrl, new Blob([JSON.stringify(manifest)]))
+    } catch {
+      // 無視
+    }
+  }
+
   if (allPacksHandled) {
     // 掃除自体が失敗しても同期の成立には影響しないため無視する（次回同期時に再試行される）
     try {

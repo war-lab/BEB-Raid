@@ -159,6 +159,14 @@ export async function handleRegister(
   if (outcomeReserve === 'name_taken') {
     return errorResponse(409, 'display_name_taken', 'その表示名は既に使用されています')
   }
+  if (outcomeReserve === 'storage_error') {
+    // 予約はDO側で巻き戻してあるので、そのまま再試行してよい
+    return errorResponse(
+      503,
+      'registration_failed',
+      '登録に失敗しました。時間をおいて再度お試しください',
+    )
+  }
 
   // KV正本への書き込み・表示名索引の更新はRegistryDo.reserve()の中で済んでいる
   // （レビュー2巡目 指摘3。DOの外で書くとDO上の索引とKVが食い違いうる）

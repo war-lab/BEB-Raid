@@ -223,10 +223,13 @@ describe('syncPacks', () => {
     expect(result).toEqual({ synced: ['pack-a'], skipped: [], totalSizeBytes: 100 })
     // パックJSONの差し替えは全音声が揃ってから（レビュー2巡目 指摘2）。
     // 先に書くと、音声が欠けた状態の新JSONが次回起動時に読まれてしまう
+    // manifest・パックJSON・音声は「同じ完成状態」としてまとめて公開する（レビュー3巡目 指摘2）。
+    // manifestを先に書くと、音声が揃う前に新パックidが解決され、loadPackQuestionsが
+    // そのJSONを直接fetchしてキャッシュへ書き戻してしまう
     expect(packCache.putCalls.map(([url]) => url)).toEqual([
-      '/manifest.json',
       '/audio/part2/a.mp3',
       '/packs/pack-a.json',
+      '/manifest.json',
     ])
 
     const state = await loadPackSyncState(db)
@@ -290,7 +293,7 @@ describe('syncPacks', () => {
     // 取得できた音声はキャッシュに残る（このテストの主眼。addAllの全件巻き戻しの回避）。
     // 一方でパックJSONは書き換えない（レビュー2巡目 指摘2）。書き換えると欠落音声を
     // 参照する新しい問題が次回起動時にそのまま出題される
-    expect(packCache.putCalls.map(([url]) => url)).toEqual(['/manifest.json', '/audio/ok.mp3'])
+    expect(packCache.putCalls.map(([url]) => url)).toEqual(['/audio/ok.mp3'])
     // ただしパックは同期済みにしない（レビュー指摘3で挙動を改めた）。
     // 旧実装はここで synced 扱いにしてハッシュを確定していたが、skip判定の
     // hasAudioSample は先頭AUDIO_SAMPLE_CHECK_SIZE件しか見ないため、それ以降だけ
@@ -614,7 +617,7 @@ describe('syncPacks', () => {
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
     expect(result?.synced).toEqual(['pack-a'])
     expect(result?.skipped).toEqual([])
-    expect(packCache.putCalls.map(([url]) => url)).toEqual(['/manifest.json', '/packs/pack-a.json'])
+    expect(packCache.putCalls.map(([url]) => url)).toEqual(['/packs/pack-a.json', '/manifest.json'])
   })
 
   // 何を防ぐか（T-322・K-55）: T-321で音声が1URL単位のfetch+putになったため、
@@ -662,11 +665,11 @@ describe('syncPacks', () => {
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
     expect(result?.skipped).toEqual([])
     expect(result?.synced).toEqual(['pack-a'])
-    // パックJSONは全音声が揃ってから書く（レビュー2巡目 指摘2）
+    // パックJSONは全音声が揃ってから、manifestは全パックが揃ってから書く（指摘2・3巡目 指摘2）
     expect(packCache.putCalls.map(([url]) => url)).toEqual([
-      '/manifest.json',
       '/audio/a.mp3',
       '/packs/pack-a.json',
+      '/manifest.json',
     ])
   })
 

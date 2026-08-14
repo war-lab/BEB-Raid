@@ -439,6 +439,37 @@ describe('週次生成の再実行と掃除の追いつき（レビュー指摘2
     expect(afterSecond.emaDailyDamage).toBe(emaAfterFirst)
   })
 
+  it('初回の最古週で掃除が失敗しても境界を記録し、次回そこから再開する（レビュー3巡目 指摘3）', async () => {
+    const currentMondayEpoch = Date.UTC(2026, 7, 10)
+    const realGet = env.RAID_BOSS.get.bind(env.RAID_BOSS)
+    let cleanupCalls = 0
+    // 掃除の最初の1件だけ失敗させる（cleanupIfExpired以外の呼び出しは素通しする）
+    const spy = vi.spyOn(env.RAID_BOSS, 'get').mockImplementation((id) => {
+      const stub = realGet(id)
+      return new Proxy(stub, {
+        get(target, prop, receiver) {
+          if (prop !== 'cleanupIfExpired') return Reflect.get(target, prop, receiver) as unknown
+          return async (cutoff: number) => {
+            cleanupCalls += 1
+            if (cleanupCalls === 1) throw new Error('掃除失敗（注入）')
+            return target.cleanupIfExpired(cutoff)
+          }
+        },
+      }) as typeof stub
+    })
+
+    try {
+      await generateWeeklyBoss(env, currentMondayEpoch)
+    } finally {
+      spy.mockRestore()
+    }
+
+    expect(cleanupCalls).toBeGreaterThan(0)
+    // 1週も完了していなくても境界は記録する。しないと翌週は新しいcutoffから
+    // CLEANUP_LOOKBACK_WEEKSを数え直し、失敗した最古週が窓の外へ落ちて二度と再訪されない
+    expect(await env.MEMBERS.get('raid:cleanupWatermarkEpoch')).not.toBeNull()
+  })
+
   it('掃除境界を記録し、cronが長期停止しても取りこぼした週へ追いつく', async () => {
     const currentMondayEpoch = Date.UTC(2026, 7, 10)
     await generateWeeklyBoss(env, currentMondayEpoch)

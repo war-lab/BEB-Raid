@@ -107,7 +107,6 @@ async function cleanupExpiredRaidBoss(env: Env, current: { weekStartAt: number }
     : cutoffEpoch - CLEANUP_LOOKBACK_WEEKS * WEEK_MS
 
   let processed = 0
-  let failed = false
   // 「実際に処理を完了した境界」。失敗したらそこで止め、以降は次回に持ち越す
   let completedThrough = startEpoch
   for (
@@ -127,17 +126,17 @@ async function cleanupExpiredRaidBoss(env: Env, current: { weekStartAt: number }
       // 失敗した週で境界を止める。進めてしまうと、その週が4週窓より古くなった時点で
       // 二度と再試行されない（旧実装はここで握り潰したまま境界を現在位置へ進めていた）
       console.error('週次RaidBossDOの掃除に失敗しました（週次ボス生成自体は継続）', err)
-      failed = true
       break
     }
     processed += 1
   }
 
-  // 上限で打ち切った場合も、実際に終えた境界までしか進めない（残りは次回が続きから拾う）
+  // 上限で打ち切った場合も、実際に終えた境界までしか進めない（残りは次回が続きから拾う）。
+  // 1週も完了しなかった場合でも startEpoch を必ず記録する（レビュー3巡目 指摘3）。
+  // 記録しないと、初回に最古週で失敗したとき次回が新しいcutoffから
+  // CLEANUP_LOOKBACK_WEEKS を数え直し、失敗した週が窓の外へ落ちて二度と再訪されない
   const nextWatermark = Math.min(completedThrough, cutoffEpoch)
-  if (!failed || nextWatermark > startEpoch) {
-    await env.MEMBERS.put(CLEANUP_WATERMARK_KEY, String(nextWatermark))
-  }
+  await env.MEMBERS.put(CLEANUP_WATERMARK_KEY, String(nextWatermark))
 }
 
 /**
