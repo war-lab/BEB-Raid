@@ -221,10 +221,15 @@ describe('syncPacks', () => {
 
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/', now: 123 })
     expect(result).toEqual({ synced: ['pack-a'], skipped: [], totalSizeBytes: 100 })
+    // パックJSONの差し替えは全音声が揃ってから（レビュー2巡目 指摘2）。
+    // 先に書くと、音声が欠けた状態の新JSONが次回起動時に読まれてしまう
+    // manifest・パックJSON・音声は「同じ完成状態」としてまとめて公開する（レビュー3巡目 指摘2）。
+    // manifestを先に書くと、音声が揃う前に新パックidが解決され、loadPackQuestionsが
+    // そのJSONを直接fetchしてキャッシュへ書き戻してしまう
     expect(packCache.putCalls.map(([url]) => url)).toEqual([
-      '/manifest.json',
-      '/packs/pack-a.json',
       '/audio/part2/a.mp3',
+      '/packs/pack-a.json',
+      '/manifest.json',
     ])
 
     const state = await loadPackSyncState(db)
@@ -285,14 +290,53 @@ describe('syncPacks', () => {
 
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
 
-    // パック自体は同期成功として扱われる（T-322でskip判定に音声実体チェックを足すため、
-    // 欠けた音声は次回同期時に自己修復される）
+    // 取得できた音声はキャッシュに残る（このテストの主眼。addAllの全件巻き戻しの回避）。
+    // 一方でパックJSONは書き換えない（レビュー2巡目 指摘2）。書き換えると欠落音声を
+    // 参照する新しい問題が次回起動時にそのまま出題される
+    expect(packCache.putCalls.map(([url]) => url)).toEqual(['/audio/ok.mp3'])
+    // ただしパックは同期済みにしない（レビュー指摘3で挙動を改めた）。
+    // 旧実装はここで synced 扱いにしてハッシュを確定していたが、skip判定の
+    // hasAudioSample は先頭AUDIO_SAMPLE_CHECK_SIZE件しか見ないため、それ以降だけ
+    // 欠けた場合に永久にskipされ、欠けた音声が二度と取得されなかった
+    expect(result?.synced).toEqual([])
+    expect((await loadPackSyncState(db)).packHashes['pack-a']).toBeUndefined()
+  })
+
+  // 何を防ぐか（レビュー指摘3）: 上のテストの対（全件成功なら従来どおり同期済みにする）
+  it('音声が全件成功すればパックを同期済みにする', async () => {
+    const db = newDb()
+    const packCache = fakePackCache()
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 100 }])
+    const fetchImpl = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') {
+        return jsonResponse(
+          pack([
+            {
+              id: 'q1',
+              part: 2,
+              format: 'audio_qa',
+              difficulty: 1,
+              tags: [],
+              keyVocab: [],
+              audio: 'audio/ok.mp3',
+              audioMeta: { accent: 'US', tts: true, voice: 'v', durationMs: 100 },
+              script: 's',
+              choices: [{ key: 'A', text: 'x' }],
+              answer: 'A',
+            },
+          ]),
+        )
+      }
+      if (url === '/audio/ok.mp3') return blobResponse('ok')
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+
+    const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+
     expect(result?.synced).toEqual(['pack-a'])
-    expect(packCache.putCalls.map(([url]) => url)).toEqual([
-      '/manifest.json',
-      '/packs/pack-a.json',
-      '/audio/ok.mp3',
-    ])
+    expect((await loadPackSyncState(db)).packHashes['pack-a']).toBe('h1')
   })
 
   // 何を防ぐか（T-321・K-59）: 進捗表示が無いと、大きいパックの取得中にUIが
@@ -573,7 +617,7 @@ describe('syncPacks', () => {
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
     expect(result?.synced).toEqual(['pack-a'])
     expect(result?.skipped).toEqual([])
-    expect(packCache.putCalls.map(([url]) => url)).toEqual(['/manifest.json', '/packs/pack-a.json'])
+    expect(packCache.putCalls.map(([url]) => url)).toEqual(['/packs/pack-a.json', '/manifest.json'])
   })
 
   // 何を防ぐか（T-322・K-55）: T-321で音声が1URL単位のfetch+putになったため、
@@ -621,10 +665,11 @@ describe('syncPacks', () => {
     const result = await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
     expect(result?.skipped).toEqual([])
     expect(result?.synced).toEqual(['pack-a'])
+    // パックJSONは全音声が揃ってから、manifestは全パックが揃ってから書く（指摘2・3巡目 指摘2）
     expect(packCache.putCalls.map(([url]) => url)).toEqual([
-      '/manifest.json',
-      '/packs/pack-a.json',
       '/audio/a.mp3',
+      '/packs/pack-a.json',
+      '/manifest.json',
     ])
   })
 
@@ -752,5 +797,122 @@ describe('loadPackQuestions', () => {
     expect(putCalls[0]![0]).toBe('/packs/x.json')
     const written = JSON.parse(await putCalls[0]![1].text())
     expect(written).toEqual(p)
+  })
+})
+
+// レビュー3巡目 指摘1: 空キャッシュからの初回起動では、起動時のloadQuestionPoolと
+// 背景のsyncPacksが並行して走る。manifestキャッシュが無いためresolvePackIdsがmanifestを
+// 直fetchし、loadPackQuestionsが各パックJSONを音声の完成状態と無関係にキャッシュしていた。
+// syncPacks側の「音声が揃うまで公開しない」修正だけでは、この経路からJSONだけが残る。
+describe('初回起動: 音声未完成のパックJSONを永続化しない（レビュー3巡目 指摘1）', () => {
+  /** 実体を持つ簡易PackCache（複数経路が同じキャッシュを共有する状況を再現する） */
+  function memoryPackCache(): PackCache & { store: Map<string, Blob> } {
+    const store = new Map<string, Blob>()
+    return {
+      store,
+      has: async (url: string) => store.has(url),
+      get: async (url: string) => store.get(url) ?? null,
+      put: async (url: string, blob: Blob) => {
+        store.set(url, blob)
+      },
+      addAll: async () => {},
+      delete: async (urls: string[]) => {
+        for (const url of urls) store.delete(url)
+      },
+      keys: async () => [...store.keys()],
+      usage: async () => ({ bytes: 0, entries: store.size }),
+      clear: async () => {
+        store.clear()
+      },
+    }
+  }
+
+  const audioPack = pack([
+    {
+      id: 'q1',
+      type: 'part2',
+      part: 2,
+      question: 'Q',
+      choices: ['a', 'b', 'c'],
+      correctIndex: 0,
+      explanation: 'e',
+      audio: 'audio/q1.mp3',
+    } as unknown as QuestionPack['questions'][number],
+  ])
+
+  it('音声取得が失敗したパックはloadPackQuestions経由でもキャッシュへ残らない', async () => {
+    const db = newDb()
+    const packCache = memoryPackCache()
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 10 }])
+    const fetchImpl = vi.fn<typeof fetch>(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') return jsonResponse(audioPack)
+      return blobResponse('audio', false, 500) // 音声だけ失敗させる
+    })
+
+    // 起動時の読み込み（キャッシュが空のためfetchフォールバックが走る）と背景同期を並行させる
+    await Promise.all([
+      loadPackQuestions(packCache, '/packs/pack-a.json', fetchImpl, '/'),
+      syncPacks({ db, packCache, fetchImpl, baseUrl: '/' }),
+    ])
+
+    // manifest・パックJSONのいずれもキャッシュに残っていないこと。
+    // 残ると次回のオフライン起動でPACK_IDSへフォールバックし、欠落音声を参照する問題が出る
+    expect(packCache.store.has('/packs/pack-a.json')).toBe(false)
+    expect(packCache.store.has('/manifest.json')).toBe(false)
+  })
+
+  it('次回のオフライン起動で、音声の欠けた問題が出題対象に入らない', async () => {
+    const db = newDb()
+    const packCache = memoryPackCache()
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 10 }])
+    const onlineFetch = vi.fn<typeof fetch>(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') return jsonResponse(audioPack)
+      return blobResponse('audio', false, 500)
+    })
+    await Promise.all([
+      loadPackQuestions(packCache, '/packs/pack-a.json', onlineFetch, '/'),
+      syncPacks({ db, packCache, fetchImpl: onlineFetch, baseUrl: '/' }),
+    ])
+
+    // 2回目は完全オフライン（fetchが必ず失敗する）
+    const offlineFetch = vi.fn<typeof fetch>(async () => {
+      throw new Error('offline')
+    })
+    await expect(
+      loadPackQuestions(packCache, '/packs/pack-a.json', offlineFetch, '/'),
+    ).rejects.toThrow(/offline/)
+  })
+
+  it('音声を持たないパックは従来どおり書き戻す（T-183 Q-13の利点を残す）', async () => {
+    const packCache = memoryPackCache()
+    const textPack = pack([])
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(textPack))
+
+    await loadPackQuestions(packCache, '/packs/pack-text.json', fetchImpl, '/')
+
+    expect(packCache.store.has('/packs/pack-text.json')).toBe(true)
+  })
+
+  it('音声が全て揃っていれば書き戻す（同期完了後の読み込み）', async () => {
+    const db = newDb()
+    const packCache = memoryPackCache()
+    const m = manifest([{ id: 'pack-a', hash: 'h1', sizeBytes: 10 }])
+    const fetchImpl = vi.fn<typeof fetch>(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input)
+      if (url === '/manifest.json') return jsonResponse(m)
+      if (url === '/packs/pack-a.json') return jsonResponse(audioPack)
+      return blobResponse('audio')
+    })
+
+    await syncPacks({ db, packCache, fetchImpl, baseUrl: '/' })
+    packCache.store.delete('/packs/pack-a.json') // JSONだけ失われた状態から読み直す
+
+    await loadPackQuestions(packCache, '/packs/pack-a.json', fetchImpl, '/')
+
+    expect(packCache.store.has('/packs/pack-a.json')).toBe(true)
   })
 })

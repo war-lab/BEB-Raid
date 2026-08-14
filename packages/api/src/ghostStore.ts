@@ -25,7 +25,24 @@ export interface GhostRecord {
   createdAt: number
   defeatedCount: number
   lastUsedBossId: string | null
+  /**
+   * このゴーストが使われた週のbossId（新しい順）。撤回時に派生データ（各週のRaidBossDOが
+   * 保持する `defenseJson`＝本人の問題別正誤に1対1で対応する防御倍率）を全て消すために使う。
+   *
+   * `lastUsedBossId` だけでは直近1週しか辿れず、W20とW23で使われたゴーストをW24に撤回すると
+   * W20のDOに正誤詳細が保持期間の終わりまで残っていた（レビュー指摘5）。同意画面が約束する
+   * 「撤回すると記録がサーバーから即時削除される」を満たさないため、履歴で持つ。
+   * `lastUsedBossId` はクールダウン判定（直近2週に使われたゴーストを選ばない）で引き続き使う
+   * ため残す（既存レコードとの互換のためにも消さない）。
+   *
+   * 保持数はRaidBossDOの保持期間（RAID_BOSS_RETENTION_WEEKS）を超える分だけあればよい。
+   * それより古い週のDOは掃除で消えており、消しに行く先が無い
+   */
+  usedBossIds?: string[]
 }
+
+/** usedBossIds の保持上限。RaidBossDOの保持期間より古い週は掃除済みで消す対象が無い */
+export const GHOST_USED_BOSS_HISTORY_LIMIT = 8
 
 /** GhostRecordから配信用のGhostBossInfo（displayName・defeatedCountのみ）を作る */
 export function toGhostBossInfo(record: GhostRecord): GhostBossInfo {

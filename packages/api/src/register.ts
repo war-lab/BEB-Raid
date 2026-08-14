@@ -19,21 +19,9 @@
 
 import type { DailyGoal, RegisterRequest } from '@beb-raid/shared-schema'
 
-import type { Env, MemberRecord } from './env.js'
-import { memberKey } from './env.js'
-import { listAllKeys } from './kvList.js'
+import type { Env } from './env.js'
+import { registryStub } from './registryDo.js'
 import { timingSafeStringEqual } from './timingSafeEqual.js'
-
-const MEMBER_KEY_PREFIX = 'member:'
-
-/**
- * 表示名→deviceTokenの逆引き索引キー（T-331・K-66）。
- * 全件スキャンで一意性を確認する代わりにO(1)で既存の持ち主を引けるようにする。
- * displayNameOwnerKeyの値には保持者のdeviceTokenをそのまま入れる（他情報は持たない）
- */
-function displayNameOwnerKey(displayName: string): string {
-  return `displayNameOwner:${displayName}`
-}
 
 function isDailyGoal(value: unknown): value is DailyGoal {
   return value === 'light' || value === 'normal' || value === 'heavy'
@@ -143,52 +131,45 @@ export async function handleRegister(
     return errorResponse(401, 'invalid_invite_code', '招待コードが一致しません')
   }
 
-  const existingRaw = await env.MEMBERS.get(memberKey(body.deviceToken))
-  const existing = existingRaw ? (JSON.parse(existingRaw) as MemberRecord) : undefined
-
-  // ②登録総数の上限: 新規登録（＝既存レコードが無い）のときのみ判定する。
-  // 既存メンバーの再登録（表示名更新）は上限到達後も維持できないと詰むため対象外
-  if (!existing) {
-    const memberCount = (await listAllKeys(env.MEMBERS, { prefix: MEMBER_KEY_PREFIX })).length
-    if (memberCount >= MAX_REGISTERED_MEMBERS) {
-      return errorResponse(
-        403,
-        'registration_limit_reached',
-        '登録可能なメンバー数の上限に達しています',
-      )
-    }
-  }
-
   const displayName = body.displayName.trim()
 
-  // T-331（K-66）: 表示名の一意性を検証する。検証しないと、参加者がイベントバトルの
-  // joinメッセージで他メンバー（ホスト含む）の登録済み表示名をそのまま名乗れてしまい、
-  // なりすまし対策（battleRoomDo.tsが採用する登録済み表示名）が無意味になる。
-  // 表示名を変えていない再登録（既存メンバーの表示名更新以外の項目変更）は
-  // 自分自身が持ち主なので対象外にする
-  if (displayName !== existing?.displayName) {
-    const ownerRaw = await env.MEMBERS.get(displayNameOwnerKey(displayName))
-    if (ownerRaw !== null && ownerRaw !== body.deviceToken) {
-      return errorResponse(409, 'display_name_taken', 'その表示名は既に使用されています')
-    }
-  }
-
-  const record: MemberRecord = {
+  // ②登録枠と③表示名の予約を、単一インスタンスDOで原子的に確定させる（レビュー指摘1・4）。
+  //
+  // 旧実装はどちらもKVのread-then-writeで、並行リクエストが同じ古い状態を読めるため
+  // 上限付近で複数件が同時成功し、同じ表示名も複数端末が同時に取得できた（KVは結果整合で、
+  // 別ロケーション間では逐次に近いアクセスでも危険）。加えて一意性判定が新設の逆引きキーだけを
+  // 見ていたため、デプロイ前から存在するメンバーの表示名が保護されなかった（DO側の
+  // backfillOnce がKVの member:* から索引を作り直して塞ぐ）。
+  //
+  // 上限は新規登録のみに掛ける／自分自身が持ち主の表示名は通す、という従来の扱いは
+  // DO側（reserve）に移してある
+  const outcomeReserve = await registryStub(env).reserve(
+    body.deviceToken,
     displayName,
-    dailyGoal: body.dailyGoal,
-    registeredAt: existing?.registeredAt ?? now,
-    emaDailyDamage: existing?.emaDailyDamage,
+    body.dailyGoal,
+    now,
+  )
+  if (outcomeReserve === 'limit_reached') {
+    return errorResponse(
+      403,
+      'registration_limit_reached',
+      '登録可能なメンバー数の上限に達しています',
+    )
+  }
+  if (outcomeReserve === 'name_taken') {
+    return errorResponse(409, 'display_name_taken', 'その表示名は既に使用されています')
+  }
+  if (outcomeReserve === 'storage_error') {
+    // 予約はDO側で巻き戻してあるので、そのまま再試行してよい
+    return errorResponse(
+      503,
+      'registration_failed',
+      '登録に失敗しました。時間をおいて再度お試しください',
+    )
   }
 
-  await env.MEMBERS.put(memberKey(body.deviceToken), JSON.stringify(record))
-  // 表示名を変更した場合は逆引き索引を更新する（旧名の索引は消す。放置すると別ユーザーが
-  // 旧名を新規登録しようとした際に「使用中」の誤判定になる）
-  if (displayName !== existing?.displayName) {
-    if (existing?.displayName) {
-      await env.MEMBERS.delete(displayNameOwnerKey(existing.displayName))
-    }
-    await env.MEMBERS.put(displayNameOwnerKey(displayName), body.deviceToken)
-  }
+  // KV正本への書き込み・表示名索引の更新はRegistryDo.reserve()の中で済んでいる
+  // （レビュー2巡目 指摘3。DOの外で書くとDO上の索引とKVが食い違いうる）
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,

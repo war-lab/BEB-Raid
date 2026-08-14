@@ -254,6 +254,87 @@ describe('DELETE /ghosts/own', () => {
     expect(res.status).toBe(200)
   })
 
+  // 何を防ぐか（レビュー2巡目 指摘5）: 記録の作り直し（再POST）でusedBossIdsまで
+  // 初期化すると、W20で使用→再POST→W23で使用→W24で撤回、のときW20のDOに正誤詳細が残る
+  it('ゴーストを作り直しても使用履歴は引き継ぐ', async () => {
+    const deviceToken = await registerDevice()
+    await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
+
+    const older = bossIdFor(previousWeekInfo(previousWeekInfo(isoWeekInfo(Date.now()))))
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    await env.MEMBERS.put(
+      ghostKey(deviceToken),
+      JSON.stringify({ ...record, usedBossIds: [older] }),
+    )
+
+    // 作り直し
+    expect((await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))).status).toBe(200)
+
+    const after = JSON.parse((await env.MEMBERS.get(ghostKey(deviceToken)))!) as GhostRecord
+    expect(after.usedBossIds).toContain(older)
+    // 作り直しで初期化される項目は従来どおり
+    expect(after.defeatedCount).toBe(0)
+    expect(after.lastUsedBossId).toBeNull()
+  })
+
+  // 何を防ぐか（レビュー指摘5）: T-335はlastUsedBossId（直近1週）しか辿らなかったため、
+  // 同じゴーストが複数週で使われていると古い週のDOに問題別正誤詳細（defense）が
+  // 保持期間の終わりまで残っていた。usedBossIdsで全使用週を辿って消す
+  it('複数週で使われた場合、全ての週のDOから正誤詳細が消える', async () => {
+    const deviceToken = await registerDevice()
+    await SELF.fetch(postGhost(deviceToken, VALID_PAYLOAD))
+
+    const current = isoWeekInfo(Date.now())
+    const previous = previousWeekInfo(current)
+    const older = previousWeekInfo(previous)
+    const previousBossId = bossIdFor(previous)
+    const olderBossId = bossIdFor(older)
+
+    const raw = await env.MEMBERS.get(ghostKey(deviceToken))
+    const record = JSON.parse(raw!) as GhostRecord
+    await env.MEMBERS.put(
+      ghostKey(deviceToken),
+      JSON.stringify({
+        ...record,
+        lastUsedBossId: previousBossId,
+        usedBossIds: [previousBossId, olderBossId],
+      }),
+    )
+
+    for (const [bossId, week] of [
+      [previousBossId, previous],
+      [olderBossId, older],
+    ] as const) {
+      const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+      await runInDurableObject(stub, (instance: RaidBossDO) => {
+        instance.init({
+          bossId,
+          profile: { name: 'ゴースト・太郎', flavor: 'テスト用ゴースト' },
+          maxHp: 1000,
+          startAt: week.weekStartAt,
+          endAt: Date.now(),
+          bossType: 'ghost',
+          defense: [{ questionId: 'q-1', multiplier: 0.5 }],
+          ghost: { displayName: '太郎', defeatedCount: 0 },
+          ghostSourceToken: deviceToken,
+        })
+      })
+    }
+
+    expect((await SELF.fetch(deleteGhostOwn(deviceToken))).status).toBe(200)
+
+    for (const bossId of [previousBossId, olderBossId]) {
+      const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+      const state = await runInDurableObject(stub, (instance: RaidBossDO) =>
+        instance.getBossState(Date.now()),
+      )
+      // 修正前は olderBossId 側が bossType='ghost' のまま残っていた
+      expect(state?.bossType).toBe('synthetic')
+      expect(state?.defense).toBeUndefined()
+    }
+  })
+
   // 何を防ぐか（T-335・K-70）: 同意画面は「いつでも撤回でき撤回すると記録がサーバーから
   // 即時削除される」と説明する（ADR 0013）。旧実装は当週DOしか差し替えず、この記録が
   // 直近の別の週（今週は選ばれていない＝lastUsedBossIdが今週と異なる）で使われていた場合、

@@ -67,16 +67,28 @@ export interface SyncPacksOptions {
  */
 const AUDIO_FETCH_CONCURRENCY = 4
 
+/**
+ * 音声1件あたりの取得タイムアウト。付けないと1件がハングしただけで
+ * syncPacks全体（と inFlight フラグ）が解放されず、以後の同期が始まらない
+ */
+const AUDIO_FETCH_TIMEOUT_MS = 15_000
+
+/**
+ * 取得できなかったURLの件数を返す。呼び出し側はこれが0でないときにパックを
+ * 「同期済み」と確定してはならない（確定するとハッシュ一致でskipされ、
+ * 欠けた音声が二度と取得されなくなる）
+ */
 async function fetchAndCacheAudio(
   packCache: PackCache,
   fetchImpl: typeof fetch,
   packId: string,
   urls: string[],
   onProgress?: SyncPacksOptions['onAudioProgress'],
-): Promise<void> {
+): Promise<number> {
   const total = urls.length
-  if (total === 0) return
+  if (total === 0) return 0
   let completed = 0
+  let failed = 0
   let nextIndex = 0
   async function worker(): Promise<void> {
     for (;;) {
@@ -85,12 +97,16 @@ async function fetchAndCacheAudio(
       if (index >= urls.length) return
       const url = urls[index]!
       try {
-        const res = await fetchImpl(url)
+        const res = await fetchImpl(url, { signal: AbortSignal.timeout(AUDIO_FETCH_TIMEOUT_MS) })
         if (res.ok) {
           await packCache.put(url, await res.blob())
+        } else {
+          failed += 1
         }
       } catch {
-        // 個別音声の取得失敗は無視する（このURLだけ次回同期時に再試行される。T-322）
+        // 個別音声の取得失敗はここでは止めない（取得できた分はキャッシュに残す）。
+        // ただし件数は数え、呼び出し側がパックを同期済みにしないための材料にする
+        failed += 1
       }
       completed += 1
       onProgress?.({ packId, completed, total })
@@ -98,6 +114,7 @@ async function fetchAndCacheAudio(
   }
   const workerCount = Math.min(AUDIO_FETCH_CONCURRENCY, total)
   await Promise.all(Array.from({ length: workerCount }, () => worker()))
+  return failed
 }
 
 export interface SyncPacksResult {
@@ -204,16 +221,6 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
     return null
   }
   // T-325（K-60）: App.tsx起動時のloadQuestionPoolがPACK_IDS由来ではなく、この
-  // manifest.jsonから対象パックID一覧をcache-firstで読めるようにキャッシュへ書き戻す
-  // （loadPackQuestionsのT-183 Q-13書き戻しと同じ理由でJSON.stringifyから作る。
-  // res.blob()に依存するとテストダブルのResponseがblob()未実装のことがあるため避ける）。
-  // 書き戻し失敗は無視する（次回同期のfetchで再試行されるだけで、同期自体は止めない）
-  try {
-    await packCache.put(manifestUrl, new Blob([JSON.stringify(manifest)]))
-  } catch {
-    // 無視
-  }
-
   const state = await loadPackSyncState(db)
   const packHashes = { ...state.packHashes }
   const synced: string[] = []
@@ -246,13 +253,34 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
       })
       if (packRes.ok) {
         const pack = (await packRes.json()) as QuestionPack
-        await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
         const audioUrls = collectAudioUrls(baseUrl, pack.questions)
-        await fetchAndCacheAudio(packCache, fetchImpl, entry.id, audioUrls, options.onAudioProgress)
-        packHashes[entry.id] = entry.hash
-        synced.push(entry.id)
+        // 【重要】パックJSONの差し替えは全音声が揃ってから行う（レビュー2巡目 指摘2）。
+        // 先に書くと、音声が一部失敗した状態でも次回起動時に新しいJSONが読まれ、
+        // 欠落した音声を参照する問題がそのまま出題される（他パックの同期成功で
+        // 再読込が走ればその場でも露出する）。取得できた音声は個別にキャッシュへ
+        // 残るので、JSONの切替だけを最後に回しても部分取得の利点は失われない
+        const failedAudio = await fetchAndCacheAudio(
+          packCache,
+          fetchImpl,
+          entry.id,
+          audioUrls,
+          options.onAudioProgress,
+        )
+        // 取得済みのURLは次回の掃除で消さないよう残す（部分取得でもキャッシュは有効）
         for (const url of [packUrl, ...audioUrls]) validUrls.add(url)
-        syncSucceeded = true
+        if (failedAudio === 0) {
+          await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
+          packHashes[entry.id] = entry.hash
+          synced.push(entry.id)
+          syncSucceeded = true
+        } else {
+          // ハッシュを確定しないので次回起動時にこのパックが再び同期経路へ入る。
+          // 確定してしまうと、hasAudioSampleは先頭AUDIO_SAMPLE_CHECK_SIZE件しか見ないため、
+          // それ以降だけ欠けた場合に永久にskipされ続ける（レビュー指摘3）
+          console.warn(
+            `[packSync] ${entry.id}: 音声${failedAudio}/${audioUrls.length}件の取得に失敗。次回起動時に再試行する`,
+          )
+        }
       }
     } catch {
       // このパックの同期失敗は無視し、他パックの同期は継続する（次回起動時に再試行）
@@ -271,6 +299,22 @@ export async function syncPacks(options: SyncPacksOptions): Promise<SyncPacksRes
   // 誤って削除しうる。「manifest取得成功かつ全パックがsyncedまたはskipped」を掃除実行の
   // 必須条件にし、1パックでも失敗していれば掃除自体を全面的に見送る（次回同期時に再試行）
   const allPacksHandled = synced.length + skipped.length === manifest.packs.length
+
+  // manifest.jsonのキャッシュ書き戻しは**全パックが揃ってから**行う（レビュー3巡目 指摘2）。
+  // 先に書くと、resolvePackIds（App.tsx）がキャッシュ済みの新manifestから新パックidを解決し、
+  // loadPackQuestionsがそのパックJSONを直接fetchしてキャッシュへ書き戻してしまう。
+  // 音声が揃っていないパックでもこの経路でJSONだけが公開され、欠落音声を参照する問題が
+  // 出題される（20→24パックの追加で新規パックがある状態が現に成立する）。
+  // manifest・パックJSON・音声を同じ「完成状態」としてまとめて公開する。
+  // 書き戻し失敗は無視する（次回同期のfetchで再試行されるだけで、同期自体は止めない）
+  if (allPacksHandled) {
+    try {
+      await packCache.put(manifestUrl, new Blob([JSON.stringify(manifest)]))
+    } catch {
+      // 無視
+    }
+  }
+
   if (allPacksHandled) {
     // 掃除自体が失敗しても同期の成立には影響しないため無視する（次回同期時に再試行される）
     try {
@@ -302,6 +346,7 @@ export async function loadPackQuestions(
   packCache: PackCache,
   packUrl: string,
   fetchImpl: typeof fetch = fetch,
+  baseUrl: string = import.meta.env.BASE_URL,
 ): Promise<Question[]> {
   const cached = await packCache.get(packUrl)
   if (cached) {
@@ -312,11 +357,29 @@ export async function loadPackQuestions(
   if (!res.ok) throw new Error(`パック取得に失敗（HTTP ${res.status}）: ${packUrl}`)
   const pack = (await res.json()) as QuestionPack
   // T-183 Q-13: fetchフォールバックの取得結果をキャッシュへ書き戻す（書き戻さないと次回もmissする）。
+  //
+  // ただし書き戻すのは**音声が全て揃っているパックだけ**に限る（レビュー3巡目 指摘1）。
+  // キャッシュが空の初回起動では、起動時のloadQuestionPoolと背景のsyncPacksが並行して走り、
+  // resolvePackIdsがmanifestを直fetchして解決するため、この経路が音声の完成状態と無関係に
+  // 動く。音声取得が一部失敗するとsyncPacksはmanifestもパックJSONも書かない（同期未完成）
+  // のに、この書き戻しだけがJSONを残す。次回のオフライン起動ではmanifestを読めずPACK_IDSへ
+  // フォールバックするため、残ったJSONから欠落音声を参照する問題が出題される。
+  // 音声を持たないパック（語彙・Part5・読解）は判定が自明に真になるためQ-13の利点は残る。
   // 書き戻し失敗は無視する（次回のfetchフォールバックで再試行されるだけで、読み込み自体は止めない）
   try {
-    await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
+    if (await hasAllAudio(packCache, collectAudioUrls(baseUrl, pack.questions))) {
+      await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
+    }
   } catch {
     // 無視
   }
   return pack.questions
+}
+
+/** 音声URLが1件残らずキャッシュに載っているか（hasAudioSampleと違いサンプルでなく全件見る） */
+async function hasAllAudio(packCache: PackCache, audioUrls: readonly string[]): Promise<boolean> {
+  for (const url of audioUrls) {
+    if (!(await packCache.has(url))) return false
+  }
+  return true
 }

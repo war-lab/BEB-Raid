@@ -51,6 +51,14 @@ export async function handlePostGhost(
     return errorResponse(400, 'invalid_body', 'リクエストボディの形式が不正です')
   }
 
+  // 記録の作り直しでは createdAt / defeatedCount / lastUsedBossId を初期化する（docs/22 3.3節）。
+  // ただし usedBossIds（過去にこのゴーストが使われた週）は**引き継ぐ**（レビュー2巡目 指摘5）。
+  // 初期化すると、W20で使用→再POST→W23で使用→W24で撤回、のときW20のRaidBossDOに
+  // 本人の正誤詳細（defenseJson）が残り、同意画面の「撤回すると即時削除」を満たさない。
+  // 撤回時は全件を消したうえでレコードごと削除するので、撤回を挟んだ場合は空から始まる
+  const previousRaw = await env.MEMBERS.get(ghostKey(deviceToken))
+  const previous = previousRaw ? (JSON.parse(previousRaw) as GhostRecord) : null
+
   const record: GhostRecord = {
     displayName: memberDisplayName,
     consent: true,
@@ -58,6 +66,7 @@ export async function handlePostGhost(
     createdAt: now,
     defeatedCount: 0,
     lastUsedBossId: null,
+    usedBossIds: previous?.usedBossIds ?? [],
   }
   await env.MEMBERS.put(ghostKey(deviceToken), JSON.stringify(record))
   return jsonResponse({ ok: true } satisfies OkResponse)
@@ -90,12 +99,16 @@ export async function handleDeleteGhostOwn(
   const current = isoWeekInfo(now)
   const currentBossId = bossIdFor(current)
   const replacement = bossProfileForWeek(current.isoWeek)
-  const currentStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(currentBossId))
-  await currentStub.revokeGhostIfOwner(deviceToken, replacement)
-
-  if (record?.lastUsedBossId && record.lastUsedBossId !== currentBossId) {
-    const lastUsedStub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(record.lastUsedBossId))
-    await lastUsedStub.revokeGhostIfOwner(deviceToken, replacement)
+  // 当週と、このゴーストが使われた全ての週から派生データ（defenseJson＝本人の問題別正誤に
+  // 1対1で対応する防御倍率）を消す。lastUsedBossIdだけを見ていた頃は直近1週しか辿れず、
+  // W20とW23で使われたゴーストをW24に撤回するとW20のDOに正誤詳細が残っていた（レビュー指摘5）
+  const targets = new Set<string>([currentBossId])
+  for (const id of record?.usedBossIds ?? []) targets.add(id)
+  // usedBossIdsを持たない既存レコードのために lastUsedBossId も見る（後方互換）
+  if (record?.lastUsedBossId) targets.add(record.lastUsedBossId)
+  for (const bossId of targets) {
+    const stub = env.RAID_BOSS.get(env.RAID_BOSS.idFromName(bossId))
+    await stub.revokeGhostIfOwner(deviceToken, replacement)
   }
 
   return jsonResponse({ ok: true } satisfies OkResponse)
