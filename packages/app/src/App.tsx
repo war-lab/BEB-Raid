@@ -137,7 +137,7 @@ export async function loadQuestionPool(
   const packIds = await resolvePackIds(packCache, baseUrl, fetchImpl)
   const results = await Promise.all(
     packIds.map((id) =>
-      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`, fetchImpl).catch(
+      loadPackQuestions(packCache, `${baseUrl}packs/${id}.json`, fetchImpl, baseUrl).catch(
         (err: unknown) => {
           // オフラインが正常系のため描画はブロックしないが、原因追跡のためコンソールには残す
           console.warn(`[loadQuestionPool] パック取得に失敗: ${id}`, err)

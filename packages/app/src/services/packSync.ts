@@ -346,6 +346,7 @@ export async function loadPackQuestions(
   packCache: PackCache,
   packUrl: string,
   fetchImpl: typeof fetch = fetch,
+  baseUrl: string = import.meta.env.BASE_URL,
 ): Promise<Question[]> {
   const cached = await packCache.get(packUrl)
   if (cached) {
@@ -356,11 +357,29 @@ export async function loadPackQuestions(
   if (!res.ok) throw new Error(`パック取得に失敗（HTTP ${res.status}）: ${packUrl}`)
   const pack = (await res.json()) as QuestionPack
   // T-183 Q-13: fetchフォールバックの取得結果をキャッシュへ書き戻す（書き戻さないと次回もmissする）。
+  //
+  // ただし書き戻すのは**音声が全て揃っているパックだけ**に限る（レビュー3巡目 指摘1）。
+  // キャッシュが空の初回起動では、起動時のloadQuestionPoolと背景のsyncPacksが並行して走り、
+  // resolvePackIdsがmanifestを直fetchして解決するため、この経路が音声の完成状態と無関係に
+  // 動く。音声取得が一部失敗するとsyncPacksはmanifestもパックJSONも書かない（同期未完成）
+  // のに、この書き戻しだけがJSONを残す。次回のオフライン起動ではmanifestを読めずPACK_IDSへ
+  // フォールバックするため、残ったJSONから欠落音声を参照する問題が出題される。
+  // 音声を持たないパック（語彙・Part5・読解）は判定が自明に真になるためQ-13の利点は残る。
   // 書き戻し失敗は無視する（次回のfetchフォールバックで再試行されるだけで、読み込み自体は止めない）
   try {
-    await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
+    if (await hasAllAudio(packCache, collectAudioUrls(baseUrl, pack.questions))) {
+      await packCache.put(packUrl, new Blob([JSON.stringify(pack)]))
+    }
   } catch {
     // 無視
   }
   return pack.questions
+}
+
+/** 音声URLが1件残らずキャッシュに載っているか（hasAudioSampleと違いサンプルでなく全件見る） */
+async function hasAllAudio(packCache: PackCache, audioUrls: readonly string[]): Promise<boolean> {
+  for (const url of audioUrls) {
+    if (!(await packCache.has(url))) return false
+  }
+  return true
 }
